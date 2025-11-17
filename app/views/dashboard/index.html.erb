@@ -1,0 +1,417 @@
+<!-- Dashboard Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Dashboard</h2>
+    <p class="text-muted mb-0">Welcome back, <%= current_user.full_name %>! Here's what's happening with your insurance business today.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-primary">
+      <i class="bi bi-download me-1"></i>
+      Export Report
+    </button>
+    <button class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>
+      Add New Policy
+    </button>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Customers</h6>
+            <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_customers) %></h3>
+          </div>
+          <div class="bg-primary bg-opacity-10 rounded p-3">
+            <i class="bi bi-people text-primary fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Agents</h6>
+            <h3 class="mb-0 text-success"><%= number_with_delimiter(@total_agents) %></h3>
+          </div>
+          <div class="bg-success bg-opacity-10 rounded p-3">
+            <i class="bi bi-person-badge text-success fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Policies</h6>
+            <h3 class="mb-0 text-info"><%= number_with_delimiter(@total_policies) %></h3>
+          </div>
+          <div class="bg-info bg-opacity-10 rounded p-3">
+            <i class="bi bi-file-text text-info fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Premium</h6>
+            <h3 class="mb-0 text-warning">₹<%= number_with_delimiter(@total_premium_collected.to_i) %></h3>
+          </div>
+          <div class="bg-warning bg-opacity-10 rounded p-3">
+            <i class="bi bi-currency-rupee text-warning fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Secondary Stats -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Sum Insured</h6>
+            <h4 class="mb-0">₹<%= number_with_delimiter(@total_sum_insured.to_i) %></h4>
+          </div>
+          <i class="bi bi-shield-check text-secondary fs-4"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Leads</h6>
+            <h4 class="mb-0"><%= number_with_delimiter(@total_leads) %></h4>
+          </div>
+          <i class="bi bi-funnel text-secondary fs-4"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Renewals Due (30 Days)</h6>
+            <h4 class="mb-0 text-danger"><%= number_with_delimiter(@renewal_due_count) %></h4>
+          </div>
+          <i class="bi bi-arrow-repeat text-danger fs-4"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Pending Referral Payouts</h6>
+            <h4 class="mb-0"><%= number_with_delimiter(@pending_referral_payouts) %></h4>
+          </div>
+          <i class="bi bi-cash-stack text-secondary fs-4"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row mb-4">
+  <!-- Policy Type Distribution -->
+  <div class="col-lg-6 mb-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0">
+        <h5 class="mb-0">Policy Type Distribution</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="policyTypeChart" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Premium Collection Trend -->
+  <div class="col-lg-6 mb-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0">
+        <h5 class="mb-0">Premium Collection Trend (Last 12 Months)</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="premiumTrendChart" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <!-- Lead Conversion Funnel -->
+  <div class="col-lg-6 mb-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0">
+        <h5 class="mb-0">Lead Conversion Funnel</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="leadFunnelChart" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Renewal Status -->
+  <div class="col-lg-6 mb-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0">
+        <h5 class="mb-0">Renewal Status Overview</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="renewalStatusChart" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activities -->
+<div class="row">
+  <!-- Recent Policies -->
+  <div class="col-lg-4 mb-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Recent Policies</h5>
+        <%= link_to "View All", admin_policies_path, class: "btn btn-sm btn-outline-primary" %>
+      </div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+          <% if @recent_policies.any? %>
+            <% @recent_policies.each do |policy| %>
+              <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1"><%= policy.policy_number %></h6>
+                  <small class="text-success">₹<%= number_with_delimiter(policy.total_premium.to_i) %></small>
+                </div>
+                <p class="mb-1 small"><%= policy.customer.display_name %></p>
+                <small class="text-muted">
+                  <%= policy.insurance_company.name %> •
+                  <%= policy.insurance_type.humanize %>
+                </small>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="list-group-item text-center text-muted">
+              <i class="bi bi-file-text fs-3 d-block mb-2"></i>
+              No recent policies
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Customers -->
+  <div class="col-lg-4 mb-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Recent Customers</h5>
+        <%= link_to "View All", admin_customers_path, class: "btn btn-sm btn-outline-primary" %>
+      </div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+          <% if @recent_customers.any? %>
+            <% @recent_customers.each do |customer| %>
+              <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1"><%= customer.display_name %></h6>
+                  <span class="badge bg-<%= customer.customer_type == 'individual' ? 'primary' : 'success' %>">
+                    <%= customer.customer_type.humanize %>
+                  </span>
+                </div>
+                <p class="mb-1 small"><%= customer.email %></p>
+                <small class="text-muted">
+                  <%= customer.mobile %> •
+                  <%= customer.city %>, <%= customer.state %>
+                </small>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="list-group-item text-center text-muted">
+              <i class="bi bi-people fs-3 d-block mb-2"></i>
+              No recent customers
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Leads -->
+  <div class="col-lg-4 mb-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Recent Leads</h5>
+        <%= link_to "View All", admin_leads_path, class: "btn btn-sm btn-outline-primary" %>
+      </div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+          <% if @recent_leads.any? %>
+            <% @recent_leads.each do |lead| %>
+              <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1"><%= lead.name %></h6>
+                  <span class="badge bg-<%= lead.current_stage == 'converted' ? 'success' : 'warning' %>">
+                    <%= lead.current_stage.humanize %>
+                  </span>
+                </div>
+                <p class="mb-1 small"><%= lead.product_interest %></p>
+                <small class="text-muted">
+                  <%= lead.contact_number %>
+                  <% if lead.referred_by.present? %>
+                    • Ref: <%= lead.referred_by %>
+                  <% end %>
+                </small>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="list-group-item text-center text-muted">
+              <i class="bi bi-funnel fs-3 d-block mb-2"></i>
+              No recent leads
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Policy Type Distribution Chart
+  const policyTypeCtx = document.getElementById('policyTypeChart').getContext('2d');
+  new Chart(policyTypeCtx, {
+    type: 'doughnut',
+    data: {
+      labels: <%= (@policy_type_distribution&.keys || []).map(&:humanize).to_json.html_safe %>,
+      datasets: [{
+        data: <%= (@policy_type_distribution&.values || []).to_json.html_safe %>,
+        backgroundColor: [
+          '#0d6efd',
+          '#198754',
+          '#ffc107',
+          '#dc3545',
+          '#6f42c1'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+
+  // Premium Collection Trend Chart
+  const premiumTrendCtx = document.getElementById('premiumTrendChart').getContext('2d');
+  new Chart(premiumTrendCtx, {
+    type: 'line',
+    data: {
+      labels: <%= (@premium_collection_trend&.keys || []).map { |date| date&.strftime("%b %Y") }.to_json.html_safe %>,
+      datasets: [{
+        label: 'Premium Collection (₹)',
+        data: <%= (@premium_collection_trend&.values || []).to_json.html_safe %>,
+        borderColor: '#0d6efd',
+        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // Lead Conversion Funnel Chart
+  const leadFunnelCtx = document.getElementById('leadFunnelChart').getContext('2d');
+  new Chart(leadFunnelCtx, {
+    type: 'bar',
+    data: {
+      labels: <%= (@lead_conversion_funnel&.keys || []).to_json.html_safe %>,
+      datasets: [{
+        label: 'Count',
+        data: <%= (@lead_conversion_funnel&.values || []).to_json.html_safe %>,
+        backgroundColor: [
+          '#0d6efd',
+          '#198754',
+          '#ffc107',
+          '#fd7e14',
+          '#dc3545'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // Renewal Status Chart
+  const renewalStatusCtx = document.getElementById('renewalStatusChart').getContext('2d');
+  new Chart(renewalStatusCtx, {
+    type: 'pie',
+    data: {
+      labels: <%= (@renewal_status&.keys || []).to_json.html_safe %>,
+      datasets: [{
+        data: <%= (@renewal_status&.values || []).to_json.html_safe %>,
+        backgroundColor: [
+          '#198754',
+          '#ffc107',
+          '#dc3545'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+</script>

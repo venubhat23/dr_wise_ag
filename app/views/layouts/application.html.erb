@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "InsureBook - Admin Dashboard" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <%# Includes all stylesheet files in app/assets/stylesheets %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "auth", "data-turbo-track": "reload" if !user_signed_in? %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="<%= 'auth-page' unless user_signed_in? %>">
+    <% if user_signed_in? %>
+      <!-- Main Application Layout -->
+      <div class="d-flex">
+        <!-- Sidebar -->
+        <%= render 'shared/sidebar' %>
+
+        <!-- Main Content -->
+        <div class="main-content flex-fill">
+          <!-- Top Navigation -->
+          <%= render 'shared/top_nav' %>
+
+          <!-- Flash Messages -->
+          <% if notice %>
+            <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+              <%= notice %>
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          <% end %>
+
+          <% if alert %>
+            <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+              <%= alert %>
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          <% end %>
+
+          <!-- Main Content Area -->
+          <div class="content-wrapper p-3">
+            <%= yield %>
+          </div>
+        </div>
+      </div>
+    <% else %>
+      <!-- Authentication Layout -->
+      <div class="auth-wrapper">
+        <!-- Background pattern overlay -->
+        <div class="auth-pattern"></div>
+
+        <!-- Large floating shapes -->
+        <div class="floating-shape shape-1"></div>
+        <div class="floating-shape shape-2"></div>
+        <div class="floating-shape shape-3"></div>
+
+        <% if notice %>
+          <div class="alert alert-success alert-dismissible fade show m-3" role="alert" style="position: relative; z-index: 1000;">
+            <%= notice %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        <% end %>
+
+        <% if alert %>
+          <div class="alert alert-danger alert-dismissible fade show m-3" role="alert" style="position: relative; z-index: 1000;">
+            <%= alert %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        <% end %>
+
+        <%= yield %>
+      </div>
+    <% end %>
+  </body>
+</html>

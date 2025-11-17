@@ -1,0 +1,153 @@
+<div class="sidebar bg-primary text-white vh-100 position-sticky top-0">
+  <div class="sidebar-header p-3 border-bottom">
+    <div class="d-flex align-items-center">
+      <i class="bi bi-shield-check text-white me-2 fs-3"></i>
+      <h4 class="mb-0">InsureBook</h4>
+    </div>
+    <small class="text-white-50">Technology Pvt Ltd</small>
+  </div>
+
+  <nav class="sidebar-nav p-3">
+    <ul class="nav flex-column">
+      <!-- Dashboard -->
+      <li class="nav-item mb-2">
+        <%= link_to root_path, class: "nav-link text-white #{'active' if current_page?(root_path)}" do %>
+          <i class="bi bi-speedometer2 me-2"></i>
+          Dashboard
+        <% end %>
+      </li>
+
+      <!-- Customers -->
+      <li class="nav-item mb-2">
+        <%= link_to admin_customers_path, class: "nav-link text-white #{'active' if request.path.include?('/admin/customers')}" do %>
+          <i class="bi bi-people me-2"></i>
+          Customers
+        <% end %>
+      </li>
+
+      <!-- Insurance -->
+      <li class="nav-item mb-2">
+        <a class="nav-link text-white <%= 'active' if request.path.include?('/admin/insurance') %>"
+           data-bs-toggle="collapse" href="#insuranceSubmenu" role="button">
+          <i class="bi bi-shield me-2"></i>
+          Insurance
+          <i class="bi bi-chevron-down float-end"></i>
+        </a>
+        <div class="collapse ms-3" id="insuranceSubmenu">
+          <ul class="nav flex-column">
+            <li class="nav-item">
+              <%= link_to admin_life_insurances_path, class: "nav-link text-white-75" do %>
+                <i class="bi bi-heart me-2"></i>
+                Life Insurance
+              <% end %>
+            </li>
+            <li class="nav-item">
+              <%= link_to admin_health_insurances_path, class: "nav-link text-white-75" do %>
+                <i class="bi bi-hospital me-2"></i>
+                Health Insurance
+              <% end %>
+            </li>
+            <li class="nav-item">
+              <%= link_to admin_motor_insurances_path, class: "nav-link text-white-75" do %>
+                <i class="bi bi-car-front me-2"></i>
+                Motor Insurance
+              <% end %>
+            </li>
+            <li class="nav-item">
+              <%= link_to admin_other_insurances_path, class: "nav-link text-white-75" do %>
+                <i class="bi bi-grid me-2"></i>
+                Other Insurance
+              <% end %>
+            </li>
+          </ul>
+        </div>
+      </li>
+
+      <!-- Policy Assignment -->
+      <li class="nav-item mb-2">
+        <%= link_to admin_policies_path, class: "nav-link text-white #{'active' if request.path.include?('/admin/policies')}" do %>
+          <i class="bi bi-file-text me-2"></i>
+          Policy Assignment
+        <% end %>
+      </li>
+
+      <!-- Agents -->
+      <li class="nav-item mb-2">
+        <%= link_to admin_users_path, class: "nav-link text-white #{'active' if request.path.include?('/admin/users')}" do %>
+          <i class="bi bi-person-badge me-2"></i>
+          Agents
+        <% end %>
+      </li>
+
+      <!-- Leads -->
+      <li class="nav-item mb-2">
+        <%= link_to admin_leads_path, class: "nav-link text-white #{'active' if request.path.include?('/admin/leads')}" do %>
+          <i class="bi bi-funnel me-2"></i>
+          Leads
+        <% end %>
+      </li>
+
+      <!-- Banner -->
+      <li class="nav-item mb-2">
+        <%= link_to admin_banners_path, class: "nav-link text-white #{'active' if request.path.include?('/admin/banners')}" do %>
+          <i class="bi bi-images me-2"></i>
+          Banner
+        <% end %>
+      </li>
+
+      <!-- Reports -->
+      <li class="nav-item mb-2">
+        <a class="nav-link text-white <%= 'active' if request.path.include?('/admin/reports') %>"
+           data-bs-toggle="collapse" href="#reportsSubmenu" role="button">
+          <i class="bi bi-graph-up me-2"></i>
+          Reports
+          <i class="bi bi-chevron-down float-end"></i>
+        </a>
+        <div class="collapse ms-3" id="reportsSubmenu">
+          <ul class="nav flex-column">
+            <li class="nav-item">
+              <%= link_to admin_reports_commission_path, class: "nav-link text-white-75" do %>
+                <i class="bi bi-currency-dollar me-2"></i>
+                Commission Report
+              <% end %>
+            </li>
+            <li class="nav-item">
+              <%= link_to admin_reports_expired_insurance_path, class: "nav-link text-white-75" do %>
+                <i class="bi bi-clock-history me-2"></i>
+                Expired Insurance
+              <% end %>
+            </li>
+            <li class="nav-item">
+              <%= link_to admin_reports_upcoming_renewal_path, class: "nav-link text-white-75" do %>
+                <i class="bi bi-arrow-repeat me-2"></i>
+                Upcoming Renewals
+              <% end %>
+            </li>
+            <li class="nav-item">
+              <%= link_to admin_reports_leads_path, class: "nav-link text-white-75" do %>
+                <i class="bi bi-people me-2"></i>
+                Leads Report
+              <% end %>
+            </li>
+          </ul>
+        </div>
+      </li>
+
+      <!-- Agency/Broker Codes -->
+      <li class="nav-item mb-2">
+        <%= link_to admin_agency_brokers_path, class: "nav-link text-white #{'active' if request.path.include?('/admin/agency_brokers')}" do %>
+          <i class="bi bi-building me-2"></i>
+          Agency/Broker Code
+        <% end %>
+      </li>
+
+      <!-- Insurance Companies -->
+      <li class="nav-item mb-2">
+        <%= link_to admin_insurance_companies_path, class: "nav-link text-white #{'active' if request.path.include?('/admin/insurance_companies')}" do %>
+          <i class="bi bi-briefcase me-2"></i>
+          Insurance Companies
+        <% end %>
+      </li>
+    </ul>
+  </nav>
+</div>

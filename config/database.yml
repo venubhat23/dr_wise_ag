@@ -1,0 +1,53 @@
+default: &default
+  adapter: sqlite3
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  timeout: 5000
+
+development:
+  <<: *default
+  database: storage/development.sqlite3
+
+test:
+  <<: *default
+  database: storage/test.sqlite3
+
+production:
+  primary:
+    adapter: postgresql
+    encoding: unicode
+    pool: 5
+    database: drwise_db
+    host: dpg-d4ctbr1r0fns73aavd9g-a
+    port: 5432
+    username: drwise_db_user
+    password: y9XcRZgTOn6LNoLfb3G5v5uUjxPZAuZz
+
+  cable:
+    adapter: postgresql
+    encoding: unicode
+    pool: 5
+    database: drwise_db
+    host: dpg-d4ctbr1r0fns73aavd9g-a
+    port: 5432
+    username: drwise_db_user
+    password: y9XcRZgTOn6LNoLfb3G5v5uUjxPZAuZz
+
+  queue:
+    adapter: postgresql
+    encoding: unicode
+    pool: 5
+    database: drwise_db
+    host: dpg-d4ctbr1r0fns73aavd9g-a
+    port: 5432
+    username: drwise_db_user
+    password: y9XcRZgTOn6LNoLfb3G5v5uUjxPZAuZz
+
+  cache:
+    adapter: postgresql
+    encoding: unicode
+    pool: 5
+    database: drwise_db
+    host: dpg-d4ctbr1r0fns73aavd9g-a
+    port: 5432
+    username: drwise_db_user
+    password: y9XcRZgTOn6LNoLfb3G5v5uUjxPZAuZz
