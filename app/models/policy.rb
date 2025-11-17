@@ -14,7 +14,7 @@ class Policy < ApplicationRecord
 
   # Validations
   validates :policy_number, presence: true, uniqueness: true
-  validates :policy_type, presence: true, inclusion: { in: ['new', 'renewal'] }
+  validates :policy_type, presence: true, inclusion: { in: ['new_policy', 'renewal'] }
   validates :insurance_type, presence: true, inclusion: { in: ['life', 'health', 'motor', 'other'] }
   validates :payment_mode, presence: true, inclusion: { in: ['yearly', 'half_yearly', 'quarterly', 'monthly', 'single'] }
   validates :policy_start_date, presence: true
@@ -25,7 +25,7 @@ class Policy < ApplicationRecord
   validates :status, inclusion: { in: [true, false] }
 
   # Enums
-  enum :policy_type, { new: 'new', renewal: 'renewal' }
+  enum :policy_type, { new_policy: 'new_policy', renewal: 'renewal' }
   enum :insurance_type, { life: 'life', health: 'health', motor: 'motor', other: 'other' }
   enum :payment_mode, { yearly: 'yearly', half_yearly: 'half_yearly', quarterly: 'quarterly', monthly: 'monthly', single: 'single' }
 
