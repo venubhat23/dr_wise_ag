@@ -450,7 +450,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       user_id = decoded_token['user_id']
       role = decoded_token['role']
 
-      if role == 'agent'
+      if (role == 'agent') || (role == 'sub_agent')
         @current_user = User.find(user_id)
       else
         return render json: {

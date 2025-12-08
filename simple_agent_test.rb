@@ -77,8 +77,6 @@ end
       net_premium: 15000 + (i * 5000),
       total_premium: 17700 + (i * 5900),
       gst_percentage: 18,
-      status: "active",
-      added_by: sub_agent.id.to_s,
       installment_autopay_start_date: Date.current - (20 - i*7).days
     )
     puts "  Health Insurance: #{health_insurance.plan_name} (₹#{health_insurance.total_premium})"
@@ -101,8 +99,6 @@ end
       premium_payment_term: 15,
       nominee_name: "Test Nominee #{i+1}",
       nominee_relationship: "Spouse",
-      status: "active",
-      added_by: sub_agent.id.to_s,
       installment_autopay_start_date: Date.current - (40 - i*10).days
     )
     puts "  Life Insurance: #{life_insurance.plan_name} (₹#{life_insurance.total_premium})"
