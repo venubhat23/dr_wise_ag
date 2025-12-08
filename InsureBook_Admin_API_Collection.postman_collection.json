@@ -142,6 +142,28 @@
               "path": ["auth", "reset_password"]
             }
           }
+        },
+        {
+          "name": "Agent Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Agent\",\n  \"last_name\": \"Smith\",\n  \"email\": \"agent.smith@insurebook.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"mobile\": \"9876543210\",\n  \"company_name\": \"Insurance Agency Ltd\",\n  \"pan_no\": \"AGENT1234P\",\n  \"address\": \"123 Agent Street, Business District\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/agent_register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "agent_register"]
+            },
+            "description": "Register a new agent with required details including company information"
+          }
         }
       ]
     },

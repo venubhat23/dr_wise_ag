@@ -104,7 +104,7 @@ class Admin::LeadsController < Admin::ApplicationController
   # PATCH /admin/leads/1/transfer_referral
   def transfer_referral
     # Logic for transferring referral
-    if @lead.update(current_stage: 'transferred') if @lead.respond_to?(:current_stage)
+    if @lead.respond_to?(:current_stage) && @lead.update(current_stage: 'transferred')
       redirect_to admin_lead_path(@lead), notice: 'Referral transferred successfully.'
     else
       redirect_to admin_lead_path(@lead), alert: 'Failed to transfer referral.'

@@ -119,6 +119,28 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Mobile Register (Agent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Agent\",\n  \"last_name\": \"Kumar\",\n  \"email\": \"agent.kumar@insurebook.com\",\n  \"mobile\": \"9876543211\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"company_name\": \"Kumar Insurance Services\",\n  \"pan_no\": \"AGENTK1234\",\n  \"address\": \"456 Business Hub, Commercial Street\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "auth", "register"]
+            }
+          },
+          "response": []
         }
       ]
     },
