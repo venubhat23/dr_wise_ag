@@ -48,8 +48,10 @@ class Api::V1::CustomersController < Api::V1::ApplicationController
 
     if @customer.save
       render_success(
-        customer: customer_details(@customer),
-        message: 'Customer created successfully',
+        {
+          customer: customer_details(@customer),
+          message: 'Customer created successfully'
+        },
         :created
       )
     else
