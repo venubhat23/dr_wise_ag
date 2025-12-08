@@ -25,6 +25,38 @@
           <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { class: "needs-validation", novalidate: true }) do |f| %>
             <%= render "devise/shared/error_messages", resource: resource %>
 
+            <!-- First Name Field -->
+            <div class="mb-3">
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                  <i class="bi bi-person text-muted"></i>
+                </span>
+                <%= f.text_field :first_name,
+                    class: "form-control border-start-0 ps-0",
+                    placeholder: "First Name",
+                    required: true %>
+              </div>
+              <div class="invalid-feedback">
+                Please provide your first name.
+              </div>
+            </div>
+
+            <!-- Last Name Field -->
+            <div class="mb-3">
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                  <i class="bi bi-person text-muted"></i>
+                </span>
+                <%= f.text_field :last_name,
+                    class: "form-control border-start-0 ps-0",
+                    placeholder: "Last Name",
+                    required: true %>
+              </div>
+              <div class="invalid-feedback">
+                Please provide your last name.
+              </div>
+            </div>
+
             <!-- Email Field -->
             <div class="mb-3">
               <div class="input-group">
@@ -41,22 +73,108 @@
               </div>
             </div>
 
-  <div class="field">
-    <%= f.label :password %>
-    <% if @minimum_password_length %>
-    <em>(<%= @minimum_password_length %> characters minimum)</em>
-    <% end %><br />
-    <%= f.password_field :password, autocomplete: "new-password" %>
-  </div>
+            <!-- Mobile Field -->
+            <div class="mb-3">
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                  <i class="bi bi-phone text-muted"></i>
+                </span>
+                <%= f.telephone_field :mobile,
+                    class: "form-control border-start-0 ps-0",
+                    placeholder: "Mobile Number",
+                    required: true %>
+              </div>
+              <div class="invalid-feedback">
+                Please provide your mobile number.
+              </div>
+            </div>
 
-  <div class="field">
-    <%= f.label :password_confirmation %><br />
-    <%= f.password_field :password_confirmation, autocomplete: "new-password" %>
-  </div>
+            <!-- User Type Field -->
+            <div class="mb-3">
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                  <i class="bi bi-people text-muted"></i>
+                </span>
+                <%= f.select :user_type,
+                    options_for_select([
+                      ['Admin', 'admin'],
+                      ['Agent', 'agent'],
+                      ['Sub Agent', 'sub_agent'],
+                      ['Customer', 'customer']
+                    ], 'agent'),
+                    { prompt: 'Select User Type' },
+                    { class: "form-control border-start-0 ps-0", required: true } %>
+              </div>
+              <div class="invalid-feedback">
+                Please select a user type.
+              </div>
+            </div>
 
-  <div class="actions">
-    <%= f.submit "Sign up" %>
-  </div>
+            <!-- Role Field -->
+            <div class="mb-3">
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                  <i class="bi bi-award text-muted"></i>
+                </span>
+                <%= f.select :role,
+                    options_for_select([
+                      ['Super Admin', 'super_admin'],
+                      ['Admin', 'admin_role'],
+                      ['Manager', 'manager'],
+                      ['Agent', 'agent_role']
+                    ], 'agent_role'),
+                    { prompt: 'Select Role' },
+                    { class: "form-control border-start-0 ps-0", required: true } %>
+              </div>
+              <div class="invalid-feedback">
+                Please select a role.
+              </div>
+            </div>
+
+            <!-- Status Field -->
+            <div class="mb-3">
+              <div class="form-check">
+                <%= f.check_box :status, { checked: true, class: "form-check-input" }, "true", "false" %>
+                <%= f.label :status, "Active Status", class: "form-check-label" %>
+              </div>
+            </div>
+
+            <!-- Password Field -->
+            <div class="mb-3">
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                  <i class="bi bi-lock text-muted"></i>
+                </span>
+                <%= f.password_field :password, autocomplete: "new-password",
+                    class: "form-control border-start-0 ps-0",
+                    placeholder: "Password (6 characters minimum)",
+                    required: true %>
+              </div>
+              <div class="invalid-feedback">
+                Please provide a password with at least 6 characters.
+              </div>
+            </div>
+
+            <!-- Password Confirmation Field -->
+            <div class="mb-3">
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                  <i class="bi bi-lock text-muted"></i>
+                </span>
+                <%= f.password_field :password_confirmation, autocomplete: "new-password",
+                    class: "form-control border-start-0 ps-0",
+                    placeholder: "Confirm Password",
+                    required: true %>
+              </div>
+              <div class="invalid-feedback">
+                Please confirm your password.
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="d-grid gap-2">
+              <%= f.submit "Create Account", class: "btn btn-primary btn-lg", style: "border-radius: 10px;" %>
+            </div>
 <% end %>
 
 <%= render "devise/shared/links" %>

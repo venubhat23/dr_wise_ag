@@ -1,0 +1,415 @@
+<% content_for :page_title, "Life Insurance Policy Details" %>
+<% content_for :page_subtitle, "Policy ##{@life_insurance.policy_number}" %>
+
+<!-- Action Buttons -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <%= link_to admin_life_insurances_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-2"></i>
+      Back to List
+    <% end %>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= link_to edit_admin_life_insurance_path(@life_insurance), class: "btn btn-primary" do %>
+      <i class="bi bi-pencil me-2"></i>
+      Edit Policy
+    <% end %>
+    <%= link_to admin_life_insurance_path(@life_insurance), method: :delete,
+        class: "btn btn-outline-danger",
+        confirm: "Are you sure you want to delete this policy?",
+        data: { turbo_method: :delete } do %>
+      <i class="bi bi-trash me-2"></i>
+      Delete
+    <% end %>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <!-- Policy Overview -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="bi bi-heart me-2 text-primary"></i>
+          Policy Overview
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <strong>Policy Number:</strong><br>
+            <span class="text-primary"><%= @life_insurance.policy_number %></span>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Policy Type:</strong><br>
+            <%= @life_insurance.policy_type %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Insurance Company:</strong><br>
+            <%= @life_insurance.insurance_company_name %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Plan Name:</strong><br>
+            <%= @life_insurance.plan_name %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Sum Insured:</strong><br>
+            <span class="text-success fw-bold">₹<%= number_with_delimiter(@life_insurance.sum_insured) %></span>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Total Premium:</strong><br>
+            <span class="text-warning fw-bold">₹<%= number_with_delimiter(@life_insurance.total_premium) %></span>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Policy Term:</strong><br>
+            <%= @life_insurance.policy_term %> years
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Payment Mode:</strong><br>
+            <%= @life_insurance.payment_mode %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Client Information -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="bi bi-person me-2 text-info"></i>
+          Client Information
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <strong>Client Name:</strong><br>
+            <%= @life_insurance.customer.display_name %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Policy Holder:</strong><br>
+            <%= @life_insurance.policy_holder %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Insured Name:</strong><br>
+            <%= @life_insurance.insured_name %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Sub Agent:</strong><br>
+            <%= @life_insurance.affiliate_name %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Policy Dates -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="bi bi-calendar me-2 text-warning"></i>
+          Policy Dates
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <strong>Policy Booking Date:</strong><br>
+            <%= @life_insurance.policy_booking_date&.strftime("%B %d, %Y") %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Policy Start Date:</strong><br>
+            <%= @life_insurance.policy_start_date&.strftime("%B %d, %Y") %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Policy End Date:</strong><br>
+            <%= @life_insurance.policy_end_date&.strftime("%B %d, %Y") %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Risk Start Date:</strong><br>
+            <%= @life_insurance.risk_start_date&.strftime("%B %d, %Y") if @life_insurance.risk_start_date %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rider Details -->
+    <% if @life_insurance.total_rider_amount > 0 %>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-plus-circle me-2 text-success"></i>
+            Rider Details
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>Rider Type</th>
+                  <th>Amount</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if @life_insurance.term_rider_amount > 0 %>
+                  <tr>
+                    <td>Term Rider</td>
+                    <td>₹<%= number_with_delimiter(@life_insurance.term_rider_amount) %></td>
+                    <td><%= @life_insurance.term_rider_note %></td>
+                  </tr>
+                <% end %>
+                <% if @life_insurance.critical_illness_rider_amount > 0 %>
+                  <tr>
+                    <td>Critical Illness Rider</td>
+                    <td>₹<%= number_with_delimiter(@life_insurance.critical_illness_rider_amount) %></td>
+                    <td><%= @life_insurance.critical_illness_rider_note %></td>
+                  </tr>
+                <% end %>
+                <% if @life_insurance.accident_rider_amount > 0 %>
+                  <tr>
+                    <td>Accident Rider</td>
+                    <td>₹<%= number_with_delimiter(@life_insurance.accident_rider_amount) %></td>
+                    <td><%= @life_insurance.accident_rider_note %></td>
+                  </tr>
+                <% end %>
+                <% if @life_insurance.pwb_rider_amount > 0 %>
+                  <tr>
+                    <td>PWB (Premium Waiver Benefit)</td>
+                    <td>₹<%= number_with_delimiter(@life_insurance.pwb_rider_amount) %></td>
+                    <td><%= @life_insurance.pwb_rider_note %></td>
+                  </tr>
+                <% end %>
+                <% if @life_insurance.other_rider_amount > 0 %>
+                  <tr>
+                    <td>Others</td>
+                    <td>₹<%= number_with_delimiter(@life_insurance.other_rider_amount) %></td>
+                    <td><%= @life_insurance.other_rider_note %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Premium & Commission Details -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="bi bi-currency-rupee me-2 text-success"></i>
+          Premium & Commission Details
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <strong>Net Premium:</strong><br>
+            ₹<%= number_with_delimiter(@life_insurance.net_premium) %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>1st Year GST (%):</strong><br>
+            <%= @life_insurance.first_year_gst_percentage %>%
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Commission (%):</strong><br>
+            <%= @life_insurance.main_agent_commission_percentage %>%
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>Commission Amount:</strong><br>
+            ₹<%= number_with_delimiter(@life_insurance.commission_amount) %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>TDS (%):</strong><br>
+            <%= @life_insurance.tds_percentage %>%
+          </div>
+          <div class="col-md-6 mb-3">
+            <strong>After TDS Value:</strong><br>
+            ₹<%= number_with_delimiter(@life_insurance.after_tds_value) %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nominee Details -->
+    <% if @life_insurance.nominee_name.present? %>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-people me-2 text-info"></i>
+            Nominee Details
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <strong>Nominee Name:</strong><br>
+              <%= @life_insurance.nominee_name %>
+            </div>
+            <div class="col-md-4 mb-3">
+              <strong>Relationship:</strong><br>
+              <%= @life_insurance.nominee_relationship %>
+            </div>
+            <div class="col-md-4 mb-3">
+              <strong>Age:</strong><br>
+              <%= @life_insurance.nominee_age %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Bank Details -->
+    <% if @life_insurance.bank_name.present? %>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-bank me-2 text-warning"></i>
+            Bank Details
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <strong>Bank Name:</strong><br>
+              <%= @life_insurance.bank_name %>
+            </div>
+            <div class="col-md-6 mb-3">
+              <strong>Account Type:</strong><br>
+              <%= @life_insurance.account_type %>
+            </div>
+            <div class="col-md-6 mb-3">
+              <strong>Account Number:</strong><br>
+              <%= @life_insurance.account_number %>
+            </div>
+            <div class="col-md-6 mb-3">
+              <strong>IFSC Code:</strong><br>
+              <%= @life_insurance.ifsc_code %>
+            </div>
+            <div class="col-md-12 mb-3">
+              <strong>Account Holder Name:</strong><br>
+              <%= @life_insurance.account_holder_name %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Additional Notes -->
+    <% if @life_insurance.extra_note.present? %>
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-sticky me-2 text-secondary"></i>
+            Additional Notes
+          </h5>
+        </div>
+        <div class="card-body">
+          <%= simple_format(@life_insurance.extra_note) %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="col-lg-4">
+    <!-- Status Card -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="bi bi-info-circle me-2 text-primary"></i>
+          Policy Status
+        </h5>
+      </div>
+      <div class="card-body text-center">
+        <% case @life_insurance.status %>
+        <% when 'active' %>
+          <div class="badge bg-success p-3 mb-3" style="font-size: 1.1rem;">
+            <i class="bi bi-check-circle me-2"></i>
+            Active Policy
+          </div>
+        <% when 'expired' %>
+          <div class="badge bg-danger p-3 mb-3" style="font-size: 1.1rem;">
+            <i class="bi bi-x-circle me-2"></i>
+            Policy Expired
+          </div>
+        <% when 'expiring_soon' %>
+          <div class="badge bg-warning p-3 mb-3" style="font-size: 1.1rem;">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Expiring Soon
+          </div>
+        <% end %>
+
+        <% if @life_insurance.days_until_expiry >= 0 %>
+          <p class="text-muted">
+            <strong><%= @life_insurance.days_until_expiry %></strong> days until expiry
+          </p>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="bi bi-lightning me-2 text-warning"></i>
+          Quick Actions
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <%= link_to edit_admin_life_insurance_path(@life_insurance), class: "btn btn-outline-primary" do %>
+            <i class="bi bi-pencil me-2"></i>
+            Edit Policy
+          <% end %>
+
+          <button class="btn btn-outline-info" onclick="window.print()">
+            <i class="bi bi-printer me-2"></i>
+            Print Policy
+          </button>
+
+          <button class="btn btn-outline-success">
+            <i class="bi bi-download me-2"></i>
+            Download PDF
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact Info -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="bi bi-telephone me-2 text-success"></i>
+          Contact Information
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <strong>Customer Email:</strong><br>
+          <a href="mailto:<%= @life_insurance.customer.email %>">
+            <%= @life_insurance.customer.email %>
+          </a>
+        </div>
+        <div class="mb-3">
+          <strong>Customer Mobile:</strong><br>
+          <a href="tel:<%= @life_insurance.customer.mobile %>">
+            <%= @life_insurance.customer.mobile %>
+          </a>
+        </div>
+        <% if @life_insurance.sub_agent %>
+          <div class="mb-3">
+            <strong>Sub Agent:</strong><br>
+            <%= @life_insurance.sub_agent.display_name %><br>
+            <small class="text-muted">
+              <a href="mailto:<%= @life_insurance.sub_agent.email %>">
+                <%= @life_insurance.sub_agent.email %>
+              </a>
+            </small>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

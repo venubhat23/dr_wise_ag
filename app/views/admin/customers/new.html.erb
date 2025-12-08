@@ -1,0 +1,815 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Add New Customer</h2>
+    <p class="text-muted mb-0">Fill in the details to create a new customer account</p>
+  </div>
+  <div>
+    <%= link_to admin_customers_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Customers
+    <% end %>
+  </div>
+</div>
+
+<!-- Error Display -->
+<% if @customer.errors.any? %>
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <div class="d-flex align-items-center">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      <div>
+        <h6 class="mb-1"><%= pluralize(@customer.errors.count, "error") %> prohibited this customer from being saved:</h6>
+        <ul class="mb-0">
+          <% @customer.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+<% end %>
+
+<%= form_with model: [:admin, @customer], local: true, multipart: true, class: "needs-validation", novalidate: true, data: { turbo: false } do |form| %>
+
+  <!-- 1. Customer Type Selection -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-person-gear me-2 text-primary"></i>
+      <h5 class="mb-0">Customer Type</h5>
+    </div>
+    <div class="card-body">
+      <div class="customer-type-selection">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="customer-type-card" data-type="individual">
+              <%= form.radio_button :customer_type, 'individual',
+                  class: "form-check-input d-none",
+                  id: "customer_type_individual",
+                  required: true %>
+              <label for="customer_type_individual" class="customer-type-label">
+                <div class="text-center p-4">
+                  <i class="bi bi-person-circle fs-1 d-block mb-3 text-primary"></i>
+                  <h6 class="fw-bold">Individual</h6>
+                  <p class="text-muted small mb-0">Personal Customer</p>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="customer-type-card" data-type="corporate">
+              <%= form.radio_button :customer_type, 'corporate',
+                  class: "form-check-input d-none",
+                  id: "customer_type_corporate",
+                  required: true %>
+              <label for="customer_type_corporate" class="customer-type-label">
+                <div class="text-center p-4">
+                  <i class="bi bi-building fs-1 d-block mb-3 text-success"></i>
+                  <h6 class="fw-bold">Corporate</h6>
+                  <p class="text-muted small mb-0">Business Customer</p>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+        <% if @customer.errors[:customer_type].any? %>
+          <div class="text-danger mt-2">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            <%= @customer.errors[:customer_type].first %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Basic Information (Individual Customer) -->
+  <div id="individual_sections" style="display: none;">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center">
+        <i class="bi bi-info-circle me-2 text-primary"></i>
+        <h5 class="mb-0">Basic Information</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <%= form.label :profile_image, "Profile Image", class: "form-label" %>
+            <%= form.file_field :profile_image, class: "form-control", accept: "image/*" %>
+            <small class="form-text text-muted">Upload profile photo (optional)</small>
+          </div>
+          <div class="col-md-6">
+            <%= form.label :sub_agent, "Sub Agent", class: "form-label" %>
+            <%= form.text_field :sub_agent, value: "Self", class: "form-control" %>
+            <small class="form-text text-muted">Default: Self</small>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <%= form.label :first_name, class: "form-label" do %>
+              First Name <span class="text-danger">*</span>
+            <% end %>
+            <%= form.text_field :first_name, class: "form-control #{'is-invalid' if @customer.errors[:first_name].any?}", placeholder: "Enter first name", required: true %>
+            <% if @customer.errors[:first_name].any? %>
+              <div class="invalid-feedback">
+                <%= @customer.errors[:first_name].first %>
+              </div>
+            <% end %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :middle_name, "Middle Name", class: "form-label" %>
+            <%= form.text_field :middle_name, class: "form-control #{'is-invalid' if @customer.errors[:middle_name].any?}", placeholder: "Enter middle name" %>
+            <% if @customer.errors[:middle_name].any? %>
+              <div class="invalid-feedback">
+                <%= @customer.errors[:middle_name].first %>
+              </div>
+            <% end %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :last_name, class: "form-label" do %>
+              Last Name <span class="text-danger">*</span>
+            <% end %>
+            <%= form.text_field :last_name, class: "form-control #{'is-invalid' if @customer.errors[:last_name].any?}", placeholder: "Enter last name", required: true %>
+            <% if @customer.errors[:last_name].any? %>
+              <div class="invalid-feedback">
+                <%= @customer.errors[:last_name].first %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-6">
+            <%= form.label :mobile, class: "form-label" do %>
+              Mobile <span class="text-danger">*</span>
+            <% end %>
+            <%= form.telephone_field :mobile, class: "form-control #{'is-invalid' if @customer.errors[:mobile].any?}", placeholder: "Enter mobile number", required: true %>
+            <% if @customer.errors[:mobile].any? %>
+              <div class="invalid-feedback">
+                <%= @customer.errors[:mobile].first %>
+              </div>
+            <% end %>
+          </div>
+          <div class="col-md-6">
+            <%= form.label :email, "Email", class: "form-label" %>
+            <%= form.email_field :email, class: "form-control #{'is-invalid' if @customer.errors[:email].any?}", placeholder: "Enter email ID" %>
+            <% if @customer.errors[:email].any? %>
+              <div class="invalid-feedback">
+                <%= @customer.errors[:email].first %>
+              </div>
+            <% else %>
+              <small class="form-text text-muted">Optional</small>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Advance Details (Individual Customer) -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center">
+        <i class="bi bi-gear me-2 text-primary"></i>
+        <h5 class="mb-0">Advance Details</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4">
+            <%= form.label :state, "State", class: "form-label" %>
+            <%= form.select :state,
+                options_for_select([
+                  ['Karnataka', 'Karnataka'], ['Tamil Nadu', 'Tamil Nadu'],
+                  ['Maharashtra', 'Maharashtra'], ['Gujarat', 'Gujarat'],
+                  ['Delhi', 'Delhi'], ['West Bengal', 'West Bengal']
+                ], @customer.state),
+                { prompt: 'Select State' },
+                { class: "form-select" } %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :city, "City", class: "form-label" %>
+            <%= form.select :city,
+                options_for_select([
+                  ['Bangalore', 'Bangalore'], ['Mumbai', 'Mumbai'],
+                  ['Chennai', 'Chennai'], ['Delhi', 'Delhi'],
+                  ['Kolkata', 'Kolkata'], ['Pune', 'Pune']
+                ], @customer.city),
+                { prompt: 'Select City' },
+                { class: "form-select" } %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :address, "Address", class: "form-label" %>
+            <%= form.text_area :address, class: "form-control", rows: 1, placeholder: "Enter full address" %>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <%= form.label :birth_place, "Birth Place", class: "form-label" %>
+            <%= form.text_field :birth_place, class: "form-control", placeholder: "Enter birth place" %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :birth_date, "Birth Date", class: "form-label" %>
+            <%= form.date_field :birth_date, class: "form-control" %>
+            <small class="form-text text-muted">Format: DD-MM-YYYY</small>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :age, "Age", class: "form-label" %>
+            <%= form.number_field :age, class: "form-control", readonly: true, placeholder: "Auto calculated from DOB" %>
+            <small class="form-text text-muted">Auto calculated from DOB</small>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <%= form.label :gender, "Gender", class: "form-label" %>
+            <%= form.select :gender,
+                options_for_select([
+                  ['Male', 'male'], ['Female', 'female'], ['Other', 'other']
+                ], @customer.gender),
+                { prompt: 'Select Gender' },
+                { class: "form-select" } %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :height_feet, "Height (Feet)", class: "form-label" %>
+            <%= form.select :height_feet,
+                options_for_select([
+                  ['4.0', '4.0'], ['4.5', '4.5'], ['5.0', '5.0'], ['5.5', '5.5'],
+                  ['6.0', '6.0'], ['6.5', '6.5'], ['7.0', '7.0']
+                ], @customer.height_feet),
+                { prompt: 'Select Height' },
+                { class: "form-select" } %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :weight_kg, "Weight (Kg)", class: "form-label" %>
+            <%= form.number_field :weight_kg, class: "form-control", placeholder: "Enter weight in kg", step: 0.1 %>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <%= form.label :education, "Education", class: "form-label" %>
+            <%= form.text_field :education, class: "form-control", placeholder: "Enter education" %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :marital_status, "Marital Status", class: "form-label" %>
+            <%= form.select :marital_status,
+                options_for_select([
+                  ['Single', 'single'], ['Married', 'married'],
+                  ['Divorced', 'divorced'], ['Widowed', 'widowed']
+                ], @customer.marital_status),
+                { prompt: 'Select Marital Status' },
+                { class: "form-select" } %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :business_job, "Business/Job", class: "form-label" %>
+            <%= form.select :business_job,
+                options_for_select([
+                  ['Private Job', 'private_job'], ['Government Job', 'government_job'],
+                  ['Business', 'business'], ['Self Employed', 'self_employed'],
+                  ['Student', 'student'], ['Retired', 'retired']
+                ], @customer.business_job),
+                { prompt: 'Select Business/Job' },
+                { class: "form-select" } %>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <%= form.label :business_name, "Name of Business/Job", class: "form-label" %>
+            <%= form.text_field :business_name, class: "form-control", placeholder: "Enter business/job name" %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :type_of_duty, "Type of Duty", class: "form-label" %>
+            <%= form.text_field :type_of_duty, class: "form-control", placeholder: "Enter type of duty" %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :annual_income, "Annual Income", class: "form-label" %>
+            <%= form.number_field :annual_income, class: "form-control", placeholder: "Enter annual income" %>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <%= form.label :pan_no, "PAN No", class: "form-label" %>
+            <%= form.text_field :pan_no, class: "form-control", placeholder: "Enter PAN number" %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :gst_no, "GST No", class: "form-label" %>
+            <%= form.text_field :gst_no, class: "form-control", placeholder: "Enter GST number" %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :additional_information, "Additional Information", class: "form-label" %>
+            <%= form.text_area :additional_information, class: "form-control", rows: 1, placeholder: "Enter additional notes" %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Upload Documents (Individual) -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-upload me-2 text-primary"></i>
+          <h5 class="mb-0">Upload Documents</h5>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="add_document">
+          <i class="bi bi-plus-lg me-1"></i>
+          Add Document
+        </button>
+      </div>
+      <div class="card-body">
+        <div id="documents_container">
+          <!-- Documents will be added here dynamically -->
+        </div>
+        <p class="text-muted mb-0">This is a repeatable list. Add multiple documents as needed.</p>
+      </div>
+    </div>
+
+    <!-- 5. Family Details (Repeatable Group) -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-people me-2 text-primary"></i>
+          <h5 class="mb-0">Family Details</h5>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="add_family_member">
+          <i class="bi bi-plus-lg me-1"></i>
+          Add Family Member
+        </button>
+      </div>
+      <div class="card-body">
+        <div id="family_members_container">
+          <!-- Family members will be added here dynamically -->
+        </div>
+        <p class="text-muted mb-0">Each family member is a repeatable group with nested documents.</p>
+      </div>
+    </div>
+
+    <!-- 6. Corporate Members (Repeatable Group) -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-building me-2 text-primary"></i>
+          <h5 class="mb-0">Corporate Members</h5>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="add_corporate_member">
+          <i class="bi bi-plus-lg me-1"></i>
+          Add Corporate Member
+        </button>
+      </div>
+      <div class="card-body">
+        <div id="corporate_members_container">
+          <!-- Corporate members will be added here dynamically -->
+        </div>
+        <p class="text-muted mb-0">Add corporate members with their respective documents.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status and Form Actions -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="form-check form-switch">
+            <%= form.check_box :status, { class: "form-check-input", checked: true }, "true", "false" %>
+            <%= form.label :status, "Active Status", class: "form-check-label" %>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex justify-content-end gap-2">
+        <%= link_to "Cancel", admin_customers_path, class: "btn btn-outline-secondary" %>
+        <%= form.submit "Create Customer", class: "btn btn-primary" %>
+      </div>
+    </div>
+  </div>
+
+<% end %>
+
+<style>
+.customer-type-selection {
+  margin-bottom: 1rem;
+}
+
+.customer-type-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.customer-type-label {
+  width: 100%;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+  display: block;
+  margin: 0;
+}
+
+.customer-type-label:hover {
+  border-color: #007bff;
+  background-color: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,123,255,0.1);
+}
+
+input[type="radio"]:checked + .customer-type-label {
+  border-color: #007bff;
+  background-color: #e3f2fd;
+  color: #007bff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,123,255,0.2);
+}
+
+.document-entry, .family-member-entry, .corporate-member-entry {
+  background: #f8f9fa;
+  border-radius: 8px;
+  position: relative;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.nested-documents {
+  background: white;
+  border-radius: 6px;
+  margin-top: 1rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Customer type selection
+  const customerTypeRadios = document.querySelectorAll('input[name="customer[customer_type]"]');
+  const individualSections = document.getElementById('individual_sections');
+
+  customerTypeRadios.forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.value === 'individual') {
+        individualSections.style.display = 'block';
+      } else {
+        individualSections.style.display = 'none';
+      }
+    });
+  });
+
+  // Auto-calculate age from birth date
+  const birthDateField = document.querySelector('input[name="customer[birth_date]"]');
+  const ageField = document.querySelector('input[name="customer[age]"]');
+
+  if (birthDateField && ageField) {
+    birthDateField.addEventListener('change', function() {
+      const birthDate = new Date(this.value);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        ageField.value = age - 1;
+      } else {
+        ageField.value = age;
+      }
+    });
+  }
+
+  // Document management
+  let documentIndex = 0;
+  const addDocumentBtn = document.getElementById('add_document');
+  const documentsContainer = document.getElementById('documents_container');
+
+  addDocumentBtn?.addEventListener('click', function() {
+    const documentHtml = `
+      <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${documentIndex}">
+        <button type="button" class="btn btn-sm btn-outline-danger remove-btn remove-document">
+          <i class="bi bi-trash"></i>
+        </button>
+        <div class="row">
+          <div class="col-md-6">
+            <label class="form-label">Document Type <span class="text-danger">*</span></label>
+            <select name="customer[documents_attributes][${documentIndex}][document_type]" class="form-select" required>
+              <option value="">Select Document Type</option>
+              <option value="aadhar">Aadhar</option>
+              <option value="pan_card">PAN Card</option>
+              <option value="driving_license">Driving License</option>
+              <option value="passport">Passport</option>
+              <option value="voter_id">Voter ID</option>
+              <option value="birth_certificate">Birth Certificate</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Document File <span class="text-danger">*</span></label>
+            <input type="file" name="customer[documents_attributes][${documentIndex}][file]" class="form-control" required>
+          </div>
+        </div>
+      </div>
+    `;
+    documentsContainer.insertAdjacentHTML('beforeend', documentHtml);
+    documentIndex++;
+  });
+
+  // Family member management
+  let familyMemberIndex = 0;
+  const addFamilyMemberBtn = document.getElementById('add_family_member');
+  const familyMembersContainer = document.getElementById('family_members_container');
+
+  addFamilyMemberBtn?.addEventListener('click', function() {
+    const familyMemberHtml = `
+      <div class="family-member-entry p-3 mb-3 border rounded position-relative" data-index="${familyMemberIndex}">
+        <button type="button" class="btn btn-sm btn-outline-danger remove-btn remove-family-member">
+          <i class="bi bi-trash"></i>
+        </button>
+        <h6 class="mb-3">Family Member ${familyMemberIndex + 1}</h6>
+
+        <div class="row">
+          <div class="col-md-4">
+            <label class="form-label">First Name <span class="text-danger">*</span></label>
+            <input type="text" name="customer[family_members_attributes][${familyMemberIndex}][first_name]" class="form-control" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Middle Name</label>
+            <input type="text" name="customer[family_members_attributes][${familyMemberIndex}][middle_name]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Last Name <span class="text-danger">*</span></label>
+            <input type="text" name="customer[family_members_attributes][${familyMemberIndex}][last_name]" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <label class="form-label">Mobile</label>
+            <input type="tel" name="customer[family_members_attributes][${familyMemberIndex}][mobile]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Birth Date</label>
+            <input type="date" name="customer[family_members_attributes][${familyMemberIndex}][birth_date]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Age</label>
+            <input type="number" name="customer[family_members_attributes][${familyMemberIndex}][age]" class="form-control" readonly placeholder="Auto calculated">
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <label class="form-label">Gender</label>
+            <select name="customer[family_members_attributes][${familyMemberIndex}][gender]" class="form-select">
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Relationship <span class="text-danger">*</span></label>
+            <select name="customer[family_members_attributes][${familyMemberIndex}][relationship]" class="form-select" required>
+              <option value="">Select Relationship</option>
+              <option value="father">Father</option>
+              <option value="mother">Mother</option>
+              <option value="spouse">Spouse</option>
+              <option value="child">Child</option>
+              <option value="sibling">Sibling</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Height (Feet)</label>
+            <input type="text" name="customer[family_members_attributes][${familyMemberIndex}][height_feet]" class="form-control">
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <label class="form-label">Weight (Kg)</label>
+            <input type="number" name="customer[family_members_attributes][${familyMemberIndex}][weight_kg]" class="form-control" step="0.1">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">PAN No</label>
+            <input type="text" name="customer[family_members_attributes][${familyMemberIndex}][pan_no]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Additional Information</label>
+            <textarea name="customer[family_members_attributes][${familyMemberIndex}][additional_information]" class="form-control" rows="1"></textarea>
+          </div>
+        </div>
+
+        <div class="nested-documents p-3 mt-3">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Family Member Documents</h6>
+            <button type="button" class="btn btn-sm btn-outline-primary add-family-document" data-family-index="${familyMemberIndex}">
+              <i class="bi bi-plus-lg me-1"></i>
+              Add Document
+            </button>
+          </div>
+          <div id="family_member_${familyMemberIndex}_documents">
+            <!-- Family member documents will be added here -->
+          </div>
+        </div>
+      </div>
+    `;
+    familyMembersContainer.insertAdjacentHTML('beforeend', familyMemberHtml);
+    familyMemberIndex++;
+  });
+
+  // Corporate member management
+  let corporateMemberIndex = 0;
+  const addCorporateMemberBtn = document.getElementById('add_corporate_member');
+  const corporateMembersContainer = document.getElementById('corporate_members_container');
+
+  addCorporateMemberBtn?.addEventListener('click', function() {
+    const corporateMemberHtml = `
+      <div class="corporate-member-entry p-3 mb-3 border rounded position-relative" data-index="${corporateMemberIndex}">
+        <button type="button" class="btn btn-sm btn-outline-danger remove-btn remove-corporate-member">
+          <i class="bi bi-trash"></i>
+        </button>
+        <h6 class="mb-3">Corporate Member ${corporateMemberIndex + 1}</h6>
+
+        <div class="row">
+          <div class="col-md-6">
+            <label class="form-label">Company Name <span class="text-danger">*</span></label>
+            <input type="text" name="customer[corporate_members_attributes][${corporateMemberIndex}][company_name]" class="form-control" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Mobile</label>
+            <input type="tel" name="customer[corporate_members_attributes][${corporateMemberIndex}][mobile]" class="form-control">
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input type="email" name="customer[corporate_members_attributes][${corporateMemberIndex}][email]" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">State</label>
+            <input type="text" name="customer[corporate_members_attributes][${corporateMemberIndex}][state]" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">City</label>
+            <input type="text" name="customer[corporate_members_attributes][${corporateMemberIndex}][city]" class="form-control">
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <label class="form-label">Address</label>
+            <textarea name="customer[corporate_members_attributes][${corporateMemberIndex}][address]" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <label class="form-label">Annual Income</label>
+            <input type="number" name="customer[corporate_members_attributes][${corporateMemberIndex}][annual_income]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">PAN No</label>
+            <input type="text" name="customer[corporate_members_attributes][${corporateMemberIndex}][pan_no]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">GST No</label>
+            <input type="text" name="customer[corporate_members_attributes][${corporateMemberIndex}][gst_no]" class="form-control">
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <label class="form-label">Additional Information</label>
+            <textarea name="customer[corporate_members_attributes][${corporateMemberIndex}][additional_information]" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+
+        <div class="nested-documents p-3 mt-3">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Corporate Member Documents</h6>
+            <button type="button" class="btn btn-sm btn-outline-primary add-corporate-document" data-corporate-index="${corporateMemberIndex}">
+              <i class="bi bi-plus-lg me-1"></i>
+              Add Document
+            </button>
+          </div>
+          <div id="corporate_member_${corporateMemberIndex}_documents">
+            <!-- Corporate member documents will be added here -->
+          </div>
+        </div>
+      </div>
+    `;
+    corporateMembersContainer.insertAdjacentHTML('beforeend', corporateMemberHtml);
+    corporateMemberIndex++;
+  });
+
+  // Event delegation for remove buttons
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-document')) {
+      e.target.closest('.document-entry').remove();
+    }
+    if (e.target.closest('.remove-family-member')) {
+      e.target.closest('.family-member-entry').remove();
+    }
+    if (e.target.closest('.remove-corporate-member')) {
+      e.target.closest('.corporate-member-entry').remove();
+    }
+  });
+
+  // Handle nested document additions
+  let nestedDocumentIndex = 0;
+
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.add-family-document')) {
+      const button = e.target.closest('.add-family-document');
+      const familyIndex = button.getAttribute('data-family-index');
+      const container = document.getElementById(`family_member_${familyIndex}_documents`);
+
+      const documentHtml = `
+        <div class="nested-document-entry p-2 mb-2 border rounded">
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label">Document Type</label>
+              <select name="customer[family_members_attributes][${familyIndex}][documents_attributes][${nestedDocumentIndex}][document_type]" class="form-select">
+                <option value="">Select Document Type</option>
+                <option value="aadhar">Aadhar</option>
+                <option value="pan_card">PAN Card</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label">Document File</label>
+              <input type="file" name="customer[family_members_attributes][${familyIndex}][documents_attributes][${nestedDocumentIndex}][file]" class="form-control">
+            </div>
+            <div class="col-md-1">
+              <label class="form-label">&nbsp;</label>
+              <button type="button" class="btn btn-sm btn-outline-danger remove-nested-document w-100">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', documentHtml);
+      nestedDocumentIndex++;
+    }
+
+    if (e.target.closest('.add-corporate-document')) {
+      const button = e.target.closest('.add-corporate-document');
+      const corporateIndex = button.getAttribute('data-corporate-index');
+      const container = document.getElementById(`corporate_member_${corporateIndex}_documents`);
+
+      const documentHtml = `
+        <div class="nested-document-entry p-2 mb-2 border rounded">
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label">Document Type</label>
+              <select name="customer[corporate_members_attributes][${corporateIndex}][documents_attributes][${nestedDocumentIndex}][document_type]" class="form-select">
+                <option value="">Select Document Type</option>
+                <option value="gst_certificate">GST Certificate</option>
+                <option value="pan_card">PAN Card</option>
+                <option value="incorporation_certificate">Incorporation Certificate</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label">Document File</label>
+              <input type="file" name="customer[corporate_members_attributes][${corporateIndex}][documents_attributes][${nestedDocumentIndex}][file]" class="form-control">
+            </div>
+            <div class="col-md-1">
+              <label class="form-label">&nbsp;</label>
+              <button type="button" class="btn btn-sm btn-outline-danger remove-nested-document w-100">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', documentHtml);
+      nestedDocumentIndex++;
+    }
+
+    if (e.target.closest('.remove-nested-document')) {
+      e.target.closest('.nested-document-entry').remove();
+    }
+  });
+
+  // Auto-calculate family member ages
+  document.addEventListener('change', function(e) {
+    if (e.target.matches('input[name*="birth_date"]')) {
+      const birthDate = new Date(e.target.value);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+
+      let ageField = e.target.closest('.row').parentNode.querySelector('input[name*="[age]"]');
+      if (!ageField) {
+        ageField = e.target.closest('.family-member-entry')?.querySelector('input[name*="[age]"]');
+      }
+
+      if (ageField) {
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          ageField.value = age - 1;
+        } else {
+          ageField.value = age;
+        }
+      }
+    }
+  });
+});
+</script>

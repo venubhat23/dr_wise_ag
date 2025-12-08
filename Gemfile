@@ -18,6 +18,9 @@ gem "turbo-rails"
 gem "stimulus-rails"
 # Bundle and process CSS [https://github.com/rails/cssbundling-rails]
 gem "cssbundling-rails"
+
+# JWT for mobile API authentication
+gem "jwt"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
@@ -44,6 +47,7 @@ gem "groupdate"
 
 # Excel/CSV handling
 gem "roo"
+# gem "rubyXL"  # Commented out temporarily due to network issues
 
 # Phone number validation
 gem "phonelib"
@@ -51,8 +55,6 @@ gem "phonelib"
 # Search functionality
 gem "pg_search"
 
-# JWT for API authentication
-gem "jwt"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]

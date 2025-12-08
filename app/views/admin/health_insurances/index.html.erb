@@ -1,0 +1,295 @@
+<% content_for :page_title, "Health Insurance Policies" %>
+<% content_for :page_subtitle, "Manage health insurance policies for all customers" %>
+
+<!-- Action Buttons -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex gap-2">
+    <div class="search-box">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" placeholder="Search policies..." class="form-control" style="padding-left: 2.5rem;">
+    </div>
+  </div>
+
+  <div class="btn-toolbar">
+    <button class="btn btn-outline-primary me-2">
+      <i class="bi bi-download me-2"></i>
+      Export
+    </button>
+    <%= link_to new_admin_health_insurance_path, class: "btn btn-primary" do %>
+      <i class="bi bi-plus-lg me-2"></i>
+      New Health Policy
+    <% end %>
+  </div>
+</div>
+
+<!-- Stats Cards Row -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="stats-card fade-in">
+      <div class="stats-icon success">
+        <i class="bi bi-hospital"></i>
+      </div>
+      <div class="stats-number"><%= @health_insurances.count %></div>
+      <div class="stats-label">Total Health Policies</div>
+      <div class="stats-trend positive">
+        <i class="bi bi-arrow-up trend-icon"></i>
+        <span>Active policies</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="stats-card fade-in" style="animation-delay: 0.1s;">
+      <div class="stats-icon primary">
+        <i class="bi bi-currency-rupee"></i>
+      </div>
+      <div class="stats-number">₹<%= number_with_delimiter(@health_insurances.sum(&:total_premium).to_i) %></div>
+      <div class="stats-label">Total Premium</div>
+      <div class="stats-trend positive">
+        <i class="bi bi-arrow-up trend-icon"></i>
+        <span>Revenue generated</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="stats-card fade-in" style="animation-delay: 0.2s;">
+      <div class="stats-icon warning">
+        <i class="bi bi-shield-check"></i>
+      </div>
+      <div class="stats-number">₹<%= number_with_delimiter(@health_insurances.sum(&:sum_insured).to_i) %></div>
+      <div class="stats-label">Total Coverage</div>
+      <div class="stats-trend positive">
+        <i class="bi bi-arrow-up trend-icon"></i>
+        <span>Sum insured</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="stats-card fade-in" style="animation-delay: 0.3s;">
+      <div class="stats-icon secondary">
+        <i class="bi bi-clock-history"></i>
+      </div>
+      <div class="stats-number"><%= @health_insurances.where('policy_end_date <= ?', 30.days.from_now).count %></div>
+      <div class="stats-label">Expiring Soon</div>
+      <div class="stats-trend negative">
+        <i class="bi bi-arrow-down trend-icon"></i>
+        <span>Next 30 days</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Content Card -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      <i class="bi bi-hospital me-2 text-success"></i>
+      Health Insurance Policies
+    </h5>
+    <div class="card-actions">
+      <span class="premium-badge">Premium Healthcare</span>
+    </div>
+  </div>
+
+  <div class="card-body p-0">
+    <% if @health_insurances.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th width="20%">Policy Details</th>
+              <th width="20%">Customer</th>
+              <th width="15%">Insurance Company</th>
+              <th width="15%">Coverage</th>
+              <th width="15%">Premium</th>
+              <th width="10%">Status</th>
+              <th width="5%">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @health_insurances.each_with_index do |policy, index| %>
+              <tr class="fade-in" style="animation-delay: <%= index * 0.05 %>s;">
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="stats-icon success me-3" style="width: 40px; height: 40px; font-size: 1rem;">
+                      <i class="bi bi-file-text"></i>
+                    </div>
+                    <div>
+                      <h6 class="mb-1">
+                        <%= link_to policy.policy_number, admin_health_insurance_path(policy), class: "text-decoration-none fw-bold" %>
+                      </h6>
+                      <small class="text-muted">
+                        <%= policy.policy_type&.humanize %>
+                        <span class="mx-1">•</span>
+                        <%= policy.policy_start_date.strftime("%b %d, %Y") if policy.policy_start_date %>
+                      </small>
+                    </div>
+                  </div>
+                </td>
+
+                <td>
+                  <div>
+                    <h6 class="mb-1"><%= policy.customer.display_name %></h6>
+                    <small class="text-muted">
+                      <i class="bi bi-envelope me-1"></i>
+                      <%= policy.customer.email %>
+                    </small><br>
+                    <small class="text-muted">
+                      <i class="bi bi-telephone me-1"></i>
+                      <%= policy.customer.mobile %>
+                    </small>
+                  </div>
+                </td>
+
+                <td>
+                  <div>
+                    <h6 class="mb-1"><%= policy.insurance_company_name %></h6>
+                    <small class="text-muted">
+                      <i class="bi bi-building me-1"></i>
+                      <%= policy.insurance_type %>
+                    </small>
+                  </div>
+                </td>
+
+                <td>
+                  <div>
+                    <h6 class="mb-1 text-warning">₹<%= number_with_delimiter(policy.sum_insured.to_i) %></h6>
+                    <small class="text-muted">Sum Insured</small>
+                    <% if policy.policy_end_date %>
+                      <br><small class="text-muted">
+                        <i class="bi bi-calendar me-1"></i>
+                        Expires: <%= policy.policy_end_date.strftime("%b %d, %Y") %>
+                      </small>
+                    <% end %>
+                  </div>
+                </td>
+
+                <td>
+                  <div>
+                    <h6 class="mb-1 text-success">₹<%= number_with_delimiter(policy.total_premium.to_i) %></h6>
+                    <small class="text-muted">
+                      <%= policy.payment_mode&.humanize || 'Annual' %>
+                    </small>
+                  </div>
+                </td>
+
+                <td>
+                  <% if policy.active? %>
+                    <span class="badge bg-success">
+                      <i class="bi bi-check-circle me-1"></i>
+                      Active
+                    </span>
+                  <% elsif policy.expired? %>
+                    <span class="badge bg-danger">
+                      <i class="bi bi-x-circle me-1"></i>
+                      Expired
+                    </span>
+                  <% elsif policy.expiring_soon? %>
+                    <span class="badge bg-warning">
+                      <i class="bi bi-clock me-1"></i>
+                      Expiring Soon
+                    </span>
+                  <% else %>
+                    <span class="badge bg-info">
+                      <i class="bi bi-clock me-1"></i>
+                      Active
+                    </span>
+                  <% end %>
+                </td>
+
+                <td>
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                      <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                      <li>
+                        <%= link_to admin_health_insurance_path(policy), class: "dropdown-item" do %>
+                          <i class="bi bi-eye me-2"></i>
+                          View Details
+                        <% end %>
+                      </li>
+                      <li>
+                        <%= link_to edit_admin_health_insurance_path(policy), class: "dropdown-item" do %>
+                          <i class="bi bi-pencil me-2"></i>
+                          Edit Policy
+                        <% end %>
+                      </li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li>
+                        <%= link_to admin_health_insurance_path(policy), method: :delete,
+                            class: "dropdown-item text-danger",
+                            confirm: "Are you sure you want to delete this policy?",
+                            data: { turbo_method: :delete } do %>
+                          <i class="bi bi-trash me-2"></i>
+                          Delete
+                        <% end %>
+                      </li>
+                    </ul>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <% if respond_to?(:paginate) && @health_insurances.respond_to?(:current_page) %>
+        <div class="card-footer bg-transparent">
+          <%= paginate @health_insurances, theme: 'twitter-bootstrap-5' %>
+        </div>
+      <% end %>
+
+    <% else %>
+      <!-- Empty State -->
+      <div class="text-center py-5">
+        <div class="stats-icon success mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
+          <i class="bi bi-hospital"></i>
+        </div>
+        <h5 class="text-muted mb-3">No Health Insurance Policies Found</h5>
+        <p class="text-muted mb-4">Start by creating your first health insurance policy to track coverage and premiums.</p>
+        <%= link_to new_admin_health_insurance_path, class: "btn btn-primary" do %>
+          <i class="bi bi-plus-lg me-2"></i>
+          Create First Health Policy
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<div class="luxury-divider"></div>
+
+<!-- Trust Seal -->
+<div class="text-center">
+  <div class="trust-seal">
+    <i class="bi bi-shield-check seal-icon"></i>
+    <span>Secure Healthcare Coverage Management</span>
+  </div>
+</div>
+
+<script>
+// Add search functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.querySelector('.search-box input');
+  const tableRows = document.querySelectorAll('tbody tr');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+
+      tableRows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+          row.style.display = '';
+          row.classList.add('fade-in');
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    });
+  }
+});
+</script>

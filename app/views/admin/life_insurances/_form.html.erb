@@ -1,0 +1,664 @@
+<%= form_with model: [:admin, @life_insurance], local: true, class: "needs-validation", novalidate: true do |form| %>
+
+  <!-- Client & Agent Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-person me-2 text-primary"></i>
+        Client & Agent Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <% if @life_insurance.errors.any? %>
+        <div class="alert alert-danger alert-dismissible fade show">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Please correct the following errors:</strong>
+          <ul class="mb-0 mt-2">
+            <% @life_insurance.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :customer_id, "Client Name*", class: "form-label" %>
+          <%= form.select :customer_id,
+              options_for_select([['Select Client', '']] + @customers.map { |c| [c.display_name, c.id] }, @life_insurance.customer_id),
+              { prompt: 'Select Client' },
+              { class: "form-control #{'is-invalid' if @life_insurance.errors[:customer_id].any?}", required: true, id: "customer_select" } %>
+          <% if @life_insurance.errors[:customer_id].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:customer_id].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_holder, "Policy Holder", class: "form-label" %>
+          <%= form.select :policy_holder,
+              options_for_select([['Self', 'Self']], @life_insurance.policy_holder),
+              { prompt: 'Select Policy Holder' },
+              { class: "form-control", id: "policy_holder_select" } %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :sub_agent_id, "Sub Agent", class: "form-label" %>
+          <%= form.select :sub_agent_id,
+              options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, @life_insurance.sub_agent_id),
+              { prompt: 'Self' },
+              { class: "form-control" } %>
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <%= form.label :insured_name, "Insured Name", class: "form-label" %>
+          <%= form.text_field :insured_name,
+              class: "form-control",
+              placeholder: "Enter insured name" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Policy Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-file-text me-2 text-primary"></i>
+        Policy Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :insurance_company_name, "Insurance Company Name*", class: "form-label" %>
+          <%= form.select :insurance_company_name,
+              options_for_select([['Select Company', '']] + @insurance_companies.map { |c| [c, c] }, @life_insurance.insurance_company_name),
+              { prompt: 'Select Company' },
+              { class: "form-control #{'is-invalid' if @life_insurance.errors[:insurance_company_name].any?}", required: true } %>
+          <% if @life_insurance.errors[:insurance_company_name].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:insurance_company_name].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
+          <%= form.select :agency_code_id,
+              options_for_select([['Select Agency Code', '']] + @agency_codes.map { |a| ["#{a.company_name} - #{a.code}", a.id] }, @life_insurance.agency_code_id),
+              { prompt: 'Select Agency Code' },
+              { class: "form-control" } %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :broker_id, "Broker Code", class: "form-label" %>
+          <%= form.select :broker_id,
+              options_for_select([['Select Broker Code', '']] + @brokers.map { |b| [b.name, b.id] }, @life_insurance.broker_id),
+              { prompt: 'Select Broker Code' },
+              { class: "form-control" } %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_type, "Policy Type*", class: "form-label" %>
+          <%= form.select :policy_type,
+              options_for_select([['Select type', '']] + @policy_types.map { |t| [t, t] }, @life_insurance.policy_type),
+              { prompt: 'Select type' },
+              { class: "form-control #{'is-invalid' if @life_insurance.errors[:policy_type].any?}", required: true } %>
+          <% if @life_insurance.errors[:policy_type].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:policy_type].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :payment_mode, "Payment Mode*", class: "form-label" %>
+          <%= form.select :payment_mode,
+              options_for_select(@payment_modes.map { |m| [m, m] }, @life_insurance.payment_mode),
+              { prompt: 'Select Payment Mode' },
+              { class: "form-control #{'is-invalid' if @life_insurance.errors[:payment_mode].any?}", required: true } %>
+          <% if @life_insurance.errors[:payment_mode].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:payment_mode].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_number, "Policy Number*", class: "form-label" %>
+          <%= form.text_field :policy_number,
+              class: "form-control #{'is-invalid' if @life_insurance.errors[:policy_number].any?}",
+              placeholder: "Enter unique policy number", required: true %>
+          <% if @life_insurance.errors[:policy_number].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:policy_number].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_booking_date, "Policy Booking Date", class: "form-label" %>
+          <%= form.date_field :policy_booking_date,
+              class: "form-control",
+              value: @life_insurance.policy_booking_date || Date.current %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_start_date, "Policy Start Date*", class: "form-label" %>
+          <%= form.date_field :policy_start_date,
+              class: "form-control #{'is-invalid' if @life_insurance.errors[:policy_start_date].any?}",
+              required: true, id: "start_date" %>
+          <% if @life_insurance.errors[:policy_start_date].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:policy_start_date].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_end_date, "Policy End Date*", class: "form-label" %>
+          <%= form.date_field :policy_end_date,
+              class: "form-control #{'is-invalid' if @life_insurance.errors[:policy_end_date].any?}",
+              required: true, id: "end_date" %>
+          <% if @life_insurance.errors[:policy_end_date].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:policy_end_date].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :risk_start_date, "Risk Start Date", class: "form-label" %>
+          <%= form.date_field :risk_start_date,
+              class: "form-control" %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_term, "Policy Term (Y)*", class: "form-label" %>
+          <%= form.number_field :policy_term,
+              class: "form-control #{'is-invalid' if @life_insurance.errors[:policy_term].any?}",
+              placeholder: "Years", required: true, id: "policy_term" %>
+          <% if @life_insurance.errors[:policy_term].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:policy_term].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :premium_payment_term, "Premium Payment Term*", class: "form-label" %>
+          <%= form.number_field :premium_payment_term,
+              class: "form-control #{'is-invalid' if @life_insurance.errors[:premium_payment_term].any?}",
+              placeholder: "Years", required: true %>
+          <% if @life_insurance.errors[:premium_payment_term].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:premium_payment_term].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :plan_name, "Plan Name", class: "form-label" %>
+          <%= form.text_field :plan_name,
+              class: "form-control",
+              placeholder: "Enter plan name" %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :sum_insured, "Sum Insured", class: "form-label" %>
+          <%= form.number_field :sum_insured,
+              class: "form-control #{'is-invalid' if @life_insurance.errors[:sum_insured].any?}",
+              placeholder: "SI(Sum Insured)", step: 0.01, required: true %>
+          <% if @life_insurance.errors[:sum_insured].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:sum_insured].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :net_premium, "Net Premium*", class: "form-label" %>
+          <%= form.number_field :net_premium,
+              class: "form-control #{'is-invalid' if @life_insurance.errors[:net_premium].any?}",
+              placeholder: "0", step: 0.01, required: true, id: "net_premium" %>
+          <% if @life_insurance.errors[:net_premium].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:net_premium].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :first_year_gst_percentage, "1st Year GST %*", class: "form-label" %>
+          <%= form.number_field :first_year_gst_percentage,
+              class: "form-control",
+              value: @life_insurance.first_year_gst_percentage || 18,
+              step: 0.01, id: "first_year_gst" %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :second_year_gst_percentage, "2nd Year GST %", class: "form-label" %>
+          <%= form.number_field :second_year_gst_percentage,
+              class: "form-control",
+              value: @life_insurance.second_year_gst_percentage || 0,
+              step: 0.01 %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :third_year_gst_percentage, "3rd Year GST %", class: "form-label" %>
+          <%= form.number_field :third_year_gst_percentage,
+              class: "form-control",
+              value: @life_insurance.third_year_gst_percentage || 0,
+              step: 0.01 %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :total_premium, "Total Premium*", class: "form-label" %>
+          <%= form.number_field :total_premium,
+              class: "form-control #{'is-invalid' if @life_insurance.errors[:total_premium].any?}",
+              placeholder: "0", step: 0.01, required: true, readonly: true, id: "total_premium" %>
+          <% if @life_insurance.errors[:total_premium].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:total_premium].first %></div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advance Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-plus-circle me-2 text-primary"></i>
+        Advance Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <h6>Rider Details</h6>
+      <div class="table-responsive mb-4">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th width="30%">RIDER</th>
+              <th width="30%">AMOUNT</th>
+              <th width="40%">NOTE</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Term Rider</td>
+              <td>
+                <%= form.number_field :term_rider_amount,
+                    class: "form-control",
+                    value: @life_insurance.term_rider_amount || 0,
+                    step: 0.01 %>
+              </td>
+              <td>
+                <%= form.text_field :term_rider_note,
+                    class: "form-control",
+                    placeholder: "Note" %>
+              </td>
+            </tr>
+            <tr>
+              <td>Critical Illness Rider</td>
+              <td>
+                <%= form.number_field :critical_illness_rider_amount,
+                    class: "form-control",
+                    value: @life_insurance.critical_illness_rider_amount || 0,
+                    step: 0.01 %>
+              </td>
+              <td>
+                <%= form.text_field :critical_illness_rider_note,
+                    class: "form-control",
+                    placeholder: "Note" %>
+              </td>
+            </tr>
+            <tr>
+              <td>Accident Rider</td>
+              <td>
+                <%= form.number_field :accident_rider_amount,
+                    class: "form-control",
+                    value: @life_insurance.accident_rider_amount || 0,
+                    step: 0.01 %>
+              </td>
+              <td>
+                <%= form.text_field :accident_rider_note,
+                    class: "form-control",
+                    placeholder: "Note" %>
+              </td>
+            </tr>
+            <tr>
+              <td>PWB (Premium Waiver Benefit)</td>
+              <td>
+                <%= form.number_field :pwb_rider_amount,
+                    class: "form-control",
+                    value: @life_insurance.pwb_rider_amount || 0,
+                    step: 0.01 %>
+              </td>
+              <td>
+                <%= form.text_field :pwb_rider_note,
+                    class: "form-control",
+                    placeholder: "Note" %>
+              </td>
+            </tr>
+            <tr>
+              <td>Others</td>
+              <td>
+                <%= form.number_field :other_rider_amount,
+                    class: "form-control",
+                    value: @life_insurance.other_rider_amount || 0,
+                    step: 0.01 %>
+              </td>
+              <td>
+                <%= form.text_field :other_rider_note,
+                    class: "form-control",
+                    placeholder: "Note" %>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nominee Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-people me-2 text-primary"></i>
+        Nominee Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :nominee_name, "Name", class: "form-label" %>
+          <%= form.text_field :nominee_name,
+              class: "form-control",
+              placeholder: "Nominee Name" %>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= form.label :nominee_relationship, "Relationship", class: "form-label" %>
+          <%= form.select :nominee_relationship,
+              options_for_select([['Select Relationship', '']] + @relationships.map { |r| [r, r] }, @life_insurance.nominee_relationship),
+              { prompt: 'Nominee Relationship' },
+              { class: "form-control" } %>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= form.label :nominee_age, "Age", class: "form-label" %>
+          <%= form.number_field :nominee_age,
+              class: "form-control",
+              placeholder: "Nominee Age" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bank Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-bank me-2 text-primary"></i>
+        Bank Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :bank_name, "Bank Name", class: "form-label" %>
+          <%= form.text_field :bank_name,
+              class: "form-control",
+              placeholder: "Bank Name" %>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= form.label :account_type, "Account Type", class: "form-label" %>
+          <%= form.select :account_type,
+              options_for_select([['Select Account Type', '']] + @account_types.map { |t| [t, t] }, @life_insurance.account_type),
+              { prompt: 'Account Type' },
+              { class: "form-control" } %>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= form.label :account_number, "Account Number", class: "form-label" %>
+          <%= form.text_field :account_number,
+              class: "form-control",
+              placeholder: "Account Number" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :ifsc_code, "IFSC CODE", class: "form-label" %>
+          <%= form.text_field :ifsc_code,
+              class: "form-control",
+              placeholder: "IFSC CODE" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :account_holder_name, "Account Holder Name", class: "form-label" %>
+          <%= form.text_field :account_holder_name,
+              class: "form-control",
+              placeholder: "Holder Name" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Other Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-info-circle me-2 text-primary"></i>
+        Other Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :reference_by_name, "Reference By Name", class: "form-label" %>
+          <%= form.text_field :reference_by_name,
+              class: "form-control",
+              placeholder: "Enter reference name" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :broker_name, "Broker Name", class: "form-label" %>
+          <%= form.text_field :broker_name,
+              class: "form-control",
+              placeholder: "Broker Name" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :bonus, "Bonus", class: "form-label" %>
+          <%= form.number_field :bonus,
+              class: "form-control",
+              value: @life_insurance.bonus || 0,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :fund, "Fund", class: "form-label" %>
+          <%= form.number_field :fund,
+              class: "form-control",
+              value: @life_insurance.fund || 0,
+              step: 0.01 %>
+        </div>
+        <div class="col-12 mb-3">
+          <%= form.label :extra_note, "Extra Note", class: "form-label" %>
+          <%= form.text_area :extra_note,
+              class: "form-control",
+              rows: 4,
+              placeholder: "Enter additional notes or comments..." %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Commission Detail Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-percent me-2 text-primary"></i>
+        Commission Detail
+      </h5>
+    </div>
+    <div class="card-body">
+      <h6>Main Agent Commission</h6>
+      <div class="row">
+        <div class="col-md-2 mb-3">
+          <label class="form-label">1st year (%)</label>
+          <%= form.number_field :main_agent_commission_percentage,
+              class: "form-control",
+              value: @life_insurance.main_agent_commission_percentage || 0,
+              step: 0.01, id: "commission_percentage" %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <%= form.label :commission_amount, "Commission Amount", class: "form-label" %>
+          <%= form.number_field :commission_amount,
+              class: "form-control",
+              value: @life_insurance.commission_amount || 0,
+              step: 0.01, readonly: true, id: "commission_amount" %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <%= form.label :tds_percentage, "TDS %", class: "form-label" %>
+          <%= form.number_field :tds_percentage,
+              class: "form-control",
+              value: @life_insurance.tds_percentage || 0,
+              step: 0.01, id: "tds_percentage" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :tds_amount, "TDS Amount", class: "form-label" %>
+          <%= form.number_field :tds_amount,
+              class: "form-control",
+              value: @life_insurance.tds_amount || 0,
+              step: 0.01, readonly: true, id: "tds_amount" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :after_tds_value, "After TDS Value", class: "form-label" %>
+          <%= form.number_field :after_tds_value,
+              class: "form-control",
+              value: @life_insurance.after_tds_value || 0,
+              step: 0.01, readonly: true, id: "after_tds_value" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Policy Upload Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-cloud-upload me-2 text-primary"></i>
+        Policy Upload
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :policy_documents, "Upload Policy", class: "form-label" %>
+          <%= form.file_field :policy_documents,
+              class: "form-control",
+              multiple: true %>
+          <div class="form-text">Click to upload or drag and drop</div>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :documents, "Upload Documents", class: "form-label" %>
+          <%= form.file_field :documents,
+              class: "form-control",
+              multiple: true %>
+          <div class="form-text">Upload additional documents</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Autopay Installment Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-calendar-event me-2 text-primary"></i>
+        Autopay Installment
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :installment_autopay_start_date, "Installment Autopay Start Date", class: "form-label" %>
+          <%= form.date_field :installment_autopay_start_date,
+              class: "form-control",
+              value: @life_insurance.installment_autopay_start_date || Date.current %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :installment_autopay_end_date, "Installment Autopay End Date", class: "form-label" %>
+          <%= form.date_field :installment_autopay_end_date,
+              class: "form-control",
+              value: @life_insurance.installment_autopay_end_date || Date.current %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Actions -->
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between">
+        <div>
+          <%= link_to admin_life_insurances_path, class: "btn btn-outline-secondary" do %>
+            <i class="bi bi-x-lg me-2"></i>
+            Back to List
+          <% end %>
+        </div>
+        <div>
+          <%= form.submit "Save Policy", class: "btn btn-primary btn-lg" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<% end %>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Auto-calculate total premium
+  function calculateTotalPremium() {
+    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+    const firstYearGst = parseFloat(document.getElementById('first_year_gst').value) || 0;
+
+    const gstAmount = netPremium * (firstYearGst / 100);
+    const totalPremium = netPremium + gstAmount;
+
+    document.getElementById('total_premium').value = totalPremium.toFixed(2);
+  }
+
+  // Auto-calculate commission amounts
+  function calculateCommission() {
+    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+    const commissionPercentage = parseFloat(document.getElementById('commission_percentage').value) || 0;
+    const tdsPercentage = parseFloat(document.getElementById('tds_percentage').value) || 0;
+
+    const commissionAmount = netPremium * (commissionPercentage / 100);
+    const tdsAmount = commissionAmount * (tdsPercentage / 100);
+    const afterTdsValue = commissionAmount - tdsAmount;
+
+    document.getElementById('commission_amount').value = commissionAmount.toFixed(2);
+    document.getElementById('tds_amount').value = tdsAmount.toFixed(2);
+    document.getElementById('after_tds_value').value = afterTdsValue.toFixed(2);
+  }
+
+  // Auto-calculate end date based on start date and policy term
+  function calculateEndDate() {
+    const startDate = document.getElementById('start_date').value;
+    const policyTerm = parseInt(document.getElementById('policy_term').value);
+
+    if (startDate && policyTerm) {
+      const start = new Date(startDate);
+      const end = new Date(start);
+      end.setFullYear(end.getFullYear() + policyTerm);
+      end.setDate(end.getDate() - 1);
+
+      document.getElementById('end_date').value = end.toISOString().split('T')[0];
+    }
+  }
+
+  // Load policy holder options when customer changes
+  function loadPolicyHolderOptions() {
+    const customerId = document.getElementById('customer_select').value;
+    const policyHolderSelect = document.getElementById('policy_holder_select');
+
+    if (customerId) {
+      fetch(`/admin/insurance/life/policy_holder_options?customer_id=${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+          policyHolderSelect.innerHTML = '';
+          data.options.forEach(option => {
+            const optionElement = new Option(option.label, option.value);
+            policyHolderSelect.add(optionElement);
+          });
+        });
+    }
+  }
+
+  // Event listeners
+  document.getElementById('net_premium').addEventListener('input', calculateTotalPremium);
+  document.getElementById('first_year_gst').addEventListener('input', calculateTotalPremium);
+  document.getElementById('commission_percentage').addEventListener('input', calculateCommission);
+  document.getElementById('tds_percentage').addEventListener('input', calculateCommission);
+  document.getElementById('net_premium').addEventListener('input', calculateCommission);
+  document.getElementById('start_date').addEventListener('change', calculateEndDate);
+  document.getElementById('policy_term').addEventListener('change', calculateEndDate);
+  document.getElementById('customer_select').addEventListener('change', loadPolicyHolderOptions);
+});
+</script>

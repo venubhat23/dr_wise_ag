@@ -4,20 +4,49 @@ class Customer < ApplicationRecord
   # Associations
   has_many :family_members, dependent: :destroy
   has_many :policies, dependent: :destroy
-  has_many_attached :profile_images
-  has_many_attached :documents
+  has_many :corporate_members, dependent: :destroy
+  has_many :documents, as: :documentable, dependent: :destroy
+  has_one_attached :profile_image
+
+  # Nested attributes
+  accepts_nested_attributes_for :family_members, allow_destroy: true, reject_if: :all_blank
+  accepts_nested_attributes_for :corporate_members, allow_destroy: true, reject_if: :all_blank
+  accepts_nested_attributes_for :documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations
   validates :customer_type, presence: true, inclusion: { in: ['individual', 'corporate'] }
+
+  # Individual Customer Required Fields
   validates :first_name, presence: true, if: :individual?
   validates :last_name, presence: true, if: :individual?
+  validates :mobile, presence: true, uniqueness: true, if: :individual?
+
+  # Corporate Customer Required Fields
   validates :company_name, presence: true, if: :corporate?
-  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
-  validates :mobile, presence: true, uniqueness: true
-  validates :address, presence: true
-  validates :state, presence: true
-  validates :city, presence: true
+
+  # Validations
   validates :status, inclusion: { in: [true, false] }
+
+  # Set default values
+  after_initialize :set_defaults
+
+  def set_defaults
+    self.status = true if status.nil?
+    self.sub_agent = "Self" if sub_agent.blank?
+  end
+
+  # Corporate Customer Required Fields - Email is mandatory for corporate
+  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }, if: :corporate?
+
+  # Individual Customer - Email is optional
+  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true, if: :individual?
+
+  # Optional validations
+  validates :gender, inclusion: { in: ['male', 'female', 'other'] }, allow_blank: true
+  validates :marital_status, inclusion: { in: ['single', 'married', 'divorced', 'widowed'] }, allow_blank: true
+  validates :pan_no, format: { with: /\A[A-Z]{5}\d{4}[A-Z]\z/ }, allow_blank: true
+  validates :gst_no, format: { with: /\A\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z\d][A-Z\d]\z/ }, allow_blank: true
+  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
 
   # Enums
   enum :customer_type, { individual: 'individual', corporate: 'corporate' }
@@ -27,6 +56,9 @@ class Customer < ApplicationRecord
   scope :inactive, -> { where(status: false) }
   scope :individuals, -> { where(customer_type: 'individual') }
   scope :corporates, -> { where(customer_type: 'corporate') }
+
+  # Callbacks
+  before_save :calculate_age
 
   # Search
   pg_search_scope :search_customers,
@@ -58,5 +90,14 @@ class Customer < ApplicationRecord
 
   def corporate?
     customer_type == 'corporate'
+  end
+
+  private
+
+  def calculate_age
+    if birth_date.present?
+      self.age = Date.current.year - birth_date.year
+      self.age -= 1 if Date.current < birth_date + age.years
+    end
   end
 end

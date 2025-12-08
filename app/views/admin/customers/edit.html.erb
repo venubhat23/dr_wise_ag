@@ -1,0 +1,473 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Edit Customer</h2>
+    <p class="text-muted mb-0">Update <%= @customer.display_name %> information</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to admin_customer_path(@customer), class: "btn btn-outline-info" do %>
+      <i class="bi bi-eye me-1"></i>
+      View Customer
+    <% end %>
+    <%= link_to admin_customers_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Customers
+    <% end %>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <%= form_with model: [:admin, @customer], local: true, multipart: true, class: "needs-validation", novalidate: true do |form| %>
+      <!-- Customer Type Selection -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="mb-0">Customer Type</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <%= form.label :customer_type, class: "form-label" do %>
+                Customer Type <span class="text-danger">*</span>
+              <% end %>
+              <%= form.select :customer_type,
+                  options_for_select([
+                    ['Individual', 'individual'],
+                    ['Corporate', 'corporate']
+                  ], @customer.customer_type),
+                  { prompt: 'Select customer type' },
+                  { class: "form-select", id: "customer_type", required: true } %>
+              <div class="invalid-feedback">Please select a customer type.</div>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :added_by, class: "form-label" %>
+              <%= form.select :added_by,
+                  options_for_select([
+                    ['Self', 'self'],
+                    ['Sub-Agent', 'sub_agent']
+                  ], @customer.added_by),
+                  { prompt: 'Select added by' },
+                  { class: "form-select" } %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Individual Customer Details -->
+      <div id="individual_fields" class="card border-0 shadow-sm mb-4" style="display: <%= @customer.individual? ? 'block' : 'none' %>;">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="mb-0">Personal Details</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <%= form.label :first_name, class: "form-label" do %>
+                First Name <span class="text-danger">*</span>
+              <% end %>
+              <%= form.text_field :first_name, class: "form-control", placeholder: "Enter first name" %>
+              <div class="invalid-feedback">Please provide a first name.</div>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :last_name, class: "form-label" do %>
+                Last Name <span class="text-danger">*</span>
+              <% end %>
+              <%= form.text_field :last_name, class: "form-control", placeholder: "Enter last name" %>
+              <div class="invalid-feedback">Please provide a last name.</div>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :email, class: "form-label" %>
+              <%= form.email_field :email, class: "form-control", placeholder: "Enter email address" %>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :mobile, class: "form-label" do %>
+                Mobile Number <span class="text-danger">*</span>
+              <% end %>
+              <%= form.tel_field :mobile, class: "form-control", placeholder: "Enter mobile number" %>
+              <div class="invalid-feedback">Please provide a mobile number.</div>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :birth_date, class: "form-label" do %>
+                Birth Date <span class="text-danger">*</span>
+              <% end %>
+              <%= form.date_field :birth_date, class: "form-control" %>
+              <div class="invalid-feedback">Please provide a birth date.</div>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :gender, class: "form-label" do %>
+                Gender <span class="text-danger">*</span>
+              <% end %>
+              <%= form.select :gender,
+                  options_for_select([
+                    ['Male', 'male'],
+                    ['Female', 'female'],
+                    ['Other', 'other']
+                  ], @customer.gender),
+                  { prompt: 'Select gender' },
+                  { class: "form-select" } %>
+              <div class="invalid-feedback">Please select a gender.</div>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :birth_place, class: "form-label" %>
+              <%= form.text_field :birth_place, class: "form-control", placeholder: "Enter birth place" %>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :height, class: "form-label" %>
+              <%= form.text_field :height, class: "form-control", placeholder: "e.g., 5'8\"" %>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :weight, class: "form-label" %>
+              <%= form.text_field :weight, class: "form-control", placeholder: "e.g., 70 kg" %>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :education, class: "form-label" %>
+              <%= form.text_field :education, class: "form-control", placeholder: "Enter education qualification" %>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :marital_status, class: "form-label" %>
+              <%= form.select :marital_status,
+                  options_for_select([
+                    ['Single', 'single'],
+                    ['Married', 'married'],
+                    ['Divorced', 'divorced'],
+                    ['Widowed', 'widowed']
+                  ], @customer.marital_status),
+                  { prompt: 'Select marital status' },
+                  { class: "form-select" } %>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :occupation, class: "form-label" %>
+              <%= form.text_field :occupation, class: "form-control", placeholder: "Enter occupation" %>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :job_name, class: "form-label" %>
+              <%= form.text_field :job_name, class: "form-control", placeholder: "Enter job title" %>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :type_of_duty, class: "form-label" %>
+              <%= form.text_field :type_of_duty, class: "form-control", placeholder: "Enter type of duty" %>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :annual_income, class: "form-label" %>
+              <%= form.number_field :annual_income, class: "form-control", placeholder: "Enter annual income", step: 0.01 %>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :pan_number, class: "form-label" %>
+              <%= form.text_field :pan_number, class: "form-control", placeholder: "Enter PAN number", pattern: "[A-Z]{5}[0-9]{4}[A-Z]" %>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :gst_number, class: "form-label" %>
+              <%= form.text_field :gst_number, class: "form-control", placeholder: "Enter GST number" %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Corporate Customer Details -->
+      <div id="corporate_fields" class="card border-0 shadow-sm mb-4" style="display: <%= @customer.corporate? ? 'block' : 'none' %>;">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="mb-0">Corporate Details</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <%= form.label :company_name, class: "form-label" do %>
+                Company Name <span class="text-danger">*</span>
+              <% end %>
+              <%= form.text_field :company_name, class: "form-control", placeholder: "Enter company name" %>
+              <div class="invalid-feedback">Please provide a company name.</div>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :email, class: "form-label" %>
+              <%= form.email_field :email, class: "form-control", placeholder: "Enter email address" %>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :mobile, class: "form-label" do %>
+                Mobile Number <span class="text-danger">*</span>
+              <% end %>
+              <%= form.tel_field :mobile, class: "form-control", placeholder: "Enter mobile number" %>
+              <div class="invalid-feedback">Please provide a mobile number.</div>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :annual_income, class: "form-label" do %>
+                Annual Income <span class="text-danger">*</span>
+              <% end %>
+              <%= form.number_field :annual_income, class: "form-control", placeholder: "Enter annual income", step: 0.01 %>
+              <div class="invalid-feedback">Please provide annual income.</div>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :pan_number, class: "form-label" do %>
+                PAN Number <span class="text-danger">*</span>
+              <% end %>
+              <%= form.text_field :pan_number, class: "form-control", placeholder: "Enter PAN number", pattern: "[A-Z]{5}[0-9]{4}[A-Z]" %>
+              <div class="invalid-feedback">Please provide a valid PAN number.</div>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :gst_number, class: "form-label" %>
+              <%= form.text_field :gst_number, class: "form-control", placeholder: "Enter GST number" %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Common Address Details -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="mb-0">Address Details</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <%= form.label :address, class: "form-label" do %>
+                Address <span class="text-danger">*</span>
+              <% end %>
+              <%= form.text_area :address, class: "form-control", rows: 3, placeholder: "Enter full address" %>
+              <div class="invalid-feedback">Please provide an address.</div>
+            </div>
+            <div class="col-md-4">
+              <%= form.label :state, class: "form-label" do %>
+                State <span class="text-danger">*</span>
+              <% end %>
+              <%= form.text_field :state, class: "form-control", placeholder: "Enter state" %>
+              <div class="invalid-feedback">Please provide a state.</div>
+            </div>
+            <div class="col-md-4">
+              <%= form.label :city, class: "form-label" do %>
+                City <span class="text-danger">*</span>
+              <% end %>
+              <%= form.text_field :city, class: "form-control", placeholder: "Enter city" %>
+              <div class="invalid-feedback">Please provide a city.</div>
+            </div>
+            <div class="col-md-4">
+              <%= form.label :pincode, class: "form-label" %>
+              <%= form.text_field :pincode, class: "form-control", placeholder: "Enter pincode" %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nominee Details -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="mb-0">Nominee Details</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <%= form.label :nominee_name, class: "form-label" %>
+              <%= form.text_field :nominee_name, class: "form-control", placeholder: "Enter nominee name" %>
+            </div>
+            <div class="col-md-4">
+              <%= form.label :nominee_relation, class: "form-label" %>
+              <%= form.text_field :nominee_relation, class: "form-control", placeholder: "Enter relation" %>
+            </div>
+            <div class="col-md-4">
+              <%= form.label :nominee_date_of_birth, class: "form-label" %>
+              <%= form.date_field :nominee_date_of_birth, class: "form-control" %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Files -->
+      <% if @customer.profile_images.any? || @customer.documents.any? %>
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-transparent border-0">
+            <h5 class="mb-0">Current Files</h5>
+          </div>
+          <div class="card-body">
+            <% if @customer.profile_images.any? %>
+              <h6>Profile Images</h6>
+              <div class="row g-2 mb-3">
+                <% @customer.profile_images.each do |image| %>
+                  <div class="col-md-3">
+                    <%= image_tag image, class: "img-thumbnail", style: "max-height: 100px;" %>
+                    <small class="d-block text-muted"><%= image.filename %></small>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <% if @customer.documents.any? %>
+              <h6>Documents</h6>
+              <div class="list-group">
+                <% @customer.documents.each do |document| %>
+                  <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-file-earmark me-2"></i><%= document.filename %></span>
+                    <%= link_to document, class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
+                      <i class="bi bi-download"></i> Download
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- File Uploads -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="mb-0">Upload New Files</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <%= form.label :profile_images, "Profile Images", class: "form-label" %>
+              <%= form.file_field :profile_images, class: "form-control", multiple: true, accept: "image/*" %>
+              <div class="form-text">Upload additional profile image(s)</div>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :documents, class: "form-label" %>
+              <%= form.file_field :documents, class: "form-control", multiple: true %>
+              <div class="form-text">Upload additional documents</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Info -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="mb-0">Additional Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <%= form.label :additional_info, class: "form-label" %>
+              <%= form.text_area :additional_info, class: "form-control", rows: 4, placeholder: "Enter any additional information" %>
+            </div>
+            <div class="col-md-6">
+              <div class="form-check form-switch">
+                <%= form.check_box :status, class: "form-check-input" %>
+                <%= form.label :status, "Active Status", class: "form-check-label" %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="d-flex gap-2">
+        <%= form.submit "Update Customer", class: "btn btn-primary" %>
+        <%= link_to "Cancel", admin_customer_path(@customer), class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Customer Summary -->
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-transparent border-0">
+        <h6 class="mb-0">Customer Summary</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <% if @customer.profile_images.any? %>
+            <%= image_tag @customer.profile_images.first, class: "rounded-circle me-3", style: "width: 50px; height: 50px; object-fit: cover;" %>
+          <% else %>
+            <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+              <i class="bi bi-person text-primary"></i>
+            </div>
+          <% end %>
+          <div>
+            <h6 class="mb-0"><%= @customer.display_name %></h6>
+            <span class="badge bg-<%= @customer.customer_type == 'individual' ? 'primary' : 'success' %>">
+              <%= @customer.customer_type.humanize %>
+            </span>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="row g-2 mb-2">
+          <div class="col-5"><strong>ID:</strong></div>
+          <div class="col-7">#<%= @customer.id %></div>
+        </div>
+
+        <div class="row g-2 mb-2">
+          <div class="col-5"><strong>Mobile:</strong></div>
+          <div class="col-7"><%= @customer.mobile %></div>
+        </div>
+
+        <div class="row g-2 mb-2">
+          <div class="col-5"><strong>Email:</strong></div>
+          <div class="col-7"><%= @customer.email %></div>
+        </div>
+
+        <div class="row g-2 mb-2">
+          <div class="col-5"><strong>Location:</strong></div>
+          <div class="col-7"><%= @customer.city %>, <%= @customer.state %></div>
+        </div>
+
+        <% if @customer.policies.any? %>
+          <div class="row g-2 mb-2">
+            <div class="col-5"><strong>Policies:</strong></div>
+            <div class="col-7"><span class="badge bg-info"><%= @customer.policies.count %></span></div>
+          </div>
+        <% end %>
+
+        <div class="row g-2 mb-2">
+          <div class="col-5"><strong>Status:</strong></div>
+          <div class="col-7">
+            <span class="badge bg-<%= @customer.status ? 'success' : 'secondary' %>">
+              <%= @customer.status ? 'Active' : 'Inactive' %>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const customerTypeSelect = document.getElementById('customer_type');
+  const individualFields = document.getElementById('individual_fields');
+  const corporateFields = document.getElementById('corporate_fields');
+
+  function toggleCustomerType() {
+    const selectedType = customerTypeSelect.value;
+
+    if (selectedType === 'individual') {
+      individualFields.style.display = 'block';
+      corporateFields.style.display = 'none';
+
+      // Update required attributes
+      document.querySelectorAll('#individual_fields [required]').forEach(el => el.required = true);
+      document.querySelectorAll('#corporate_fields [required]').forEach(el => el.required = false);
+    } else if (selectedType === 'corporate') {
+      individualFields.style.display = 'none';
+      corporateFields.style.display = 'block';
+
+      // Update required attributes
+      document.querySelectorAll('#individual_fields [required]').forEach(el => el.required = false);
+      document.querySelectorAll('#corporate_fields [required]').forEach(el => el.required = true);
+    } else {
+      individualFields.style.display = 'none';
+      corporateFields.style.display = 'none';
+
+      // Remove required attributes
+      document.querySelectorAll('#individual_fields [required], #corporate_fields [required]').forEach(el => el.required = false);
+    }
+  }
+
+  customerTypeSelect.addEventListener('change', toggleCustomerType);
+
+  // Initialize on page load
+  if (customerTypeSelect.value) {
+    toggleCustomerType();
+  }
+
+  // Form validation
+  const forms = document.querySelectorAll('.needs-validation');
+  Array.prototype.slice.call(forms).forEach(function(form) {
+    form.addEventListener('submit', function(event) {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      form.classList.add('was-validated');
+    }, false);
+  });
+});
+</script>

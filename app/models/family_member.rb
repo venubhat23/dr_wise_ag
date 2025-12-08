@@ -1,14 +1,21 @@
 class FamilyMember < ApplicationRecord
   belongs_to :customer
-  has_many_attached :documents
+  has_many :documents, as: :documentable, dependent: :destroy
 
-  validates :name, presence: true
-  validates :birth_date, presence: true
-  validates :relationship, presence: true, inclusion: { in: ['self', 'spouse', 'child', 'parent', 'sibling', 'other'] }
+  validates :first_name, presence: true
+  validates :last_name, presence: true
+  validates :relationship, presence: true, inclusion: { in: ['father', 'mother', 'spouse', 'child', 'sibling', 'other'] }
 
-  enum :relationship, { self: 'self', spouse: 'spouse', child: 'child', parent: 'parent', sibling: 'sibling', other: 'other' }
+  enum :relationship, { father: 'father', mother: 'mother', spouse: 'spouse', child: 'child', sibling: 'sibling', other_relationship: 'other' }
+  enum :gender, { male: 'male', female: 'female', other_gender: 'other' }
+
+  accepts_nested_attributes_for :documents, allow_destroy: true, reject_if: :all_blank
 
   before_save :calculate_age
+
+  def full_name
+    "#{first_name} #{middle_name} #{last_name}".strip.squeeze(' ')
+  end
 
   private
 

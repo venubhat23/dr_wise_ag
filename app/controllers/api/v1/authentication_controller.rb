@@ -53,6 +53,42 @@ class Api::V1::AuthenticationController < Api::V1::BaseController
     }, status: :unprocessable_entity
   end
 
+  # POST /api/v1/auth/forgot_password
+  def forgot_password
+    user = User.find_by(email: forgot_password_params[:email])
+
+    if user
+      user.send_reset_password_instructions
+      render json: {
+        success: true,
+        message: 'Password reset instructions have been sent to your email'
+      }, status: :ok
+    else
+      render json: {
+        success: false,
+        message: 'Email not found'
+      }, status: :not_found
+    end
+  end
+
+  # POST /api/v1/auth/reset_password
+  def reset_password
+    user = User.reset_password_by_token(reset_password_params)
+
+    if user.errors.empty?
+      render json: {
+        success: true,
+        message: 'Password has been reset successfully'
+      }, status: :ok
+    else
+      render json: {
+        success: false,
+        message: 'Failed to reset password',
+        errors: user.errors.full_messages
+      }, status: :unprocessable_entity
+    end
+  end
+
   private
 
   # Strong parameters for login
@@ -73,6 +109,16 @@ class Api::V1::AuthenticationController < Api::V1::BaseController
     permitted_params[:user_type] ||= 'agent'
 
     permitted_params.merge(status: true)
+  end
+
+  # Strong parameters for forgot password
+  def forgot_password_params
+    params.permit(:email)
+  end
+
+  # Strong parameters for reset password
+  def reset_password_params
+    params.permit(:reset_password_token, :password, :password_confirmation)
   end
 
   # Find user by email

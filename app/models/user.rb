@@ -15,12 +15,11 @@ class User < ApplicationRecord
   validates :last_name, presence: true
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :mobile, presence: true, uniqueness: true
-  validates :user_type, presence: true, inclusion: { in: ['admin', 'agent', 'sub_agent'] }
+  validates :user_type, presence: true, inclusion: { in: ['admin', 'agent', 'sub_agent', 'customer'] }
   validates :role, presence: true
-  validates :status, inclusion: { in: [true, false] }
 
   # Enums
-  enum :user_type, { admin: 'admin', agent: 'agent', sub_agent: 'sub_agent' }
+  enum :user_type, { admin: 'admin', agent: 'agent', sub_agent: 'sub_agent', customer: 'customer' }
   enum :role, { super_admin: 'super_admin', admin_role: 'admin', manager: 'manager', agent_role: 'agent' }
 
   # Scopes

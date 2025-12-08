@@ -1,0 +1,303 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1"><%= @sub_agent.display_name %></h2>
+    <p class="text-muted mb-0">
+      <span class="badge bg-<%= @sub_agent.active? ? 'success' : 'secondary' %> me-2">
+        <%= @sub_agent.status.capitalize %>
+      </span>
+      Sub Agent Details
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to edit_admin_sub_agent_path(@sub_agent), class: "btn btn-primary" do %>
+      <i class="bi bi-pencil me-1"></i>
+      Edit Sub Agent
+    <% end %>
+    <%= link_to admin_sub_agents_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to List
+    <% end %>
+  </div>
+</div>
+
+<!-- Personal Details -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <i class="bi bi-person-circle me-2 text-primary"></i>
+    <h5 class="mb-0">Personal Details</h5>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <table class="table table-borderless">
+          <tr>
+            <th class="text-muted" width="40%">Full Name:</th>
+            <td><%= @sub_agent.full_name %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Mobile:</th>
+            <td>
+              <a href="tel:<%= @sub_agent.mobile %>" class="text-decoration-none">
+                <i class="bi bi-telephone me-1"></i>
+                <%= @sub_agent.mobile %>
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <th class="text-muted">Email:</th>
+            <td>
+              <% if @sub_agent.email.present? %>
+                <a href="mailto:<%= @sub_agent.email %>" class="text-decoration-none">
+                  <i class="bi bi-envelope me-1"></i>
+                  <%= @sub_agent.email %>
+                </a>
+              <% else %>
+                <span class="text-muted">Not provided</span>
+              <% end %>
+            </td>
+          </tr>
+          <tr>
+            <th class="text-muted">Role:</th>
+            <td>
+              <span class="badge bg-info">
+                <%= case @sub_agent.role_id
+                    when 1 then 'Agent'
+                    when 2 then 'Senior Agent'
+                    when 3 then 'Manager'
+                    when 4 then 'Senior Manager'
+                    else "Role #{@sub_agent.role_id}"
+                    end %>
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <th class="text-muted">Birth Date:</th>
+            <td>
+              <% if @sub_agent.birth_date.present? %>
+                <%= @sub_agent.birth_date.strftime("%d %B, %Y") %>
+              <% else %>
+                <span class="text-muted">Not provided</span>
+              <% end %>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="col-md-6">
+        <table class="table table-borderless">
+          <tr>
+            <th class="text-muted" width="40%">Gender:</th>
+            <td><%= @sub_agent.gender.presence || 'Not specified' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">PAN No:</th>
+            <td><%= @sub_agent.pan_no.presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">GST No:</th>
+            <td><%= @sub_agent.gst_no.presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Company:</th>
+            <td><%= @sub_agent.company_name.presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Status:</th>
+            <td>
+              <span class="badge bg-<%= @sub_agent.active? ? 'success' : 'secondary' %>">
+                <%= @sub_agent.status.capitalize %>
+              </span>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <% if @sub_agent.address.present? %>
+      <div class="row mt-3">
+        <div class="col-12">
+          <h6 class="text-muted mb-2">Address:</h6>
+          <p class="mb-0"><%= simple_format(@sub_agent.address) %></p>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Bank Details -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <i class="bi bi-bank me-2 text-success"></i>
+    <h5 class="mb-0">Bank Details</h5>
+  </div>
+  <div class="card-body">
+    <% if [@sub_agent.bank_name, @sub_agent.account_no, @sub_agent.ifsc_code, @sub_agent.account_holder_name, @sub_agent.account_type, @sub_agent.upi_id].any?(&:present?) %>
+      <div class="row">
+        <div class="col-md-6">
+          <table class="table table-borderless">
+            <tr>
+              <th class="text-muted" width="40%">Bank Name:</th>
+              <td><%= @sub_agent.bank_name.presence || 'Not provided' %></td>
+            </tr>
+            <tr>
+              <th class="text-muted">Account Number:</th>
+              <td><%= @sub_agent.account_no.presence || 'Not provided' %></td>
+            </tr>
+            <tr>
+              <th class="text-muted">IFSC Code:</th>
+              <td><%= @sub_agent.ifsc_code.presence || 'Not provided' %></td>
+            </tr>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <table class="table table-borderless">
+            <tr>
+              <th class="text-muted" width="40%">Account Holder:</th>
+              <td><%= @sub_agent.account_holder_name.presence || 'Not provided' %></td>
+            </tr>
+            <tr>
+              <th class="text-muted">Account Type:</th>
+              <td><%= @sub_agent.account_type.presence || 'Not provided' %></td>
+            </tr>
+            <tr>
+              <th class="text-muted">UPI ID:</th>
+              <td><%= @sub_agent.upi_id.presence || 'Not provided' %></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <div class="text-center py-4">
+        <i class="bi bi-bank display-6 text-muted mb-3 d-block"></i>
+        <h6 class="text-muted">No bank details provided</h6>
+        <p class="text-muted mb-0">Bank information can be added when editing the sub agent.</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Documents -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <i class="bi bi-file-earmark-text me-2 text-warning"></i>
+    <h5 class="mb-0">Documents</h5>
+  </div>
+  <div class="card-body">
+    <!-- Main Document -->
+    <% if @sub_agent.upload_main_document.attached? %>
+      <div class="mb-4">
+        <h6 class="mb-3">Main Document</h6>
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="me-3">
+                <i class="bi bi-file-earmark-pdf fs-2 text-danger"></i>
+              </div>
+              <div class="flex-grow-1">
+                <h6 class="mb-1"><%= @sub_agent.upload_main_document.filename %></h6>
+                <small class="text-muted">
+                  Uploaded: <%= time_ago_in_words(@sub_agent.upload_main_document.created_at) %> ago
+                </small>
+              </div>
+              <div>
+                <%= link_to rails_blob_path(@sub_agent.upload_main_document, disposition: "attachment"),
+                           class: "btn btn-sm btn-outline-primary" do %>
+                  <i class="bi bi-download me-1"></i>Download
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Additional Documents -->
+    <% if @documents.any? %>
+      <div class="mb-3">
+        <h6 class="mb-3">Additional Documents</h6>
+        <div class="row">
+          <% @documents.each do |document| %>
+            <div class="col-md-6 mb-3">
+              <div class="card h-100">
+                <div class="card-body">
+                  <div class="d-flex align-items-start">
+                    <div class="me-3">
+                      <i class="bi bi-file-earmark fs-4 text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <h6 class="card-title mb-1"><%= document.document_type %></h6>
+                      <p class="card-text mb-2">
+                        <small class="text-muted"><%= document.document_name %></small>
+                      </p>
+                      <small class="text-muted">
+                        Uploaded: <%= time_ago_in_words(document.created_at) %> ago
+                      </small>
+                    </div>
+                  </div>
+                  <div class="mt-3">
+                    <% if document.document_file.attached? %>
+                      <%= link_to document.document_url, target: '_blank',
+                                 class: "btn btn-sm btn-outline-primary me-2" do %>
+                        <i class="bi bi-eye me-1"></i>View
+                      <% end %>
+                      <%= link_to rails_blob_path(document.document_file, disposition: "attachment"),
+                                 class: "btn btn-sm btn-outline-secondary" do %>
+                        <i class="bi bi-download me-1"></i>Download
+                      <% end %>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Empty State -->
+    <% if !@sub_agent.upload_main_document.attached? && @documents.empty? %>
+      <div class="text-center py-4">
+        <i class="bi bi-file-earmark display-6 text-muted mb-3 d-block"></i>
+        <h6 class="text-muted">No documents uploaded</h6>
+        <p class="text-muted mb-3">Documents can be added when editing the sub agent.</p>
+        <%= link_to edit_admin_sub_agent_path(@sub_agent), class: "btn btn-outline-primary" do %>
+          <i class="bi bi-plus-lg me-1"></i>Add Documents
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Timestamps -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <i class="bi bi-clock me-2 text-info"></i>
+    <h5 class="mb-0">Timeline</h5>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <table class="table table-borderless">
+          <tr>
+            <th class="text-muted" width="40%">Created:</th>
+            <td>
+              <%= @sub_agent.created_at.strftime("%d %B, %Y at %I:%M %p") %>
+              <small class="text-muted">(<%= time_ago_in_words(@sub_agent.created_at) %> ago)</small>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="col-md-6">
+        <table class="table table-borderless">
+          <tr>
+            <th class="text-muted" width="40%">Last Updated:</th>
+            <td>
+              <%= @sub_agent.updated_at.strftime("%d %B, %Y at %I:%M %p") %>
+              <small class="text-muted">(<%= time_ago_in_words(@sub_agent.updated_at) %> ago)</small>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
