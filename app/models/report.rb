@@ -2,7 +2,7 @@ class Report < ApplicationRecord
   validates :name, presence: true
   validates :report_type, presence: true
 
-  enum report_type: {
+  enum :report_type, {
     commission: 'commission',
     expired_insurance: 'expired_insurance',
     payment_due: 'payment_due',
