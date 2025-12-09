@@ -175,7 +175,7 @@
       <!-- Pagination -->
       <% if respond_to?(:paginate) && @motor_insurances.respond_to?(:current_page) %>
         <div class="card-footer bg-transparent border-0">
-          <%= paginate @motor_insurances, theme: 'twitter-bootstrap-4' %>
+          <%= paginate @motor_insurances %>
         </div>
       <% end %>
     <% else %>

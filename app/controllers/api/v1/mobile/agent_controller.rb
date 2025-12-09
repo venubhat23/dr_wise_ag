@@ -76,8 +76,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     )
 
     customer = Customer.new(customer_params.merge(
-      status: true,
-      added_by: current_user.id
+      status: true
     ))
 
     if customer.save
@@ -209,8 +208,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     end
 
     policy = HealthInsurance.new(policy_params.merge(
-      added_by: current_user.id,
-      status: 'active'
+      policy_booking_date: Date.current
     ))
 
     if policy.save
@@ -253,9 +251,13 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       }, status: :not_found
     end
 
-    policy = LifeInsurance.new(policy_params.merge(
-      added_by: current_user.id,
-      status: 'active'
+    # Map agent_commission_percentage to main_agent_commission_percentage
+    life_policy_params = policy_params.to_h.transform_keys do |key|
+      key == 'agent_commission_percentage' ? 'main_agent_commission_percentage' : key
+    end
+
+    policy = LifeInsurance.new(life_policy_params.merge(
+      policy_booking_date: Date.current
     ))
 
     if policy.save

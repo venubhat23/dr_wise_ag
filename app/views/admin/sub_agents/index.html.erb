@@ -198,7 +198,7 @@
           Showing <%= @sub_agents.offset_value + 1 %> to <%= [@sub_agents.offset_value + @sub_agents.limit_value, @sub_agents.total_count].min %> of <%= @sub_agents.total_count %> entries
         </div>
         <div>
-          <%= paginate @sub_agents, theme: 'twitter-bootstrap-5' %>
+          <%= paginate @sub_agents %>
         </div>
       </div>
     <% else %>

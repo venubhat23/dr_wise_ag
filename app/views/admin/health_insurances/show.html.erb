@@ -162,21 +162,21 @@
             <i class="bi bi-person"></i>
           </div>
           <div>
-            <h6 class="mb-1"><%= @health_insurance.customer.display_name %></h6>
+            <h6 class="mb-1"><%= @health_insurance.customer&.display_name || 'Unknown Customer' %></h6>
             <small class="text-muted">
-              <%= @health_insurance.customer.customer_type&.humanize || 'Individual' %>
+              <%= @health_insurance.customer&.customer_type&.humanize || 'Individual' %>
             </small>
           </div>
         </div>
 
         <div class="mb-3">
           <label class="form-label text-muted small">Email</label>
-          <div><%= @health_insurance.customer.email %></div>
+          <div><%= @health_insurance.customer&.email || 'N/A' %></div>
         </div>
 
         <div class="mb-3">
           <label class="form-label text-muted small">Mobile</label>
-          <div><%= @health_insurance.customer.mobile %></div>
+          <div><%= @health_insurance.customer&.mobile || 'N/A' %></div>
         </div>
 
         <div class="mb-3">
