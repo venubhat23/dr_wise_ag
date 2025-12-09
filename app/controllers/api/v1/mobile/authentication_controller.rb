@@ -127,6 +127,21 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
 
   # POST /api/v1/mobile/auth/register
   def register
+    role = params[:role]&.downcase || 'customer'
+
+    if role == 'customer'
+      register_customer
+    elsif role == 'agent'
+      register_agent
+    else
+      render json: {
+        success: false,
+        message: 'Invalid role. Only customer and agent registration are allowed.'
+      }, status: :unprocessable_entity
+    end
+  end
+
+  def register_customer
     customer_params = params.permit(:first_name, :last_name, :email, :mobile, :password)
 
     if customer_params[:email].blank? || customer_params[:mobile].blank?
@@ -157,18 +172,84 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
     if customer.save
       render json: {
         success: true,
-        message: 'Registration successful. Please contact your agent for account activation.',
+        message: 'Customer registration successful. Please contact your agent for account activation.',
         data: {
           customer_id: customer.id,
           email: customer.email,
-          mobile: customer.mobile
+          mobile: customer.mobile,
+          role: 'customer'
         }
       }
     else
       render json: {
         success: false,
-        message: 'Registration failed',
+        message: 'Customer registration failed',
         errors: customer.errors.full_messages
+      }, status: :unprocessable_entity
+    end
+  end
+
+  def register_agent
+    agent_params = params.permit(:first_name, :last_name, :email, :mobile, :password, :password_confirmation,
+                                :pan_no, :address, :city, :state, :gender, :occupation, :annual_income)
+
+    if agent_params[:email].blank? || agent_params[:mobile].blank? || agent_params[:password].blank?
+      return render json: {
+        success: false,
+        message: 'Email, mobile number, and password are required'
+      }, status: :unprocessable_entity
+    end
+
+    if agent_params[:password] != agent_params[:password_confirmation]
+      return render json: {
+        success: false,
+        message: 'Password confirmation does not match'
+      }, status: :unprocessable_entity
+    end
+
+    # Check if user already exists
+    if User.exists?(email: agent_params[:email]) || User.exists?(mobile: agent_params[:mobile])
+      return render json: {
+        success: false,
+        message: 'Agent with this email or mobile number already exists'
+      }, status: :conflict
+    end
+
+    user = User.new(
+      first_name: agent_params[:first_name],
+      last_name: agent_params[:last_name],
+      email: agent_params[:email],
+      mobile: agent_params[:mobile],
+      password: agent_params[:password],
+      password_confirmation: agent_params[:password_confirmation],
+      user_type: 'agent',
+      role: 'agent_role',
+      status: false,  # Pending approval
+      pan_number: agent_params[:pan_no],
+      address: agent_params[:address],
+      city: agent_params[:city],
+      state: agent_params[:state],
+      gender: agent_params[:gender],
+      occupation: agent_params[:occupation],
+      annual_income: agent_params[:annual_income]
+    )
+
+    if user.save
+      render json: {
+        success: true,
+        message: 'Agent registration successful. Your account is pending approval by admin.',
+        data: {
+          user_id: user.id,
+          email: user.email,
+          mobile: user.mobile,
+          role: 'agent'
+        }
+      }
+    else
+      render json: {
+        success: false,
+        message: 'Agent registration failed',
+        errors: user.errors.full_messages
       }, status: :unprocessable_entity
     end
   end
