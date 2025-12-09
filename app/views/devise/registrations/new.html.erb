@@ -6,9 +6,9 @@
   <div class="floating-element"></div>
 </div>
 
-<div class="container">
-  <div class="row justify-content-center">
-    <div class="col-md-6">
+<div class="container-fluid">
+  <div class="row justify-content-center min-vh-100 align-items-center">
+    <div class="col-lg-10 col-md-11 col-12">
       <div class="card shadow-lg border-0" style="border-radius: 15px; background: rgba(255, 255, 255, 0.95);">
         <div class="card-body p-5">
           <!-- Logo and Title -->
@@ -25,149 +25,133 @@
           <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { class: "needs-validation", novalidate: true }) do |f| %>
             <%= render "devise/shared/error_messages", resource: resource %>
 
-            <!-- First Name Field -->
-            <div class="mb-3">
-              <div class="input-group">
-                <span class="input-group-text bg-light border-end-0">
-                  <i class="bi bi-person text-muted"></i>
-                </span>
-                <%= f.text_field :first_name,
-                    class: "form-control border-start-0 ps-0",
-                    placeholder: "First Name",
-                    required: true %>
+            <div class="row">
+              <!-- First Name Field -->
+              <div class="col-md-6 mb-3">
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="bi bi-person text-muted"></i>
+                  </span>
+                  <%= f.text_field :first_name,
+                      class: "form-control",
+                      placeholder: "First Name",
+                      required: true %>
+                </div>
               </div>
-              <div class="invalid-feedback">
-                Please provide your first name.
+
+              <!-- Last Name Field -->
+              <div class="col-md-6 mb-3">
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="bi bi-person text-muted"></i>
+                  </span>
+                  <%= f.text_field :last_name,
+                      class: "form-control",
+                      placeholder: "Last Name",
+                      required: true %>
+                </div>
               </div>
             </div>
 
-            <!-- Last Name Field -->
-            <div class="mb-3">
-              <div class="input-group">
-                <span class="input-group-text bg-light border-end-0">
-                  <i class="bi bi-person text-muted"></i>
-                </span>
-                <%= f.text_field :last_name,
-                    class: "form-control border-start-0 ps-0",
-                    placeholder: "Last Name",
-                    required: true %>
+            <div class="row">
+              <!-- Email Field -->
+              <div class="col-md-6 mb-3">
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="bi bi-envelope text-muted"></i>
+                  </span>
+                  <%= f.email_field :email, autofocus: true, autocomplete: "email",
+                      class: "form-control",
+                      placeholder: "Enter Email Address",
+                      required: true %>
+                </div>
               </div>
-              <div class="invalid-feedback">
-                Please provide your last name.
+
+              <!-- Mobile Field -->
+              <div class="col-md-6 mb-3">
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="bi bi-phone text-muted"></i>
+                  </span>
+                  <%= f.telephone_field :mobile,
+                      class: "form-control",
+                      placeholder: "Mobile Number",
+                      required: true %>
+                </div>
               </div>
             </div>
 
-            <!-- Email Field -->
-            <div class="mb-3">
-              <div class="input-group">
-                <span class="input-group-text bg-light border-end-0">
-                  <i class="bi bi-envelope text-muted"></i>
-                </span>
-                <%= f.email_field :email, autofocus: true, autocomplete: "email",
-                    class: "form-control border-start-0 ps-0",
-                    placeholder: "Enter Email Address",
-                    required: true %>
+            <div class="row">
+              <!-- User Type Field -->
+              <div class="col-md-6 mb-3">
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="bi bi-people text-muted"></i>
+                  </span>
+                  <%= f.select :user_type,
+                      options_for_select([
+                        ['Admin', 'admin'],
+                        ['Agent', 'agent'],
+                        ['Sub Agent', 'sub_agent'],
+                        ['Customer', 'customer']
+                      ], 'agent'),
+                      { prompt: 'Select User Type' },
+                      { class: "form-control", required: true } %>
+                </div>
               </div>
-              <div class="invalid-feedback">
-                Please provide a valid email address.
-              </div>
-            </div>
 
-            <!-- Mobile Field -->
-            <div class="mb-3">
-              <div class="input-group">
-                <span class="input-group-text bg-light border-end-0">
-                  <i class="bi bi-phone text-muted"></i>
-                </span>
-                <%= f.telephone_field :mobile,
-                    class: "form-control border-start-0 ps-0",
-                    placeholder: "Mobile Number",
-                    required: true %>
-              </div>
-              <div class="invalid-feedback">
-                Please provide your mobile number.
-              </div>
-            </div>
-
-            <!-- User Type Field -->
-            <div class="mb-3">
-              <div class="input-group">
-                <span class="input-group-text bg-light border-end-0">
-                  <i class="bi bi-people text-muted"></i>
-                </span>
-                <%= f.select :user_type,
-                    options_for_select([
-                      ['Admin', 'admin'],
-                      ['Agent', 'agent'],
-                      ['Sub Agent', 'sub_agent'],
-                      ['Customer', 'customer']
-                    ], 'agent'),
-                    { prompt: 'Select User Type' },
-                    { class: "form-control border-start-0 ps-0", required: true } %>
-              </div>
-              <div class="invalid-feedback">
-                Please select a user type.
-              </div>
-            </div>
-
-            <!-- Role Field -->
-            <div class="mb-3">
-              <div class="input-group">
-                <span class="input-group-text bg-light border-end-0">
-                  <i class="bi bi-award text-muted"></i>
-                </span>
-                <%= f.select :role,
-                    options_for_select([
-                      ['Super Admin', 'super_admin'],
-                      ['Admin', 'admin_role'],
-                      ['Manager', 'manager'],
-                      ['Agent', 'agent_role']
-                    ], 'agent_role'),
-                    { prompt: 'Select Role' },
-                    { class: "form-control border-start-0 ps-0", required: true } %>
-              </div>
-              <div class="invalid-feedback">
-                Please select a role.
+              <!-- Role Field -->
+              <div class="col-md-6 mb-3">
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="bi bi-award text-muted"></i>
+                  </span>
+                  <%= f.select :role,
+                      options_for_select([
+                        ['Super Admin', 'super_admin'],
+                        ['Admin', 'admin_role'],
+                        ['Manager', 'manager'],
+                        ['Agent', 'agent_role']
+                      ], 'agent_role'),
+                      { prompt: 'Select Role' },
+                      { class: "form-control", required: true } %>
+                </div>
               </div>
             </div>
 
             <!-- Status Field -->
-            <div class="mb-3">
+            <div class="mb-4">
               <div class="form-check">
                 <%= f.check_box :status, { checked: true, class: "form-check-input" }, "true", "false" %>
                 <%= f.label :status, "Active Status", class: "form-check-label" %>
               </div>
             </div>
 
-            <!-- Password Field -->
-            <div class="mb-3">
-              <div class="input-group">
-                <span class="input-group-text bg-light border-end-0">
-                  <i class="bi bi-lock text-muted"></i>
-                </span>
-                <%= f.password_field :password, autocomplete: "new-password",
-                    class: "form-control border-start-0 ps-0",
-                    placeholder: "Password (6 characters minimum)",
-                    required: true %>
+            <div class="row">
+              <!-- Password Field -->
+              <div class="col-md-6 mb-3">
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="bi bi-lock text-muted"></i>
+                  </span>
+                  <%= f.password_field :password, autocomplete: "new-password",
+                      class: "form-control",
+                      placeholder: "Password (6 characters minimum)",
+                      required: true %>
+                </div>
               </div>
-              <div class="invalid-feedback">
-                Please provide a password with at least 6 characters.
-              </div>
-            </div>
 
-            <!-- Password Confirmation Field -->
-            <div class="mb-3">
-              <div class="input-group">
-                <span class="input-group-text bg-light border-end-0">
-                  <i class="bi bi-lock text-muted"></i>
-                </span>
-                <%= f.password_field :password_confirmation, autocomplete: "new-password",
-                    class: "form-control border-start-0 ps-0",
-                    placeholder: "Confirm Password",
-                    required: true %>
-              </div>
-              <div class="invalid-feedback">
-                Please confirm your password.
+              <!-- Password Confirmation Field -->
+              <div class="col-md-6 mb-3">
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="bi bi-lock text-muted"></i>
+                  </span>
+                  <%= f.password_field :password_confirmation, autocomplete: "new-password",
+                      class: "form-control",
+                      placeholder: "Confirm Password",
+                      required: true %>
+                </div>
               </div>
             </div>
 
@@ -258,29 +242,61 @@
     }
   }
 
-  .container {
+  .container-fluid {
     position: relative;
     z-index: 2;
-    padding-top: 2rem;
+    padding: 1rem;
   }
 
   .card {
     border: none !important;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
+    max-width: none;
+    margin: 0 auto;
+    width: 100%;
   }
 
   .input-group-text {
     border: 1px solid #e3e6f0;
+    min-width: 45px;
+    justify-content: center;
   }
 
   .form-control {
     border: 1px solid #e3e6f0;
     transition: all 0.3s ease;
+    min-height: 45px;
   }
 
   .form-control:focus {
     border-color: #4e73df;
     box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+  }
+
+  .input-group {
+    margin-bottom: 0.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .card-body {
+      padding: 2rem 1.5rem !important;
+    }
+
+    .container-fluid {
+      padding: 0.5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .container-fluid {
+      padding: 2rem;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .container-fluid {
+      padding: 3rem 4rem;
+    }
   }
 
   .btn-primary {
