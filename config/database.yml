@@ -1,53 +1,33 @@
 default: &default
-  adapter: sqlite3
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  timeout: 5000
+  adapter: postgresql
+  encoding: unicode
+  pool: 5
+  host: dpg-d4ctbr1r0fns73aavd9g-a.oregon-postgres.render.com
+  port: 5432
+  username: drwise_db_user
+  password: y9XcRZgTOn6LNoLfb3G5v5uUjxPZAuZz
 
 development:
   <<: *default
-  database: storage/development.sqlite3
+  database: drwise_db
 
 test:
   <<: *default
-  database: storage/test.sqlite3
+  database: drwise_db_test
 
 production:
   primary:
-    adapter: postgresql
-    encoding: unicode
-    pool: 5
-    database: <%= ENV.fetch("DATABASE_NAME", "drwise_db") %>
-    host: <%= ENV.fetch("DATABASE_HOST", "dpg-d4ctbr1r0fns73aavd9g-a") %>
-    port: <%= ENV.fetch("DATABASE_PORT", "5432") %>
-    username: <%= ENV.fetch("DATABASE_USERNAME", "drwise_db_user") %>
-    password: <%= ENV.fetch("DATABASE_PASSWORD", "y9XcRZgTOn6LNoLfb3G5v5uUjxPZAuZz") %>
+    <<: *default
+    database: drwise_db
 
   cable:
-    adapter: postgresql
-    encoding: unicode
-    pool: 5
-    database: <%= ENV.fetch("DATABASE_NAME", "drwise_db") %>
-    host: <%= ENV.fetch("DATABASE_HOST", "dpg-d4ctbr1r0fns73aavd9g-a") %>
-    port: <%= ENV.fetch("DATABASE_PORT", "5432") %>
-    username: <%= ENV.fetch("DATABASE_USERNAME", "drwise_db_user") %>
-    password: <%= ENV.fetch("DATABASE_PASSWORD", "y9XcRZgTOn6LNoLfb3G5v5uUjxPZAuZz") %>
+    <<: *default
+    database: drwise_db
 
   queue:
-    adapter: postgresql
-    encoding: unicode
-    pool: 5
-    database: <%= ENV.fetch("DATABASE_NAME", "drwise_db") %>
-    host: <%= ENV.fetch("DATABASE_HOST", "dpg-d4ctbr1r0fns73aavd9g-a") %>
-    port: <%= ENV.fetch("DATABASE_PORT", "5432") %>
-    username: <%= ENV.fetch("DATABASE_USERNAME", "drwise_db_user") %>
-    password: <%= ENV.fetch("DATABASE_PASSWORD", "y9XcRZgTOn6LNoLfb3G5v5uUjxPZAuZz") %>
+    <<: *default
+    database: drwise_db
 
   cache:
-    adapter: postgresql
-    encoding: unicode
-    pool: 5
-    database: <%= ENV.fetch("DATABASE_NAME", "drwise_db") %>
-    host: <%= ENV.fetch("DATABASE_HOST", "dpg-d4ctbr1r0fns73aavd9g-a") %>
-    port: <%= ENV.fetch("DATABASE_PORT", "5432") %>
-    username: <%= ENV.fetch("DATABASE_USERNAME", "drwise_db_user") %>
-    password: <%= ENV.fetch("DATABASE_PASSWORD", "y9XcRZgTOn6LNoLfb3G5v5uUjxPZAuZz") %>
+    <<: *default
+    database: drwise_db
