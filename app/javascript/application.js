@@ -30,21 +30,54 @@ window.InsureBookAdmin = {
     this.initNavigation();
   },
 
-  // Navigation functionality
+  // Navigation functionality with collapsible support
   initNavigation() {
-    const navItems = document.querySelectorAll('.nav-link');
+    // Handle collapsible navigation items
+    const collapseButtons = document.querySelectorAll('[data-bs-toggle="collapse"]');
+    collapseButtons.forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
 
+        const target = document.querySelector(this.getAttribute('data-bs-target'));
+        if (target) {
+          // Initialize Bootstrap collapse if not already initialized
+          let bsCollapse = bootstrap.Collapse.getInstance(target);
+          if (!bsCollapse) {
+            bsCollapse = new bootstrap.Collapse(target, { toggle: false });
+          }
+
+          // Toggle the collapse
+          bsCollapse.toggle();
+
+          // Update button state
+          this.classList.toggle('collapsed');
+          const isExpanded = !this.classList.contains('collapsed');
+          this.setAttribute('aria-expanded', isExpanded);
+        }
+      });
+    });
+
+    // Handle regular navigation clicks
+    const navItems = document.querySelectorAll('.nav-link:not([data-bs-toggle="collapse"])');
     navItems.forEach(item => {
       item.addEventListener('click', (e) => {
+        // Remove active from other nav items
+        document.querySelectorAll('.nav-link').forEach(link => {
+          link.classList.remove('active');
+        });
+
+        // Add active to clicked item
+        item.classList.add('active');
+
         // Add loading state to clicked nav item
-        const icon = item.querySelector('.nav-icon i');
+        const icon = item.querySelector('.nav-icon');
         if (icon) {
-          const originalIcon = icon.className;
-          icon.className = 'loading-spinner';
+          const originalClass = icon.className;
+          icon.className = icon.className.replace(/fa-[\w-]+/, 'fa-spinner fa-spin');
 
           // Restore icon after a short delay
           setTimeout(() => {
-            icon.className = originalIcon;
+            icon.className = originalClass;
           }, 1000);
         }
       });

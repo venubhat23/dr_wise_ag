@@ -1,313 +1,217 @@
-<!-- Floating background elements -->
-<div class="floating-elements">
-  <div class="floating-element"></div>
-  <div class="floating-element"></div>
-  <div class="floating-element"></div>
-  <div class="floating-element"></div>
-</div>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sign Up - InsureBook</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
 
-<div class="container-fluid">
-  <div class="row justify-content-center min-vh-100 align-items-center">
-    <div class="col-lg-10 col-md-11 col-12">
-      <div class="card shadow-lg border-0" style="border-radius: 15px; background: rgba(255, 255, 255, 0.95);">
-        <div class="card-body p-5">
-          <!-- Logo and Title -->
-          <div class="text-center mb-4">
-            <div class="d-flex justify-content-center align-items-center mb-3">
-              <i class="bi bi-shield-check text-primary me-2" style="font-size: 2.5rem;"></i>
-              <h2 class="text-primary mb-0 fw-bold">InsureBook</h2>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Poppins Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Simple Login CSS -->
+  <%= stylesheet_link_tag "simple_login", "data-turbo-track": "reload" %>
+
+  <style>
+    /* Override for signup form to make it wider */
+    .simple-login-card {
+      max-width: 1400px !important;
+      width: 100% !important;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 576px) {
+      .form-row {
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .form-row .form-group {
+        margin-bottom: 1rem;
+      }
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .simple-subtitle {
+      font-size: 14px !important;
+      line-height: 1.4 !important;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Simple Centered Signup Page -->
+<div class="simple-login-wrapper">
+  <div class="simple-login-container">
+    <div class="simple-login-card">
+      <!-- Flash Messages -->
+      <% if notice %>
+        <div class="alert alert-success mb-3">
+          <i class="fas fa-check-circle me-2"></i><%= notice %>
+        </div>
+      <% end %>
+
+      <% if alert %>
+        <div class="alert alert-danger mb-3">
+          <i class="fas fa-exclamation-triangle me-2"></i><%= alert %>
+        </div>
+      <% end %>
+
+      <!-- Logo Section -->
+      <div class="text-center mb-4">
+        <div class="simple-logo">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <h2 class="simple-title">InsureBook</h2>
+        <p class="simple-subtitle">Create your account to join our insurance platform</p>
+      </div>
+
+      <!-- Error Messages -->
+      <%= render "devise/shared/error_messages", resource: resource %>
+
+      <!-- Simple Signup Form -->
+      <%= form_for(resource, as: resource_name, url: registration_path(resource_name)) do |f| %>
+
+        <!-- Name Fields Row -->
+        <div class="form-row">
+          <div class="form-group">
+            <%= f.label :first_name, "First Name", class: "form-label" %>
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="fas fa-user"></i>
+              </span>
+              <%= f.text_field :first_name, class: "form-control", placeholder: "First Name", required: true %>
             </div>
-            <p class="text-muted mb-0">Technology Pvt Ltd</p>
-            <h4 class="text-dark mt-3 mb-1">Create Account</h4>
-            <p class="text-muted">Join our insurance platform</p>
           </div>
 
-          <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { class: "needs-validation", novalidate: true }) do |f| %>
-            <%= render "devise/shared/error_messages", resource: resource %>
-
-            <div class="row">
-              <!-- First Name Field -->
-              <div class="col-md-6 mb-3">
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="bi bi-person text-muted"></i>
-                  </span>
-                  <%= f.text_field :first_name,
-                      class: "form-control",
-                      placeholder: "First Name",
-                      required: true %>
-                </div>
-              </div>
-
-              <!-- Last Name Field -->
-              <div class="col-md-6 mb-3">
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="bi bi-person text-muted"></i>
-                  </span>
-                  <%= f.text_field :last_name,
-                      class: "form-control",
-                      placeholder: "Last Name",
-                      required: true %>
-                </div>
-              </div>
+          <div class="form-group">
+            <%= f.label :last_name, "Last Name", class: "form-label" %>
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="fas fa-user"></i>
+              </span>
+              <%= f.text_field :last_name, class: "form-control", placeholder: "Last Name", required: true %>
             </div>
-
-            <div class="row">
-              <!-- Email Field -->
-              <div class="col-md-6 mb-3">
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="bi bi-envelope text-muted"></i>
-                  </span>
-                  <%= f.email_field :email, autofocus: true, autocomplete: "email",
-                      class: "form-control",
-                      placeholder: "Enter Email Address",
-                      required: true %>
-                </div>
-              </div>
-
-              <!-- Mobile Field -->
-              <div class="col-md-6 mb-3">
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="bi bi-phone text-muted"></i>
-                  </span>
-                  <%= f.telephone_field :mobile,
-                      class: "form-control",
-                      placeholder: "Mobile Number",
-                      required: true %>
-                </div>
-              </div>
-            </div>
-
-            <div class="row">
-              <!-- User Type Field -->
-              <div class="col-md-6 mb-3">
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="bi bi-people text-muted"></i>
-                  </span>
-                  <%= f.select :user_type,
-                      options_for_select([
-                        ['Admin', 'admin'],
-                        ['Agent', 'agent'],
-                        ['Sub Agent', 'sub_agent'],
-                        ['Customer', 'customer']
-                      ], 'agent'),
-                      { prompt: 'Select User Type' },
-                      { class: "form-control", required: true } %>
-                </div>
-              </div>
-
-              <!-- Role Field -->
-              <div class="col-md-6 mb-3">
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="bi bi-award text-muted"></i>
-                  </span>
-                  <%= f.select :role,
-                      options_for_select([
-                        ['Super Admin', 'super_admin'],
-                        ['Admin', 'admin_role'],
-                        ['Manager', 'manager'],
-                        ['Agent', 'agent_role']
-                      ], 'agent_role'),
-                      { prompt: 'Select Role' },
-                      { class: "form-control", required: true } %>
-                </div>
-              </div>
-            </div>
-
-            <!-- Status Field -->
-            <div class="mb-4">
-              <div class="form-check">
-                <%= f.check_box :status, { checked: true, class: "form-check-input" }, "true", "false" %>
-                <%= f.label :status, "Active Status", class: "form-check-label" %>
-              </div>
-            </div>
-
-            <div class="row">
-              <!-- Password Field -->
-              <div class="col-md-6 mb-3">
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="bi bi-lock text-muted"></i>
-                  </span>
-                  <%= f.password_field :password, autocomplete: "new-password",
-                      class: "form-control",
-                      placeholder: "Password (6 characters minimum)",
-                      required: true %>
-                </div>
-              </div>
-
-              <!-- Password Confirmation Field -->
-              <div class="col-md-6 mb-3">
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="bi bi-lock text-muted"></i>
-                  </span>
-                  <%= f.password_field :password_confirmation, autocomplete: "new-password",
-                      class: "form-control",
-                      placeholder: "Confirm Password",
-                      required: true %>
-                </div>
-              </div>
-            </div>
-
-            <!-- Submit Button -->
-            <div class="d-grid gap-2 mb-4">
-              <%= f.submit "Create Account", class: "btn btn-primary btn-lg", style: "border-radius: 10px;" %>
-            </div>
-          <% end %>
-
-          <!-- Login Link -->
-          <div class="text-center">
-            <p class="mb-0">Already have an account?
-              <%= link_to "Sign in", new_session_path(resource_name), class: "text-primary text-decoration-none fw-bold" %>
-            </p>
           </div>
         </div>
+
+        <!-- Email Field -->
+        <div class="form-group">
+          <%= f.label :email, "Email Address", class: "form-label" %>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="fas fa-envelope"></i>
+            </span>
+            <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "form-control", placeholder: "your@email.com" %>
+          </div>
+        </div>
+
+        <!-- Mobile Field -->
+        <div class="form-group">
+          <%= f.label :mobile, "Mobile Number", class: "form-label" %>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="fas fa-phone"></i>
+            </span>
+            <%= f.telephone_field :mobile, class: "form-control", placeholder: "Mobile Number", required: true %>
+          </div>
+        </div>
+
+        <!-- User Type and Role Row -->
+        <div class="form-row">
+          <div class="form-group">
+            <%= f.label :user_type, "User Type", class: "form-label" %>
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="fas fa-users"></i>
+              </span>
+              <%= f.select :user_type,
+                  options_for_select([
+                    ['Agent', 'agent'],
+                    ['Sub Agent', 'sub_agent'],
+                    ['Customer', 'customer']
+                  ], 'agent'),
+                  { prompt: 'Select User Type' },
+                  { class: "form-control", required: true } %>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <%= f.label :role, "Role", class: "form-label" %>
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="fas fa-award"></i>
+              </span>
+              <%= f.select :role,
+                  options_for_select([
+                    ['Manager', 'manager'],
+                    ['Agent', 'agent_role']
+                  ], 'agent_role'),
+                  { prompt: 'Select Role' },
+                  { class: "form-control", required: true } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Password Fields Row -->
+        <div class="form-row">
+          <div class="form-group">
+            <%= f.label :password, "Password", class: "form-label" %>
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="fas fa-lock"></i>
+              </span>
+              <%= f.password_field :password, autocomplete: "new-password", class: "form-control", placeholder: "Password (6+ chars)" %>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <%= f.label :password_confirmation, "Confirm Password", class: "form-label" %>
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="fas fa-lock"></i>
+              </span>
+              <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "form-control", placeholder: "Confirm Password" %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Status -->
+        <div class="form-group">
+          <div class="form-check">
+            <%= f.check_box :status, { checked: true, class: "form-check-input" }, "true", "false" %>
+            <%= f.label :status, "Active Status", class: "form-check-label" %>
+          </div>
+        </div>
+
+        <%= f.submit "Create Account", class: "btn btn-primary w-100 py-3 fs-5 fw-semibold" %>
+      <% end %>
+
+      <div class="text-center mt-4">
+        <span class="text-muted">Already have an account? </span>
+        <%= link_to "Sign in", new_session_path(resource_name), class: "text-primary text-decoration-none fw-semibold" %>
       </div>
     </div>
   </div>
 </div>
 
-<style>
-  body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
-
-  .floating-elements {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    z-index: 1;
-    pointer-events: none;
-  }
-
-  .floating-element {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    animation: float 6s ease-in-out infinite;
-  }
-
-  .floating-element:nth-child(1) {
-    width: 80px;
-    height: 80px;
-    top: 10%;
-    left: 10%;
-    animation-delay: 0s;
-  }
-
-  .floating-element:nth-child(2) {
-    width: 120px;
-    height: 120px;
-    top: 70%;
-    left: 80%;
-    animation-delay: 2s;
-  }
-
-  .floating-element:nth-child(3) {
-    width: 60px;
-    height: 60px;
-    top: 20%;
-    left: 80%;
-    animation-delay: 4s;
-  }
-
-  .floating-element:nth-child(4) {
-    width: 100px;
-    height: 100px;
-    top: 80%;
-    left: 10%;
-    animation-delay: 1s;
-  }
-
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0px) rotate(0deg);
-      opacity: 0.7;
-    }
-    50% {
-      transform: translateY(-20px) rotate(10deg);
-      opacity: 1;
-    }
-  }
-
-  .container-fluid {
-    position: relative;
-    z-index: 2;
-    padding: 1rem;
-  }
-
-  .card {
-    border: none !important;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
-    max-width: none;
-    margin: 0 auto;
-    width: 100%;
-  }
-
-  .input-group-text {
-    border: 1px solid #e3e6f0;
-    min-width: 45px;
-    justify-content: center;
-  }
-
-  .form-control {
-    border: 1px solid #e3e6f0;
-    transition: all 0.3s ease;
-    min-height: 45px;
-  }
-
-  .form-control:focus {
-    border-color: #4e73df;
-    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
-  }
-
-  .input-group {
-    margin-bottom: 0.5rem;
-  }
-
-  @media (max-width: 768px) {
-    .card-body {
-      padding: 2rem 1.5rem !important;
-    }
-
-    .container-fluid {
-      padding: 0.5rem;
-    }
-  }
-
-  @media (min-width: 768px) {
-    .container-fluid {
-      padding: 2rem;
-    }
-  }
-
-  @media (min-width: 1200px) {
-    .container-fluid {
-      padding: 3rem 4rem;
-    }
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    transition: all 0.3s ease;
-  }
-
-  .btn-primary:hover {
-    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  }
-</style>
+</body>
+</html>

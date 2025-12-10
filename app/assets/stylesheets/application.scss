@@ -1,5 +1,9 @@
-// Modern Banking/E-commerce Admin Styles
+// Enhanced InsureBook Admin Styles
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+// Import Bootstrap from CDN or gem if available
+// @import "bootstrap";
 
 // Premium Banking/Fintech CSS Variables
 :root {
@@ -2894,4 +2898,110 @@ canvas {
     background-color: #ffc107;
     box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
   }
+}
+
+/* ========================================= */
+/* ENHANCED INSURANCE-THEMED ADDITIONS */
+/* ========================================= */
+
+// Override variables for Insurance theme
+:root {
+  --insurance-primary: #667eea;
+  --insurance-secondary: #764ba2;
+  --insurance-success: #43e97b;
+  --insurance-warning: #ffc107;
+  --insurance-danger: #ef4444;
+  --insurance-info: #00f2fe;
+
+  --insurance-bg-primary: #ffffff;
+  --insurance-bg-secondary: #f7fafc;
+  --insurance-bg-tertiary: #edf2f7;
+
+  --insurance-text-primary: #2d3748;
+  --insurance-text-secondary: #4a5568;
+  --insurance-text-muted: #718096;
+
+  --insurance-border: #e2e8f0;
+  --insurance-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --insurance-radius: 12px;
+  --insurance-transition: 0.3s ease;
+}
+
+// Enhanced Bootstrap Component Overrides
+.btn-primary {
+  background: linear-gradient(135deg, var(--insurance-primary) 0%, var(--insurance-secondary) 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+  border-radius: var(--insurance-radius) !important;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4) !important;
+}
+
+.card {
+  border-radius: var(--insurance-radius) !important;
+  border: 1px solid var(--insurance-border) !important;
+  box-shadow: var(--insurance-shadow) !important;
+  transition: var(--insurance-transition) !important;
+}
+
+.card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+}
+
+.card-header {
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%) !important;
+  border-bottom: 1px solid var(--insurance-border) !important;
+  font-weight: 600 !important;
+}
+
+.form-control:focus {
+  border-color: var(--insurance-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15) !important;
+}
+
+// Insurance-themed Alert Overrides
+.alert {
+  border-radius: var(--insurance-radius) !important;
+  border: none !important;
+  border-left: 4px solid !important;
+}
+
+.alert-success {
+  background: rgba(67, 233, 123, 0.1) !important;
+  border-left-color: var(--insurance-success) !important;
+  color: var(--insurance-text-primary) !important;
+}
+
+.alert-danger {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-left-color: var(--insurance-danger) !important;
+  color: var(--insurance-text-primary) !important;
+}
+
+// Animation Classes
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Insurance App Body Class
+.insurance-app {
+  font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  background: var(--insurance-bg-secondary) !important;
+  color: var(--insurance-text-primary) !important;
+  overflow-x: hidden !important;
 }

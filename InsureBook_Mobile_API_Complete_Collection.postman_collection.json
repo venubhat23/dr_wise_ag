@@ -1,10 +1,10 @@
 {
   "info": {
     "name": "InsureBook Mobile API - Complete Collection",
-    "description": "Complete collection of all InsureBook Mobile API endpoints with sample requests",
+    "description": "Complete collection of all InsureBook Mobile API endpoints with sample requests - Updated with notifications and enhanced features",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_postman_id": "12345678-1234-1234-1234-123456789012",
-    "version": "1.0.0"
+    "version": "2.0.0"
   },
   "item": [
     {
@@ -148,7 +148,7 @@
       "name": "2. Customer Mobile APIs",
       "item": [
         {
-          "name": "Customer Portfolio",
+          "name": "Customer Portfolio (Enhanced)",
           "request": {
             "method": "GET",
             "header": [
@@ -165,7 +165,8 @@
               "raw": "{{base_url}}/api/v1/mobile/customer/portfolio",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "mobile", "customer", "portfolio"]
-            }
+            },
+            "description": "Returns customer's insurance portfolio with enhanced tracking (customer/agent/admin added flags) and attachment URLs"
           },
           "response": []
         },
@@ -287,6 +288,28 @@
               "raw": "{{base_url}}/api/v1/mobile/customer/add_policy",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "mobile", "customer", "add_policy"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Notifications (Today's Due)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/settings/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "settings", "notifications"]
             }
           },
           "response": []
@@ -806,7 +829,7 @@
           "response": []
         },
         {
-          "name": "Submit Helpdesk Request",
+          "name": "Submit Helpdesk Request (Enhanced)",
           "request": {
             "method": "POST",
             "header": [
@@ -821,18 +844,19 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"subject\": \"Issue with Policy Premium\",\n  \"message\": \"I need help understanding my policy premium calculation.\",\n  \"category\": \"Policy\",\n  \"priority\": \"Medium\"\n}"
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone_number\": \"9876543210\",\n  \"description\": \"I need help understanding my policy premium calculation and want to know about installment options.\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/mobile/settings/helpdesk",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "mobile", "settings", "helpdesk"]
-            }
+            },
+            "description": "Creates a client request in database with request ID and estimated response time"
           },
           "response": []
         },
         {
-          "name": "Get Notification Settings",
+          "name": "Get Today's Notifications",
           "request": {
             "method": "GET",
             "header": [
@@ -849,7 +873,8 @@
               "raw": "{{base_url}}/api/v1/mobile/settings/notifications",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "mobile", "settings", "notifications"]
-            }
+            },
+            "description": "Returns all notifications due today for the customer from health and life insurance policies"
           },
           "response": []
         },
