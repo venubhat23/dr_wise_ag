@@ -58,11 +58,14 @@ window.InsureBookAdmin = {
     });
 
     // Handle regular navigation clicks
-    const navItems = document.querySelectorAll('.nav-link:not([data-bs-toggle="collapse"])');
+    const navItems = document.querySelectorAll('.nav-link-modern:not([data-bs-toggle="collapse"])');
     navItems.forEach(item => {
       item.addEventListener('click', (e) => {
+        // Don't prevent default - allow normal navigation
+        // Just add visual feedback
+
         // Remove active from other nav items
-        document.querySelectorAll('.nav-link').forEach(link => {
+        document.querySelectorAll('.nav-link-modern').forEach(link => {
           link.classList.remove('active');
         });
 
@@ -70,15 +73,20 @@ window.InsureBookAdmin = {
         item.classList.add('active');
 
         // Add loading state to clicked nav item
-        const icon = item.querySelector('.nav-icon');
-        if (icon) {
-          const originalClass = icon.className;
-          icon.className = icon.className.replace(/fa-[\w-]+/, 'fa-spinner fa-spin');
+        const iconBg = item.querySelector('.icon-bg');
+        if (iconBg) {
+          const originalIcon = iconBg.querySelector('i');
+          if (originalIcon) {
+            const originalClass = originalIcon.className;
+            originalIcon.className = 'bi bi-arrow-clockwise';
+            originalIcon.style.animation = 'spin 1s linear infinite';
 
-          // Restore icon after a short delay
-          setTimeout(() => {
-            icon.className = originalClass;
-          }, 1000);
+            // Restore icon after a short delay
+            setTimeout(() => {
+              originalIcon.className = originalClass;
+              originalIcon.style.animation = '';
+            }, 1000);
+          }
         }
       });
     });
@@ -275,13 +283,22 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-// Add ripple animation keyframes
+// Add ripple and spin animation keyframes
 const style = document.createElement('style');
 style.textContent = `
   @keyframes ripple {
     to {
       transform: scale(4);
       opacity: 0;
+    }
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
     }
   }
 `;

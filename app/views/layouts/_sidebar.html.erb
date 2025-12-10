@@ -1,65 +1,602 @@
-<!-- Enhanced InsureBook Admin Sidebar -->
-<nav class="sidebar" data-controller="sidebar">
-  <!-- Enhanced Sidebar Brand -->
-  <div class="sidebar-brand">
-    <div class="d-flex align-items-center justify-content-center">
-      <div class="brand-icon">
-        <i class="fas fa-shield-alt"></i>
-      </div>
-      <div class="ms-3">
-        <h4 class="mb-0">InsureBook</h4>
-        <small class="text-muted">Admin Portal</small>
-      </div>
+<style>
+.modern-sidebar {
+  position: fixed !important;
+  top: 70px !important;
+  left: 0 !important;
+  width: 260px !important;
+  height: calc(100vh - 70px) !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%) !important;
+  border-right: 2px solid #e2e8f0 !important;
+  z-index: 1040 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.nav-link-modern {
+  display: flex !important;
+  align-items: center !important;
+  padding: 12px 20px !important;
+  margin: 6px 12px !important;
+  border-radius: 16px !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  background: rgba(248, 250, 252, 0.8) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+}
+
+.nav-link-modern::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 4px !important;
+  height: 100% !important;
+  background: linear-gradient(to bottom, #3b82f6, #8b5cf6) !important;
+  transform: scaleY(0) !important;
+  transition: transform 0.3s ease !important;
+}
+
+.nav-link-modern:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%) !important;
+  color: #1e293b !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 30px rgba(59, 130, 246, 0.15) !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
+}
+
+.nav-link-modern:hover::before {
+  transform: scaleY(1) !important;
+}
+
+.nav-link-modern:hover .nav-text {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+.nav-link-modern.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 30px rgba(59, 130, 246, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-2px) !important;
+}
+
+.nav-link-modern.active::before {
+  transform: scaleY(1) !important;
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.nav-link-modern.active .nav-text {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.nav-link-modern.active .icon-bg {
+  background: rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3) !important;
+}
+
+.nav-text {
+  color: #64748b !important;
+  font-weight: 500 !important;
+  margin-left: 12px !important;
+  font-size: 14px !important;
+  display: inline-block !important;
+  transition: all 0.3s ease !important;
+}
+
+.nav-section-title {
+  color: #3b82f6 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  padding: 20px 24px 8px 24px !important;
+  margin-bottom: 8px !important;
+  position: relative !important;
+}
+
+.nav-section-title::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 24px !important;
+  width: 60px !important;
+  height: 3px !important;
+  background: linear-gradient(to right, #3b82f6, #8b5cf6) !important;
+  border-radius: 2px !important;
+}
+
+.icon-bg {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+}
+
+.icon-bg::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 1px !important;
+  border-radius: 9px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  transition: all 0.3s ease !important;
+}
+
+.nav-link-modern:hover .icon-bg {
+  transform: scale(1.1) rotate(2deg) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+}
+
+.nav-link-modern:hover .icon-bg::after {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.nav-link-modern.active .icon-bg {
+  transform: scale(1.1) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+.nav-link-modern.active .icon-bg::after {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.user-name {
+  color: #f8fafc !important;
+  font-weight: 600 !important;
+  text-shadow: 0 0 8px rgba(248, 250, 252, 0.3) !important;
+}
+
+/* Bright & Vibrant Gradient Backgrounds */
+.gradient-blue {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4) !important;
+}
+.gradient-green {
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%) !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
+}
+.gradient-purple {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%) !important;
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4) !important;
+}
+.gradient-orange {
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%) !important;
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4) !important;
+}
+.gradient-violet {
+  background: linear-gradient(135deg, #a855f7 0%, #c084fc 100%) !important;
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.4) !important;
+}
+.gradient-emerald {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4) !important;
+}
+.gradient-red {
+  background: linear-gradient(135deg, #ef4444 0%, #f87171 100%) !important;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4) !important;
+}
+.gradient-cyan {
+  background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%) !important;
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4) !important;
+}
+.gradient-yellow {
+  background: linear-gradient(135deg, #fbbf24 0%, #fcd34d 100%) !important;
+  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4) !important;
+}
+.gradient-teal {
+  background: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%) !important;
+  box-shadow: 0 6px 20px rgba(20, 184, 166, 0.4) !important;
+}
+.gradient-indigo {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4) !important;
+}
+.gradient-amber {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%) !important;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4) !important;
+}
+.gradient-lime {
+  background: linear-gradient(135deg, #84cc16 0%, #a3e635 100%) !important;
+  box-shadow: 0 6px 20px rgba(132, 204, 22, 0.4) !important;
+}
+.gradient-pink {
+  background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%) !important;
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4) !important;
+}
+.gradient-rose {
+  background: linear-gradient(135deg, #f43f5e 0%, #fb7185 100%) !important;
+  box-shadow: 0 6px 20px rgba(244, 63, 94, 0.4) !important;
+}
+.gradient-gray {
+  background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%) !important;
+  box-shadow: 0 6px 20px rgba(107, 114, 128, 0.3) !important;
+}
+
+.sidebar-nav {
+  padding: 1rem 0 !important;
+}
+
+.nav-section {
+  margin-bottom: 1.5rem !important;
+}
+
+.nav-menu {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.nav-item {
+  margin-bottom: 4px !important;
+}
+
+.user-profile-modern {
+  display: flex !important;
+  align-items: center !important;
+  padding: 1.5rem !important;
+  border-bottom: 1px solid #2d3748 !important;
+}
+
+.avatar-circle {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: white !important;
+  margin-right: 12px !important;
+}
+
+.role-badge {
+  background: linear-gradient(135deg, #06b6d4, #8b5cf6) !important;
+  color: #ffffff !important;
+  padding: 3px 10px !important;
+  border-radius: 6px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3) !important;
+}
+
+.sidebar-footer {
+  margin-top: auto !important;
+  padding: 1rem !important;
+  border-top: 1px solid #475569 !important;
+  position: relative !important;
+}
+
+.sidebar-footer::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 20% !important;
+  width: 60% !important;
+  height: 2px !important;
+  background: linear-gradient(to right, transparent, #06b6d4, #8b5cf6, transparent) !important;
+}
+
+.logout-btn-modern {
+  display: flex !important;
+  align-items: center !important;
+  padding: 12px 16px !important;
+  border-radius: 12px !important;
+  color: #f87171 !important;
+  text-decoration: none !important;
+  width: 100% !important;
+  transition: all 0.3s ease !important;
+  background: rgba(248, 113, 113, 0.05) !important;
+  border: 1px solid rgba(248, 113, 113, 0.2) !important;
+}
+
+.logout-btn-modern:hover {
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.15), rgba(251, 113, 133, 0.15)) !important;
+  color: #ffffff !important;
+  transform: translateX(4px) !important;
+  box-shadow: 0 6px 20px rgba(248, 113, 113, 0.3) !important;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.4) !important;
+}
+
+.logout-btn-modern .nav-text {
+  margin-left: 12px !important;
+  font-weight: 500 !important;
+}
+
+.main-content {
+  margin-left: 260px !important;
+  margin-top: 70px !important;
+  padding: 2rem !important;
+}
+</style>
+
+<div class="modern-sidebar" id="sidebar" data-controller="sidebar">
+  <!-- Sidebar Toggle Button for Mobile -->
+  <button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()">
+    <i class="bi bi-list"></i>
+  </button>
+
+
+
+  <!-- Navigation Menu -->
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-section-title">Main Menu</div>
+      <ul class="nav-menu">
+        <!-- Dashboard -->
+        <li class="nav-item">
+          <%= link_to root_path, class: "nav-link-modern #{'active' if current_page?(root_path)}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-blue">
+                <i class="bi bi-grid-3x3-gap-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Dashboard</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Customers -->
+        <li class="nav-item">
+          <%= link_to admin_customers_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/customers')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-green">
+                <i class="bi bi-people-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Customers</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Policies -->
+        <li class="nav-item">
+          <%= link_to admin_policies_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/policies')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-purple">
+                <i class="bi bi-file-earmark-text-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Policies</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Agents -->
+        <li class="nav-item">
+          <%= link_to admin_users_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/users')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-orange">
+                <i class="bi bi-person-badge-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Agents</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Sub Agents -->
+        <li class="nav-item">
+          <%= link_to admin_sub_agents_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/sub_agents')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-violet">
+                <i class="bi bi-people"></i>
+              </div>
+            </div>
+            <span class="nav-text">Sub Agents</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Brokers -->
+        <li class="nav-item">
+          <%= link_to admin_brokers_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/brokers')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-emerald">
+                <i class="bi bi-briefcase"></i>
+              </div>
+            </div>
+            <span class="nav-text">Brokers</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Agency Code -->
+        <li class="nav-item">
+          <%= link_to admin_agency_codes_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/agency_codes')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-blue">
+                <i class="bi bi-code-slash"></i>
+              </div>
+            </div>
+            <span class="nav-text">Agency Code</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Leads -->
+        <li class="nav-item">
+          <%= link_to admin_leads_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/leads')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-pink">
+                <i class="bi bi-funnel-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Leads</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+      </ul>
     </div>
-  </div>
 
-  <!-- Enhanced Navigation -->
-  <div class="sidebar-content">
-    <ul class="nav flex-column">
-      <!-- Dashboard -->
-      <li class="nav-item">
-        <a href="/" class="nav-link active">
-          <i class="nav-icon fas fa-tachometer-alt"></i>
-          <span class="nav-text">Dashboard</span>
-        </a>
-      </li>
+    <div class="nav-section">
+      <div class="nav-section-title">Insurance Products</div>
+      <ul class="nav-menu">
+        <!-- Life Insurance -->
+        <li class="nav-item">
+          <%= link_to admin_life_insurances_path, class: "nav-link-modern #{'active' if request.path.include?('/insurance/life')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-red">
+                <i class="bi bi-heart-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Life Insurance</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
 
-      <!-- Insurance -->
-      <li class="nav-item">
-        <a href="#" class="nav-link collapsed" data-bs-toggle="collapse" data-bs-target="#insurance" aria-expanded="false" aria-controls="insurance">
-          <i class="nav-icon fas fa-shield-alt"></i>
-          <span class="nav-text">Insurance</span>
-          <i class="fas fa-chevron-down ms-auto"></i>
-        </a>
-        <div class="collapse" id="insurance">
-          <ul class="nav flex-column">
-            <li class="nav-item">
-              <a href="/admin/insurance/life" class="nav-link">
-                <i class="nav-icon fas fa-user me-2"></i>
-                <span class="nav-text">Life Insurance</span>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="/admin/insurance/health" class="nav-link">
-                <i class="nav-icon fas fa-heart me-2"></i>
-                <span class="nav-text">Health Insurance</span>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="/admin/insurance/motor" class="nav-link">
-                <i class="nav-icon fas fa-car me-2"></i>
-                <span class="nav-text">Motor Insurance</span>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="/admin/insurance/other" class="nav-link">
-                <i class="nav-icon fas fa-umbrella me-2"></i>
-                <span class="nav-text">Other Insurance</span>
-              </a>
-            </li>
-          </ul>
+        <!-- Health Insurance -->
+        <li class="nav-item">
+          <%= link_to admin_health_insurances_path, class: "nav-link-modern #{'active' if request.path.include?('/insurance/health')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-cyan">
+                <i class="bi bi-hospital-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Health Insurance</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Motor Insurance -->
+        <li class="nav-item">
+          <%= link_to admin_motor_insurances_path, class: "nav-link-modern #{'active' if request.path.include?('/insurance/motor')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-yellow">
+                <i class="bi bi-car-front-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Motor Insurance</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Other Insurance -->
+        <li class="nav-item">
+          <%= link_to admin_other_insurances_path, class: "nav-link-modern #{'active' if request.path.include?('/insurance/other')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-teal">
+                <i class="bi bi-grid-3x3-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Other Insurance</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Reports & Analytics</div>
+      <ul class="nav-menu">
+        <!-- Reports -->
+        <li class="nav-item">
+          <%= link_to admin_reports_commission_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/commission')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-indigo">
+                <i class="bi bi-bar-chart-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Commission</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Expired Insurance -->
+        <li class="nav-item">
+          <%= link_to admin_reports_expired_insurance_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/expired')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-amber">
+                <i class="bi bi-clock-history"></i>
+              </div>
+            </div>
+            <span class="nav-text">Expired Policies</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Renewals -->
+        <li class="nav-item">
+          <%= link_to admin_reports_upcoming_renewal_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/renewal')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-lime">
+                <i class="bi bi-arrow-repeat"></i>
+              </div>
+            </div>
+            <span class="nav-text">Renewals</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Management</div>
+      <ul class="nav-menu">
+        <!-- Client Requests -->
+        <li class="nav-item">
+          <%= link_to admin_client_requests_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/client_requests')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-orange">
+                <i class="bi bi-headset"></i>
+              </div>
+            </div>
+            <span class="nav-text">Client Requests</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Insurance Companies -->
+        <li class="nav-item">
+          <%= link_to admin_insurance_companies_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/insurance_companies')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-emerald">
+                <i class="bi bi-building-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Companies</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Agency/Broker -->
+        <li class="nav-item">
+          <%= link_to admin_agency_brokers_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/agency_brokers')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-rose">
+                <i class="bi bi-briefcase-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Agency/Broker</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Logout Section -->
+    <div class="sidebar-footer">
+      <%= link_to destroy_user_session_path, method: :delete, class: "logout-btn-modern" do %>
+        <div class="nav-icon-modern">
+          <div class="icon-bg gradient-gray">
+            <i class="bi bi-box-arrow-right"></i>
+          </div>
         </div>
-      </li>
-    </ul>
-  </div>
-</nav>
+        <span class="nav-text">Logout</span>
+      <% end %>
+    </div>
+  </nav>
+</div>
