@@ -133,7 +133,7 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
 
   # POST /api/v1/mobile/settings/helpdesk
   def helpdesk
-    helpdesk_params = params.permit(:name, :email, :phone_number, :description, attachments: [])
+    helpdesk_params = params.permit(:name, :email, :phone_number, :description)
 
     if helpdesk_params[:name].blank? || helpdesk_params[:email].blank? || helpdesk_params[:description].blank?
       return render json: {
@@ -142,54 +142,74 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
       }, status: :unprocessable_entity
     end
 
-    # Create helpdesk ticket (you might want to create a HelpDesk model)
-    ticket_id = "HELP-#{Time.current.to_i}"
+    begin
+      # Create client request in database
+      client_request = ClientRequest.create!(
+        name: helpdesk_params[:name],
+        email: helpdesk_params[:email],
+        phone_number: helpdesk_params[:phone_number],
+        description: helpdesk_params[:description],
+        status: 'pending',
+        priority: 'medium'
+      )
 
-    # Here you would typically:
-    # 1. Save the helpdesk request to database
-    # 2. Send notification to admin
-    # 3. Send confirmation email to customer
-
-    helpdesk_data = {
-      ticket_id: ticket_id,
-      customer_id: current_user.id,
-      name: helpdesk_params[:name],
-      email: helpdesk_params[:email],
-      phone_number: helpdesk_params[:phone_number],
-      description: helpdesk_params[:description],
-      status: 'open',
-      created_at: Time.current
-    }
-
-    # Log the helpdesk request (simplified)
-    Rails.logger.info "Helpdesk Request: #{helpdesk_data}"
-
-    render json: {
-      success: true,
-      message: 'Your request has been submitted successfully. Our team will contact you soon.',
-      data: {
-        ticket_id: ticket_id,
-        estimated_response_time: '24-48 hours'
+      render json: {
+        success: true,
+        message: 'Your request has been submitted successfully. Our team will contact you soon.',
+        data: {
+          request_id: client_request.id,
+          status: client_request.status,
+          estimated_response_time: '24-48 hours'
+        }
       }
-    }
+
+    rescue ActiveRecord::RecordInvalid => e
+      render json: {
+        success: false,
+        message: 'Failed to submit request',
+        errors: e.record.errors.full_messages
+      }, status: :unprocessable_entity
+    end
   end
 
   # GET /api/v1/mobile/settings/notifications
   def notification_settings
     customer = current_user
 
-    # This would come from a user preferences table
+    # Get all notifications due today for this customer
+    notifications = []
+
+    # Get health insurance notifications
+    health_insurances = HealthInsurance.where(customer: customer)
+    health_insurances.each do |insurance|
+      insurance.notifications_due_today.each do |notification|
+        notifications << {
+          id: "health_#{insurance.id}_#{notification['type']}",
+          type: notification['type'],
+          title: notification['title'],
+          message: notification['message'],
+          date: notification['date']
+        }
+      end
+    end
+
+    # Get life insurance notifications
+    life_insurances = LifeInsurance.where(customer: customer)
+    life_insurances.each do |insurance|
+      insurance.notifications_due_today.each do |notification|
+        notifications << {
+          id: "life_#{insurance.id}_#{notification['type']}",
+          type: notification['type'],
+          title: notification['title'],
+          message: notification['message'],
+          date: notification['date']
+        }
+      end
+    end
+
     render json: {
       success: true,
-      data: {
-        email_notifications: true,
-        sms_notifications: true,
-        push_notifications: true,
-        policy_reminders: true,
-        payment_reminders: true,
-        renewal_alerts: true,
-        promotional_emails: false
-      }
+      data: notifications
     }
   end
 

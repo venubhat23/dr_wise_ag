@@ -226,6 +226,19 @@
     <div class="nav-section">
       <div class="nav-section-title">Management</div>
       <ul class="nav-menu">
+        <!-- Client Requests -->
+        <li class="nav-item">
+          <%= link_to admin_client_requests_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/client_requests')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-orange">
+                <i class="bi bi-headset"></i>
+              </div>
+            </div>
+            <span class="nav-text">Client Requests</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
         <!-- Insurance Companies -->
         <li class="nav-item">
           <%= link_to admin_insurance_companies_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/insurance_companies')}" do %>

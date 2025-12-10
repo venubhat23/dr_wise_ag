@@ -10,7 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_08_033314) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_10_000515) do
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_catalog.plpgsql"
+
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -78,8 +81,27 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_08_033314) do
     t.index ["status"], name: "index_brokers_on_status"
   end
 
+  create_table "client_requests", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "email", null: false
+    t.string "phone_number", null: false
+    t.text "description", null: false
+    t.string "status", default: "pending"
+    t.string "priority", default: "medium"
+    t.datetime "submitted_at", null: false
+    t.text "admin_response"
+    t.datetime "resolved_at"
+    t.bigint "resolved_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_client_requests_on_email"
+    t.index ["resolved_by_id"], name: "index_client_requests_on_resolved_by_id"
+    t.index ["status"], name: "index_client_requests_on_status"
+    t.index ["submitted_at"], name: "index_client_requests_on_submitted_at"
+  end
+
   create_table "corporate_members", force: :cascade do |t|
-    t.integer "customer_id", null: false
+    t.bigint "customer_id", null: false
     t.string "company_name"
     t.string "mobile"
     t.string "email"
@@ -142,7 +164,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_08_033314) do
   create_table "documents", force: :cascade do |t|
     t.string "document_type"
     t.string "documentable_type", null: false
-    t.integer "documentable_id", null: false
+    t.bigint "documentable_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["documentable_type", "documentable_id"], name: "index_documents_on_documentable"
@@ -170,7 +192,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_08_033314) do
   end
 
   create_table "health_insurance_members", force: :cascade do |t|
-    t.integer "health_insurance_id", null: false
+    t.bigint "health_insurance_id", null: false
     t.string "member_name"
     t.integer "age"
     t.string "relationship"
@@ -192,10 +214,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_08_033314) do
     t.string "broker_name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.integer "customer_id"
-    t.integer "sub_agent_id"
-    t.integer "agency_code_id"
-    t.integer "broker_id"
+    t.bigint "customer_id"
+    t.bigint "sub_agent_id"
+    t.bigint "agency_code_id"
+    t.bigint "broker_id"
     t.string "policy_holder"
     t.string "insurance_company_name"
     t.string "plan_name"
@@ -217,6 +239,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_08_033314) do
     t.string "policy_type"
     t.date "installment_autopay_start_date"
     t.date "installment_autopay_end_date"
+    t.text "notification_dates"
     t.index ["agency_code_id"], name: "index_health_insurances_on_agency_code_id"
     t.index ["broker_id"], name: "index_health_insurances_on_broker_id"
     t.index ["customer_id"], name: "index_health_insurances_on_customer_id"
@@ -245,13 +268,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_08_033314) do
   end
 
   create_table "life_insurances", force: :cascade do |t|
-    t.integer "customer_id", null: false
-    t.integer "sub_agent_id"
+    t.bigint "customer_id", null: false
+    t.bigint "sub_agent_id"
     t.string "policy_holder", null: false
     t.string "insured_name"
     t.string "insurance_company_name", null: false
-    t.integer "agency_code_id"
-    t.integer "broker_id"
+    t.bigint "agency_code_id"
+    t.bigint "broker_id"
     t.string "policy_type", null: false
     t.string "payment_mode", null: false
     t.string "policy_number", null: false
@@ -301,6 +324,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_08_033314) do
     t.boolean "active", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "notification_dates"
     t.index ["agency_code_id"], name: "index_life_insurances_on_agency_code_id"
     t.index ["broker_id"], name: "index_life_insurances_on_broker_id"
     t.index ["customer_id"], name: "index_life_insurances_on_customer_id"
@@ -354,6 +378,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_08_033314) do
     t.string "broker_name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "notification_dates"
     t.index ["policy_id"], name: "index_motor_insurances_on_policy_id"
   end
 
@@ -368,6 +393,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_08_033314) do
     t.string "broker_name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "notification_dates"
     t.index ["policy_id"], name: "index_other_insurances_on_policy_id"
   end
 
@@ -403,7 +429,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_08_033314) do
   end
 
   create_table "sub_agent_documents", force: :cascade do |t|
-    t.integer "sub_agent_id", null: false
+    t.bigint "sub_agent_id", null: false
     t.string "document_type", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -477,6 +503,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_08_033314) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "client_requests", "users", column: "resolved_by_id"
   add_foreign_key "corporate_members", "customers"
   add_foreign_key "family_members", "customers"
   add_foreign_key "health_insurance_members", "health_insurances"

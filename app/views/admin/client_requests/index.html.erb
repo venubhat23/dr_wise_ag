@@ -1,0 +1,212 @@
+<%- content_for :title, "Client Requests" %>
+
+<div class="page-header d-print-none">
+  <div class="container-xl">
+    <div class="row align-items-center">
+      <div class="col">
+        <div class="page-pretitle">
+          Management
+        </div>
+        <h2 class="page-title">
+          Client Requests
+        </h2>
+      </div>
+      <div class="col-auto ms-auto d-print-none">
+        <div class="btn-list">
+          <%= form_with url: admin_client_requests_path, method: :get, local: true, class: "d-flex me-3" do |form| %>
+            <%= form.text_field :search, placeholder: "Search requests...", value: params[:search], class: "form-control me-2" %>
+            <%= form.submit "Search", class: "btn btn-primary" %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page-body">
+  <div class="container-xl">
+    <!-- Statistics Cards -->
+    <div class="row row-deck row-cards mb-3">
+      <div class="col-sm-6 col-lg-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="subheader">Total Requests</div>
+              <div class="ms-auto lh-1">
+                <div class="dropdown">
+                  <a class="dropdown-toggle text-muted" href="#" data-bs-toggle="dropdown">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="m0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="1" /><circle cx="12" cy="19" r="1" /><circle cx="12" cy="5" r="1" /></svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div class="h1 mb-3"><%= @stats[:total] %></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="subheader">Pending</div>
+            </div>
+            <div class="h1 mb-3 text-warning"><%= @stats[:pending] %></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="subheader">In Progress</div>
+            </div>
+            <div class="h1 mb-3 text-info"><%= @stats[:in_progress] %></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="subheader">Resolved</div>
+            </div>
+            <div class="h1 mb-3 text-success"><%= @stats[:resolved] + @stats[:closed] %></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="row row-cards">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs">
+              <li class="nav-item">
+                <%= link_to "All Requests", admin_client_requests_path, class: "nav-link #{'active' if params[:status].blank?}" %>
+              </li>
+              <li class="nav-item">
+                <%= link_to "Pending", admin_client_requests_path(status: 'pending'), class: "nav-link #{'active' if params[:status] == 'pending'}" %>
+              </li>
+              <li class="nav-item">
+                <%= link_to "In Progress", admin_client_requests_path(status: 'in_progress'), class: "nav-link #{'active' if params[:status] == 'in_progress'}" %>
+              </li>
+              <li class="nav-item">
+                <%= link_to "Resolved", admin_client_requests_path(status: 'resolved'), class: "nav-link #{'active' if params[:status] == 'resolved'}" %>
+              </li>
+              <li class="nav-item">
+                <%= link_to "Closed", admin_client_requests_path(status: 'closed'), class: "nav-link #{'active' if params[:status] == 'closed'}" %>
+              </li>
+            </ul>
+          </div>
+          <div class="card-body">
+            <% if @client_requests.any? %>
+              <div class="row">
+                <% @client_requests.each do |request| %>
+                  <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                      <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                          <h3 class="card-title"><%= request.name %></h3>
+                          <span class="badge <%= request.status_badge_class %>"><%= request.status.humanize %></span>
+                        </div>
+                      </div>
+                      <div class="card-body">
+                        <div class="mb-2">
+                          <small class="text-muted">Email:</small>
+                          <div><%= request.email %></div>
+                        </div>
+                        <div class="mb-2">
+                          <small class="text-muted">Phone:</small>
+                          <div><%= request.phone_number %></div>
+                        </div>
+                        <div class="mb-2">
+                          <small class="text-muted">Priority:</small>
+                          <span class="badge <%= request.priority_badge_class %>"><%= request.priority.humanize %></span>
+                        </div>
+                        <div class="mb-3">
+                          <small class="text-muted">Description:</small>
+                          <div class="text-truncate" title="<%= request.description %>">
+                            <%= truncate(request.description, length: 100) %>
+                          </div>
+                        </div>
+                        <div class="mb-2">
+                          <small class="text-muted">Submitted:</small>
+                          <div><%= request.days_since_submission %> days ago</div>
+                        </div>
+                        <% if request.resolved_by %>
+                          <div class="mb-2">
+                            <small class="text-muted">Assigned to:</small>
+                            <div><%= request.resolved_by.email %></div>
+                          </div>
+                        <% end %>
+                      </div>
+                      <div class="card-footer">
+                        <div class="btn-group w-100" role="group">
+                          <%= link_to "View", admin_client_request_path(request), class: "btn btn-outline-primary btn-sm" %>
+                          <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                              Status
+                            </button>
+                            <ul class="dropdown-menu">
+                              <li><a class="dropdown-item" href="#" onclick="updateStatus(<%= request.id %>, 'pending')">Pending</a></li>
+                              <li><a class="dropdown-item" href="#" onclick="updateStatus(<%= request.id %>, 'in_progress')">In Progress</a></li>
+                              <li><a class="dropdown-item" href="#" onclick="updateStatus(<%= request.id %>, 'resolved')">Resolved</a></li>
+                              <li><a class="dropdown-item" href="#" onclick="updateStatus(<%= request.id %>, 'closed')">Closed</a></li>
+                            </ul>
+                          </div>
+                          <%= link_to "Delete", admin_client_request_path(request), method: :delete,
+                                      data: { confirm: "Are you sure?" }, class: "btn btn-outline-danger btn-sm" %>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+
+              <!-- Pagination -->
+              <div class="d-flex justify-content-center">
+                <%= paginate @client_requests if respond_to?(:paginate) %>
+              </div>
+            <% else %>
+              <div class="empty">
+                <div class="empty-img">
+                  <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI2LjUgMTBIMjAuNUwyNi41IDRWMTBaIiBmaWxsPSIjOEU5NkE4IiBmaWxsLW9wYWNpdHk9IjAuMiIvPgo8cGF0aCBkPSJNMTguNSAySDMuNUM2IDIgNi41IDMuNSA2LjUgNlYyNkM2LjUgMjguNSA4IDMwIDEwLjUgMzBIMjAuNUMyMyAzMCAyNC41IDI4LjUgMjQuNSAyNlYxMkwyNi41IDEwSDIwLjVWNEMxOC41IDIgMTguNSAyIDE4LjUgMloiIGZpbGw9IiM4RTk2QTgiLz4KPHBhdGggZD0iTTEyLjUgMjJDMTEuMSAyMiAxMC4yIDIzIDEwLjIgMjQuNUMxMC4yIDI2IDExLjEgMjYuOCAxMi41IDI2LjhDMTMuOSAyNi44IDE0LjggMjYgMTQuOCAyNC41QzE0LjggMjMgMTMuOSAyMiAxMi41IDIyWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTIwLjUgMTRIMTAuNUMxMCAxNCAxMCAxNSAxMC41IDE1SDIwLjVDMjEgMTUgMjEgMTQgMjAuNSAxNFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=" alt="No requests" style="height: 7rem;">
+                </div>
+                <p class="empty-title">No client requests found</p>
+                <p class="empty-subtitle text-muted">
+                  No client requests have been submitted yet.
+                </p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function updateStatus(requestId, status) {
+  fetch(`/admin/client_requests/${requestId}/update_status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+    },
+    body: JSON.stringify({ status: status })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Error updating status: ' + data.message);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('An error occurred while updating status');
+  });
+}
+</script>

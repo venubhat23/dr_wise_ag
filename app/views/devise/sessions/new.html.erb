@@ -1,23 +1,31 @@
 
 <style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body, html {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #f5f5f5;
+}
+
+/* Override any existing body styles */
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 .auth-wrapper {
   min-height: 100vh;
-  background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c, #4facfe, #00f2fe, #a8edea, #fed6e3);
-  background-size: 600% 600%;
-  animation: gradientBG 20s ease infinite;
-  position: relative;
-  overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 20px;
-}
-
-@keyframes gradientBG {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  position: relative;
 }
 
 .auth-wrapper::before {
@@ -25,470 +33,950 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  right: 0;
+  bottom: 0;
   background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23ffffff" fill-opacity="0.05"><circle cx="7" cy="7" r="2"/><circle cx="27" cy="7" r="1"/><circle cx="47" cy="7" r="2"/><circle cx="7" cy="27" r="1"/><circle cx="27" cy="27" r="2"/><circle cx="47" cy="27" r="1"/><circle cx="7" cy="47" r="2"/><circle cx="27" cy="47" r="1"/><circle cx="47" cy="47" r="2"/></g></svg>');
-  animation: float 20s ease-in-out infinite;
-  z-index: 1;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(180deg); }
-}
-
-.login-container {
-  position: relative;
-  z-index: 10;
-  animation: slideInUp 0.8s ease-out;
-  width: 100%;
-  max-width: 450px;
-  margin: auto;
-}
-
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.login-card {
-  backdrop-filter: blur(30px) saturate(180%);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow:
-    0 25px 50px rgba(0, 0, 0, 0.15),
-    0 1px 1px rgba(255, 255, 255, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
-  animation: cardFloat 6s ease-in-out infinite;
-  border-radius: 25px;
-  position: relative;
-  overflow: hidden;
-}
-
-.login-card::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: conic-gradient(from 0deg, transparent, rgba(255, 255, 255, 0.1), transparent, rgba(255, 255, 255, 0.05), transparent);
-  animation: rotate 10s linear infinite;
-  z-index: 0;
-}
-
-.login-card .card-body {
-  position: relative;
-  z-index: 1;
-}
-
-@keyframes rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes cardFloat {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
-
-.floating-elements {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  z-index: 2;
   pointer-events: none;
 }
 
-.floating-element {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-  animation: floatingElements 20s linear infinite;
-}
-
-.floating-element:nth-child(1) {
-  width: 80px;
-  height: 80px;
-  left: 10%;
-  animation-delay: 0s;
-}
-
-.floating-element:nth-child(2) {
-  width: 120px;
-  height: 120px;
-  left: 20%;
-  animation-delay: 2s;
-}
-
-.floating-element:nth-child(3) {
-  width: 60px;
-  height: 60px;
-  left: 70%;
-  animation-delay: 4s;
-}
-
-.floating-element:nth-child(4) {
-  width: 100px;
-  height: 100px;
-  left: 80%;
-  animation-delay: 6s;
-}
-
-@keyframes floatingElements {
-  0% {
-    transform: translateY(100vh) rotate(0deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(-100px) rotate(720deg);
-    opacity: 0;
-  }
-}
-
-.contact-info {
-  margin-top: 30px;
-  text-align: center;
-  z-index: 10;
-  position: relative;
-}
-
-.contact-info .contact-row {
+.login-container {
   display: flex;
+  max-width: 900px;
+  width: 100%;
+  min-height: 500px;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+/* Medium screens optimization */
+@media (max-width: 1000px) and (min-width: 901px) {
+  .login-container {
+    max-width: 800px;
+  }
+
+  .illustration-section {
+    padding: 35px;
+  }
+
+  .form-section {
+    padding: 35px;
+  }
+}
+
+.illustration-section {
+  flex: 1;
+  background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 15px;
-  margin-bottom: 15px;
-}
-
-.contact-info .contact-item {
-  display: flex;
-  align-items: center;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
-}
-
-.contact-info .contact-separator {
-  color: rgba(255, 255, 255, 0.5);
-  margin: 0 10px;
-}
-
-@media (max-width: 768px) {
-  .contact-info .contact-row {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .contact-info .contact-separator {
-    display: none;
-  }
-}
-
-/* Modern Input Styles */
-.modern-input-wrapper {
   position: relative;
-  margin-bottom: 1rem;
+  min-height: 500px;
 }
 
-.modern-input-group {
-  position: relative;
-  display: flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.modern-input-group:focus-within {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
-}
-
-.modern-input-icon {
-  padding: 0 1rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1.1rem;
-  z-index: 2;
-  transition: color 0.3s ease;
-}
-
-.modern-input-group:focus-within .modern-input-icon {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.modern-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  padding: 1rem 0.5rem;
-  color: rgba(255, 255, 255, 0.95);
-  font-size: 1rem;
-  font-weight: 400;
-  z-index: 2;
-  transition: all 0.3s ease;
-}
-
-.modern-input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 400;
-}
-
-.modern-input:focus {
-  outline: none;
-  color: white;
-}
-
-.modern-toggle-btn {
-  background: transparent;
-  border: none;
-  padding: 0.5rem 1rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  z-index: 2;
-}
-
-.modern-toggle-btn:hover {
-  color: rgba(255, 255, 255, 0.9);
-  transform: scale(1.1);
-}
-
-.modern-input-border {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #00f2fe, #4facfe);
-  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  transform: translateX(-50%);
-  z-index: 3;
-}
-
-.modern-input-group:focus-within .modern-input-border {
-  width: 100%;
-}
-
-/* Enhanced Login Button */
-.btn-login {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  border-radius: 16px;
-  padding: 1rem 2rem;
-  font-weight: 600;
-  font-size: 1rem;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-}
-
-.btn-login::before {
+.illustration-section::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: -100%;
+  width: 120px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  top: -20px;
+  right: -20px;
+}
+
+.illustration-section::after {
+  content: '';
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  bottom: -10px;
+  left: -10px;
+}
+
+.illustration-content {
+  text-align: center;
+  color: white;
+  z-index: 2;
+  max-width: 280px;
+}
+
+.insurance-icon {
+  width: 120px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.insurance-icon::before {
+  content: '🛡️';
+  font-size: 48px;
+}
+
+.illustration-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  line-height: 1.3;
+}
+
+.illustration-subtitle {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+
+.form-section {
+  flex: 1;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 500px;
+}
+
+.brand-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.brand-icon {
+  width: 32px;
+  height: 32px;
+  background: #4285f4;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.brand-icon::before {
+  content: '✓';
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.brand-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.welcome-section {
+  margin: 24px 0 32px 0;
+}
+
+.welcome-text {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.welcome-text .wave-emoji {
+  margin-left: 8px;
+  font-size: 1.5rem;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.form-group {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.form-input {
   width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.6s ease;
+  padding: 14px 16px 14px 44px;
+  border: 2px solid #e8eaed;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  background: #fafbfc;
+  transition: all 0.2s ease;
+  outline: none;
+  font-family: inherit;
 }
 
-.btn-login:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+.form-input:focus {
+  border-color: #4285f4;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
 }
 
-.btn-login:hover::before {
-  left: 100%;
+.form-input::placeholder {
+  color: #9aa0a6;
 }
 
-.btn-login:active {
+.input-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: #9aa0a6;
+  pointer-events: none;
+}
+
+.form-input:focus + .input-icon {
+  color: #4285f4;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  accent-color: #4285f4;
+  border-radius: 3px;
+}
+
+.remember-me label {
+  font-size: 0.875rem;
+  color: #5f6368;
+  cursor: pointer;
+}
+
+.forgot-password {
+  color: #4285f4;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.forgot-password:hover {
+  text-decoration: underline;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  background: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 20px;
+  font-family: inherit;
+}
+
+.login-btn:hover {
+  background: #3367d6;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+}
+
+.login-btn:active {
+  transform: translateY(0);
+}
+
+.signup-link {
+  text-align: center;
+  color: #5f6368;
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+}
+
+.signup-link a {
+  color: #4285f4;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.signup-link a:hover {
+  text-decoration: underline;
+}
+
+.footer-links {
+  text-align: center;
+  padding-top: 16px;
+  border-top: 1px solid #e8eaed;
+}
+
+.footer-links a {
+  color: #5f6368;
+  text-decoration: none;
+  font-size: 0.8rem;
+  margin: 0 12px;
+}
+
+.footer-links a:hover {
+  color: #4285f4;
+  text-decoration: underline;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9aa0a6;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.password-toggle:hover {
+  color: #4285f4;
+  background: rgba(66, 133, 244, 0.05);
+}
+
+/* Very narrow screens - Single panel design */
+@media (max-width: 450px) {
+  .auth-wrapper {
+    padding: 8px;
+  }
+
+  .login-container {
+    flex-direction: column;
+    max-width: 320px;
+    min-height: auto;
+    margin: 0 auto;
+    border-radius: 16px;
+  }
+
+  .illustration-section {
+    display: none; /* Hide illustration on very small screens */
+  }
+
+  .form-section {
+    padding: 20px 16px;
+    min-height: auto;
+    width: 100%;
+  }
+
+  .brand-header {
+    margin-bottom: 6px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .brand-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .brand-name {
+    font-size: 1.1rem;
+  }
+
+  .welcome-section {
+    margin: 16px 0 20px 0;
+    text-align: center;
+  }
+
+  .welcome-text {
+    font-size: 1.3rem;
+    margin-bottom: 4px;
+    justify-content: center;
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  .form-input {
+    padding: 12px 16px 12px 38px;
+    font-size: 0.9rem;
+  }
+
+  .input-icon {
+    left: 14px;
+    font-size: 14px;
+  }
+
+  .password-toggle {
+    right: 14px;
+    font-size: 14px;
+  }
+
+  .form-options {
+    margin-bottom: 18px;
+  }
+
+  .remember-me label {
+    font-size: 0.8rem;
+  }
+
+  .forgot-password {
+    font-size: 0.8rem;
+  }
+
+  .login-btn {
+    padding: 12px;
+    font-size: 0.9rem;
+    margin-bottom: 14px;
+  }
+
+  .signup-link {
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+  }
+
+  .footer-links {
+    padding-top: 10px;
+    text-align: center;
+  }
+
+  .footer-links a {
+    font-size: 0.75rem;
+    margin: 0 8px;
+    display: inline-block;
+    margin-bottom: 5px;
+  }
+}
+
+/* Compact horizontal layout for narrow screens */
+@media (min-width: 451px) and (max-width: 600px) {
+  .login-container {
+    flex-direction: row;
+    max-width: 520px;
+    min-height: 380px;
+    margin: 0 auto;
+  }
+
+  .illustration-section {
+    flex: 0.65;
+    padding: 12px 8px;
+    min-height: 380px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .insurance-icon {
+    width: 45px;
+    height: 45px;
+    margin-bottom: 6px;
+  }
+
+  .insurance-icon::before {
+    font-size: 18px;
+  }
+
+  .illustration-title {
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+
+  .illustration-subtitle {
+    font-size: 0.7rem;
+    line-height: 1.3;
+  }
+
+  .form-section {
+    flex: 1.35;
+    padding: 12px 16px;
+    min-height: 380px;
+  }
+
+  .brand-header {
+    margin-bottom: 3px;
+  }
+
+  .brand-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .brand-name {
+    font-size: 0.95rem;
+  }
+
+  .welcome-section {
+    margin: 8px 0 12px 0;
+  }
+
+  .welcome-text {
+    font-size: 1.1rem;
+    margin-bottom: 2px;
+  }
+
+  .subtitle {
+    font-size: 0.75rem;
+  }
+
+  .form-group {
+    margin-bottom: 10px;
+  }
+
+  .form-input {
+    padding: 9px 12px 9px 32px;
+    font-size: 0.8rem;
+  }
+
+  .input-icon {
+    left: 10px;
+    font-size: 12px;
+  }
+
+  .password-toggle {
+    right: 10px;
+    font-size: 12px;
+  }
+
+  .form-options {
+    margin-bottom: 12px;
+  }
+
+  .remember-me label {
+    font-size: 0.7rem;
+  }
+
+  .forgot-password {
+    font-size: 0.7rem;
+  }
+
+  .login-btn {
+    padding: 9px;
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+  }
+
+  .signup-link {
+    font-size: 0.7rem;
+    margin-bottom: 6px;
+  }
+
+  .footer-links {
+    padding-top: 6px;
+  }
+
+  .footer-links a {
+    font-size: 0.65rem;
+    margin: 0 4px;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 900px) and (min-width: 601px) {
+  .auth-wrapper {
+    padding: 12px;
+  }
+
+  .login-container {
+    flex-direction: column;
+    max-width: 420px;
+    min-height: auto;
+    margin: 0 auto;
+  }
+
+  .illustration-section {
+    padding: 24px;
+    min-height: auto;
+    background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+  }
+
+  .insurance-icon {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 12px;
+  }
+
+  .insurance-icon::before {
+    font-size: 28px;
+  }
+
+  .illustration-title {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+  }
+
+  .illustration-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .form-section {
+    padding: 24px;
+    min-height: auto;
+  }
+
+  .brand-header {
+    margin-bottom: 6px;
+  }
+
+  .brand-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .brand-name {
+    font-size: 1.1rem;
+  }
+
+  .welcome-section {
+    margin: 16px 0 24px 0;
+  }
+
+  .welcome-text {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    font-size: 0.9rem;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-input {
+    padding: 12px 16px 12px 40px;
+    font-size: 0.9rem;
+  }
+
+  .input-icon {
+    left: 14px;
+    font-size: 14px;
+  }
+
+  .form-options {
+    margin-bottom: 20px;
+  }
+
+  .remember-me label {
+    font-size: 0.8rem;
+  }
+
+  .forgot-password {
+    font-size: 0.8rem;
+  }
+
+  .login-btn {
+    padding: 12px;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+  }
+
+  .signup-link {
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+  }
+
+  .footer-links {
+    padding-top: 12px;
+  }
+
+  .footer-links a {
+    font-size: 0.75rem;
+    margin: 0 8px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .auth-wrapper {
+    padding: 8px;
+  }
+
+  .login-container {
+    max-width: 350px;
+  }
+
+  .illustration-section {
+    padding: 20px 16px;
+  }
+
+  .insurance-icon {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 10px;
+  }
+
+  .insurance-icon::before {
+    font-size: 24px;
+  }
+
+  .illustration-title {
+    font-size: 1.1rem;
+  }
+
+  .form-section {
+    padding: 20px 16px;
+  }
+
+  .welcome-text {
+    font-size: 1.3rem;
+  }
+}
+
+/* Landscape mode optimization for mobile */
+@media (max-width: 900px) and (orientation: landscape) {
+  .login-container {
+    flex-direction: row;
+    max-width: 720px;
+    min-height: 400px;
+  }
+
+  .illustration-section {
+    flex: 0.8;
+    padding: 20px;
+  }
+
+  .form-section {
+    flex: 1.2;
+    padding: 20px;
+  }
+
+  .welcome-section {
+    margin: 12px 0 20px 0;
+  }
+
+  .insurance-icon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .insurance-icon::before {
+    font-size: 24px;
+  }
+
+  .illustration-title {
+    font-size: 1rem;
+  }
+
+  .illustration-subtitle {
+    font-size: 0.8rem;
+  }
+}
+
+/* Alert styling for flash messages */
+.alert {
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  position: relative;
+  z-index: 10;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.alert-danger {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.alert-notice {
+  background: #f0f9ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+/* Ensure login container has proper z-index but doesn't interfere */
+.login-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fix any overlay issues */
+.auth-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+/* Handle any external modals or notifications */
+body {
+  position: relative !important;
+}
+
+/* Override any external notification positioning */
+.notification, .toast, .modal-backdrop {
+  z-index: 9999 !important;
+}
+
+/* Responsive alert sizing */
+@media (max-width: 600px) {
+  .alert {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    margin-bottom: 8px;
+  }
 }
 </style>
 
-<!-- Floating background elements -->
-<div class="floating-elements">
-  <div class="floating-element"></div>
-  <div class="floating-element"></div>
-  <div class="floating-element"></div>
-  <div class="floating-element"></div>
-</div>
+<div class="auth-wrapper">
+  <div class="login-container">
+    <!-- Left Side - Illustration -->
+    <div class="illustration-section">
+      <div class="illustration-content">
+        <div class="insurance-icon"></div>
+        <h3 class="illustration-title">Secure Insurance Management</h3>
+        <p class="illustration-subtitle">
+          Manage your policies seamlessly with our comprehensive insurance management platform.
+        </p>
+      </div>
+    </div>
 
-<div class="login-container">
-  <div class="login-card">
-    <div class="card-body p-5">
-      <!-- Logo and Title -->
-      <div class="text-center mb-4">
-        <div class="d-flex justify-content-center align-items-center mb-3">
-          <i class="bi bi-shield-check text-primary me-2" style="font-size: 2.5rem;"></i>
-          <h2 class="text-primary mb-0 fw-bold">InsureBook</h2>
+    <!-- Right Side - Login Form -->
+    <div class="form-section">
+      <!-- Display Flash Messages -->
+      <% if notice %>
+        <div class="alert alert-notice"><%= notice %></div>
+      <% end %>
+      <% if alert %>
+        <div class="alert alert-danger"><%= alert %></div>
+      <% end %>
+
+      <!-- Brand Header -->
+      <div class="brand-header">
+        <div class="brand-icon"></div>
+        <h1 class="brand-name">InsureBook</h1>
+      </div>
+
+      <!-- Welcome Section -->
+      <div class="welcome-section">
+        <h2 class="welcome-text">
+          Welcome Back
+          <span class="wave-emoji">👋</span>
+        </h2>
+        <p class="subtitle">Manage your policies seamlessly</p>
+      </div>
+
+      <!-- Login Form -->
+      <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+        <!-- Email Field -->
+        <div class="form-group">
+          <%= f.email_field :email, autofocus: true, autocomplete: "email",
+              class: "form-input",
+              placeholder: "Email Address",
+              required: true %>
+          <span class="input-icon">📧</span>
         </div>
-        <p class="text-muted mb-0">Technology Pvt Ltd</p>
-        <h4 class="text-dark mt-3 mb-1">Login</h4>
-        <p class="text-muted">Access your admin dashboard</p>
-      </div>
 
-          <%= form_for(resource, as: resource_name, url: session_path(resource_name), html: { class: "needs-validation", novalidate: true }) do |f| %>
-            <!-- Email Field -->
-            <div class="mb-4">
-              <div class="modern-input-wrapper">
-                <div class="modern-input-group">
-                  <span class="modern-input-icon">
-                    <i class="bi bi-envelope"></i>
-                  </span>
-                  <%= f.email_field :email, autofocus: true, autocomplete: "email",
-                      class: "modern-input",
-                      placeholder: "Enter your email address",
-                      required: true %>
-                  <div class="modern-input-border"></div>
-                </div>
-                <div class="invalid-feedback">
-                  Please provide a valid email address.
-                </div>
-              </div>
-            </div>
+        <!-- Password Field -->
+        <div class="form-group">
+          <%= f.password_field :password, autocomplete: "current-password",
+              class: "form-input",
+              placeholder: "Password",
+              id: "passwordField",
+              required: true %>
+          <span class="input-icon">🔒</span>
+          <button type="button" class="password-toggle" id="togglePassword">
+            <span id="toggleIcon">👁️</span>
+          </button>
+        </div>
 
-            <!-- Password Field -->
-            <div class="mb-4">
-              <div class="modern-input-wrapper">
-                <div class="modern-input-group">
-                  <span class="modern-input-icon">
-                    <i class="bi bi-lock"></i>
-                  </span>
-                  <%= f.password_field :password, autocomplete: "current-password",
-                      class: "modern-input",
-                      placeholder: "Enter your password",
-                      required: true %>
-                  <button class="modern-toggle-btn" type="button" id="togglePassword">
-                    <i class="bi bi-eye" id="togglePasswordIcon"></i>
-                  </button>
-                  <div class="modern-input-border"></div>
-                </div>
-                <div class="invalid-feedback">
-                  Password is required.
-                </div>
-              </div>
-            </div>
-
-            <!-- Remember Me & Forgot Password -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-              <% if devise_mapping.rememberable? %>
-                <div class="form-check">
-                  <%= f.check_box :remember_me, class: "form-check-input" %>
-                  <%= f.label :remember_me, "Remember me", class: "form-check-label text-muted" %>
-                </div>
-              <% end %>
-
-              <%= link_to "Forgot Password?", new_password_path(resource_name),
-                  class: "text-primary text-decoration-none" %>
-            </div>
-
-            <!-- Login Button -->
-            <div class="d-grid mb-4">
-              <%= f.submit "Sign In", class: "btn btn-login btn-lg w-100" %>
+        <!-- Remember Me & Forgot Password -->
+        <div class="form-options">
+          <% if devise_mapping.rememberable? %>
+            <div class="remember-me">
+              <%= f.check_box :remember_me %>
+              <%= f.label :remember_me, "Remember Me" %>
             </div>
           <% end %>
 
-          <!-- Registration Link -->
-          <% if devise_mapping.registerable? %>
-            <div class="text-center">
-              <p class="text-muted mb-0">Don't have an account?</p>
-              <%= link_to "Create New Account", new_registration_path(resource_name),
-                  class: "text-primary fw-bold text-decoration-none" %>
-            </div>
-          <% end %>
+          <%= link_to "Forgot Password?", new_password_path(resource_name),
+              class: "forgot-password" %>
+        </div>
 
-          <!-- Footer Links -->
-          <div class="text-center mt-4 pt-3 border-top">
-            <small class="text-muted">
-              <%= link_to "#", class: "text-muted text-decoration-none me-3" do %>
-                <i class="bi bi-question-circle me-1"></i>
-                Help & Support
-              <% end %>
-              <%= link_to "mailto:info@insurebook.in", class: "text-muted text-decoration-none" do %>
-                <i class="bi bi-envelope me-1"></i>
-                info@insurebook.in
-              <% end %>
-            </small>
-      </div>
-    </div>
-  </div>
+        <!-- Login Button -->
+        <%= f.submit "Login", class: "login-btn" %>
+      <% end %>
 
-  <!-- Contact Information -->
-  <div class="contact-info">
-    <div class="contact-row">
-      <div class="contact-item">
-        <i class="bi bi-telephone me-2"></i>
-        <span>+91 75678-44567</span>
+      <!-- Registration Link -->
+      <% if devise_mapping.registerable? %>
+        <div class="signup-link">
+          Don't have an account? <%= link_to "Sign Up", new_registration_path(resource_name) %>
+        </div>
+      <% end %>
+
+      <!-- Footer Links -->
+      <div class="footer-links">
+        <a href="#" title="Help & Support">Help & Support</a>
+        <a href="mailto:info@insurebook.in" title="Contact Us">Contact Us</a>
       </div>
-      <span class="contact-separator">•</span>
-      <div class="contact-item">
-        <i class="bi bi-envelope me-2"></i>
-        <span>info@insurebook.in</span>
-      </div>
-    </div>
-    <div>
-      <small style="color: rgba(255, 255, 255, 0.7);">
-        <%= link_to "#", class: "text-decoration-none", style: "color: rgba(255, 255, 255, 0.7);" do %>
-          Back To Home
-        <% end %>
-      </small>
     </div>
   </div>
 </div>
 
 <script>
-  // Form validation
-  (function() {
-    'use strict';
-    window.addEventListener('load', function() {
-      var forms = document.getElementsByClassName('needs-validation');
-      var validation = Array.prototype.filter.call(forms, function(form) {
-        form.addEventListener('submit', function(event) {
-          if (form.checkValidity() === false) {
-            event.preventDefault();
-            event.stopPropagation();
-          }
-          form.classList.add('was-validated');
-        }, false);
+  // Password toggle functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordField = document.getElementById('passwordField');
+    const toggleIcon = document.getElementById('toggleIcon');
+
+    if (togglePassword && passwordField && toggleIcon) {
+      togglePassword.addEventListener('click', function() {
+        if (passwordField.type === 'password') {
+          passwordField.type = 'text';
+          toggleIcon.textContent = '🙈';
+        } else {
+          passwordField.type = 'password';
+          toggleIcon.textContent = '👁️';
+        }
       });
-    }, false);
-  })();
+    }
 
-  // Password toggle
-  document.getElementById('togglePassword').addEventListener('click', function() {
-    const passwordField = this.previousElementSibling;
-    const passwordIcon = document.getElementById('togglePasswordIcon');
+    // Form validation and smooth interactions
+    const formInputs = document.querySelectorAll('.form-input');
+    formInputs.forEach(input => {
+      input.addEventListener('focus', function() {
+        this.parentElement.style.transform = 'translateY(-2px)';
+      });
 
-    if (passwordField.type === 'password') {
-      passwordField.type = 'text';
-      passwordIcon.classList.remove('bi-eye');
-      passwordIcon.classList.add('bi-eye-slash');
-    } else {
-      passwordField.type = 'password';
-      passwordIcon.classList.remove('bi-eye-slash');
-      passwordIcon.classList.add('bi-eye');
+      input.addEventListener('blur', function() {
+        this.parentElement.style.transform = 'translateY(0)';
+      });
+    });
+
+    // Login button interaction
+    const loginBtn = document.querySelector('.login-btn');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', function() {
+        this.style.transform = 'scale(0.98)';
+        setTimeout(() => {
+          this.style.transform = 'scale(1)';
+        }, 150);
+      });
     }
   });
 </script>

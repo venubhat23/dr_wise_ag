@@ -83,6 +83,21 @@ Rails.application.routes.draw do
     # Insurance companies
     resources :insurance_companies
 
+    # Client Requests management
+    resources :client_requests do
+      member do
+        patch :update_status
+        patch :assign_to
+        patch :add_response
+      end
+      collection do
+        get :pending
+        get :in_progress
+        get :resolved
+        get :search
+      end
+    end
+
     # Leads management
     resources :leads do
       member do

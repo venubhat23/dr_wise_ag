@@ -1,0 +1,244 @@
+<%- content_for :title, "Client Request ##{@client_request.id}" %>
+
+<div class="page-header d-print-none">
+  <div class="container-xl">
+    <div class="row align-items-center">
+      <div class="col">
+        <div class="page-pretitle">
+          <%= link_to "Client Requests", admin_client_requests_path, class: "text-muted" %>
+        </div>
+        <h2 class="page-title">
+          Request from <%= @client_request.name %>
+        </h2>
+      </div>
+      <div class="col-auto ms-auto d-print-none">
+        <div class="btn-list">
+          <%= link_to "Back to List", admin_client_requests_path, class: "btn btn-outline-secondary" %>
+          <%= link_to "Edit", edit_admin_client_request_path(@client_request), class: "btn btn-primary" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page-body">
+  <div class="container-xl">
+    <div class="row row-cards">
+      <!-- Request Details -->
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+              <h3 class="card-title">Request Details</h3>
+              <div>
+                <span class="badge <%= @client_request.status_badge_class %> me-2"><%= @client_request.status.humanize %></span>
+                <span class="badge <%= @client_request.priority_badge_class %>"><%= @client_request.priority.humanize %> Priority</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Name</label>
+                <div class="form-control-plaintext"><%= @client_request.name %></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Email</label>
+                <div class="form-control-plaintext">
+                  <a href="mailto:<%= @client_request.email %>"><%= @client_request.email %></a>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Phone Number</label>
+                <div class="form-control-plaintext">
+                  <% if @client_request.phone_number.present? %>
+                    <a href="tel:<%= @client_request.phone_number %>"><%= @client_request.phone_number %></a>
+                  <% else %>
+                    <span class="text-muted">Not provided</span>
+                  <% end %>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Submitted At</label>
+                <div class="form-control-plaintext">
+                  <%= @client_request.submitted_at.strftime("%B %d, %Y at %I:%M %p") %>
+                  <small class="text-muted">(<%= @client_request.days_since_submission %> days ago)</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              <div class="form-control-plaintext border p-3 bg-light rounded">
+                <%= simple_format(@client_request.description) %>
+              </div>
+            </div>
+
+            <% if @client_request.admin_response.present? %>
+              <div class="mb-3">
+                <label class="form-label">Admin Response</label>
+                <div class="form-control-plaintext border p-3 bg-success-lt rounded">
+                  <%= simple_format(@client_request.admin_response) %>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @client_request.resolved_at.present? %>
+              <div class="mb-3">
+                <label class="form-label">Resolved At</label>
+                <div class="form-control-plaintext">
+                  <%= @client_request.resolved_at.strftime("%B %d, %Y at %I:%M %p") %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Quick Response Form -->
+        <div class="card mt-3">
+          <div class="card-header">
+            <h3 class="card-title">Add Response</h3>
+          </div>
+          <div class="card-body">
+            <%= form_with model: @client_request, url: admin_client_request_path(@client_request), method: :patch, local: true do |form| %>
+              <div class="mb-3">
+                <%= form.text_area :admin_response, class: "form-control", rows: 4,
+                    placeholder: "Add your response to the customer...",
+                    value: @client_request.admin_response %>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <%= form.select :status, options_for_select([
+                        ['Pending', 'pending'],
+                        ['In Progress', 'in_progress'],
+                        ['Resolved', 'resolved'],
+                        ['Closed', 'closed']
+                      ], @client_request.status), {}, { class: "form-select" } %>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <%= form.select :priority, options_for_select([
+                        ['Low', 'low'],
+                        ['Medium', 'medium'],
+                        ['High', 'high'],
+                        ['Urgent', 'urgent']
+                      ], @client_request.priority), {}, { class: "form-select" } %>
+                </div>
+              </div>
+              <div class="btn-group">
+                <%= form.submit "Update Request", class: "btn btn-primary" %>
+                <button type="button" class="btn btn-success" onclick="updateAndResolve()">Resolve & Close</button>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="col-md-4">
+        <!-- Request Summary -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Request Summary</h3>
+          </div>
+          <div class="card-body">
+            <div class="datagrid">
+              <div class="datagrid-item">
+                <div class="datagrid-title">Status</div>
+                <div class="datagrid-content">
+                  <span class="badge <%= @client_request.status_badge_class %>">
+                    <%= @client_request.status.humanize %>
+                  </span>
+                </div>
+              </div>
+              <div class="datagrid-item">
+                <div class="datagrid-title">Priority</div>
+                <div class="datagrid-content">
+                  <span class="badge <%= @client_request.priority_badge_class %>">
+                    <%= @client_request.priority.humanize %>
+                  </span>
+                </div>
+              </div>
+              <div class="datagrid-item">
+                <div class="datagrid-title">Days Open</div>
+                <div class="datagrid-content"><%= @client_request.days_since_submission %> days</div>
+              </div>
+              <% if @client_request.resolved_by.present? %>
+                <div class="datagrid-item">
+                  <div class="datagrid-title">Assigned To</div>
+                  <div class="datagrid-content"><%= @client_request.resolved_by.email %></div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card mt-3">
+          <div class="card-header">
+            <h3 class="card-title">Quick Actions</h3>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <button class="btn btn-outline-warning" onclick="updateStatus('pending')">
+                <i class="bi bi-clock me-1"></i> Mark as Pending
+              </button>
+              <button class="btn btn-outline-info" onclick="updateStatus('in_progress')">
+                <i class="bi bi-play-circle me-1"></i> Start Progress
+              </button>
+              <button class="btn btn-outline-success" onclick="updateStatus('resolved')">
+                <i class="bi bi-check-circle me-1"></i> Mark Resolved
+              </button>
+              <button class="btn btn-outline-secondary" onclick="updateStatus('closed')">
+                <i class="bi bi-x-circle me-1"></i> Close Request
+              </button>
+              <hr>
+              <a href="mailto:<%= @client_request.email %>?subject=Re: Your Support Request" class="btn btn-outline-primary">
+                <i class="bi bi-envelope me-1"></i> Send Email
+              </a>
+              <% if @client_request.phone_number.present? %>
+                <a href="tel:<%= @client_request.phone_number %>" class="btn btn-outline-primary">
+                  <i class="bi bi-telephone me-1"></i> Call Customer
+                </a>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function updateStatus(status) {
+  fetch(`/admin/client_requests/<%= @client_request.id %>/update_status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+    },
+    body: JSON.stringify({ status: status })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Error updating status: ' + data.message);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('An error occurred while updating status');
+  });
+}
+
+function updateAndResolve() {
+  const form = document.querySelector('form');
+  const statusSelect = form.querySelector('select[name="client_request[status]"]');
+  statusSelect.value = 'resolved';
+  form.submit();
+}
+</script>
