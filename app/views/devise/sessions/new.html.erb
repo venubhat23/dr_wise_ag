@@ -1,982 +1,133 @@
-
-<style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body, html {
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background: #f5f5f5;
-}
-
-/* Override any existing body styles */
-body {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.auth-wrapper {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  position: relative;
-}
-
-.auth-wrapper::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23ffffff" fill-opacity="0.05"><circle cx="7" cy="7" r="2"/><circle cx="27" cy="7" r="1"/><circle cx="47" cy="7" r="2"/><circle cx="7" cy="27" r="1"/><circle cx="27" cy="27" r="2"/><circle cx="47" cy="27" r="1"/><circle cx="7" cy="47" r="2"/><circle cx="27" cy="47" r="1"/><circle cx="47" cy="47" r="2"/></g></svg>');
-  pointer-events: none;
-}
-
-.login-container {
-  display: flex;
-  max-width: 900px;
-  width: 100%;
-  min-height: 500px;
-  background: white;
-  border-radius: 24px;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  position: relative;
-  z-index: 1;
-}
-
-/* Medium screens optimization */
-@media (max-width: 1000px) and (min-width: 901px) {
-  .login-container {
-    max-width: 800px;
-  }
-
-  .illustration-section {
-    padding: 35px;
-  }
-
-  .form-section {
-    padding: 35px;
-  }
-}
-
-.illustration-section {
-  flex: 1;
-  background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  min-height: 500px;
-}
-
-.illustration-section::before {
-  content: '';
-  position: absolute;
-  width: 120px;
-  height: 120px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-  top: -20px;
-  right: -20px;
-}
-
-.illustration-section::after {
-  content: '';
-  position: absolute;
-  width: 80px;
-  height: 80px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 50%;
-  bottom: -10px;
-  left: -10px;
-}
-
-.illustration-content {
-  text-align: center;
-  color: white;
-  z-index: 2;
-  max-width: 280px;
-}
-
-.insurance-icon {
-  width: 120px;
-  height: 120px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 24px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.insurance-icon::before {
-  content: '🛡️';
-  font-size: 48px;
-}
-
-.illustration-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 12px;
-  line-height: 1.3;
-}
-
-.illustration-subtitle {
-  font-size: 0.95rem;
-  opacity: 0.9;
-  line-height: 1.5;
-}
-
-.form-section {
-  flex: 1;
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 500px;
-}
-
-.brand-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.brand-icon {
-  width: 32px;
-  height: 32px;
-  background: #4285f4;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-}
-
-.brand-icon::before {
-  content: '✓';
-  color: white;
-  font-weight: bold;
-  font-size: 16px;
-}
-
-.brand-name {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0;
-}
-
-.welcome-section {
-  margin: 24px 0 32px 0;
-}
-
-.welcome-text {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-}
-
-.welcome-text .wave-emoji {
-  margin-left: 8px;
-  font-size: 1.5rem;
-}
-
-.subtitle {
-  color: #666;
-  font-size: 0.95rem;
-  line-height: 1.4;
-}
-
-.form-group {
-  margin-bottom: 20px;
-  position: relative;
-}
-
-.form-input {
-  width: 100%;
-  padding: 14px 16px 14px 44px;
-  border: 2px solid #e8eaed;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  background: #fafbfc;
-  transition: all 0.2s ease;
-  outline: none;
-  font-family: inherit;
-}
-
-.form-input:focus {
-  border-color: #4285f4;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
-}
-
-.form-input::placeholder {
-  color: #9aa0a6;
-}
-
-.input-icon {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 16px;
-  color: #9aa0a6;
-  pointer-events: none;
-}
-
-.form-input:focus + .input-icon {
-  color: #4285f4;
-}
-
-.form-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.remember-me {
-  display: flex;
-  align-items: center;
-}
-
-.remember-me input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  margin-right: 8px;
-  accent-color: #4285f4;
-  border-radius: 3px;
-}
-
-.remember-me label {
-  font-size: 0.875rem;
-  color: #5f6368;
-  cursor: pointer;
-}
-
-.forgot-password {
-  color: #4285f4;
-  text-decoration: none;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.forgot-password:hover {
-  text-decoration: underline;
-}
-
-.login-btn {
-  width: 100%;
-  padding: 14px;
-  background: #4285f4;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-bottom: 20px;
-  font-family: inherit;
-}
-
-.login-btn:hover {
-  background: #3367d6;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
-}
-
-.login-btn:active {
-  transform: translateY(0);
-}
-
-.signup-link {
-  text-align: center;
-  color: #5f6368;
-  margin-bottom: 16px;
-  font-size: 0.875rem;
-}
-
-.signup-link a {
-  color: #4285f4;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.signup-link a:hover {
-  text-decoration: underline;
-}
-
-.footer-links {
-  text-align: center;
-  padding-top: 16px;
-  border-top: 1px solid #e8eaed;
-}
-
-.footer-links a {
-  color: #5f6368;
-  text-decoration: none;
-  font-size: 0.8rem;
-  margin: 0 12px;
-}
-
-.footer-links a:hover {
-  color: #4285f4;
-  text-decoration: underline;
-}
-
-.password-toggle {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #9aa0a6;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 4px;
-  border-radius: 4px;
-}
-
-.password-toggle:hover {
-  color: #4285f4;
-  background: rgba(66, 133, 244, 0.05);
-}
-
-/* Very narrow screens - Single panel design */
-@media (max-width: 450px) {
-  .auth-wrapper {
-    padding: 8px;
-  }
-
-  .login-container {
-    flex-direction: column;
-    max-width: 320px;
-    min-height: auto;
-    margin: 0 auto;
-    border-radius: 16px;
-  }
-
-  .illustration-section {
-    display: none; /* Hide illustration on very small screens */
-  }
-
-  .form-section {
-    padding: 20px 16px;
-    min-height: auto;
-    width: 100%;
-  }
-
-  .brand-header {
-    margin-bottom: 6px;
-    justify-content: center;
-    text-align: center;
-  }
-
-  .brand-icon {
-    width: 28px;
-    height: 28px;
-  }
-
-  .brand-name {
-    font-size: 1.1rem;
-  }
-
-  .welcome-section {
-    margin: 16px 0 20px 0;
-    text-align: center;
-  }
-
-  .welcome-text {
-    font-size: 1.3rem;
-    margin-bottom: 4px;
-    justify-content: center;
-  }
-
-  .subtitle {
-    font-size: 0.85rem;
-  }
-
-  .form-group {
-    margin-bottom: 14px;
-  }
-
-  .form-input {
-    padding: 12px 16px 12px 38px;
-    font-size: 0.9rem;
-  }
-
-  .input-icon {
-    left: 14px;
-    font-size: 14px;
-  }
-
-  .password-toggle {
-    right: 14px;
-    font-size: 14px;
-  }
-
-  .form-options {
-    margin-bottom: 18px;
-  }
-
-  .remember-me label {
-    font-size: 0.8rem;
-  }
-
-  .forgot-password {
-    font-size: 0.8rem;
-  }
-
-  .login-btn {
-    padding: 12px;
-    font-size: 0.9rem;
-    margin-bottom: 14px;
-  }
-
-  .signup-link {
-    font-size: 0.8rem;
-    margin-bottom: 10px;
-  }
-
-  .footer-links {
-    padding-top: 10px;
-    text-align: center;
-  }
-
-  .footer-links a {
-    font-size: 0.75rem;
-    margin: 0 8px;
-    display: inline-block;
-    margin-bottom: 5px;
-  }
-}
-
-/* Compact horizontal layout for narrow screens */
-@media (min-width: 451px) and (max-width: 600px) {
-  .login-container {
-    flex-direction: row;
-    max-width: 520px;
-    min-height: 380px;
-    margin: 0 auto;
-  }
-
-  .illustration-section {
-    flex: 0.65;
-    padding: 12px 8px;
-    min-height: 380px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  .insurance-icon {
-    width: 45px;
-    height: 45px;
-    margin-bottom: 6px;
-  }
-
-  .insurance-icon::before {
-    font-size: 18px;
-  }
-
-  .illustration-title {
-    font-size: 0.85rem;
-    margin-bottom: 4px;
-    line-height: 1.2;
-  }
-
-  .illustration-subtitle {
-    font-size: 0.7rem;
-    line-height: 1.3;
-  }
-
-  .form-section {
-    flex: 1.35;
-    padding: 12px 16px;
-    min-height: 380px;
-  }
-
-  .brand-header {
-    margin-bottom: 3px;
-  }
-
-  .brand-icon {
-    width: 22px;
-    height: 22px;
-  }
-
-  .brand-name {
-    font-size: 0.95rem;
-  }
-
-  .welcome-section {
-    margin: 8px 0 12px 0;
-  }
-
-  .welcome-text {
-    font-size: 1.1rem;
-    margin-bottom: 2px;
-  }
-
-  .subtitle {
-    font-size: 0.75rem;
-  }
-
-  .form-group {
-    margin-bottom: 10px;
-  }
-
-  .form-input {
-    padding: 9px 12px 9px 32px;
-    font-size: 0.8rem;
-  }
-
-  .input-icon {
-    left: 10px;
-    font-size: 12px;
-  }
-
-  .password-toggle {
-    right: 10px;
-    font-size: 12px;
-  }
-
-  .form-options {
-    margin-bottom: 12px;
-  }
-
-  .remember-me label {
-    font-size: 0.7rem;
-  }
-
-  .forgot-password {
-    font-size: 0.7rem;
-  }
-
-  .login-btn {
-    padding: 9px;
-    font-size: 0.8rem;
-    margin-bottom: 10px;
-  }
-
-  .signup-link {
-    font-size: 0.7rem;
-    margin-bottom: 6px;
-  }
-
-  .footer-links {
-    padding-top: 6px;
-  }
-
-  .footer-links a {
-    font-size: 0.65rem;
-    margin: 0 4px;
-  }
-}
-
-/* Responsive Design */
-@media (max-width: 900px) and (min-width: 601px) {
-  .auth-wrapper {
-    padding: 12px;
-  }
-
-  .login-container {
-    flex-direction: column;
-    max-width: 420px;
-    min-height: auto;
-    margin: 0 auto;
-  }
-
-  .illustration-section {
-    padding: 24px;
-    min-height: auto;
-    background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
-  }
-
-  .insurance-icon {
-    width: 70px;
-    height: 70px;
-    margin-bottom: 12px;
-  }
-
-  .insurance-icon::before {
-    font-size: 28px;
-  }
-
-  .illustration-title {
-    font-size: 1.2rem;
-    margin-bottom: 8px;
-  }
-
-  .illustration-subtitle {
-    font-size: 0.85rem;
-    line-height: 1.4;
-  }
-
-  .form-section {
-    padding: 24px;
-    min-height: auto;
-  }
-
-  .brand-header {
-    margin-bottom: 6px;
-  }
-
-  .brand-icon {
-    width: 28px;
-    height: 28px;
-  }
-
-  .brand-name {
-    font-size: 1.1rem;
-  }
-
-  .welcome-section {
-    margin: 16px 0 24px 0;
-  }
-
-  .welcome-text {
-    font-size: 1.4rem;
-    margin-bottom: 4px;
-  }
-
-  .subtitle {
-    font-size: 0.9rem;
-  }
-
-  .form-group {
-    margin-bottom: 16px;
-  }
-
-  .form-input {
-    padding: 12px 16px 12px 40px;
-    font-size: 0.9rem;
-  }
-
-  .input-icon {
-    left: 14px;
-    font-size: 14px;
-  }
-
-  .form-options {
-    margin-bottom: 20px;
-  }
-
-  .remember-me label {
-    font-size: 0.8rem;
-  }
-
-  .forgot-password {
-    font-size: 0.8rem;
-  }
-
-  .login-btn {
-    padding: 12px;
-    font-size: 0.9rem;
-    margin-bottom: 16px;
-  }
-
-  .signup-link {
-    font-size: 0.8rem;
-    margin-bottom: 12px;
-  }
-
-  .footer-links {
-    padding-top: 12px;
-  }
-
-  .footer-links a {
-    font-size: 0.75rem;
-    margin: 0 8px;
-  }
-}
-
-/* Extra small screens */
-@media (max-width: 480px) {
-  .auth-wrapper {
-    padding: 8px;
-  }
-
-  .login-container {
-    max-width: 350px;
-  }
-
-  .illustration-section {
-    padding: 20px 16px;
-  }
-
-  .insurance-icon {
-    width: 60px;
-    height: 60px;
-    margin-bottom: 10px;
-  }
-
-  .insurance-icon::before {
-    font-size: 24px;
-  }
-
-  .illustration-title {
-    font-size: 1.1rem;
-  }
-
-  .form-section {
-    padding: 20px 16px;
-  }
-
-  .welcome-text {
-    font-size: 1.3rem;
-  }
-}
-
-/* Landscape mode optimization for mobile */
-@media (max-width: 900px) and (orientation: landscape) {
-  .login-container {
-    flex-direction: row;
-    max-width: 720px;
-    min-height: 400px;
-  }
-
-  .illustration-section {
-    flex: 0.8;
-    padding: 20px;
-  }
-
-  .form-section {
-    flex: 1.2;
-    padding: 20px;
-  }
-
-  .welcome-section {
-    margin: 12px 0 20px 0;
-  }
-
-  .insurance-icon {
-    width: 60px;
-    height: 60px;
-  }
-
-  .insurance-icon::before {
-    font-size: 24px;
-  }
-
-  .illustration-title {
-    font-size: 1rem;
-  }
-
-  .illustration-subtitle {
-    font-size: 0.8rem;
-  }
-}
-
-/* Alert styling for flash messages */
-.alert {
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  position: relative;
-  z-index: 10;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.alert-danger {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-}
-
-.alert-notice {
-  background: #f0f9ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
-}
-
-/* Ensure login container has proper z-index but doesn't interfere */
-.login-container {
-  position: relative;
-  z-index: 1;
-}
-
-/* Fix any overlay issues */
-.auth-wrapper {
-  position: relative;
-  z-index: 1;
-}
-
-/* Handle any external modals or notifications */
-body {
-  position: relative !important;
-}
-
-/* Override any external notification positioning */
-.notification, .toast, .modal-backdrop {
-  z-index: 9999 !important;
-}
-
-/* Responsive alert sizing */
-@media (max-width: 600px) {
-  .alert {
-    padding: 6px 10px;
-    font-size: 0.75rem;
-    margin-bottom: 8px;
-  }
-}
-</style>
-
-<div class="auth-wrapper">
-  <div class="login-container">
-    <!-- Left Side - Illustration -->
-    <div class="illustration-section">
-      <div class="illustration-content">
-        <div class="insurance-icon"></div>
-        <h3 class="illustration-title">Secure Insurance Management</h3>
-        <p class="illustration-subtitle">
-          Manage your policies seamlessly with our comprehensive insurance management platform.
-        </p>
-      </div>
-    </div>
-
-    <!-- Right Side - Login Form -->
-    <div class="form-section">
-      <!-- Display Flash Messages -->
-      <% if notice %>
-        <div class="alert alert-notice"><%= notice %></div>
-      <% end %>
-      <% if alert %>
-        <div class="alert alert-danger"><%= alert %></div>
-      <% end %>
-
-      <!-- Brand Header -->
-      <div class="brand-header">
-        <div class="brand-icon"></div>
-        <h1 class="brand-name">InsureBook</h1>
-      </div>
-
-      <!-- Welcome Section -->
-      <div class="welcome-section">
-        <h2 class="welcome-text">
-          Welcome Back
-          <span class="wave-emoji">👋</span>
-        </h2>
-        <p class="subtitle">Manage your policies seamlessly</p>
-      </div>
-
-      <!-- Login Form -->
-      <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
-        <!-- Email Field -->
-        <div class="form-group">
-          <%= f.email_field :email, autofocus: true, autocomplete: "email",
-              class: "form-input",
-              placeholder: "Email Address",
-              required: true %>
-          <span class="input-icon">📧</span>
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Login - InsureBook</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "login", "data-turbo-track": "reload" %>
+  </head>
+
+  <body>
+    <div class="login-container">
+      <!-- Left Side - Gradient with Illustration -->
+      <div class="left-side">
+        <div class="shield-illustration">
+          <svg class="shield-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
         </div>
-
-        <!-- Password Field -->
-        <div class="form-group">
-          <%= f.password_field :password, autocomplete: "current-password",
-              class: "form-input",
-              placeholder: "Password",
-              id: "passwordField",
-              required: true %>
-          <span class="input-icon">🔒</span>
-          <button type="button" class="password-toggle" id="togglePassword">
-            <span id="toggleIcon">👁️</span>
-          </button>
+        <div class="tagline">
+          <h1>Secure Insurance Management</h1>
+          <p>Protect what matters most with our comprehensive insurance platform designed for modern professionals.</p>
         </div>
+      </div>
 
-        <!-- Remember Me & Forgot Password -->
-        <div class="form-options">
-          <% if devise_mapping.rememberable? %>
-            <div class="remember-me">
-              <%= f.check_box :remember_me %>
-              <%= f.label :remember_me, "Remember Me" %>
-            </div>
+      <!-- Right Side - Login Card -->
+      <div class="right-side">
+        <!-- Background Shapes -->
+        <div class="bg-shape bg-shape-1"></div>
+        <div class="bg-shape bg-shape-2"></div>
+        <div class="bg-shape bg-shape-3"></div>
+
+        <div class="login-card">
+          <!-- Flash Messages -->
+          <% if notice %>
+            <div class="alert alert-notice"><%= notice %></div>
           <% end %>
 
-          <%= link_to "Forgot Password?", new_password_path(resource_name),
-              class: "forgot-password" %>
+          <% if alert %>
+            <div class="alert alert-danger"><%= alert %></div>
+          <% end %>
+
+          <!-- Logo Section -->
+          <div class="logo-section">
+            <div class="logo">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+            </div>
+            <h1 class="brand-name">InsureBook</h1>
+            <p class="welcome-message">Welcome back! Please sign in to your account.</p>
+          </div>
+
+          <!-- Login Form -->
+          <div class="form-section">
+            <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <div class="input-wrapper">
+                  <div class="input-icon">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                    </svg>
+                  </div>
+                  <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "form-input", placeholder: "Enter your email address" %>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Password</label>
+                <div class="input-wrapper">
+                  <div class="input-icon">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <%= f.password_field :password, autocomplete: "current-password", class: "form-input", placeholder: "Enter your password", id: "password_field" %>
+                  <button type="button" class="password-toggle" onclick="togglePassword()">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" id="eye-icon">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <% if devise_mapping.rememberable? %>
+                  <div class="checkbox-wrapper">
+                    <%= f.check_box :remember_me %>
+                    <%= f.label :remember_me, "Remember me" %>
+                  </div>
+                <% end %>
+                <%- if devise_mapping.recoverable? && controller_name != 'passwords' && controller_name != 'registrations' %>
+                  <%= link_to "Forgot password?", new_password_path(resource_name), class: "forgot-link" %>
+                <% end %>
+              </div>
+
+              <%= f.submit "Sign In", class: "login-button" %>
+            <% end %>
+          </div>
+
+          <!-- Divider -->
+          <div class="divider">
+            <span>Or continue with</span>
+          </div>
+
+          <!-- Sign Up Link -->
+          <%- if devise_mapping.registerable? && controller_name != 'registrations' %>
+            <div class="signup-link">
+              Don't have an account? <%= link_to "Create account", new_registration_path(resource_name) %>
+            </div>
+          <% end %>
         </div>
-
-        <!-- Login Button -->
-        <%= f.submit "Login", class: "login-btn" %>
-      <% end %>
-
-      <!-- Registration Link -->
-      <% if devise_mapping.registerable? %>
-        <div class="signup-link">
-          Don't have an account? <%= link_to "Sign Up", new_registration_path(resource_name) %>
-        </div>
-      <% end %>
-
-      <!-- Footer Links -->
-      <div class="footer-links">
-        <a href="#" title="Help & Support">Help & Support</a>
-        <a href="mailto:info@insurebook.in" title="Contact Us">Contact Us</a>
       </div>
     </div>
-  </div>
-</div>
 
-<script>
-  // Password toggle functionality
-  document.addEventListener('DOMContentLoaded', function() {
-    const togglePassword = document.getElementById('togglePassword');
-    const passwordField = document.getElementById('passwordField');
-    const toggleIcon = document.getElementById('toggleIcon');
+    <script>
+      function togglePassword() {
+        const passwordField = document.getElementById('password_field');
+        const eyeIcon = document.getElementById('eye-icon');
 
-    if (togglePassword && passwordField && toggleIcon) {
-      togglePassword.addEventListener('click', function() {
         if (passwordField.type === 'password') {
           passwordField.type = 'text';
-          toggleIcon.textContent = '🙈';
+          eyeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />';
         } else {
           passwordField.type = 'password';
-          toggleIcon.textContent = '👁️';
+          eyeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
         }
-      });
-    }
-
-    // Form validation and smooth interactions
-    const formInputs = document.querySelectorAll('.form-input');
-    formInputs.forEach(input => {
-      input.addEventListener('focus', function() {
-        this.parentElement.style.transform = 'translateY(-2px)';
-      });
-
-      input.addEventListener('blur', function() {
-        this.parentElement.style.transform = 'translateY(0)';
-      });
-    });
-
-    // Login button interaction
-    const loginBtn = document.querySelector('.login-btn');
-    if (loginBtn) {
-      loginBtn.addEventListener('click', function() {
-        this.style.transform = 'scale(0.98)';
-        setTimeout(() => {
-          this.style.transform = 'scale(1)';
-        }, 150);
-      });
-    }
-  });
-</script>
+      }
+    </script>
+  </body>
+</html>

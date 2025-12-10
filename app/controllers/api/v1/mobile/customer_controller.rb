@@ -207,8 +207,13 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
   # POST /api/v1/mobile/customer/add_policy
   def add_policy
     policy_params = params.permit(:insurance_type, :plan_name, :sum_insured, :premium_amount,
+                                  :"premium amount", :"Renewal date",
                                   :renewal_date, :policy_number, :insurance_company, :remarks,
                                   family_members: [])
+
+    # Handle the premium amount field with space
+    premium_amount = policy_params[:premium_amount] || policy_params[:"premium amount"]
+    renewal_date = policy_params[:renewal_date] || policy_params[:"Renewal date"]
 
     # Validate required fields
     if policy_params[:insurance_type].blank?
@@ -232,6 +237,13 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       }, status: :unprocessable_entity
     end
 
+    if premium_amount.blank? || premium_amount.to_f <= 0
+      return render json: {
+        success: false,
+        message: 'Premium amount is required and must be greater than 0'
+      }, status: :unprocessable_entity
+    end
+
     # Create a policy request or notification for admin to review
     # This is a simplified implementation - you might want to create a separate PolicyRequest model
 
@@ -242,17 +254,20 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         policy_holder: current_customer.display_name || 'Self',
         plan_name: policy_params[:plan_name],
         insurance_company_name: policy_params[:insurance_company] || 'To be assigned',
+        insurance_type: 'Individual',
         policy_type: 'New',
         policy_number: policy_params[:policy_number] || "REQ-#{Time.current.to_i}",
+        policy_booking_date: Date.current,
         policy_start_date: Date.current,
-        policy_end_date: policy_params[:renewal_date]&.to_date || 1.year.from_now,
+        policy_end_date: renewal_date&.to_date || 1.year.from_now,
         payment_mode: 'Yearly',
         sum_insured: policy_params[:sum_insured].to_f,
-        net_premium: policy_params[:premium_amount]&.to_f || 0,
-        total_premium: policy_params[:premium_amount]&.to_f || 0,
+        net_premium: premium_amount&.to_f || 0,
+        total_premium: premium_amount&.to_f || 0,
         gst_percentage: 18,
-        status: 'pending_approval',
-        added_by: current_customer.added_by || 'customer_request'
+        is_customer_added: true,
+        is_agent_added: false,
+        is_admin_added: false
       )
 
       # Store additional info in a notes field or separate model
@@ -269,16 +284,19 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         insurance_company_name: policy_params[:insurance_company] || 'To be assigned',
         policy_type: 'New',
         policy_number: policy_params[:policy_number] || "REQ-#{Time.current.to_i}",
+        policy_booking_date: Date.current,
         policy_start_date: Date.current,
-        policy_end_date: policy_params[:renewal_date]&.to_date || 20.years.from_now,
+        policy_end_date: renewal_date&.to_date || 20.years.from_now,
         payment_mode: 'Yearly',
         policy_term: 20,
         premium_payment_term: 10,
         sum_insured: policy_params[:sum_insured].to_f,
-        net_premium: policy_params[:premium_amount]&.to_f || 0,
-        total_premium: policy_params[:premium_amount]&.to_f || 0,
-        status: 'pending_approval',
-        added_by: current_customer.added_by || 'customer_request'
+        net_premium: premium_amount&.to_f || 0,
+        total_premium: premium_amount&.to_f || 0,
+        first_year_gst_percentage: 18,
+        is_customer_added: true,
+        is_agent_added: false,
+        is_admin_added: false
       )
 
     when 'motor'
@@ -310,6 +328,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
           insurance_type: policy_params[:insurance_type],
           plan_name: policy_params[:plan_name],
           sum_insured: policy_params[:sum_insured].to_f,
+          premium_amount: premium_amount&.to_f || 0,
+          renewal_date: renewal_date,
           status: 'pending_approval',
           family_members: policy_params[:family_members] || [],
           remarks: policy_params[:remarks],

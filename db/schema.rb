@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_10_000515) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_10_010533) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -240,6 +240,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_10_000515) do
     t.date "installment_autopay_start_date"
     t.date "installment_autopay_end_date"
     t.text "notification_dates"
+    t.boolean "is_customer_added", default: false
+    t.boolean "is_agent_added", default: false
+    t.boolean "is_admin_added", default: false
     t.index ["agency_code_id"], name: "index_health_insurances_on_agency_code_id"
     t.index ["broker_id"], name: "index_health_insurances_on_broker_id"
     t.index ["customer_id"], name: "index_health_insurances_on_customer_id"
@@ -325,6 +328,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_10_000515) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.text "notification_dates"
+    t.boolean "is_customer_added", default: false
+    t.boolean "is_agent_added", default: false
+    t.boolean "is_admin_added", default: false
     t.index ["agency_code_id"], name: "index_life_insurances_on_agency_code_id"
     t.index ["broker_id"], name: "index_life_insurances_on_broker_id"
     t.index ["customer_id"], name: "index_life_insurances_on_customer_id"

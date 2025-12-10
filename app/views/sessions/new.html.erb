@@ -7,157 +7,535 @@
     <%= csp_meta_tag %>
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .login-container {
+        display: flex;
+        height: 100vh;
+      }
+
+      /* Left Side - Gradient with Illustration */
+      .left-side {
+        flex: 1;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 60px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .left-side::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background:
+          radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+          radial-gradient(circle at 70% 80%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
+        animation: float 20s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(180deg); }
+      }
+
+      .shield-illustration {
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 40px;
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        position: relative;
+      }
+
+      .shield-illustration::before {
+        content: '';
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+      }
+
+      .shield-icon {
+        width: 80px;
+        height: 80px;
+        color: white;
+        z-index: 2;
+        filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3));
+      }
+
+      .tagline {
+        color: white;
+        text-align: center;
+        max-width: 400px;
+      }
+
+      .tagline h1 {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        line-height: 1.2;
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      .tagline p {
+        font-size: 18px;
+        opacity: 0.9;
+        line-height: 1.6;
+        font-weight: 400;
+      }
+
+      /* Right Side - Login Card */
+      .right-side {
+        flex: 1;
+        background: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        position: relative;
+      }
+
+      /* Subtle Background Shapes */
+      .bg-shape {
+        position: absolute;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+        filter: blur(40px);
+      }
+
+      .bg-shape-1 {
+        width: 300px;
+        height: 300px;
+        top: -100px;
+        right: -100px;
+      }
+
+      .bg-shape-2 {
+        width: 200px;
+        height: 200px;
+        bottom: -50px;
+        left: -50px;
+      }
+
+      .bg-shape-3 {
+        width: 150px;
+        height: 150px;
+        top: 50%;
+        right: 20%;
+        transform: translateY(-50%);
+      }
+
+      .login-card {
+        background: white;
+        border-radius: 24px;
+        padding: 48px;
+        width: 100%;
+        max-width: 440px;
+        box-shadow:
+          0 20px 60px rgba(0, 0, 0, 0.08),
+          0 8px 32px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        position: relative;
+        z-index: 10;
+      }
+
+      /* Logo Section */
+      .logo-section {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .logo {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+      }
+
+      .logo svg {
+        width: 32px;
+        height: 32px;
+        color: white;
+      }
+
+      .brand-name {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 8px;
+        letter-spacing: -0.5px;
+      }
+
+      .welcome-message {
+        font-size: 16px;
+        color: #64748b;
+        font-weight: 400;
+      }
+
+      /* Form Styles */
+      .form-section {
+        margin-bottom: 32px;
+      }
+
+      .form-group {
+        margin-bottom: 24px;
+      }
+
+      .form-label {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 8px;
+      }
+
+      .input-wrapper {
+        position: relative;
+      }
+
+      .input-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        z-index: 2;
+      }
+
+      .form-input {
+        width: 100%;
+        padding: 14px 16px 14px 48px;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 16px;
+        color: #1f2937;
+        background: white;
+        transition: all 0.3s ease;
+        outline: none;
+      }
+
+      .form-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .form-input::placeholder {
+        color: #9ca3af;
+      }
+
+      .password-toggle {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 6px;
+        transition: color 0.3s ease;
+      }
+
+      .password-toggle:hover {
+        color: #667eea;
+      }
+
+      .form-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+      }
+
+      .checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .checkbox-wrapper input {
+        width: 16px;
+        height: 16px;
+        accent-color: #667eea;
+        cursor: pointer;
+      }
+
+      .checkbox-wrapper label {
+        font-size: 14px;
+        color: #374151;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .forgot-link {
+        font-size: 14px;
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+      }
+
+      .forgot-link:hover {
+        color: #5a67d8;
+        text-decoration: underline;
+      }
+
+      .login-button {
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+        margin-bottom: 32px;
+        letter-spacing: 0.25px;
+      }
+
+      .login-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
+        background: linear-gradient(135deg, #5a67d8, #6a42a0);
+      }
+
+      .login-button:active {
+        transform: translateY(0);
+      }
+
+      /* Divider */
+      .divider {
+        display: flex;
+        align-items: center;
+        margin: 32px 0;
+        color: #9ca3af;
+        font-size: 14px;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #e5e7eb;
+      }
+
+      .divider span {
+        padding: 0 16px;
+        background: white;
+        font-weight: 500;
+      }
+
+      .signup-link {
+        text-align: center;
+        font-size: 14px;
+        color: #64748b;
+      }
+
+      .signup-link a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+      }
+
+      .signup-link a:hover {
+        color: #5a67d8;
+        text-decoration: underline;
+      }
+
+      /* Mobile Responsive */
+      @media (max-width: 1024px) {
+        .login-container {
+          flex-direction: column;
+        }
+
+        .left-side {
+          flex: none;
+          min-height: 40vh;
+          padding: 40px 20px;
+        }
+
+        .shield-illustration {
+          width: 120px;
+          height: 120px;
+          margin-bottom: 24px;
+        }
+
+        .shield-illustration::before {
+          width: 80px;
+          height: 80px;
+        }
+
+        .shield-icon {
+          width: 50px;
+          height: 50px;
+        }
+
+        .tagline h1 {
+          font-size: 24px;
+        }
+
+        .tagline p {
+          font-size: 16px;
+        }
+
+        .right-side {
+          flex: none;
+          min-height: 60vh;
+          padding: 20px;
+        }
+
+        .login-card {
+          padding: 32px 24px;
+          max-width: 100%;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .left-side {
+          min-height: 35vh;
+          padding: 20px;
+        }
+
+        .login-card {
+          padding: 24px 20px;
+          border-radius: 20px;
+        }
+
+        .brand-name {
+          font-size: 24px;
+        }
+
+        .form-input {
+          padding: 12px 16px 12px 44px;
+        }
+      }
+    </style>
   </head>
 
-  <body class="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 min-h-screen">
-    <!-- Background Pattern -->
-    <div class="absolute inset-0 opacity-10">
-      <div class="absolute inset-0" style="background-image: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%);"></div>
-    </div>
+  <body>
+    <div class="login-container">
+      <!-- Left Side - Gradient with Illustration -->
+      <div class="left-side">
+        <div class="shield-illustration">
+          <svg class="shield-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+        </div>
+        <div class="tagline">
+          <h1>Secure Insurance Management</h1>
+          <p>Protect what matters most with our comprehensive insurance platform designed for modern professionals.</p>
+        </div>
+      </div>
 
-    <!-- Floating Shapes -->
-    <div class="absolute top-20 left-20 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
-    <div class="absolute top-40 right-32 w-24 h-24 bg-white/5 rounded-full blur-xl"></div>
-    <div class="absolute bottom-32 left-1/4 w-40 h-40 bg-white/5 rounded-full blur-xl"></div>
+      <!-- Right Side - Login Card -->
+      <div class="right-side">
+        <!-- Background Shapes -->
+        <div class="bg-shape bg-shape-1"></div>
+        <div class="bg-shape bg-shape-2"></div>
+        <div class="bg-shape bg-shape-3"></div>
 
-    <!-- Main Container -->
-    <div class="min-h-screen flex items-center justify-center p-4">
-      <!-- Login Card -->
-      <div class="w-full max-w-md relative">
-        <!-- Card with glassmorphic effect -->
-        <div class="glass backdrop-blur-xl bg-white/10 rounded-3xl p-8 shadow-2xl border border-white/20 relative overflow-hidden">
-          <!-- Top gradient accent -->
-          <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400"></div>
-
-          <!-- Header -->
-          <div class="text-center mb-8">
-            <!-- Logo -->
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
-              <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="login-card">
+          <!-- Logo Section -->
+          <div class="logo-section">
+            <div class="logo">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
               </svg>
             </div>
-
-            <!-- Brand -->
-            <h1 class="text-2xl font-bold text-white mb-2">
-              InsureBook
-            </h1>
-            <div class="flex items-center justify-center mb-4">
-              <h2 class="text-3xl font-bold text-gradient bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                Welcome Back
-              </h2>
-              <span class="ml-2 text-2xl">👋</span>
-            </div>
-            <p class="text-white/70 text-sm">
-              Manage your policies seamlessly
-            </p>
+            <h1 class="brand-name">InsureBook</h1>
+            <p class="welcome-message">Welcome back! Please sign in to your account.</p>
           </div>
 
           <!-- Login Form -->
-          <%= form_with url: session_path, local: true, class: "space-y-6" do |form| %>
-            <!-- Email Input -->
-            <div class="space-y-2">
-              <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg class="h-5 w-5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                  </svg>
+          <div class="form-section">
+            <%= form_with url: session_path, local: true do |form| %>
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <div class="input-wrapper">
+                  <div class="input-icon">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                    </svg>
+                  </div>
+                  <%= form.email_field :email, class: "form-input", placeholder: "Enter your email address" %>
                 </div>
-                <%= form.email_field :email,
-                  class: "w-full pl-12 pr-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent transition-all duration-300",
-                  placeholder: "pramodtbhat8@gmail.com" %>
               </div>
-            </div>
 
-            <!-- Password Input -->
-            <div class="space-y-2">
-              <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg class="h-5 w-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <%= form.password_field :password,
-                  class: "w-full pl-12 pr-12 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent transition-all duration-300",
-                  placeholder: "••••••••" %>
-                <div class="absolute inset-y-0 right-0 pr-4 flex items-center">
-                  <button type="button" class="text-white/60 hover:text-white/80 transition-colors">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="form-group">
+                <label class="form-label">Password</label>
+                <div class="input-wrapper">
+                  <div class="input-icon">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <%= form.password_field :password, class: "form-input", placeholder: "Enter your password" %>
+                  <button type="button" class="password-toggle">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
                   </button>
                 </div>
               </div>
-            </div>
 
-            <!-- Remember Me & Forgot Password -->
-            <div class="flex items-center justify-between text-sm">
-              <div class="flex items-center">
-                <%= form.check_box :remember_me, class: "h-4 w-4 text-blue-500 bg-white/20 border-white/30 rounded focus:ring-blue-400" %>
-                <label class="ml-2 text-white/80">Remember Me</label>
+              <div class="form-row">
+                <div class="checkbox-wrapper">
+                  <%= form.check_box :remember_me %>
+                  <label for="<%= form.field_id(:remember_me) %>">Remember me</label>
+                </div>
+                <a href="#" class="forgot-link">Forgot password?</a>
               </div>
-              <a href="#" class="text-blue-400 hover:text-blue-300 transition-colors">
-                Forgot Password?
-              </a>
-            </div>
 
-            <!-- Login Button -->
-            <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400/50">
-              Login
-            </button>
-          <% end %>
+              <button type="submit" class="login-button">Sign In</button>
+            <% end %>
+          </div>
 
           <!-- Divider -->
-          <div class="relative my-6">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-white/20"></div>
-            </div>
-            <div class="relative flex justify-center text-sm">
-              <span class="px-3 bg-white/10 backdrop-blur text-white/70 rounded-full">or</span>
-            </div>
+          <div class="divider">
+            <span>Or continue with</span>
           </div>
 
           <!-- Sign Up Link -->
-          <div class="text-center">
-            <p class="text-white/70 text-sm">
-              Don't have an account?
-              <a href="/signup" class="text-blue-400 hover:text-blue-300 font-medium transition-colors ml-1">
-                Sign Up
-              </a>
-            </p>
-          </div>
-
-          <!-- Footer Links -->
-          <div class="mt-8 pt-6 border-t border-white/20">
-            <div class="flex justify-center space-x-6 text-sm">
-              <a href="#" class="text-white/60 hover:text-white/80 transition-colors">
-                Help & Support
-              </a>
-              <a href="#" class="text-white/60 hover:text-white/80 transition-colors">
-                Contact Us
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Left Side Panel -->
-        <div class="hidden lg:block absolute -left-80 top-0 bottom-0 w-72">
-          <div class="h-full bg-gradient-to-br from-cyan-400/20 to-blue-500/20 backdrop-blur-sm rounded-3xl p-8 border border-white/10 flex flex-col justify-center">
-            <!-- Shield Icon -->
-            <div class="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center mb-8 mx-auto backdrop-blur border border-white/20">
-              <svg class="w-12 h-12 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-              </svg>
-            </div>
-
-            <!-- Content -->
-            <div class="text-center text-white">
-              <h3 class="text-2xl font-bold mb-4">Secure Insurance Management</h3>
-              <p class="text-white/80 mb-8 leading-relaxed">
-                Manage your policies seamlessly with our comprehensive insurance management platform.
-              </p>
-            </div>
+          <div class="signup-link">
+            Don't have an account? <a href="/signup">Create account</a>
           </div>
         </div>
       </div>
