@@ -64,7 +64,7 @@
 </div>
 
 <!-- Add Broker Modal -->
-<div class="modal fade" id="addBrokerModal" tabindex="-1" aria-labelledby="addBrokerModalLabel" aria-hidden="true">
+<div class="modal fade" id="addBrokerModal" tabindex="-1" aria-labelledby="addBrokerModalLabel" aria-hidden="true" style="z-index: 1060;">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
@@ -168,7 +168,7 @@
               </tr>
 
               <!-- Edit Modal for this broker -->
-              <div class="modal fade" id="editBrokerModal<%= broker.id %>" tabindex="-1" aria-labelledby="editBrokerModalLabel<%= broker.id %>" aria-hidden="true">
+              <div class="modal fade" id="editBrokerModal<%= broker.id %>" tabindex="-1" aria-labelledby="editBrokerModalLabel<%= broker.id %>" aria-hidden="true" style="z-index: 1070;">
                 <div class="modal-dialog">
                   <div class="modal-content">
                     <div class="modal-header bg-primary text-white">
@@ -233,6 +233,37 @@
   </div>
 </div>
 
+<style>
+/* Fix modal z-index issues */
+.modal-backdrop {
+  z-index: 1050;
+}
+
+.modal {
+  z-index: 1060;
+}
+
+.modal.show {
+  z-index: 1060;
+}
+
+/* Ensure edit modals appear above add modal */
+.modal[id*="editBroker"] {
+  z-index: 1070;
+}
+
+/* Ensure modal content is properly positioned */
+.modal-dialog {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fix any overflow issues */
+body.modal-open {
+  overflow: hidden;
+}
+</style>
+
 <script>
 // Bootstrap form validation
 (function() {
@@ -250,4 +281,41 @@
     });
   }, false);
 })();
+
+// Ensure modals work properly
+document.addEventListener('DOMContentLoaded', function() {
+  // Handle modal backdrop clicks
+  document.querySelectorAll('.modal').forEach(function(modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        var modalInstance = bootstrap.Modal.getInstance(modal);
+        if (modalInstance) {
+          modalInstance.hide();
+        }
+      }
+    });
+  });
+
+  // Ensure proper z-index when multiple modals might be open
+  document.querySelectorAll('.modal').forEach(function(modal) {
+    modal.addEventListener('show.bs.modal', function() {
+      var openModals = document.querySelectorAll('.modal.show');
+      var zIndex = 1060;
+
+      openModals.forEach(function() {
+        zIndex += 10;
+      });
+
+      this.style.zIndex = zIndex;
+
+      // Ensure backdrop is below modal
+      setTimeout(function() {
+        var backdrop = document.querySelector('.modal-backdrop:last-of-type');
+        if (backdrop) {
+          backdrop.style.zIndex = zIndex - 1;
+        }
+      }, 100);
+    });
+  });
+});
 </script>

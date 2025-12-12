@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Login - InsureBook</title>
+  <title>Login - Drwise</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
@@ -42,6 +42,9 @@
         <h2 class="simple-title">InsureBook</h2>
         <p class="simple-subtitle">Welcome back! Please sign in to your account.</p>
       </div>
+
+      <!-- Login Banners -->
+      <%= display_banners('login') %>
 
       <!-- Simple Login Form -->
       <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>

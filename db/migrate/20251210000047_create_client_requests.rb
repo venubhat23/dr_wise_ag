@@ -1,6 +1,7 @@
 class CreateClientRequests < ActiveRecord::Migration[8.0]
   def change
     create_table :client_requests do |t|
+      t.string :ticket_number, null: false, unique: true
       t.string :name, null: false
       t.string :email, null: false
       t.string :phone_number, null: false
@@ -15,6 +16,7 @@ class CreateClientRequests < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
+    add_index :client_requests, :ticket_number, unique: true
     add_index :client_requests, :email
     add_index :client_requests, :status
     add_index :client_requests, :submitted_at

@@ -3,11 +3,29 @@ class Admin::CustomersController < Admin::ApplicationController
 
   # GET /admin/customers
   def index
-    @customers = Customer.includes(:policies)
+    # Check if policies_count column exists for optimized queries
+    has_counter_cache = Customer.column_names.include?('policies_count')
 
-    # Search functionality
+    # Check if search is active first
+    search_active = params[:search].present? && params[:search].strip.length >= 4
+
+    if search_active
+      # When search is active, use simpler query without select optimization to avoid pg_search conflicts
+      @customers = Customer.all
+    else
+      # Use standard query and rely on counter cache for policy counts
+      @customers = Customer.all
+    end
+
+    # Search functionality - only search if 4+ characters or empty
     if params[:search].present?
-      @customers = @customers.search_customers(params[:search])
+      search_term = params[:search].strip
+      if search_term.length >= 4
+        @customers = @customers.search_customers(search_term)
+      elsif search_term.length > 0
+        # Return empty result if search term is too short
+        @customers = @customers.none
+      end
     end
 
     # Filter by customer type
@@ -18,18 +36,76 @@ class Admin::CustomersController < Admin::ApplicationController
     # Filter by status
     case params[:status]
     when 'active'
-      @customers = @customers.active
+      @customers = @customers.where(status: true)
     when 'inactive'
-      @customers = @customers.inactive
+      @customers = @customers.where(status: false)
     end
 
-    @customers = @customers.order(created_at: :desc).page(params[:page])
+    # Order and paginate
+    @customers = @customers.order(created_at: :desc).page(params[:page]).per(25)
 
-    # Statistics
-    @total_customers = Customer.count
-    @active_customers = Customer.active.count
-    @individual_customers = Customer.individuals.count
-    @corporate_customers = Customer.corporates.count
+    # Cache statistics (but refresh if we have active search/filters)
+    cache_key = "customer_stats_#{params[:search]}_#{params[:customer_type]}_#{params[:status]}"
+    @stats = Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
+      # Create a separate scope for statistics to avoid pg_search GROUP BY issues
+      stats_scope = Customer.all
+
+      # Apply filters but handle search differently for stats
+      if params[:search].present? && params[:search].strip.length >= 4
+        # For statistics, use a simple where clause instead of pg_search to avoid GROUP BY issues
+        search_term = params[:search].strip
+        stats_scope = stats_scope.where(
+          "first_name ILIKE ? OR last_name ILIKE ? OR company_name ILIKE ? OR email ILIKE ? OR mobile ILIKE ? OR pan_number ILIKE ?",
+          "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%"
+        )
+      end
+
+      if params[:customer_type].present?
+        stats_scope = stats_scope.where(customer_type: params[:customer_type])
+      end
+
+      case params[:status]
+      when 'active'
+        stats_scope = stats_scope.where(status: true)
+      when 'inactive'
+        stats_scope = stats_scope.where(status: false)
+      end
+
+      # Calculate filtered stats using simple queries to avoid GROUP BY issues
+      if params[:search].present? && params[:search].strip.length >= 4
+        # When search is active, use simpler aggregation
+        {
+          total_customers: stats_scope.count,
+          active_customers: stats_scope.where(status: true).count,
+          individual_customers: stats_scope.where(customer_type: 'individual').count,
+          corporate_customers: stats_scope.where(customer_type: 'corporate').count
+        }
+      else
+        # When no search, can use GROUP BY safely
+        stats_data = stats_scope.group(:customer_type, :status).count
+        stats_data.each_with_object(Hash.new(0)) do |(key, count), stats|
+          customer_type, status = key
+
+          stats[:total_customers] += count
+          stats[:active_customers] += count if status == true
+          stats[:individual_customers] += count if customer_type == 'individual'
+          stats[:corporate_customers] += count if customer_type == 'corporate'
+        end.tap do |stats|
+          stats[:total_customers] = stats_scope.count if stats[:total_customers] == 0
+        end
+      end
+    end
+
+    @total_customers = @stats[:total_customers]
+    @active_customers = @stats[:active_customers]
+    @individual_customers = @stats[:individual_customers]
+    @corporate_customers = @stats[:corporate_customers]
+
+    # Handle AJAX requests
+    respond_to do |format|
+      format.html # Regular HTML request
+      format.json { render json: { customers: @customers, stats: @stats } }
+    end
   end
 
   # GET /admin/customers/1

@@ -502,15 +502,15 @@
     <div class="nav-section">
       <div class="nav-section-title">Reports & Analytics</div>
       <ul class="nav-menu">
-        <!-- Reports -->
+        <!-- Commission Report -->
         <li class="nav-item">
           <%= link_to admin_reports_commission_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/commission')}" do %>
             <div class="nav-icon-modern">
-              <div class="icon-bg gradient-indigo">
-                <i class="bi bi-bar-chart-fill"></i>
+              <div class="icon-bg gradient-green">
+                <i class="bi bi-currency-dollar"></i>
               </div>
             </div>
-            <span class="nav-text">Commission</span>
+            <span class="nav-text">Commission Report</span>
             <div class="nav-indicator"></div>
           <% end %>
         </li>
@@ -519,24 +519,76 @@
         <li class="nav-item">
           <%= link_to admin_reports_expired_insurance_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/expired')}" do %>
             <div class="nav-icon-modern">
-              <div class="icon-bg gradient-amber">
+              <div class="icon-bg gradient-red">
                 <i class="bi bi-clock-history"></i>
               </div>
             </div>
-            <span class="nav-text">Expired Policies</span>
+            <span class="nav-text">Expired Insurance</span>
             <div class="nav-indicator"></div>
           <% end %>
         </li>
 
-        <!-- Renewals -->
+        <!-- Payment Due -->
+        <li class="nav-item">
+          <%= link_to admin_reports_payment_due_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/payment_due')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-orange">
+                <i class="bi bi-exclamation-triangle"></i>
+              </div>
+            </div>
+            <span class="nav-text">Payment Due</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Upcoming Renewal -->
         <li class="nav-item">
           <%= link_to admin_reports_upcoming_renewal_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/renewal')}" do %>
             <div class="nav-icon-modern">
-              <div class="icon-bg gradient-lime">
+              <div class="icon-bg gradient-blue">
                 <i class="bi bi-arrow-repeat"></i>
               </div>
             </div>
-            <span class="nav-text">Renewals</span>
+            <span class="nav-text">Upcoming Renewal</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Upcoming Payment -->
+        <li class="nav-item">
+          <%= link_to admin_reports_upcoming_payment_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/payment')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-purple">
+                <i class="bi bi-calendar-check"></i>
+              </div>
+            </div>
+            <span class="nav-text">Upcoming Payment</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Leads Report -->
+        <li class="nav-item">
+          <%= link_to admin_reports_leads_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/leads')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-pink">
+                <i class="bi bi-funnel"></i>
+              </div>
+            </div>
+            <span class="nav-text">Leads Report</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Session Report -->
+        <li class="nav-item">
+          <%= link_to admin_reports_sessions_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/sessions')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-cyan">
+                <i class="bi bi-activity"></i>
+              </div>
+            </div>
+            <span class="nav-text">Session Report</span>
             <div class="nav-indicator"></div>
           <% end %>
         </li>
@@ -581,6 +633,32 @@
               </div>
             </div>
             <span class="nav-text">Agency/Broker</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Banner Management -->
+        <li class="nav-item">
+          <%= link_to admin_banners_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/banners')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-indigo">
+                <i class="bi bi-image-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Banner Management</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Roles & Permissions -->
+        <li class="nav-item">
+          <%= link_to admin_roles_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/roles') || request.path.include?('/admin/permissions')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-cyan">
+                <i class="bi bi-shield-check"></i>
+              </div>
+            </div>
+            <span class="nav-text">Roles & Permissions</span>
             <div class="nav-indicator"></div>
           <% end %>
         </li>

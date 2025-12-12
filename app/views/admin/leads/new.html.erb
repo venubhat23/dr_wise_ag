@@ -1,0 +1,368 @@
+<!-- Add New Lead Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Add New Lead</h2>
+    <p class="text-muted mb-0">Create a new lead record for potential insurance customers</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to admin_leads_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Leads
+    <% end %>
+  </div>
+</div>
+
+<!-- Lead Form -->
+<div class="row">
+  <div class="col-md-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-person-plus me-2 text-primary"></i>
+          Lead Information
+        </h5>
+      </div>
+      <div class="card-body">
+        <%= form_with model: [:admin, @lead || Lead.new], local: true, class: "row g-3" do |form| %>
+          <!-- Basic Information -->
+          <div class="col-md-6">
+            <%= form.label :name, "Lead Name *", class: "form-label" %>
+            <%= form.text_field :name, class: "form-control", placeholder: "Enter full name", required: true %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :contact_number, "Contact Number *", class: "form-label" %>
+            <%= form.text_field :contact_number, class: "form-control", placeholder: "+91 98765 43210", required: true %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :email, "Email Address", class: "form-label" %>
+            <%= form.email_field :email, class: "form-control", placeholder: "name@email.com" %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :product_interest, "Product Interest *", class: "form-label" %>
+            <%= form.select :product_interest, options_for_select([
+              ['Select Product', ''],
+              ['Health Insurance', 'health'],
+              ['Life Insurance', 'life'],
+              ['Motor Insurance', 'motor'],
+              ['Home Insurance', 'home'],
+              ['Travel Insurance', 'travel'],
+              ['Other Insurance', 'other']
+            ]), {}, { class: "form-select", required: true } %>
+          </div>
+
+          <!-- Address Information -->
+          <div class="col-md-12">
+            <h6 class="mt-3 mb-3 text-primary">
+              <i class="bi bi-geo-alt me-2"></i>
+              Address Information
+            </h6>
+          </div>
+
+          <div class="col-md-12">
+            <%= form.label :address, "Address", class: "form-label" %>
+            <%= form.text_area :address, class: "form-control", rows: 2, placeholder: "Complete address" %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :city, "City", class: "form-label" %>
+            <%= form.text_field :city, class: "form-control", placeholder: "City name" %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :state, "State", class: "form-label" %>
+            <%= form.select :state, options_for_select([
+              ['Select State', ''],
+              ['Andhra Pradesh', 'andhra_pradesh'],
+              ['Assam', 'assam'],
+              ['Bihar', 'bihar'],
+              ['Delhi', 'delhi'],
+              ['Gujarat', 'gujarat'],
+              ['Karnataka', 'karnataka'],
+              ['Kerala', 'kerala'],
+              ['Maharashtra', 'maharashtra'],
+              ['Punjab', 'punjab'],
+              ['Rajasthan', 'rajasthan'],
+              ['Tamil Nadu', 'tamil_nadu'],
+              ['Uttar Pradesh', 'uttar_pradesh'],
+              ['West Bengal', 'west_bengal']
+            ]), {}, { class: "form-select" } %>
+          </div>
+
+          <!-- Lead Details -->
+          <div class="col-md-12">
+            <h6 class="mt-3 mb-3 text-primary">
+              <i class="bi bi-info-circle me-2"></i>
+              Lead Details
+            </h6>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :referred_by, "Referred By", class: "form-label" %>
+            <%= form.text_field :referred_by, class: "form-control", placeholder: "Agent name or source" %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :current_stage, "Current Stage *", class: "form-label" %>
+            <%= form.select :current_stage, options_for_select([
+              ['Consultation', 'consultation'],
+              ['One-on-One', 'one_on_one'],
+              ['Converted', 'converted'],
+              ['Policy Created', 'policy_created'],
+              ['Referral Settled', 'referral_settled']
+            ], 'consultation'), {}, { class: "form-select", required: true } %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :created_date, "Lead Date", class: "form-label" %>
+            <%= form.date_field :created_date, class: "form-control", value: Date.current %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :priority, "Priority Level", class: "form-label" %>
+            <%= form.select :priority, options_for_select([
+              ['High', 'high'],
+              ['Medium', 'medium'],
+              ['Low', 'low']
+            ], 'medium'), {}, { class: "form-select" } %>
+          </div>
+
+          <div class="col-md-12">
+            <%= form.label :note, "Notes", class: "form-label" %>
+            <%= form.text_area :note, class: "form-control", rows: 4, placeholder: "Additional notes about the lead..." %>
+          </div>
+
+          <!-- Submit Buttons -->
+          <div class="col-md-12 mt-4">
+            <div class="d-flex gap-2">
+              <%= form.submit "Create Lead", class: "btn btn-primary" %>
+              <%= form.submit "Create & Add Another", class: "btn btn-outline-primary", name: "create_and_new" %>
+              <%= link_to "Cancel", admin_leads_path, class: "btn btn-outline-secondary" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Tips Sidebar -->
+  <div class="col-md-4">
+    <!-- Lead Creation Tips -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-lightbulb me-2 text-warning"></i>
+          Lead Creation Tips
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="tip-item mb-3">
+          <h6 class="mb-1">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            Complete Information
+          </h6>
+          <p class="small text-muted mb-0">Fill in as much information as possible to improve lead quality and conversion chances.</p>
+        </div>
+
+        <div class="tip-item mb-3">
+          <h6 class="mb-1">
+            <i class="bi bi-telephone text-info me-2"></i>
+            Contact Verification
+          </h6>
+          <p class="small text-muted mb-0">Verify phone number and email before creating the lead to ensure accurate communication.</p>
+        </div>
+
+        <div class="tip-item mb-3">
+          <h6 class="mb-1">
+            <i class="bi bi-star text-warning me-2"></i>
+            Priority Setting
+          </h6>
+          <p class="small text-muted mb-0">Set priority based on customer urgency and potential policy value.</p>
+        </div>
+
+        <div class="tip-item mb-0">
+          <h6 class="mb-1">
+            <i class="bi bi-sticky text-primary me-2"></i>
+            Detailed Notes
+          </h6>
+          <p class="small text-muted mb-0">Add comprehensive notes about customer requirements and preferences.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Reference -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-bookmark me-2 text-info"></i>
+          Lead Stages Guide
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge bg-info me-2">1</span>
+            <strong>Consultation</strong>
+          </div>
+          <p class="small text-muted mb-0">Initial contact and requirement gathering</p>
+        </div>
+
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge bg-warning me-2">2</span>
+            <strong>One-on-One</strong>
+          </div>
+          <p class="small text-muted mb-0">Detailed discussion and product presentation</p>
+        </div>
+
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge bg-success me-2">3</span>
+            <strong>Converted</strong>
+          </div>
+          <p class="small text-muted mb-0">Customer agrees to purchase policy</p>
+        </div>
+
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge bg-primary me-2">4</span>
+            <strong>Policy Created</strong>
+          </div>
+          <p class="small text-muted mb-0">Policy documentation completed</p>
+        </div>
+
+        <div class="stage-item mb-0">
+          <div class="d-flex align-items-center">
+            <span class="badge bg-dark me-2">5</span>
+            <strong>Referral Settled</strong>
+          </div>
+          <p class="small text-muted mb-0">Commission and referrals processed</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lead Statistics -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-graph-up me-2 text-success"></i>
+          This Month's Stats
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="stat-row d-flex justify-content-between mb-2">
+          <span>Total Leads Added:</span>
+          <strong class="text-primary">127</strong>
+        </div>
+        <div class="stat-row d-flex justify-content-between mb-2">
+          <span>Converted Leads:</span>
+          <strong class="text-success">89</strong>
+        </div>
+        <div class="stat-row d-flex justify-content-between mb-2">
+          <span>Conversion Rate:</span>
+          <strong class="text-info">70.1%</strong>
+        </div>
+        <div class="stat-row d-flex justify-content-between mb-0">
+          <span>Your Avg. Time:</span>
+          <strong class="text-warning">3.2 days</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Styles -->
+<style>
+.tip-item {
+  border-left: 3px solid #e2e8f0;
+  padding-left: 1rem;
+}
+
+.stage-item {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.75rem;
+}
+
+.stage-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.stat-row {
+  font-size: 0.9rem;
+}
+
+.card-header h5 {
+  font-weight: 600;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #374151;
+}
+
+.btn {
+  border-radius: 8px;
+}
+
+.form-control, .form-select {
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+</style>
+
+<!-- Form Validation Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.querySelector('form');
+  const nameField = form.querySelector('[name="lead[name]"]');
+  const phoneField = form.querySelector('[name="lead[contact_number]"]');
+  const productField = form.querySelector('[name="lead[product_interest]"]');
+
+  // Phone number formatting
+  phoneField.addEventListener('input', function() {
+    let value = this.value.replace(/\D/g, '');
+    if (value.length === 10) {
+      this.value = '+91 ' + value.substring(0, 5) + ' ' + value.substring(5);
+    }
+  });
+
+  // Form validation
+  form.addEventListener('submit', function(e) {
+    let isValid = true;
+    const errors = [];
+
+    // Validate name
+    if (nameField.value.trim().length < 2) {
+      errors.push('Lead name must be at least 2 characters long');
+      isValid = false;
+    }
+
+    // Validate phone
+    const phoneRegex = /^(\+91|91)?[6-9]\d{9}$/;
+    const cleanPhone = phoneField.value.replace(/\D/g, '');
+    if (!phoneRegex.test(cleanPhone)) {
+      errors.push('Please enter a valid Indian mobile number');
+      isValid = false;
+    }
+
+    // Validate product selection
+    if (!productField.value) {
+      errors.push('Please select a product interest');
+      isValid = false;
+    }
+
+    if (!isValid) {
+      e.preventDefault();
+      alert('Please fix the following errors:\n' + errors.join('\n'));
+    }
+  });
+});
+</script>

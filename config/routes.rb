@@ -18,6 +18,29 @@ Rails.application.routes.draw do
     # Users (Admins/Agents) management
     resources :users
 
+    # Roles and Permissions management
+    resources :roles do
+      member do
+        patch :toggle_status
+        post :assign_users
+      end
+      collection do
+        get :permissions_preview
+      end
+    end
+
+    resources :permissions do
+      member do
+        # Individual permission management
+      end
+      collection do
+        post :generate_defaults
+        get :bulk_assign
+        post :bulk_update
+        get 'module/:module_name', action: :module_permissions, as: :module
+      end
+    end
+
     # Sub Agent management
     resources :sub_agents do
       member do
@@ -83,6 +106,20 @@ Rails.application.routes.draw do
     # Insurance companies
     resources :insurance_companies
 
+    # Helpdesk management
+    resources :helpdesk, path: 'helpdesk' do
+      member do
+        patch :update_status
+        patch :assign_to
+        patch :add_response
+      end
+      collection do
+        get :analytics
+        get :tickets
+        get :knowledge_base
+      end
+    end
+
     # Client Requests management
     resources :client_requests do
       member do
@@ -104,11 +141,23 @@ Rails.application.routes.draw do
         patch :convert_to_customer
         patch :create_policy
         patch :transfer_referral
+        patch :advance_stage
+        patch :go_back_stage
+        patch :update_stage
+      end
+      collection do
+        get :export
+        get :statistics
+        patch :bulk_update_stage
       end
     end
 
     # Banner management
-    resources :banners
+    resources :banners do
+      member do
+        patch :toggle_status
+      end
+    end
 
     # Reports
     get 'reports/commission', to: 'reports#commission'

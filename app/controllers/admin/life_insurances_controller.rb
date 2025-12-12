@@ -1,5 +1,5 @@
 class Admin::LifeInsurancesController < Admin::ApplicationController
-  before_action :set_life_insurance, only: [:show, :edit, :update, :destroy]
+  before_action :set_life_insurance, only: [:show, :edit, :update, :destroy, :remove_rider]
 
   # GET /admin/insurance/life
   def index
@@ -96,6 +96,27 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     end
 
     render json: { options: options }
+  end
+
+  # PATCH /admin/insurance/life/1/remove_rider
+  def remove_rider
+    rider_type = params[:rider_type]
+
+    case rider_type
+    when 'term'
+      @life_insurance.update(term_rider_amount: 0, term_rider_note: nil)
+    when 'critical_illness'
+      @life_insurance.update(critical_illness_rider_amount: 0, critical_illness_rider_note: nil)
+    when 'accident'
+      @life_insurance.update(accident_rider_amount: 0, accident_rider_note: nil)
+    when 'pwb'
+      @life_insurance.update(pwb_rider_amount: 0, pwb_rider_note: nil)
+    when 'other'
+      @life_insurance.update(other_rider_amount: 0, other_rider_note: nil)
+    end
+
+    redirect_to edit_admin_life_insurance_path(@life_insurance),
+                notice: "#{rider_type.humanize} rider information removed successfully."
   end
 
   private

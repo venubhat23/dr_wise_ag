@@ -69,15 +69,19 @@ class Customer < ApplicationRecord
 
   # Instance methods
   def full_name
-    if individual?
-      "#{first_name} #{last_name}".strip
-    else
-      company_name
+    Rails.cache.fetch("customer_#{id}_full_name", expires_in: 1.hour) do
+      if individual?
+        "#{first_name} #{last_name}".strip
+      else
+        company_name
+      end
     end
   end
 
   def display_name
-    individual? ? full_name : company_name
+    Rails.cache.fetch("customer_#{id}_display_name", expires_in: 1.hour) do
+      individual? ? full_name : company_name
+    end
   end
 
   def active?
@@ -92,7 +96,15 @@ class Customer < ApplicationRecord
     customer_type == 'corporate'
   end
 
+  # Cache busting callback
+  after_update :bust_cache
+
   private
+
+  def bust_cache
+    Rails.cache.delete("customer_#{id}_full_name")
+    Rails.cache.delete("customer_#{id}_display_name")
+  end
 
   def calculate_age
     if birth_date.present?

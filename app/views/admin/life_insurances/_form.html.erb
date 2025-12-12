@@ -260,9 +260,10 @@
         <table class="table table-bordered">
           <thead>
             <tr>
-              <th width="30%">RIDER</th>
-              <th width="30%">AMOUNT</th>
-              <th width="40%">NOTE</th>
+              <th width="25%">RIDER</th>
+              <th width="25%">AMOUNT</th>
+              <th width="35%">NOTE</th>
+              <th width="15%">ACTION</th>
             </tr>
           </thead>
           <tbody>
@@ -272,12 +273,20 @@
                 <%= form.number_field :term_rider_amount,
                     class: "form-control",
                     value: @life_insurance.term_rider_amount || 0,
-                    step: 0.01 %>
+                    step: 0.01, id: "term_rider_amount" %>
               </td>
               <td>
                 <%= form.text_field :term_rider_note,
                     class: "form-control",
-                    placeholder: "Note" %>
+                    placeholder: "Note", id: "term_rider_note" %>
+              </td>
+              <td class="text-center">
+                <button type="button"
+                        class="btn btn-outline-danger btn-sm remove-rider-btn"
+                        data-rider-type="term"
+                        title="Remove Term Rider">
+                  <i class="bi bi-x-lg"></i>
+                </button>
               </td>
             </tr>
             <tr>
@@ -286,12 +295,20 @@
                 <%= form.number_field :critical_illness_rider_amount,
                     class: "form-control",
                     value: @life_insurance.critical_illness_rider_amount || 0,
-                    step: 0.01 %>
+                    step: 0.01, id: "critical_illness_rider_amount" %>
               </td>
               <td>
                 <%= form.text_field :critical_illness_rider_note,
                     class: "form-control",
-                    placeholder: "Note" %>
+                    placeholder: "Note", id: "critical_illness_rider_note" %>
+              </td>
+              <td class="text-center">
+                <button type="button"
+                        class="btn btn-outline-danger btn-sm remove-rider-btn"
+                        data-rider-type="critical_illness"
+                        title="Remove Critical Illness Rider">
+                  <i class="bi bi-x-lg"></i>
+                </button>
               </td>
             </tr>
             <tr>
@@ -300,12 +317,20 @@
                 <%= form.number_field :accident_rider_amount,
                     class: "form-control",
                     value: @life_insurance.accident_rider_amount || 0,
-                    step: 0.01 %>
+                    step: 0.01, id: "accident_rider_amount" %>
               </td>
               <td>
                 <%= form.text_field :accident_rider_note,
                     class: "form-control",
-                    placeholder: "Note" %>
+                    placeholder: "Note", id: "accident_rider_note" %>
+              </td>
+              <td class="text-center">
+                <button type="button"
+                        class="btn btn-outline-danger btn-sm remove-rider-btn"
+                        data-rider-type="accident"
+                        title="Remove Accident Rider">
+                  <i class="bi bi-x-lg"></i>
+                </button>
               </td>
             </tr>
             <tr>
@@ -314,12 +339,20 @@
                 <%= form.number_field :pwb_rider_amount,
                     class: "form-control",
                     value: @life_insurance.pwb_rider_amount || 0,
-                    step: 0.01 %>
+                    step: 0.01, id: "pwb_rider_amount" %>
               </td>
               <td>
                 <%= form.text_field :pwb_rider_note,
                     class: "form-control",
-                    placeholder: "Note" %>
+                    placeholder: "Note", id: "pwb_rider_note" %>
+              </td>
+              <td class="text-center">
+                <button type="button"
+                        class="btn btn-outline-danger btn-sm remove-rider-btn"
+                        data-rider-type="pwb"
+                        title="Remove PWB Rider">
+                  <i class="bi bi-x-lg"></i>
+                </button>
               </td>
             </tr>
             <tr>
@@ -328,12 +361,20 @@
                 <%= form.number_field :other_rider_amount,
                     class: "form-control",
                     value: @life_insurance.other_rider_amount || 0,
-                    step: 0.01 %>
+                    step: 0.01, id: "other_rider_amount" %>
               </td>
               <td>
                 <%= form.text_field :other_rider_note,
                     class: "form-control",
-                    placeholder: "Note" %>
+                    placeholder: "Note", id: "other_rider_note" %>
+              </td>
+              <td class="text-center">
+                <button type="button"
+                        class="btn btn-outline-danger btn-sm remove-rider-btn"
+                        data-rider-type="other"
+                        title="Remove Other Rider">
+                  <i class="bi bi-x-lg"></i>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -651,6 +692,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  // Remove rider functionality
+  function removeRider(riderType) {
+    const amountField = document.getElementById(`${riderType}_rider_amount`);
+    const noteField = document.getElementById(`${riderType}_rider_note`);
+
+    if (amountField && noteField) {
+      // Show confirmation dialog
+      const riderName = riderType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+      if (confirm(`Are you sure you want to remove ${riderName} Rider information?`)) {
+        // Clear the values
+        amountField.value = 0;
+        noteField.value = '';
+
+        // Add visual feedback
+        const row = amountField.closest('tr');
+        row.style.backgroundColor = '#f8f9fa';
+        setTimeout(() => {
+          row.style.backgroundColor = '';
+        }, 1000);
+
+        alert(`${riderName} Rider information removed successfully!`);
+      }
+    }
+  }
+
   // Event listeners
   document.getElementById('net_premium').addEventListener('input', calculateTotalPremium);
   document.getElementById('first_year_gst').addEventListener('input', calculateTotalPremium);
@@ -660,5 +726,13 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('start_date').addEventListener('change', calculateEndDate);
   document.getElementById('policy_term').addEventListener('change', calculateEndDate);
   document.getElementById('customer_select').addEventListener('change', loadPolicyHolderOptions);
+
+  // Add event listeners for remove rider buttons
+  document.querySelectorAll('.remove-rider-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const riderType = this.getAttribute('data-rider-type');
+      removeRider(riderType);
+    });
+  });
 });
 </script>

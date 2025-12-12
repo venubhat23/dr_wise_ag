@@ -26,7 +26,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
 
     # For the form
     @agency_code = AgencyCode.new
-    @insurance_companies = InsuranceCompanyHelper::INSURANCE_COMPANIES.keys
+    @insurance_companies = insurance_companies_list
     @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
 
     # Statistics
@@ -43,13 +43,13 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   # GET /admin/agency_codes/new
   def new
     @agency_code = AgencyCode.new
-    @insurance_companies = InsuranceCompanyHelper::INSURANCE_COMPANIES.keys
+    @insurance_companies = insurance_companies_list
     @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
   end
 
   # GET /admin/agency_codes/1/edit
   def edit
-    @insurance_companies = InsuranceCompanyHelper::INSURANCE_COMPANIES.keys
+    @insurance_companies = insurance_companies_list
     @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
   end
 
@@ -60,7 +60,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     if @agency_code.save
       redirect_to admin_agency_codes_path, notice: 'Agency code was successfully created.'
     else
-      @insurance_companies = InsuranceCompanyHelper::INSURANCE_COMPANIES.keys
+      @insurance_companies = insurance_companies_list
       @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
       @agency_codes = AgencyCode.order(:created_at)
 
@@ -79,7 +79,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     if @agency_code.update(agency_code_params)
       redirect_to admin_agency_codes_path, notice: 'Agency code was successfully updated.'
     else
-      @insurance_companies = InsuranceCompanyHelper::INSURANCE_COMPANIES.keys
+      @insurance_companies = insurance_companies_list
       @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
       render :edit, status: :unprocessable_entity
     end

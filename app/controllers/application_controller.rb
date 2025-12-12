@@ -10,7 +10,7 @@ class ApplicationController < ActionController::Base
   before_action :configure_permitted_parameters, if: :devise_controller?
 
   # Authorization
-  load_and_authorize_resource unless: :devise_controller?
+  load_and_authorize_resource unless: :devise_controller?, if: :should_authorize?
 
   rescue_from CanCan::AccessDenied do |exception|
     redirect_to root_path, alert: exception.message
@@ -25,5 +25,13 @@ class ApplicationController < ActionController::Base
 
   def current_ability
     @current_ability ||= Ability.new(current_user)
+  end
+
+  def should_authorize?
+    # Skip authorization for admin controllers if user is admin
+    if self.class.name.start_with?('Admin::') && (current_user&.admin? || current_user&.user_type == 'admin')
+      return false
+    end
+    true
   end
 end

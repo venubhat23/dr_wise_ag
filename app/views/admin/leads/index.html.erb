@@ -1,0 +1,769 @@
+<!-- Leads Management Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Leads Management</h2>
+    <p class="text-muted mb-0">Track, manage, and convert leads into customers and policies</p>
+  </div>
+  <div class="d-flex gap-2">
+    <div class="dropdown">
+      <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        <i class="bi bi-download me-1"></i>
+        Export
+      </button>
+      <ul class="dropdown-menu">
+        <li><a href="#" class="dropdown-item">Export as CSV</a></li>
+        <li><a href="#" class="dropdown-item">Export as Excel</a></li>
+      </ul>
+    </div>
+    <%= link_to new_admin_lead_path, class: "btn btn-primary" do %>
+      <i class="bi bi-plus-lg me-1"></i>
+      Add New Lead
+    <% end %>
+  </div>
+</div>
+
+<!-- Lead Statistics Dashboard -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Leads</h6>
+            <h3 class="mb-0 text-primary"><%= @total_leads %></h3>
+          </div>
+          <div class="bg-primary bg-opacity-10 rounded p-3">
+            <i class="bi bi-funnel-fill text-primary fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">In Consultation</h6>
+            <h3 class="mb-0 text-info"><%= @consultation_leads %></h3>
+          </div>
+          <div class="bg-info bg-opacity-10 rounded p-3">
+            <i class="bi bi-chat-dots text-info fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Converted</h6>
+            <h3 class="mb-0 text-success"><%= @converted_leads %></h3>
+          </div>
+          <div class="bg-success bg-opacity-10 rounded p-3">
+            <i class="bi bi-check-circle text-success fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Conversion Rate</h6>
+            <h3 class="mb-0 text-warning"><%= @conversion_rate %>%</h3>
+          </div>
+          <div class="bg-warning bg-opacity-10 rounded p-3">
+            <i class="bi bi-graph-up text-warning fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lead Pipeline Visualization -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <h5 class="card-title mb-4">
+      <i class="bi bi-funnel me-2 text-primary"></i>
+      Lead Conversion Pipeline
+    </h5>
+    <div class="row text-center">
+      <div class="col-md-2">
+        <div class="pipeline-stage">
+          <div class="pipeline-icon consultation">
+            <i class="bi bi-telephone"></i>
+          </div>
+          <h6 class="mt-2 mb-1">Consultation</h6>
+          <span class="badge bg-info"><%= @pipeline_stats[:consultation] %> leads</span>
+        </div>
+      </div>
+      <div class="col-md-1 d-flex align-items-center justify-content-center">
+        <i class="bi bi-arrow-right text-muted"></i>
+      </div>
+      <div class="col-md-2">
+        <div class="pipeline-stage">
+          <div class="pipeline-icon one-on-one">
+            <i class="bi bi-person-lines-fill"></i>
+          </div>
+          <h6 class="mt-2 mb-1">One-on-One</h6>
+          <span class="badge bg-warning"><%= @pipeline_stats[:one_on_one] %> leads</span>
+        </div>
+      </div>
+      <div class="col-md-1 d-flex align-items-center justify-content-center">
+        <i class="bi bi-arrow-right text-muted"></i>
+      </div>
+      <div class="col-md-2">
+        <div class="pipeline-stage">
+          <div class="pipeline-icon converted">
+            <i class="bi bi-person-check"></i>
+          </div>
+          <h6 class="mt-2 mb-1">Converted</h6>
+          <span class="badge bg-success"><%= @pipeline_stats[:converted] %> leads</span>
+        </div>
+      </div>
+      <div class="col-md-1 d-flex align-items-center justify-content-center">
+        <i class="bi bi-arrow-right text-muted"></i>
+      </div>
+      <div class="col-md-2">
+        <div class="pipeline-stage">
+          <div class="pipeline-icon policy-created">
+            <i class="bi bi-file-earmark-check"></i>
+          </div>
+          <h6 class="mt-2 mb-1">Policy Created</h6>
+          <span class="badge bg-primary"><%= @pipeline_stats[:policy_created] %> leads</span>
+        </div>
+      </div>
+      <div class="col-md-1 d-flex align-items-center justify-content-center">
+        <i class="bi bi-arrow-right text-muted"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <%= form_with url: admin_leads_path, method: :get, local: true, class: "row g-3" do |form| %>
+      <div class="col-md-3">
+        <%= form.text_field :search, placeholder: "Search leads...", value: params[:search], class: "form-control" %>
+      </div>
+      <div class="col-md-2">
+        <%= form.select :current_stage, options_for_select([
+          ['All Stages', ''],
+          ['Consultation', 'consultation'],
+          ['One-on-One', 'one_on_one'],
+          ['Converted', 'converted'],
+          ['Policy Created', 'policy_created'],
+          ['Referral Settled', 'referral_settled']
+        ], params[:current_stage]), {}, { class: "form-select" } %>
+      </div>
+      <div class="col-md-2">
+        <%= form.select :product_interest, options_for_select([
+          ['All Products', ''],
+          ['Health Insurance', 'health'],
+          ['Life Insurance', 'life'],
+          ['Motor Insurance', 'motor'],
+          ['Other Insurance', 'other']
+        ], params[:product_interest]), {}, { class: "form-select" } %>
+      </div>
+      <div class="col-md-2">
+        <%= form.select :referred_by, options_for_select([
+          ['All Sources', ''],
+          ['Agent Referral', 'agent'],
+          ['Online Campaign', 'online'],
+          ['Walk-in', 'walkin'],
+          ['Tele-calling', 'telecalling']
+        ], params[:referred_by]), {}, { class: "form-select" } %>
+      </div>
+      <div class="col-md-2">
+        <%= form.submit "Filter", class: "btn btn-outline-primary w-100" %>
+      </div>
+      <div class="col-md-1">
+        <%= link_to admin_leads_path, class: "btn btn-outline-secondary w-100", title: "Clear filters" do %>
+          <i class="bi bi-x-lg"></i>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Leads Table -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Leads Database</h5>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary" onclick="selectAll()">
+        <i class="bi bi-check-square me-1"></i>Select All
+      </button>
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" id="bulkActionsBtn" disabled>
+          <i class="bi bi-gear me-1"></i>
+          Bulk Actions (<span id="selectedCount">0</span>)
+        </button>
+        <ul class="dropdown-menu">
+          <li class="dropdown-header">Stage Transitions</li>
+          <li><a href="#" class="dropdown-item" onclick="bulkUpdateStage('consultation')">Move to Consultation</a></li>
+          <li><a href="#" class="dropdown-item" onclick="bulkUpdateStage('one_on_one')">Move to One-on-One</a></li>
+          <li><a href="#" class="dropdown-item" onclick="bulkUpdateStage('converted')">Move to Converted</a></li>
+          <li><a href="#" class="dropdown-item" onclick="bulkUpdateStage('policy_created')">Move to Policy Created</a></li>
+          <li><a href="#" class="dropdown-item" onclick="bulkUpdateStage('referral_settled')">Move to Referral Settled</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a href="#" class="dropdown-item" onclick="bulkAdvanceStage()">Advance All Selected</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-header">Other Actions</li>
+          <li><a href="#" class="dropdown-item" onclick="bulkExport()">Export Selected</a></li>
+          <li><a href="#" class="dropdown-item text-danger" onclick="bulkDelete()">Delete Selected</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="bg-light">
+          <tr>
+            <th class="border-0 ps-3" width="50">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+              </div>
+            </th>
+            <th class="border-0">Lead ID</th>
+            <th class="border-0">Lead Name</th>
+            <th class="border-0">Contact Information</th>
+            <th class="border-0">Referred By</th>
+            <th class="border-0">Product Interest</th>
+            <th class="border-0">Current Stage</th>
+            <th class="border-0">Created Date</th>
+            <th class="border-0">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if @leads.any? %>
+            <% @leads.each do |lead| %>
+              <tr class="lead-row" data-id="<%= lead.id %>">
+                <td class="ps-3">
+                  <div class="form-check">
+                    <input class="form-check-input lead-checkbox" type="checkbox" value="<%= lead.id %>">
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-primary"><%= lead.lead_id.presence || "LEAD-#{lead.id}" %></span>
+                </td>
+                <td>
+                  <div>
+                    <h6 class="mb-1"><%= lead.name %></h6>
+                    <small class="text-muted"><%= lead.email %></small>
+                  </div>
+                </td>
+                <td>
+                  <div>
+                    <div class="mb-1"><%= lead.contact_number %></div>
+                    <small class="text-muted"><%= lead.full_address.presence || 'Address not provided' %></small>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge <%= lead.source_badge_class %>">
+                    <%= lead.referred_by.presence || lead.lead_source&.humanize || 'Unknown' %>
+                  </span>
+                </td>
+                <td>
+                  <span class="badge <%= lead.product_badge_class %>">
+                    <%= lead.product_interest&.humanize || 'Not specified' %>
+                  </span>
+                </td>
+                <td>
+                  <span class="badge <%= lead.stage_badge_class %>">
+                    <%= lead.current_stage&.humanize || 'Unknown' %>
+                  </span>
+                </td>
+                <td>
+                  <div>
+                    <div><%= lead.created_date&.strftime('%b %d, %Y') || lead.created_at&.strftime('%b %d, %Y') %></div>
+                    <small class="text-muted"><%= time_ago_in_words(lead.created_at) %> ago</small>
+                  </div>
+                </td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <%= link_to admin_lead_path(lead), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+
+                    <% if lead.can_convert_to_customer? %>
+                      <%= link_to convert_to_customer_admin_lead_path(lead), method: :patch,
+                          class: "btn btn-sm btn-outline-success", title: "Convert to Customer",
+                          data: { confirm: "Are you sure you want to convert this lead to a customer?" } do %>
+                        <i class="bi bi-person-plus"></i>
+                      <% end %>
+                    <% else %>
+                      <button class="btn btn-sm btn-outline-secondary" disabled title="Cannot convert at this stage">
+                        <i class="bi bi-person-plus"></i>
+                      </button>
+                    <% end %>
+
+                    <% if lead.can_create_policy? %>
+                      <%= link_to create_policy_admin_lead_path(lead), method: :patch,
+                          class: "btn btn-sm btn-outline-info", title: "Create Policy" do %>
+                        <i class="bi bi-file-earmark-plus"></i>
+                      <% end %>
+                    <% else %>
+                      <button class="btn btn-sm btn-outline-secondary" disabled title="Cannot create policy at this stage">
+                        <i class="bi bi-file-earmark-plus"></i>
+                      </button>
+                    <% end %>
+
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots-vertical"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li><%= link_to "Edit Lead", edit_admin_lead_path(lead), class: "dropdown-item" %></li>
+
+                        <% if lead.can_advance? %>
+                          <li>
+                            <%= link_to advance_stage_admin_lead_path(lead), method: :patch,
+                                class: "dropdown-item text-success",
+                                data: { confirm: "Advance lead to #{lead.next_stage.humanize} stage?" } do %>
+                              <i class="bi bi-arrow-right me-1"></i>Advance to <%= lead.next_stage.humanize %>
+                            <% end %>
+                          </li>
+                        <% end %>
+
+                        <% if lead.can_go_back? %>
+                          <li>
+                            <%= link_to go_back_stage_admin_lead_path(lead), method: :patch,
+                                class: "dropdown-item text-warning",
+                                data: { confirm: "Move lead back to #{lead.previous_stage.humanize} stage?" } do %>
+                              <i class="bi bi-arrow-left me-1"></i>Go Back to <%= lead.previous_stage.humanize %>
+                            <% end %>
+                          </li>
+                        <% end %>
+
+                        <% if lead.can_advance? || lead.can_go_back? %>
+                          <li><hr class="dropdown-divider"></li>
+                          <li class="dropdown-header">Quick Stage Change</li>
+                          <% lead.available_stages_for_transition.each do |stage| %>
+                            <% unless stage == lead.current_stage %>
+                              <li>
+                                <%= link_to update_stage_admin_lead_path(lead, stage: stage), method: :patch,
+                                    class: "dropdown-item",
+                                    data: { confirm: "Move lead to #{stage.humanize} stage?" } do %>
+                                  <span class="badge <%= case stage
+                                    when 'consultation' then 'bg-info'
+                                    when 'one_on_one' then 'bg-warning'
+                                    when 'converted' then 'bg-success'
+                                    when 'policy_created' then 'bg-primary'
+                                    when 'referral_settled' then 'bg-dark'
+                                    end %> me-2"></span><%= stage.humanize %>
+                                <% end %>
+                              </li>
+                            <% end %>
+                          <% end %>
+                        <% end %>
+
+                        <% if lead.can_settle_referral? %>
+                          <li>
+                            <%= link_to transfer_referral_admin_lead_path(lead), method: :patch,
+                                class: "dropdown-item",
+                                data: { confirm: "Transfer referral amount of #{number_to_currency(lead.referral_amount)}?" } do %>
+                              Transfer Referral
+                            <% end %>
+                          </li>
+                        <% end %>
+
+                        <li><a href="#" class="dropdown-item" onclick="showLeadModal(<%= lead.id %>)">View Details</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                          <%= link_to admin_lead_path(lead), method: :delete,
+                              class: "dropdown-item text-danger",
+                              data: { confirm: "Are you sure you want to delete this lead?" } do %>
+                            Delete Lead
+                          <% end %>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          <% else %>
+            <tr>
+              <td colspan="9" class="text-center py-5">
+                <div class="text-muted">
+                  <i class="bi bi-funnel fs-1 mb-3 d-block"></i>
+                  <h5>No leads found</h5>
+                  <p>Start by creating your first lead or adjust your search filters.</p>
+                  <%= link_to "Add New Lead", new_admin_lead_path, class: "btn btn-primary" %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Lead Details Modal -->
+<div class="modal fade" id="leadModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Lead Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="leadModalContent">
+        <!-- Content loaded dynamically -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Styles -->
+<style>
+.pipeline-stage {
+  padding: 1rem;
+}
+
+.pipeline-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  font-size: 1.8rem;
+  color: white;
+}
+
+.pipeline-icon.consultation { background: linear-gradient(135deg, #17a2b8, #20c997); }
+.pipeline-icon.one-on-one { background: linear-gradient(135deg, #ffc107, #fd7e14); }
+.pipeline-icon.converted { background: linear-gradient(135deg, #28a745, #20c997); }
+.pipeline-icon.policy-created { background: linear-gradient(135deg, #007bff, #6f42c1); }
+
+.lead-row:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+}
+
+.badge.bg-purple {
+  background-color: #6f42c1 !important;
+}
+
+.table th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+.lead-row {
+  transition: all 0.3s ease;
+}
+
+.card {
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+</style>
+
+<!-- JavaScript for Lead Management -->
+<script>
+function toggleSelectAll() {
+  const selectAll = document.getElementById('selectAllCheckbox');
+  const checkboxes = document.querySelectorAll('.lead-checkbox');
+
+  checkboxes.forEach(checkbox => {
+    checkbox.checked = selectAll.checked;
+  });
+
+  updateBulkActionsButton();
+}
+
+function selectAll() {
+  const selectAll = document.getElementById('selectAllCheckbox');
+  selectAll.checked = true;
+  toggleSelectAll();
+}
+
+function updateBulkActionsButton() {
+  const checkboxes = document.querySelectorAll('.lead-checkbox:checked');
+  const bulkActionsBtn = document.getElementById('bulkActionsBtn');
+  const selectedCount = document.getElementById('selectedCount');
+
+  selectedCount.textContent = checkboxes.length;
+  bulkActionsBtn.disabled = checkboxes.length === 0;
+}
+
+function getSelectedLeadIds() {
+  const checkboxes = document.querySelectorAll('.lead-checkbox:checked');
+  return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function bulkUpdateStage(stage) {
+  const selectedIds = getSelectedLeadIds();
+
+  if (selectedIds.length === 0) {
+    alert('Please select at least one lead');
+    return;
+  }
+
+  const stageNames = {
+    'consultation': 'Consultation',
+    'one_on_one': 'One-on-One',
+    'converted': 'Converted',
+    'policy_created': 'Policy Created',
+    'referral_settled': 'Referral Settled'
+  };
+
+  if (confirm(`Move ${selectedIds.length} leads to ${stageNames[stage]} stage?`)) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '<%= bulk_update_stage_admin_leads_path %>';
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'authenticity_token';
+    csrfInput.value = csrfToken;
+    form.appendChild(csrfInput);
+
+    // Add method override
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = 'PATCH';
+    form.appendChild(methodInput);
+
+    // Add stage
+    const stageInput = document.createElement('input');
+    stageInput.type = 'hidden';
+    stageInput.name = 'stage';
+    stageInput.value = stage;
+    form.appendChild(stageInput);
+
+    // Add lead IDs
+    selectedIds.forEach(id => {
+      const idInput = document.createElement('input');
+      idInput.type = 'hidden';
+      idInput.name = 'lead_ids[]';
+      idInput.value = id;
+      form.appendChild(idInput);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+
+function bulkAdvanceStage() {
+  const selectedIds = getSelectedLeadIds();
+
+  if (selectedIds.length === 0) {
+    alert('Please select at least one lead');
+    return;
+  }
+
+  if (confirm(`Advance ${selectedIds.length} leads to their next stage? This will move each lead forward in their pipeline.`)) {
+    // For now, we'll advance each individually since different leads may be at different stages
+    alert('Bulk advance feature will process each lead individually based on their current stage.');
+
+    // You could implement this by calling individual advance_stage actions
+    // or modify the controller to handle bulk advancement logic
+  }
+}
+
+function bulkExport() {
+  const selectedIds = getSelectedLeadIds();
+
+  if (selectedIds.length === 0) {
+    alert('Please select at least one lead');
+    return;
+  }
+
+  // Create export URL with selected IDs
+  const exportUrl = '<%= export_admin_leads_path %>' + '?lead_ids=' + selectedIds.join(',');
+  window.open(exportUrl, '_blank');
+}
+
+function bulkDelete() {
+  const selectedIds = getSelectedLeadIds();
+
+  if (selectedIds.length === 0) {
+    alert('Please select at least one lead');
+    return;
+  }
+
+  if (confirm(`Are you sure you want to delete ${selectedIds.length} leads? This action cannot be undone.`)) {
+    alert('Bulk delete functionality would be implemented here');
+    // Implementation would involve multiple delete requests or a new bulk_delete action
+  }
+}
+
+// Add event listeners to checkboxes
+document.addEventListener('DOMContentLoaded', function() {
+  const checkboxes = document.querySelectorAll('.lead-checkbox');
+  checkboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', updateBulkActionsButton);
+  });
+});
+
+function showLeadModal(leadId) {
+  const modal = new bootstrap.Modal(document.getElementById('leadModal'));
+  const content = document.getElementById('leadModalContent');
+
+  // Sample lead data
+  const leads = {
+    1: {
+      id: 'LEAD-001',
+      name: 'Rajesh Kumar',
+      email: 'rajesh.kumar@email.com',
+      phone: '+91 98765 43210',
+      address: 'Mumbai, Maharashtra',
+      referredBy: 'Agent - Amit Shah',
+      productInterest: 'Health Insurance',
+      currentStage: 'One-on-One',
+      notes: 'Interested in family health insurance. Has existing life insurance policy.',
+      createdDate: 'Dec 08, 2024'
+    },
+    2: {
+      id: 'LEAD-002',
+      name: 'Priya Sharma',
+      email: 'priya.sharma@email.com',
+      phone: '+91 87654 32109',
+      address: 'Delhi, Delhi',
+      referredBy: 'Online Campaign',
+      productInterest: 'Life Insurance',
+      currentStage: 'Consultation',
+      notes: 'Young professional looking for term life insurance.',
+      createdDate: 'Dec 07, 2024'
+    }
+  };
+
+  const lead = leads[leadId] || leads[1];
+
+  content.innerHTML = `
+    <div class="row">
+      <div class="col-md-8">
+        <div class="card border-0">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">Lead Information</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label text-muted">Lead ID</label>
+                <div class="fw-bold">${lead.id}</div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label text-muted">Lead Name</label>
+                <div class="fw-bold">${lead.name}</div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label text-muted">Email</label>
+                <div>${lead.email}</div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label text-muted">Phone</label>
+                <div>${lead.phone}</div>
+              </div>
+              <div class="col-md-12 mb-3">
+                <label class="form-label text-muted">Address</label>
+                <div>${lead.address}</div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label text-muted">Referred By</label>
+                <div><span class="badge bg-success">${lead.referredBy}</span></div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label text-muted">Product Interest</label>
+                <div><span class="badge bg-info">${lead.productInterest}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card border-0 mt-3">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">Notes & Attachments</h6>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label text-muted">Notes</label>
+              <div>${lead.notes}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card border-0">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">Lead Status</h6>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label text-muted">Current Stage</label>
+              <select class="form-select">
+                <option ${lead.currentStage === 'Consultation' ? 'selected' : ''}>Consultation</option>
+                <option ${lead.currentStage === 'One-on-One' ? 'selected' : ''}>One-on-One</option>
+                <option ${lead.currentStage === 'Converted' ? 'selected' : ''}>Converted</option>
+                <option ${lead.currentStage === 'Policy Created' ? 'selected' : ''}>Policy Created</option>
+                <option ${lead.currentStage === 'Referral Settled' ? 'selected' : ''}>Referral Settled</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-muted">Created Date</label>
+              <div>${lead.createdDate}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card border-0 mt-3">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">Actions Panel</h6>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <button class="btn btn-success">
+                <i class="bi bi-person-plus me-2"></i>
+                Convert to Customer
+              </button>
+              <button class="btn btn-primary">
+                <i class="bi bi-file-earmark-plus me-2"></i>
+                Create Policy
+              </button>
+              <button class="btn btn-info">
+                <i class="bi bi-cash-coin me-2"></i>
+                Transfer Referral Amount
+              </button>
+              <button class="btn btn-outline-warning">
+                <i class="bi bi-pencil me-2"></i>
+                Edit Lead
+              </button>
+              <button class="btn btn-outline-danger">
+                <i class="bi bi-trash me-2"></i>
+                Delete Lead
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.show();
+}
+</script>

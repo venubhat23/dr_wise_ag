@@ -82,7 +82,202 @@
     </div>
   </div>
 
-  <!-- 2. Basic Information (Individual Customer) -->
+  <!-- 2. Corporate Customer Form -->
+  <div id="corporate_sections" style="display: none;">
+    <!-- Basic Information (Corporate) -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center">
+        <i class="bi bi-info-circle me-2 text-primary"></i>
+        <h5 class="mb-0">Basic Information</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <%= form.label :profile_image, "Profile Image", class: "form-label" %>
+            <%= form.file_field :profile_image, class: "form-control", accept: "image/*" %>
+            <small class="form-text text-muted">No file chosen</small>
+          </div>
+          <div class="col-md-6">
+            <%= form.label :sub_agent, "Sub Agent", class: "form-label" %>
+            <%= form.text_field :sub_agent, value: "Self", class: "form-control" %>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-6">
+            <%= form.label :company_name, class: "form-label" do %>
+              Company Name <span class="text-danger">*</span>
+            <% end %>
+            <%= form.text_field :company_name, class: "form-control #{'is-invalid' if @customer.errors[:company_name].any?}", placeholder: "Enter Company Name", required: true %>
+            <% if @customer.errors[:company_name].any? %>
+              <div class="invalid-feedback">
+                <%= @customer.errors[:company_name].first %>
+              </div>
+            <% end %>
+          </div>
+          <div class="col-md-6">
+            <%= form.label :mobile, class: "form-label" do %>
+              Mobile No. <span class="text-danger">*</span>
+            <% end %>
+            <%= form.telephone_field :mobile, class: "form-control #{'is-invalid' if @customer.errors[:mobile].any?}", placeholder: "Enter Mobile", required: true %>
+            <% if @customer.errors[:mobile].any? %>
+              <div class="invalid-feedback">
+                <%= @customer.errors[:mobile].first %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <%= form.label :email, "Email", class: "form-label" %>
+            <%= form.email_field :email, class: "form-control #{'is-invalid' if @customer.errors[:email].any?}", placeholder: "Enter Email" %>
+            <% if @customer.errors[:email].any? %>
+              <div class="invalid-feedback">
+                <%= @customer.errors[:email].first %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Advance Details (Corporate) -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center">
+        <i class="bi bi-gear me-2 text-primary"></i>
+        <h5 class="mb-0">Advance Details</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4">
+            <%= form.label :state, "State", class: "form-label" %>
+            <%= form.select :state,
+                options_for_select([
+                  ['Karnataka', 'Karnataka'], ['Tamil Nadu', 'Tamil Nadu'],
+                  ['Maharashtra', 'Maharashtra'], ['Gujarat', 'Gujarat'],
+                  ['Delhi', 'Delhi'], ['West Bengal', 'West Bengal']
+                ], @customer.state),
+                { prompt: '' },
+                { class: "form-select" } %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :city, "City", class: "form-label" %>
+            <%= form.select :city,
+                options_for_select([
+                  ['Bangalore', 'Bangalore'], ['Mumbai', 'Mumbai'],
+                  ['Chennai', 'Chennai'], ['Delhi', 'Delhi'],
+                  ['Kolkata', 'Kolkata'], ['Pune', 'Pune']
+                ], @customer.city),
+                { prompt: 'Select City' },
+                { class: "form-select" } %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :address, "Address", class: "form-label" %>
+            <%= form.text_area :address, class: "form-control", rows: 1, placeholder: "Enter Address" %>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <%= form.label :annual_income, "Annual Income", class: "form-label" %>
+            <%= form.number_field :annual_income, class: "form-control", placeholder: "Enter Annual Income" %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :pan_no, "PAN No.", class: "form-label" %>
+            <%= form.text_field :pan_no, class: "form-control", placeholder: "Enter PAN number" %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :gst_no, "GST No.", class: "form-label" %>
+            <%= form.text_field :gst_no, class: "form-control", placeholder: "Enter GST" %>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <%= form.label :additional_information, "Additional Information", class: "form-label" %>
+            <%= form.text_area :additional_information, class: "form-control", rows: 2, placeholder: "Enter additional information" %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Documents (Corporate) -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-upload me-2 text-primary"></i>
+          <h5 class="mb-0">Upload Documents</h5>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="add_corporate_document">
+          <i class="bi bi-plus-lg me-1"></i>
+          Add Document
+        </button>
+      </div>
+      <div class="card-body">
+        <div id="corporate_documents_container">
+          <!-- Corporate documents will be added here dynamically -->
+        </div>
+        <div class="row">
+          <div class="col-md-6">
+            <label class="form-label">Document Type</label>
+            <select class="form-select">
+              <option value="">Select Document Type</option>
+              <option value="gst_certificate">GST Certificate</option>
+              <option value="pan_card">PAN Card</option>
+              <option value="incorporation_certificate">Incorporation Certificate</option>
+              <option value="moa">Memorandum of Association</option>
+              <option value="aoa">Articles of Association</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Document File</label>
+            <input type="file" class="form-control">
+            <small class="form-text text-muted">No file chosen</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Family Details (Corporate) -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-people me-2 text-primary"></i>
+          <h5 class="mb-0">Family Details</h5>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="add_corporate_family_member">
+          <i class="bi bi-plus-lg me-1"></i>
+          Add Family Member
+        </button>
+      </div>
+      <div class="card-body">
+        <div id="corporate_family_members_container">
+          <!-- Corporate family members will be added here dynamically -->
+        </div>
+        <p class="text-muted mb-0">Each family member is a repeatable group with nested documents.</p>
+      </div>
+    </div>
+
+    <!-- Corporate Members -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-building me-2 text-primary"></i>
+          <h5 class="mb-0">Corporate Members</h5>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="add_corporate_member_corp">
+          <i class="bi bi-plus-lg me-1"></i>
+          Add Corporate Member
+        </button>
+      </div>
+      <div class="card-body">
+        <div id="corporate_members_corp_container">
+          <!-- Corporate members will be added here dynamically -->
+        </div>
+        <p class="text-muted mb-0">Add corporate members with their respective documents.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Basic Information (Individual Customer) -->
   <div id="individual_sections" style="display: none;">
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0 d-flex align-items-center">
@@ -442,13 +637,19 @@ document.addEventListener('DOMContentLoaded', function() {
   // Customer type selection
   const customerTypeRadios = document.querySelectorAll('input[name="customer[customer_type]"]');
   const individualSections = document.getElementById('individual_sections');
+  const corporateSections = document.getElementById('corporate_sections');
 
   customerTypeRadios.forEach(radio => {
     radio.addEventListener('change', function() {
       if (this.value === 'individual') {
         individualSections.style.display = 'block';
+        corporateSections.style.display = 'none';
+      } else if (this.value === 'corporate') {
+        individualSections.style.display = 'none';
+        corporateSections.style.display = 'block';
       } else {
         individualSections.style.display = 'none';
+        corporateSections.style.display = 'none';
       }
     });
   });
@@ -612,10 +813,205 @@ document.addEventListener('DOMContentLoaded', function() {
     familyMemberIndex++;
   });
 
+  // Corporate document management
+  let corporateDocumentIndex = 0;
+  const addCorporateDocumentBtn = document.getElementById('add_corporate_document');
+  const corporateDocumentsContainer = document.getElementById('corporate_documents_container');
+
+  addCorporateDocumentBtn?.addEventListener('click', function() {
+    const documentHtml = `
+      <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${corporateDocumentIndex}">
+        <button type="button" class="btn btn-sm btn-outline-danger remove-btn remove-corporate-doc">
+          <i class="bi bi-trash"></i>
+        </button>
+        <div class="row">
+          <div class="col-md-6">
+            <label class="form-label">Document Type <span class="text-danger">*</span></label>
+            <select name="customer[corporate_documents_attributes][${corporateDocumentIndex}][document_type]" class="form-select" required>
+              <option value="">Select Document Type</option>
+              <option value="gst_certificate">GST Certificate</option>
+              <option value="pan_card">PAN Card</option>
+              <option value="incorporation_certificate">Incorporation Certificate</option>
+              <option value="moa">Memorandum of Association</option>
+              <option value="aoa">Articles of Association</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Document File <span class="text-danger">*</span></label>
+            <input type="file" name="customer[corporate_documents_attributes][${corporateDocumentIndex}][file]" class="form-control" required>
+          </div>
+        </div>
+      </div>
+    `;
+    corporateDocumentsContainer.insertAdjacentHTML('beforeend', documentHtml);
+    corporateDocumentIndex++;
+  });
+
+  // Corporate family member management
+  let corporateFamilyMemberIndex = 0;
+  const addCorporateFamilyMemberBtn = document.getElementById('add_corporate_family_member');
+  const corporateFamilyMembersContainer = document.getElementById('corporate_family_members_container');
+
+  addCorporateFamilyMemberBtn?.addEventListener('click', function() {
+    const familyMemberHtml = `
+      <div class="family-member-entry p-3 mb-3 border rounded position-relative" data-index="${corporateFamilyMemberIndex}">
+        <button type="button" class="btn btn-sm btn-outline-danger remove-btn remove-corporate-family-member">
+          <i class="bi bi-trash"></i>
+        </button>
+        <h6 class="mb-3">Family Member ${corporateFamilyMemberIndex + 1}</h6>
+
+        <div class="row">
+          <div class="col-md-4">
+            <label class="form-label">First Name <span class="text-danger">*</span></label>
+            <input type="text" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][first_name]" class="form-control" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Middle Name</label>
+            <input type="text" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][middle_name]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Last Name <span class="text-danger">*</span></label>
+            <input type="text" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][last_name]" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <label class="form-label">Mobile</label>
+            <input type="tel" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][mobile]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Birth Date</label>
+            <input type="date" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][birth_date]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Age</label>
+            <input type="number" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][age]" class="form-control" readonly placeholder="Auto calculated">
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <label class="form-label">Gender</label>
+            <select name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][gender]" class="form-select">
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Relationship <span class="text-danger">*</span></label>
+            <select name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][relationship]" class="form-select" required>
+              <option value="">Select Relationship</option>
+              <option value="father">Father</option>
+              <option value="mother">Mother</option>
+              <option value="spouse">Spouse</option>
+              <option value="child">Child</option>
+              <option value="sibling">Sibling</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Height (Feet)</label>
+            <input type="text" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][height_feet]" class="form-control">
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-6">
+            <label class="form-label">Weight (Kg)</label>
+            <input type="number" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][weight_kg]" class="form-control" step="0.1">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">PAN No</label>
+            <input type="text" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][pan_no]" class="form-control">
+          </div>
+        </div>
+      </div>
+    `;
+    corporateFamilyMembersContainer.insertAdjacentHTML('beforeend', familyMemberHtml);
+    corporateFamilyMemberIndex++;
+  });
+
   // Corporate member management
   let corporateMemberIndex = 0;
   const addCorporateMemberBtn = document.getElementById('add_corporate_member');
   const corporateMembersContainer = document.getElementById('corporate_members_container');
+
+  // Corporate member management for corp section
+  let corporateMemberCorpIndex = 0;
+  const addCorporateMemberCorpBtn = document.getElementById('add_corporate_member_corp');
+  const corporateMembersCorpContainer = document.getElementById('corporate_members_corp_container');
+
+  addCorporateMemberCorpBtn?.addEventListener('click', function() {
+    const corporateMemberHtml = `
+      <div class="corporate-member-entry p-3 mb-3 border rounded position-relative" data-index="${corporateMemberCorpIndex}">
+        <button type="button" class="btn btn-sm btn-outline-danger remove-btn remove-corporate-member-corp">
+          <i class="bi bi-trash"></i>
+        </button>
+        <h6 class="mb-3">Corporate Member ${corporateMemberCorpIndex + 1}</h6>
+
+        <div class="row">
+          <div class="col-md-6">
+            <label class="form-label">Company Name <span class="text-danger">*</span></label>
+            <input type="text" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][company_name]" class="form-control" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Mobile</label>
+            <input type="tel" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][mobile]" class="form-control">
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input type="email" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][email]" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">State</label>
+            <input type="text" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][state]" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">City</label>
+            <input type="text" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][city]" class="form-control">
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <label class="form-label">Address</label>
+            <textarea name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][address]" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <label class="form-label">Annual Income</label>
+            <input type="number" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][annual_income]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">PAN No</label>
+            <input type="text" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][pan_no]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">GST No</label>
+            <input type="text" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][gst_no]" class="form-control">
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <label class="form-label">Additional Information</label>
+            <textarea name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][additional_information]" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+    `;
+    corporateMembersCorpContainer.insertAdjacentHTML('beforeend', corporateMemberHtml);
+    corporateMemberCorpIndex++;
+  });
 
   addCorporateMemberBtn?.addEventListener('click', function() {
     const corporateMemberHtml = `
@@ -707,6 +1103,15 @@ document.addEventListener('DOMContentLoaded', function() {
       e.target.closest('.family-member-entry').remove();
     }
     if (e.target.closest('.remove-corporate-member')) {
+      e.target.closest('.corporate-member-entry').remove();
+    }
+    if (e.target.closest('.remove-corporate-doc')) {
+      e.target.closest('.document-entry').remove();
+    }
+    if (e.target.closest('.remove-corporate-family-member')) {
+      e.target.closest('.family-member-entry').remove();
+    }
+    if (e.target.closest('.remove-corporate-member-corp')) {
       e.target.closest('.corporate-member-entry').remove();
     }
   });

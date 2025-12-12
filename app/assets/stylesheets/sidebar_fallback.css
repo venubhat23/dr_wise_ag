@@ -1,7 +1,7 @@
 /* Insurance-themed Sidebar Fallback Styles - Production Ready */
 /* Enhanced sidebar design for InsureBook Admin */
 
-.sidebar {
+.sidebar, .modern-sidebar {
   position: fixed !important;
   top: 70px !important;
   left: 0 !important;
@@ -20,7 +20,7 @@
   flex-direction: column !important;
 }
 
-.sidebar::before {
+.sidebar::before, .modern-sidebar::before {
   content: '';
   position: absolute;
   top: 0;
@@ -41,7 +41,7 @@
 }
 
 /* Insurance-themed Navigation Links */
-.sidebar .nav-link {
+.sidebar .nav-link, .modern-sidebar .nav-link-modern {
   display: flex !important;
   align-items: center !important;
   padding: 0.875rem 1.25rem !important;

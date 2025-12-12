@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_10_010533) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_12_004318) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -70,6 +70,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_10_010533) do
     t.boolean "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "display_order", default: 0
+    t.index ["display_order"], name: "index_banners_on_display_order"
   end
 
   create_table "brokers", force: :cascade do |t|
@@ -82,12 +84,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_10_010533) do
   end
 
   create_table "client_requests", force: :cascade do |t|
+    t.string "ticket_number", null: false
     t.string "name", null: false
     t.string "email", null: false
     t.string "phone_number", null: false
     t.text "description", null: false
     t.string "status", default: "pending"
     t.string "priority", default: "medium"
+    t.string "subject"
+    t.string "request_type"
     t.datetime "submitted_at", null: false
     t.text "admin_response"
     t.datetime "resolved_at"
@@ -98,6 +103,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_10_010533) do
     t.index ["resolved_by_id"], name: "index_client_requests_on_resolved_by_id"
     t.index ["status"], name: "index_client_requests_on_status"
     t.index ["submitted_at"], name: "index_client_requests_on_submitted_at"
+    t.index ["ticket_number"], name: "index_client_requests_on_ticket_number", unique: true
   end
 
   create_table "corporate_members", force: :cascade do |t|
@@ -159,6 +165,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_10_010533) do
     t.text "additional_information"
     t.string "pan_no"
     t.string "gst_no"
+    t.integer "policies_count", default: 0, null: false
+    t.index ["created_at"], name: "index_customers_on_created_at"
+    t.index ["customer_type", "created_at"], name: "index_customers_on_customer_type_and_created_at"
+    t.index ["customer_type", "status"], name: "index_customers_on_customer_type_and_status"
+    t.index ["customer_type"], name: "index_customers_on_customer_type"
+    t.index ["email"], name: "index_customers_on_email"
+    t.index ["mobile"], name: "index_customers_on_mobile"
+    t.index ["pan_number"], name: "index_customers_on_pan_number"
+    t.index ["status", "created_at"], name: "index_customers_on_status_and_created_at"
+    t.index ["status"], name: "index_customers_on_status"
   end
 
   create_table "documents", force: :cascade do |t|
@@ -268,6 +284,24 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_10_010533) do
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "lead_id"
+    t.text "address"
+    t.string "city"
+    t.string "state"
+    t.string "lead_source"
+    t.string "call_disposition"
+    t.decimal "referral_amount", precision: 10, scale: 2, default: "0.0"
+    t.boolean "transferred_amount", default: false
+    t.text "notes"
+    t.text "attachments"
+    t.datetime "stage_updated_at"
+    t.integer "converted_customer_id"
+    t.integer "policy_created_id"
+    t.index ["converted_customer_id"], name: "index_leads_on_converted_customer_id"
+    t.index ["current_stage"], name: "index_leads_on_current_stage"
+    t.index ["lead_id"], name: "index_leads_on_lead_id", unique: true
+    t.index ["lead_source"], name: "index_leads_on_lead_source"
+    t.index ["policy_created_id"], name: "index_leads_on_policy_created_id"
   end
 
   create_table "life_insurances", force: :cascade do |t|
@@ -385,6 +419,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_10_010533) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.text "notification_dates"
+    t.date "policy_end_date"
+    t.date "policy_start_date"
+    t.date "policy_booking_date"
     t.index ["policy_id"], name: "index_motor_insurances_on_policy_id"
   end
 
@@ -400,7 +437,22 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_10_010533) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.text "notification_dates"
+    t.date "policy_end_date"
+    t.date "policy_start_date"
+    t.date "policy_booking_date"
     t.index ["policy_id"], name: "index_other_insurances_on_policy_id"
+  end
+
+  create_table "permissions", force: :cascade do |t|
+    t.string "name", limit: 100, null: false
+    t.string "module_name", limit: 50, null: false
+    t.string "action_type", limit: 20, null: false
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["action_type"], name: "index_permissions_on_action_type"
+    t.index ["module_name", "action_type"], name: "index_permissions_on_module_name_and_action_type", unique: true
+    t.index ["module_name"], name: "index_permissions_on_module_name"
   end
 
   create_table "policies", force: :cascade do |t|
@@ -429,9 +481,30 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_10_010533) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["agency_broker_id"], name: "index_policies_on_agency_broker_id"
+    t.index ["customer_id", "created_at"], name: "index_policies_on_customer_id_and_created_at"
     t.index ["customer_id"], name: "index_policies_on_customer_id"
     t.index ["insurance_company_id"], name: "index_policies_on_insurance_company_id"
     t.index ["user_id"], name: "index_policies_on_user_id"
+  end
+
+  create_table "role_permissions", force: :cascade do |t|
+    t.bigint "role_id", null: false
+    t.bigint "permission_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["permission_id"], name: "idx_role_permissions_permission"
+    t.index ["role_id", "permission_id"], name: "idx_role_permissions_unique", unique: true
+    t.index ["role_id"], name: "idx_role_permissions_role"
+  end
+
+  create_table "roles", force: :cascade do |t|
+    t.string "name", limit: 100, null: false
+    t.text "description"
+    t.boolean "status", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_roles_on_name", unique: true
+    t.index ["status"], name: "index_roles_on_status"
   end
 
   create_table "sub_agent_documents", force: :cascade do |t|
@@ -504,7 +577,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_10_010533) do
     t.string "reset_password_token"
     t.datetime "reset_password_sent_at"
     t.datetime "remember_created_at"
+    t.bigint "role_id"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["role_id"], name: "idx_users_role_id"
+    t.index ["role_id"], name: "index_users_on_role_id"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
@@ -528,5 +604,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_10_010533) do
   add_foreign_key "policies", "customers"
   add_foreign_key "policies", "insurance_companies"
   add_foreign_key "policies", "users"
+  add_foreign_key "role_permissions", "permissions"
+  add_foreign_key "role_permissions", "roles"
   add_foreign_key "sub_agent_documents", "sub_agents"
+  add_foreign_key "users", "roles"
 end

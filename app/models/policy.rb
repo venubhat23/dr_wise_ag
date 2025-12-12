@@ -2,7 +2,7 @@ class Policy < ApplicationRecord
   include PgSearch::Model
 
   # Associations
-  belongs_to :customer
+  belongs_to :customer, counter_cache: true
   belongs_to :user
   belongs_to :insurance_company
   belongs_to :agency_broker

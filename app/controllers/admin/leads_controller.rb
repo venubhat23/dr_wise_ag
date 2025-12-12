@@ -1,5 +1,5 @@
 class Admin::LeadsController < Admin::ApplicationController
-  before_action :set_lead, only: [:show, :edit, :update, :destroy, :convert_to_customer, :create_policy, :transfer_referral]
+  before_action :set_lead, only: [:show, :edit, :update, :destroy, :convert_to_customer, :create_policy, :transfer_referral, :advance_stage, :go_back_stage, :update_stage]
 
   # GET /admin/leads
   def index
@@ -7,37 +7,63 @@ class Admin::LeadsController < Admin::ApplicationController
 
     # Search functionality
     if params[:search].present?
-      @leads = @leads.where(
-        "first_name ILIKE ? OR last_name ILIKE ? OR email ILIKE ? OR mobile ILIKE ?",
-        "%#{params[:search]}%", "%#{params[:search]}%", "%#{params[:search]}%", "%#{params[:search]}%"
-      )
+      @leads = @leads.search_leads(params[:search])
     end
 
     # Filter by current stage
     if params[:current_stage].present?
-      @leads = @leads.where(current_stage: params[:current_stage])
+      @leads = @leads.by_stage(params[:current_stage])
     end
 
     # Filter by lead source
     if params[:lead_source].present?
-      @leads = @leads.where(lead_source: params[:lead_source])
+      @leads = @leads.by_source(params[:lead_source])
     end
 
-    @leads = @leads.order(created_date: :desc).page(params[:page])
+    # Filter by product interest
+    if params[:product_interest].present?
+      @leads = @leads.by_product(params[:product_interest])
+    end
 
-    # Statistics
+    # Filter by referred by
+    if params[:referred_by].present?
+      @leads = @leads.where("referred_by ILIKE ?", "%#{params[:referred_by]}%")
+    end
+
+    @leads = @leads.recent.includes(:converted_customer, :created_policy)
+
+    # Statistics for dashboard
     @total_leads = Lead.count
-    @consultation_leads = Lead.where(current_stage: 'consultation').count if Lead.column_names.include?('current_stage')
-    @converted_leads = Lead.where(current_stage: 'converted').count if Lead.column_names.include?('current_stage')
+    @consultation_leads = Lead.consultation.count
+    @one_on_one_leads = Lead.one_on_one.count
+    @converted_leads = Lead.converted.count
+    @policy_created_leads = Lead.policy_created.count
+    @referral_settled_leads = Lead.referral_settled.count
+
+    # Conversion rate calculation
+    total_converted = @converted_leads + @policy_created_leads + @referral_settled_leads
+    @conversion_rate = @total_leads > 0 ? (total_converted.to_f / @total_leads * 100).round(1) : 0
+
+    # Pipeline stats
+    @pipeline_stats = {
+      consultation: @consultation_leads,
+      one_on_one: @one_on_one_leads,
+      converted: @converted_leads,
+      policy_created: @policy_created_leads,
+      referral_settled: @referral_settled_leads
+    }
   end
 
   # GET /admin/leads/1
   def show
+    @activity_logs = []
   end
 
   # GET /admin/leads/new
   def new
     @lead = Lead.new
+    @lead.created_date = Date.current
+    @lead.current_stage = 'consultation'
   end
 
   # GET /admin/leads/1/edit
@@ -47,6 +73,7 @@ class Admin::LeadsController < Admin::ApplicationController
   # POST /admin/leads
   def create
     @lead = Lead.new(lead_params)
+    @lead.created_date = Date.current if @lead.created_date.blank?
 
     if @lead.save
       redirect_to admin_lead_path(@lead), notice: 'Lead was successfully created.'
@@ -66,30 +93,40 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # DELETE /admin/leads/1
   def destroy
-    @lead.destroy
+    @lead.destroy!
     redirect_to admin_leads_path, notice: 'Lead was successfully deleted.'
+  rescue ActiveRecord::RecordNotDestroyed => e
+    redirect_to admin_leads_path, alert: "Failed to delete lead: #{e.message}"
   end
 
   # PATCH /admin/leads/1/convert_to_customer
   def convert_to_customer
-    # Logic to convert lead to customer
-    customer = Customer.create!(
-      customer_type: 'individual',
-      first_name: @lead.first_name,
-      last_name: @lead.last_name,
-      email: @lead.email,
-      mobile: @lead.mobile,
-      address: @lead.address || 'To be updated',
-      state: @lead.state || 'To be updated',
-      city: @lead.city || 'To be updated',
-      status: true
-    )
+    unless @lead.can_convert_to_customer?
+      redirect_to admin_lead_path(@lead), alert: 'Lead cannot be converted at this stage.'
+      return
+    end
 
-    if customer.persisted?
-      @lead.update(current_stage: 'converted') if @lead.respond_to?(:current_stage)
+    ActiveRecord::Base.transaction do
+      # Create customer from lead data
+      customer = Customer.create!(
+        customer_type: 'individual',
+        first_name: extract_first_name(@lead.name),
+        last_name: extract_last_name(@lead.name),
+        email: @lead.email,
+        mobile: @lead.contact_number,
+        address: @lead.address || 'To be updated',
+        state: @lead.state || 'To be updated',
+        city: @lead.city || 'To be updated',
+        status: true
+      )
+
+      # Update lead with customer reference
+      @lead.update!(
+        current_stage: 'converted',
+        converted_customer_id: customer.id
+      )
+
       redirect_to admin_customer_path(customer), notice: 'Lead successfully converted to customer.'
-    else
-      redirect_to admin_lead_path(@lead), alert: 'Failed to convert lead to customer.'
     end
   rescue ActiveRecord::RecordInvalid => e
     redirect_to admin_lead_path(@lead), alert: "Failed to convert lead: #{e.message}"
@@ -97,17 +134,129 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # PATCH /admin/leads/1/create_policy
   def create_policy
-    # Redirect to policy creation with lead info
-    redirect_to new_admin_policy_path(lead_id: @lead.id), notice: 'Please fill in policy details.'
+    unless @lead.can_create_policy?
+      redirect_to admin_lead_path(@lead), alert: 'Cannot create policy for this lead.'
+      return
+    end
+
+    case @lead.product_interest
+    when 'health'
+      redirect_to new_admin_health_insurance_path(customer_id: @lead.converted_customer_id, lead_id: @lead.id)
+    when 'life'
+      redirect_to new_admin_life_insurance_path(customer_id: @lead.converted_customer_id, lead_id: @lead.id)
+    when 'motor'
+      redirect_to new_admin_motor_insurance_path(customer_id: @lead.converted_customer_id, lead_id: @lead.id)
+    when 'other'
+      redirect_to new_admin_other_insurance_path(customer_id: @lead.converted_customer_id, lead_id: @lead.id)
+    else
+      redirect_to admin_lead_path(@lead), alert: 'Unknown product interest.'
+    end
   end
 
   # PATCH /admin/leads/1/transfer_referral
   def transfer_referral
-    # Logic for transferring referral
-    if @lead.respond_to?(:current_stage) && @lead.update(current_stage: 'transferred')
-      redirect_to admin_lead_path(@lead), notice: 'Referral transferred successfully.'
+    unless @lead.can_settle_referral?
+      redirect_to admin_lead_path(@lead), alert: 'Referral cannot be settled at this stage.'
+      return
+    end
+
+    ActiveRecord::Base.transaction do
+      @lead.update!(
+        current_stage: 'referral_settled',
+        transferred_amount: true
+      )
+
+      redirect_to admin_lead_path(@lead), notice: 'Referral payment transferred successfully.'
+    end
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to admin_lead_path(@lead), alert: "Failed to transfer referral: #{e.message}"
+  end
+
+  # PATCH /admin/leads/1/advance_stage
+  def advance_stage
+    next_stage = @lead.next_stage
+
+    unless next_stage
+      redirect_to admin_lead_path(@lead), alert: 'Lead is already at the final stage.'
+      return
+    end
+
+    if @lead.update(current_stage: next_stage)
+      redirect_to admin_lead_path(@lead), notice: "Lead advanced to #{next_stage.humanize} stage."
     else
-      redirect_to admin_lead_path(@lead), alert: 'Failed to transfer referral.'
+      redirect_to admin_lead_path(@lead), alert: 'Failed to advance lead stage.'
+    end
+  end
+
+  # PATCH /admin/leads/1/go_back_stage
+  def go_back_stage
+    unless @lead.can_go_back?
+      redirect_to admin_lead_path(@lead), alert: 'Cannot go back from current stage.'
+      return
+    end
+
+    previous_stage = @lead.previous_stage
+    if @lead.update(current_stage: previous_stage)
+      redirect_to admin_lead_path(@lead), notice: "Lead moved back to #{previous_stage.humanize} stage."
+    else
+      redirect_to admin_lead_path(@lead), alert: 'Failed to move lead back.'
+    end
+  end
+
+  # PATCH /admin/leads/1/update_stage
+  def update_stage
+    stage = params[:stage]
+
+    unless Lead.current_stages.key?(stage)
+      redirect_to admin_lead_path(@lead), alert: 'Invalid stage.'
+      return
+    end
+
+    # Check if the lead can transition to this stage
+    unless @lead.available_stages_for_transition.include?(stage)
+      redirect_to admin_lead_path(@lead), alert: 'Cannot transition to this stage.'
+      return
+    end
+
+    if @lead.update(current_stage: stage, stage_updated_at: Time.current)
+      redirect_to admin_lead_path(@lead), notice: "Lead stage updated to #{stage.humanize}."
+    else
+      redirect_to admin_lead_path(@lead), alert: 'Failed to update lead stage.'
+    end
+  end
+
+  # PATCH /admin/leads/bulk_update_stage
+  def bulk_update_stage
+    lead_ids = params[:lead_ids]
+    new_stage = params[:stage]
+
+    unless lead_ids.present? && Lead.current_stages.key?(new_stage)
+      redirect_to admin_leads_path, alert: 'Invalid parameters for bulk update.'
+      return
+    end
+
+    leads = Lead.where(id: lead_ids)
+    updated_count = 0
+    failed_count = 0
+
+    leads.each do |lead|
+      if lead.available_stages_for_transition.include?(new_stage)
+        if lead.update(current_stage: new_stage, stage_updated_at: Time.current)
+          updated_count += 1
+        else
+          failed_count += 1
+        end
+      else
+        failed_count += 1
+      end
+    end
+
+    if failed_count == 0
+      redirect_to admin_leads_path, notice: "Successfully updated #{updated_count} leads to #{new_stage.humanize} stage."
+    elsif updated_count > 0
+      redirect_to admin_leads_path, notice: "Updated #{updated_count} leads. #{failed_count} leads could not be updated due to stage restrictions."
+    else
+      redirect_to admin_leads_path, alert: "No leads could be updated. Please check stage transition rules."
     end
   end
 
@@ -119,8 +268,18 @@ class Admin::LeadsController < Admin::ApplicationController
 
   def lead_params
     params.require(:lead).permit(
-      :first_name, :last_name, :email, :mobile, :address, :state, :city,
-      :lead_source, :current_stage, :insurance_interest, :notes, :created_date
+      :name, :contact_number, :email, :address, :city, :state,
+      :referred_by, :product_interest, :current_stage, :lead_source,
+      :call_disposition, :referral_amount, :notes, :created_date
     )
+  end
+
+  def extract_first_name(full_name)
+    full_name.to_s.split(' ').first || 'Unknown'
+  end
+
+  def extract_last_name(full_name)
+    names = full_name.to_s.split(' ')
+    names.length > 1 ? names[1..-1].join(' ') : 'Unknown'
   end
 end
