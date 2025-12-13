@@ -258,7 +258,7 @@
       <!-- Pagination -->
       <% if respond_to?(:paginate) %>
         <div class="card-footer bg-transparent border-0">
-          <%= paginate @agency_brokers, theme: 'bootstrap-5' %>
+          <%= paginate @agency_brokers %>
         </div>
       <% end %>
     <% else %>

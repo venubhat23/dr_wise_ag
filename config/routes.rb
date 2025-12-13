@@ -171,6 +171,18 @@ Rails.application.routes.draw do
     # Import/Export
     post 'import/customers', to: 'imports#customers'
     post 'import/agencies', to: 'imports#agencies'
+
+    # Settings namespace
+    namespace :settings do
+      resources :user_roles do
+        member do
+          patch :toggle_status
+        end
+      end
+
+      # System settings (placeholder for future expansion)
+      get :system, to: 'system#index'
+    end
   end
 
   # Mobile API routes

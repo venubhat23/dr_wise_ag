@@ -144,7 +144,7 @@
                   <span class="badge bg-<%= insurance.policy_type == 'New' ? 'primary' : 'success' %>">
                     <%= insurance.policy_type %>
                   </span>
-                  <div><small class="text-muted">Type: <%= insurance.insurance_type %></small></div>
+                  <div><small class="text-muted">Type: <%= insurance.class.name.split('Insurance').first %> Insurance</small></div>
                 </div>
               </td>
               <td>
@@ -237,7 +237,7 @@
                   <span class="badge bg-<%= insurance.policy_type == 'New' ? 'primary' : 'success' %>">
                     <%= insurance.policy_type %>
                   </span>
-                  <div><small class="text-muted">Type: <%= insurance.insurance_type %></small></div>
+                  <div><small class="text-muted">Type: <%= insurance.class.name.split('Insurance').first %> Insurance</small></div>
                 </div>
               </td>
               <td>

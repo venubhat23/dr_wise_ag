@@ -150,5 +150,55 @@
 
     <!-- Bootstrap JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Global Modal Fix Script -->
+    <script>
+      // Global modal fix to ensure all modals work properly
+      document.addEventListener('DOMContentLoaded', function() {
+        // Configure default Bootstrap modal options
+        const defaultModalOptions = {
+          backdrop: true,
+          keyboard: true,
+          focus: true
+        };
+
+        // Fix any existing modals on page load
+        document.querySelectorAll('.modal').forEach(function(modalElement) {
+          // Clear any existing backdrop
+          const existingBackdrop = document.querySelector('.modal-backdrop');
+          if (existingBackdrop) {
+            existingBackdrop.remove();
+          }
+
+          // Ensure modal is properly initialized
+          let modalInstance = bootstrap.Modal.getInstance(modalElement);
+          if (!modalInstance) {
+            modalInstance = new bootstrap.Modal(modalElement, defaultModalOptions);
+          }
+        });
+      });
+
+      // Fix modals after Turbo navigation
+      document.addEventListener('turbo:load', function() {
+        // Clear any stray backdrops
+        document.querySelectorAll('.modal-backdrop').forEach(function(backdrop) {
+          backdrop.remove();
+        });
+
+        // Remove modal-open class from body
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+
+        // Re-initialize modals
+        document.querySelectorAll('.modal').forEach(function(modalElement) {
+          let modalInstance = bootstrap.Modal.getInstance(modalElement);
+          if (modalInstance) {
+            modalInstance.dispose();
+          }
+          modalInstance = new bootstrap.Modal(modalElement, defaultModalOptions);
+        });
+      });
+    </script>
   </body>
 </html>

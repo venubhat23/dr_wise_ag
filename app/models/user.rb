@@ -7,6 +7,7 @@ class User < ApplicationRecord
 
   # Associations
   belongs_to :role, optional: true
+  belongs_to :user_role, optional: true
   has_many :policies, dependent: :destroy
   has_many_attached :profile_images
   has_many_attached :documents

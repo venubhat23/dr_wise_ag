@@ -1,0 +1,263 @@
+<% content_for :page_title, "Edit User Role" %>
+
+<div class="page-header">
+  <div class="page-title-wrapper">
+    <h1 class="page-title">
+      <i class="bi bi-pencil-square me-2"></i>
+      Edit User Role
+    </h1>
+    <p class="page-subtitle">Modify role: <strong><%= @user_role.display_name %></strong></p>
+  </div>
+  <div class="page-actions">
+    <%= link_to admin_settings_user_roles_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Roles
+    <% end %>
+    <%= link_to admin_settings_user_role_path(@user_role), class: "btn btn-outline-primary" do %>
+      <i class="bi bi-eye me-1"></i>
+      View Role
+    <% end %>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-person-gear me-2"></i>
+          Role Information
+        </h5>
+      </div>
+
+      <div class="card-body">
+        <%= form_with model: [:admin, :settings, @user_role], local: true, class: "needs-validation", novalidate: true do |f| %>
+          <% if @user_role.errors.any? %>
+            <div class="alert alert-danger">
+              <h6 class="alert-heading">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Please correct the following errors:
+              </h6>
+              <ul class="mb-0">
+                <% @user_role.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <%= f.label :name, class: "form-label" %>
+                <span class="text-danger">*</span>
+                <%= f.text_field :name,
+                    class: "form-control #{'is-invalid' if @user_role.errors[:name].any?}",
+                    placeholder: "e.g., Manager, Supervisor",
+                    required: true %>
+                <% if @user_role.errors[:name].any? %>
+                  <div class="invalid-feedback">
+                    <%= @user_role.errors[:name].first %>
+                  </div>
+                <% end %>
+                <div class="form-text">
+                  A unique name for this role (will be automatically formatted)
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="mb-3">
+                <%= f.label :display_order, class: "form-label" %>
+                <span class="text-danger">*</span>
+                <%= f.number_field :display_order,
+                    class: "form-control #{'is-invalid' if @user_role.errors[:display_order].any?}",
+                    min: 0,
+                    required: true %>
+                <% if @user_role.errors[:display_order].any? %>
+                  <div class="invalid-feedback">
+                    <%= @user_role.errors[:display_order].first %>
+                  </div>
+                <% end %>
+                <div class="form-text">
+                  Order in which this role appears (lower numbers show first)
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :description, class: "form-label" %>
+            <%= f.text_area :description,
+                class: "form-control #{'is-invalid' if @user_role.errors[:description].any?}",
+                rows: 3,
+                placeholder: "Describe the responsibilities and scope of this role..." %>
+            <% if @user_role.errors[:description].any? %>
+              <div class="invalid-feedback">
+                <%= @user_role.errors[:description].first %>
+              </div>
+            <% end %>
+            <div class="form-text">
+              Optional description of the role's purpose and responsibilities
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="form-check form-switch">
+              <%= f.check_box :status,
+                  class: "form-check-input #{'is-invalid' if @user_role.errors[:status].any?}" %>
+              <%= f.label :status, "Active Role", class: "form-check-label" %>
+              <% if @user_role.errors[:status].any? %>
+                <div class="invalid-feedback">
+                  <%= @user_role.errors[:status].first %>
+                </div>
+              <% end %>
+              <div class="form-text">
+                Active roles can be assigned to users
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <%= f.submit "Update Role", class: "btn btn-primary" %>
+            <%= link_to admin_settings_user_role_path(@user_role), class: "btn btn-outline-secondary" do %>
+              Cancel
+            <% end %>
+            <%= link_to admin_settings_user_role_path(@user_role),
+                method: :delete,
+                class: "btn btn-outline-danger",
+                confirm: "Are you sure you want to delete this role? This action cannot be undone.",
+                data: { bs_toggle: "tooltip", bs_placement: "top", bs_title: "Delete this role permanently" } do %>
+              <i class="bi bi-trash me-1"></i>
+              Delete Role
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Current Assignment Info -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <h6 class="card-title mb-0">
+          <i class="bi bi-people me-2"></i>
+          Current Assignments
+        </h6>
+      </div>
+      <div class="card-body">
+        <% if @user_role.users.any? %>
+          <div class="alert alert-info">
+            <h6 class="alert-heading">
+              <i class="bi bi-info-circle me-2"></i>
+              This role is currently assigned to <%= pluralize(@user_role.users.count, 'user') %>
+            </h6>
+            <p class="mb-0">
+              Changes to this role's status will affect these users' access and permissions.
+            </p>
+          </div>
+
+          <div class="row">
+            <% @user_role.users.limit(6).each do |user| %>
+              <div class="col-md-6 mb-2">
+                <div class="d-flex align-items-center">
+                  <div class="user-avatar me-2">
+                    <div class="avatar-circle bg-primary text-white">
+                      <%= user.first_name&.first&.upcase || user.email.first.upcase %>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="fw-medium"><%= user.display_name %></div>
+                    <small class="text-muted"><%= user.email %></small>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+
+          <% if @user_role.users.count > 6 %>
+            <div class="text-center mt-3">
+              <small class="text-muted">
+                ... and <%= @user_role.users.count - 6 %> more users
+              </small>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="text-center py-3">
+            <div class="text-muted">
+              <i class="bi bi-person-x" style="font-size: 2rem;"></i>
+              <p class="mt-2 mb-0">This role is not currently assigned to any users.</p>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Role Management Tips -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <h6 class="card-title mb-0">
+          <i class="bi bi-lightbulb me-2"></i>
+          Role Management Tips
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6 class="text-warning mb-2">⚠️ Important Notes</h6>
+            <ul class="text-muted small mb-3">
+              <li>Deactivating a role doesn't remove existing assignments</li>
+              <li>Users with inactive roles retain their current access</li>
+              <li>Role deletion is prevented if assigned to users</li>
+            </ul>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-success mb-2">✅ Best Practices</h6>
+            <ul class="text-muted small mb-3">
+              <li>Use clear, descriptive role names</li>
+              <li>Set logical display orders for better organization</li>
+              <li>Add meaningful descriptions for role clarity</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .user-avatar .avatar-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+</style>
+
+<script>
+// Bootstrap form validation
+(function() {
+  'use strict';
+  window.addEventListener('load', function() {
+    var forms = document.getElementsByClassName('needs-validation');
+    var validation = Array.prototype.filter.call(forms, function(form) {
+      form.addEventListener('submit', function(event) {
+        if (form.checkValidity() === false) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  }, false);
+})();
+
+// Initialize tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+  return new bootstrap.Tooltip(tooltipTriggerEl)
+})
+</script>

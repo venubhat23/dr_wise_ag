@@ -79,36 +79,54 @@
   </div>
 </div>
 
-<!-- Filters -->
+<!-- Filters with onChange -->
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-body">
-    <%= form_with url: admin_banners_path, method: :get, local: true, class: "row g-3" do |form| %>
+    <div class="row g-3">
       <div class="col-md-3">
-        <%= form.select :status, options_for_select([
-          ['All Status', ''],
-          ['Active', 'active'],
-          ['Inactive', 'inactive'],
-          ['Currently Displayed', 'current']
-        ], params[:status]), {}, { class: "form-select" } %>
+        <select id="status_filter" class="form-select" onchange="applyFilters()">
+          <option value="">All Status</option>
+          <option value="active" <%= 'selected' if params[:status] == 'active' %>>Active</option>
+          <option value="inactive" <%= 'selected' if params[:status] == 'inactive' %>>Inactive</option>
+          <option value="current" <%= 'selected' if params[:status] == 'current' %>>Currently Displayed</option>
+        </select>
       </div>
       <div class="col-md-3">
-        <%= form.select :location, options_for_select([
-          ['All Locations', ''],
-          ['Dashboard', 'dashboard'],
-          ['Login Page', 'login'],
-          ['Home Page', 'home'],
-          ['Sidebar Ad', 'sidebar']
-        ], params[:location]), {}, { class: "form-select" } %>
+        <select id="location_filter" class="form-select" onchange="applyFilters()">
+          <option value="">All Locations</option>
+          <option value="dashboard" <%= 'selected' if params[:location] == 'dashboard' %>>Dashboard</option>
+          <option value="login" <%= 'selected' if params[:location] == 'login' %>>Login Page</option>
+          <option value="home" <%= 'selected' if params[:location] == 'home' %>>Home Page</option>
+          <option value="sidebar" <%= 'selected' if params[:location] == 'sidebar' %>>Sidebar Ad</option>
+        </select>
       </div>
       <div class="col-md-3">
-        <button type="submit" class="btn btn-outline-primary">
-          <i class="bi bi-funnel me-1"></i>Filter
-        </button>
-        <%= link_to "Clear", admin_banners_path, class: "btn btn-outline-secondary ms-2" %>
+        <%= link_to "Clear", admin_banners_path, class: "btn btn-outline-secondary" %>
       </div>
-    <% end %>
+    </div>
   </div>
 </div>
+
+<script>
+function applyFilters() {
+  const statusFilter = document.getElementById('status_filter').value;
+  const locationFilter = document.getElementById('location_filter').value;
+
+  const url = new URL(window.location.href);
+  url.searchParams.delete('status');
+  url.searchParams.delete('location');
+
+  if (statusFilter) {
+    url.searchParams.set('status', statusFilter);
+  }
+
+  if (locationFilter) {
+    url.searchParams.set('location', locationFilter);
+  }
+
+  window.location.href = url.toString();
+}
+</script>
 
 <!-- Banners List -->
 <div class="card border-0 shadow-sm">

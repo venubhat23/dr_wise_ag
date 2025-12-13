@@ -27,13 +27,13 @@ class Admin::RolesController < Admin::ApplicationController
   def new
     @role = Role.new
     @permissions = Permission.includes(:roles).group_by(&:module_name)
-    @modules = Permission.modules_list
+    @modules = Permission.modules_list.map { |m| m[:name] }
   end
 
   # GET /admin/roles/1/edit
   def edit
     @permissions = Permission.includes(:roles).group_by(&:module_name)
-    @modules = Permission.modules_list
+    @modules = Permission.modules_list.map { |m| m[:name] }
     @role_permissions = @role.permissions.pluck(:id)
   end
 
@@ -46,7 +46,7 @@ class Admin::RolesController < Admin::ApplicationController
       redirect_to admin_role_path(@role), notice: 'Role was successfully created.'
     else
       @permissions = Permission.includes(:roles).group_by(&:module_name)
-      @modules = Permission.modules_list
+      @modules = Permission.modules_list.map { |m| m[:name] }
       render :new, status: :unprocessable_entity
     end
   end
@@ -58,7 +58,7 @@ class Admin::RolesController < Admin::ApplicationController
       redirect_to admin_role_path(@role), notice: 'Role was successfully updated.'
     else
       @permissions = Permission.includes(:roles).group_by(&:module_name)
-      @modules = Permission.modules_list
+      @modules = Permission.modules_list.map { |m| m[:name] }
       @role_permissions = @role.permissions.pluck(:id)
       render :edit, status: :unprocessable_entity
     end

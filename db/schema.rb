@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_12_004318) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_13_020459) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -271,6 +271,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_12_004318) do
     t.boolean "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "code"
+    t.string "contact_person"
+    t.string "email"
+    t.string "mobile"
+    t.text "address"
   end
 
   create_table "leads", force: :cascade do |t|
@@ -546,6 +551,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_12_004318) do
     t.index ["status"], name: "index_sub_agents_on_status"
   end
 
+  create_table "user_roles", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.boolean "status", default: true, null: false
+    t.integer "display_order", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["display_order"], name: "index_user_roles_on_display_order"
+    t.index ["name"], name: "index_user_roles_on_name", unique: true
+    t.index ["status"], name: "index_user_roles_on_status"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "first_name"
     t.string "last_name"
@@ -578,9 +595,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_12_004318) do
     t.datetime "reset_password_sent_at"
     t.datetime "remember_created_at"
     t.bigint "role_id"
+    t.bigint "user_role_id"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["role_id"], name: "idx_users_role_id"
     t.index ["role_id"], name: "index_users_on_role_id"
+    t.index ["user_role_id"], name: "index_users_on_user_role_id"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
@@ -608,4 +627,5 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_12_004318) do
   add_foreign_key "role_permissions", "roles"
   add_foreign_key "sub_agent_documents", "sub_agents"
   add_foreign_key "users", "roles"
+  add_foreign_key "users", "user_roles"
 end

@@ -1,5 +1,5 @@
 class Admin::AgencyCodesController < Admin::ApplicationController
-  include InsuranceCompanyHelper
+  include InsuranceCompanyMethods
 
   before_action :set_agency_code, only: [:show, :edit, :update, :destroy]
 
@@ -24,10 +24,8 @@ class Admin::AgencyCodesController < Admin::ApplicationController
 
     @agency_codes = @agency_codes.order(:created_at)
 
-    # For the form
-    @agency_code = AgencyCode.new
+    # For filters
     @insurance_companies = insurance_companies_list
-    @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
 
     # Statistics
     @total_codes = AgencyCode.count
@@ -62,15 +60,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     else
       @insurance_companies = insurance_companies_list
       @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
-      @agency_codes = AgencyCode.order(:created_at)
-
-      # Statistics for the index page
-      @total_codes = AgencyCode.count
-      @health_codes = AgencyCode.where(insurance_type: 'Health').count
-      @motor_codes = AgencyCode.where(insurance_type: 'Motor').count
-      @life_codes = AgencyCode.where(insurance_type: 'Life').count
-
-      render :index, status: :unprocessable_entity
+      render :new, status: :unprocessable_entity
     end
   end
 

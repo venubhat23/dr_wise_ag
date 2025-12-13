@@ -1,0 +1,179 @@
+<% content_for :page_title, "System Settings" %>
+
+<div class="page-header">
+  <div class="page-title-wrapper">
+    <h1 class="page-title">
+      <i class="bi bi-gear-fill me-2"></i>
+      System Settings
+    </h1>
+    <p class="page-subtitle">Configure system-wide settings and preferences</p>
+  </div>
+  <div class="page-actions">
+    <%= link_to admin_settings_user_roles_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-person-gear me-1"></i>
+      User Roles
+    <% end %>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-sliders me-2"></i>
+          Application Settings
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-info">
+          <h6 class="alert-heading">
+            <i class="bi bi-info-circle me-2"></i>
+            Coming Soon
+          </h6>
+          <p class="mb-0">
+            System settings configuration will be available in the next update.
+            For now, you can manage User Roles from the Settings menu.
+          </p>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Application Name</label>
+            <div class="fw-medium"><%= @system_settings[:app_name] %></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Version</label>
+            <div class="fw-medium">
+              <span class="badge bg-primary"><%= @system_settings[:version] %></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Maintenance Mode</label>
+            <div class="fw-medium">
+              <% if @system_settings[:maintenance_mode] %>
+                <span class="badge bg-warning">Enabled</span>
+              <% else %>
+                <span class="badge bg-success">Disabled</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Email Notifications</label>
+            <div class="fw-medium">
+              <% if @system_settings[:email_notifications] %>
+                <span class="badge bg-success">Enabled</span>
+              <% else %>
+                <span class="badge bg-secondary">Disabled</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Backup Frequency</label>
+            <div class="fw-medium"><%= @system_settings[:backup_frequency] %></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Session Timeout</label>
+            <div class="fw-medium"><%= @system_settings[:session_timeout] %> minutes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="card-title mb-0">
+          <i class="bi bi-lightning-charge me-2"></i>
+          Quick Actions
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <%= link_to admin_settings_user_roles_path, class: "btn btn-primary btn-sm" do %>
+            <i class="bi bi-person-gear me-2"></i>
+            Manage User Roles
+          <% end %>
+
+          <%= link_to admin_roles_path, class: "btn btn-outline-secondary btn-sm" do %>
+            <i class="bi bi-shield-check me-2"></i>
+            Roles & Permissions
+          <% end %>
+
+          <button class="btn btn-outline-info btn-sm" disabled>
+            <i class="bi bi-envelope me-2"></i>
+            Email Settings
+            <small class="d-block text-muted">Coming Soon</small>
+          </button>
+
+          <button class="btn btn-outline-warning btn-sm" disabled>
+            <i class="bi bi-database me-2"></i>
+            Backup Settings
+            <small class="d-block text-muted">Coming Soon</small>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-header">
+        <h6 class="card-title mb-0">
+          <i class="bi bi-info-circle me-2"></i>
+          System Information
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col-6">
+            <div class="stat-item">
+              <div class="stat-value text-primary fw-bold h6">
+                <%= UserRole.count %>
+              </div>
+              <div class="stat-label text-muted small">User Roles</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-item">
+              <div class="stat-value text-success fw-bold h6">
+                <%= Role.count %>
+              </div>
+              <div class="stat-label text-muted small">Permission Roles</div>
+            </div>
+          </div>
+        </div>
+        <hr class="my-3">
+        <div class="row text-center">
+          <div class="col-6">
+            <div class="stat-item">
+              <div class="stat-value text-info fw-bold h6">
+                <%= User.where(status: true).count %>
+              </div>
+              <div class="stat-label text-muted small">Active Users</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-item">
+              <div class="stat-value text-warning fw-bold h6">
+                <%= Permission.count %>
+              </div>
+              <div class="stat-label text-muted small">Permissions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .stat-item {
+    padding: 0.5rem 0;
+  }
+</style>
