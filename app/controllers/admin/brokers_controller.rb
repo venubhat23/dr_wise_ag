@@ -1,5 +1,4 @@
-class Admin::BrokersController < ApplicationController
-  before_action :authenticate_user!
+class Admin::BrokersController < Admin::ApplicationController
   before_action :set_broker, only: [:show, :edit, :update, :destroy, :toggle_status]
 
   def index
@@ -27,8 +26,7 @@ class Admin::BrokersController < ApplicationController
     if @broker.save
       redirect_to admin_brokers_path, notice: 'Broker was successfully created.'
     else
-      @brokers = Broker.all.order(:name)
-      render :index, status: :unprocessable_entity
+      render :new, status: :unprocessable_entity
     end
   end
 
