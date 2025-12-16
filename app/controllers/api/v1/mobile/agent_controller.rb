@@ -346,7 +346,6 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       net_premium: policy_params[:net_premium],
       gst_percentage: policy_params[:gst_percentage] || 18.0,
       total_premium: calculated_total_premium,
-      added_by: "agent_mobile_api_#{current_user.id}",
       is_agent_added: true
     )
 
@@ -672,75 +671,23 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # Updated parameter structure for leads
     lead_params = params.permit(
       :name, :contact_number, :email, :product_interest, :address, :city, :state,
-      :referred_by, :current_stage, :created_date, :priority, :note, :call_disposition,
+      :referred_by, :current_stage, :created_date, :note, :call_disposition,
       :lead_source, :referral_amount, :transferred_amount
     )
-
-    # Validation: Check required fields
-    validation_errors = []
-    validation_errors << 'Name is required' if lead_params[:name].blank?
-    validation_errors << 'Contact number is required' if lead_params[:contact_number].blank?
-    validation_errors << 'Product interest is required' if lead_params[:product_interest].blank?
-
-    # Validate phone number format
-    if lead_params[:contact_number].present?
-      clean_phone = lead_params[:contact_number].gsub(/\D/, '')
-      unless clean_phone.match?(/^[6-9]\d{9}$/)
-        validation_errors << 'Invalid phone number format. Must be a valid Indian mobile number'
-      end
-    end
-
-    # Validate email format if provided
-    if lead_params[:email].present? && !lead_params[:email].match?(URI::MailTo::EMAIL_REGEXP)
-      validation_errors << 'Invalid email format'
-    end
-
-    # Validate product interest
-    valid_products = ['health', 'life', 'motor', 'home', 'travel', 'other']
-    if lead_params[:product_interest].present? && !valid_products.include?(lead_params[:product_interest])
-      validation_errors << 'Invalid product interest'
-    end
-
-    # Validate current stage
-    valid_stages = ['consultation', 'one_on_one', 'converted', 'policy_created', 'referral_settled']
-    if lead_params[:current_stage].present? && !valid_stages.include?(lead_params[:current_stage])
-      validation_errors << 'Invalid current stage'
-    end
-
-    if validation_errors.any?
-      return render json: {
-        status: false,
-        message: 'Validation failed',
-        errors: validation_errors
-      }, status: :unprocessable_entity
-    end
-
-    # Check if lead with same contact number already exists
-    existing_lead = Lead.find_by(contact_number: lead_params[:contact_number])
-    if existing_lead
-      return render json: {
-        status: false,
-        message: 'Validation failed',
-        errors: {
-          contact_number: ['A lead with this contact number already exists']
-        }
-      }, status: :unprocessable_entity
-    end
 
     # Create lead with default values
     lead = Lead.new(
       name: lead_params[:name],
       contact_number: lead_params[:contact_number],
       email: lead_params[:email],
-      product_interest: lead_params[:product_interest],
+      product_interest: lead_params[:product_interest] || 'health',
       address: lead_params[:address],
       city: lead_params[:city],
       state: lead_params[:state],
       referred_by: lead_params[:referred_by],
       current_stage: lead_params[:current_stage] || 'consultation',
       created_date: parse_date(lead_params[:created_date]) || Date.current,
-      priority: lead_params[:priority] || 'medium',
-      note: lead_params[:note],
+      notes: lead_params[:note],
       call_disposition: lead_params[:call_disposition],
       lead_source: lead_params[:lead_source] || 'agent_referral',
       referral_amount: lead_params[:referral_amount] || 0.0,
@@ -760,7 +707,6 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
           email: lead.email,
           product_interest: lead.product_interest,
           current_stage: lead.current_stage,
-          priority: lead.priority,
           lead_source: lead.lead_source,
           created_at: lead.created_at.strftime('%Y-%m-%d %H:%M:%S'),
           stage_progress: lead.stage_progress_percentage,
