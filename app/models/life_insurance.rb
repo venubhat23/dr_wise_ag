@@ -5,6 +5,8 @@ class LifeInsurance < ApplicationRecord
   # Associations
   belongs_to :customer
   belongs_to :sub_agent, class_name: 'SubAgent', optional: true
+  belongs_to :distributor, optional: true
+  belongs_to :investor, optional: true
   belongs_to :agency_code, optional: true
   belongs_to :broker, optional: true
   has_many_attached :documents
@@ -25,6 +27,8 @@ class LifeInsurance < ApplicationRecord
   validates :total_premium, presence: true, numericality: { greater_than: 0 }
   validates :policy_term, presence: true, numericality: { greater_than: 0 }
   validates :premium_payment_term, presence: true, numericality: { greater_than: 0 }
+  validates :distributor_id, presence: true
+  validates :investor_id, presence: true
 
   # Custom validation
   validate :company_name_must_be_valid
@@ -160,6 +164,73 @@ class LifeInsurance < ApplicationRecord
         self.tds_amount = commission_amount * (tds_percentage.to_f / 100.0)
         self.after_tds_value = commission_amount - tds_amount
       end
+
+      # Calculate new commission structure
+      calculate_commission_structure
+    end
+  end
+
+  def calculate_commission_structure
+    return unless net_premium.present?
+
+    # Set default company expenses percentage if not already set
+    self.company_expenses_percentage ||= SystemSetting.company_expenses_percentage
+
+    # Main income calculation (10% default)
+    self.main_income_percentage ||= 10.0
+    self.main_income_amount = net_premium * (main_income_percentage / 100.0)
+
+    # Sub-agent commission
+    self.sub_agent_commission_percentage ||= 2.0
+    self.sub_agent_commission_amount = net_premium * (sub_agent_commission_percentage / 100.0)
+    calculate_tds_for_sub_agent
+
+    # Distributor commission
+    self.distributor_commission_percentage ||= 1.0
+    self.distributor_commission_amount = net_premium * (distributor_commission_percentage / 100.0)
+    calculate_tds_for_distributor
+
+    # Investor commission
+    self.investor_commission_percentage ||= 2.0
+    self.investor_commission_amount = net_premium * (investor_commission_percentage / 100.0)
+    calculate_tds_for_investor
+
+    # Total distribution percentage
+    self.total_distribution_percentage =
+      sub_agent_commission_percentage +
+      distributor_commission_percentage +
+      investor_commission_percentage
+
+    # Profit calculation
+    remaining_percentage = main_income_percentage - total_distribution_percentage
+    self.profit_percentage = remaining_percentage - company_expenses_percentage
+    self.profit_amount = net_premium * (profit_percentage / 100.0)
+  end
+
+  def calculate_tds_for_sub_agent
+    if sub_agent_commission_amount.present? && sub_agent_tds_percentage.present?
+      self.sub_agent_tds_amount = sub_agent_commission_amount * (sub_agent_tds_percentage / 100.0)
+      self.sub_agent_after_tds_value = sub_agent_commission_amount - sub_agent_tds_amount
+    else
+      self.sub_agent_after_tds_value = sub_agent_commission_amount
+    end
+  end
+
+  def calculate_tds_for_distributor
+    if distributor_commission_amount.present? && distributor_tds_percentage.present?
+      self.distributor_tds_amount = distributor_commission_amount * (distributor_tds_percentage / 100.0)
+      self.distributor_after_tds_value = distributor_commission_amount - distributor_tds_amount
+    else
+      self.distributor_after_tds_value = distributor_commission_amount
+    end
+  end
+
+  def calculate_tds_for_investor
+    if investor_commission_amount.present? && investor_tds_percentage.present?
+      self.investor_tds_amount = investor_commission_amount * (investor_tds_percentage / 100.0)
+      self.investor_after_tds_value = investor_commission_amount - investor_tds_amount
+    else
+      self.investor_after_tds_value = investor_commission_amount
     end
   end
 

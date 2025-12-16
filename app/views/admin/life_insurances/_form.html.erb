@@ -26,7 +26,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :customer_id, "Client Name*", class: "form-label" %>
           <%= form.select :customer_id,
-              options_for_select([['Select Client', '']] + @customers.map { |c| [c.display_name, c.id] }, @life_insurance.customer_id),
+              options_for_select(@customers.map { |c| [c.display_name, c.id] }, @life_insurance.customer_id),
               { prompt: 'Select Client' },
               { class: "form-control #{'is-invalid' if @life_insurance.errors[:customer_id].any?}", required: true, id: "customer_select" } %>
           <% if @life_insurance.errors[:customer_id].any? %>
@@ -45,12 +45,36 @@
         <div class="col-md-4 mb-3">
           <%= form.label :sub_agent_id, "Sub Agent", class: "form-label" %>
           <%= form.select :sub_agent_id,
-              options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, @life_insurance.sub_agent_id),
+              options_for_select(@sub_agents.map { |a| [a.display_name, a.id] }, @life_insurance.sub_agent_id),
               { prompt: 'Self' },
               { class: "form-control" } %>
         </div>
+      </div>
 
-        <div class="col-md-12 mb-3">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :distributor_id, "Distributor*", class: "form-label" %>
+          <%= form.select :distributor_id,
+              options_for_select(@distributors.map { |d| [d.display_name, d.id] }, @life_insurance.distributor_id),
+              { prompt: 'Select Distributor' },
+              { class: "form-control #{'is-invalid' if @life_insurance.errors[:distributor_id].any?}", required: true } %>
+          <% if @life_insurance.errors[:distributor_id].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:distributor_id].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :investor_id, "Investor*", class: "form-label" %>
+          <%= form.select :investor_id,
+              options_for_select(@investors.map { |i| [i.display_name, i.id] }, @life_insurance.investor_id),
+              { prompt: 'Select Investor' },
+              { class: "form-control #{'is-invalid' if @life_insurance.errors[:investor_id].any?}", required: true } %>
+          <% if @life_insurance.errors[:investor_id].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:investor_id].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
           <%= form.label :insured_name, "Insured Name", class: "form-label" %>
           <%= form.text_field :insured_name,
               class: "form-control",
@@ -73,7 +97,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :insurance_company_name, "Insurance Company Name*", class: "form-label" %>
           <%= form.select :insurance_company_name,
-              options_for_select([['Select Company', '']] + @insurance_companies.map { |c| [c, c] }, @life_insurance.insurance_company_name),
+              options_for_select(@insurance_companies.map { |c| [c, c] }, @life_insurance.insurance_company_name),
               { prompt: 'Select Company' },
               { class: "form-control #{'is-invalid' if @life_insurance.errors[:insurance_company_name].any?}", required: true } %>
           <% if @life_insurance.errors[:insurance_company_name].any? %>
@@ -84,7 +108,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
           <%= form.select :agency_code_id,
-              options_for_select([['Select Agency Code', '']] + @agency_codes.map { |a| ["#{a.company_name} - #{a.code}", a.id] }, @life_insurance.agency_code_id),
+              options_for_select(@agency_codes.map { |a| ["#{a.company_name} - #{a.code}", a.id] }, @life_insurance.agency_code_id),
               { prompt: 'Select Agency Code' },
               { class: "form-control" } %>
         </div>
@@ -92,7 +116,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :broker_id, "Broker Code", class: "form-label" %>
           <%= form.select :broker_id,
-              options_for_select([['Select Broker Code', '']] + @brokers.map { |b| [b.name, b.id] }, @life_insurance.broker_id),
+              options_for_select(@brokers.map { |b| [b.name, b.id] }, @life_insurance.broker_id),
               { prompt: 'Select Broker Code' },
               { class: "form-control" } %>
         </div>
@@ -100,7 +124,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :policy_type, "Policy Type*", class: "form-label" %>
           <%= form.select :policy_type,
-              options_for_select([['Select type', '']] + @policy_types.map { |t| [t, t] }, @life_insurance.policy_type),
+              options_for_select(@policy_types.map { |t| [t, t] }, @life_insurance.policy_type),
               { prompt: 'Select type' },
               { class: "form-control #{'is-invalid' if @life_insurance.errors[:policy_type].any?}", required: true } %>
           <% if @life_insurance.errors[:policy_type].any? %>
@@ -402,7 +426,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :nominee_relationship, "Relationship", class: "form-label" %>
           <%= form.select :nominee_relationship,
-              options_for_select([['Select Relationship', '']] + @relationships.map { |r| [r, r] }, @life_insurance.nominee_relationship),
+              options_for_select(@relationships.map { |r| [r, r] }, @life_insurance.nominee_relationship),
               { prompt: 'Nominee Relationship' },
               { class: "form-control" } %>
         </div>
@@ -435,7 +459,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :account_type, "Account Type", class: "form-label" %>
           <%= form.select :account_type,
-              options_for_select([['Select Account Type', '']] + @account_types.map { |t| [t, t] }, @life_insurance.account_type),
+              options_for_select(@account_types.map { |t| [t, t] }, @life_insurance.account_type),
               { prompt: 'Account Type' },
               { class: "form-control" } %>
         </div>
@@ -555,6 +579,173 @@
               step: 0.01, readonly: true, id: "after_tds_value" %>
         </div>
       </div>
+
+      <!-- Sub-Agent Commission -->
+      <hr class="my-4">
+      <h6>Sub-Agent Commission</h6>
+      <div class="row">
+        <div class="col-md-2 mb-3">
+          <label class="form-label">1st year (%)</label>
+          <%= form.number_field :sub_agent_commission_percentage,
+              class: "form-control sub-agent-commission-percentage",
+              value: @life_insurance.sub_agent_commission_percentage || 2.0,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">Commission Amount</label>
+          <%= form.number_field :sub_agent_commission_amount,
+              class: "form-control sub-agent-commission-amount",
+              value: @life_insurance.sub_agent_commission_amount || 0,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">TDS %</label>
+          <%= form.number_field :sub_agent_tds_percentage,
+              class: "form-control sub-agent-tds-percentage",
+              value: @life_insurance.sub_agent_tds_percentage || 0,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">TDS Amount</label>
+          <%= form.number_field :sub_agent_tds_amount,
+              class: "form-control sub-agent-tds-amount",
+              value: @life_insurance.sub_agent_tds_amount || 0,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">After TDS Value</label>
+          <%= form.number_field :sub_agent_after_tds_value,
+              class: "form-control sub-agent-after-tds-value",
+              value: @life_insurance.sub_agent_after_tds_value || 0,
+              step: 0.01, readonly: true %>
+        </div>
+      </div>
+
+      <!-- Distributor Commission -->
+      <hr class="my-4">
+      <h6>Distributor Commission</h6>
+      <div class="row">
+        <div class="col-md-2 mb-3">
+          <label class="form-label">1st year (%)</label>
+          <%= form.number_field :distributor_commission_percentage,
+              class: "form-control distributor-commission-percentage",
+              value: @life_insurance.distributor_commission_percentage || 1.0,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">Commission Amount</label>
+          <%= form.number_field :distributor_commission_amount,
+              class: "form-control distributor-commission-amount",
+              value: @life_insurance.distributor_commission_amount || 0,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">TDS %</label>
+          <%= form.number_field :distributor_tds_percentage,
+              class: "form-control distributor-tds-percentage",
+              value: @life_insurance.distributor_tds_percentage || 0,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">TDS Amount</label>
+          <%= form.number_field :distributor_tds_amount,
+              class: "form-control distributor-tds-amount",
+              value: @life_insurance.distributor_tds_amount || 0,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">After TDS Value</label>
+          <%= form.number_field :distributor_after_tds_value,
+              class: "form-control distributor-after-tds-value",
+              value: @life_insurance.distributor_after_tds_value || 0,
+              step: 0.01, readonly: true %>
+        </div>
+      </div>
+
+      <!-- Investor Commission -->
+      <hr class="my-4">
+      <h6>Investor Commission</h6>
+      <div class="row">
+        <div class="col-md-2 mb-3">
+          <label class="form-label">1st year (%)</label>
+          <%= form.number_field :investor_commission_percentage,
+              class: "form-control investor-commission-percentage",
+              value: @life_insurance.investor_commission_percentage || 2.0,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">Commission Amount</label>
+          <%= form.number_field :investor_commission_amount,
+              class: "form-control investor-commission-amount",
+              value: @life_insurance.investor_commission_amount || 0,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">TDS %</label>
+          <%= form.number_field :investor_tds_percentage,
+              class: "form-control investor-tds-percentage",
+              value: @life_insurance.investor_tds_percentage || 0,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">TDS Amount</label>
+          <%= form.number_field :investor_tds_amount,
+              class: "form-control investor-tds-amount",
+              value: @life_insurance.investor_tds_amount || 0,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">After TDS Value</label>
+          <%= form.number_field :investor_after_tds_value,
+              class: "form-control investor-after-tds-value",
+              value: @life_insurance.investor_after_tds_value || 0,
+              step: 0.01, readonly: true %>
+        </div>
+      </div>
+
+      <!-- Company Expenses & Profit Calculation -->
+      <hr class="my-4">
+      <h6>Company Expenses & Profit Calculation</h6>
+      <div class="row">
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Company Expenses (%)</label>
+          <%= form.number_field :company_expenses_percentage,
+              class: "form-control company-expenses-percentage",
+              value: @life_insurance.company_expenses_percentage || 2.0,
+              step: 0.01, min: 0, max: 100 %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Total Distribution (%)</label>
+          <%= form.number_field :total_distribution_percentage,
+              class: "form-control total-distribution-percentage",
+              value: @life_insurance.total_distribution_percentage || 0,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Profit (%)</label>
+          <%= form.number_field :profit_percentage,
+              class: "form-control profit-percentage",
+              value: @life_insurance.profit_percentage || 0,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Profit Amount (₹)</label>
+          <%= form.number_field :profit_amount,
+              class: "form-control profit-amount",
+              value: @life_insurance.profit_amount || 0,
+              step: 0.01, readonly: true %>
+        </div>
+      </div>
+
+      <div class="alert alert-info mt-3">
+        <h6 class="mb-2">Commission Calculation Summary:</h6>
+        <ul class="mb-0">
+          <li><strong>Main Income:</strong> 10% of Net Premium</li>
+          <li><strong>Distribution:</strong> Sub-agent + Distributor + Investor commissions</li>
+          <li><strong>Company Expenses:</strong> <span id="expenses-display">2.0%</span> of Net Premium</li>
+          <li><strong>Profit:</strong> Main Income - Total Distribution - Company Expenses</li>
+        </ul>
+      </div>
     </div>
   </div>
 
@@ -659,6 +850,87 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('after_tds_value').value = afterTdsValue.toFixed(2);
   }
 
+  // Auto-calculate sub-agent commission
+  function calculateSubAgentCommission() {
+    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+    const commissionPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage').value) || 2.0;
+    const tdsPercentage = parseFloat(document.querySelector('.sub-agent-tds-percentage').value) || 0;
+
+    const commissionAmount = netPremium * (commissionPercentage / 100);
+    const tdsAmount = commissionAmount * (tdsPercentage / 100);
+    const afterTdsValue = commissionAmount - tdsAmount;
+
+    document.querySelector('.sub-agent-commission-amount').value = commissionAmount.toFixed(2);
+    document.querySelector('.sub-agent-tds-amount').value = tdsAmount.toFixed(2);
+    document.querySelector('.sub-agent-after-tds-value').value = afterTdsValue.toFixed(2);
+  }
+
+  // Auto-calculate distributor commission
+  function calculateDistributorCommission() {
+    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+    const commissionPercentage = parseFloat(document.querySelector('.distributor-commission-percentage').value) || 1.0;
+    const tdsPercentage = parseFloat(document.querySelector('.distributor-tds-percentage').value) || 0;
+
+    const commissionAmount = netPremium * (commissionPercentage / 100);
+    const tdsAmount = commissionAmount * (tdsPercentage / 100);
+    const afterTdsValue = commissionAmount - tdsAmount;
+
+    document.querySelector('.distributor-commission-amount').value = commissionAmount.toFixed(2);
+    document.querySelector('.distributor-tds-amount').value = tdsAmount.toFixed(2);
+    document.querySelector('.distributor-after-tds-value').value = afterTdsValue.toFixed(2);
+  }
+
+  // Auto-calculate investor commission
+  function calculateInvestorCommission() {
+    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+    const commissionPercentage = parseFloat(document.querySelector('.investor-commission-percentage').value) || 2.0;
+    const tdsPercentage = parseFloat(document.querySelector('.investor-tds-percentage').value) || 0;
+
+    const commissionAmount = netPremium * (commissionPercentage / 100);
+    const tdsAmount = commissionAmount * (tdsPercentage / 100);
+    const afterTdsValue = commissionAmount - tdsAmount;
+
+    document.querySelector('.investor-commission-amount').value = commissionAmount.toFixed(2);
+    document.querySelector('.investor-tds-amount').value = tdsAmount.toFixed(2);
+    document.querySelector('.investor-after-tds-value').value = afterTdsValue.toFixed(2);
+  }
+
+  // Calculate company expenses and profit
+  function calculateProfitAndExpenses() {
+    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+    const mainIncomePercentage = 10.0; // Fixed at 10%
+
+    // Get commission percentages
+    const subAgentPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage').value) || 2.0;
+    const distributorPercentage = parseFloat(document.querySelector('.distributor-commission-percentage').value) || 1.0;
+    const investorPercentage = parseFloat(document.querySelector('.investor-commission-percentage').value) || 2.0;
+    const companyExpensesPercentage = parseFloat(document.querySelector('.company-expenses-percentage').value) || 2.0;
+
+    // Calculate total distribution
+    const totalDistributionPercentage = subAgentPercentage + distributorPercentage + investorPercentage;
+
+    // Calculate profit
+    const profitPercentage = mainIncomePercentage - totalDistributionPercentage - companyExpensesPercentage;
+    const profitAmount = netPremium * (profitPercentage / 100);
+
+    // Update fields
+    document.querySelector('.total-distribution-percentage').value = totalDistributionPercentage.toFixed(2);
+    document.querySelector('.profit-percentage').value = profitPercentage.toFixed(2);
+    document.querySelector('.profit-amount').value = profitAmount.toFixed(2);
+
+    // Update display in summary
+    document.getElementById('expenses-display').textContent = companyExpensesPercentage.toFixed(1) + '%';
+  }
+
+  // Calculate all commissions when net premium changes
+  function calculateAllCommissions() {
+    calculateCommission();
+    calculateSubAgentCommission();
+    calculateDistributorCommission();
+    calculateInvestorCommission();
+    calculateProfitAndExpenses();
+  }
+
   // Auto-calculate end date based on start date and policy term
   function calculateEndDate() {
     const startDate = document.getElementById('start_date').value;
@@ -718,14 +990,40 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Event listeners
-  document.getElementById('net_premium').addEventListener('input', calculateTotalPremium);
+  document.getElementById('net_premium').addEventListener('input', function() {
+    calculateTotalPremium();
+    calculateAllCommissions();
+  });
   document.getElementById('first_year_gst').addEventListener('input', calculateTotalPremium);
   document.getElementById('commission_percentage').addEventListener('input', calculateCommission);
   document.getElementById('tds_percentage').addEventListener('input', calculateCommission);
-  document.getElementById('net_premium').addEventListener('input', calculateCommission);
   document.getElementById('start_date').addEventListener('change', calculateEndDate);
   document.getElementById('policy_term').addEventListener('change', calculateEndDate);
   document.getElementById('customer_select').addEventListener('change', loadPolicyHolderOptions);
+
+  // Sub-agent commission event listeners
+  document.querySelector('.sub-agent-commission-percentage').addEventListener('input', function() {
+    calculateSubAgentCommission();
+    calculateProfitAndExpenses();
+  });
+  document.querySelector('.sub-agent-tds-percentage').addEventListener('input', calculateSubAgentCommission);
+
+  // Distributor commission event listeners
+  document.querySelector('.distributor-commission-percentage').addEventListener('input', function() {
+    calculateDistributorCommission();
+    calculateProfitAndExpenses();
+  });
+  document.querySelector('.distributor-tds-percentage').addEventListener('input', calculateDistributorCommission);
+
+  // Investor commission event listeners
+  document.querySelector('.investor-commission-percentage').addEventListener('input', function() {
+    calculateInvestorCommission();
+    calculateProfitAndExpenses();
+  });
+  document.querySelector('.investor-tds-percentage').addEventListener('input', calculateInvestorCommission);
+
+  // Company expenses event listener
+  document.querySelector('.company-expenses-percentage').addEventListener('input', calculateProfitAndExpenses);
 
   // Add event listeners for remove rider buttons
   document.querySelectorAll('.remove-rider-btn').forEach(button => {

@@ -411,6 +411,36 @@
           </li>
         <% end %>
 
+        <!-- Distributors -->
+        <% if show_sidebar_item?('distributors') %>
+          <li class="nav-item">
+            <%= link_to admin_distributors_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/distributors')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-indigo">
+                  <i class="bi bi-diagram-3"></i>
+                </div>
+              </div>
+              <span class="nav-text">Distributors</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+
+        <!-- Investors -->
+        <% if show_sidebar_item?('investors') %>
+          <li class="nav-item">
+            <%= link_to admin_investors_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/investors')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-amber">
+                  <i class="bi bi-bar-chart"></i>
+                </div>
+              </div>
+              <span class="nav-text">Investors</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+
         <!-- Brokers -->
         <% if show_sidebar_item?('brokers') %>
           <li class="nav-item">

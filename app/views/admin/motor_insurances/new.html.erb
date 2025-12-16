@@ -1,0 +1,859 @@
+<div class="container-fluid">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <%= link_to "Home", root_path, class: "text-primary text-decoration-none" %>
+      </li>
+      <li class="breadcrumb-item">
+        <%= link_to "Motor Insurance", admin_motor_insurances_path, class: "text-primary text-decoration-none" %>
+      </li>
+      <li class="breadcrumb-item active">Add Motor Insurance</li>
+    </ol>
+  </nav>
+
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <h1 class="h3 text-gray-800">Add Motor Insurance</h1>
+        <%= link_to admin_motor_insurances_path, class: "btn btn-outline-secondary" do %>
+          <i class="bi bi-arrow-left me-1"></i>Back to List
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <%= form_with model: [:admin, @motor_insurance], local: true, multipart: true, id: "motorInsuranceForm" do |form| %>
+    <div class="row">
+      <div class="col-lg-8">
+        <!-- Error Display -->
+        <% if @motor_insurance.errors.any? %>
+          <div class="alert alert-danger alert-dismissible fade show mb-4">
+            <h6><i class="bi bi-exclamation-triangle me-2"></i>Please correct the following errors:</h6>
+            <ul class="mb-0">
+              <% @motor_insurance.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        <% end %>
+
+        <!-- 1. Client & Agent Details Section -->
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-person-circle me-2"></i>1. Client & Agent Details</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <%= form.label :customer_id, "Client Name", class: "form-label required" %>
+                <%= form.select :customer_id,
+                    options_for_select([['Select Client', '']] + @customers.map { |c| [c.display_name, c.id] }),
+                    { prompt: 'Select Client' },
+                    { class: "form-select", required: true, id: "customer_select" } %>
+                <div class="invalid-feedback">Please select a client</div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Add Client</label>
+                <%= link_to new_admin_customer_path, class: "btn btn-outline-primary w-100", target: "_blank" do %>
+                  <i class="bi bi-plus-circle me-1"></i>Add New Client
+                <% end %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :policy_holder, "Policy Holder", class: "form-label required" %>
+                <%= form.select :policy_holder,
+                    options_for_select([['Self', 'Self']]),
+                    {},
+                    { class: "form-select", required: true, id: "policy_holder_select" } %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :sub_agent_id, "Sub Agent", class: "form-label" %>
+                <%= form.select :sub_agent_id,
+                    options_for_select([['Self', '']] + @sub_agents.map { |agent| [agent.display_name, agent.id] }),
+                    {},
+                    { class: "form-select" } %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Policy Details Section -->
+        <div class="card mb-4">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>2. Policy Details</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <%= form.label :insurance_company_name, "Insurance Company Name", class: "form-label required" %>
+                <%= form.select :insurance_company_name,
+                    options_for_select([['Select Company', '']] + @insurance_companies.map { |name| [name, name] }),
+                    { prompt: 'Select Company' },
+                    { class: "form-select", required: true } %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
+                <%= form.select :agency_code_id,
+                    options_for_select([['Select Agency Code', '']] + @agency_codes.map { |code| [code.code, code.id] }),
+                    { prompt: 'Select Agency Code' },
+                    { class: "form-select" } %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :broker_id, "Broker Code", class: "form-label" %>
+                <%= form.select :broker_id,
+                    options_for_select([['Select Broker Code', '']] + @brokers.map { |broker| [broker.name, broker.id] }),
+                    { prompt: 'Select Broker Code' },
+                    { class: "form-select" } %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :vehicle_type, "Vehicle Type", class: "form-label required" %>
+                <%= form.select :vehicle_type,
+                    options_for_select(@vehicle_types.map { |type| [type, type] }),
+                    { prompt: 'Select Vehicle Type' },
+                    { class: "form-select", required: true } %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :class_of_vehicle, "Class of Vehicle", class: "form-label required" %>
+                <%= form.select :class_of_vehicle,
+                    options_for_select(@class_of_vehicles.map { |type| [type, type] }),
+                    { prompt: 'Select Class of Vehicle' },
+                    { class: "form-select", required: true } %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :insurance_type, "Insurance Type", class: "form-label required" %>
+                <%= form.select :insurance_type,
+                    options_for_select(@insurance_types.map { |type| [type, type] }),
+                    { prompt: 'Select Insurance Type' },
+                    { class: "form-select", required: true, id: "insurance_type_select" } %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :policy_type, "Policy Type", class: "form-label" %>
+                <%= form.select :policy_type,
+                    options_for_select(@policy_types.map { |type| [type, type] }),
+                    { prompt: 'Select Policy Type' },
+                    { class: "form-select" } %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <%= form.label :policy_booking_date, "Policy Booking Date", class: "form-label" %>
+                <%= form.date_field :policy_booking_date, class: "form-control", value: Date.current %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <%= form.label :policy_start_date, "Policy Start Date", class: "form-label required" %>
+                <%= form.date_field :policy_start_date, class: "form-control", required: true, id: "policy_start_date" %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <%= form.label :policy_end_date, "Policy End Date", class: "form-label required" %>
+                <%= form.date_field :policy_end_date, class: "form-control", required: true, id: "policy_end_date" %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :policy_number, "Policy Number", class: "form-label required" %>
+                <%= form.text_field :policy_number, class: "form-control", placeholder: "Enter policy number", required: true %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :registration_number, "Registration Number/RTO", class: "form-label required" %>
+                <%= form.text_field :registration_number, class: "form-control", placeholder: "Enter registration number", required: true %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :registration_date, "Registration Date", class: "form-label" %>
+                <%= form.date_field :registration_date, class: "form-control" %>
+              </div>
+
+              <div class="col-md-6 mb-3 tp-premium-field">
+                <%= form.label :tp_premium, "TP Premium", class: "form-label required" %>
+                <%= form.number_field :tp_premium, class: "form-control", placeholder: "0", step: 0.01, required: true, id: "tp_premium" %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <%= form.label :net_premium, "Net Premium", class: "form-label required" %>
+                <%= form.number_field :net_premium, class: "form-control", placeholder: "0", step: 0.01, required: true, id: "net_premium" %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <%= form.label :gst_percentage, "GST Amount", class: "form-label required" %>
+                <%= form.number_field :gst_percentage, class: "form-control", value: 18, step: 0.01, required: true, id: "gst_percentage" %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <%= form.label :total_premium, "Total Premium (Auto-calculated)", class: "form-label required" %>
+                <%= form.number_field :total_premium, class: "form-control", step: 0.01, required: true, readonly: true, id: "total_premium" %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Vehicle Details Section -->
+        <div class="card mb-4">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-car-front me-2"></i>3. Vehicle Details</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <%= form.label :vehicle_idv, "Vehicle IDV", class: "form-label" %>
+                <%= form.number_field :vehicle_idv, class: "form-control", placeholder: "0", step: 0.01, id: "vehicle_idv" %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <%= form.label :cng_idv, "CNG IDV", class: "form-label" %>
+                <%= form.number_field :cng_idv, class: "form-control", placeholder: "0", step: 0.01, id: "cng_idv" %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <%= form.label :total_idv, "Total IDV (Auto-calculated)", class: "form-label" %>
+                <%= form.number_field :total_idv, class: "form-control", step: 0.01, readonly: true, id: "total_idv" %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :engine_number, "Engine Number", class: "form-label" %>
+                <%= form.text_field :engine_number, class: "form-control", placeholder: "Engine Number" %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :chassis_number, "Chassis Number", class: "form-label" %>
+                <%= form.text_field :chassis_number, class: "form-control", placeholder: "Chassis Number" %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :mfy, "MFY (Year of Manufacture)", class: "form-label" %>
+                <%= form.number_field :mfy, class: "form-control", placeholder: "MFY ( Year of manufacture )", min: 1900, max: Date.current.year + 1 %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :make, "Make", class: "form-label" %>
+                <%= form.text_field :make, class: "form-control", placeholder: "Make" %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <%= form.label :model, "Model", class: "form-label" %>
+                <%= form.text_field :model, class: "form-control", placeholder: "Model" %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <%= form.label :variant, "Variant", class: "form-label" %>
+                <%= form.text_field :variant, class: "form-control", placeholder: "Variant" %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <%= form.label :seating_capacity, "Seating Capacity", class: "form-label" %>
+                <%= form.number_field :seating_capacity, class: "form-control", placeholder: "0", min: 1 %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <%= form.label :ncb, "NCB", class: "form-label" %>
+                <%= form.text_field :ncb, class: "form-control", placeholder: "NCB" %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <%= form.label :discount_loading_percent, "Discount", class: "form-label" %>
+                <%= form.number_field :discount_loading_percent, class: "form-control", placeholder: "0", step: 0.01 %>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Loading</label>
+                <input type="text" class="form-control" placeholder="Loading" readonly>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Advance Details Section -->
+        <div class="card mb-4">
+          <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0"><i class="bi bi-gear me-2"></i>4. Advance Details</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <%= form.label :reference_by_name, "Reference By Name", class: "form-label" %>
+                <%= form.text_field :reference_by_name, class: "form-control", placeholder: "Enter reference name" %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :broker_name, "Broker Name", class: "form-label" %>
+                <%= form.text_field :broker_name, class: "form-control", placeholder: "Broker Name" %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :previous_policy_number, "Previous Policy Number", class: "form-label" %>
+                <%= form.text_field :previous_policy_number, class: "form-control", placeholder: "Previous Policy Number" %>
+              </div>
+
+              <div class="col-12 mb-3">
+                <%= form.label :extra_note, "Extra Note", class: "form-label" %>
+                <%= form.text_area :extra_note, class: "form-control", rows: 3, placeholder: "Enter additional notes or comments..." %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Commission Details Section -->
+        <div class="card mb-4">
+          <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="bi bi-currency-rupee me-2"></i>5. Commission Details</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <%= form.label :payout_od, "PayOut (OD/TP/Net)", class: "form-label required" %>
+                <%= form.select :payout_od,
+                    options_for_select(@payout_options.map { |option| [option, option] }),
+                    { prompt: 'Select PayOut' },
+                    { class: "form-select", required: true } %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <h6 class="text-muted mt-2">Main Agent Commission</h6>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :main_agent_commission_percent, "Commission %", class: "form-label" %>
+                <%= form.number_field :main_agent_commission_percent, class: "form-control", step: 0.01, min: 0, max: 100, id: "commission_percentage" %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :main_agent_commission_amount, "Commission Amount (Auto-calculated)", class: "form-label" %>
+                <%= form.number_field :main_agent_commission_amount, class: "form-control", step: 0.01, readonly: true, id: "commission_amount" %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :main_agent_tds_percent, "TDS %", class: "form-label" %>
+                <%= form.number_field :main_agent_tds_percent, class: "form-control", step: 0.01, min: 0, max: 100, value: 5, id: "tds_percentage" %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :main_agent_tds_amount, "TDS Amount (Auto-calculated)", class: "form-label" %>
+                <%= form.number_field :main_agent_tds_amount, class: "form-control", step: 0.01, readonly: true, id: "tds_amount" %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :after_tds_value, "After TDS Value (Auto-calculated)", class: "form-label" %>
+                <%= form.number_field :after_tds_value, class: "form-control", step: 0.01, readonly: true, id: "after_tds_value" %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Legal Liability, Financier, Accessories, Add-Ons & Optional Covers Section -->
+        <div class="card mb-4">
+          <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="bi bi-plus-square me-2"></i>6. Legal Liability, Financier, Accessories, Add-Ons & Optional Covers</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-12 mb-4">
+                <h6 class="text-primary">Legal Liability</h6>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">No. of Persons for Legal Liability to Non-Fare Paying Passengers (Employees)</label>
+                    <input type="text" class="form-control" placeholder="No. of Persons for Legal Liability to Non-Fare Paying Passengers (Employees)">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">IMT 28 - No. of Persons for Legal Liability to Paid Driver/Cleaner/Conductor</label>
+                    <input type="text" class="form-control" placeholder="IMT 28 - No. of Persons for Legal Liability to Paid Driver/Cleaner/Conductor">
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-12 mb-4">
+                <h6 class="text-primary">Optional Covers</h6>
+                <div class="row">
+                  <div class="col-md-4 mb-2">
+                    <div class="form-check">
+                      <%= form.check_box :zero_depreciation, class: "form-check-input" %>
+                      <%= form.label :zero_depreciation, "Zero Depreciation", class: "form-check-label" %>
+                    </div>
+                  </div>
+                  <div class="col-md-4 mb-2">
+                    <div class="form-check">
+                      <%= form.check_box :roadside_assistance, class: "form-check-input" %>
+                      <%= form.label :roadside_assistance, "Roadside Assistance", class: "form-check-label" %>
+                    </div>
+                  </div>
+                  <div class="col-md-4 mb-2">
+                    <div class="form-check">
+                      <%= form.check_box :engine_protector, class: "form-check-input" %>
+                      <%= form.label :engine_protector, "Engine Protector", class: "form-check-label" %>
+                    </div>
+                  </div>
+                  <div class="col-md-4 mb-2">
+                    <div class="form-check">
+                      <%= form.check_box :key_replacement, class: "form-check-input" %>
+                      <%= form.label :key_replacement, "Key Replacement", class: "form-check-label" %>
+                    </div>
+                  </div>
+                  <div class="col-md-4 mb-2">
+                    <div class="form-check">
+                      <%= form.check_box :return_to_invoice, class: "form-check-input" %>
+                      <%= form.label :return_to_invoice, "Return to Invoice", class: "form-check-label" %>
+                    </div>
+                  </div>
+                  <div class="col-md-4 mb-2">
+                    <div class="form-check">
+                      <%= form.check_box :consumable_cover, class: "form-check-input" %>
+                      <%= form.label :consumable_cover, "Consumable", class: "form-check-label" %>
+                    </div>
+                  </div>
+                  <div class="col-md-4 mb-2">
+                    <div class="form-check">
+                      <%= form.check_box :personal_accident_cover, class: "form-check-input" %>
+                      <%= form.label :personal_accident_cover, "PA Owner Driver", class: "form-check-label" %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :financier, "Financier / HPA", class: "form-label" %>
+                <%= form.text_field :financier, class: "form-control", placeholder: "Enter financier details" %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :electrical_accessories, "Electrical Accessories", class: "form-label" %>
+                <%= form.text_field :electrical_accessories, class: "form-control", placeholder: "Enter electrical accessories" %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :non_electrical_accessories, "Non-Electrical Accessories", class: "form-label" %>
+                <%= form.text_field :non_electrical_accessories, class: "form-control", placeholder: "Enter non-electrical accessories" %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. Document Upload Section -->
+        <div class="card mb-4">
+          <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="bi bi-file-earmark-pdf me-2"></i>7. Policy & Document Upload</h5>
+          </div>
+          <div class="card-body">
+            <!-- Policy PDF Upload -->
+            <div class="mb-4">
+              <h6 class="mb-3"><i class="bi bi-file-pdf me-1"></i> Policy</h6>
+              <div class="upload-area" id="policy_upload_area">
+                <div class="upload-content text-center p-4">
+                  <i class="bi bi-file-earmark-text display-1 text-muted mb-3"></i>
+                  <p class="mb-2 text-muted">Click to upload or drag and drop</p>
+                  <button type="button" class="btn btn-primary" onclick="document.getElementById('policy_file_input').click()">Choose File</button>
+                  <%= form.file_field :policy_documents, class: "d-none", accept: ".pdf", multiple: true, id: "policy_file_input" %>
+                </div>
+              </div>
+              <div class="form-text mt-2">Upload policy documents (PDF format)</div>
+            </div>
+
+            <!-- Upload Documents Section -->
+            <div class="mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Upload Documents</h6>
+                <button type="button" id="add_document" class="btn btn-primary">
+                  <i class="bi bi-plus me-1"></i>Add Document
+                </button>
+              </div>
+
+              <div id="additional_documents">
+                <!-- Initial document row -->
+                <div class="document-upload-row border rounded p-3 mb-3">
+                  <div class="row align-items-end">
+                    <div class="col-md-4">
+                      <label class="form-label">Document Type</label>
+                      <select name="document_types[]" class="form-select">
+                        <option value="">Select Document Type</option>
+                        <option value="RC Copy">RC Copy</option>
+                        <option value="Previous Policy">Previous Policy</option>
+                        <option value="DL">DL</option>
+                        <option value="PAN/Aadhaar">PAN/Aadhaar</option>
+                        <option value="Payment Receipt">Payment Receipt</option>
+                        <option value="Loan Docs">Loan Docs</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Document File</label>
+                      <div class="file-input-wrapper">
+                        <input type="file" name="additional_documents[]" class="form-control">
+                        <span class="file-status text-muted">No file chosen</span>
+                      </div>
+                    </div>
+                    <div class="col-md-2">
+                      <button type="button" class="btn btn-outline-danger remove-document-btn w-100">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <%= link_to admin_motor_insurances_path, class: "btn btn-outline-secondary" do %>
+                <i class="bi bi-x-lg me-1"></i>Cancel
+              <% end %>
+              <%= form.submit "Create Motor Insurance", class: "btn btn-primary btn-lg" %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="col-lg-4">
+        <!-- Summary Card -->
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h6 class="mb-0"><i class="bi bi-calculator me-2"></i>Premium Summary</h6>
+          </div>
+          <div class="card-body">
+            <div class="row text-center">
+              <div class="col-6 border-end">
+                <h5 class="text-primary mb-1">₹<span id="summary_net_premium">0</span></h5>
+                <small class="text-muted">Net Premium</small>
+              </div>
+              <div class="col-6">
+                <h5 class="text-success mb-1">₹<span id="summary_total_premium">0</span></h5>
+                <small class="text-muted">Total Premium</small>
+              </div>
+            </div>
+            <hr>
+            <div class="row text-center">
+              <div class="col-6 border-end">
+                <h6 class="text-warning mb-1">₹<span id="summary_commission">0</span></h6>
+                <small class="text-muted">Commission</small>
+              </div>
+              <div class="col-6">
+                <h6 class="text-info mb-1">₹<span id="summary_after_tds">0</span></h6>
+                <small class="text-muted">After TDS</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Help Card -->
+        <div class="card">
+          <div class="card-header bg-info text-white">
+            <h6 class="mb-0"><i class="bi bi-question-circle me-2"></i>Quick Guide</h6>
+          </div>
+          <div class="card-body">
+            <div class="help-step">
+              <strong>Step 1:</strong> Select client and policy details
+            </div>
+            <div class="help-step">
+              <strong>Step 2:</strong> Enter vehicle information
+            </div>
+            <div class="help-step">
+              <strong>Step 3:</strong> Configure commission details
+            </div>
+            <div class="help-step">
+              <strong>Step 4:</strong> Select additional covers
+            </div>
+            <div class="help-step">
+              <strong>Step 5:</strong> Upload policy documents
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<style>
+.required::after {
+  content: " *";
+  color: red;
+}
+
+.help-step {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.help-step:last-child {
+  border-bottom: none;
+}
+
+.upload-area {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+  min-height: 150px;
+}
+
+.upload-area:hover {
+  border-color: #007bff;
+  background-color: #e3f2fd;
+}
+
+.upload-area.dragover {
+  border-color: #007bff;
+  background-color: #e3f2fd;
+  border-style: solid;
+}
+
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.file-input-wrapper {
+  position: relative;
+}
+
+.file-status {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 0.9em;
+}
+
+.document-upload-row {
+  background-color: #f8f9fa;
+}
+
+.tp-premium-field {
+  display: none;
+}
+
+.tp-premium-field.show {
+  display: block;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Auto-calculation functions
+  function calculateTotalPremium() {
+    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+    const gstPercentage = parseFloat(document.getElementById('gst_percentage').value) || 0;
+
+    const gstAmount = netPremium * (gstPercentage / 100);
+    const totalPremium = netPremium + gstAmount;
+
+    document.getElementById('total_premium').value = totalPremium.toFixed(2);
+    document.getElementById('summary_net_premium').textContent = netPremium.toLocaleString();
+    document.getElementById('summary_total_premium').textContent = totalPremium.toLocaleString();
+
+    calculateCommission();
+  }
+
+  function calculateCommission() {
+    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+    const commissionPercentage = parseFloat(document.getElementById('commission_percentage').value) || 0;
+
+    const commissionAmount = netPremium * (commissionPercentage / 100);
+    document.getElementById('commission_amount').value = commissionAmount.toFixed(2);
+    document.getElementById('summary_commission').textContent = commissionAmount.toLocaleString();
+
+    calculateTDS();
+  }
+
+  function calculateTDS() {
+    const commissionAmount = parseFloat(document.getElementById('commission_amount').value) || 0;
+    const tdsPercentage = parseFloat(document.getElementById('tds_percentage').value) || 0;
+
+    const tdsAmount = commissionAmount * (tdsPercentage / 100);
+    const afterTdsValue = commissionAmount - tdsAmount;
+
+    document.getElementById('tds_amount').value = tdsAmount.toFixed(2);
+    document.getElementById('after_tds_value').value = afterTdsValue.toFixed(2);
+    document.getElementById('summary_after_tds').textContent = afterTdsValue.toLocaleString();
+  }
+
+  function calculateTotalIDV() {
+    const vehicleIDV = parseFloat(document.getElementById('vehicle_idv').value) || 0;
+    const cngIDV = parseFloat(document.getElementById('cng_idv').value) || 0;
+    const totalIDV = vehicleIDV + cngIDV;
+
+    document.getElementById('total_idv').value = totalIDV.toFixed(2);
+  }
+
+  // Event listeners for auto-calculations
+  document.getElementById('net_premium').addEventListener('input', calculateTotalPremium);
+  document.getElementById('gst_percentage').addEventListener('input', calculateTotalPremium);
+  document.getElementById('commission_percentage').addEventListener('input', calculateCommission);
+  document.getElementById('tds_percentage').addEventListener('input', calculateTDS);
+  document.getElementById('vehicle_idv').addEventListener('input', calculateTotalIDV);
+  document.getElementById('cng_idv').addEventListener('input', calculateTotalIDV);
+
+  // Show/Hide TP Premium based on insurance type
+  document.getElementById('insurance_type_select').addEventListener('change', function() {
+    const insuranceType = this.value;
+    const tpPremiumField = document.querySelector('.tp-premium-field');
+
+    if (insuranceType === 'Third Party') {
+      tpPremiumField.classList.add('show');
+      document.getElementById('tp_premium').required = true;
+    } else {
+      tpPremiumField.classList.remove('show');
+      document.getElementById('tp_premium').required = false;
+      document.getElementById('tp_premium').value = 0;
+    }
+  });
+
+  // Customer selection and policy holder options
+  document.getElementById('customer_select').addEventListener('change', function() {
+    const customerId = this.value;
+    const policyHolderSelect = document.getElementById('policy_holder_select');
+
+    // Clear existing options except first one
+    policyHolderSelect.innerHTML = '<option value="Self">Self</option>';
+
+    if (customerId) {
+      fetch(`/admin/motor_insurances/policy_holder_options?customer_id=${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+          data.options.forEach(option => {
+            if (option[1] !== 'Self') {
+              const optionElement = document.createElement('option');
+              optionElement.value = option[1];
+              optionElement.textContent = option[0];
+              policyHolderSelect.appendChild(optionElement);
+            }
+          });
+        })
+        .catch(error => console.error('Error fetching policy holder options:', error));
+    }
+  });
+
+  // Auto-set policy end date based on start date (default 1 year)
+  document.getElementById('policy_start_date').addEventListener('change', function() {
+    const startDate = new Date(this.value);
+    const endDate = new Date(startDate);
+    endDate.setFullYear(endDate.getFullYear() + 1);
+    endDate.setDate(endDate.getDate() - 1); // End date is one day before renewal
+
+    document.getElementById('policy_end_date').value = endDate.toISOString().split('T')[0];
+  });
+
+  // File upload drag and drop functionality
+  const policyUploadArea = document.getElementById('policy_upload_area');
+  const policyFileInput = document.getElementById('policy_file_input');
+
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    policyUploadArea.addEventListener(eventName, preventDefaults, false);
+  });
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    policyUploadArea.addEventListener(eventName, () => policyUploadArea.classList.add('dragover'), false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    policyUploadArea.addEventListener(eventName, () => policyUploadArea.classList.remove('dragover'), false);
+  });
+
+  policyUploadArea.addEventListener('drop', function(e) {
+    const files = e.dataTransfer.files;
+    policyFileInput.files = files;
+    updateUploadText(files.length);
+  });
+
+  policyFileInput.addEventListener('change', function() {
+    updateUploadText(this.files.length);
+  });
+
+  function updateUploadText(fileCount) {
+    const uploadContent = policyUploadArea.querySelector('.upload-content p');
+    if (fileCount > 0) {
+      uploadContent.textContent = `${fileCount} file(s) selected`;
+    } else {
+      uploadContent.textContent = 'Click to upload or drag and drop';
+    }
+  }
+
+  // File status update for document inputs
+  document.addEventListener('change', function(e) {
+    if (e.target.type === 'file' && e.target.name === 'additional_documents[]') {
+      const fileStatus = e.target.closest('.file-input-wrapper').querySelector('.file-status');
+      if (e.target.files.length > 0) {
+        fileStatus.textContent = e.target.files[0].name;
+        fileStatus.classList.remove('text-muted');
+        fileStatus.classList.add('text-success');
+      } else {
+        fileStatus.textContent = 'No file chosen';
+        fileStatus.classList.remove('text-success');
+        fileStatus.classList.add('text-muted');
+      }
+    }
+  });
+
+  // Dynamic document upload management
+  let documentIndex = 1;
+
+  document.getElementById('add_document').addEventListener('click', function() {
+    const documentTemplate = `
+      <div class="document-upload-row border rounded p-3 mb-3">
+        <div class="row align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">Document Type</label>
+            <select name="document_types[]" class="form-select">
+              <option value="">Select Document Type</option>
+              <option value="RC Copy">RC Copy</option>
+              <option value="Previous Policy">Previous Policy</option>
+              <option value="DL">DL</option>
+              <option value="PAN/Aadhaar">PAN/Aadhaar</option>
+              <option value="Payment Receipt">Payment Receipt</option>
+              <option value="Loan Docs">Loan Docs</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Document File</label>
+            <div class="file-input-wrapper">
+              <input type="file" name="additional_documents[]" class="form-control">
+              <span class="file-status text-muted">No file chosen</span>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <button type="button" class="btn btn-outline-danger remove-document-btn w-100">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('additional_documents').insertAdjacentHTML('beforeend', documentTemplate);
+    documentIndex++;
+  });
+
+  // Remove document row
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-document-btn')) {
+      e.target.closest('.document-upload-row').remove();
+    }
+  });
+
+  // Initial calculations
+  calculateTotalPremium();
+  calculateTotalIDV();
+});
+</script>

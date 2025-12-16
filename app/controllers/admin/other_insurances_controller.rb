@@ -11,11 +11,11 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
 
   def new
     @other_insurance = Policy.new(insurance_type: 'other')
-    @customers = Customer.active.order(:first_name)
+    load_form_data
   end
 
   def edit
-    @customers = Customer.active.order(:first_name)
+    load_form_data
   end
 
   def create
@@ -51,12 +51,15 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     @other_insurance = Policy.where(insurance_type: 'other').find(params[:id])
   end
 
+  def load_form_data
+    @customers = Customer.active.order(:first_name)
+  end
+
   def other_insurance_params
     params.require(:policy).permit(
       :customer_id, :insurance_company_id, :policy_number, :policy_type,
-      :sum_insured, :premium_amount, :total_premium, :premium_frequency,
-      :start_date, :end_date, :nominee_name, :nominee_relation, :status,
-      :additional_details
+      :sum_insured, :net_premium, :total_premium, :payment_mode, :gst_percentage,
+      :policy_start_date, :policy_end_date, :policy_booking_date, :status, :note
     )
   end
 end

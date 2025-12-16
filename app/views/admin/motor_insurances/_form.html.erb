@@ -1,0 +1,569 @@
+<%= form_with model: [:admin, @motor_insurance], local: true, class: "needs-validation", novalidate: true do |form| %>
+
+  <!-- Client & Agent Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-person me-2 text-primary"></i>
+        Client & Agent Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <% if @motor_insurance.errors.any? %>
+        <div class="alert alert-danger alert-dismissible fade show">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Please correct the following errors:</strong>
+          <ul class="mb-0 mt-2">
+            <% @motor_insurance.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :customer_id, "Client Name*", class: "form-label" %>
+          <%= form.select :customer_id,
+              options_for_select([['Select Client', '']] + @customers.map { |c| [c.display_name, c.id] }, @motor_insurance.customer_id),
+              { prompt: 'Select Client' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:customer_id].any?}", required: true, id: "customer_select" } %>
+          <% if @motor_insurance.errors[:customer_id].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:customer_id].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_holder, "Policy Holder*", class: "form-label" %>
+          <%= form.select :policy_holder,
+              options_for_select([['Self', 'Self']], @motor_insurance.policy_holder),
+              { prompt: 'Select Policy Holder' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:policy_holder].any?}", required: true, id: "policy_holder_select" } %>
+          <% if @motor_insurance.errors[:policy_holder].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:policy_holder].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :sub_agent_id, "Sub Agent", class: "form-label" %>
+          <%= form.select :sub_agent_id,
+              options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, @motor_insurance.sub_agent_id),
+              { prompt: 'Self' },
+              { class: "form-control" } %>
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <%= form.label :reference_by_name, "Reference By", class: "form-label" %>
+          <%= form.text_field :reference_by_name,
+              class: "form-control",
+              placeholder: "Enter reference name" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vehicle Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-car-front me-2 text-success"></i>
+        Vehicle Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :registration_number, "Registration Number*", class: "form-label" %>
+          <%= form.text_field :registration_number,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:registration_number].any?}",
+              placeholder: "e.g., KA01AB1234",
+              required: true %>
+          <% if @motor_insurance.errors[:registration_number].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:registration_number].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :vehicle_type, "Vehicle Type*", class: "form-label" %>
+          <%= form.select :vehicle_type,
+              options_for_select(@vehicle_types.map { |v| [v, v] }, @motor_insurance.vehicle_type),
+              { prompt: 'Select Vehicle Type' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:vehicle_type].any?}", required: true } %>
+          <% if @motor_insurance.errors[:vehicle_type].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:vehicle_type].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :class_of_vehicle, "Class of Vehicle*", class: "form-label" %>
+          <%= form.select :class_of_vehicle,
+              options_for_select(@class_of_vehicles.map { |c| [c, c] }, @motor_insurance.class_of_vehicle),
+              { prompt: 'Select Class' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:class_of_vehicle].any?}", required: true } %>
+          <% if @motor_insurance.errors[:class_of_vehicle].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:class_of_vehicle].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :registration_date, "Registration Date", class: "form-label" %>
+          <%= form.date_field :registration_date, class: "form-control" %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :make, "Make", class: "form-label" %>
+          <%= form.text_field :make, class: "form-control", placeholder: "e.g., Maruti Suzuki" %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :model, "Model", class: "form-label" %>
+          <%= form.text_field :model, class: "form-control", placeholder: "e.g., Swift" %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :variant, "Variant", class: "form-label" %>
+          <%= form.text_field :variant, class: "form-control", placeholder: "e.g., VDI" %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :mfy, "Manufacturing Year", class: "form-label" %>
+          <%= form.number_field :mfy, class: "form-control", placeholder: "e.g., 2023" %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :seating_capacity, "Seating Capacity", class: "form-label" %>
+          <%= form.number_field :seating_capacity, class: "form-control", placeholder: "e.g., 5" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :engine_number, "Engine Number", class: "form-label" %>
+          <%= form.text_field :engine_number, class: "form-control", placeholder: "Enter engine number" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :chassis_number, "Chassis Number", class: "form-label" %>
+          <%= form.text_field :chassis_number, class: "form-control", placeholder: "Enter chassis number" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Policy Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-file-text me-2 text-primary"></i>
+        Policy Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :insurance_company_name, "Insurance Company*", class: "form-label" %>
+          <%= form.select :insurance_company_name,
+              options_for_select([['Select Company', '']] + @insurance_companies.map { |c| [c, c] }, @motor_insurance.insurance_company_name),
+              { prompt: 'Select Company' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:insurance_company_name].any?}", required: true } %>
+          <% if @motor_insurance.errors[:insurance_company_name].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:insurance_company_name].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
+          <%= form.select :agency_code_id,
+              options_for_select([['Select Agency Code', '']] + @agency_codes.map { |a| ["#{a.code}", a.id] }, @motor_insurance.agency_code_id),
+              { prompt: 'Select Agency Code' },
+              { class: "form-control" } %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :broker_id, "Broker", class: "form-label" %>
+          <%= form.select :broker_id,
+              options_for_select([['Select Broker', '']] + @brokers.map { |b| [b.name, b.id] }, @motor_insurance.broker_id),
+              { prompt: 'Select Broker' },
+              { class: "form-control" } %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :insurance_type, "Insurance Type*", class: "form-label" %>
+          <%= form.select :insurance_type,
+              options_for_select(@insurance_types.map { |i| [i, i] }, @motor_insurance.insurance_type),
+              { prompt: 'Select Insurance Type' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:insurance_type].any?}", required: true } %>
+          <% if @motor_insurance.errors[:insurance_type].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:insurance_type].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_type, "Policy Type", class: "form-label" %>
+          <%= form.select :policy_type,
+              options_for_select(@policy_types.map { |p| [p, p] }, @motor_insurance.policy_type),
+              { prompt: 'Select Policy Type' },
+              { class: "form-control" } %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_number, "Policy Number*", class: "form-label" %>
+          <%= form.text_field :policy_number,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:policy_number].any?}",
+              placeholder: "Enter policy number",
+              required: true %>
+          <% if @motor_insurance.errors[:policy_number].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:policy_number].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_booking_date, "Policy Booking Date*", class: "form-label" %>
+          <%= form.date_field :policy_booking_date,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:policy_booking_date].any?}",
+              required: true %>
+          <% if @motor_insurance.errors[:policy_booking_date].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:policy_booking_date].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_start_date, "Policy Start Date*", class: "form-label" %>
+          <%= form.date_field :policy_start_date,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:policy_start_date].any?}",
+              required: true %>
+          <% if @motor_insurance.errors[:policy_start_date].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:policy_start_date].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_end_date, "Policy End Date*", class: "form-label" %>
+          <%= form.date_field :policy_end_date,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:policy_end_date].any?}",
+              required: true %>
+          <% if @motor_insurance.errors[:policy_end_date].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:policy_end_date].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <%= form.label :previous_policy_number, "Previous Policy Number", class: "form-label" %>
+          <%= form.text_field :previous_policy_number,
+              class: "form-control",
+              placeholder: "Enter previous policy number (for renewals)" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Premium & Coverage Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-currency-rupee me-2 text-info"></i>
+        Premium & Coverage Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :vehicle_idv, "Vehicle IDV*", class: "form-label" %>
+          <%= form.number_field :vehicle_idv,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:vehicle_idv].any?}",
+              placeholder: "Enter vehicle IDV",
+              step: 0.01,
+              required: true %>
+          <% if @motor_insurance.errors[:vehicle_idv].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:vehicle_idv].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :cng_idv, "CNG IDV", class: "form-label" %>
+          <%= form.number_field :cng_idv,
+              class: "form-control",
+              placeholder: "Enter CNG IDV (if applicable)",
+              step: 0.01 %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :total_idv, "Total IDV", class: "form-label" %>
+          <%= form.number_field :total_idv,
+              class: "form-control",
+              placeholder: "Total IDV (auto-calculated)",
+              step: 0.01,
+              readonly: true %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :sum_insured, "Sum Insured", class: "form-label" %>
+          <%= form.number_field :sum_insured,
+              class: "form-control",
+              placeholder: "Enter sum insured",
+              step: 0.01 %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :tp_premium, "Third Party Premium*", class: "form-label" %>
+          <%= form.number_field :tp_premium,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:tp_premium].any?}",
+              placeholder: "Enter TP premium",
+              step: 0.01,
+              required: true %>
+          <% if @motor_insurance.errors[:tp_premium].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:tp_premium].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :net_premium, "Net Premium*", class: "form-label" %>
+          <%= form.number_field :net_premium,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:net_premium].any?}",
+              placeholder: "Enter net premium",
+              step: 0.01,
+              required: true %>
+          <% if @motor_insurance.errors[:net_premium].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:net_premium].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :gst_percentage, "GST Percentage*", class: "form-label" %>
+          <%= form.number_field :gst_percentage,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:gst_percentage].any?}",
+              placeholder: "Enter GST percentage",
+              step: 0.01,
+              required: true %>
+          <% if @motor_insurance.errors[:gst_percentage].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:gst_percentage].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :total_premium, "Total Premium", class: "form-label" %>
+          <%= form.number_field :total_premium,
+              class: "form-control",
+              placeholder: "Total premium (auto-calculated)",
+              step: 0.01,
+              readonly: true %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :ncb, "NCB (%)", class: "form-label" %>
+          <%= form.number_field :ncb,
+              class: "form-control",
+              placeholder: "No Claim Bonus percentage",
+              step: 0.01 %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :discount_loading_percent, "Discount/Loading (%)", class: "form-label" %>
+          <%= form.number_field :discount_loading_percent,
+              class: "form-control",
+              placeholder: "Discount or loading percentage",
+              step: 0.01 %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Optional Covers Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-shield-plus me-2 text-success"></i>
+        Optional Covers
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <div class="form-check">
+            <%= form.check_box :zero_depreciation, class: "form-check-input" %>
+            <%= form.label :zero_depreciation, "Zero Depreciation Cover", class: "form-check-label" %>
+          </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <div class="form-check">
+            <%= form.check_box :roadside_assistance, class: "form-check-input" %>
+            <%= form.label :roadside_assistance, "Roadside Assistance", class: "form-check-label" %>
+          </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <div class="form-check">
+            <%= form.check_box :engine_protector, class: "form-check-input" %>
+            <%= form.label :engine_protector, "Engine Protection Cover", class: "form-check-label" %>
+          </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <div class="form-check">
+            <%= form.check_box :key_replacement, class: "form-check-input" %>
+            <%= form.label :key_replacement, "Key Replacement Cover", class: "form-check-label" %>
+          </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <div class="form-check">
+            <%= form.check_box :return_to_invoice, class: "form-check-input" %>
+            <%= form.label :return_to_invoice, "Return to Invoice Cover", class: "form-check-label" %>
+          </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <div class="form-check">
+            <%= form.check_box :consumable_cover, class: "form-check-input" %>
+            <%= form.label :consumable_cover, "Consumable Cover", class: "form-check-label" %>
+          </div>
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <%= form.label :personal_accident_cover, "Personal Accident Cover Amount", class: "form-label" %>
+          <%= form.number_field :personal_accident_cover,
+              class: "form-control",
+              placeholder: "Enter PA cover amount",
+              step: 0.01 %>
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <%= form.label :legal_liability, "Legal Liability Amount", class: "form-label" %>
+          <%= form.number_field :legal_liability,
+              class: "form-control",
+              placeholder: "Enter legal liability amount",
+              step: 0.01 %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :electrical_accessories, "Electrical Accessories Value", class: "form-label" %>
+          <%= form.number_field :electrical_accessories,
+              class: "form-control",
+              placeholder: "Enter electrical accessories value",
+              step: 0.01 %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :non_electrical_accessories, "Non-Electrical Accessories Value", class: "form-label" %>
+          <%= form.number_field :non_electrical_accessories,
+              class: "form-control",
+              placeholder: "Enter non-electrical accessories value",
+              step: 0.01 %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Additional Information Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-info-circle me-2 text-warning"></i>
+        Additional Information
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :financier, "Financier", class: "form-label" %>
+          <%= form.text_field :financier,
+              class: "form-control",
+              placeholder: "Enter financier name (if vehicle is financed)" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :broker_name, "Broker Name", class: "form-label" %>
+          <%= form.text_field :broker_name,
+              class: "form-control",
+              placeholder: "Enter broker name" %>
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <%= form.label :extra_note, "Additional Notes", class: "form-label" %>
+          <%= form.text_area :extra_note,
+              class: "form-control",
+              rows: 3,
+              placeholder: "Enter any additional notes or comments" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Actions -->
+  <div class="d-flex justify-content-between">
+    <%= link_to admin_motor_insurances_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-2"></i>
+      Cancel
+    <% end %>
+
+    <%= form.submit (@motor_insurance.persisted? ? "Update Motor Policy" : "Create Motor Policy"),
+        class: "btn btn-primary" %>
+  </div>
+
+<% end %>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Auto-calculate total IDV
+  const vehicleIdv = document.querySelector('#motor_insurance_vehicle_idv');
+  const cngIdv = document.querySelector('#motor_insurance_cng_idv');
+  const totalIdv = document.querySelector('#motor_insurance_total_idv');
+
+  function calculateTotalIdv() {
+    const vehicle = parseFloat(vehicleIdv.value) || 0;
+    const cng = parseFloat(cngIdv.value) || 0;
+    totalIdv.value = vehicle + cng;
+  }
+
+  if (vehicleIdv && cngIdv && totalIdv) {
+    vehicleIdv.addEventListener('input', calculateTotalIdv);
+    cngIdv.addEventListener('input', calculateTotalIdv);
+  }
+
+  // Auto-calculate total premium
+  const netPremium = document.querySelector('#motor_insurance_net_premium');
+  const gstPercentage = document.querySelector('#motor_insurance_gst_percentage');
+  const totalPremium = document.querySelector('#motor_insurance_total_premium');
+
+  function calculateTotalPremium() {
+    const net = parseFloat(netPremium.value) || 0;
+    const gst = parseFloat(gstPercentage.value) || 0;
+    const gstAmount = net * (gst / 100);
+    totalPremium.value = (net + gstAmount).toFixed(2);
+  }
+
+  if (netPremium && gstPercentage && totalPremium) {
+    netPremium.addEventListener('input', calculateTotalPremium);
+    gstPercentage.addEventListener('input', calculateTotalPremium);
+  }
+
+  // Customer selection change handler for policy holder options
+  const customerSelect = document.querySelector('#customer_select');
+  const policyHolderSelect = document.querySelector('#policy_holder_select');
+
+  if (customerSelect && policyHolderSelect) {
+    customerSelect.addEventListener('change', function() {
+      const customerId = this.value;
+      if (customerId) {
+        // Fetch policy holder options for selected customer
+        fetch(`/admin/motor_insurances/policy_holder_options?customer_id=${customerId}`)
+          .then(response => response.json())
+          .then(data => {
+            policyHolderSelect.innerHTML = '<option value="">Select Policy Holder</option>';
+            data.options.forEach(option => {
+              const optionElement = document.createElement('option');
+              optionElement.value = option.value;
+              optionElement.textContent = option.label;
+              policyHolderSelect.appendChild(optionElement);
+            });
+          })
+          .catch(error => {
+            console.error('Error fetching policy holder options:', error);
+          });
+      } else {
+        policyHolderSelect.innerHTML = '<option value="">Select Policy Holder</option>';
+      }
+    });
+  }
+});
+</script>

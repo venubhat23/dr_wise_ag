@@ -26,13 +26,38 @@
         </h5>
       </div>
       <div class="card-body">
+        <!-- Company Expenses Percentage Setting -->
+        <%= form_with url: admin_settings_system_path, method: :patch, local: true, class: "mb-4" do |form| %>
+          <div class="row align-items-end">
+            <div class="col-md-4">
+              <label for="company_expenses_percentage" class="form-label">
+                <i class="bi bi-percent me-1"></i>
+                Company Expenses Percentage
+              </label>
+              <%= form.number_field :company_expenses_percentage,
+                    value: @company_expenses_percentage,
+                    step: 0.1,
+                    min: 0,
+                    max: 100,
+                    class: "form-control",
+                    placeholder: "Enter percentage (e.g., 2.5)" %>
+              <div class="form-text">Enter percentage value between 0 and 100</div>
+            </div>
+            <div class="col-md-3">
+              <%= form.submit "Update", class: "btn btn-primary" %>
+            </div>
+          </div>
+        <% end %>
+
+        <hr class="my-4">
+
         <div class="alert alert-info">
           <h6 class="alert-heading">
             <i class="bi bi-info-circle me-2"></i>
-            Coming Soon
+            Additional Settings
           </h6>
           <p class="mb-0">
-            System settings configuration will be available in the next update.
+            More system settings configuration will be available in the next update.
             For now, you can manage User Roles from the Settings menu.
           </p>
         </div>

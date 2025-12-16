@@ -1,5 +1,5 @@
 class Admin::LifeInsurancesController < Admin::ApplicationController
-  before_action :set_life_insurance, only: [:show, :edit, :update, :destroy, :remove_rider]
+  before_action :set_life_insurance, only: [:show, :edit, :update, :destroy, :remove_rider, :commission_details]
 
   # GET /admin/insurance/life
   def index
@@ -119,6 +119,11 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
                 notice: "#{rider_type.humanize} rider information removed successfully."
   end
 
+  # GET /admin/insurance/life/1/commission_details
+  def commission_details
+    # This will render the commission details view
+  end
+
   private
 
   def set_life_insurance
@@ -128,6 +133,8 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
   def set_form_data
     @customers = Customer.active.order(:first_name, :last_name, :company_name)
     @sub_agents = SubAgent.active.order(:first_name, :last_name)
+    @distributors = Distributor.active.order(:first_name, :last_name)
+    @investors = Investor.active.order(:first_name, :last_name)
     @agency_codes = AgencyCode.where(insurance_type: 'Life')
     @brokers = Broker.active.order(:name)
     @insurance_companies = InsuranceCompanyHelper.company_names
@@ -140,7 +147,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
   def life_insurance_params
     params.require(:life_insurance).permit(
-      :customer_id, :sub_agent_id, :agency_code_id, :broker_id,
+      :customer_id, :sub_agent_id, :distributor_id, :investor_id, :agency_code_id, :broker_id,
       :policy_holder, :insured_name, :insurance_company_name, :policy_type,
       :payment_mode, :policy_number, :policy_booking_date, :policy_start_date,
       :policy_end_date, :risk_start_date, :policy_term, :premium_payment_term,
@@ -155,6 +162,14 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       :main_agent_commission_percentage, :commission_amount, :tds_percentage,
       :tds_amount, :after_tds_value, :installment_autopay_start_date,
       :installment_autopay_end_date, :active,
+      # New commission fields
+      :sub_agent_commission_percentage, :sub_agent_tds_percentage,
+      :distributor_commission_percentage, :distributor_tds_percentage,
+      :investor_commission_percentage, :investor_tds_percentage,
+      :main_income_percentage,
+      # Company expenses and profit fields
+      :company_expenses_percentage, :total_distribution_percentage,
+      :profit_percentage, :profit_amount,
       policy_documents: [], documents: []
     )
   end

@@ -1,8 +1,40 @@
 class Admin::MotorInsurancesController < Admin::ApplicationController
   before_action :set_motor_insurance, only: [:show, :edit, :update, :destroy]
+  before_action :load_form_data, only: [:new, :edit, :create, :update]
 
   def index
-    @motor_insurances = Policy.where(insurance_type: 'motor').includes(:customer, :insurance_company)
+    @motor_insurances = MotorInsurance.includes(:customer, :sub_agent, :agency_code, :broker)
+
+    # Search functionality
+    if params[:search].present?
+      @motor_insurances = @motor_insurances.search_motor_policies(params[:search])
+    end
+
+    # Filter by status
+    case params[:status]
+    when 'active'
+      @motor_insurances = @motor_insurances.active
+    when 'expired'
+      @motor_insurances = @motor_insurances.expired
+    when 'expiring_soon'
+      @motor_insurances = @motor_insurances.expiring_soon
+    end
+
+    # Filter by insurance type
+    if params[:insurance_type].present?
+      @motor_insurances = @motor_insurances.where(insurance_type: params[:insurance_type])
+    end
+
+    # Filter by policy type
+    if params[:policy_type].present?
+      @motor_insurances = @motor_insurances.where(policy_type: params[:policy_type])
+    end
+
+    # Filter by insurance company
+    if params[:company].present?
+      @motor_insurances = @motor_insurances.where(insurance_company_name: params[:company])
+    end
+
     @motor_insurances = @motor_insurances.order(created_at: :desc).page(params[:page])
   end
 
@@ -10,23 +42,25 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   end
 
   def new
-    @motor_insurance = Policy.new(insurance_type: 'motor')
-    @customers = Customer.active.order(:first_name)
+    @motor_insurance = MotorInsurance.new(
+      policy_booking_date: Date.current,
+      policy_start_date: Date.current,
+      policy_end_date: Date.current + 1.year,
+      gst_percentage: 18.0,
+      is_admin_added: true
+    )
   end
 
   def edit
-    @customers = Customer.active.order(:first_name)
   end
 
   def create
-    @motor_insurance = Policy.new(motor_insurance_params)
-    @motor_insurance.insurance_type = 'motor'
-    @motor_insurance.user = current_user
+    @motor_insurance = MotorInsurance.new(motor_insurance_params)
+    @motor_insurance.is_admin_added = true
 
     if @motor_insurance.save
       redirect_to admin_motor_insurance_path(@motor_insurance), notice: 'Motor insurance policy was successfully created.'
     else
-      @customers = Customer.active.order(:first_name)
       render :new, status: :unprocessable_entity
     end
   end
@@ -35,7 +69,6 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     if @motor_insurance.update(motor_insurance_params)
       redirect_to admin_motor_insurance_path(@motor_insurance), notice: 'Motor insurance policy was successfully updated.'
     else
-      @customers = Customer.active.order(:first_name)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -45,18 +78,63 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     redirect_to admin_motor_insurances_path, notice: 'Motor insurance policy was successfully deleted.'
   end
 
+  def policy_holder_options
+    customer = Customer.find(params[:customer_id]) if params[:customer_id].present?
+    options = [['Self', 'Self']]
+    if customer&.family_members&.any?
+      customer.family_members.each do |member|
+        options << [member.full_name, member.id.to_s]
+      end
+    end
+    render json: { options: options }
+  end
+
   private
 
   def set_motor_insurance
-    @motor_insurance = Policy.where(insurance_type: 'motor').find(params[:id])
+    @motor_insurance = MotorInsurance.find(params[:id])
+  end
+
+  def load_form_data
+    @customers = Customer.active.order(:first_name, :last_name)
+    @sub_agents = SubAgent.active.order(:first_name, :last_name)
+    @agency_codes = AgencyCode.all.order(:code)
+    @brokers = Broker.active.order(:name)
+    @insurance_companies = MotorInsurance.insurance_company_names
+    @vehicle_types = MotorInsurance::VEHICLE_TYPES
+    @class_of_vehicles = MotorInsurance::CLASS_OF_VEHICLES
+    @insurance_types = MotorInsurance::INSURANCE_TYPES
+    @policy_types = MotorInsurance::POLICY_TYPES
+    @payout_options = MotorInsurance::PAYOUT_OPTIONS
   end
 
   def motor_insurance_params
-    params.require(:policy).permit(
-      :customer_id, :insurance_company_id, :policy_number, :policy_type,
-      :sum_insured, :premium_amount, :total_premium, :premium_frequency,
-      :start_date, :end_date, :nominee_name, :nominee_relation, :status,
-      :additional_details
+    params.require(:motor_insurance).permit(
+      # Client & Agent Details
+      :customer_id, :policy_holder, :sub_agent_id, :reference_by_name,
+
+      # Policy Details
+      :insurance_company_name, :agency_code_id, :broker_id, :vehicle_type,
+      :class_of_vehicle, :insurance_type, :policy_type, :policy_booking_date,
+      :policy_start_date, :policy_end_date, :policy_number, :registration_number,
+      :registration_date, :tp_premium, :net_premium, :gst_percentage, :total_premium,
+
+      # Vehicle Details
+      :vehicle_idv, :cng_idv, :total_idv, :engine_number, :chassis_number,
+      :mfy, :make, :model, :variant, :seating_capacity, :ncb, :discount_loading_percent,
+
+      # Advance Details
+      :broker_name, :previous_policy_number, :extra_note,
+
+      # Commission Details
+      :payout_od, :payout_tp, :payout_net, :main_agent_commission_percent,
+      :main_agent_commission_amount, :main_agent_tds_percent, :main_agent_tds_amount,
+      :after_tds_value,
+
+      # Legal Liability & Optional Covers
+      :legal_liability, :electrical_accessories, :non_electrical_accessories,
+      :zero_depreciation, :roadside_assistance, :engine_protector, :key_replacement,
+      :return_to_invoice, :consumable_cover, :personal_accident_cover, :financier
     )
   end
 end

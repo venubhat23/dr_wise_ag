@@ -48,6 +48,20 @@ Rails.application.routes.draw do
       end
     end
 
+    # Distributor management
+    resources :distributors do
+      member do
+        patch :toggle_status
+      end
+    end
+
+    # Investor management
+    resources :investors do
+      member do
+        patch :toggle_status
+      end
+    end
+
     # Customer management
     resources :customers do
       member do
@@ -71,6 +85,10 @@ Rails.application.routes.draw do
       collection do
         get :policy_holder_options
       end
+      member do
+        get :commission_details
+        patch :remove_rider
+      end
     end
 
     # Health Insurance
@@ -81,7 +99,11 @@ Rails.application.routes.draw do
     end
 
     # Motor Insurance
-    resources :motor_insurances, path: 'insurance/motor'
+    resources :motor_insurances, path: 'insurance/motor' do
+      collection do
+        get :policy_holder_options
+      end
+    end
 
     # Other Insurance
     resources :other_insurances, path: 'insurance/other'
@@ -182,6 +204,8 @@ Rails.application.routes.draw do
 
       # System settings (placeholder for future expansion)
       get :system, to: 'system#index'
+      patch :system, to: 'system#update'
+      put :system, to: 'system#update'
     end
   end
 
@@ -227,6 +251,11 @@ Rails.application.routes.draw do
         post 'agent/policies/motor', to: 'agent#add_motor_policy'
         post 'agent/policies/other', to: 'agent#add_other_policy'
         get 'agent/form_data', to: 'agent#form_data'
+        get 'agent/insurance_companies', to: 'agent#insurance_companies'
+
+        # Leads APIs
+        get 'agent/leads', to: 'agent#leads'
+        post 'agent/leads', to: 'agent#add_lead'
       end
 
       # Sub Agent APIs
