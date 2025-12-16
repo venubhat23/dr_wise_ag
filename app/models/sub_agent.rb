@@ -1,6 +1,9 @@
 class SubAgent < ApplicationRecord
   include PgSearch::Model
 
+  # Password authentication
+  has_secure_password
+
   # Associations
   has_many :sub_agent_documents, dependent: :destroy
   has_one_attached :upload_main_document

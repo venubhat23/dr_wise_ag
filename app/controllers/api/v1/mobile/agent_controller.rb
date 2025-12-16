@@ -91,7 +91,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       :customer_type, :first_name, :last_name, :company_name, :email,
       :mobile, :gender, :birth_date, :address, :city, :state, :pincode,
       :pan_no, :gst_no, :occupation, :annual_income, :marital_status,
-      :image_url, :file1, :file2
+      :file1, :file2, documents: [:document_type, :document_file]
     )
 
     # Validation: Check required fields
@@ -130,7 +130,12 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       }, status: :unprocessable_entity
     end
 
-    customer = Customer.new(customer_params.except(:file1, :file2).merge(
+    # Convert certain fields to lowercase
+    normalized_params = customer_params.except(:file1, :file2, :documents)
+    normalized_params[:gender] = normalized_params[:gender]&.downcase
+    normalized_params[:marital_status] = normalized_params[:marital_status]&.downcase
+
+    customer = Customer.new(normalized_params.merge(
       status: true,
       added_by: "agent_mobile_api_#{current_user.id}" # Track agent who added customer
     ))
@@ -138,6 +143,11 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     if customer.save
       # Handle file uploads
       file_info = handle_customer_file_uploads(customer, params[:file1], params[:file2])
+
+      # Handle documents array if present
+      if params[:documents].present?
+        handle_customer_documents(customer, params[:documents])
+      end
 
       render json: {
         status: true,
@@ -147,7 +157,6 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
           name: customer.display_name,
           email: customer.email,
           mobile: customer.mobile,
-          image_url: customer.image_url,
           customer_type: customer.customer_type,
           gender: customer.gender,
           birth_date: customer.birth_date&.strftime('%Y-%m-%d'),
@@ -337,8 +346,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       net_premium: policy_params[:net_premium],
       gst_percentage: policy_params[:gst_percentage] || 18.0,
       total_premium: calculated_total_premium,
-      sub_agent: current_user,
-      added_by: "agent_mobile_api_#{current_user.id}"
+      added_by: "agent_mobile_api_#{current_user.id}",
+      is_agent_added: true
     )
 
     if policy.save
@@ -1442,6 +1451,60 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     end
 
     nil
+  end
+
+  def handle_customer_documents(customer, documents_array)
+    return unless documents_array.present?
+
+    documents_array.each do |document_data|
+      next unless document_data[:document_type].present? && document_data[:document_file].present?
+
+      begin
+        # Create a document record
+        document = customer.documents.build(
+          document_type: document_data[:document_type],
+          description: "Document uploaded via agent mobile API"
+        )
+
+        # Handle the document file (base64 or direct upload)
+        if document_data[:document_file].is_a?(String) && document_data[:document_file].start_with?('data:')
+          # Handle base64 encoded file
+          data_match = document_data[:document_file].match(/^data:([^;]+);base64,(.+)$/)
+          if data_match
+            content_type = data_match[1]
+            encoded_file = data_match[2]
+            decoded_file = Base64.decode64(encoded_file)
+
+            # Determine file extension
+            extension = case content_type
+                       when 'image/jpeg', 'image/jpg' then '.jpg'
+                       when 'image/png' then '.png'
+                       when 'image/gif' then '.gif'
+                       when 'application/pdf' then '.pdf'
+                       when 'image/webp' then '.webp'
+                       else '.bin'
+                       end
+
+            filename = "customer_#{customer.id}_#{document_data[:document_type]}_#{Time.current.to_i}#{extension}"
+
+            file_io = StringIO.new(decoded_file)
+            file_io.set_encoding('BINARY')
+
+            document.document_file.attach(
+              io: file_io,
+              filename: filename,
+              content_type: content_type
+            )
+          end
+        end
+
+        document.save!
+        Rails.logger.info "Document created successfully for customer #{customer.id}: #{document_data[:document_type]}"
+
+      rescue => e
+        Rails.logger.error "Error creating document for customer #{customer.id}: #{e.message}"
+      end
+    end
   end
 
   # Helper methods for life insurance

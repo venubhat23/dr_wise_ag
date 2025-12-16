@@ -377,8 +377,15 @@
 									"",
 									"pm.test(\"Life policy created successfully\", function () {",
 									"    const jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.expect(jsonData.status).to.be.true;",
 									"    pm.expect(jsonData.message).to.include('successfully');",
+									"});",
+									"",
+									"pm.test(\"Response has policy data\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property('policy_id');",
+									"    pm.expect(jsonData.data).to.have.property('policy_number');",
+									"    pm.expect(jsonData.data).to.have.property('client_name');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -399,7 +406,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"customer_id\": \"{{test_customer_id}}\",\n  \"policy_holder\": \"Test Customer\",\n  \"plan_name\": \"LIC Jeevan Anand\",\n  \"policy_number\": \"LIC{{$timestamp}}\",\n  \"insurance_company_name\": \"LIC of India\",\n  \"policy_type\": \"New\",\n  \"policy_start_date\": \"{{$isoTimestamp}}\",\n  \"policy_end_date\": \"2044-12-31\",\n  \"payment_mode\": \"yearly\",\n  \"policy_term\": 20,\n  \"premium_payment_term\": 15,\n  \"sum_insured\": 1000000,\n  \"net_premium\": 50000,\n  \"total_premium\": 59000,\n  \"nominee_name\": \"Test Nominee\",\n  \"nominee_relationship\": \"Spouse\",\n  \"agent_commission_percentage\": 5,\n  \"commission_amount\": 2950\n}"
+							"raw": "{\n  \"client_id\": {{test_customer_id}},\n  \"policy_holder\": \"self\",\n  \"insured_name\": \"Rahul Sharma\",\n  \"insurance_company_id\": 3,\n  \"agency_code_id\": 12,\n  \"policy_type\": \"endowment\",\n  \"payment_mode\": \"yearly\",\n  \"policy_number\": \"LIFE{{$timestamp}}\",\n  \"policy_booking_date\": \"{{$isoTimestamp}}\",\n  \"policy_start_date\": \"{{$isoTimestamp}}\",\n  \"policy_end_date\": \"2045-12-15\",\n  \"policy_term_years\": 20,\n  \"premium_payment_term_years\": 15,\n  \"plan_name\": \"LIC Jeevan Anand\",\n  \"sum_insured\": 1000000,\n  \"net_premium\": 25000,\n  \"gst_percentage_year_1\": 4.5,\n  \"gst_percentage_year_2\": 2.25,\n  \"gst_percentage_year_3\": 2.25,\n  \"total_premium\": 26125,\n  \"reference_by_name\": \"Sub Agent Ramesh\",\n  \"installment_autopay_start_date\": \"2025-12-20\",\n  \"installment_autopay_end_date\": \"2026-12-20\",\n  \"nominees\": [\n    {\n      \"nominee_name\": \"Anita Sharma\",\n      \"relationship\": \"spouse\",\n      \"age\": 32\n    }\n  ],\n  \"bank_details\": {\n    \"bank_name\": \"HDFC Bank\",\n    \"account_type\": \"savings\",\n    \"account_number\": \"123456789012\",\n    \"ifsc_code\": \"HDFC0001234\",\n    \"account_holder_name\": \"Rahul Sharma\"\n  },\n  \"documents\": [\n    {\n      \"document_type\": \"policy_copy\",\n      \"document_file\": \"base64_encoded_string_placeholder\"\n    }\n  ]\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/agent/policies/life",
