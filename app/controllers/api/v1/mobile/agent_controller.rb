@@ -461,6 +461,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       policy_holder: policy_params[:policy_holder],
       insured_name: policy_params[:insured_name],
       insurance_company_name: get_company_name_by_id(policy_params[:insurance_company_id]),
+      distributor_id: 1, # Default distributor
+      investor_id: 1,    # Default investor
       agency_code_id: policy_params[:agency_code_id],
       policy_type: mapped_policy_type,
       payment_mode: policy_params[:payment_mode]&.capitalize || 'Yearly',
@@ -480,7 +482,6 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       reference_by_name: policy_params[:reference_by_name],
       installment_autopay_start_date: parse_date(policy_params[:installment_autopay_start_date]),
       installment_autopay_end_date: parse_date(policy_params[:installment_autopay_end_date]),
-      sub_agent: current_user,
       is_agent_added: true,
       is_customer_added: false,
       is_admin_added: false
@@ -1156,18 +1157,18 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   end
 
   def get_company_name_by_id(company_id)
-    # Map company IDs to names - you can replace this with a database lookup
+    # Map company IDs to names - using valid insurance company names
     companies = {
-      1 => 'LIC of India',
-      2 => 'SBI Life Insurance',
-      3 => 'HDFC Life Insurance',
-      4 => 'ICICI Prudential Life Insurance',
-      5 => 'Star Health Insurance',
-      6 => 'HDFC ERGO Health Insurance',
-      7 => 'Care Health Insurance',
-      8 => 'Bajaj Allianz General Insurance'
+      1 => 'ICICI Prudential Life Insurance Co Ltd',
+      2 => 'Bajaj Allianz General Insurance Company Limited',
+      3 => 'HDFC ERGO General Insurance Co Ltd',
+      4 => 'Care Health Insurance Ltd',
+      5 => 'Star Health Allied Insurance Co Ltd',
+      6 => 'Aditya Birla Health Insurance Co Ltd',
+      7 => 'Niva Bupa Health Insurance Co Ltd',
+      8 => 'Tata AIG General Insurance Co Ltd'
     }
-    companies[company_id.to_i] || 'Unknown Insurance Company'
+    companies[company_id.to_i] || 'ICICI Prudential Life Insurance Co Ltd'
   end
 
   def create_family_member(policy, member_data)
@@ -1408,8 +1409,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       begin
         # Create a document record
         document = customer.documents.build(
-          document_type: document_data[:document_type],
-          description: "Document uploaded via agent mobile API"
+          document_type: document_data[:document_type]
         )
 
         # Handle the document file (base64 or direct upload)
@@ -1436,7 +1436,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
             file_io = StringIO.new(decoded_file)
             file_io.set_encoding('BINARY')
 
-            document.document_file.attach(
+            document.file.attach(
               io: file_io,
               filename: filename,
               content_type: content_type

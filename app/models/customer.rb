@@ -69,12 +69,10 @@ class Customer < ApplicationRecord
 
   # Instance methods
   def full_name
-    Rails.cache.fetch("customer_#{id}_full_name", expires_in: 1.hour) do
-      if individual?
-        "#{first_name} #{last_name}".strip
-      else
-        company_name
-      end
+    if individual?
+      "#{first_name} #{last_name}".strip
+    else
+      company_name
     end
   end
 
