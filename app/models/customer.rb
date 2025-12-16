@@ -79,9 +79,7 @@ class Customer < ApplicationRecord
   end
 
   def display_name
-    Rails.cache.fetch("customer_#{id}_display_name", expires_in: 1.hour) do
-      individual? ? full_name : company_name
-    end
+    individual? ? full_name : company_name
   end
 
   def active?
