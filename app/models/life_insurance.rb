@@ -12,6 +12,16 @@ class LifeInsurance < ApplicationRecord
   has_many_attached :documents
   has_many_attached :policy_documents
 
+  # New relationships for API structure
+  has_many :life_insurance_nominees, dependent: :destroy
+  has_one :life_insurance_bank_detail, dependent: :destroy
+  has_many :life_insurance_documents, dependent: :destroy
+  has_many :commission_payouts, -> { where(policy_type: 'life') }, foreign_key: 'policy_id', dependent: :destroy
+
+  accepts_nested_attributes_for :life_insurance_nominees, allow_destroy: true
+  accepts_nested_attributes_for :life_insurance_bank_detail, allow_destroy: true
+  accepts_nested_attributes_for :life_insurance_documents, allow_destroy: true
+
   # Validations
   validates :policy_holder, presence: true
   validates :insurance_company_name, presence: true

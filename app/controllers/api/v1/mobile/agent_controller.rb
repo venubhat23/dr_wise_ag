@@ -376,48 +376,141 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
   # POST /api/v1/mobile/agent/policies/life
   def add_life_policy
+    # Updated parameter structure based on the API documentation
     policy_params = params.permit(
-      :customer_id, :policy_holder, :plan_name, :policy_number,
-      :insurance_company_name, :policy_type, :policy_start_date, :policy_end_date,
-      :payment_mode, :policy_term, :premium_payment_term, :sum_insured,
-      :net_premium, :total_premium, :nominee_name, :nominee_relationship,
-      :agent_commission_percentage, :commission_amount
+      :client_id, :policy_holder, :insured_name, :insurance_company_id, :agency_code_id,
+      :policy_type, :payment_mode, :policy_number, :policy_booking_date, :policy_start_date, :policy_end_date,
+      :policy_term_years, :premium_payment_term_years, :plan_name, :sum_insured, :net_premium,
+      :gst_percentage_year_1, :gst_percentage_year_2, :gst_percentage_year_3, :total_premium,
+      :reference_by_name, :installment_autopay_start_date, :installment_autopay_end_date,
+      nominees: [:nominee_name, :relationship, :age],
+      bank_details: [:bank_name, :account_type, :account_number, :ifsc_code, :account_holder_name],
+      documents: [:document_type, :document_file]
     )
 
-    if policy_params[:customer_id].blank?
+    # Validation: Check required fields
+    validation_errors = []
+    validation_errors << 'Client ID is required' if policy_params[:client_id].blank?
+    validation_errors << 'Policy holder is required' if policy_params[:policy_holder].blank?
+    validation_errors << 'Insured name is required' if policy_params[:insured_name].blank?
+    validation_errors << 'Insurance company ID is required' if policy_params[:insurance_company_id].blank?
+    validation_errors << 'Policy number is required' if policy_params[:policy_number].blank?
+    validation_errors << 'Policy start date is required' if policy_params[:policy_start_date].blank?
+    validation_errors << 'Policy end date is required' if policy_params[:policy_end_date].blank?
+    validation_errors << 'Policy term years is required' if policy_params[:policy_term_years].blank?
+    validation_errors << 'Premium payment term years is required' if policy_params[:premium_payment_term_years].blank?
+    validation_errors << 'Net premium is required' if policy_params[:net_premium].blank?
+    validation_errors << 'GST percentage year 1 is required' if policy_params[:gst_percentage_year_1].blank?
+
+    if validation_errors.any?
       return render json: {
-        success: false,
-        message: 'Customer ID is required'
+        status: false,
+        message: 'Validation failed',
+        errors: validation_errors
       }, status: :unprocessable_entity
     end
 
-    customer = Customer.find_by(id: policy_params[:customer_id])
+    # Find customer (client)
+    customer = Customer.find_by(id: policy_params[:client_id])
     unless customer
       return render json: {
-        success: false,
+        status: false,
         message: 'Customer not found'
       }, status: :not_found
     end
 
-    # Map agent_commission_percentage to main_agent_commission_percentage
-    life_policy_params = policy_params.to_h.transform_keys do |key|
-      key == 'agent_commission_percentage' ? 'main_agent_commission_percentage' : key
+    # Check if policy number already exists
+    if LifeInsurance.exists?(policy_number: policy_params[:policy_number])
+      return render json: {
+        status: false,
+        message: 'Validation failed',
+        errors: {
+          policy_number: ['already exists']
+        }
+      }, status: :unprocessable_entity
     end
 
-    policy = LifeInsurance.new(life_policy_params.merge(
-      policy_booking_date: Date.current
-    ))
+    # Calculate total premium if not provided
+    calculated_total_premium = if policy_params[:total_premium].present?
+                                policy_params[:total_premium].to_f
+                              else
+                                net_premium = policy_params[:net_premium].to_f
+                                gst_percentage = policy_params[:gst_percentage_year_1].to_f
+                                net_premium + (net_premium * gst_percentage / 100.0)
+                              end
+
+    # Map policy type values
+    mapped_policy_type = case policy_params[:policy_type]
+                        when 'term', 'endowment', 'ulip'
+                          'New'
+                        else
+                          'New'
+                        end
+
+    # Create life insurance policy with the correct field mappings
+    policy = LifeInsurance.new(
+      customer_id: policy_params[:client_id],
+      policy_holder: policy_params[:policy_holder],
+      insured_name: policy_params[:insured_name],
+      insurance_company_name: get_company_name_by_id(policy_params[:insurance_company_id]),
+      agency_code_id: policy_params[:agency_code_id],
+      policy_type: mapped_policy_type,
+      payment_mode: policy_params[:payment_mode]&.capitalize || 'Yearly',
+      policy_number: policy_params[:policy_number],
+      policy_booking_date: parse_date(policy_params[:policy_booking_date]) || Date.current,
+      policy_start_date: parse_date(policy_params[:policy_start_date]),
+      policy_end_date: parse_date(policy_params[:policy_end_date]),
+      policy_term: policy_params[:policy_term_years],
+      premium_payment_term: policy_params[:premium_payment_term_years],
+      plan_name: policy_params[:plan_name],
+      sum_insured: policy_params[:sum_insured],
+      net_premium: policy_params[:net_premium],
+      first_year_gst_percentage: policy_params[:gst_percentage_year_1],
+      second_year_gst_percentage: policy_params[:gst_percentage_year_2],
+      third_year_gst_percentage: policy_params[:gst_percentage_year_3],
+      total_premium: calculated_total_premium,
+      reference_by_name: policy_params[:reference_by_name],
+      installment_autopay_start_date: parse_date(policy_params[:installment_autopay_start_date]),
+      installment_autopay_end_date: parse_date(policy_params[:installment_autopay_end_date]),
+      sub_agent: current_user,
+      is_agent_added: true,
+      is_customer_added: false,
+      is_admin_added: false
+    )
 
     if policy.save
+      # Handle nominees
+      if params[:nominees].present?
+        params[:nominees].each do |nominee_data|
+          create_life_insurance_nominee(policy, nominee_data)
+        end
+      end
+
+      # Handle bank details
+      if params[:bank_details].present?
+        create_life_insurance_bank_details(policy, params[:bank_details])
+      end
+
+      # Handle document uploads
+      if params[:documents].present?
+        handle_life_insurance_document_uploads(policy, params[:documents])
+      end
+
       render json: {
-        success: true,
-        message: 'Life insurance policy added successfully',
-        data: format_policy_data(policy, 'Life')
-      }
+        status: true,
+        message: 'Life policy created successfully',
+        data: {
+          policy_id: policy.id,
+          policy_number: policy.policy_number,
+          client_name: customer.display_name,
+          total_premium: policy.total_premium,
+          created_at: policy.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
+      }, status: :created
     else
       render json: {
-        success: false,
-        message: 'Failed to add life insurance policy',
+        status: false,
+        message: 'Validation failed',
         errors: policy.errors.full_messages
       }, status: :unprocessable_entity
     end
@@ -1349,5 +1442,67 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     end
 
     nil
+  end
+
+  # Helper methods for life insurance
+  def create_life_insurance_nominee(policy, nominee_data)
+    LifeInsuranceNominee.create!(
+      life_insurance: policy,
+      nominee_name: nominee_data[:nominee_name],
+      relationship: nominee_data[:relationship],
+      age: nominee_data[:age],
+      share_percentage: nominee_data[:share_percentage] || 100.0
+    )
+  rescue => e
+    Rails.logger.error "Error creating nominee: #{e.message}"
+  end
+
+  def create_life_insurance_bank_details(policy, bank_data)
+    LifeInsuranceBankDetail.create!(
+      life_insurance: policy,
+      bank_name: bank_data[:bank_name],
+      account_type: bank_data[:account_type],
+      account_number: bank_data[:account_number],
+      ifsc_code: bank_data[:ifsc_code],
+      account_holder_name: bank_data[:account_holder_name]
+    )
+  rescue => e
+    Rails.logger.error "Error creating bank details: #{e.message}"
+  end
+
+  def handle_life_insurance_document_uploads(policy, documents_data)
+    documents_data.each_with_index do |doc_data, index|
+      next if doc_data[:document_file].blank?
+
+      begin
+        # Decode base64 file
+        decoded_file = Base64.decode64(doc_data[:document_file])
+
+        # Create filename
+        filename = "life_insurance_#{policy.id}_#{doc_data[:document_type]}_#{index + 1}.pdf"
+
+        # Create a StringIO object for Active Storage
+        file_io = StringIO.new(decoded_file)
+        file_io.set_encoding('BINARY')
+
+        # Create the document record
+        document = LifeInsuranceDocument.create!(
+          life_insurance: policy,
+          document_type: doc_data[:document_type],
+          document_name: filename
+        )
+
+        # Attach the file to the document record
+        document.document.attach(
+          io: file_io,
+          filename: filename,
+          content_type: 'application/pdf'
+        )
+
+        Rails.logger.info "Life insurance document uploaded successfully: #{filename}"
+      rescue => e
+        Rails.logger.error "Error processing life insurance document #{index}: #{e.message}"
+      end
+    end
   end
 end
