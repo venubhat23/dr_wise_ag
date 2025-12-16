@@ -64,10 +64,8 @@ class User < ApplicationRecord
   def has_permission?(module_name, action_type)
     return false unless role
 
-    # Cache user abilities for performance
-    Rails.cache.fetch("user_#{id}_abilities", expires_in: 1.hour) do
-      role.permissions.pluck(:module_name, :action_type)
-    end.include?([module_name.to_s, action_type.to_s])
+    # Get user abilities
+    role.permissions.pluck(:module_name, :action_type).include?([module_name.to_s, action_type.to_s])
   end
 
   def can_access_module?(module_name)

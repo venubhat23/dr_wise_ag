@@ -23,14 +23,12 @@ class Admin::BannersController < Admin::ApplicationController
     end
 
     # Statistics for dashboard cards
-    @stats = Rails.cache.fetch('banner_stats', expires_in: 5.minutes) do
-      {
-        total_banners: Banner.count,
-        active_banners: Banner.active.count,
-        current_banners: Banner.current.count,
-        expired_banners: Banner.where('display_end_date < ?', Date.current).count
-      }
-    end
+    @stats = {
+      total_banners: Banner.count,
+      active_banners: Banner.active.count,
+      current_banners: Banner.current.count,
+      expired_banners: Banner.where('display_end_date < ?', Date.current).count
+    }
   end
 
   # GET /admin/banners/1

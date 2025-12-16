@@ -44,55 +44,52 @@ class Admin::CustomersController < Admin::ApplicationController
     # Order and paginate
     @customers = @customers.order(created_at: :desc).page(params[:page]).per(25)
 
-    # Cache statistics (but refresh if we have active search/filters)
-    cache_key = "customer_stats_#{params[:search]}_#{params[:customer_type]}_#{params[:status]}"
-    @stats = Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
-      # Create a separate scope for statistics to avoid pg_search GROUP BY issues
-      stats_scope = Customer.all
+    # Calculate statistics
+    # Create a separate scope for statistics to avoid pg_search GROUP BY issues
+    stats_scope = Customer.all
 
-      # Apply filters but handle search differently for stats
-      if params[:search].present? && params[:search].strip.length >= 4
-        # For statistics, use a simple where clause instead of pg_search to avoid GROUP BY issues
-        search_term = params[:search].strip
-        stats_scope = stats_scope.where(
-          "first_name ILIKE ? OR last_name ILIKE ? OR company_name ILIKE ? OR email ILIKE ? OR mobile ILIKE ? OR pan_number ILIKE ?",
-          "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%"
-        )
-      end
+    # Apply filters but handle search differently for stats
+    if params[:search].present? && params[:search].strip.length >= 4
+      # For statistics, use a simple where clause instead of pg_search to avoid GROUP BY issues
+      search_term = params[:search].strip
+      stats_scope = stats_scope.where(
+        "first_name ILIKE ? OR last_name ILIKE ? OR company_name ILIKE ? OR email ILIKE ? OR mobile ILIKE ? OR pan_number ILIKE ?",
+        "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%"
+      )
+    end
 
-      if params[:customer_type].present?
-        stats_scope = stats_scope.where(customer_type: params[:customer_type])
-      end
+    if params[:customer_type].present?
+      stats_scope = stats_scope.where(customer_type: params[:customer_type])
+    end
 
-      case params[:status]
-      when 'active'
-        stats_scope = stats_scope.where(status: true)
-      when 'inactive'
-        stats_scope = stats_scope.where(status: false)
-      end
+    case params[:status]
+    when 'active'
+      stats_scope = stats_scope.where(status: true)
+    when 'inactive'
+      stats_scope = stats_scope.where(status: false)
+    end
 
-      # Calculate filtered stats using simple queries to avoid GROUP BY issues
-      if params[:search].present? && params[:search].strip.length >= 4
-        # When search is active, use simpler aggregation
-        {
-          total_customers: stats_scope.count,
-          active_customers: stats_scope.where(status: true).count,
-          individual_customers: stats_scope.where(customer_type: 'individual').count,
-          corporate_customers: stats_scope.where(customer_type: 'corporate').count
-        }
-      else
-        # When no search, can use GROUP BY safely
-        stats_data = stats_scope.group(:customer_type, :status).count
-        stats_data.each_with_object(Hash.new(0)) do |(key, count), stats|
-          customer_type, status = key
+    # Calculate filtered stats using simple queries to avoid GROUP BY issues
+    @stats = if params[:search].present? && params[:search].strip.length >= 4
+      # When search is active, use simpler aggregation
+      {
+        total_customers: stats_scope.count,
+        active_customers: stats_scope.where(status: true).count,
+        individual_customers: stats_scope.where(customer_type: 'individual').count,
+        corporate_customers: stats_scope.where(customer_type: 'corporate').count
+      }
+    else
+      # When no search, can use GROUP BY safely
+      stats_data = stats_scope.group(:customer_type, :status).count
+      stats_data.each_with_object(Hash.new(0)) do |(key, count), stats|
+        customer_type, status = key
 
-          stats[:total_customers] += count
-          stats[:active_customers] += count if status == true
-          stats[:individual_customers] += count if customer_type == 'individual'
-          stats[:corporate_customers] += count if customer_type == 'corporate'
-        end.tap do |stats|
-          stats[:total_customers] = stats_scope.count if stats[:total_customers] == 0
-        end
+        stats[:total_customers] += count
+        stats[:active_customers] += count if status == true
+        stats[:individual_customers] += count if customer_type == 'individual'
+        stats[:corporate_customers] += count if customer_type == 'corporate'
+      end.tap do |stats|
+        stats[:total_customers] = stats_scope.count if stats[:total_customers] == 0
       end
     end
 
