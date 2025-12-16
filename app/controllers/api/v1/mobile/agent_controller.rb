@@ -275,7 +275,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   def add_health_policy
     # Updated parameter structure based on your specification
     policy_params = params.permit(
-      :client_id, :policy_holder, :insurance_company_id, :policy_type, :insurance_type,
+      :client_id, :policy_holder, :insurance_company_id,:insurance_company_name, :policy_type, :insurance_type,
       :plan_name, :policy_number, :policy_booking_date, :policy_start_date, :policy_end_date,
       :policy_term_years, :payment_mode, :sum_insured, :net_premium, :gst_percentage, :total_premium,
       :installment_autopay_start_date, :installment_autopay_end_date,
@@ -333,7 +333,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     policy = HealthInsurance.new(
       customer_id: policy_params[:client_id],
       policy_holder: policy_params[:policy_holder],
-      insurance_company_name: get_company_name_by_id(policy_params[:insurance_company_id]),
+      insurance_company_name: policy_params[:insurance_company_name],
       policy_type: policy_params[:policy_type],
       insurance_type: policy_params[:insurance_type] || 'health',
       plan_name: policy_params[:plan_name],
