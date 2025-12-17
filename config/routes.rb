@@ -15,6 +15,21 @@ Rails.application.routes.draw do
 
   # Admin routes
   namespace :admin do
+    resources :payouts do
+      member do
+        patch :mark_as_paid
+        patch :mark_as_processing
+        patch :cancel_payout
+        get :audit_trail
+      end
+      collection do
+        get :policies_by_type
+        get :commission_receipts
+        post :auto_distribute
+        get :reports
+        get :summary
+      end
+    end
     # Users (Admins/Agents) management
     resources :users
 
@@ -190,8 +205,24 @@ Rails.application.routes.draw do
     get 'reports/leads', to: 'reports#leads'
     get 'reports/sessions', to: 'reports#sessions'
 
+    # Import Section
+    resources :imports, only: [:index] do
+      collection do
+        get :customers_form
+        get :sub_agents_form
+        get :health_insurances_form
+        get :life_insurances_form
+        get :motor_insurances_form
+        get :download_template
+      end
+    end
+
     # Import/Export
     post 'import/customers', to: 'imports#customers'
+    post 'import/sub_agents', to: 'imports#sub_agents'
+    post 'import/health_insurances', to: 'imports#health_insurances'
+    post 'import/life_insurances', to: 'imports#life_insurances'
+    post 'import/motor_insurances', to: 'imports#motor_insurances'
     post 'import/agencies', to: 'imports#agencies'
 
     # Settings namespace
@@ -256,6 +287,10 @@ Rails.application.routes.draw do
         # Leads APIs
         get 'agent/leads', to: 'agent#leads'
         post 'agent/leads', to: 'agent#add_lead'
+
+        # Commission Distribution APIs
+        get 'agent/commission_distribution', to: 'agent#commission_distribution'
+        get 'agent/commission_summary', to: 'agent#commission_summary'
       end
 
       # Sub Agent APIs

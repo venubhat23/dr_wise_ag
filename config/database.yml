@@ -2,32 +2,32 @@ default: &default
   adapter: postgresql
   encoding: unicode
   pool: 5
-  host: dpg-d4ctbr1r0fns73aavd9g-a.oregon-postgres.render.com
+  host: dpg-d510a0f5r7bs73aug7gg-a.oregon-postgres.render.com
   port: 5432
-  username: drwise_db_user
-  password: y9XcRZgTOn6LNoLfb3G5v5uUjxPZAuZz
+  username: dr_wise_2_user
+  password: ME1vvLuIBK7eaPBzqA8l0Li1wjMsuZxj
 
 development:
   <<: *default
-  database: drwise_db
+  database: dr_wise_2
 
 test:
   <<: *default
-  database: drwise_db_test
+  database: dr_wise_2_test
 
 production:
   primary:
     <<: *default
-    database: drwise_db
+    database: dr_wise_2
 
   cable:
     <<: *default
-    database: drwise_db
+    database: dr_wise_2
 
   queue:
     <<: *default
-    database: drwise_db
+    database: dr_wise_2
 
   cache:
     <<: *default
-    database: drwise_db
+    database: dr_wise_2

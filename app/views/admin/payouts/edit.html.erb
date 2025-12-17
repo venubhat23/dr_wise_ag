@@ -1,0 +1,437 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Edit Payout #<%= @payout.id %></h2>
+    <p class="text-muted mb-0">Update payout information and status</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to admin_payout_path(@payout), class: "btn btn-outline-info" do %>
+      <i class="bi bi-eye me-1"></i>
+      View Payout
+    <% end %>
+    <%= link_to admin_payouts_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Payouts
+    <% end %>
+  </div>
+</div>
+
+<!-- Error Display -->
+<% if @payout.errors.any? %>
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <div class="d-flex align-items-center">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      <div>
+        <h6 class="mb-1"><%= pluralize(@payout.errors.count, "error") %> prohibited this payout from being saved:</h6>
+        <ul class="mb-0">
+          <% @payout.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+<% end %>
+
+<%= form_with model: [:admin, @payout], local: true, class: "needs-validation", novalidate: true, data: { turbo: false } do |form| %>
+
+  <!-- Current Status Information -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-info-circle me-2 text-info"></i>
+        <h5 class="mb-0">Current Status</h5>
+      </div>
+      <span class="badge bg-<%=
+        case @payout.status
+        when 'pending' then 'warning'
+        when 'processing' then 'info'
+        when 'paid' then 'success'
+        when 'cancelled' then 'danger'
+        else 'secondary'
+        end
+      %> fs-6">
+        <%= @payout.status.humanize %>
+      </span>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <strong class="text-muted d-block">Policy Type</strong>
+          <span class="badge bg-primary"><%= @payout.policy_type.humanize %></span>
+        </div>
+        <div class="col-md-3">
+          <strong class="text-muted d-block">Policy ID</strong>
+          #<%= @payout.policy_id %>
+        </div>
+        <div class="col-md-3">
+          <strong class="text-muted d-block">Payout To</strong>
+          <%= @payout.payout_to.humanize %>
+        </div>
+        <div class="col-md-3">
+          <strong class="text-muted d-block">Created</strong>
+          <%= @payout.created_at.strftime("%b %d, %Y") %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Basic Payout Information -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-cash-coin me-2 text-primary"></i>
+      <h5 class="mb-0">Payout Details</h5>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <%= form.label :policy_type, "Policy Type", class: "form-label" %>
+          <span class="text-danger">*</span>
+          <%= form.select :policy_type,
+              options_for_select([
+                ['Health Insurance', 'health'],
+                ['Life Insurance', 'life'],
+                ['Motor Insurance', 'motor'],
+                ['Other Insurance', 'other']
+              ], @payout.policy_type),
+              { prompt: 'Select Policy Type' },
+              { class: "form-control", required: true, readonly: @payout.paid? } %>
+          <% if @payout.errors[:policy_type].any? %>
+            <div class="text-danger mt-1">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <%= @payout.errors[:policy_type].first %>
+            </div>
+          <% end %>
+          <% if @payout.paid? %>
+            <small class="text-muted">Cannot change policy type for paid payouts</small>
+          <% end %>
+        </div>
+
+        <div class="col-md-6">
+          <%= form.label :policy_id, "Policy ID", class: "form-label" %>
+          <span class="text-danger">*</span>
+          <%= form.number_field :policy_id,
+              class: "form-control",
+              required: true,
+              readonly: @payout.paid? %>
+          <% if @payout.errors[:policy_id].any? %>
+            <div class="text-danger mt-1">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <%= @payout.errors[:policy_id].first %>
+            </div>
+          <% end %>
+          <% if @payout.paid? %>
+            <small class="text-muted">Cannot change policy for paid payouts</small>
+          <% end %>
+        </div>
+
+        <div class="col-md-6">
+          <%= form.label :payout_to, "Payout To", class: "form-label" %>
+          <span class="text-danger">*</span>
+          <%= form.select :payout_to,
+              options_for_select([
+                ['Sub Agent', 'sub_agent'],
+                ['Distributor', 'distributor'],
+                ['Investor', 'investor'],
+                ['Agent', 'agent'],
+                ['Company', 'company']
+              ], @payout.payout_to),
+              { prompt: 'Select Recipient Type' },
+              { class: "form-control", required: true, disabled: @payout.paid? } %>
+          <% if @payout.errors[:payout_to].any? %>
+            <div class="text-danger mt-1">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <%= @payout.errors[:payout_to].first %>
+            </div>
+          <% end %>
+          <% if @payout.paid? %>
+            <small class="text-muted">Cannot change recipient for paid payouts</small>
+          <% end %>
+        </div>
+
+        <div class="col-md-6">
+          <%= form.label :payout_amount, "Payout Amount", class: "form-label" %>
+          <span class="text-danger">*</span>
+          <div class="input-group">
+            <span class="input-group-text">₹</span>
+            <%= form.number_field :payout_amount,
+                class: "form-control",
+                step: 0.01,
+                min: 0,
+                required: true,
+                readonly: @payout.paid? %>
+          </div>
+          <% if @payout.errors[:payout_amount].any? %>
+            <div class="text-danger mt-1">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <%= @payout.errors[:payout_amount].first %>
+            </div>
+          <% end %>
+          <% if @payout.paid? %>
+            <small class="text-muted">Cannot change amount for paid payouts</small>
+          <% end %>
+        </div>
+
+        <div class="col-md-6">
+          <%= form.label :payout_date, "Scheduled Payout Date", class: "form-label" %>
+          <%= form.date_field :payout_date,
+              class: "form-control",
+              value: @payout.payout_date %>
+          <% if @payout.errors[:payout_date].any? %>
+            <div class="text-danger mt-1">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <%= @payout.errors[:payout_date].first %>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="col-md-6">
+          <%= form.label :status, "Status", class: "form-label" %>
+          <%= form.select :status,
+              options_for_select([
+                ['Pending', 'pending'],
+                ['Processing', 'processing'],
+                ['Paid', 'paid'],
+                ['Cancelled', 'cancelled']
+              ], @payout.status),
+              {},
+              { class: "form-control" } %>
+          <% if @payout.errors[:status].any? %>
+            <div class="text-danger mt-1">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <%= @payout.errors[:status].first %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Commission Information -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-percent me-2 text-info"></i>
+      <h5 class="mb-0">Commission Information</h5>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <%= form.label :commission_amount_received, "Commission Amount Received", class: "form-label" %>
+          <div class="input-group">
+            <span class="input-group-text">₹</span>
+            <%= form.number_field :commission_amount_received,
+                class: "form-control",
+                step: 0.01,
+                min: 0 %>
+          </div>
+          <small class="text-muted">Total commission received from insurance company</small>
+          <% if @payout.errors[:commission_amount_received].any? %>
+            <div class="text-danger mt-1">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <%= @payout.errors[:commission_amount_received].first %>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="col-md-6">
+          <%= form.label :distribution_percentage, "Distribution Percentage", class: "form-label" %>
+          <div class="input-group">
+            <%= form.number_field :distribution_percentage,
+                class: "form-control",
+                step: 0.01,
+                min: 0,
+                max: 100 %>
+            <span class="input-group-text">%</span>
+          </div>
+          <small class="text-muted">Percentage of commission for this recipient</small>
+          <% if @payout.errors[:distribution_percentage].any? %>
+            <div class="text-danger mt-1">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <%= @payout.errors[:distribution_percentage].first %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Details -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-credit-card me-2 text-success"></i>
+      <h5 class="mb-0">Payment Details</h5>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <%= form.label :payment_mode, "Payment Mode", class: "form-label" %>
+          <%= form.select :payment_mode,
+              options_for_select([
+                ['Bank Transfer', 'bank_transfer'],
+                ['Cash', 'cash'],
+                ['Cheque', 'cheque'],
+                ['UPI', 'upi'],
+                ['Online Transfer', 'online_transfer']
+              ], @payout.payment_mode),
+              { prompt: 'Select Payment Mode' },
+              { class: "form-control" } %>
+          <% if @payout.errors[:payment_mode].any? %>
+            <div class="text-danger mt-1">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <%= @payout.errors[:payment_mode].first %>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="col-md-6">
+          <%= form.label :transaction_id, "Transaction ID", class: "form-label" %>
+          <%= form.text_field :transaction_id,
+              class: "form-control",
+              placeholder: "Enter transaction ID" %>
+          <% if @payout.errors[:transaction_id].any? %>
+            <div class="text-danger mt-1">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <%= @payout.errors[:transaction_id].first %>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="col-md-12">
+          <%= form.label :reference_number, "Reference Number", class: "form-label" %>
+          <%= form.text_field :reference_number,
+              class: "form-control",
+              placeholder: "Enter reference number" %>
+          <% if @payout.errors[:reference_number].any? %>
+            <div class="text-danger mt-1">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <%= @payout.errors[:reference_number].first %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Additional Information -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-file-text me-2 text-warning"></i>
+      <h5 class="mb-0">Additional Information</h5>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-12">
+          <%= form.label :notes, "Notes", class: "form-label" %>
+          <%= form.text_area :notes,
+              rows: 4,
+              class: "form-control",
+              placeholder: "Add any additional notes about this payout..." %>
+          <% if @payout.errors[:notes].any? %>
+            <div class="text-danger mt-1">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <%= @payout.errors[:notes].first %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="d-flex justify-content-between">
+        <div>
+          <%= link_to admin_payout_path(@payout), class: "btn btn-outline-secondary" do %>
+            <i class="bi bi-arrow-left me-1"></i>
+            Cancel
+          <% end %>
+        </div>
+        <div class="d-flex gap-2">
+          <%= form.submit "Update Payout", class: "btn btn-primary" %>
+          <% if @payout.pending? || @payout.processing? %>
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#quickMarkPaidModal">
+              <i class="bi bi-check-circle me-1"></i>
+              Quick Mark as Paid
+            </button>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<% end %>
+
+<!-- Quick Mark as Paid Modal (same as in show view) -->
+<% if @payout.pending? || @payout.processing? %>
+  <div class="modal fade" id="quickMarkPaidModal" tabindex="-1" aria-labelledby="quickMarkPaidModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <%= form_with url: mark_as_paid_admin_payout_path(@payout), method: :patch, local: true, data: { turbo: false } do |form| %>
+          <div class="modal-header">
+            <h5 class="modal-title" id="quickMarkPaidModalLabel">Quick Mark as Paid</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <%= form.label :payout_date, "Payment Date", class: "form-label" %>
+                <%= form.date_field :payout_date, value: Date.current, class: "form-control" %>
+              </div>
+              <div class="col-md-6">
+                <%= form.label :payment_mode, "Payment Mode", class: "form-label" %>
+                <%= form.select :payment_mode,
+                    options_for_select([
+                      ['Bank Transfer', 'bank_transfer'],
+                      ['Cash', 'cash'],
+                      ['Cheque', 'cheque'],
+                      ['UPI', 'upi'],
+                      ['Online Transfer', 'online_transfer']
+                    ]),
+                    { prompt: 'Select Payment Mode' },
+                    { class: "form-control" } %>
+              </div>
+              <div class="col-12">
+                <%= form.label :transaction_id, "Transaction/Reference ID", class: "form-label" %>
+                <%= form.text_field :transaction_id, class: "form-control", placeholder: "Enter transaction ID" %>
+              </div>
+              <div class="col-12">
+                <%= form.label :notes, "Payment Notes", class: "form-label" %>
+                <%= form.text_area :notes, rows: 3, class: "form-control", placeholder: "Add payment notes..." %>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <%= form.submit "Mark as Paid", class: "btn btn-success" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Auto-calculate payout amount based on commission and percentage
+  const commissionField = document.querySelector('[name="commission_payout[commission_amount_received]"]');
+  const percentageField = document.querySelector('[name="commission_payout[distribution_percentage]"]');
+  const payoutField = document.querySelector('[name="commission_payout[payout_amount]"]');
+
+  if (commissionField && percentageField && payoutField && !payoutField.readOnly) {
+    function calculatePayoutAmount() {
+      const commission = parseFloat(commissionField.value) || 0;
+      const percentage = parseFloat(percentageField.value) || 0;
+      const calculated = (commission * percentage) / 100;
+
+      if (calculated > 0) {
+        payoutField.value = calculated.toFixed(2);
+      }
+    }
+
+    commissionField.addEventListener('input', calculatePayoutAmount);
+    percentageField.addEventListener('input', calculatePayoutAmount);
+  }
+});
+</script>

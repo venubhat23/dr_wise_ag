@@ -59,6 +59,7 @@ module ApplicationHelper
       'health_insurance' => 'bi-hospital',
       'motor_insurance' => 'bi-car-front',
       'other_insurance' => 'bi-shield-fill-check',
+      'payouts' => 'bi-cash-coin',
       'reports' => 'bi-graph-up',
       'settings' => 'bi-gear-fill',
       'roles' => 'bi-shield-check',
@@ -112,5 +113,71 @@ module ApplicationHelper
       end +
       content_tag(:button, '', type: 'button', class: 'btn-close', 'data-bs-dismiss': 'alert')
     end
+  end
+
+  # Payout form helpers
+  def policy_options_for_select(policy_type = nil)
+    policies = []
+
+    case policy_type
+    when 'health_insurance', 'health'
+      policies = HealthInsurance.includes(:customer)
+                                .select(:id, :policy_number, :customer_id, :total_premium)
+                                .map do |policy|
+        customer_name = policy.customer&.display_name || 'Unknown Customer'
+        ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{policy.total_premium}", policy.id]
+      end
+    when 'life_insurance', 'life'
+      policies = LifeInsurance.includes(:customer)
+                              .select(:id, :policy_number, :customer_id, :premium_amount)
+                              .map do |policy|
+        customer_name = policy.customer&.display_name || 'Unknown Customer'
+        premium = policy.premium_amount || 0
+        ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{premium}", policy.id]
+      end
+    when 'motor_insurance', 'motor'
+      if defined?(MotorInsurance)
+        policies = MotorInsurance.includes(:customer)
+                                 .select(:id, :policy_number, :customer_id, :premium_amount)
+                                 .map do |policy|
+          customer_name = policy.customer&.display_name || 'Unknown Customer'
+          premium = policy.premium_amount || 0
+          ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{premium}", policy.id]
+        end
+      end
+    when 'general_insurance', 'general'
+      if defined?(GeneralInsurance)
+        policies = GeneralInsurance.includes(:customer)
+                                   .select(:id, :policy_number, :customer_id, :premium_amount)
+                                   .map do |policy|
+          customer_name = policy.customer&.display_name || 'Unknown Customer'
+          premium = policy.premium_amount || 0
+          ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{premium}", policy.id]
+        end
+      end
+    else
+      # Return all policies if no type specified
+      health_policies = HealthInsurance.includes(:customer)
+                                       .select(:id, :policy_number, :customer_id, :total_premium)
+                                       .map do |policy|
+        customer_name = policy.customer&.display_name || 'Unknown Customer'
+        ["Health: #{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{policy.total_premium}", policy.id]
+      end
+
+      life_policies = LifeInsurance.includes(:customer)
+                                   .select(:id, :policy_number, :customer_id, :premium_amount)
+                                   .map do |policy|
+        customer_name = policy.customer&.display_name || 'Unknown Customer'
+        premium = policy.premium_amount || 0
+        ["Life: #{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{premium}", policy.id]
+      end
+
+      policies = health_policies + life_policies
+    end
+
+    policies
+  rescue => e
+    Rails.logger.error "Error fetching policy options: #{e.message}"
+    []
   end
 end

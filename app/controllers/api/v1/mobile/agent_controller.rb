@@ -858,7 +858,26 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         genders: ['Male', 'Female', 'Other'],
         marital_statuses: ['Single', 'Married', 'Divorced', 'Widowed'],
         vehicle_types: ['Two Wheeler', 'Four Wheeler', 'Commercial Vehicle'],
-        coverage_types: ['Property', 'Travel', 'Personal Accident', 'Fire', 'Marine', 'Cyber Security', 'Other']
+        coverage_types: ['Property', 'Travel', 'Personal Accident', 'Fire', 'Marine', 'Cyber Security', 'Other'],
+
+        # Commission distribution filters
+        commission_periods: [
+          { value: 'all', label: 'All Time' },
+          { value: 'this_month', label: 'This Month' },
+          { value: 'last_month', label: 'Last Month' },
+          { value: 'this_year', label: 'This Year' }
+        ],
+        commission_policy_types: [
+          { value: 'all', label: 'All Policy Types' },
+          { value: 'health', label: 'Health Insurance' },
+          { value: 'life', label: 'Life Insurance' },
+          { value: 'motor', label: 'Motor Insurance' }
+        ],
+        commission_status: [
+          { value: 'all', label: 'All Status' },
+          { value: 'paid', label: 'Paid' },
+          { value: 'pending', label: 'Pending' }
+        ]
       }
     }
   end
@@ -919,6 +938,204 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
           total_pages: companies.total_pages
         }
       }
+    }
+  end
+
+  # GET /api/v1/mobile/agent/commission_distribution
+  def commission_distribution
+    agent = current_user
+    page = params[:page] || 1
+    per_page = params[:per_page] || 10
+    period_filter = params[:period] # 'this_month', 'last_month', 'this_year', 'all'
+    policy_type_filter = params[:policy_type] # 'health', 'life', 'motor', 'all'
+
+    # Base query for sub-agent commission payouts
+    commission_payouts = CommissionPayout.where(payout_to: 'sub_agent')
+
+    # If agent is sub_agent type, filter by their records only
+    if agent.user_type == 'sub_agent'
+      # Get policies associated with this sub-agent
+      health_policies = HealthInsurance.where(sub_agent_id: agent.id).pluck(:id)
+      life_policies = LifeInsurance.where(sub_agent_id: agent.id).pluck(:id)
+
+      policy_ids = []
+      policy_ids += health_policies if health_policies.any?
+      policy_ids += life_policies if life_policies.any?
+
+      commission_payouts = commission_payouts.where(
+        "(policy_type = 'health' AND policy_id IN (?)) OR (policy_type = 'life' AND policy_id IN (?))",
+        health_policies.any? ? health_policies : [0],
+        life_policies.any? ? life_policies : [0]
+      )
+    end
+
+    # Apply period filter
+    case period_filter
+    when 'this_month'
+      start_date = Date.current.beginning_of_month
+      end_date = Date.current.end_of_month
+      commission_payouts = commission_payouts.where(payout_date: start_date..end_date)
+    when 'last_month'
+      start_date = 1.month.ago.beginning_of_month
+      end_date = 1.month.ago.end_of_month
+      commission_payouts = commission_payouts.where(payout_date: start_date..end_date)
+    when 'this_year'
+      start_date = Date.current.beginning_of_year
+      end_date = Date.current.end_of_year
+      commission_payouts = commission_payouts.where(payout_date: start_date..end_date)
+    end
+
+    # Apply policy type filter
+    if policy_type_filter.present? && policy_type_filter != 'all'
+      commission_payouts = commission_payouts.where(policy_type: policy_type_filter)
+    end
+
+    # Paginate
+    commission_payouts = commission_payouts.order(payout_date: :desc).page(page).per(per_page)
+
+    # Format commission data
+    commissions_data = commission_payouts.map do |payout|
+      policy = payout.policy
+
+      {
+        id: payout.id,
+        policy_type: payout.policy_type.capitalize,
+        policy_id: payout.policy_id,
+        policy_number: policy&.policy_number || 'N/A',
+        customer_name: policy&.customer&.display_name || 'N/A',
+        payout_amount: payout.payout_amount,
+        payout_date: payout.payout_date&.strftime('%Y-%m-%d'),
+        status: payout.status.capitalize,
+        created_at: payout.created_at.strftime('%Y-%m-%d %H:%M:%S')
+      }
+    end
+
+    # Calculate statistics
+    stats = get_commission_statistics(agent, period_filter, policy_type_filter)
+
+    render json: {
+      success: true,
+      data: {
+        commissions: commissions_data,
+        statistics: stats,
+        pagination: {
+          current_page: page.to_i,
+          per_page: per_page.to_i,
+          total_commissions: commission_payouts.total_count,
+          total_pages: commission_payouts.total_pages
+        }
+      }
+    }
+  end
+
+  # GET /api/v1/mobile/agent/commission_summary
+  def commission_summary
+    agent = current_user
+
+    # Get earnings summary
+    summary = {
+      total_earnings: 0.0,
+      paid_earnings: 0.0,
+      pending_earnings: 0.0,
+      this_month_earnings: 0.0,
+      last_month_earnings: 0.0,
+      by_policy_type: {
+        health: { total: 0.0, paid: 0.0, pending: 0.0 },
+        life: { total: 0.0, paid: 0.0, pending: 0.0 },
+        motor: { total: 0.0, paid: 0.0, pending: 0.0 }
+      }
+    }
+
+    if agent.user_type == 'sub_agent'
+      # Calculate from sub-agent commission fields in policies
+      health_policies = HealthInsurance.where(sub_agent_id: agent.id)
+      life_policies = LifeInsurance.where(sub_agent_id: agent.id)
+
+      # Health insurance commissions
+      health_total = health_policies.sum(:sub_agent_after_tds_value) || 0.0
+      summary[:by_policy_type][:health][:total] = health_total
+
+      # Life insurance commissions
+      life_total = life_policies.sum(:sub_agent_after_tds_value) || 0.0
+      summary[:by_policy_type][:life][:total] = life_total
+
+      summary[:total_earnings] = health_total + life_total
+
+      # Get paid/pending from commission payouts
+      health_policy_ids = health_policies.pluck(:id)
+      life_policy_ids = life_policies.pluck(:id)
+
+      paid_health = CommissionPayout.where(
+        policy_type: 'health',
+        policy_id: health_policy_ids,
+        payout_to: 'sub_agent',
+        status: 'paid'
+      ).sum(:payout_amount)
+
+      paid_life = CommissionPayout.where(
+        policy_type: 'life',
+        policy_id: life_policy_ids,
+        payout_to: 'sub_agent',
+        status: 'paid'
+      ).sum(:payout_amount)
+
+      summary[:paid_earnings] = paid_health + paid_life
+      summary[:pending_earnings] = summary[:total_earnings] - summary[:paid_earnings]
+
+      summary[:by_policy_type][:health][:paid] = paid_health
+      summary[:by_policy_type][:health][:pending] = summary[:by_policy_type][:health][:total] - paid_health
+      summary[:by_policy_type][:life][:paid] = paid_life
+      summary[:by_policy_type][:life][:pending] = summary[:by_policy_type][:life][:total] - paid_life
+
+      # This month earnings
+      this_month_start = Date.current.beginning_of_month
+      this_month_end = Date.current.end_of_month
+
+      summary[:this_month_earnings] = CommissionPayout.where(
+        "(policy_type = 'health' AND policy_id IN (?)) OR (policy_type = 'life' AND policy_id IN (?))",
+        health_policy_ids.any? ? health_policy_ids : [0],
+        life_policy_ids.any? ? life_policy_ids : [0]
+      ).where(
+        payout_to: 'sub_agent',
+        status: 'paid',
+        payout_date: this_month_start..this_month_end
+      ).sum(:payout_amount)
+
+      # Last month earnings
+      last_month_start = 1.month.ago.beginning_of_month
+      last_month_end = 1.month.ago.end_of_month
+
+      summary[:last_month_earnings] = CommissionPayout.where(
+        "(policy_type = 'health' AND policy_id IN (?)) OR (policy_type = 'life' AND policy_id IN (?))",
+        health_policy_ids.any? ? health_policy_ids : [0],
+        life_policy_ids.any? ? life_policy_ids : [0]
+      ).where(
+        payout_to: 'sub_agent',
+        status: 'paid',
+        payout_date: last_month_start..last_month_end
+      ).sum(:payout_amount)
+    else
+      # For admin/agent, show all sub-agent commission data
+      summary[:total_earnings] = CommissionPayout.where(payout_to: 'sub_agent').sum(:payout_amount)
+      summary[:paid_earnings] = CommissionPayout.where(payout_to: 'sub_agent', status: 'paid').sum(:payout_amount)
+      summary[:pending_earnings] = CommissionPayout.where(payout_to: 'sub_agent', status: 'pending').sum(:payout_amount)
+
+      # By policy type
+      ['health', 'life', 'motor'].each do |type|
+        total = CommissionPayout.where(payout_to: 'sub_agent', policy_type: type).sum(:payout_amount)
+        paid = CommissionPayout.where(payout_to: 'sub_agent', policy_type: type, status: 'paid').sum(:payout_amount)
+
+        summary[:by_policy_type][type.to_sym] = {
+          total: total,
+          paid: paid,
+          pending: total - paid
+        }
+      end
+    end
+
+    render json: {
+      success: true,
+      data: summary
     }
   end
 
@@ -1525,5 +1742,59 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         Rails.logger.error "Error processing life insurance document #{index}: #{e.message}"
       end
     end
+  end
+
+  # Helper method for commission statistics
+  def get_commission_statistics(agent, period_filter = nil, policy_type_filter = nil)
+    base_query = CommissionPayout.where(payout_to: 'sub_agent')
+
+    # Filter by agent if sub_agent
+    if agent.user_type == 'sub_agent'
+      health_policy_ids = HealthInsurance.where(sub_agent_id: agent.id).pluck(:id)
+      life_policy_ids = LifeInsurance.where(sub_agent_id: agent.id).pluck(:id)
+
+      base_query = base_query.where(
+        "(policy_type = 'health' AND policy_id IN (?)) OR (policy_type = 'life' AND policy_id IN (?))",
+        health_policy_ids.any? ? health_policy_ids : [0],
+        life_policy_ids.any? ? life_policy_ids : [0]
+      )
+    end
+
+    # Apply filters
+    case period_filter
+    when 'this_month'
+      base_query = base_query.where(payout_date: Date.current.beginning_of_month..Date.current.end_of_month)
+    when 'last_month'
+      base_query = base_query.where(payout_date: 1.month.ago.beginning_of_month..1.month.ago.end_of_month)
+    when 'this_year'
+      base_query = base_query.where(payout_date: Date.current.beginning_of_year..Date.current.end_of_year)
+    end
+
+    if policy_type_filter.present? && policy_type_filter != 'all'
+      base_query = base_query.where(policy_type: policy_type_filter)
+    end
+
+    {
+      total_commissions: base_query.count,
+      total_amount: base_query.sum(:payout_amount),
+      paid_amount: base_query.where(status: 'paid').sum(:payout_amount),
+      pending_amount: base_query.where(status: 'pending').sum(:payout_amount),
+      paid_count: base_query.where(status: 'paid').count,
+      pending_count: base_query.where(status: 'pending').count,
+      by_policy_type: {
+        health: {
+          count: base_query.where(policy_type: 'health').count,
+          amount: base_query.where(policy_type: 'health').sum(:payout_amount)
+        },
+        life: {
+          count: base_query.where(policy_type: 'life').count,
+          amount: base_query.where(policy_type: 'life').sum(:payout_amount)
+        },
+        motor: {
+          count: base_query.where(policy_type: 'motor').count,
+          amount: base_query.where(policy_type: 'motor').sum(:payout_amount)
+        }
+      }
+    }
   end
 end

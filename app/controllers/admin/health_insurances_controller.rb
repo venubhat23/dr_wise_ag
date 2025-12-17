@@ -25,8 +25,9 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   end
 
   def create
+    debugger
     @health_insurance = HealthInsurance.new(health_insurance_params)
-
+    debugger
     if @health_insurance.save
       redirect_to admin_health_insurance_path(@health_insurance), notice: 'Health insurance policy was successfully created.'
     else

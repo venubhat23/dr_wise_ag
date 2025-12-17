@@ -441,6 +441,21 @@
           </li>
         <% end %>
 
+        <!-- Payouts -->
+        <% if show_sidebar_item?('payouts') %>
+          <li class="nav-item">
+            <%= link_to admin_payouts_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/payouts')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-teal">
+                  <i class="bi bi-cash-coin"></i>
+                </div>
+              </div>
+              <span class="nav-text">Payouts</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+
         <!-- Brokers -->
         <% if show_sidebar_item?('brokers') %>
           <li class="nav-item">
@@ -703,6 +718,19 @@
               </div>
             </div>
             <span class="nav-text">Banner Management</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Imports -->
+        <li class="nav-item">
+          <%= link_to admin_imports_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/imports')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-amber">
+                <i class="bi bi-cloud-upload-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Imports</span>
             <div class="nav-indicator"></div>
           <% end %>
         </li>
