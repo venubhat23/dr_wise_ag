@@ -29,8 +29,8 @@ class CommissionPayout < ApplicationRecord
     }
 
   # Callbacks
-  after_create :create_audit_log
-  after_update :create_audit_log, if: :saved_changes?
+  # after_create :create_audit_log
+  # after_update :create_audit_log, if: :saved_changes?
 
   # Instance methods
   def policy

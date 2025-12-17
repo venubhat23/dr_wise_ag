@@ -723,17 +723,19 @@
         </li>
 
         <!-- Imports -->
-        <li class="nav-item">
-          <%= link_to admin_imports_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/imports')}" do %>
-            <div class="nav-icon-modern">
-              <div class="icon-bg gradient-amber">
-                <i class="bi bi-cloud-upload-fill"></i>
+        <% if show_sidebar_item?('management') || current_user&.user_type == 'admin' %>
+          <li class="nav-item">
+            <%= link_to admin_imports_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/imports')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-amber">
+                  <i class="bi bi-cloud-upload-fill"></i>
+                </div>
               </div>
-            </div>
-            <span class="nav-text">Imports</span>
-            <div class="nav-indicator"></div>
-          <% end %>
-        </li>
+              <span class="nav-text">Imports</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
 
         <!-- Roles & Permissions -->
         <li class="nav-item">

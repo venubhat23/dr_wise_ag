@@ -25,10 +25,10 @@ class PayoutAuditLog < ApplicationRecord
 
   # Instance methods
   def formatted_changes
-    return {} unless changes.present?
+    return {} unless self[:changes].present?
 
     formatted = {}
-    changes.each do |key, value|
+    self[:changes].each do |key, value|
       if value.is_a?(Array) && value.length == 2
         formatted[key] = {
           from: value[0],

@@ -1,17 +1,45 @@
-class Admin::PayoutsController < ApplicationController
+class Admin::PayoutsController < Admin::ApplicationController
   before_action :authenticate_user!
   before_action :set_payout, only: [:show, :edit, :update, :destroy, :mark_as_paid, :mark_as_processing, :cancel_payout, :audit_trail]
 
   def index
-    @q = CommissionPayout.ransack(params[:q])
+    @payouts = CommissionPayout.all
 
-    # Apply default ordering
-    @q.sorts = 'created_at desc' if @q.sorts.empty?
+    # Search functionality
+    if params[:search].present?
+      search_term = params[:search].strip
+      if search_term.length >= 3
+        @payouts = @payouts.search_payouts(search_term)
+      elsif search_term.length > 0
+        @payouts = @payouts.none
+      end
+    end
 
-    @payouts = @q.result(distinct: true)
-                 .includes(:payout_audit_logs)
-                 .page(params[:page])
-                 .per(20)
+    # Filter by policy type
+    if params[:policy_type].present? && params[:policy_type] != 'all'
+      @payouts = @payouts.where(policy_type: params[:policy_type])
+    end
+
+    # Filter by status
+    if params[:status].present? && params[:status] != 'all'
+      @payouts = @payouts.where(status: params[:status])
+    end
+
+    # Filter by payout recipient
+    if params[:payout_to].present? && params[:payout_to] != 'all'
+      @payouts = @payouts.where(payout_to: params[:payout_to])
+    end
+
+    # Date range filter
+    if params[:date_from].present? && params[:date_to].present?
+      @payouts = @payouts.where(payout_date: params[:date_from]..params[:date_to])
+    end
+
+    # Default ordering and pagination
+    @payouts = @payouts.includes(:payout_audit_logs)
+                       .order(payout_date: :desc, created_at: :desc)
+                       .page(params[:page])
+                       .per(20)
 
     # Summary statistics
     @summary = {

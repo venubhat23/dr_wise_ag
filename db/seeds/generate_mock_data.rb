@@ -194,8 +194,33 @@ plan_names = [
   puts "✅ Health Insurance #{i+1}: #{health_insurance.policy_number} - #{customer.display_name}"
 end
 
-# 5. Create Life Insurance Policies
-puts "\n5. Creating 30 Life Insurance Policies..."
+# 5. Create sample Distributors and Investors
+puts "\n5. Creating sample Distributors and Investors..."
+
+# Create sample distributors
+3.times do |i|
+  Distributor.find_or_create_by(email: "distributor#{i+1}@insurebook.com") do |d|
+    d.first_name = "Distributor"
+    d.last_name = "#{i+1}"
+    d.mobile = "9#{(100000000 + rand(899999999)).to_s}"
+    d.status = :active
+  end
+end
+
+# Create sample investors
+3.times do |i|
+  Investor.find_or_create_by(email: "investor#{i+1}@insurebook.com") do |inv|
+    inv.first_name = "Investor"
+    inv.last_name = "#{i+1}"
+    inv.mobile = "9#{(100000000 + rand(899999999)).to_s}"
+    inv.status = :active
+  end
+end
+
+puts "✅ Created sample distributors and investors"
+
+# 6. Create Life Insurance Policies
+puts "\n6. Creating 30 Life Insurance Policies..."
 
 life_plan_names = [
   'LIC Jeevan Anand',
@@ -213,6 +238,8 @@ life_plan_names = [
 30.times do |i|
   customer = customers.sample
   sub_agent = sub_agents.sample
+  distributor = Distributor.all.sample
+  investor = Investor.all.sample
 
   policy_start_date = Date.current - rand(365).days
   policy_term_years = [10, 15, 20, 25, 30].sample
@@ -225,6 +252,8 @@ life_plan_names = [
   life_insurance = LifeInsurance.create!(
     customer: customer,
     sub_agent: sub_agent,
+    distributor: distributor,
+    investor: investor,
     policy_holder: customer.display_name,
     insured_name: customer.display_name,
     insurance_company_name: insurance_companies.sample,
@@ -268,8 +297,8 @@ life_plan_names = [
   puts "✅ Life Insurance #{i+1}: #{life_insurance.policy_number} - #{customer.display_name}"
 end
 
-# 6. Create Commission Payouts
-puts "\n6. Creating Commission Payouts..."
+# 7. Create Commission Payouts
+puts "\n7. Creating Commission Payouts..."
 
 # Health insurance commission payouts
 HealthInsurance.includes(:customer, :sub_agent).each do |policy|
@@ -283,7 +312,7 @@ HealthInsurance.includes(:customer, :sub_agent).each do |policy|
     policy_type: 'health',
     policy_id: policy.id,
     payout_to: 'sub_agent',
-    payout_amount: policy.sub_agent_after_tds_value || 0,
+    payout_amount: policy.after_tds_value || 0,
     payout_date: payout_date,
     status: status
   )
@@ -308,8 +337,8 @@ end
 
 puts "✅ Commission payouts created"
 
-# 7. Create Leads
-puts "\n7. Creating 40 Leads..."
+# 8. Create Leads
+puts "\n8. Creating 40 Leads..."
 
 lead_names = ['Sanjay Kapoor', 'Neha Sharma', 'Rajesh Kumar', 'Preethi Nair', 'Ashok Patel', 'Divya Singh', 'Manoj Gupta', 'Kavya Reddy', 'Suresh Joshi', 'Anita Verma', 'Ramesh Agarwal', 'Pooja Mishra', 'Kiran Tiwari', 'Shreya Yadav', 'Varun Pandey', 'Meera Shah', 'Nitin Mehta', 'Swati Jain', 'Rohit Modi', 'Nidhi Doshi', 'Aman Goyal', 'Ritika Khanna', 'Dev Bansal', 'Preeti Sethi', 'Sahil Goel', 'Ravi Tomar', 'Sita Devi', 'Arjun Rao', 'Sunita Jain', 'Vivek Singh', 'Reema Patel', 'Hitesh Shah', 'Priyanka Gupta', 'Manish Kumar', 'Deepika Reddy', 'Vinod Sharma', 'Kaveri Nair', 'Satish Verma', 'Anjali Mishra', 'Rakesh Joshi']
 
@@ -318,14 +347,14 @@ lead_names = ['Sanjay Kapoor', 'Neha Sharma', 'Rajesh Kumar', 'Preethi Nair', 'A
     name: lead_names[i % lead_names.length],
     contact_number: "9#{(100000000 + rand(899999999)).to_s}",
     email: "lead#{i+1}@example.com",
-    product_interest: ['health', 'life', 'motor', 'home', 'travel'].sample,
+    product_interest: ['health', 'life', 'motor', 'other'].sample,
     address: "#{rand(100..999)} #{['MG Road', 'Park Street', 'Commercial Street'].sample}, #{['Sector', 'Block'].sample} #{rand(1..50)}",
     city: ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune'].sample,
     state: ['Maharashtra', 'Delhi', 'Karnataka', 'Tamil Nadu', 'Telangana'].sample,
     referred_by: ['Rahul Sharma', 'Walk-in', 'Online', 'Advertisement', 'Friend Referral'].sample,
     current_stage: ['consultation', 'one_on_one', 'converted', 'policy_created'].sample,
     created_date: Date.current - rand(90).days,
-    notes: "Interested in #{['family health coverage', 'term life insurance', 'comprehensive motor insurance', 'home insurance', 'travel insurance'].sample}",
+    notes: "Interested in #{['family health coverage', 'term life insurance', 'comprehensive motor insurance', 'other insurance'].sample}",
     lead_source: ['online', 'offline', 'agent_referral', 'walk_in', 'tele_calling', 'campaign'].sample,
     referral_amount: [1000, 2000, 3000, 5000].sample,
     transferred_amount: [true, false].sample,
@@ -335,8 +364,8 @@ lead_names = ['Sanjay Kapoor', 'Neha Sharma', 'Rajesh Kumar', 'Preethi Nair', 'A
   puts "✅ Lead #{i+1}: #{lead.name} - #{lead.product_interest}"
 end
 
-# 8. Update customer policies count
-puts "\n8. Updating customer policies count..."
+# 9. Update customer policies count
+puts "\n9. Updating customer policies count..."
 Customer.find_each do |customer|
   policies_count = HealthInsurance.where(customer: customer).count +
                    LifeInsurance.where(customer: customer).count

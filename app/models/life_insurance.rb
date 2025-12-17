@@ -72,7 +72,6 @@ class LifeInsurance < ApplicationRecord
   before_save :calculate_totals
   before_validation :set_policy_term_from_dates
   after_save :set_notification_dates
-  after_create :create_commission_payouts
 
   # Instance methods
   def active?

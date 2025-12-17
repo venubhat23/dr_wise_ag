@@ -1,15 +1,20 @@
 <% content_for :page_title, "Imports" %>
 <% content_for :page_subtitle, "Bulk Import Data" %>
 
-<div class="page-header">
-  <h3 class="page-title">
-    <i class="fas fa-cloud-upload-alt me-2"></i>
-    Data Import Section
-  </h3>
-  <p class="page-subtitle text-muted">
-    Accelerate onboarding of large datasets with standardized bulk imports
-  </p>
-</div>
+<div class="container-fluid">
+  <div class="page-header mb-4">
+    <div class="row align-items-center">
+      <div class="col">
+        <h3 class="page-title mb-0">
+          <i class="fas fa-cloud-upload-alt me-2"></i>
+          Data Import Section
+        </h3>
+        <p class="page-subtitle text-muted mb-0">
+          Accelerate onboarding of large datasets with standardized bulk imports
+        </p>
+      </div>
+    </div>
+  </div>
 
 <!-- Import Statistics Cards -->
 <div class="row mb-4">
@@ -115,7 +120,7 @@
         </p>
 
         <div class="d-flex justify-content-between align-items-center">
-          <%= link_to admin_imports_download_template_path(template_type: 'customers'),
+          <%= link_to download_template_admin_imports_path(template_type: 'customers'),
                       class: "btn btn-outline-primary btn-sm",
                       target: "_blank" do %>
             <i class="fas fa-download me-1"></i> Download Template
@@ -148,7 +153,7 @@
         </p>
 
         <div class="d-flex justify-content-between align-items-center">
-          <%= link_to admin_imports_download_template_path(template_type: 'sub_agents'),
+          <%= link_to download_template_admin_imports_path(template_type: 'sub_agents'),
                       class: "btn btn-outline-success btn-sm",
                       target: "_blank" do %>
             <i class="fas fa-download me-1"></i> Download Template
@@ -181,7 +186,7 @@
         </p>
 
         <div class="d-flex justify-content-between align-items-center">
-          <%= link_to admin_imports_download_template_path(template_type: 'health_insurances'),
+          <%= link_to download_template_admin_imports_path(template_type: 'health_insurances'),
                       class: "btn btn-outline-info btn-sm",
                       target: "_blank" do %>
             <i class="fas fa-download me-1"></i> Download Template
@@ -214,7 +219,7 @@
         </p>
 
         <div class="d-flex justify-content-between align-items-center">
-          <%= link_to admin_imports_download_template_path(template_type: 'life_insurances'),
+          <%= link_to download_template_admin_imports_path(template_type: 'life_insurances'),
                       class: "btn btn-outline-warning btn-sm",
                       target: "_blank" do %>
             <i class="fas fa-download me-1"></i> Download Template
@@ -247,7 +252,7 @@
         </p>
 
         <div class="d-flex justify-content-between align-items-center">
-          <%= link_to admin_imports_download_template_path(template_type: 'motor_insurances'),
+          <%= link_to download_template_admin_imports_path(template_type: 'motor_insurances'),
                       class: "btn btn-outline-danger btn-sm",
                       target: "_blank" do %>
             <i class="fas fa-download me-1"></i> Download Template
@@ -262,42 +267,43 @@
   </div>
 </div>
 
-<!-- Import Guidelines -->
-<div class="row">
-  <div class="col-12">
-    <div class="card shadow border-0">
-      <div class="card-header bg-light">
-        <h5 class="mb-0">
-          <i class="fas fa-info-circle text-info me-2"></i>
-          Import Guidelines & Best Practices
-        </h5>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-6">
-            <h6 class="text-primary">File Requirements:</h6>
-            <ul class="list-unstyled">
-              <li><i class="fas fa-check text-success me-2"></i> CSV or Excel (.xlsx) format</li>
-              <li><i class="fas fa-check text-success me-2"></i> UTF-8 encoding recommended</li>
-              <li><i class="fas fa-check text-success me-2"></i> Maximum file size: 10MB</li>
-              <li><i class="fas fa-check text-success me-2"></i> First row must contain headers</li>
-            </ul>
-          </div>
-          <div class="col-md-6">
-            <h6 class="text-primary">Validation Features:</h6>
-            <ul class="list-unstyled">
-              <li><i class="fas fa-shield-alt text-info me-2"></i> Duplicate detection on key fields</li>
-              <li><i class="fas fa-shield-alt text-info me-2"></i> Data format validation</li>
-              <li><i class="fas fa-shield-alt text-info me-2"></i> Required field checking</li>
-              <li><i class="fas fa-shield-alt text-info me-2"></i> Invalid rows are flagged and skipped</li>
-            </ul>
-          </div>
+  <!-- Import Guidelines -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow border-0">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">
+            <i class="fas fa-info-circle text-info me-2"></i>
+            Import Guidelines & Best Practices
+          </h5>
         </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6 class="text-primary">File Requirements:</h6>
+              <ul class="list-unstyled">
+                <li><i class="fas fa-check text-success me-2"></i> CSV or Excel (.xlsx) format</li>
+                <li><i class="fas fa-check text-success me-2"></i> UTF-8 encoding recommended</li>
+                <li><i class="fas fa-check text-success me-2"></i> Maximum file size: 10MB</li>
+                <li><i class="fas fa-check text-success me-2"></i> First row must contain headers</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6 class="text-primary">Validation Features:</h6>
+              <ul class="list-unstyled">
+                <li><i class="fas fa-shield-alt text-info me-2"></i> Duplicate detection on key fields</li>
+                <li><i class="fas fa-shield-alt text-info me-2"></i> Data format validation</li>
+                <li><i class="fas fa-shield-alt text-info me-2"></i> Required field checking</li>
+                <li><i class="fas fa-shield-alt text-info me-2"></i> Invalid rows are flagged and skipped</li>
+              </ul>
+            </div>
+          </div>
 
-        <div class="alert alert-warning mt-3" role="alert">
-          <i class="fas fa-exclamation-triangle me-2"></i>
-          <strong>Important:</strong> Always download and use the provided templates to ensure data consistency.
-          Test with a small sample before importing large datasets.
+          <div class="alert alert-warning mt-3" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Important:</strong> Always download and use the provided templates to ensure data consistency.
+            Test with a small sample before importing large datasets.
+          </div>
         </div>
       </div>
     </div>
@@ -313,11 +319,13 @@
 
 <style>
 .import-card {
-  transition: transform 0.2s;
+  transition: transform 0.2s ease;
+  height: 100%;
 }
 
 .import-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
 }
 
 .border-left-primary {
@@ -355,4 +363,120 @@
 .bg-gradient-danger {
   background: linear-gradient(87deg, #f5365c 0, #f56036 100%);
 }
+
+/* Fix modal z-index and overlay issues */
+.modal {
+  z-index: 1055 !important;
+}
+
+.modal-backdrop {
+  z-index: 1050 !important;
+}
+
+/* Ensure proper spacing and layout */
+.main-content {
+  z-index: 1 !important;
+  position: relative;
+}
+
+/* Fix card spacing in grid */
+.row.mb-4 {
+  margin-bottom: 2rem !important;
+}
+
+.col-xl-6.col-lg-6.mb-4 {
+  margin-bottom: 1.5rem !important;
+}
+
+/* Better responsive layout */
+@media (max-width: 768px) {
+  .col-xl-6 {
+    margin-bottom: 1rem;
+  }
+
+  .import-card:hover {
+    transform: none;
+  }
+}
+
+/* Fix button alignment in cards */
+.d-flex.justify-content-between.align-items-center {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Ensure proper table responsiveness in modals */
+.table-responsive {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Better modal sizing */
+.modal-lg {
+  max-width: 900px;
+}
+
+/* Fix file input styling */
+.form-control[type="file"] {
+  padding: 0.5rem;
+  border: 2px dashed #dee2e6;
+  background-color: #f8f9fa;
+}
+
+.form-control[type="file"]:focus {
+  border-color: #86b7fe;
+  background-color: #fff;
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Handle file input changes
+  const fileInputs = document.querySelectorAll('input[type="file"]');
+  fileInputs.forEach(input => {
+    input.addEventListener('change', function(e) {
+      const fileName = e.target.files[0]?.name;
+      if (fileName) {
+        const label = e.target.parentElement.querySelector('.form-text');
+        if (label) {
+          label.textContent = `Selected: ${fileName}`;
+          label.style.color = '#198754';
+        }
+      }
+    });
+  });
+
+  // Handle modal events
+  const modals = document.querySelectorAll('.modal');
+  modals.forEach(modal => {
+    modal.addEventListener('hidden.bs.modal', function() {
+      // Reset file inputs when modal is closed
+      const fileInput = modal.querySelector('input[type="file"]');
+      if (fileInput) {
+        fileInput.value = '';
+        const label = modal.querySelector('.form-text');
+        if (label) {
+          label.textContent = 'Supported formats: CSV, Excel (.xlsx, .xls). Maximum size: 10MB';
+          label.style.color = '';
+        }
+      }
+    });
+  });
+
+  // Add smooth scrolling to cards
+  const importCards = document.querySelectorAll('.import-card');
+  importCards.forEach(card => {
+    card.addEventListener('click', function(e) {
+      if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+        return; // Don't interfere with button clicks
+      }
+
+      // Optional: Add click feedback
+      card.style.transform = 'scale(0.98)';
+      setTimeout(() => {
+        card.style.transform = '';
+      }, 150);
+    });
+  });
+});
+</script>
