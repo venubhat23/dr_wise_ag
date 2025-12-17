@@ -62,8 +62,7 @@ module ApplicationHelper
       'payouts' => 'bi-cash-coin',
       'reports' => 'bi-graph-up',
       'settings' => 'bi-gear-fill',
-      'roles' => 'bi-shield-check',
-      'helpdesk' => 'bi-headset'
+      'roles' => 'bi-shield-check'
     }
 
     content_tag(:i, '', class: "bi #{icons[module_name] || 'bi-circle'}")
@@ -179,5 +178,152 @@ module ApplicationHelper
   rescue => e
     Rails.logger.error "Error fetching policy options: #{e.message}"
     []
+  end
+
+  # Commission flow visualization helpers
+  def commission_flow_status_icon(status)
+    icons = {
+      'paid' => 'bi-check-circle text-success',
+      'pending' => 'bi-clock text-warning',
+      'processing' => 'bi-arrow-repeat text-info',
+      'failed' => 'bi-x-circle text-danger',
+      'cancelled' => 'bi-x-circle text-danger'
+    }
+    content_tag(:i, '', class: "bi #{icons[status] || 'bi-circle text-muted'}")
+  end
+
+  def commission_flow_status_badge(status)
+    badges = {
+      'paid' => 'badge bg-success',
+      'pending' => 'badge bg-warning',
+      'processing' => 'badge bg-info',
+      'failed' => 'badge bg-danger',
+      'cancelled' => 'badge bg-secondary'
+    }
+    content_tag(:span, status.humanize, class: badges[status] || 'badge bg-secondary')
+  end
+
+  def policy_commission_breakdown(policy)
+    breakdown = {}
+    return breakdown unless policy
+
+    if policy.respond_to?(:sub_agent_after_tds_value)
+      breakdown[:sub_agent] = {
+        amount: policy.sub_agent_after_tds_value || 0,
+        percentage: policy.respond_to?(:sub_agent_commission_percentage) ? policy.sub_agent_commission_percentage : 0
+      }
+    end
+
+    if policy.respond_to?(:distributor_after_tds_value)
+      breakdown[:distributor] = {
+        amount: policy.distributor_after_tds_value || 0,
+        percentage: policy.respond_to?(:distributor_commission_percentage) ? policy.distributor_commission_percentage : 0
+      }
+    end
+
+    if policy.respond_to?(:investor_after_tds_value)
+      breakdown[:investor] = {
+        amount: policy.investor_after_tds_value || 0,
+        percentage: policy.respond_to?(:investor_commission_percentage) ? policy.investor_commission_percentage : 0
+      }
+    end
+
+    if policy.respond_to?(:commission_amount)
+      breakdown[:main_agent] = {
+        amount: policy.commission_amount || 0,
+        percentage: policy.respond_to?(:main_agent_commission_percentage) ? policy.main_agent_commission_percentage : 0
+      }
+    end
+
+    if policy.respond_to?(:company_expenses_percentage)
+      total_premium = policy.total_premium || policy.net_premium || 0
+      breakdown[:company] = {
+        amount: (total_premium * policy.company_expenses_percentage / 100).to_f,
+        percentage: policy.company_expenses_percentage || 0
+      }
+    end
+
+    breakdown
+  end
+
+  def total_commission_flow(policy)
+    breakdown = policy_commission_breakdown(policy)
+    breakdown.values.sum { |item| item[:amount] }
+  end
+
+  def commission_flow_timeline_data(policy_id, policy_type)
+    case policy_type
+    when 'health'
+      policy = HealthInsurance.find_by(id: policy_id)
+    when 'life'
+      policy = LifeInsurance.find_by(id: policy_id)
+    else
+      return []
+    end
+
+    return [] unless policy
+
+    timeline = []
+    breakdown = policy_commission_breakdown(policy)
+    payouts = CommissionPayout.where(policy_id: policy_id, policy_type: policy_type)
+
+    breakdown.each do |recipient, data|
+      payout = payouts.find { |p| p.payout_to.include?(recipient.to_s) }
+
+      timeline << {
+        recipient: recipient.to_s.humanize,
+        amount: data[:amount],
+        percentage: data[:percentage],
+        status: payout&.status || 'not_initiated',
+        date: payout&.payout_date,
+        reference: payout&.reference_number,
+        notes: payout&.notes
+      }
+    end
+
+    timeline.sort_by { |item| item[:amount] }.reverse
+  end
+
+  def format_currency(amount)
+    return '₹0' if amount.nil? || amount == 0
+    "₹#{number_with_delimiter(amount.to_i)}"
+  end
+
+  def percentage_display(percentage)
+    return '-' if percentage.nil? || percentage == 0
+    "#{percentage}%"
+  end
+
+  def commission_health_indicator(paid_count, total_count)
+    return 'text-muted' if total_count == 0
+
+    percentage = (paid_count.to_f / total_count * 100)
+
+    case percentage
+    when 100
+      'text-success'
+    when 50..99
+      'text-warning'
+    when 1..49
+      'text-danger'
+    else
+      'text-muted'
+    end
+  end
+
+  def days_since_policy_created(policy)
+    return 0 unless policy&.created_at
+    (Date.current - policy.created_at.to_date).to_i
+  end
+
+  def sla_status(days)
+    case days
+    when 0..3
+      { class: 'text-success', text: 'On Time' }
+    when 4..7
+      { class: 'text-warning', text: 'Due Soon' }
+    else
+      { class: 'text-danger', text: 'Overdue' }
+    end
   end
 end
