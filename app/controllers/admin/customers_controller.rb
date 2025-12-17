@@ -1,5 +1,5 @@
 class Admin::CustomersController < Admin::ApplicationController
-  before_action :set_customer, only: [:show, :edit, :update, :destroy]
+  before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart]
 
   # GET /admin/customers
   def index
@@ -109,6 +109,46 @@ class Admin::CustomersController < Admin::ApplicationController
   def show
     @family_members = @customer.family_members.order(:created_at)
     @policies = @customer.policies.includes(:insurance_company).order(created_at: :desc)
+  end
+
+  # GET /admin/customers/:id/policy_chart
+  def policy_chart
+    # Get all policy types and their status for this customer
+    @policy_status = {
+      'Health Insurance' => {
+        exists: HealthInsurance.exists?(customer_id: @customer.id),
+        count: HealthInsurance.where(customer_id: @customer.id).count,
+        icon: 'bi-heart-pulse',
+        color: 'info',
+        policies: HealthInsurance.where(customer_id: @customer.id).includes(:customer)
+      },
+      'Life Insurance' => {
+        exists: LifeInsurance.exists?(customer_id: @customer.id),
+        count: LifeInsurance.where(customer_id: @customer.id).count,
+        icon: 'bi-shield-check',
+        color: 'primary',
+        policies: LifeInsurance.where(customer_id: @customer.id).includes(:customer)
+      },
+      'Motor Insurance' => {
+        exists: MotorInsurance.exists?(customer_id: @customer.id),
+        count: MotorInsurance.where(customer_id: @customer.id).count,
+        icon: 'bi-car-front',
+        color: 'warning',
+        policies: MotorInsurance.where(customer_id: @customer.id).includes(:customer)
+      },
+      'Other Insurance' => {
+        exists: defined?(OtherInsurance) && OtherInsurance.exists?(customer_id: @customer.id),
+        count: defined?(OtherInsurance) ? OtherInsurance.where(customer_id: @customer.id).count : 0,
+        icon: 'bi-grid-3x3',
+        color: 'secondary',
+        policies: defined?(OtherInsurance) ? OtherInsurance.where(customer_id: @customer.id).includes(:customer) : []
+      }
+    }
+
+    # Calculate totals
+    @total_policies = @policy_status.values.sum { |policy| policy[:count] }
+    @policy_types_with_coverage = @policy_status.count { |_, policy| policy[:exists] }
+    @coverage_percentage = @policy_types_with_coverage > 0 ? (@policy_types_with_coverage.to_f / @policy_status.keys.count * 100).round(1) : 0
   end
 
   # GET /admin/customers/new

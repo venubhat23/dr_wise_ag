@@ -81,6 +81,7 @@ Rails.application.routes.draw do
     resources :customers do
       member do
         patch :toggle_status
+        get :policy_chart
       end
       collection do
         get :export

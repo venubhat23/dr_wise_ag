@@ -315,4 +315,16 @@ class LifeInsurance < ApplicationRecord
 
     update_column(:notification_dates, future_notifications.to_json) if future_notifications.any?
   end
+
+  def create_commission_payouts
+    # Only create payouts if commission amount is available and policy is not customer-added
+    return unless commission_amount.present? && commission_amount > 0
+    return if is_customer_added? # Skip auto-creation for customer-added policies
+
+    # Use the commission calculator service to create payouts
+    CommissionCalculatorService.create_payouts_for_policy(self)
+  rescue StandardError => e
+    # Don't fail policy creation if payout creation fails
+    Rails.logger.error "Failed to create payouts for life insurance #{id}: #{e.message}"
+  end
 end
