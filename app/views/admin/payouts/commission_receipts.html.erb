@@ -85,7 +85,7 @@
     <h5 class="mb-0">Commission Receipts</h5>
   </div>
   <div class="card-body">
-    <%= search_form_for @q, url: admin_payouts_commission_receipts_path, method: :get, local: true do |f| %>
+    <%= search_form_for @q, url: commission_receipts_admin_payouts_path, method: :get, local: true do |f| %>
       <div class="row g-3 align-items-end">
         <div class="col-md-3">
           <%= f.label :insurance_company_name_cont, "Company", class: "form-label" %>
@@ -102,7 +102,7 @@
         <div class="col-md-3">
           <div class="d-flex gap-2">
             <%= f.submit "Filter", class: "btn btn-primary" %>
-            <%= link_to "Clear", admin_payouts_commission_receipts_path, class: "btn btn-outline-secondary" %>
+            <%= link_to "Clear", commission_receipts_admin_payouts_path, class: "btn btn-outline-secondary" %>
           </div>
         </div>
       </div>
@@ -193,7 +193,7 @@
                 <td>
                   <div class="d-flex gap-1">
                     <% unless receipt.auto_distributed? %>
-                      <%= button_to admin_payouts_auto_distribute_path,
+                      <%= button_to auto_distribute_admin_payouts_path,
                           params: { receipt_id: receipt.id },
                           method: :post,
                           class: "btn btn-sm btn-success",

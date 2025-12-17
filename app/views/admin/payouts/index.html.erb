@@ -190,7 +190,7 @@
     <p class="text-muted mb-0">Complete commission distribution & money flow traceability</p>
   </div>
   <div class="d-flex gap-2">
-    <%= link_to admin_payouts_summary_path, class: "btn btn-outline-primary" do %>
+    <%= link_to summary_admin_payouts_path, class: "btn btn-outline-primary" do %>
       <i class="bi bi-bar-chart me-1"></i>
       Analytics
     <% end %>
@@ -468,7 +468,8 @@
                     Flow Actions
                   </button>
                   <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="viewCommissionFlow(<%= policy_id %>, '<%= policy.policy_type %>')">
+                    <% first_payout = policy_payouts.first %>
+                    <li><a class="dropdown-item" href="#" onclick="viewCommissionFlow(<%= first_payout.id %>)">
                       <i class="bi bi-diagram-3 me-2"></i>View Flow Timeline
                     </a></li>
                     <li><a class="dropdown-item" href="#" onclick="openPayoutDrawer(<%= policy_id %>)">
@@ -558,12 +559,17 @@ function showPolicyFlow(policyId, policyType) {
   }, 300);
 }
 
-function viewCommissionFlow(policyId, policyType) {
+function viewCommissionFlow(payoutId) {
   // Load commission flow timeline
-  fetch(`/admin/payouts/${policyId}/flow_timeline?policy_type=${policyType}`)
+  fetch(`/admin/payouts/${payoutId}/flow_timeline`)
     .then(response => response.text())
     .then(html => {
       document.getElementById('flowTimelineContent').innerHTML = html;
+      new bootstrap.Modal(document.getElementById('commissionFlowModal')).show();
+    })
+    .catch(error => {
+      console.error('Error loading timeline:', error);
+      document.getElementById('flowTimelineContent').innerHTML = '<div class="alert alert-danger">Error loading timeline</div>';
       new bootstrap.Modal(document.getElementById('commissionFlowModal')).show();
     });
 }

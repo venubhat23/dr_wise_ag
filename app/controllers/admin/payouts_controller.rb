@@ -1,6 +1,6 @@
 class Admin::PayoutsController < Admin::ApplicationController
   before_action :authenticate_user!
-  before_action :set_payout, only: [:show, :edit, :update, :destroy, :mark_as_paid, :mark_as_processing, :cancel_payout, :audit_trail]
+  before_action :set_payout, only: [:show, :edit, :update, :destroy, :mark_as_paid, :mark_as_processing, :cancel_payout, :audit_trail, :flow_timeline]
 
   def index
     @payouts = CommissionPayout.all
@@ -144,6 +144,18 @@ class Admin::PayoutsController < Admin::ApplicationController
     render json: @audit_logs.map { |log| format_audit_log(log) }
   end
 
+  def flow_timeline
+    @audit_logs = @payout.payout_audit_logs.recent.includes(:auditable)
+    @policy = @payout.policy
+    @customer = @payout.customer
+    @timeline_events = build_timeline_events
+
+    respond_to do |format|
+      format.html
+      format.json { render json: @timeline_events }
+    end
+  end
+
   def commission_receipts
     @q = CommissionReceipt.ransack(params[:q])
     @q.sorts = 'received_date desc' if @q.sorts.empty?
@@ -279,7 +291,7 @@ class Admin::PayoutsController < Admin::ApplicationController
   end
 
   def payout_params
-    params.require(:commission_payout).permit(
+    params.require(:payout).permit(
       :policy_type, :policy_id, :payout_to, :payout_amount, :payout_date,
       :payment_mode, :transaction_id, :reference_number, :notes, :status,
       :commission_amount_received, :distribution_percentage
@@ -473,6 +485,71 @@ class Admin::PayoutsController < Admin::ApplicationController
           payout.reference_number
         ]
       end
+    end
+  end
+
+  def build_timeline_events
+    events = []
+
+    # Policy creation event
+    if @policy
+      events << {
+        type: 'policy_created',
+        title: 'Policy Created',
+        description: "Policy #{@policy.policy_number} was created for #{@customer&.display_name}",
+        date: @policy.created_at,
+        icon: 'bi-plus-circle',
+        color: 'success'
+      }
+    end
+
+    # Payout creation event
+    events << {
+      type: 'payout_created',
+      title: 'Payout Created',
+      description: "Commission payout of ₹#{@payout.payout_amount} created for #{@payout.payout_to}",
+      date: @payout.created_at,
+      icon: 'bi-cash-stack',
+      color: 'primary'
+    }
+
+    # Add audit log events
+    @audit_logs.each do |log|
+      events << {
+        type: log.action,
+        title: log.action.humanize,
+        description: log.notes || "Payout #{log.action} by #{log.performed_by}",
+        date: log.created_at,
+        icon: timeline_icon_for_action(log.action),
+        color: timeline_color_for_action(log.action)
+      }
+    end
+
+    # Sort by date
+    events.sort_by { |event| event[:date] }.reverse
+  end
+
+  def timeline_icon_for_action(action)
+    case action
+    when 'created' then 'bi-plus-circle'
+    when 'updated' then 'bi-pencil-square'
+    when 'marked_paid' then 'bi-check-circle'
+    when 'processing' then 'bi-clock'
+    when 'cancelled' then 'bi-x-circle'
+    when 'deleted' then 'bi-trash'
+    else 'bi-circle'
+    end
+  end
+
+  def timeline_color_for_action(action)
+    case action
+    when 'created' then 'primary'
+    when 'updated' then 'info'
+    when 'marked_paid' then 'success'
+    when 'processing' then 'warning'
+    when 'cancelled' then 'danger'
+    when 'deleted' then 'danger'
+    else 'secondary'
     end
   end
 end

@@ -16,7 +16,7 @@
   </div>
 <% end %>
 
-<%= form_with model: [:admin, @payout], local: true, class: "needs-validation", novalidate: true, data: { turbo: false } do |form| %>
+<%= form_with model: @payout, url: (@payout.new_record? ? admin_payouts_path : admin_payout_path(@payout)), local: true, class: "needs-validation", novalidate: true, data: { turbo: false } do |form| %>
 
   <!-- Basic Payout Information -->
   <div class="card border-0 shadow-sm mb-4">

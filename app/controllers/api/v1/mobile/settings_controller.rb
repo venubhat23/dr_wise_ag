@@ -3,60 +3,34 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
 
   # GET /api/v1/mobile/settings/profile
   def profile
-    customer = current_user
+    user = current_user
 
     render json: {
       success: true,
-      data: {
-        username: customer.email,
-        user_image: nil, # Add if you have profile images
-        full_name: customer.display_name,
-        first_name: customer.first_name,
-        last_name: customer.last_name,
-        email: customer.email,
-        mobile_number: customer.mobile,
-        gender: customer.gender,
-        age: customer.age,
-        birth_date: customer.birth_date,
-        city: customer.city,
-        state: customer.state,
-        address: customer.address,
-        pincode: customer.pincode,
-        pan: customer.pan_number || customer.pan_no,
-        gst: customer.gst_number || customer.gst_no,
-        customer_type: customer.customer_type,
-        occupation: customer.occupation,
-        annual_income: customer.annual_income,
-        marital_status: customer.marital_status,
-        education: customer.education
-      }
+      data: build_profile_data(user)
     }
   end
 
   # PUT /api/v1/mobile/settings/profile
   def update_profile
-    customer = current_user
-    profile_params = params.permit(
-      :first_name, :last_name, :mobile, :gender, :birth_date,
-      :city, :state, :address, :pincode, :occupation, :annual_income,
-      :marital_status, :education
-    )
+    user = current_user
+    profile_params = get_permitted_params_for_user(user)
 
-    if customer.update(profile_params)
+    if user.update(profile_params)
       render json: {
         success: true,
         message: 'Profile updated successfully',
         data: {
-          full_name: customer.display_name,
-          email: customer.email,
-          mobile_number: customer.mobile
+          full_name: user.display_name,
+          email: user.email,
+          mobile_number: user.mobile
         }
       }
     else
       render json: {
         success: false,
         message: 'Failed to update profile',
-        errors: customer.errors.full_messages
+        errors: user.errors.full_messages
       }, status: :unprocessable_entity
     end
   end
@@ -274,6 +248,91 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
         email: "support@insurebook.com",
         address: "123 Insurance Street, Mumbai, Maharashtra, India"
       }
+    end
+  end
+
+  def build_profile_data(user)
+    base_data = {
+      username: user.email,
+      user_image: nil, # Add if you have profile images
+      full_name: user.display_name,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      mobile_number: user.mobile,
+      gender: user.gender,
+      age: user.age,
+      birth_date: user.birth_date,
+      address: user.address
+    }
+
+    # Handle city and state based on model structure
+    if user.respond_to?(:city)
+      base_data[:city] = user.city
+      base_data[:state] = user.state
+    elsif user.respond_to?(:city_id)
+      base_data[:city_id] = user.city_id
+      base_data[:state_id] = user.state_id
+    end
+
+    # Add user-type specific fields
+    case user
+    when Customer
+      base_data.merge!({
+        pincode: user.pincode,
+        pan: user.pan_number || user.pan_no,
+        gst: user.gst_number || user.gst_no,
+        customer_type: user.customer_type,
+        occupation: user.occupation,
+        annual_income: user.annual_income,
+        marital_status: user.marital_status,
+        education: user.education
+      })
+    when SubAgent
+      base_data.merge!({
+        role_id: user.role_id,
+        pan: user.pan_no,
+        account_type: user.account_type,
+        account_holder_name: user.account_holder_name,
+        account_number: user.account_no, # Note: it's account_no not account_number in the model
+        ifsc_code: user.ifsc_code,
+        bank_name: user.bank_name,
+        upi_id: user.upi_id,
+        status: user.status,
+        company_name: user.company_name
+      })
+    when User
+      base_data.merge!({
+        user_type: user.user_type,
+        role: user.role,
+        pan_number: user.pan_number,
+        occupation: user.occupation,
+        annual_income: user.annual_income
+      })
+    end
+
+    base_data
+  end
+
+  def get_permitted_params_for_user(user)
+    base_params = [:first_name, :last_name, :mobile, :gender, :birth_date, :address]
+
+    # Add city/state params based on model structure
+    if user.respond_to?(:city)
+      base_params += [:city, :state]
+    elsif user.respond_to?(:city_id)
+      base_params += [:city_id, :state_id]
+    end
+
+    case user
+    when Customer
+      params.permit(base_params + [:pincode, :occupation, :annual_income, :marital_status, :education])
+    when SubAgent
+      params.permit(base_params + [:account_type, :account_holder_name, :account_no, :ifsc_code, :bank_name, :upi_id, :company_name])
+    when User
+      params.permit(base_params + [:occupation, :annual_income])
+    else
+      params.permit(base_params)
     end
   end
 end

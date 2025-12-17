@@ -21,6 +21,7 @@ Rails.application.routes.draw do
         patch :mark_as_processing
         patch :cancel_payout
         get :audit_trail
+        get :flow_timeline
       end
       collection do
         get :policies_by_type

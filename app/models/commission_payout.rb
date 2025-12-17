@@ -1,20 +1,32 @@
 class CommissionPayout < ApplicationRecord
   include PgSearch::Model
 
+  # Set correct table name
+  self.table_name = "commission_payouts"
+
+  # Model name for Rails forms (to work with admin_payouts routes)
+  def self.model_name
+    @_model_name ||= ActiveModel::Name.new(self, nil, "Payout")
+  end
+
   # Associations
   has_many :payout_audit_logs, as: :auditable, dependent: :destroy
+
+  # Enums
+  enum :status, {
+    pending: 'pending',
+    processing: 'processing',
+    paid: 'paid',
+    cancelled: 'cancelled'
+  }
 
   # Validations
   validates :policy_type, presence: true, inclusion: { in: ['health', 'life', 'motor', 'other'] }
   validates :policy_id, presence: true, numericality: { greater_than: 0 }
   validates :payout_to, presence: true, inclusion: { in: ['agent', 'distributor', 'sub_agent', 'investor'] }
   validates :payout_amount, presence: true, numericality: { greater_than: 0 }
-  validates :status, presence: true, inclusion: { in: ['pending', 'paid', 'cancelled', 'processing'] }
 
   # Scopes
-  scope :paid, -> { where(status: 'paid') }
-  scope :pending, -> { where(status: 'pending') }
-  scope :processing, -> { where(status: 'processing') }
   scope :for_policy_type, ->(type) { where(policy_type: type) }
   scope :for_payout_to, ->(recipient) { where(payout_to: recipient) }
   scope :recent, -> { order(payout_date: :desc, created_at: :desc) }

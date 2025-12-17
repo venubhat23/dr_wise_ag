@@ -326,4 +326,29 @@ module ApplicationHelper
       { class: 'text-danger', text: 'Overdue' }
     end
   end
+
+  # Timeline helpers for audit trail and flow timeline
+  def timeline_icon_for_action(action)
+    case action.to_s
+    when 'created' then 'bi-plus-circle'
+    when 'updated' then 'bi-pencil-square'
+    when 'marked_paid' then 'bi-check-circle'
+    when 'processing' then 'bi-clock'
+    when 'cancelled' then 'bi-x-circle'
+    when 'deleted' then 'bi-trash'
+    else 'bi-circle'
+    end
+  end
+
+  def timeline_color_for_action(action)
+    case action.to_s
+    when 'created' then 'primary'
+    when 'updated' then 'info'
+    when 'marked_paid' then 'success'
+    when 'processing' then 'warning'
+    when 'cancelled' then 'danger'
+    when 'deleted' then 'danger'
+    else 'secondary'
+    end
+  end
 end

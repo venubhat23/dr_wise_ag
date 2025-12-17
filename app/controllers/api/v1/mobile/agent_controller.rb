@@ -475,9 +475,9 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       policy_holder: policy_params[:policy_holder],
       insured_name: policy_params[:insured_name],
       insurance_company_name: get_company_name_by_id(policy_params[:insurance_company_id]),
-      distributor_id: 1, # Default distributor
-      investor_id: 1,    # Default investor
-      agency_code_id: policy_params[:agency_code_id],
+      distributor_id: Distributor.exists?(1) ? 1 : nil,
+      investor_id: Investor.exists?(1) ? 1 : nil,
+      agency_code_id: AgencyCode.exists?(policy_params[:agency_code_id]) ? policy_params[:agency_code_id] : nil,
       policy_type: mapped_policy_type,
       payment_mode: policy_params[:payment_mode]&.capitalize || 'Yearly',
       policy_number: policy_params[:policy_number],
@@ -1156,8 +1156,10 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       user_id = decoded_token['user_id']
       role = decoded_token['role']
 
-      if (role == 'agent') || (role == 'sub_agent')
+      if role == 'agent'
         @current_user = User.find(user_id)
+      elsif role == 'sub_agent'
+        @current_user = SubAgent.find(user_id)
       else
         return render json: {
           success: false,

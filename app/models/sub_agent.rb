@@ -46,4 +46,14 @@ class SubAgent < ApplicationRecord
   def formatted_email
     email.presence || "N/A"
   end
+
+  def age
+    if birth_date.present?
+      age = Date.current.year - birth_date.year
+      age -= 1 if Date.current < birth_date + age.years
+      age
+    else
+      nil
+    end
+  end
 end
