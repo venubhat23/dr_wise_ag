@@ -347,24 +347,30 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
   end
 
   def get_sub_agent_statistics(sub_agent)
-    # Get policies where sub-agent is involved
-    health_policies = HealthInsurance.where(sub_agent: sub_agent)
-    life_policies = LifeInsurance.where(sub_agent: sub_agent)
-    motor_policies = MotorInsurance.where(sub_agent: sub_agent) if defined?(MotorInsurance)
+    # Get policies where sub-agent is involved (using sub_agent_id)
+    health_policies = HealthInsurance.where(sub_agent_id: sub_agent.id)
+    life_policies = LifeInsurance.where(sub_agent_id: sub_agent.id)
+    motor_policies = MotorInsurance.where(sub_agent_id: sub_agent.id) if defined?(MotorInsurance)
 
     # Calculate commission from each policy type
     health_commission = health_policies.sum do |policy|
-      policy.sub_agent_commission_amount || calculate_health_commission(policy)
+      # HealthInsurance doesn't have sub_agent_commission_amount, use commission_amount or calculate
+      commission = policy.try(:commission_amount) || calculate_health_commission(policy)
+      commission.to_f
     end
 
     life_commission = life_policies.sum do |policy|
-      policy.sub_agent_commission_amount || calculate_life_commission(policy)
+      # LifeInsurance has sub_agent_commission_amount field
+      commission = policy.try(:sub_agent_commission_amount) || calculate_life_commission(policy)
+      commission.to_f
     end
 
     motor_commission = 0
     if defined?(MotorInsurance) && motor_policies
       motor_commission = motor_policies.sum do |policy|
-        policy.sub_agent_commission_amount || calculate_motor_commission(policy)
+        # MotorInsurance doesn't have sub_agent_commission_amount, use main_agent_commission_amount or calculate
+        commission = policy.try(:main_agent_commission_amount) || calculate_motor_commission(policy)
+        commission.to_f
       end
     end
 
@@ -400,21 +406,21 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
 
   # Helper methods for commission calculation
   def calculate_health_commission(policy)
-    return 0 unless policy.net_premium
+    return 0.0 unless policy&.net_premium
     # Default 2% commission for health insurance
-    (policy.net_premium * 0.02)
+    (policy.net_premium.to_f * 0.02)
   end
 
   def calculate_life_commission(policy)
-    return 0 unless policy.net_premium
+    return 0.0 unless policy&.net_premium
     # Default 10% commission for life insurance first year
-    (policy.net_premium * 0.10)
+    (policy.net_premium.to_f * 0.10)
   end
 
   def calculate_motor_commission(policy)
-    return 0 unless policy.respond_to?(:net_premium) && policy.net_premium
+    return 0.0 unless policy&.respond_to?(:net_premium) && policy.net_premium
     # Default 15% commission for motor insurance
-    (policy.net_premium * 0.15)
+    (policy.net_premium.to_f * 0.15)
   end
 
   # Mock data generation methods
