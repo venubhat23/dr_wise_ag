@@ -213,7 +213,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
     # Get health insurance policies
     if policy_type.blank? || policy_type == 'health' || policy_type == 'all'
-      health_policies = if agent.user_type == 'admin'
+      health_policies = if is_admin?(agent)
                          HealthInsurance.all
                        else
                          HealthInsurance.joins(:customer)
@@ -226,7 +226,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
     # Get life insurance policies
     if policy_type.blank? || policy_type == 'life' || policy_type == 'all'
-      life_policies = if agent.user_type == 'admin'
+      life_policies = if is_admin?(agent)
                        LifeInsurance.all
                      else
                        LifeInsurance.joins(:customer)
@@ -239,7 +239,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
     # Get motor insurance policies
     if policy_type.blank? || policy_type == 'motor' || policy_type == 'all'
-      motor_policies = if agent.user_type == 'admin'
+      motor_policies = if is_admin?(agent)
                          Policy.where(insurance_type: 'motor')
                        else
                          Policy.where(insurance_type: 'motor', user: agent)
@@ -252,7 +252,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
     # Get other insurance policies
     if policy_type.blank? || policy_type == 'other' || policy_type == 'all'
-      other_policies = if agent.user_type == 'admin'
+      other_policies = if is_admin?(agent)
                          Policy.where(insurance_type: 'other')
                        else
                          Policy.where(insurance_type: 'other', user: agent)
@@ -954,7 +954,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     commission_payouts = CommissionPayout.where(payout_to: 'sub_agent')
 
     # If agent is sub_agent type, filter by their records only
-    if agent.user_type == 'sub_agent'
+    if is_sub_agent?(agent)
       # Get policies associated with this sub-agent
       health_policies = HealthInsurance.where(sub_agent_id: agent.id).pluck(:id)
       life_policies = LifeInsurance.where(sub_agent_id: agent.id).pluck(:id)
@@ -1047,7 +1047,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       }
     }
 
-    if agent.user_type == 'sub_agent'
+    if is_sub_agent?(agent)
       # Calculate from sub-agent commission fields in policies
       health_policies = HealthInsurance.where(sub_agent_id: agent.id)
       life_policies = LifeInsurance.where(sub_agent_id: agent.id)
@@ -1189,7 +1189,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   end
 
   def get_dashboard_statistics(agent)
-    if agent.user_type == 'admin'
+    if is_admin?(agent)
       # Admin can see all statistics
       {
         customers_count: Customer.active.count,
@@ -1367,7 +1367,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   end
 
   def get_customer_statistics(agent)
-    base_customers = if agent.user_type == 'admin'
+    base_customers = if is_admin?(agent)
                       Customer.all
                     else
                       policy_customer_ids = (HealthInsurance.pluck(:customer_id) + LifeInsurance.pluck(:customer_id)).uniq
@@ -1379,7 +1379,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       total_customers: base_customers.active.count,
       agent_added_customers: base_customers.where("added_by LIKE ?", "%agent_mobile_api_%").count,
       system_added_customers: base_customers.where("added_by IS NULL OR added_by NOT LIKE ?", "%agent_mobile_api_%").count,
-      my_added_customers: agent.user_type != 'admin' ? base_customers.where("added_by LIKE ?", "%agent_mobile_api_#{agent.id}%").count : 0
+      my_added_customers: !is_admin?(agent) ? base_customers.where("added_by LIKE ?", "%agent_mobile_api_#{agent.id}%").count : 0
     }
   end
 
@@ -1752,7 +1752,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     base_query = CommissionPayout.where(payout_to: 'sub_agent')
 
     # Filter by agent if sub_agent
-    if agent.user_type == 'sub_agent'
+    if is_sub_agent?(agent)
       health_policy_ids = HealthInsurance.where(sub_agent_id: agent.id).pluck(:id)
       life_policy_ids = LifeInsurance.where(sub_agent_id: agent.id).pluck(:id)
 

@@ -311,7 +311,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
 
     # Calculate commission earned from different policy types
     health_commission = health_policies.sum do |policy|
-      policy.sub_agent_commission_amount || calculate_health_commission(policy)
+      policy.commission_amount || calculate_health_commission(policy)
     end
 
     life_commission = life_policies.sum do |policy|
@@ -321,7 +321,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
     motor_commission = 0
     if defined?(MotorInsurance) && motor_policies
       motor_commission = motor_policies.sum do |policy|
-        policy.sub_agent_commission_amount || calculate_motor_commission(policy)
+        policy.main_agent_commission_amount || calculate_motor_commission(policy)
       end
     end
 
