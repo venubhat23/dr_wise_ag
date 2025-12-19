@@ -30,10 +30,11 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     per_page = params[:per_page] || 10
     filter = params[:filter] # 'all', 'agent_added', 'system_added'
 
-    customers = if agent.user_type == 'admin'
+    # Check if current user is admin
+    customers = if is_admin?(agent)
                   Customer.all
                 else
-                  # For agents, show customers from their policies and customers they added
+                  # For agents and sub-agents, show customers from their policies and customers they added
                   policy_customer_ids = (HealthInsurance.pluck(:customer_id) + LifeInsurance.pluck(:customer_id)).uniq
                   agent_added_customers = Customer.where("added_by LIKE ?", "%agent_mobile_api_#{agent.id}%")
                   Customer.where(id: policy_customer_ids).or(agent_added_customers)
@@ -1798,5 +1799,24 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         }
       }
     }
+  end
+
+  # Helper method to safely check user type across User and SubAgent models
+  def get_user_type(user)
+    if user.is_a?(User)
+      user.user_type
+    elsif user.is_a?(SubAgent)
+      'sub_agent'
+    else
+      'unknown'
+    end
+  end
+
+  def is_admin?(user)
+    user.is_a?(User) && user.user_type == 'admin'
+  end
+
+  def is_sub_agent?(user)
+    user.is_a?(SubAgent) || (user.is_a?(User) && user.user_type == 'sub_agent')
   end
 end

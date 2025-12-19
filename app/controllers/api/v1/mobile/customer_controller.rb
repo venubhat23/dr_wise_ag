@@ -138,7 +138,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       data: {
         upcoming_installments: installments,
         total_installments: installments.count,
-        total_amount: installments.sum { |i| i[:installment_amount].to_f }
+        total_amount: installments.sum { |i| i[:installment_amount].to_f }.round(2)
       }
     }
   end
@@ -381,7 +381,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
   def calculate_installment_amount(total_premium, payment_mode)
     return total_premium unless total_premium && payment_mode
 
-    case payment_mode.downcase
+    amount = case payment_mode.downcase
     when 'monthly'
       total_premium / 12.0
     when 'quarterly'
@@ -393,5 +393,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     else
       total_premium
     end
+
+    # Round to 2 decimal places
+    amount.round(2)
   end
 end

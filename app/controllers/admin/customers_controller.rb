@@ -170,7 +170,7 @@ class Admin::CustomersController < Admin::ApplicationController
         icon: 'bi-shield-check',
         color: 'primary',
         policies: LifeInsurance.where(customer_id: @customer.id),
-        total_premium: LifeInsurance.where(customer_id: @customer.id).sum(:premium_amount) || 0,
+        total_premium: LifeInsurance.where(customer_id: @customer.id).sum(:total_premium) || 0,
         latest_policy: LifeInsurance.where(customer_id: @customer.id).order(:created_at).last
       },
       'Motor Insurance' => {
@@ -179,7 +179,7 @@ class Admin::CustomersController < Admin::ApplicationController
         icon: 'bi-car-front',
         color: 'warning',
         policies: MotorInsurance.where(customer_id: @customer.id),
-        total_premium: MotorInsurance.where(customer_id: @customer.id).sum(:premium_amount) || 0,
+        total_premium: MotorInsurance.where(customer_id: @customer.id).sum(:total_premium) || 0,
         latest_policy: MotorInsurance.where(customer_id: @customer.id).order(:created_at).last
       }
     }

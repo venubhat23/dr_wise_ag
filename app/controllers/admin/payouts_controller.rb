@@ -235,7 +235,7 @@ class Admin::PayoutsController < Admin::ApplicationController
       end
     when 'life_insurance', 'life'
       policies = LifeInsurance.includes(:customer)
-                              .select(:id, :policy_number, :customer_id, :premium_amount)
+                              .select(:id, :policy_number, :customer_id, :total_premium)
                               .limit(100)
                               .map do |policy|
         customer_name = policy.customer&.display_name || 'Unknown Customer'
@@ -243,13 +243,13 @@ class Admin::PayoutsController < Admin::ApplicationController
           id: policy.id,
           policy_number: policy.policy_number || "Policy ##{policy.id}",
           customer_name: customer_name,
-          premium: policy.premium_amount || 0
+          premium: policy.total_premium || 0
         }
       end
     when 'motor_insurance', 'motor'
       if defined?(MotorInsurance)
         policies = MotorInsurance.includes(:customer)
-                                 .select(:id, :policy_number, :customer_id, :premium_amount)
+                                 .select(:id, :policy_number, :customer_id, :total_premium)
                                  .limit(100)
                                  .map do |policy|
           customer_name = policy.customer&.display_name || 'Unknown Customer'
@@ -257,14 +257,14 @@ class Admin::PayoutsController < Admin::ApplicationController
             id: policy.id,
             policy_number: policy.policy_number || "Policy ##{policy.id}",
             customer_name: customer_name,
-            premium: policy.premium_amount || 0
+            premium: policy.total_premium || 0
           }
         end
       end
     when 'general_insurance', 'general'
       if defined?(GeneralInsurance)
         policies = GeneralInsurance.includes(:customer)
-                                   .select(:id, :policy_number, :customer_id, :premium_amount)
+                                   .select(:id, :policy_number, :customer_id, :total_premium)
                                    .limit(100)
                                    .map do |policy|
           customer_name = policy.customer&.display_name || 'Unknown Customer'
@@ -272,7 +272,7 @@ class Admin::PayoutsController < Admin::ApplicationController
             id: policy.id,
             policy_number: policy.policy_number || "Policy ##{policy.id}",
             customer_name: customer_name,
-            premium: policy.premium_amount || 0
+            premium: policy.total_premium || 0
           }
         end
       end

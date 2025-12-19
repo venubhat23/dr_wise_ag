@@ -128,29 +128,29 @@ module ApplicationHelper
       end
     when 'life_insurance', 'life'
       policies = LifeInsurance.includes(:customer)
-                              .select(:id, :policy_number, :customer_id, :premium_amount)
+                              .select(:id, :policy_number, :customer_id, :total_premium)
                               .map do |policy|
         customer_name = policy.customer&.display_name || 'Unknown Customer'
-        premium = policy.premium_amount || 0
+        premium = policy.total_premium || 0
         ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{premium}", policy.id]
       end
     when 'motor_insurance', 'motor'
       if defined?(MotorInsurance)
         policies = MotorInsurance.includes(:customer)
-                                 .select(:id, :policy_number, :customer_id, :premium_amount)
+                                 .select(:id, :policy_number, :customer_id, :total_premium)
                                  .map do |policy|
           customer_name = policy.customer&.display_name || 'Unknown Customer'
-          premium = policy.premium_amount || 0
+          premium = policy.total_premium || 0
           ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{premium}", policy.id]
         end
       end
     when 'general_insurance', 'general'
       if defined?(GeneralInsurance)
         policies = GeneralInsurance.includes(:customer)
-                                   .select(:id, :policy_number, :customer_id, :premium_amount)
+                                   .select(:id, :policy_number, :customer_id, :total_premium)
                                    .map do |policy|
           customer_name = policy.customer&.display_name || 'Unknown Customer'
-          premium = policy.premium_amount || 0
+          premium = policy.total_premium || 0
           ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{premium}", policy.id]
         end
       end
@@ -164,10 +164,10 @@ module ApplicationHelper
       end
 
       life_policies = LifeInsurance.includes(:customer)
-                                   .select(:id, :policy_number, :customer_id, :premium_amount)
+                                   .select(:id, :policy_number, :customer_id, :total_premium)
                                    .map do |policy|
         customer_name = policy.customer&.display_name || 'Unknown Customer'
-        premium = policy.premium_amount || 0
+        premium = policy.total_premium || 0
         ["Life: #{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{premium}", policy.id]
       end
 
