@@ -1,0 +1,455 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Commission Tracking</h2>
+    <p class="text-muted mb-0">Track and manage commission payouts for all insurance policies</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to dashboard_admin_commission_tracking_index_path, class: "btn btn-outline-primary" do %>
+      <i class="bi bi-graph-up me-1"></i>
+      Dashboard View
+    <% end %>
+    <%= link_to summary_admin_commission_tracking_index_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-file-earmark-text me-1"></i>
+      Summary Report
+    <% end %>
+  </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Commission Generated</h6>
+            <h3 class="mb-0 text-primary">₹<%= number_with_delimiter(@total_commission_generated.to_i) %></h3>
+          </div>
+          <div class="bg-primary bg-opacity-10 rounded p-3">
+            <i class="bi bi-currency-rupee text-primary fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Transferred</h6>
+            <h3 class="mb-0 text-success">₹<%= number_with_delimiter(@total_transferred.to_i) %></h3>
+          </div>
+          <div class="bg-success bg-opacity-10 rounded p-3">
+            <i class="bi bi-arrow-right-circle text-success fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Pending Transfers</h6>
+            <h3 class="mb-0 text-warning">₹<%= number_with_delimiter(@pending_transfers.to_i) %></h3>
+          </div>
+          <div class="bg-warning bg-opacity-10 rounded p-3">
+            <i class="bi bi-clock text-warning fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Company Expenses (3%)</h6>
+            <h3 class="mb-0 text-info">₹<%= number_with_delimiter((@total_commission_generated * 0.03).to_i) %></h3>
+          </div>
+          <div class="bg-info bg-opacity-10 rounded p-3">
+            <i class="bi bi-building text-info fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-3 align-items-center">
+      <!-- Search -->
+      <div class="flex-grow-1 min-width-250">
+        <input type="text" class="form-control" placeholder="Search by policy number or customer name..." id="policySearch">
+      </div>
+
+      <!-- Pagination Info -->
+      <div class="d-flex gap-2 align-items-center">
+        <span class="badge bg-primary">Page <%= @page %> | Showing <%= @per_page %> records</span>
+
+        <!-- Pagination Controls -->
+        <div class="btn-group">
+          <% current_page = @page.to_i %>
+          <% if current_page > 1 %>
+            <%= link_to "Previous", admin_commission_tracking_index_path(page: current_page - 1),
+                class: "btn btn-sm btn-outline-primary" %>
+          <% else %>
+            <span class="btn btn-sm btn-outline-primary disabled">Previous</span>
+          <% end %>
+
+          <span class="btn btn-sm btn-primary"><%= current_page %></span>
+
+          <% if @policies_with_commission.count == @per_page %>
+            <%= link_to "Next", admin_commission_tracking_index_path(page: current_page + 1),
+                class: "btn btn-sm btn-outline-primary" %>
+          <% else %>
+            <span class="btn btn-sm btn-outline-primary disabled">Next</span>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.min-width-250 {
+  min-width: 250px;
+}
+</style>
+
+<!-- Policies with Commission Table -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0">
+    <h5 class="mb-0">Commission Tracking - Policies (<%= @policies_with_commission.count %>)</h5>
+  </div>
+  <div class="card-body p-0">
+
+    <% if @policies_with_commission.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0">Policy Details</th>
+              <th class="border-0">Customer</th>
+              <th class="border-0">Premium</th>
+              <th class="border-0">Commission Generated</th>
+              <th class="border-0">Transfer Status</th>
+              <th class="border-0">Commission Breakdown</th>
+              <th class="border-0">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @policies_with_commission.each do |policy_data| %>
+              <% policy = policy_data[:policy] %>
+              <% type = policy_data[:type] %>
+              <% commission_data = policy_data[:commission_data] %>
+              <% transfer_status = policy_data[:transfer_status] %>
+
+              <tr>
+                <td>
+                  <div>
+                    <h6 class="mb-1"><%= policy.policy_number %></h6>
+                    <span class="badge bg-<%= case type when 'health' then 'success' when 'life' then 'primary' when 'motor' then 'warning' else 'info' end %>">
+                      <%= type.titleize %>
+                    </span>
+                  </div>
+                </td>
+
+                <td>
+                  <div>
+                    <h6 class="mb-1"><%= policy.customer.display_name %></h6>
+                    <small class="text-muted">
+                      <%= policy.try(:insurance_company_name) || 'N/A' %>
+                    </small>
+                  </div>
+                </td>
+
+                <td>
+                  <strong>₹<%= number_with_delimiter(policy.total_premium.to_i) %></strong>
+                </td>
+
+                <td>
+                  <div>
+                    <span class="badge bg-success">
+                      ₹<%= number_with_delimiter(commission_data.dig(:summary, :total_commission_generated).to_i) %>
+                    </span>
+                    <small class="text-muted d-block mt-1">
+                      Main Agent: ₹<%= number_with_delimiter(commission_data.dig(:main_agent, :total_commission).to_i) %>
+                    </small>
+                  </div>
+                </td>
+
+                <td>
+                  <div>
+                    <div class="mb-1">
+                      <small>Paid: </small>
+                      <span class="badge bg-primary">
+                        <%= transfer_status[:paid_payouts] %>/<%= transfer_status[:total_payouts] %>
+                      </span>
+                    </div>
+                    <div>
+                      <small>Amount: </small>
+                      <span class="badge bg-info">
+                        ₹<%= number_with_delimiter(transfer_status[:paid_amount].to_i) %>
+                      </span>
+                    </div>
+                  </div>
+                </td>
+
+                <td>
+                  <div>
+                    <small class="d-block">Affiliate: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :affiliate).to_i) %></small>
+                    <small class="d-block">Ambassador: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :ambassador).to_i) %></small>
+                    <small class="d-block">Investor: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :investor).to_i) %></small>
+                    <small class="d-block">Company: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :company_expense).to_i) %></small>
+                  </div>
+                </td>
+
+                <td>
+                  <div class="d-flex gap-1">
+                    <%= link_to admin_commission_tracking_path(policy.id, policy_type: type),
+                        class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+
+                    <% if transfer_status[:pending_payouts] > 0 %>
+                      <button class="btn btn-sm btn-outline-success"
+                              onclick="openTransferModal('<%= policy.id %>', '<%= type %>', '<%= policy.policy_number %>')"
+                              title="Manual Transfer">
+                        <i class="bi bi-arrow-right-circle"></i>
+                      </button>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="text-center py-5">
+        <i class="bi bi-wallet fs-1 text-muted d-block mb-3"></i>
+        <h5 class="text-muted">No Policies with Commission Found</h5>
+        <p class="text-muted mb-3">
+          No insurance policies with commission data are currently available.
+        </p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Transfer Modal -->
+<div class="modal fade" id="transferModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="bi bi-arrow-right-circle me-2"></i>Manual Commission Transfer</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="transferModalContent">
+          <!-- Content will be loaded dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Search functionality
+  const searchInput = document.getElementById('policySearch');
+  let searchTimeout;
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function(e) {
+      clearTimeout(searchTimeout);
+      const searchTerm = e.target.value.toLowerCase();
+
+      searchTimeout = setTimeout(() => {
+        const tableRows = document.querySelectorAll('.table tbody tr');
+
+        tableRows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+      }, 300);
+    });
+  }
+});
+
+// Transfer modal functionality
+function openTransferModal(policyId, policyType, policyNumber) {
+  const modal = new bootstrap.Modal(document.getElementById('transferModal'));
+
+  // Load policy breakdown and transfer forms
+  fetch(`/admin/commission_tracking/${policyId}/policy_breakdown?policy_type=${policyType}`)
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('transferModalContent').innerHTML = generateTransferForm(data, policyId, policyType, policyNumber);
+      modal.show();
+    })
+    .catch(error => {
+      console.error('Error loading transfer modal:', error);
+      alert('Failed to load transfer details. Please try again.');
+    });
+}
+
+function generateTransferForm(commissionData, policyId, policyType, policyNumber) {
+  const breakdown = commissionData.commission_breakdown;
+  const payoutStatus = commissionData.payout_status;
+
+  return `
+    <div class="transfer-form-container">
+      <div class="policy-summary mb-4 p-3 bg-light rounded">
+        <h6><strong>Policy:</strong> ${policyNumber} (${policyType.toUpperCase()})</h6>
+        <p><strong>Customer:</strong> ${commissionData.policy.customer}</p>
+        <p><strong>Premium:</strong> ₹${breakdown.premium_amount.toLocaleString()}</p>
+        <p><strong>Total Commission:</strong> ₹${breakdown.main_agent.total_commission.toLocaleString()}</p>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6">
+          <h6>Transfer to Affiliate (₹${breakdown.payouts.affiliate.toLocaleString()})</h6>
+          <div class="transfer-section mb-3">
+            <div class="form-group mb-2">
+              <input type="number" class="form-control" id="affiliate_amount"
+                     value="${breakdown.payouts.affiliate}" readonly>
+            </div>
+            <div class="form-group mb-2">
+              <input type="text" class="form-control" id="affiliate_transaction_id"
+                     placeholder="Transaction ID">
+            </div>
+            <div class="form-group mb-2">
+              <textarea class="form-control" id="affiliate_notes" rows="2"
+                        placeholder="Transfer notes"></textarea>
+            </div>
+            <button class="btn btn-success btn-sm w-100" onclick="processTransfer('affiliate', ${policyId}, '${policyType}')">
+              Complete Transfer
+            </button>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <h6>Transfer to Ambassador (₹${breakdown.payouts.ambassador.toLocaleString()})</h6>
+          <div class="transfer-section mb-3">
+            <div class="form-group mb-2">
+              <input type="number" class="form-control" id="ambassador_amount"
+                     value="${breakdown.payouts.ambassador}" readonly>
+            </div>
+            <div class="form-group mb-2">
+              <input type="text" class="form-control" id="ambassador_transaction_id"
+                     placeholder="Transaction ID">
+            </div>
+            <div class="form-group mb-2">
+              <textarea class="form-control" id="ambassador_notes" rows="2"
+                        placeholder="Transfer notes"></textarea>
+            </div>
+            <button class="btn btn-success btn-sm w-100" onclick="processTransfer('ambassador', ${policyId}, '${policyType}')">
+              Complete Transfer
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6">
+          <h6>Transfer to Investor (₹${breakdown.payouts.investor.toLocaleString()})</h6>
+          <div class="transfer-section mb-3">
+            <div class="form-group mb-2">
+              <input type="number" class="form-control" id="investor_amount"
+                     value="${breakdown.payouts.investor}" readonly>
+            </div>
+            <div class="form-group mb-2">
+              <input type="text" class="form-control" id="investor_transaction_id"
+                     placeholder="Transaction ID">
+            </div>
+            <div class="form-group mb-2">
+              <textarea class="form-control" id="investor_notes" rows="2"
+                        placeholder="Transfer notes"></textarea>
+            </div>
+            <button class="btn btn-success btn-sm w-100" onclick="processTransfer('investor', ${policyId}, '${policyType}')">
+              Complete Transfer
+            </button>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <h6>Company Expense (₹${breakdown.payouts.company_expense.toLocaleString()})</h6>
+          <div class="transfer-section mb-3">
+            <div class="form-group mb-2">
+              <input type="number" class="form-control" id="company_expense_amount"
+                     value="${breakdown.payouts.company_expense}" readonly>
+            </div>
+            <div class="form-group mb-2">
+              <input type="text" class="form-control" id="company_expense_transaction_id"
+                     placeholder="Transaction ID">
+            </div>
+            <div class="form-group mb-2">
+              <textarea class="form-control" id="company_expense_notes" rows="2"
+                        placeholder="Expense notes"></textarea>
+            </div>
+            <button class="btn btn-warning btn-sm w-100" onclick="processTransfer('company_expense', ${policyId}, '${policyType}')">
+              Record Expense
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function processTransfer(transferType, policyId, policyType) {
+  const amount = document.getElementById(`${transferType}_amount`).value;
+  const transactionId = document.getElementById(`${transferType}_transaction_id`).value;
+  const notes = document.getElementById(`${transferType}_notes`).value;
+
+  if (!transactionId) {
+    alert('Please enter a transaction ID');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('amount', amount);
+  formData.append('transaction_id', transactionId);
+  formData.append('notes', notes);
+  formData.append('authenticity_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+  const actionMap = {
+    'affiliate': 'transfer_to_affiliate',
+    'ambassador': 'transfer_to_ambassador',
+    'investor': 'transfer_to_investor',
+    'company_expense': 'transfer_company_expense'
+  };
+
+  fetch(`/admin/commission_tracking/${policyId}/${actionMap[transferType]}?policy_type=${policyType}`, {
+    method: 'PATCH',
+    body: formData,
+    headers: {
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert(data.message);
+      location.reload();
+    } else {
+      alert('Transfer failed: ' + data.message);
+    }
+  })
+  .catch(error => {
+    console.error('Transfer error:', error);
+    alert('Transfer failed. Please try again.');
+  });
+}
+</script>

@@ -277,6 +277,18 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       end
 
     when 'life', 'lic'
+      # Get default distributor and investor
+      default_distributor = Distributor.first
+      default_investor = Investor.first
+
+      # Check if default distributor and investor exist
+      unless default_distributor && default_investor
+        return render json: {
+          success: false,
+          message: 'System configuration error: Default distributor or investor not found. Please contact support.'
+        }, status: :internal_server_error
+      end
+
       policy = LifeInsurance.new(
         customer_id: current_customer.id,
         policy_holder: current_customer.display_name || 'Self',
@@ -294,6 +306,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         net_premium: premium_amount&.to_f || 0,
         total_premium: premium_amount&.to_f || 0,
         first_year_gst_percentage: 18,
+        distributor_id: default_distributor&.id,
+        investor_id: default_investor&.id,
         is_customer_added: true,
         is_agent_added: false,
         is_admin_added: false

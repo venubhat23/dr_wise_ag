@@ -29,6 +29,24 @@ Rails.application.routes.draw do
         post :auto_distribute
         get :reports
         get :summary
+        get 'policies/:policy_id/actions', action: :policy_actions, as: :policy_actions
+      end
+    end
+
+    # Commission Tracking System
+    resources :commission_tracking, only: [:index, :show, :update] do
+      member do
+        patch :transfer_to_affiliate
+        patch :transfer_to_ambassador
+        patch :transfer_to_investor
+        patch :transfer_company_expense
+        get :policy_breakdown
+      end
+      collection do
+        get :dashboard
+        get :summary
+        get :policy_search
+        post :manual_transfer
       end
     end
     # Users (Admins/Agents) management
@@ -83,6 +101,7 @@ Rails.application.routes.draw do
       member do
         patch :toggle_status
         get :policy_chart
+        get :trace_commission
       end
       collection do
         get :export

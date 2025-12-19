@@ -284,6 +284,55 @@ class Admin::PayoutsController < Admin::ApplicationController
     render json: { error: 'Failed to fetch policies' }, status: :internal_server_error
   end
 
+  def policy_actions
+    policy_id = params[:policy_id]
+    policy_type = params[:policy_type] || 'health'
+
+    # Find the policy based on type and ID
+    policy = find_policy_by_type_and_id(policy_type, policy_id)
+
+    unless policy
+      render json: { error: 'Policy not found' }, status: :not_found
+      return
+    end
+
+    # Check existing payouts for this policy
+    existing_payouts = CommissionPayout.where(
+      policy_type: policy_type,
+      policy_id: policy_id
+    )
+
+    # Calculate commission breakdown
+    commission_breakdown = CommissionCalculatorService.calculate_commission_breakdown(policy)
+
+    actions = {
+      policy: {
+        id: policy.id,
+        number: policy.policy_number,
+        customer: policy.customer.display_name,
+        premium: policy.total_premium,
+        type: policy_type
+      },
+      commission_breakdown: commission_breakdown,
+      existing_payouts: existing_payouts.map do |payout|
+        {
+          id: payout.id,
+          payout_to: payout.payout_to,
+          amount: payout.payout_amount,
+          status: payout.status,
+          payout_date: payout.payout_date,
+          transaction_id: payout.transaction_id
+        }
+      end,
+      available_actions: generate_available_actions(existing_payouts, commission_breakdown)
+    }
+
+    render json: actions
+  rescue => e
+    Rails.logger.error "Error fetching policy actions: #{e.message}"
+    render json: { error: 'Failed to fetch policy actions' }, status: :internal_server_error
+  end
+
   private
 
   def set_payout
@@ -527,6 +576,65 @@ class Admin::PayoutsController < Admin::ApplicationController
 
     # Sort by date
     events.sort_by { |event| event[:date] }.reverse
+  end
+
+  def find_policy_by_type_and_id(policy_type, policy_id)
+    case policy_type.downcase
+    when 'health', 'health_insurance'
+      HealthInsurance.includes(:customer).find_by(id: policy_id)
+    when 'life', 'life_insurance'
+      LifeInsurance.includes(:customer).find_by(id: policy_id)
+    when 'motor', 'motor_insurance'
+      MotorInsurance.includes(:customer).find_by(id: policy_id) if defined?(MotorInsurance)
+    when 'other', 'general', 'general_insurance'
+      OtherInsurance.includes(:customer).find_by(id: policy_id) if defined?(OtherInsurance)
+    end
+  rescue
+    nil
+  end
+
+  def generate_available_actions(existing_payouts, commission_breakdown)
+    return [] if commission_breakdown.empty?
+
+    actions = []
+    payout_types = ['affiliate', 'ambassador', 'investor', 'company_expense']
+
+    payout_types.each do |payout_type|
+      existing_payout = existing_payouts.find { |p| p.payout_to == payout_type }
+      expected_amount = commission_breakdown.dig(:payouts, payout_type.to_sym) || 0
+
+      next if expected_amount <= 0
+
+      if existing_payout
+        case existing_payout.status
+        when 'pending'
+          actions << {
+            type: 'mark_as_paid',
+            payout_type: payout_type,
+            payout_id: existing_payout.id,
+            amount: existing_payout.payout_amount,
+            description: "Mark #{payout_type} payout as paid"
+          }
+        when 'paid'
+          actions << {
+            type: 'view_details',
+            payout_type: payout_type,
+            payout_id: existing_payout.id,
+            amount: existing_payout.payout_amount,
+            description: "View #{payout_type} payout details"
+          }
+        end
+      else
+        actions << {
+          type: 'create_payout',
+          payout_type: payout_type,
+          amount: expected_amount,
+          description: "Create #{payout_type} payout"
+        }
+      end
+    end
+
+    actions
   end
 
   def timeline_icon_for_action(action)

@@ -23,7 +23,7 @@ class CommissionPayout < ApplicationRecord
   # Validations
   validates :policy_type, presence: true, inclusion: { in: ['health', 'life', 'motor', 'other'] }
   validates :policy_id, presence: true, numericality: { greater_than: 0 }
-  validates :payout_to, presence: true, inclusion: { in: ['agent', 'distributor', 'sub_agent', 'investor'] }
+  validates :payout_to, presence: true, inclusion: { in: ['agent', 'distributor', 'sub_agent', 'investor', 'affiliate', 'ambassador', 'company_expense'] }
   validates :payout_amount, presence: true, numericality: { greater_than: 0 }
 
   # Scopes

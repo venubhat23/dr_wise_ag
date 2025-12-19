@@ -1,5 +1,5 @@
 class Admin::CustomersController < Admin::ApplicationController
-  before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart]
+  before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart, :trace_commission]
 
   # GET /admin/customers
   def index
@@ -149,6 +149,59 @@ class Admin::CustomersController < Admin::ApplicationController
     @total_policies = @policy_status.values.sum { |policy| policy[:count] }
     @policy_types_with_coverage = @policy_status.count { |_, policy| policy[:exists] }
     @coverage_percentage = @policy_types_with_coverage > 0 ? (@policy_types_with_coverage.to_f / @policy_status.keys.count * 100).round(1) : 0
+  end
+
+  # GET /admin/customers/:id/trace_commission
+  def trace_commission
+    # Get all policy types and their status for this customer
+    @policy_status = {
+      'Health Insurance' => {
+        opted: HealthInsurance.exists?(customer_id: @customer.id),
+        count: HealthInsurance.where(customer_id: @customer.id).count,
+        icon: 'bi-heart-pulse',
+        color: 'success',
+        policies: HealthInsurance.where(customer_id: @customer.id),
+        total_premium: HealthInsurance.where(customer_id: @customer.id).sum(:total_premium) || 0,
+        latest_policy: HealthInsurance.where(customer_id: @customer.id).order(:created_at).last
+      },
+      'Life Insurance' => {
+        opted: LifeInsurance.exists?(customer_id: @customer.id),
+        count: LifeInsurance.where(customer_id: @customer.id).count,
+        icon: 'bi-shield-check',
+        color: 'primary',
+        policies: LifeInsurance.where(customer_id: @customer.id),
+        total_premium: LifeInsurance.where(customer_id: @customer.id).sum(:premium_amount) || 0,
+        latest_policy: LifeInsurance.where(customer_id: @customer.id).order(:created_at).last
+      },
+      'Motor Insurance' => {
+        opted: MotorInsurance.exists?(customer_id: @customer.id),
+        count: MotorInsurance.where(customer_id: @customer.id).count,
+        icon: 'bi-car-front',
+        color: 'warning',
+        policies: MotorInsurance.where(customer_id: @customer.id),
+        total_premium: MotorInsurance.where(customer_id: @customer.id).sum(:premium_amount) || 0,
+        latest_policy: MotorInsurance.where(customer_id: @customer.id).order(:created_at).last
+      }
+    }
+
+    # Calculate commission data for opted policies
+    @commission_summary = {
+      total_premium: @policy_status.values.sum { |policy| policy[:total_premium] },
+      total_policies: @policy_status.values.sum { |policy| policy[:count] },
+      opted_count: @policy_status.values.count { |policy| policy[:opted] }
+    }
+
+    # Get commission payouts for this customer's policies
+    @commission_payouts = CommissionPayout.joins(
+      "LEFT JOIN health_insurances ON commission_payouts.policy_type = 'health' AND commission_payouts.policy_id = health_insurances.id
+       LEFT JOIN life_insurances ON commission_payouts.policy_type = 'life' AND commission_payouts.policy_id = life_insurances.id
+       LEFT JOIN motor_insurances ON commission_payouts.policy_type = 'motor' AND commission_payouts.policy_id = motor_insurances.id"
+    ).where(
+      "(commission_payouts.policy_type = 'health' AND health_insurances.customer_id = ?) OR
+       (commission_payouts.policy_type = 'life' AND life_insurances.customer_id = ?) OR
+       (commission_payouts.policy_type = 'motor' AND motor_insurances.customer_id = ?)",
+      @customer.id, @customer.id, @customer.id
+    ).includes(:payout_audit_logs)
   end
 
   # GET /admin/customers/new

@@ -441,8 +441,8 @@
           </li>
         <% end %>
 
-        <!-- Payouts -->
-        <% if show_sidebar_item?('payouts') %>
+        <!-- Payouts - Hidden -->
+        <% if false && show_sidebar_item?('payouts') %>
           <li class="nav-item">
             <%= link_to admin_payouts_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/payouts')}" do %>
               <div class="nav-icon-modern">
@@ -451,6 +451,21 @@
                 </div>
               </div>
               <span class="nav-text">Payouts</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+
+        <!-- Payout 2 -->
+        <% if show_sidebar_item?('payouts') %>
+          <li class="nav-item">
+            <%= link_to admin_commission_tracking_index_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/commission_tracking')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-lime">
+                  <i class="bi bi-wallet2"></i>
+                </div>
+              </div>
+              <span class="nav-text">Payout</span>
               <div class="nav-indicator"></div>
             <% end %>
           </li>

@@ -19,6 +19,9 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
       # You might need to add password field to customers table
       token = generate_token(customer, 'customer')
 
+      # Get customer portfolio statistics
+      portfolio_stats = get_customer_portfolio_stats(customer)
+
       render json: {
         success: true,
         data: {
@@ -27,7 +30,12 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
           role: 'customer',
           user_id: customer.id,
           email: customer.email,
-          mobile: customer.mobile
+          mobile: customer.mobile,
+          portfolio_summary: {
+            total_policies: portfolio_stats[:total_policies],
+            upcoming_installments: portfolio_stats[:upcoming_installments],
+            renewal_policies: portfolio_stats[:renewal_policies]
+          }
         }
       }
       return
@@ -442,5 +450,111 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
     customer_count = [(policies_count * 0.7).round, 3].max
     base_id = user.id * 100
     (1..customer_count).map { |i| base_id + i }
+  end
+
+  def get_customer_portfolio_stats(customer)
+    # Get all customer policies
+    health_policies = HealthInsurance.where(customer_id: customer.id)
+    life_policies = LifeInsurance.where(customer_id: customer.id)
+
+    # Motor and Other insurance use different field names, skip if not present
+    motor_policies = []
+    other_policies = []
+
+    begin
+      if defined?(MotorInsurance) && MotorInsurance.column_names.include?('customer_id')
+        motor_policies = MotorInsurance.where(customer_id: customer.id)
+      end
+    rescue => e
+      # Skip motor insurance if there's an error
+    end
+
+    begin
+      if defined?(OtherInsurance) && OtherInsurance.column_names.include?('customer_id')
+        other_policies = OtherInsurance.where(customer_id: customer.id)
+      end
+    rescue => e
+      # Skip other insurance if there's an error
+    end
+
+    # Total policies count
+    total_policies = health_policies.count + life_policies.count + motor_policies.count + other_policies.count
+
+    # Upcoming installments count (next 30 days)
+    upcoming_installments = 0
+
+    # Health insurance installments
+    health_policies.each do |policy|
+      if policy.installment_autopay_start_date.present?
+        next_installment = calculate_next_installment_date(policy.installment_autopay_start_date, policy.payment_mode)
+        if next_installment && next_installment <= 30.days.from_now && next_installment >= Date.current
+          upcoming_installments += 1
+        end
+      end
+    end
+
+    # Life insurance installments
+    life_policies.each do |policy|
+      if policy.installment_autopay_start_date.present?
+        next_installment = calculate_next_installment_date(policy.installment_autopay_start_date, policy.payment_mode)
+        if next_installment && next_installment <= 30.days.from_now && next_installment >= Date.current
+          upcoming_installments += 1
+        end
+      end
+    end
+
+    # Renewal policies count (expiring in next 60 days)
+    renewal_policies = 0
+
+    # Health insurance renewals
+    health_renewals = health_policies.where('policy_end_date BETWEEN ? AND ?', Date.current, 60.days.from_now)
+    renewal_policies += health_renewals.count
+
+    # Life insurance renewals
+    life_renewals = life_policies.where('policy_end_date BETWEEN ? AND ?', Date.current, 60.days.from_now)
+    renewal_policies += life_renewals.count
+
+    # Motor insurance renewals (if applicable)
+    if motor_policies.any?
+      begin
+        motor_renewals = motor_policies.where('policy_end_date BETWEEN ? AND ?', Date.current, 60.days.from_now)
+        renewal_policies += motor_renewals.count
+      rescue => e
+        # Skip motor insurance renewals if there's an error
+      end
+    end
+
+    # Other insurance renewals (if applicable)
+    if other_policies.any?
+      begin
+        other_renewals = other_policies.where('policy_end_date BETWEEN ? AND ?', Date.current, 60.days.from_now)
+        renewal_policies += other_renewals.count
+      rescue => e
+        # Skip other insurance renewals if there's an error
+      end
+    end
+
+    {
+      total_policies: total_policies,
+      upcoming_installments: upcoming_installments,
+      renewal_policies: renewal_policies
+    }
+  end
+
+  def calculate_next_installment_date(start_date, payment_mode)
+    return nil unless start_date
+
+    case payment_mode.to_s.downcase
+    when 'monthly'
+      start_date + 1.month
+    when 'quarterly'
+      start_date + 3.months
+    when 'half-yearly', 'half yearly'
+      start_date + 6.months
+    when 'yearly'
+      start_date + 1.year
+    else
+      nil
+    end
   end
 end

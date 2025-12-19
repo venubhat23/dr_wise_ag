@@ -1,0 +1,443 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">
+      <i class="bi bi-graph-up-arrow text-info me-2"></i>
+      Commission Tracking
+    </h2>
+    <p class="text-muted mb-0">
+      <strong><%= @customer.display_name %></strong> - Policy opt-in status and commission details
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to admin_customers_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Customers
+    <% end %>
+    <%= link_to admin_customer_path(@customer), class: "btn btn-primary" do %>
+      <i class="bi bi-eye me-1"></i>
+      View Customer
+    <% end %>
+  </div>
+</div>
+
+<!-- Customer Summary Cards -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted mb-2">Total Policies</h6>
+            <h3 class="mb-0 text-primary"><%= @commission_summary[:total_policies] %></h3>
+          </div>
+          <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+            <i class="bi bi-file-earmark-text text-primary fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted mb-2">Opted Policies</h6>
+            <h3 class="mb-0 text-success"><%= @commission_summary[:opted_count] %> / 3</h3>
+          </div>
+          <div class="bg-success bg-opacity-10 rounded-circle p-3">
+            <i class="bi bi-check-circle text-success fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted mb-2">Total Premium</h6>
+            <h3 class="mb-0 text-warning">₹<%= number_with_delimiter(@commission_summary[:total_premium]) %></h3>
+          </div>
+          <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+            <i class="bi bi-currency-rupee text-warning fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted mb-2">Commission Paid</h6>
+            <h3 class="mb-0 text-info">₹<%= number_with_delimiter(@commission_payouts.where(status: 'paid').sum(:payout_amount)) %></h3>
+          </div>
+          <div class="bg-info bg-opacity-10 rounded-circle p-3">
+            <i class="bi bi-cash-coin text-info fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Policy Opt-in Status Table -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 py-3">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="bi bi-grid-3x3-gap text-primary me-2"></i>
+        Policy Opt-in Status Matrix
+      </h5>
+      <small class="text-muted">Visual overview of customer's insurance coverage</small>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 commission-matrix-table">
+        <thead>
+          <tr class="bg-light">
+            <th class="border-0 fw-bold text-center" style="width: 30%;">
+              <i class="bi bi-file-earmark-text me-2"></i>Policy Type
+            </th>
+            <th class="border-0 fw-bold text-center" style="width: 20%;">
+              <i class="bi bi-heart-pulse text-success me-2"></i>Health
+            </th>
+            <th class="border-0 fw-bold text-center" style="width: 20%;">
+              <i class="bi bi-shield-check text-primary me-2"></i>Life
+            </th>
+            <th class="border-0 fw-bold text-center" style="width: 20%;">
+              <i class="bi bi-car-front text-warning me-2"></i>Motor
+            </th>
+            <th class="border-0 fw-bold text-center" style="width: 10%;">
+              <i class="bi bi-graph-up text-info me-2"></i>Score
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="policy-status-row">
+            <td class="text-center fw-bold align-middle bg-light">
+              <div class="py-3">
+                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                Opt-in Status
+              </div>
+            </td>
+            <% ['Health Insurance', 'Life Insurance', 'Motor Insurance'].each do |policy_type| %>
+              <% policy_data = @policy_status[policy_type] %>
+              <td class="text-center align-middle policy-cell">
+                <div class="policy-status-card <%= policy_data[:opted] ? 'opted' : 'not-opted' %>">
+                  <div class="status-icon">
+                    <% if policy_data[:opted] %>
+                      <i class="bi bi-check-circle-fill text-success fs-1"></i>
+                      <div class="status-text mt-2">
+                        <span class="badge bg-success">OPTED</span>
+                        <div class="mt-1">
+                          <small class="text-muted"><%= policy_data[:count] %> <%= policy_data[:count] == 1 ? 'Policy' : 'Policies' %></small>
+                        </div>
+                        <div class="mt-1">
+                          <small class="fw-bold text-success">₹<%= number_with_delimiter(policy_data[:total_premium]) %></small>
+                        </div>
+                      </div>
+                    <% else %>
+                      <i class="bi bi-x-circle-fill text-danger fs-1"></i>
+                      <div class="status-text mt-2">
+                        <span class="badge bg-danger">NOT OPTED</span>
+                        <div class="mt-1">
+                          <small class="text-muted">No policies</small>
+                        </div>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              </td>
+            <% end %>
+            <td class="text-center align-middle">
+              <div class="coverage-score">
+                <div class="score-circle <%= @commission_summary[:opted_count] >= 2 ? 'score-good' : @commission_summary[:opted_count] == 1 ? 'score-moderate' : 'score-poor' %>">
+                  <span class="score-text"><%= @commission_summary[:opted_count] %>/3</span>
+                </div>
+                <small class="text-muted mt-1 d-block">Coverage</small>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Policy Details Cards -->
+<div class="row mb-4">
+  <% @policy_status.each do |policy_type, data| %>
+    <div class="col-lg-4 mb-3">
+      <div class="card border-0 shadow-sm h-100 policy-detail-card <%= data[:opted] ? 'opted-card' : 'not-opted-card' %>">
+        <div class="card-header bg-transparent border-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold">
+              <i class="<%= data[:icon] %> text-<%= data[:color] %> me-2"></i>
+              <%= policy_type %>
+            </h6>
+            <span class="badge bg-<%= data[:opted] ? 'success' : 'secondary' %>">
+              <%= data[:opted] ? 'OPTED' : 'NOT OPTED' %>
+            </span>
+          </div>
+        </div>
+        <div class="card-body">
+          <% if data[:opted] %>
+            <div class="row g-3">
+              <div class="col-6">
+                <div class="stat-item">
+                  <div class="stat-value text-primary"><%= data[:count] %></div>
+                  <div class="stat-label">Policies</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="stat-item">
+                  <div class="stat-value text-success">₹<%= number_with_delimiter(data[:total_premium]) %></div>
+                  <div class="stat-label">Total Premium</div>
+                </div>
+              </div>
+              <% if data[:latest_policy] %>
+                <div class="col-12">
+                  <div class="latest-policy-info">
+                    <h6 class="text-muted mb-2">Latest Policy:</h6>
+                    <div class="d-flex justify-content-between">
+                      <span class="fw-bold"><%= data[:latest_policy].policy_number || "Policy ##{data[:latest_policy].id}" %></span>
+                      <small class="text-muted"><%= data[:latest_policy].created_at.strftime('%b %d, %Y') %></small>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <div class="text-center py-3">
+              <i class="bi bi-x-circle text-muted fs-1 mb-3"></i>
+              <p class="text-muted mb-0">No <%= policy_type.downcase %> policies found</p>
+              <small class="text-muted">Customer has not opted for this policy type</small>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<!-- Commission Payouts Table -->
+<% if @commission_payouts.any? %>
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent border-0">
+      <h5 class="mb-0">
+        <i class="bi bi-cash-stack text-success me-2"></i>
+        Commission Payouts
+      </h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0">Policy</th>
+              <th class="border-0">Type</th>
+              <th class="border-0">Payout To</th>
+              <th class="border-0">Amount</th>
+              <th class="border-0">Status</th>
+              <th class="border-0">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @commission_payouts.each do |payout| %>
+              <tr>
+                <td>
+                  <div class="fw-bold"><%= payout.policy_number || "Policy ##{payout.policy_id}" %></div>
+                  <small class="text-muted"><%= payout.customer_name %></small>
+                </td>
+                <td>
+                  <span class="badge bg-<%=
+                    case payout.policy_type
+                    when 'health' then 'success'
+                    when 'life' then 'primary'
+                    when 'motor' then 'warning'
+                    else 'secondary'
+                    end
+                  %>">
+                    <%= payout.policy_type.humanize %>
+                  </span>
+                </td>
+                <td><%= payout.payout_to.humanize %></td>
+                <td class="fw-bold text-success">₹<%= number_with_delimiter(payout.payout_amount) %></td>
+                <td>
+                  <span class="badge bg-<%=
+                    case payout.status
+                    when 'paid' then 'success'
+                    when 'pending' then 'warning'
+                    when 'processing' then 'info'
+                    when 'cancelled' then 'danger'
+                    else 'secondary'
+                    end
+                  %>">
+                    <%= payout.status.humanize %>
+                  </span>
+                </td>
+                <td><%= payout.payout_date&.strftime('%b %d, %Y') || 'Pending' %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% else %>
+  <div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+      <i class="bi bi-cash-coin text-muted fs-1 mb-3"></i>
+      <h5 class="text-muted mb-2">No Commission Payouts</h5>
+      <p class="text-muted">No commission payouts have been processed for this customer's policies yet.</p>
+    </div>
+  </div>
+<% end %>
+
+<style>
+.commission-matrix-table {
+  font-size: 14px;
+}
+
+.policy-cell {
+  padding: 20px 10px !important;
+  border-right: 2px solid #e9ecef !important;
+}
+
+.policy-status-card {
+  padding: 15px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.policy-status-card.opted {
+  background: linear-gradient(135deg, rgba(25, 135, 84, 0.1) 0%, rgba(25, 135, 84, 0.05) 100%);
+  border-color: rgba(25, 135, 84, 0.2);
+}
+
+.policy-status-card.not-opted {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+  border-color: rgba(220, 53, 69, 0.2);
+}
+
+.policy-status-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.status-icon {
+  text-align: center;
+}
+
+.status-text {
+  font-size: 12px;
+}
+
+.coverage-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.score-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid;
+  transition: all 0.3s ease;
+}
+
+.score-circle.score-good {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  border-color: #28a745;
+  color: white;
+}
+
+.score-circle.score-moderate {
+  background: linear-gradient(135deg, #ffc107, #fd7e14);
+  border-color: #ffc107;
+  color: white;
+}
+
+.score-circle.score-poor {
+  background: linear-gradient(135deg, #dc3545, #e74c3c);
+  border-color: #dc3545;
+  color: white;
+}
+
+.score-text {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.policy-detail-card {
+  transition: all 0.3s ease;
+}
+
+.policy-detail-card:hover {
+  transform: translateY(-3px);
+}
+
+.opted-card {
+  border-left: 4px solid #28a745;
+}
+
+.not-opted-card {
+  border-left: 4px solid #dc3545;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.latest-policy-info {
+  background: rgba(0, 123, 255, 0.05);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+@media (max-width: 768px) {
+  .policy-cell {
+    padding: 15px 5px !important;
+  }
+
+  .policy-status-card {
+    padding: 10px;
+  }
+
+  .status-icon i {
+    font-size: 24px !important;
+  }
+
+  .score-circle {
+    width: 50px;
+    height: 50px;
+  }
+}
+</style>
