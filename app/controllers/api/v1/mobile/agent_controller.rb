@@ -1256,6 +1256,30 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   end
 
   def format_policy_data(policy, type)
+    # Determine agent commission based on user type and policy
+    agent_percentage = 0
+    agent_commission = 0
+
+    if is_sub_agent?(current_user)
+      # For sub agents, show their commission details
+      if policy.respond_to?(:sub_agent_commission_percentage)
+        agent_percentage = policy.sub_agent_commission_percentage || 0
+      end
+      if policy.respond_to?(:sub_agent_commission_amount)
+        agent_commission = policy.sub_agent_commission_amount || 0
+      end
+    else
+      # For main agents and admins, show main agent commission details
+      if policy.respond_to?(:main_agent_commission_percentage)
+        agent_percentage = policy.main_agent_commission_percentage || 0
+      end
+      if policy.respond_to?(:main_agent_commission_amount)
+        agent_commission = policy.main_agent_commission_amount || 0
+      elsif policy.respond_to?(:commission_amount)
+        agent_commission = policy.commission_amount || 0
+      end
+    end
+
     {
       id: policy.id,
       insurance_name: policy.plan_name || "#{type} Insurance",
@@ -1272,6 +1296,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       insurance_company: policy.insurance_company_name,
       payment_mode: policy.payment_mode,
       commission_amount: policy.commission_amount || 0,
+      agent_percentage: agent_percentage,
+      agent_commission: agent_commission,
       status: policy.respond_to?(:active?) ? (policy.active? ? 'Active' : 'Inactive') : 'Active',
       created_at: policy.created_at
     }

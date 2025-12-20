@@ -16,23 +16,32 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
     user = current_user
     profile_params = get_permitted_params_for_user(user)
 
-    if user.update(profile_params)
-      render json: {
-        success: true,
-        message: 'Profile updated successfully',
-        data: {
-          full_name: user.display_name,
-          email: user.email,
-          mobile_number: user.mobile
+    ActiveRecord::Base.transaction do
+      if user.update(profile_params)
+        # Handle nominee details update for customers
+        if user.is_a?(Customer) && params[:nominees].present?
+          update_customer_nominees(user, params[:nominees])
+        end
+
+        render json: {
+          success: true,
+          message: 'Profile updated successfully',
+          data: build_profile_data(user)
         }
-      }
-    else
-      render json: {
-        success: false,
-        message: 'Failed to update profile',
-        errors: user.errors.full_messages
-      }, status: :unprocessable_entity
+      else
+        render json: {
+          success: false,
+          message: 'Failed to update profile',
+          errors: user.errors.full_messages
+        }, status: :unprocessable_entity
+      end
     end
+  rescue StandardError => e
+    render json: {
+      success: false,
+      message: 'Failed to update profile',
+      errors: [e.message]
+    }, status: :unprocessable_entity
   end
 
   # POST /api/v1/mobile/settings/change_password
@@ -288,6 +297,9 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
         marital_status: user.marital_status,
         education: user.education
       })
+
+      # Add nominee details for customers
+      base_data[:nominees] = get_nominee_details(user)
     when SubAgent
       base_data.merge!({
         role_id: user.role_id,
@@ -312,6 +324,60 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
     end
 
     base_data
+  end
+
+  def get_nominee_details(customer)
+    # Get all nominees from life insurance policies for this customer
+    life_insurance_nominees = []
+
+    # Fetch life insurance policies with nominees
+    life_insurances = LifeInsurance.includes(:life_insurance_nominees).where(customer: customer)
+
+    life_insurances.each do |policy|
+      policy.life_insurance_nominees.each do |nominee|
+        life_insurance_nominees << {
+          policy_number: policy.policy_number,
+          policy_type: 'life_insurance',
+          nominee_name: nominee.nominee_name,
+          relationship: nominee.relationship,
+          age: nominee.age,
+          share_percentage: nominee.share_percentage
+        }
+      end
+    end
+
+    {
+      life_insurance_nominees: life_insurance_nominees,
+      total_nominees_count: life_insurance_nominees.count
+    }
+  end
+
+  def update_customer_nominees(customer, nominees_params)
+    return unless nominees_params.is_a?(Array)
+
+    nominees_params.each do |nominee_data|
+      policy_number = nominee_data[:policy_number] || nominee_data['policy_number']
+      next unless policy_number.present?
+
+      # Find the life insurance policy
+      life_insurance = LifeInsurance.find_by(customer: customer, policy_number: policy_number)
+      next unless life_insurance
+
+      # Find existing nominee or create new one
+      nominee = life_insurance.life_insurance_nominees.find_by(
+        nominee_name: nominee_data[:nominee_name] || nominee_data['nominee_name']
+      ) || life_insurance.life_insurance_nominees.new
+
+      # Update nominee attributes
+      nominee.assign_attributes(
+        nominee_name: nominee_data[:nominee_name] || nominee_data['nominee_name'],
+        relationship: nominee_data[:relationship] || nominee_data['relationship'],
+        age: nominee_data[:age] || nominee_data['age'],
+        share_percentage: nominee_data[:share_percentage] || nominee_data['share_percentage']
+      )
+
+      nominee.save! if nominee.valid?
+    end
   end
 
   def get_permitted_params_for_user(user)

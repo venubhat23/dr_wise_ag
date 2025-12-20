@@ -209,7 +209,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     policy_params = params.permit(:insurance_type, :plan_name, :sum_insured, :premium_amount,
                                   :"premium amount", :"Renewal date",
                                   :renewal_date, :policy_number, :insurance_company, :remarks,
-                                  family_members: [])
+                                  :product_through_dr, family_members: [])
 
     # Handle the premium amount field with space
     premium_amount = policy_params[:premium_amount] || policy_params[:"premium amount"]
@@ -265,6 +265,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         net_premium: premium_amount&.to_f || 0,
         total_premium: premium_amount&.to_f || 0,
         gst_percentage: 18,
+        product_through_dr: policy_params[:product_through_dr] || false,
         is_customer_added: true,
         is_agent_added: false,
         is_admin_added: false
@@ -306,6 +307,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         net_premium: premium_amount&.to_f || 0,
         total_premium: premium_amount&.to_f || 0,
         first_year_gst_percentage: 18,
+        product_through_dr: policy_params[:product_through_dr] || false,
         distributor_id: default_distributor&.id,
         investor_id: default_investor&.id,
         is_customer_added: true,
@@ -344,6 +346,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
           sum_insured: policy_params[:sum_insured].to_f,
           premium_amount: premium_amount&.to_f || 0,
           renewal_date: renewal_date,
+          product_through_dr: policy_params[:product_through_dr] || false,
           status: 'pending_approval',
           family_members: policy_params[:family_members] || [],
           remarks: policy_params[:remarks],
