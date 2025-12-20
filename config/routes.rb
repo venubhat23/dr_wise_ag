@@ -40,6 +40,7 @@ Rails.application.routes.draw do
         patch :transfer_to_ambassador
         patch :transfer_to_investor
         patch :transfer_company_expense
+        patch :mark_main_agent_commission_received
         get :policy_breakdown
       end
       collection do
@@ -49,6 +50,9 @@ Rails.application.routes.draw do
         post :manual_transfer
       end
     end
+
+    # Affiliate Payout System
+    resources :affiliate_payouts, only: [:index, :show]
     # Users (Admins/Agents) management
     resources :users
 

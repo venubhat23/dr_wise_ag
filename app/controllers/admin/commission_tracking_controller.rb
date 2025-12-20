@@ -3,7 +3,7 @@ class Admin::CommissionTrackingController < ApplicationController
   before_action :authorize_admin_access
   before_action :find_policy, only: [:show, :policy_breakdown, :transfer_to_affiliate,
                                       :transfer_to_ambassador, :transfer_to_investor,
-                                      :transfer_company_expense]
+                                      :transfer_company_expense, :mark_main_agent_commission_received]
 
   skip_authorization_check
   skip_load_and_authorize_resource
@@ -89,6 +89,43 @@ class Admin::CommissionTrackingController < ApplicationController
     )
 
     respond_with_transfer_result(result)
+  end
+
+  def mark_main_agent_commission_received
+    transaction_id = params[:transaction_id]
+    paid_date = params[:paid_date]
+    notes = params[:notes]
+
+    if transaction_id.blank?
+      return render json: { success: false, message: 'Transaction ID is required' }, status: :unprocessable_entity
+    end
+
+    begin
+      @policy.update!(
+        main_agent_commission_received: true,
+        main_agent_commission_transaction_id: transaction_id,
+        main_agent_commission_paid_date: paid_date.present? ? Date.parse(paid_date) : Date.current,
+        main_agent_commission_notes: notes
+      )
+
+      render json: {
+        success: true,
+        message: 'Main agent commission marked as received successfully',
+        data: {
+          policy_id: @policy.id,
+          policy_number: @policy.policy_number,
+          transaction_id: transaction_id,
+          paid_date: @policy.main_agent_commission_paid_date&.strftime('%d %b %Y'),
+          received_status: true
+        }
+      }
+    rescue StandardError => e
+      Rails.logger.error "Failed to mark main agent commission as received for policy #{@policy.id}: #{e.message}"
+      render json: {
+        success: false,
+        message: 'Failed to update commission status. Please try again.'
+      }, status: :internal_server_error
+    end
   end
 
   def manual_transfer

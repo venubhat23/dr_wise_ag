@@ -211,6 +211,16 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
     policies = []
 
+    # Determine what payout_to value to look for based on user type
+    payout_to_value = if is_sub_agent?(current_user)
+                        'sub_agent'
+                      else
+                        'agent'
+                      end
+
+    # Preload commission data to avoid N+1 queries
+    commission_payouts = CommissionPayout.where(payout_to: payout_to_value).index_by { |cp| "#{cp.policy_type}:#{cp.policy_id}" }
+
     # Get health insurance policies
     if policy_type.blank? || policy_type == 'health' || policy_type == 'all'
       health_policies = if is_admin?(agent)
@@ -220,7 +230,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                        end
 
       health_policies.includes(:customer).each do |policy|
-        policies << format_policy_data(policy, 'Health')
+        policies << format_policy_data_with_commission(policy, 'Health', commission_payouts)
       end
     end
 
@@ -233,7 +243,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                      end
 
       life_policies.includes(:customer).each do |policy|
-        policies << format_policy_data(policy, 'Life')
+        policies << format_policy_data_with_commission(policy, 'Life', commission_payouts)
       end
     end
 
@@ -246,7 +256,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                        end
 
       motor_policies.includes(:customer).each do |policy|
-        policies << format_policy_data(policy, 'Motor')
+        policies << format_policy_data_with_commission(policy, 'Motor', commission_payouts)
       end
     end
 
@@ -259,7 +269,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                        end
 
       other_policies.includes(:customer).each do |policy|
-        policies << format_policy_data(policy, 'Other')
+        policies << format_policy_data_with_commission(policy, 'Other', commission_payouts)
       end
     end
 
@@ -1256,27 +1266,30 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   end
 
   def format_policy_data(policy, type)
-    # Determine agent commission based on user type and policy
+    # Fallback method for backward compatibility
+    format_policy_data_with_commission(policy, type, {})
+  end
+
+  def format_policy_data_with_commission(policy, type, commission_payouts_hash)
+    # Fetch commission data from preloaded commission_payouts hash
     agent_percentage = 0
     agent_commission = 0
 
-    if is_sub_agent?(current_user)
-      # For sub agents, show their commission details
-      if policy.respond_to?(:sub_agent_commission_percentage)
-        agent_percentage = policy.sub_agent_commission_percentage || 0
-      end
-      if policy.respond_to?(:sub_agent_commission_amount)
-        agent_commission = policy.sub_agent_commission_amount || 0
-      end
-    else
-      # For main agents and admins, show main agent commission details
-      if policy.respond_to?(:main_agent_commission_percentage)
-        agent_percentage = policy.main_agent_commission_percentage || 0
-      end
-      if policy.respond_to?(:main_agent_commission_amount)
-        agent_commission = policy.main_agent_commission_amount || 0
-      elsif policy.respond_to?(:commission_amount)
-        agent_commission = policy.commission_amount || 0
+    # Determine the policy type for commission lookup
+    policy_type_key = type.downcase
+
+    # Look up commission payout from preloaded hash
+    commission_key = "#{policy_type_key}:#{policy.id}"
+    commission_payout = commission_payouts_hash[commission_key]
+
+    if commission_payout
+      agent_commission = commission_payout.payout_amount || 0
+
+      # Calculate percentage if we have premium and commission
+      if policy.total_premium.present? && policy.total_premium.to_f > 0 && agent_commission > 0
+        agent_percentage = ((agent_commission.to_f / policy.total_premium.to_f) * 100).round(2)
+      else
+        agent_percentage = commission_payout.distribution_percentage || 0
       end
     end
 

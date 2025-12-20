@@ -1,0 +1,136 @@
+<% content_for :title, "Affiliate Payouts" %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Affiliate Payouts</h1>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card border-info">
+      <div class="card-body text-center">
+        <h5 class="card-title text-info">Total Affiliates</h5>
+        <h2 class="text-info"><%= @total_affiliates %></h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-success">
+      <div class="card-body text-center">
+        <h5 class="card-title text-success">Total Commission Earned</h5>
+        <h2 class="text-success">₹<%= number_with_delimiter(@total_commission_earned.round(2)) %></h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-warning">
+      <div class="card-body text-center">
+        <h5 class="card-title text-warning">Pending Amount</h5>
+        <h2 class="text-warning">₹<%= number_with_delimiter(@total_pending_amount.round(2)) %></h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-primary">
+      <div class="card-body text-center">
+        <h5 class="card-title text-primary">Paid Amount</h5>
+        <h2 class="text-primary">₹<%= number_with_delimiter(@total_paid_amount.round(2)) %></h2>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Affiliate Payouts Table -->
+<div class="card">
+  <div class="card-header">
+    <h5 class="card-title mb-0">Affiliate Commission Summary</h5>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>Affiliate</th>
+            <th>Lead Commissions</th>
+            <th>Total Commission</th>
+            <th>Paid/Pending</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if @affiliate_payouts.any? %>
+            <% @affiliate_payouts.each do |affiliate| %>
+              <tr>
+                <td>
+                  <div>
+                    <strong><%= affiliate[:affiliate_name] %></strong><br>
+                    <small class="text-muted"><%= affiliate[:affiliate_email] %></small>
+                  </div>
+                </td>
+                <td>
+                  <div class="d-flex flex-wrap gap-1">
+                    <% affiliate[:lead_commissions].each_with_index do |lead, index| %>
+                      <% break if index >= 3 %> <!-- Show max 3 leads in summary -->
+                      <span class="badge bg-info">
+                        Lead<%= lead[:lead_id] %>: ₹<%= lead[:commission_amount].round(0) %>
+                      </span>
+                    <% end %>
+                    <% if affiliate[:lead_commissions].count > 3 %>
+                      <span class="badge bg-secondary">
+                        +<%= affiliate[:lead_commissions].count - 3 %> more
+                      </span>
+                    <% end %>
+                  </div>
+                  <small class="text-muted"><%= affiliate[:lead_count] %> total leads</small>
+                </td>
+                <td>
+                  <strong class="text-success">₹<%= number_with_delimiter(affiliate[:total_commission].round(2)) %></strong>
+                </td>
+                <td>
+                  <div>
+                    <span class="text-success">₹<%= affiliate[:paid_amount].round(2) %></span> /
+                    <span class="text-warning">₹<%= affiliate[:pending_amount].round(2) %></span>
+                  </div>
+                  <div class="progress mt-1" style="height: 5px;">
+                    <% paid_percentage = affiliate[:total_commission] > 0 ? (affiliate[:paid_amount] / affiliate[:total_commission] * 100) : 0 %>
+                    <div class="progress-bar bg-success" style="width: <%= paid_percentage %>%"></div>
+                  </div>
+                </td>
+                <td>
+                  <% if affiliate[:pending_amount] > 0 %>
+                    <span class="badge bg-warning">Pending</span>
+                  <% else %>
+                    <span class="badge bg-success">Completed</span>
+                  <% end %>
+                </td>
+                <td>
+                  <%= link_to 'View Details', admin_affiliate_payout_path(affiliate[:affiliate_id]),
+                      class: 'btn btn-sm btn-outline-primary' %>
+                </td>
+              </tr>
+            <% end %>
+          <% else %>
+            <tr>
+              <td colspan="6" class="text-center py-4">
+                <div class="text-muted">
+                  <i class="fas fa-info-circle mb-2" style="font-size: 2rem;"></i><br>
+                  No affiliate payouts found
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<style>
+  .badge {
+    font-size: 0.75rem;
+  }
+  .gap-1 {
+    gap: 0.25rem;
+  }
+</style>

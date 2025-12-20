@@ -471,6 +471,21 @@
           </li>
         <% end %>
 
+        <!-- Affiliate Payout -->
+        <% if show_sidebar_item?('payouts') %>
+          <li class="nav-item">
+            <%= link_to admin_affiliate_payouts_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/affiliate_payouts')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-rose">
+                  <i class="bi bi-person-heart"></i>
+                </div>
+              </div>
+              <span class="nav-text">Affiliate Payout</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+
         <!-- Brokers -->
         <% if show_sidebar_item?('brokers') %>
           <li class="nav-item">

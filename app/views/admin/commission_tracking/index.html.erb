@@ -124,6 +124,128 @@
 .min-width-250 {
   min-width: 250px;
 }
+
+/* Simple Modal Styles - No background overlay */
+.modal-backdrop {
+  display: none !important;
+}
+
+#mainAgentCommissionModal {
+  z-index: 9999 !important;
+  background: transparent !important;
+}
+
+#mainAgentCommissionModal .modal-dialog {
+  max-width: 480px;
+  margin: 1rem auto !important;
+  z-index: 10000 !important;
+  position: relative;
+}
+
+#mainAgentCommissionModal .modal-content {
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 10001 !important;
+  background: white !important;
+  overflow: hidden;
+}
+
+#mainAgentCommissionModal .modal-header {
+  border-bottom: 1px solid #e9ecef;
+  background: #198754;
+  color: white;
+  padding: 1rem 1.5rem;
+}
+
+#mainAgentCommissionModal .modal-footer {
+  border-top: 1px solid #e9ecef;
+  background: white;
+  padding: 1rem 1.5rem;
+}
+
+#mainAgentCommissionModal .modal-body {
+  background: white !important;
+  padding: 1.5rem;
+  position: relative;
+  z-index: 10002 !important;
+}
+
+#mainAgentCommissionModal .btn-close {
+  filter: invert(1);
+  opacity: 1;
+}
+
+#mainAgentCommissionModal .btn-close:hover {
+  opacity: 0.8;
+}
+
+/* Ensure modal is properly displayed */
+.modal.show {
+  display: block !important;
+  z-index: 9999 !important;
+}
+
+.modal-backdrop.show {
+  display: none !important;
+}
+
+/* Simple responsive positioning */
+@media (min-width: 576px) {
+  #mainAgentCommissionModal .modal-dialog {
+    margin: 2rem auto !important;
+  }
+}
+
+@media (max-width: 575px) {
+  #mainAgentCommissionModal .modal-dialog {
+    margin: 1rem !important;
+  }
+}
+
+/* Ensure modal appears above everything and is interactive */
+body.modal-open {
+  overflow: visible !important;
+  padding-right: 0 !important;
+}
+
+/* Enhanced modal styling */
+.modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  background: transparent !important;
+}
+
+/* Ensure form elements are interactive */
+#mainAgentCommissionModal input,
+#mainAgentCommissionModal textarea,
+#mainAgentCommissionModal button {
+  position: relative;
+  z-index: 10010 !important;
+  pointer-events: auto !important;
+}
+
+/* Simple form styling */
+#mainAgentCommissionModal .form-control {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+}
+
+#mainAgentCommissionModal .form-control:focus {
+  border-color: #198754;
+  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+#mainAgentCommissionModal .btn {
+  border-radius: 4px;
+}
 </style>
 
 <!-- Policies with Commission Table -->
@@ -142,6 +264,7 @@
               <th class="border-0">Customer</th>
               <th class="border-0">Premium</th>
               <th class="border-0">Commission Generated</th>
+              <th class="border-0">Main Agent Commission</th>
               <th class="border-0">Transfer Status</th>
               <th class="border-0">Commission Breakdown</th>
               <th class="border-0">Actions</th>
@@ -186,6 +309,27 @@
                       Main Agent: ₹<%= number_with_delimiter(commission_data.dig(:main_agent, :total_commission).to_i) %>
                     </small>
                   </div>
+                </td>
+
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <% if policy.try(:main_agent_commission_received) %>
+                      <i class="bi bi-check-circle-fill text-success fs-5" title="Commission Received"></i>
+                      <small class="text-success">Received</small>
+                    <% else %>
+                      <button class="btn p-0 border-0 bg-transparent"
+                              onclick="openMainAgentCommissionModal(<%= policy.id %>, '<%= type %>', '<%= policy.policy_number %>')"
+                              title="Mark as Received">
+                        <i class="bi bi-x-circle-fill text-danger fs-5"></i>
+                      </button>
+                      <small class="text-danger">Pending</small>
+                    <% end %>
+                  </div>
+                  <% if policy.try(:main_agent_commission_received) && policy.try(:main_agent_commission_paid_date) %>
+                    <small class="text-muted d-block">
+                      Paid: <%= policy.main_agent_commission_paid_date.strftime('%d %b %Y') %>
+                    </small>
+                  <% end %>
                 </td>
 
                 <td>
@@ -264,8 +408,70 @@
   </div>
 </div>
 
+<!-- Main Agent Commission Modal -->
+<div class="modal" id="mainAgentCommissionModal" tabindex="-1" aria-labelledby="mainAgentCommissionModalLabel" aria-hidden="true" data-bs-backdrop="false" data-bs-keyboard="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="mainAgentCommissionModalLabel">
+          <i class="bi bi-wallet me-2"></i>Mark Main Agent Commission as Received
+        </h5>
+        <button type="button" class="btn-close btn-close-white" onclick="closeMainAgentModal()" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="mainAgentCommissionForm">
+          <div class="mb-3">
+            <strong>Policy:</strong> <span id="modalPolicyNumber">Loading...</span>
+            (<span id="modalPolicyType">-</span>)
+          </div>
+
+          <div class="mb-3">
+            <strong>Commission Amount:</strong> ₹<span id="modalCommissionAmount">0</span>
+          </div>
+
+          <form id="commissionReceivedForm">
+            <div class="mb-3">
+              <label for="transactionId" class="form-label">
+                Transaction ID <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" id="transactionId"
+                     name="transaction_id" required placeholder="Enter transaction ID">
+            </div>
+
+            <div class="mb-3">
+              <label for="paidDate" class="form-label">Date Received</label>
+              <input type="date" class="form-control" id="paidDate"
+                     name="paid_date" value="<%= Date.current.strftime('%Y-%m-%d') %>">
+            </div>
+
+            <div class="mb-3">
+              <label for="commissionNotes" class="form-label">Notes</label>
+              <textarea class="form-control" id="commissionNotes" name="notes" rows="2"
+                        placeholder="Additional notes"></textarea>
+            </div>
+
+            <input type="hidden" id="modalPolicyId" name="policy_id">
+            <input type="hidden" id="modalPolicyTypeField" name="policy_type">
+          </form>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeMainAgentModal()">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-success" onclick="markMainAgentCommissionReceived()">
+          Mark as Received
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Clean up any existing modal backdrops
+  document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+
   // Search functionality
   const searchInput = document.getElementById('policySearch');
   let searchTimeout;
@@ -283,6 +489,38 @@ document.addEventListener('DOMContentLoaded', function() {
           row.style.display = text.includes(searchTerm) ? '' : 'none';
         });
       }, 300);
+    });
+  }
+
+  // Handle modal cleanup on hidden
+  const mainAgentModal = document.getElementById('mainAgentCommissionModal');
+  if (mainAgentModal) {
+    mainAgentModal.addEventListener('hidden.bs.modal', function () {
+      // Clean up any leftover backdrops and reset body
+      setTimeout(() => {
+        document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.paddingRight = '';
+        document.body.style.overflow = '';
+      }, 100);
+    });
+
+    // Ensure modal is interactive when shown
+    mainAgentModal.addEventListener('shown.bs.modal', function () {
+      // Ensure all form elements are interactive
+      const formElements = mainAgentModal.querySelectorAll('input, textarea, button, select');
+      formElements.forEach(element => {
+        element.style.pointerEvents = 'auto';
+        element.style.zIndex = '1060';
+      });
+
+      // Focus on first input
+      setTimeout(() => {
+        const firstInput = mainAgentModal.querySelector('#transactionId');
+        if (firstInput) {
+          firstInput.focus();
+        }
+      }, 200);
     });
   }
 });
@@ -450,6 +688,146 @@ function processTransfer(transferType, policyId, policyType) {
   .catch(error => {
     console.error('Transfer error:', error);
     alert('Transfer failed. Please try again.');
+  });
+}
+
+// Main Agent Commission Modal Functions
+function openMainAgentCommissionModal(policyId, policyType, policyNumber) {
+  // Remove any existing modal backdrops and reset body state
+  document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+  document.body.classList.remove('modal-open');
+  document.body.style.paddingRight = '';
+  document.body.style.overflow = '';
+
+  const modalElement = document.getElementById('mainAgentCommissionModal');
+
+  // Destroy any existing modal instance
+  const existingModal = bootstrap.Modal.getInstance(modalElement);
+  if (existingModal) {
+    existingModal.dispose();
+  }
+
+  // Create fresh modal instance
+  const modal = new bootstrap.Modal(modalElement, {
+    backdrop: false,
+    keyboard: true,
+    focus: true
+  });
+
+  // Show loading state
+  document.getElementById('modalPolicyNumber').textContent = 'Loading...';
+  document.getElementById('modalPolicyType').textContent = '-';
+  document.getElementById('modalCommissionAmount').textContent = '0';
+
+  // Show modal first, then load data
+  modal.show();
+
+  // Load policy commission data
+  fetch(`/admin/commission_tracking/${policyId}/policy_breakdown?policy_type=${policyType}`)
+    .then(response => response.json())
+    .then(data => {
+      const mainAgentCommission = data.commission_breakdown?.main_agent?.total_commission || 0;
+
+      // Populate modal fields
+      document.getElementById('modalPolicyNumber').textContent = policyNumber;
+      document.getElementById('modalPolicyType').textContent = policyType.toUpperCase();
+      document.getElementById('modalCommissionAmount').textContent = mainAgentCommission.toLocaleString();
+      document.getElementById('modalPolicyId').value = policyId;
+      document.getElementById('modalPolicyTypeField').value = policyType;
+
+      // Clear form fields
+      document.getElementById('transactionId').value = '';
+      document.getElementById('commissionNotes').value = '';
+
+      // Focus on transaction ID input
+      setTimeout(() => {
+        document.getElementById('transactionId').focus();
+      }, 500);
+    })
+    .catch(error => {
+      console.error('Error loading commission data:', error);
+      document.getElementById('modalPolicyNumber').textContent = 'Error loading data';
+      document.getElementById('modalPolicyType').textContent = 'ERROR';
+      alert('Failed to load commission details. Please try again.');
+    });
+}
+
+// Function to close the modal
+function closeMainAgentModal() {
+  const modalElement = document.getElementById('mainAgentCommissionModal');
+  const modal = bootstrap.Modal.getInstance(modalElement);
+  if (modal) {
+    modal.hide();
+  } else {
+    modalElement.style.display = 'none';
+    modalElement.classList.remove('show');
+  }
+
+  // Clean up any backdrops
+  document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+  document.body.classList.remove('modal-open');
+  document.body.style.overflow = '';
+  document.body.style.paddingRight = '';
+}
+
+function markMainAgentCommissionReceived() {
+  const transactionId = document.getElementById('transactionId').value;
+  const paidDate = document.getElementById('paidDate').value;
+  const notes = document.getElementById('commissionNotes').value;
+  const policyId = document.getElementById('modalPolicyId').value;
+  const policyType = document.getElementById('modalPolicyTypeField').value;
+
+  if (!transactionId.trim()) {
+    alert('Please enter a transaction ID');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('transaction_id', transactionId);
+  formData.append('paid_date', paidDate);
+  formData.append('notes', notes);
+  formData.append('authenticity_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+  // Show loading state
+  const submitButton = document.querySelector('button[onclick="markMainAgentCommissionReceived()"]');
+  const originalText = submitButton.innerHTML;
+  submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Processing...';
+  submitButton.disabled = true;
+
+  fetch(`/admin/commission_tracking/${policyId}/mark_main_agent_commission_received?policy_type=${policyType}`, {
+    method: 'PATCH',
+    body: formData,
+    headers: {
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Close modal properly
+      const modalElement = document.getElementById('mainAgentCommissionModal');
+      const modal = bootstrap.Modal.getInstance(modalElement);
+      if (modal) {
+        modal.hide();
+      }
+
+      // Show success message and reload after a brief delay
+      alert('Main agent commission marked as received successfully!');
+      setTimeout(() => {
+        location.reload();
+      }, 100);
+    } else {
+      alert('Failed to update commission status: ' + data.message);
+    }
+  })
+  .catch(error => {
+    console.error('Commission update error:', error);
+    alert('Failed to update commission status. Please try again.');
+  })
+  .finally(() => {
+    // Restore button state
+    submitButton.innerHTML = originalText;
+    submitButton.disabled = false;
   });
 }
 </script>
