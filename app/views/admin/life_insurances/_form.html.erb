@@ -43,27 +43,16 @@
         </div>
 
         <div class="col-md-4 mb-3">
-          <%= form.label :sub_agent_id, "Sub Agent", class: "form-label" %>
+          <%= form.label :sub_agent_id, "Affiliate", class: "form-label" %>
           <%= form.select :sub_agent_id,
               options_for_select(@sub_agents.map { |a| [a.display_name, a.id] }, @life_insurance.sub_agent_id),
               { prompt: 'Self' },
-              { class: "form-control" } %>
+              { class: "form-control", id: "affiliate_select" } %>
         </div>
       </div>
 
       <div class="row">
-        <div class="col-md-4 mb-3">
-          <%= form.label :distributor_id, "Distributor*", class: "form-label" %>
-          <%= form.select :distributor_id,
-              options_for_select(@distributors.map { |d| [d.display_name, d.id] }, @life_insurance.distributor_id),
-              { prompt: 'Select Distributor' },
-              { class: "form-control #{'is-invalid' if @life_insurance.errors[:distributor_id].any?}", required: true } %>
-          <% if @life_insurance.errors[:distributor_id].any? %>
-            <div class="invalid-feedback"><%= @life_insurance.errors[:distributor_id].first %></div>
-          <% end %>
-        </div>
-
-        <div class="col-md-4 mb-3">
+        <div class="col-md-6 mb-3">
           <%= form.label :investor_id, "Investor*", class: "form-label" %>
           <%= form.select :investor_id,
               options_for_select(@investors.map { |i| [i.display_name, i.id] }, @life_insurance.investor_id),
@@ -74,7 +63,7 @@
           <% end %>
         </div>
 
-        <div class="col-md-4 mb-3">
+        <div class="col-md-6 mb-3">
           <%= form.label :insured_name, "Insured Name", class: "form-label" %>
           <%= form.text_field :insured_name,
               class: "form-control",
@@ -270,142 +259,6 @@
     </div>
   </div>
 
-  <!-- Advance Details Section -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="mb-0">
-        <i class="bi bi-plus-circle me-2 text-primary"></i>
-        Advance Details
-      </h5>
-    </div>
-    <div class="card-body">
-      <h6>Rider Details</h6>
-      <div class="table-responsive mb-4">
-        <table class="table table-bordered">
-          <thead>
-            <tr>
-              <th width="25%">RIDER</th>
-              <th width="25%">AMOUNT</th>
-              <th width="35%">NOTE</th>
-              <th width="15%">ACTION</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Term Rider</td>
-              <td>
-                <%= form.number_field :term_rider_amount,
-                    class: "form-control",
-                    value: @life_insurance.term_rider_amount || 0,
-                    step: 0.01, id: "term_rider_amount" %>
-              </td>
-              <td>
-                <%= form.text_field :term_rider_note,
-                    class: "form-control",
-                    placeholder: "Note", id: "term_rider_note" %>
-              </td>
-              <td class="text-center">
-                <button type="button"
-                        class="btn btn-outline-danger btn-sm remove-rider-btn"
-                        data-rider-type="term"
-                        title="Remove Term Rider">
-                  <i class="bi bi-x-lg"></i>
-                </button>
-              </td>
-            </tr>
-            <tr>
-              <td>Critical Illness Rider</td>
-              <td>
-                <%= form.number_field :critical_illness_rider_amount,
-                    class: "form-control",
-                    value: @life_insurance.critical_illness_rider_amount || 0,
-                    step: 0.01, id: "critical_illness_rider_amount" %>
-              </td>
-              <td>
-                <%= form.text_field :critical_illness_rider_note,
-                    class: "form-control",
-                    placeholder: "Note", id: "critical_illness_rider_note" %>
-              </td>
-              <td class="text-center">
-                <button type="button"
-                        class="btn btn-outline-danger btn-sm remove-rider-btn"
-                        data-rider-type="critical_illness"
-                        title="Remove Critical Illness Rider">
-                  <i class="bi bi-x-lg"></i>
-                </button>
-              </td>
-            </tr>
-            <tr>
-              <td>Accident Rider</td>
-              <td>
-                <%= form.number_field :accident_rider_amount,
-                    class: "form-control",
-                    value: @life_insurance.accident_rider_amount || 0,
-                    step: 0.01, id: "accident_rider_amount" %>
-              </td>
-              <td>
-                <%= form.text_field :accident_rider_note,
-                    class: "form-control",
-                    placeholder: "Note", id: "accident_rider_note" %>
-              </td>
-              <td class="text-center">
-                <button type="button"
-                        class="btn btn-outline-danger btn-sm remove-rider-btn"
-                        data-rider-type="accident"
-                        title="Remove Accident Rider">
-                  <i class="bi bi-x-lg"></i>
-                </button>
-              </td>
-            </tr>
-            <tr>
-              <td>PWB (Premium Waiver Benefit)</td>
-              <td>
-                <%= form.number_field :pwb_rider_amount,
-                    class: "form-control",
-                    value: @life_insurance.pwb_rider_amount || 0,
-                    step: 0.01, id: "pwb_rider_amount" %>
-              </td>
-              <td>
-                <%= form.text_field :pwb_rider_note,
-                    class: "form-control",
-                    placeholder: "Note", id: "pwb_rider_note" %>
-              </td>
-              <td class="text-center">
-                <button type="button"
-                        class="btn btn-outline-danger btn-sm remove-rider-btn"
-                        data-rider-type="pwb"
-                        title="Remove PWB Rider">
-                  <i class="bi bi-x-lg"></i>
-                </button>
-              </td>
-            </tr>
-            <tr>
-              <td>Others</td>
-              <td>
-                <%= form.number_field :other_rider_amount,
-                    class: "form-control",
-                    value: @life_insurance.other_rider_amount || 0,
-                    step: 0.01, id: "other_rider_amount" %>
-              </td>
-              <td>
-                <%= form.text_field :other_rider_note,
-                    class: "form-control",
-                    placeholder: "Note", id: "other_rider_note" %>
-              </td>
-              <td class="text-center">
-                <button type="button"
-                        class="btn btn-outline-danger btn-sm remove-rider-btn"
-                        data-rider-type="other"
-                        title="Remove Other Rider">
-                  <i class="bi bi-x-lg"></i>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
 
   <!-- Nominee Details Section -->
   <div class="card mb-4">
@@ -621,46 +474,6 @@
         </div>
       </div>
 
-      <!-- Distributor Commission -->
-      <hr class="my-4">
-      <h6>Distributor Commission</h6>
-      <div class="row">
-        <div class="col-md-2 mb-3">
-          <label class="form-label">1st year (%)</label>
-          <%= form.number_field :distributor_commission_percentage,
-              class: "form-control distributor-commission-percentage",
-              value: @life_insurance.distributor_commission_percentage || 1.0,
-              step: 0.01 %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">Commission Amount</label>
-          <%= form.number_field :distributor_commission_amount,
-              class: "form-control distributor-commission-amount",
-              value: @life_insurance.distributor_commission_amount || 0,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">TDS %</label>
-          <%= form.number_field :distributor_tds_percentage,
-              class: "form-control distributor-tds-percentage",
-              value: @life_insurance.distributor_tds_percentage || 0,
-              step: 0.01 %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">TDS Amount</label>
-          <%= form.number_field :distributor_tds_amount,
-              class: "form-control distributor-tds-amount",
-              value: @life_insurance.distributor_tds_amount || 0,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">After TDS Value</label>
-          <%= form.number_field :distributor_after_tds_value,
-              class: "form-control distributor-after-tds-value",
-              value: @life_insurance.distributor_after_tds_value || 0,
-              step: 0.01, readonly: true %>
-        </div>
-      </div>
 
       <!-- Investor Commission -->
       <hr class="my-4">
@@ -741,7 +554,7 @@
         <h6 class="mb-2">Commission Calculation Summary:</h6>
         <ul class="mb-0">
           <li><strong>Main Income:</strong> 10% of Net Premium</li>
-          <li><strong>Distribution:</strong> Sub-agent + Distributor + Investor commissions</li>
+          <li><strong>Distribution:</strong> Sub-agent + Investor commissions</li>
           <li><strong>Company Expenses:</strong> <span id="expenses-display">2.0%</span> of Net Premium</li>
           <li><strong>Profit:</strong> Main Income - Total Distribution - Company Expenses</li>
         </ul>
@@ -865,20 +678,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('.sub-agent-after-tds-value').value = afterTdsValue.toFixed(2);
   }
 
-  // Auto-calculate distributor commission
-  function calculateDistributorCommission() {
-    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
-    const commissionPercentage = parseFloat(document.querySelector('.distributor-commission-percentage').value) || 1.0;
-    const tdsPercentage = parseFloat(document.querySelector('.distributor-tds-percentage').value) || 0;
-
-    const commissionAmount = netPremium * (commissionPercentage / 100);
-    const tdsAmount = commissionAmount * (tdsPercentage / 100);
-    const afterTdsValue = commissionAmount - tdsAmount;
-
-    document.querySelector('.distributor-commission-amount').value = commissionAmount.toFixed(2);
-    document.querySelector('.distributor-tds-amount').value = tdsAmount.toFixed(2);
-    document.querySelector('.distributor-after-tds-value').value = afterTdsValue.toFixed(2);
-  }
 
   // Auto-calculate investor commission
   function calculateInvestorCommission() {
@@ -902,12 +701,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Get commission percentages
     const subAgentPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage').value) || 2.0;
-    const distributorPercentage = parseFloat(document.querySelector('.distributor-commission-percentage').value) || 1.0;
     const investorPercentage = parseFloat(document.querySelector('.investor-commission-percentage').value) || 2.0;
     const companyExpensesPercentage = parseFloat(document.querySelector('.company-expenses-percentage').value) || 2.0;
 
     // Calculate total distribution
-    const totalDistributionPercentage = subAgentPercentage + distributorPercentage + investorPercentage;
+    const totalDistributionPercentage = subAgentPercentage + investorPercentage;
 
     // Calculate profit
     const profitPercentage = mainIncomePercentage - totalDistributionPercentage - companyExpensesPercentage;
@@ -926,7 +724,6 @@ document.addEventListener('DOMContentLoaded', function() {
   function calculateAllCommissions() {
     calculateCommission();
     calculateSubAgentCommission();
-    calculateDistributorCommission();
     calculateInvestorCommission();
     calculateProfitAndExpenses();
   }
@@ -964,30 +761,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Remove rider functionality
-  function removeRider(riderType) {
-    const amountField = document.getElementById(`${riderType}_rider_amount`);
-    const noteField = document.getElementById(`${riderType}_rider_note`);
-
-    if (amountField && noteField) {
-      // Show confirmation dialog
-      const riderName = riderType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-      if (confirm(`Are you sure you want to remove ${riderName} Rider information?`)) {
-        // Clear the values
-        amountField.value = 0;
-        noteField.value = '';
-
-        // Add visual feedback
-        const row = amountField.closest('tr');
-        row.style.backgroundColor = '#f8f9fa';
-        setTimeout(() => {
-          row.style.backgroundColor = '';
-        }, 1000);
-
-        alert(`${riderName} Rider information removed successfully!`);
-      }
-    }
-  }
 
   // Event listeners
   document.getElementById('net_premium').addEventListener('input', function() {
@@ -1008,12 +781,6 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   document.querySelector('.sub-agent-tds-percentage').addEventListener('input', calculateSubAgentCommission);
 
-  // Distributor commission event listeners
-  document.querySelector('.distributor-commission-percentage').addEventListener('input', function() {
-    calculateDistributorCommission();
-    calculateProfitAndExpenses();
-  });
-  document.querySelector('.distributor-tds-percentage').addEventListener('input', calculateDistributorCommission);
 
   // Investor commission event listeners
   document.querySelector('.investor-commission-percentage').addEventListener('input', function() {
@@ -1025,12 +792,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // Company expenses event listener
   document.querySelector('.company-expenses-percentage').addEventListener('input', calculateProfitAndExpenses);
 
-  // Add event listeners for remove rider buttons
-  document.querySelectorAll('.remove-rider-btn').forEach(button => {
-    button.addEventListener('click', function() {
-      const riderType = this.getAttribute('data-rider-type');
-      removeRider(riderType);
-    });
-  });
+
 });
 </script>

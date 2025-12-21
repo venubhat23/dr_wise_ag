@@ -76,7 +76,25 @@
                 <%= form.select :sub_agent_id,
                     options_for_select([['Self', '']] + @sub_agents.map { |agent| [agent.display_name, agent.id] }),
                     {},
-                    { class: "form-select" } %>
+                    { class: "form-select", id: "affiliate_select" } %>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3" id="distributor_field">
+                <%= form.label :distributor_id, "Distributor*", class: "form-label required" %>
+                <%= form.select :distributor_id,
+                    options_for_select([['Select Distributor', '']] + @distributors.map { |d| [d.display_name, d.id] }),
+                    { prompt: 'Select Distributor' },
+                    { class: "form-select", required: true, id: "distributor_select" } %>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <%= form.label :investor_id, "Investor*", class: "form-label required" %>
+                <%= form.select :investor_id,
+                    options_for_select([['Select Investor', '']] + @investors.map { |i| [i.display_name, i.id] }),
+                    { prompt: 'Select Investor' },
+                    { class: "form-select", required: true } %>
               </div>
             </div>
           </div>
@@ -795,6 +813,50 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('policy_end_date').value = endDate.toISOString().split('T')[0];
     calculatePolicyTerm();
   });
+
+  // Handle affiliate selection and distributor auto-selection
+  function handleAffiliateSelection() {
+    const affiliateSelect = document.getElementById('affiliate_select');
+    const distributorField = document.getElementById('distributor_field');
+    const distributorSelect = document.getElementById('distributor_select');
+
+    if (affiliateSelect && distributorField && distributorSelect) {
+      affiliateSelect.addEventListener('change', function() {
+        const affiliateId = this.value;
+
+        if (affiliateId && affiliateId !== '') {
+          // Hide distributor field when affiliate is selected
+          distributorField.style.display = 'none';
+          distributorSelect.removeAttribute('required');
+
+          // Fetch affiliate's distributor and set it automatically
+          fetch(`/admin/sub_agents/${affiliateId}/distributor`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.distributor_id) {
+                distributorSelect.value = data.distributor_id;
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching affiliate distributor:', error);
+            });
+        } else {
+          // Show distributor field when no affiliate is selected
+          distributorField.style.display = 'block';
+          distributorSelect.setAttribute('required', 'true');
+          distributorSelect.value = '';
+        }
+      });
+
+      // Trigger change event on page load to handle pre-filled forms
+      if (affiliateSelect.value && affiliateSelect.value !== '') {
+        affiliateSelect.dispatchEvent(new Event('change'));
+      }
+    }
+  }
+
+  // Initialize affiliate selection handling
+  handleAffiliateSelection();
 
   // Initial calculations
   calculateTotalPremium();

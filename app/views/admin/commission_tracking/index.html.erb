@@ -1,8 +1,8 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-1">Commission Tracking</h2>
-    <p class="text-muted mb-0">Track and manage commission payouts for all insurance policies</p>
+    <h2 class="mb-1">Insurance Summary</h2>
+    <p class="text-muted mb-0">Test Customer - Policy opt-in status and commission details</p>
   </div>
   <div class="d-flex gap-2">
     <%= link_to dashboard_admin_commission_tracking_index_path, class: "btn btn-outline-primary" do %>
@@ -251,7 +251,7 @@ body.modal-open {
 <!-- Policies with Commission Table -->
 <div class="card border-0 shadow-sm">
   <div class="card-header bg-transparent border-0">
-    <h5 class="mb-0">Commission Tracking - Policies (<%= @policies_with_commission.count %>)</h5>
+    <h5 class="mb-0">Total Policies (<%= @policies_with_commission.count %>)</h5>
   </div>
   <div class="card-body p-0">
 
@@ -312,23 +312,18 @@ body.modal-open {
                 </td>
 
                 <td>
-                  <div class="d-flex align-items-center gap-2">
-                    <% if policy.try(:main_agent_commission_received) %>
-                      <i class="bi bi-check-circle-fill text-success fs-5" title="Commission Received"></i>
-                      <small class="text-success">Received</small>
-                    <% else %>
-                      <button class="btn p-0 border-0 bg-transparent"
-                              onclick="openMainAgentCommissionModal(<%= policy.id %>, '<%= type %>', '<%= policy.policy_number %>')"
-                              title="Mark as Received">
-                        <i class="bi bi-x-circle-fill text-danger fs-5"></i>
-                      </button>
-                      <small class="text-danger">Pending</small>
+                  <% if policy.try(:main_agent_commission_received) %>
+                    <span class="text-success">✓ Received</span>
+                    <% if policy.try(:main_agent_commission_paid_date) %>
+                      <small class="text-muted d-block">
+                        Paid: <%= policy.main_agent_commission_paid_date.strftime('%d %b %Y') %>
+                      </small>
                     <% end %>
-                  </div>
-                  <% if policy.try(:main_agent_commission_received) && policy.try(:main_agent_commission_paid_date) %>
-                    <small class="text-muted d-block">
-                      Paid: <%= policy.main_agent_commission_paid_date.strftime('%d %b %Y') %>
-                    </small>
+                  <% else %>
+                    <a href="#" class="text-primary text-decoration-none"
+                       onclick="openMainAgentCommissionModal(<%= policy.id %>, '<%= type %>', '<%= policy.policy_number %>'); return false;">
+                      Mark as Paid
+                    </a>
                   <% end %>
                 </td>
 

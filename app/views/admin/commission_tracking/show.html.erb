@@ -6,7 +6,7 @@
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb mb-2">
         <li class="breadcrumb-item">
-          <%= link_to "Commission Tracking", admin_commission_tracking_index_path %>
+          <%= link_to "Insurance Summary", admin_commission_tracking_index_path %>
         </li>
         <li class="breadcrumb-item active">Policy <%= @commission_breakdown[:policy][:number] %></li>
       </ol>
@@ -384,7 +384,7 @@
 <div class="d-flex gap-3 mb-4">
   <%= link_to admin_commission_tracking_index_path, class: "btn btn-outline-secondary" do %>
     <i class="bi bi-arrow-left me-1"></i>
-    Back to Commission Tracking
+    Back to Insurance Summary
   <% end %>
   <%= link_to dashboard_admin_commission_tracking_index_path, class: "btn btn-outline-primary" do %>
     <i class="bi bi-graph-up me-1"></i>

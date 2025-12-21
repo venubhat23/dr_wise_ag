@@ -72,6 +72,7 @@ class LifeInsurance < ApplicationRecord
   before_save :calculate_totals
   before_validation :set_policy_term_from_dates
   after_save :set_notification_dates
+  after_create :create_lead_record
 
   # Instance methods
   def active?
@@ -326,5 +327,13 @@ class LifeInsurance < ApplicationRecord
   rescue StandardError => e
     # Don't fail policy creation if payout creation fails
     Rails.logger.error "Failed to create payouts for life insurance #{id}: #{e.message}"
+  end
+
+  def create_lead_record
+    return if lead_id.present? # Skip if lead already exists
+
+    LeadGeneratorService.create_lead_for_insurance(self)
+  rescue StandardError => e
+    Rails.logger.error "Failed to create lead for life insurance #{id}: #{e.message}"
   end
 end

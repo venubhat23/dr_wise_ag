@@ -5,6 +5,8 @@ class HealthInsurance < ApplicationRecord
   # Associations
   belongs_to :customer
   belongs_to :sub_agent, class_name: 'SubAgent', optional: true
+  belongs_to :distributor, optional: true
+  belongs_to :investor, optional: true
   belongs_to :agency_code, optional: true
   belongs_to :broker, optional: true
   has_many :health_insurance_members, dependent: :destroy
@@ -57,6 +59,7 @@ class HealthInsurance < ApplicationRecord
   before_validation :set_policy_term
   after_save :set_notification_dates
   after_create :create_commission_payouts
+  after_create :create_lead_record
 
   # Instance methods
   def active?
@@ -214,5 +217,13 @@ class HealthInsurance < ApplicationRecord
   rescue StandardError => e
     # Don't fail policy creation if payout creation fails
     Rails.logger.error "Failed to create payouts for health insurance #{id}: #{e.message}"
+  end
+
+  def create_lead_record
+    return if lead_id.present? # Skip if lead already exists
+
+    LeadGeneratorService.create_lead_for_insurance(self)
+  rescue StandardError => e
+    Rails.logger.error "Failed to create lead for health insurance #{id}: #{e.message}"
   end
 end

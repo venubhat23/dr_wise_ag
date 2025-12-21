@@ -184,11 +184,110 @@ class Admin::CustomersController < Admin::ApplicationController
       }
     }
 
-    # Calculate commission data for opted policies
+    # Get comprehensive product status (handling cases where tables might not exist yet)
+    @product_status = {}
+
+    # Insurance Products
+    @product_status['Life'] = @policy_status['Life Insurance'][:opted]
+    @product_status['Health'] = @policy_status['Health Insurance'][:opted]
+    @product_status['Motor'] = @policy_status['Motor Insurance'][:opted]
+    @product_status['General'] = false # Placeholder for General Insurance
+    @product_status['Travel Insurance'] = false # Placeholder for Travel Insurance
+
+    # Investment Products (check if tables exist)
+    begin
+      @product_status['Mutual Fund'] = @customer.respond_to?(:investments) ?
+        @customer.investments.where(investment_type: 'Mutual Fund').exists? : false
+      @product_status['Gold'] = @customer.respond_to?(:investments) ?
+        @customer.investments.where(investment_type: 'Gold').exists? : false
+      @product_status['NPS'] = @customer.respond_to?(:investments) ?
+        @customer.investments.where(investment_type: 'NPS').exists? : false
+      @product_status['Bonds'] = @customer.respond_to?(:investments) ?
+        @customer.investments.where(investment_type: 'Bonds').exists? : false
+    rescue
+      @product_status['Mutual Fund'] = false
+      @product_status['Gold'] = false
+      @product_status['NPS'] = false
+      @product_status['Bonds'] = false
+    end
+
+    # Loan Products
+    begin
+      @product_status['Personal'] = @customer.respond_to?(:loans) ?
+        @customer.loans.where(loan_type: 'Personal').exists? : false
+      @product_status['Home'] = @customer.respond_to?(:loans) ?
+        @customer.loans.where(loan_type: 'Home').exists? : false
+      @product_status['Business'] = @customer.respond_to?(:loans) ?
+        @customer.loans.where(loan_type: 'Business').exists? : false
+    rescue
+      @product_status['Personal'] = false
+      @product_status['Home'] = false
+      @product_status['Business'] = false
+    end
+
+    # Tax Services
+    begin
+      @product_status['ITR'] = @customer.respond_to?(:tax_services) ?
+        @customer.tax_services.where(service_type: 'ITR Filing').exists? : false
+    rescue
+      @product_status['ITR'] = false
+    end
+
+    # Travel Services
+    begin
+      @product_status['Domestic'] = @customer.respond_to?(:travel_packages) ?
+        @customer.travel_packages.where(travel_type: 'Domestic').exists? : false
+      @product_status['International'] = @customer.respond_to?(:travel_packages) ?
+        @customer.travel_packages.where(travel_type: 'International').exists? : false
+    rescue
+      @product_status['Domestic'] = false
+      @product_status['International'] = false
+    end
+
+    # Additional placeholder products for future expansion
+    @product_status['Additional 1'] = false
+    @product_status['Additional 2'] = false
+
+    # Calculate comprehensive commission data based on all 17 products
+    total_policies = 0
+    total_premium = 0
+    opted_count = @product_status.values.count(true)
+
+    # Count actual policies and premiums from existing insurance types
+    total_policies += @policy_status.values.sum { |policy| policy[:count] }
+    total_premium += @policy_status.values.sum { |policy| policy[:total_premium] }
+
+    # Add counts from other product types (when they have data)
+    begin
+      if @customer.respond_to?(:investments)
+        total_policies += @customer.investments.count
+        total_premium += @customer.investments.sum(:investment_amount) || 0
+      end
+
+      if @customer.respond_to?(:loans)
+        total_policies += @customer.loans.count
+        total_premium += @customer.loans.sum(:loan_amount) || 0
+      end
+
+      if @customer.respond_to?(:tax_services)
+        total_policies += @customer.tax_services.count
+        total_premium += @customer.tax_services.sum(:amount) || 0
+      end
+
+      if @customer.respond_to?(:travel_packages)
+        total_policies += @customer.travel_packages.count
+        total_premium += @customer.travel_packages.sum(:package_amount) || 0
+      end
+    rescue
+      # Handle cases where tables don't exist yet
+    end
+
     @commission_summary = {
-      total_premium: @policy_status.values.sum { |policy| policy[:total_premium] },
-      total_policies: @policy_status.values.sum { |policy| policy[:count] },
-      opted_count: @policy_status.values.count { |policy| policy[:opted] }
+      total_premium: total_premium,
+      total_policies: total_policies,
+      opted_count: opted_count,
+      total_products: 17, # Total number of product types available
+      coverage_percentage: (opted_count.to_f / 17 * 100).round(1)
     }
 
     # Get commission payouts for this customer's policies

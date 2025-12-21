@@ -2,15 +2,126 @@ class Admin::AffiliatePayoutsController < ApplicationController
   before_action :authenticate_user!
   before_action :authorize_admin_access
 
-  skip_authorization_check
-  skip_load_and_authorize_resource
-
   def index
-    @affiliate_payouts = fetch_affiliate_payout_summary
+    @affiliate_payouts = calculate_affiliate_payouts
     @total_affiliates = @affiliate_payouts.count
     @total_pending_amount = @affiliate_payouts.sum { |a| a[:pending_amount] }
     @total_paid_amount = @affiliate_payouts.sum { |a| a[:paid_amount] }
-    @total_commission_earned = @affiliate_payouts.sum { |a| a[:total_commission] }
+    @total_commission_earned = @affiliate_payouts.sum { |a| a[:total_amount] }
+  end
+
+  def mark_as_paid
+    begin
+      affiliate_id = params[:affiliate_id]
+      lead_ids = params[:lead_ids] || []
+      payout_type = params[:payout_type] || 'multiple_leads' # affiliate_all, lead_single, lead_multiple, affiliate_single
+
+      Rails.logger.info "=== AFFILIATE PAYOUT DEBUG ==="
+      Rails.logger.info "affiliate_id: #{affiliate_id}"
+      Rails.logger.info "lead_ids: #{lead_ids.inspect}"
+      Rails.logger.info "payout_type: #{payout_type}"
+
+      success_count = 0
+      errors = []
+
+      case payout_type
+      when 'affiliate_all'
+        # Mark all pending payouts for this affiliate as paid
+        transaction_id = params[:transaction_id]
+        payment_date = params[:payment_date]
+        notes = params[:notes]
+
+        if lead_ids.any?
+          # Use the specific lead_ids from the form with transaction details
+          lead_ids.each do |lead_id|
+            if transaction_id.present?
+              result = mark_single_lead_payout_with_details(lead_id, transaction_id, payment_date, notes)
+            else
+              result = mark_single_lead_payout(lead_id)
+            end
+            success_count += 1 if result[:success]
+            errors << result[:error] if result[:error]
+          end
+        else
+          # Fallback: find all unpaid leads for this affiliate
+          mark_all_affiliate_payouts(affiliate_id)
+          success_count = 1
+        end
+      when 'lead_single'
+        # Mark single lead as paid
+        single_lead_id = params[:single_lead_id]
+        result = mark_single_lead_payout(single_lead_id)
+        success_count = result[:success] ? 1 : 0
+        errors << result[:error] if result[:error]
+      when 'lead_multiple'
+        # Mark multiple leads as paid
+        lead_ids.each do |lead_id|
+          result = mark_single_lead_payout(lead_id)
+          success_count += 1 if result[:success]
+          errors << result[:error] if result[:error]
+        end
+      when 'bulk_selection'
+        # Handle bulk selection from modal
+        affiliate_ids = params[:affiliate_ids] || []
+
+        # Process selected affiliates (all their pending leads)
+        affiliate_ids.each do |aff_id|
+          mark_all_affiliate_payouts(aff_id)
+          success_count += 1
+        end
+
+        # Process selected individual leads
+        lead_ids.each do |lead_id|
+          result = mark_single_lead_payout(lead_id)
+          success_count += 1 if result[:success]
+          errors << result[:error] if result[:error]
+        end
+      when 'bulk_modal_selection'
+        # Handle new modal bulk selection with transaction details
+        transaction_id = params[:transaction_id]
+        payment_date = params[:payment_date]
+        notes = params[:notes]
+
+        lead_ids.each do |lead_id|
+          result = mark_single_lead_payout_with_details(lead_id, transaction_id, payment_date, notes)
+          success_count += 1 if result[:success]
+          errors << result[:error] if result[:error]
+        end
+      when 'quick_all_pending'
+        # Handle quick payout for all pending affiliate payouts
+        transaction_id = params[:transaction_id]
+        payment_date = params[:payment_date] || Date.current
+        notes = params[:notes] || "Quick batch payout for all pending affiliates"
+
+        # Get all pending affiliate payouts
+        pending_payouts = calculate_affiliate_payouts.select { |a| a[:pending_amount] > 0 }
+
+        pending_payouts.each do |affiliate_data|
+          unpaid_leads = affiliate_data[:leads].select { |l| !l[:paid] }
+          unpaid_leads.each do |lead_data|
+            result = mark_single_lead_payout_with_details(lead_data[:lead].lead_id, transaction_id, payment_date, notes)
+            success_count += 1 if result[:success]
+            errors << result[:error] if result[:error]
+          end
+        end
+      else
+        # Default: mark specific affiliate's leads as paid
+        lead_ids.each do |lead_id|
+          result = mark_single_lead_payout(lead_id)
+          success_count += 1 if result[:success]
+          errors << result[:error] if result[:error]
+        end
+      end
+
+      if errors.any?
+        redirect_to admin_affiliate_payouts_path, alert: "Some payouts failed: #{errors.join(', ')}"
+      else
+        redirect_to admin_affiliate_payouts_path, notice: "#{success_count} affiliate payout(s) marked as paid successfully!"
+      end
+
+    rescue StandardError => e
+      redirect_to admin_affiliate_payouts_path, alert: "Error processing payouts: #{e.message}"
+    end
   end
 
   def show
@@ -27,7 +138,126 @@ class Admin::AffiliatePayoutsController < ApplicationController
     @summary = @affiliate_details[:summary]
   end
 
+  def unpaid_data
+    unpaid_affiliates = calculate_affiliate_payouts.select { |a| a[:pending_amount] > 0 }
+
+    render json: {
+      success: true,
+      data: unpaid_affiliates.map do |affiliate_data|
+        {
+          affiliate: {
+            id: affiliate_data[:affiliate].id,
+            name: affiliate_data[:affiliate].display_name,
+            email: affiliate_data[:affiliate].email
+          },
+          leads: affiliate_data[:leads].reject { |l| l[:paid] }.map do |lead_data|
+            {
+              id: lead_data[:lead].lead_id,
+              policy_id: lead_data[:policy].id,
+              commission: lead_data[:commission].round(2),
+              policy_number: lead_data[:policy].policy_number,
+              customer_name: lead_data[:policy].customer&.display_name || 'Unknown'
+            }
+          end,
+          total_pending: affiliate_data[:pending_amount].round(2)
+        }
+      end
+    }
+  rescue StandardError => e
+    render json: { success: false, message: e.message }
+  end
+
   private
+
+  def calculate_affiliate_payouts
+    payouts = []
+
+    # Get all policies where main agent commission is received
+    paid_policies = get_all_paid_policies
+
+    # Group by affiliate
+    affiliate_groups = {}
+
+    paid_policies.each do |policy|
+      next unless policy.lead_id.present?
+
+      lead = Lead.find_by(lead_id: policy.lead_id)
+      next unless lead
+
+      # Get affiliate from the policy's sub_agent_id
+      affiliate = SubAgent.find_by(id: policy.sub_agent_id) if policy.respond_to?(:sub_agent_id) && policy.sub_agent_id.present?
+      next unless affiliate
+
+      # Calculate affiliate commission (2% of net premium)
+      affiliate_commission = policy.net_premium * 0.02
+
+      # Check if already paid
+      already_paid = CommissionPayout.exists?(
+        policy_type: get_policy_type(policy),
+        policy_id: policy.id,
+        payout_to: 'affiliate',
+        status: 'paid'
+      )
+
+      affiliate_key = affiliate.id
+
+      affiliate_groups[affiliate_key] ||= {
+        affiliate: affiliate,
+        leads: [],
+        total_amount: 0,
+        paid_amount: 0,
+        pending_amount: 0
+      }
+
+      lead_data = {
+        lead: lead,
+        policy: policy,
+        commission: affiliate_commission,
+        paid: already_paid
+      }
+
+      affiliate_groups[affiliate_key][:leads] << lead_data
+      affiliate_groups[affiliate_key][:total_amount] += affiliate_commission
+
+      if already_paid
+        affiliate_groups[affiliate_key][:paid_amount] += affiliate_commission
+      else
+        affiliate_groups[affiliate_key][:pending_amount] += affiliate_commission
+      end
+    end
+
+    # Convert to array and sort by affiliate name
+    affiliate_groups.values.sort_by { |group| group[:affiliate].display_name }
+  end
+
+  def get_all_paid_policies
+    policies = []
+
+    # Health Insurances
+    policies += HealthInsurance.where(main_agent_commission_received: true)
+
+    # Life Insurances
+    policies += LifeInsurance.where(main_agent_commission_received: true)
+
+    # Motor Insurances
+    policies += MotorInsurance.where(main_agent_commission_received: true)
+
+    # Other Insurances (if they have the field)
+    if OtherInsurance.column_names.include?('main_agent_commission_received')
+      policies += OtherInsurance.where(main_agent_commission_received: true)
+    end
+
+    policies
+  end
+
+  def find_policy_by_lead_id(lead_id)
+    # Search across all insurance types
+    policy = HealthInsurance.find_by(lead_id: lead_id)
+    policy ||= LifeInsurance.find_by(lead_id: lead_id)
+    policy ||= MotorInsurance.find_by(lead_id: lead_id)
+    policy ||= OtherInsurance.find_by(lead_id: lead_id) if OtherInsurance.column_names.include?('lead_id')
+    policy
+  end
 
   def fetch_affiliate_payout_summary
     affiliates_data = []
@@ -159,6 +389,110 @@ class Admin::AffiliatePayoutsController < ApplicationController
       MotorInsurance.find_by(id: payout.policy_id)
     when 'other'
       OtherInsurance.find_by(id: payout.policy_id)
+    end
+  end
+
+  def mark_single_lead_payout(lead_id)
+    mark_single_lead_payout_with_details(lead_id, "AFF_#{Time.current.to_i}", Date.current, "Affiliate payout for Lead ID: #{lead_id}")
+  end
+
+  def mark_single_lead_payout_with_details(lead_id, transaction_id, payment_date, notes)
+    Rails.logger.info "Processing lead payout: lead_id=#{lead_id}, transaction_id=#{transaction_id}"
+
+    policy = find_policy_by_lead_id(lead_id)
+    unless policy
+      Rails.logger.error "Policy not found for lead #{lead_id}"
+      return { success: false, error: "Policy not found for lead #{lead_id}" }
+    end
+
+    # Calculate affiliate commission (2% of net premium)
+    affiliate_commission = policy.net_premium * 0.02
+    Rails.logger.info "Calculated commission: #{affiliate_commission} for policy #{policy.id}"
+
+    # Get correct policy type for validation
+    policy_type = get_policy_type(policy)
+
+    # Check if already paid
+    existing_payout = CommissionPayout.find_by(
+      policy_type: policy_type,
+      policy_id: policy.id,
+      payout_to: 'affiliate'
+    )
+
+    begin
+      if existing_payout
+        Rails.logger.info "Updating existing payout #{existing_payout.id}"
+        existing_payout.update!(
+          status: 'paid',
+          payout_date: payment_date || Date.current,
+          transaction_id: transaction_id,
+          notes: notes,
+          processed_by: current_user&.email || 'system',
+          processed_at: Time.current
+        )
+        Rails.logger.info "Successfully updated existing payout"
+      else
+        Rails.logger.info "Creating new payout record"
+        payout = CommissionPayout.create!(
+          policy_type: policy_type,
+          policy_id: policy.id,
+          payout_to: 'affiliate',
+          payout_amount: affiliate_commission,
+          payout_date: payment_date || Date.current,
+          status: 'paid',
+          transaction_id: transaction_id,
+          payment_mode: 'bank_transfer',
+          reference_number: "REF_#{lead_id}_#{Time.current.to_i}",
+          notes: notes || "Affiliate payout for Lead ID: #{lead_id}",
+          processed_by: current_user&.email || 'system',
+          processed_at: Time.current
+        )
+        Rails.logger.info "Successfully created new payout: #{payout.id}"
+      end
+      { success: true }
+    rescue => e
+      Rails.logger.error "Failed to process lead #{lead_id}: #{e.message}"
+      Rails.logger.error e.backtrace.first(10).join("\n")
+      { success: false, error: "Failed to process lead #{lead_id}: #{e.message}" }
+    end
+  end
+
+  def mark_all_affiliate_payouts(affiliate_id)
+    affiliate = SubAgent.find_by(id: affiliate_id)
+    return unless affiliate
+
+    # Find all pending affiliate payouts
+    paid_policies = get_all_paid_policies
+    paid_policies.each do |policy|
+      next unless policy.lead_id.present?
+      next unless policy.sub_agent_id == affiliate_id.to_i
+
+      # Check if not already paid
+      policy_type = get_policy_type(policy)
+      existing_payout = CommissionPayout.find_by(
+        policy_type: policy_type,
+        policy_id: policy.id,
+        payout_to: 'affiliate',
+        status: 'paid'
+      )
+      next if existing_payout
+
+      mark_single_lead_payout(policy.lead_id)
+    end
+  end
+
+  def get_policy_type(policy)
+    case policy.class.name
+    when 'HealthInsurance'
+      'health'
+    when 'LifeInsurance'
+      'life'
+    when 'MotorInsurance'
+      'motor'
+    when 'OtherInsurance'
+      'other'
+    else
+      'health' # fallback
     end
   end
 

@@ -187,7 +187,99 @@
     </div>
   </div>
 
-  <!-- 3. Documents & QR Code -->
+  <!-- 3. Distributor Assignment -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-person-badge me-2 text-info"></i>
+      <h5 class="mb-0">Distributor Assignment</h5>
+    </div>
+    <div class="card-body">
+      <!-- Current Assignment Display -->
+      <% if @assigned_distributor.present? %>
+        <div class="alert alert-info" role="alert">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-info-circle me-2"></i>
+            <div>
+              <strong>Currently Assigned To:</strong> <%= @assigned_distributor.display_name %><br>
+              <small class="text-muted">
+                Assigned on: <%= @distributor_assignment&.assigned_at&.strftime("%d %B, %Y") || "Date not available" %>
+              </small>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="alert alert-warning" role="alert">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <div>
+              <strong>No Distributor Assigned</strong><br>
+              <small>This sub agent is not currently assigned to any distributor.</small>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Assignment Form -->
+      <div class="row">
+        <div class="col-md-12">
+          <label class="form-label">
+            <i class="bi bi-person-plus me-1"></i>
+            Assign to Distributor
+          </label>
+          <%= select_tag 'assigned_distributor_id',
+              options_for_select([
+                ['-- No Distributor (Remove Assignment) --', '']
+              ] +
+              @available_distributors.map { |distributor|
+                [
+                  "#{distributor.display_name} - #{distributor.email}",
+                  distributor.id,
+                  {
+                    'data-email' => distributor.email,
+                    'data-mobile' => distributor.mobile,
+                    'data-status' => distributor.status
+                  }
+                ]
+              }, @assigned_distributor&.id),
+              {
+                class: "form-select",
+                id: "distributor_select"
+              } %>
+          <small class="form-text text-muted">
+            Select a distributor to assign this sub agent to. Choose "No Distributor" to remove current assignment.
+          </small>
+        </div>
+      </div>
+
+      <!-- Distributor Preview -->
+      <div id="distributor_preview" class="mt-3" style="<%= @assigned_distributor.present? ? '' : 'display: none;' %>">
+        <div class="card bg-light">
+          <div class="card-body">
+            <h6 class="card-title mb-2">
+              <i class="bi bi-person-circle me-1"></i>
+              Selected Distributor Details
+            </h6>
+            <div class="row">
+              <div class="col-md-4">
+                <small class="text-muted">Name:</small>
+                <div id="preview_name"><%= @assigned_distributor&.display_name %></div>
+              </div>
+              <div class="col-md-4">
+                <small class="text-muted">Email:</small>
+                <div id="preview_email"><%= @assigned_distributor&.email %></div>
+              </div>
+              <div class="col-md-4">
+                <small class="text-muted">Mobile:</small>
+                <div id="preview_mobile"><%= @assigned_distributor&.mobile %></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Documents & QR Code -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-transparent border-0 d-flex align-items-center">
       <i class="bi bi-file-earmark-arrow-up me-2 text-warning"></i>
@@ -221,7 +313,7 @@
                     <p class="card-text">
                       <small class="text-muted">
                         <%= document.document_name %><br>
-                        Uploaded: <%= time_ago_in_words(document.created_at) %> ago
+                        Uploaded: <%= document.created_at ? time_ago_in_words(document.created_at) + ' ago' : 'Date not available' %>
                       </small>
                     </p>
                     <div class="d-flex gap-2">
@@ -296,6 +388,35 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Distributor assignment management
+  const distributorSelect = document.getElementById('distributor_select');
+  const distributorPreview = document.getElementById('distributor_preview');
+  const previewName = document.getElementById('preview_name');
+  const previewEmail = document.getElementById('preview_email');
+  const previewMobile = document.getElementById('preview_mobile');
+
+  distributorSelect?.addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+
+    if (this.value === '' || this.value === null) {
+      // No distributor selected
+      distributorPreview.style.display = 'none';
+      previewName.textContent = '';
+      previewEmail.textContent = '';
+      previewMobile.textContent = '';
+    } else {
+      // Distributor selected
+      const name = selectedOption.textContent.split(' - ')[0];
+      const email = selectedOption.getAttribute('data-email') || '';
+      const mobile = selectedOption.getAttribute('data-mobile') || '';
+
+      previewName.textContent = name;
+      previewEmail.textContent = email;
+      previewMobile.textContent = mobile;
+      distributorPreview.style.display = 'block';
+    }
+  });
+
   // Document management
   let documentIndex = <%= @sub_agent.sub_agent_documents.size %>;
   const addDocumentBtn = document.getElementById('add_document');

@@ -29,6 +29,20 @@ class Admin::DistributorsController < Admin::ApplicationController
   # GET /admin/distributors/1
   def show
     @documents = @distributor.distributor_documents.order(:created_at)
+
+    # Get assigned affiliates with their detailed information
+    @assigned_affiliates = @distributor.assigned_sub_agents.includes(
+      :distributor_assignment
+    ).order('sub_agents.created_at DESC')
+
+    # Calculate statistics for each affiliate
+    @affiliate_stats = {}
+    @assigned_affiliates.each do |affiliate|
+      @affiliate_stats[affiliate.id] = calculate_affiliate_stats(affiliate)
+    end
+
+    # Overall distributor statistics
+    @distributor_stats = calculate_distributor_stats
   end
 
   # GET /admin/distributors/new
@@ -49,6 +63,7 @@ class Admin::DistributorsController < Admin::ApplicationController
     @distributor.role_id = 'distributor'
 
     if @distributor.save
+      handle_affiliate_assignments(@distributor, params[:distributor][:assigned_affiliate_ids])
       redirect_to admin_distributors_path, notice: 'Distributor was successfully created.'
     else
       @distributor.distributor_documents.build if @distributor.distributor_documents.empty?
@@ -59,6 +74,7 @@ class Admin::DistributorsController < Admin::ApplicationController
   # PATCH/PUT /admin/distributors/1
   def update
     if @distributor.update(distributor_params)
+      handle_affiliate_assignments(@distributor, params[:distributor][:assigned_affiliate_ids])
       redirect_to admin_distributors_path, notice: 'Distributor was successfully updated.'
     else
       @distributor.distributor_documents.build if @distributor.distributor_documents.empty?
@@ -98,5 +114,162 @@ class Admin::DistributorsController < Admin::ApplicationController
       :account_holder_name, :account_type, :upi_id, :status, :upload_main_document,
       distributor_documents_attributes: [:id, :document_type, :document_file, :_destroy]
     )
+  end
+
+  def handle_affiliate_assignments(distributor, assigned_affiliate_ids)
+    return unless assigned_affiliate_ids.is_a?(Array)
+
+    # Remove existing assignments
+    distributor.distributor_assignments.destroy_all
+
+    # Create new assignments
+    assigned_affiliate_ids.reject(&:blank?).each do |sub_agent_id|
+      sub_agent = SubAgent.find_by(id: sub_agent_id)
+      if sub_agent
+        # Remove any existing assignment for this sub_agent
+        DistributorAssignment.where(sub_agent: sub_agent).destroy_all
+
+        # Create new assignment
+        distributor.distributor_assignments.create!(
+          sub_agent: sub_agent,
+          assigned_at: Time.current
+        )
+      end
+    end
+  end
+
+  def calculate_affiliate_stats(affiliate)
+    health_policies = HealthInsurance.where(sub_agent_id: affiliate.id)
+    life_policies = LifeInsurance.where(sub_agent_id: affiliate.id)
+    motor_policies = MotorInsurance.where(sub_agent_id: affiliate.id)
+
+    # Safely try to get other policies if the association exists
+    other_policies_count = 0
+    other_policies_premium = 0.0
+    other_policies_commission = 0.0
+
+    begin
+      # Try to get other insurance through customers
+      affiliate_customers = Customer.where(sub_agent_id: affiliate.id)
+      if defined?(OtherInsurance) && OtherInsurance.respond_to?(:joins)
+        other_policies = OtherInsurance.joins(:policy).where(policies: { customer_id: affiliate_customers.pluck(:id) })
+        other_policies_count = other_policies.count
+        other_policies_premium = other_policies.sum(:total_premium).to_f rescue 0.0
+        other_policies_commission = other_policies.sum(:commission_amount).to_f rescue 0.0
+      end
+    rescue => e
+      Rails.logger.debug "Could not load other insurance data: #{e.message}"
+      other_policies_count = 0
+      other_policies_premium = 0.0
+      other_policies_commission = 0.0
+    end
+
+    total_policies = health_policies.count + life_policies.count + motor_policies.count + other_policies_count
+    total_premium = (health_policies.sum(:total_premium) +
+                    life_policies.sum(:total_premium) +
+                    motor_policies.sum(:total_premium) +
+                    other_policies_premium).to_f
+
+    total_commission = (health_policies.sum(:commission_amount) +
+                       life_policies.sum(:commission_amount) +
+                       motor_policies.sum(:main_agent_commission_amount) +
+                       other_policies_commission).to_f
+
+    # Get unique customers from all policies created by this affiliate
+    customer_ids = []
+    customer_ids += health_policies.pluck(:customer_id).compact
+    customer_ids += life_policies.pluck(:customer_id).compact
+    customer_ids += motor_policies.pluck(:customer_id).compact
+    unique_customers_count = customer_ids.uniq.count
+
+    {
+      total_policies: total_policies,
+      total_premium: total_premium,
+      total_commission: total_commission,
+      health_policies: health_policies.count,
+      life_policies: life_policies.count,
+      motor_policies: motor_policies.count,
+      other_policies: other_policies_count,
+      recent_policies: get_recent_policies_for_affiliate(affiliate),
+      customers_count: unique_customers_count,
+      joined_date: affiliate.created_at
+    }
+  end
+
+  def calculate_distributor_stats
+    total_policies = 0
+    total_premium = 0.0
+    total_commission = 0.0
+    total_customers = 0
+
+    @assigned_affiliates.each do |affiliate|
+      stats = @affiliate_stats[affiliate.id]
+      total_policies += stats[:total_policies]
+      total_premium += stats[:total_premium]
+      total_commission += stats[:total_commission]
+      total_customers += stats[:customers_count]
+    end
+
+    {
+      total_affiliates: @assigned_affiliates.count,
+      active_affiliates: @assigned_affiliates.active.count,
+      total_policies: total_policies,
+      total_premium: total_premium,
+      total_commission: total_commission,
+      total_customers: total_customers,
+      avg_policies_per_affiliate: @assigned_affiliates.count > 0 ? (total_policies.to_f / @assigned_affiliates.count).round(2) : 0
+    }
+  end
+
+  def get_recent_policies_for_affiliate(affiliate)
+    policies = []
+
+    # Get recent health policies
+    HealthInsurance.where(sub_agent_id: affiliate.id)
+                   .includes(:customer)
+                   .order(created_at: :desc)
+                   .limit(3)
+                   .each do |policy|
+      policies << {
+        type: 'Health',
+        policy_number: policy.policy_number,
+        customer: policy.customer&.display_name || 'Unknown',
+        premium: policy.total_premium,
+        created_at: policy.created_at
+      }
+    end
+
+    # Get recent life policies
+    LifeInsurance.where(sub_agent_id: affiliate.id)
+                 .includes(:customer)
+                 .order(created_at: :desc)
+                 .limit(3)
+                 .each do |policy|
+      policies << {
+        type: 'Life',
+        policy_number: policy.policy_number,
+        customer: policy.customer&.display_name || 'Unknown',
+        premium: policy.total_premium,
+        created_at: policy.created_at
+      }
+    end
+
+    # Get recent motor policies
+    MotorInsurance.where(sub_agent_id: affiliate.id)
+                  .includes(:customer)
+                  .order(created_at: :desc)
+                  .limit(2)
+                  .each do |policy|
+      policies << {
+        type: 'Motor',
+        policy_number: policy.policy_number,
+        customer: policy.customer&.display_name || 'Unknown',
+        premium: policy.total_premium,
+        created_at: policy.created_at
+      }
+    end
+
+    # Sort by creation date and return top 5
+    policies.sort_by { |p| p[:created_at] }.reverse.first(5)
   end
 end

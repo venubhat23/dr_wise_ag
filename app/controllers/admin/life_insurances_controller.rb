@@ -51,6 +51,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
   # POST /admin/insurance/life
   def create
     @life_insurance = LifeInsurance.new(life_insurance_params)
+    set_distributor_from_affiliate(@life_insurance)
 
     if @life_insurance.save
       redirect_to admin_life_insurances_path,
@@ -63,7 +64,10 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
   # PATCH/PUT /admin/insurance/life/1
   def update
-    if @life_insurance.update(life_insurance_params)
+    @life_insurance.assign_attributes(life_insurance_params)
+    set_distributor_from_affiliate(@life_insurance)
+
+    if @life_insurance.save
       redirect_to admin_life_insurances_path,
                   notice: 'Life insurance policy was successfully updated.'
     else
@@ -172,5 +176,20 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       :profit_percentage, :profit_amount,
       policy_documents: [], documents: []
     )
+  end
+
+  def set_distributor_from_affiliate(insurance_record)
+    # If affiliate is selected but distributor is not set, auto-assign distributor
+    if insurance_record.sub_agent_id.present? && insurance_record.distributor_id.blank?
+      sub_agent = SubAgent.find(insurance_record.sub_agent_id)
+
+      # Use direct distributor relationship first, then fall back to assignment
+      distributor_id = sub_agent.distributor_id || sub_agent.assigned_distributor&.id
+
+      insurance_record.distributor_id = distributor_id if distributor_id.present?
+    end
+  rescue StandardError => e
+    # Log error but don't fail the form submission
+    Rails.logger.error "Failed to set distributor from affiliate: #{e.message}"
   end
 end

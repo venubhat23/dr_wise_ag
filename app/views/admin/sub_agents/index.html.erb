@@ -98,9 +98,9 @@
 
 <!-- Sub Agents Table -->
 <div class="card shadow-sm">
-  <div class="card-body">
+  <div class="card-body" style="overflow: visible;">
     <% if @sub_agents.any? %>
-      <div class="table-responsive">
+      <div class="table-responsive" style="overflow: visible;">
         <table class="table table-hover align-middle">
           <thead class="table-light">
             <tr>
@@ -108,6 +108,7 @@
               <th>Mobile</th>
               <th>Email</th>
               <th>Role</th>
+              <th>Assigned Distributor</th>
               <th>Status</th>
               <th>Created</th>
               <th>Actions</th>
@@ -143,6 +144,29 @@
                   <span class="badge bg-info">Role <%= sub_agent.role_id %></span>
                 </td>
                 <td>
+                  <% if sub_agent.assigned_distributor.present? %>
+                    <div class="d-flex align-items-center">
+                      <div class="avatar-xs bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2">
+                        <i class="bi bi-building text-success"></i>
+                      </div>
+                      <div>
+                        <small class="fw-medium text-success">
+                          <%= sub_agent.assigned_distributor.display_name %>
+                        </small>
+                        <br>
+                        <small class="text-muted">
+                          Assigned <%= time_ago_in_words(sub_agent.distributor_assignment.assigned_at) %> ago
+                        </small>
+                      </div>
+                    </div>
+                  <% else %>
+                    <span class="badge bg-warning bg-opacity-10 text-warning">
+                      <i class="bi bi-exclamation-triangle me-1"></i>
+                      Unassigned
+                    </span>
+                  <% end %>
+                </td>
+                <td>
                   <% if sub_agent.active? %>
                     <span class="badge bg-success">Active</span>
                   <% else %>
@@ -156,10 +180,10 @@
                 </td>
                 <td>
                   <div class="dropdown">
-                    <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                       <i class="bi bi-three-dots"></i>
                     </button>
-                    <ul class="dropdown-menu">
+                    <ul class="dropdown-menu dropdown-menu-end">
                       <li><%= link_to "View", admin_sub_agent_path(sub_agent), class: "dropdown-item" %></li>
                       <li><%= link_to "Edit", edit_admin_sub_agent_path(sub_agent), class: "dropdown-item" %></li>
                       <li><hr class="dropdown-divider"></li>
@@ -240,6 +264,36 @@
   width: 38px;
   height: 38px;
 }
+
+/* Fix dropdown overflow in table */
+.table-responsive {
+  overflow: visible !important;
+}
+
+.card-body {
+  overflow: visible !important;
+}
+
+/* Ensure dropdown appears above table content */
+.dropdown-menu {
+  z-index: 1050 !important;
+  position: absolute !important;
+}
+
+/* Fix Bootstrap table responsive overflow issue */
+.table-responsive .dropdown {
+  position: static !important;
+}
+
+.table-responsive .dropdown-menu {
+  position: fixed !important;
+  z-index: 9999 !important;
+}
+
+/* Alternative approach - remove horizontal scroll when dropdown is open */
+.table-responsive:has(.dropdown-menu.show) {
+  overflow: visible !important;
+}
 </style>
 
 <script>
@@ -264,6 +318,30 @@ document.addEventListener('DOMContentLoaded', function() {
   // Auto-submit on status filter change
   statusFilter.addEventListener('change', function() {
     searchForm.submit();
+  });
+
+  // Fix dropdown positioning for table responsive containers
+  const dropdownButtons = document.querySelectorAll('.table .dropdown-toggle');
+  dropdownButtons.forEach(button => {
+    button.addEventListener('show.bs.dropdown', function() {
+      // Remove overflow hidden from table-responsive when dropdown opens
+      const tableResponsive = this.closest('.table-responsive');
+      if (tableResponsive) {
+        tableResponsive.style.overflow = 'visible';
+        tableResponsive.style.overflowX = 'visible';
+        tableResponsive.style.overflowY = 'visible';
+      }
+    });
+
+    button.addEventListener('hide.bs.dropdown', function() {
+      // Restore overflow auto when dropdown closes
+      const tableResponsive = this.closest('.table-responsive');
+      if (tableResponsive) {
+        tableResponsive.style.overflow = 'auto';
+        tableResponsive.style.overflowX = 'auto';
+        tableResponsive.style.overflowY = 'visible';
+      }
+    });
   });
 });
 </script>

@@ -6,6 +6,9 @@ class SubAgent < ApplicationRecord
 
   # Associations
   has_many :sub_agent_documents, dependent: :destroy
+  has_one :distributor_assignment, dependent: :destroy
+  has_one :assigned_distributor, through: :distributor_assignment, source: :distributor
+  belongs_to :distributor, optional: true
   has_one_attached :upload_main_document
 
   # Nested attributes for documents

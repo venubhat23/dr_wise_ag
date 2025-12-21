@@ -70,6 +70,24 @@ class CommissionPayout < ApplicationRecord
     policy&.policy_number || 'N/A'
   end
 
+  def lead
+    return nil unless lead_id.present?
+    Lead.find_by(lead_id: lead_id)
+  end
+
+  def lead_details
+    lead_record = lead
+    return {} unless lead_record
+
+    {
+      lead_id: lead_record.lead_id,
+      lead_name: lead_record.name,
+      lead_stage: lead_record.current_stage,
+      lead_source: lead_record.lead_source,
+      product_interest: lead_record.product_interest
+    }
+  end
+
   def recipient
     case payout_to
     when 'sub_agent'

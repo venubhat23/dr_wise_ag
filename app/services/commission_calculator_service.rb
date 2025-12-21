@@ -185,6 +185,7 @@ class CommissionCalculatorService
     payout = CommissionPayout.create!(
       policy_type: @policy_type,
       policy_id: @policy.id,
+      lead_id: @policy.try(:lead_id),
       payout_to: recipient_type,
       payout_amount: payout_amount,
       payout_date: calculate_payout_date,

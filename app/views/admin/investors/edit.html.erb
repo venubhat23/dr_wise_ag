@@ -216,7 +216,7 @@
                     <p class="card-text">
                       <small class="text-muted">
                         <%= document.document_name %><br>
-                        Uploaded: <%= time_ago_in_words(document.created_at) %> ago
+                        Uploaded: <%= document.created_at ? time_ago_in_words(document.created_at) + ' ago' : 'Date not available' %>
                       </small>
                     </p>
                     <div class="d-flex gap-2">

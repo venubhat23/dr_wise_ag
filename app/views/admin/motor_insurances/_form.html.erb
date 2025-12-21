@@ -46,7 +46,7 @@
         </div>
 
         <div class="col-md-4 mb-3">
-          <%= form.label :sub_agent_id, "Sub Agent", class: "form-label" %>
+          <%= form.label :sub_agent_id, "Affiliate", class: "form-label" %>
           <%= form.select :sub_agent_id,
               options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, @motor_insurance.sub_agent_id),
               { prompt: 'Self' },

@@ -1,6 +1,9 @@
 module BannersHelper
   # Display banners for a specific location
   def display_banners(location)
+    # Disable sidebar banners completely
+    return if location == 'sidebar'
+
     banners = Banner.active
                     .current
                     .by_location(location)
@@ -8,14 +11,10 @@ module BannersHelper
 
     return if banners.empty?
 
-    if location == 'sidebar'
-      render_sidebar_banners(banners)
-    else
-      content_tag :div, class: "banners-container mb-4" do
-        banners.map do |banner|
-          render_banner(banner)
-        end.join.html_safe
-      end
+    content_tag :div, class: "banners-container mb-4" do
+      banners.map do |banner|
+        render_banner(banner)
+      end.join.html_safe
     end
   end
 

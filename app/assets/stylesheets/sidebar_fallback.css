@@ -1,6 +1,26 @@
 /* Insurance-themed Sidebar Fallback Styles - Production Ready */
 /* Enhanced sidebar design for InsureBook Admin */
 
+/* HIDE ALL SIDEBAR AD BANNERS AND POLICY SIDEBARS */
+.sidebar-ad-banners,
+.sidebar-ad-item,
+.sidebar-ad-image-container,
+.sidebar-ad-overlay,
+.sidebar-ad-text,
+.policy-sidebar,
+.policy-panel,
+.banners-container[class*="sidebar"],
+.sidebar-ad-title,
+.sidebar-ad-desc,
+.sidebar-ad-link {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+}
+
 .sidebar, .modern-sidebar {
   position: fixed !important;
   top: 70px !important;

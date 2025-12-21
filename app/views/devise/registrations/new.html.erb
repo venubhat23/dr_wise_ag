@@ -18,10 +18,47 @@
   <%= stylesheet_link_tag "simple_login", "data-turbo-track": "reload" %>
 
   <style>
-    /* Override for signup form to make it wider */
+    /* Override for signup form to make it much wider */
+    .simple-login-container {
+      max-width: 950px !important;
+    }
+
     .simple-login-card {
-      max-width: 1400px !important;
+      max-width: 900px !important;
       width: 100% !important;
+      padding: 60px 55px !important;
+    }
+
+    /* Hide all sidebars and navigation elements */
+    .policy-sidebar,
+    .sidebar,
+    .side-panel,
+    .terms-sidebar,
+    .policy-panel,
+    .modern-sidebar,
+    #sidebar,
+    .main-content,
+    nav.sidebar-nav,
+    .sidebar-nav {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+    /* Ensure full width for signup page */
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    .simple-login-wrapper {
+      margin-left: 0 !important;
+      width: 100vw !important;
+    }
+
+    /* Remove any main content margins */
+    .main-content {
+      margin-left: 0 !important;
+      margin-top: 0 !important;
     }
 
     .form-row {

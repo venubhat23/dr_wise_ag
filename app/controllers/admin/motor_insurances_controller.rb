@@ -57,6 +57,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   def create
     @motor_insurance = MotorInsurance.new(motor_insurance_params)
     @motor_insurance.is_admin_added = true
+    set_distributor_from_affiliate(@motor_insurance)
 
     if @motor_insurance.save
       redirect_to admin_motor_insurance_path(@motor_insurance), notice: 'Motor insurance policy was successfully created.'
@@ -66,7 +67,10 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   end
 
   def update
-    if @motor_insurance.update(motor_insurance_params)
+    @motor_insurance.assign_attributes(motor_insurance_params)
+    set_distributor_from_affiliate(@motor_insurance)
+
+    if @motor_insurance.save
       redirect_to admin_motor_insurance_path(@motor_insurance), notice: 'Motor insurance policy was successfully updated.'
     else
       render :edit, status: :unprocessable_entity
@@ -98,6 +102,8 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   def load_form_data
     @customers = Customer.active.order(:first_name, :last_name)
     @sub_agents = SubAgent.active.order(:first_name, :last_name)
+    @distributors = Distributor.active.order(:first_name, :last_name)
+    @investors = Investor.active.order(:first_name, :last_name)
     @agency_codes = AgencyCode.all.order(:code)
     @brokers = Broker.active.order(:name)
     @insurance_companies = MotorInsurance.insurance_company_names
@@ -111,7 +117,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   def motor_insurance_params
     params.require(:motor_insurance).permit(
       # Client & Agent Details
-      :customer_id, :policy_holder, :sub_agent_id, :reference_by_name,
+      :customer_id, :policy_holder, :sub_agent_id, :distributor_id, :investor_id, :reference_by_name,
 
       # Policy Details
       :insurance_company_name, :agency_code_id, :broker_id, :vehicle_type,
@@ -136,5 +142,20 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       :zero_depreciation, :roadside_assistance, :engine_protector, :key_replacement,
       :return_to_invoice, :consumable_cover, :personal_accident_cover, :financier
     )
+  end
+
+  def set_distributor_from_affiliate(insurance_record)
+    # If affiliate is selected but distributor is not set, auto-assign distributor
+    if insurance_record.sub_agent_id.present? && insurance_record.distributor_id.blank?
+      sub_agent = SubAgent.find(insurance_record.sub_agent_id)
+
+      # Use direct distributor relationship first, then fall back to assignment
+      distributor_id = sub_agent.distributor_id || sub_agent.assigned_distributor&.id
+
+      insurance_record.distributor_id = distributor_id if distributor_id.present?
+    end
+  rescue StandardError => e
+    # Log error but don't fail the form submission
+    Rails.logger.error "Failed to set distributor from affiliate: #{e.message}"
   end
 end

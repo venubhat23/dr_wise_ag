@@ -52,7 +52,12 @@ Rails.application.routes.draw do
     end
 
     # Affiliate Payout System
-    resources :affiliate_payouts, only: [:index, :show]
+    resources :affiliate_payouts, only: [:index, :show] do
+      collection do
+        post :mark_as_paid
+        get :unpaid_data
+      end
+    end
     # Users (Admins/Agents) management
     resources :users
 
@@ -83,6 +88,7 @@ Rails.application.routes.draw do
     resources :sub_agents do
       member do
         patch :toggle_status
+        get :distributor
       end
     end
 

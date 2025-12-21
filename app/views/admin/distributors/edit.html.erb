@@ -182,7 +182,44 @@
     </div>
   </div>
 
-  <!-- 3. Documents & QR Code -->
+  <!-- 3. Affiliate Assignment -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-people me-2 text-info"></i>
+      <h5 class="mb-0">Affiliate Assignment</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-12">
+          <%= form.label :assigned_affiliate_ids, "Manage Assigned Affiliates", class: "form-label" %>
+          <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+            <% SubAgent.where(status: :active).each do |sub_agent| %>
+              <% is_assigned = @distributor.assigned_sub_agents.include?(sub_agent) %>
+              <div class="form-check mb-2">
+                <%= check_box_tag "distributor[assigned_affiliate_ids][]", sub_agent.id, is_assigned,
+                    class: "form-check-input", id: "affiliate_#{sub_agent.id}" %>
+                <%= label_tag "affiliate_#{sub_agent.id}", class: "form-check-label ms-2" do %>
+                  <strong><%= sub_agent.display_name %></strong>
+                  <% if is_assigned %>
+                    <span class="badge bg-success ms-2">Assigned</span>
+                  <% end %>
+                  <small class="text-muted d-block">
+                    <i class="bi bi-envelope"></i> <%= sub_agent.email %> |
+                    <i class="bi bi-telephone"></i> <%= sub_agent.mobile %>
+                  </small>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+          <small class="form-text text-muted mt-1">
+            Update affiliate assignments for this distributor. Changes will be saved when you update the distributor.
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Documents & QR Code -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-transparent border-0 d-flex align-items-center">
       <i class="bi bi-file-earmark-arrow-up me-2 text-warning"></i>
@@ -216,7 +253,7 @@
                     <p class="card-text">
                       <small class="text-muted">
                         <%= document.document_name %><br>
-                        Uploaded: <%= time_ago_in_words(document.created_at) %> ago
+                        Uploaded: <%= document.created_at ? time_ago_in_words(document.created_at) + ' ago' : 'Date not available' %>
                       </small>
                     </p>
                     <div class="d-flex gap-2">
@@ -225,14 +262,14 @@
                           <i class="bi bi-eye me-1"></i>View
                         <% end %>
                       <% end %>
-                      <%= link_to [:admin, @distributor, document],
-                                 class: "btn btn-sm btn-outline-danger",
-                                 data: {
-                                   "turbo-method": :delete,
-                                   "turbo-confirm": "Are you sure you want to delete this document?"
-                                 } do %>
+                      <button type="button" class="btn btn-sm btn-outline-danger"
+                              onclick="markForDeletion(<%= document.id %>)">
                         <i class="bi bi-trash me-1"></i>Delete
-                      <% end %>
+                      </button>
+                      <!-- Hidden field for deletion marking -->
+                      <%= hidden_field_tag "distributor[distributor_documents_attributes][#{document.id}][id]", document.id %>
+                      <%= hidden_field_tag "distributor[distributor_documents_attributes][#{document.id}][_destroy]", false,
+                                          id: "document_destroy_#{document.id}" %>
                     </div>
                   </div>
                 </div>
@@ -333,4 +370,33 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 });
+
+// Function to mark existing documents for deletion
+function markForDeletion(documentId) {
+  if (confirm('Are you sure you want to delete this document?')) {
+    const destroyField = document.getElementById('document_destroy_' + documentId);
+    const documentCard = destroyField.closest('.card');
+
+    if (destroyField && documentCard) {
+      destroyField.value = '1'; // Mark for deletion
+      documentCard.style.opacity = '0.5';
+      documentCard.style.pointerEvents = 'none';
+
+      // Add a visual indicator
+      const badge = document.createElement('span');
+      badge.className = 'badge bg-danger position-absolute top-0 end-0 m-2';
+      badge.textContent = 'Will be deleted';
+      badge.style.zIndex = '10';
+      documentCard.style.position = 'relative';
+      documentCard.appendChild(badge);
+
+      // Find and disable the delete button
+      const deleteBtn = documentCard.querySelector('button[onclick*="markForDeletion"]');
+      if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = 'Marked for deletion';
+      }
+    }
+  }
+}
 </script>

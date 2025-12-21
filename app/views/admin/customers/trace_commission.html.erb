@@ -1,8 +1,8 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-1">Commission Tracking</h2>
-    <p class="text-muted mb-0"><strong><%= @customer.display_name %></strong> - Policy opt-in status and commission details</p>
+    <h2 class="mb-1">Comprehensive Product Portfolio</h2>
+    <p class="text-muted mb-0"><strong><%= @customer.display_name %></strong> - Complete product coverage matrix and commission tracking</p>
   </div>
   <div class="d-flex gap-2">
     <%= link_to admin_customers_path, class: "btn btn-outline-secondary" do %>
@@ -40,7 +40,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Coverage Score</h6>
-            <h3 class="mb-0 text-success"><%= @commission_summary[:opted_count] %> / 3</h3>
+            <h3 class="mb-0 text-success"><%= @commission_summary[:opted_count] %> / <%= @commission_summary[:total_products] %></h3>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
             <i class="bi bi-check-circle text-success fs-4"></i>
@@ -87,8 +87,8 @@
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-header bg-transparent border-0">
     <div class="d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">Policy Coverage Matrix</h5>
-      <small class="text-muted">Visual overview of insurance portfolio</small>
+      <h5 class="mb-0">Comprehensive Product Matrix</h5>
+      <small class="text-muted">Complete portfolio overview across all 17 product categories</small>
     </div>
   </div>
   <div class="card-body">
@@ -100,9 +100,9 @@
           <div class="chart-center-text">
             <div class="center-score">
               <span class="score-number"><%= @commission_summary[:opted_count] %></span>
-              <span class="score-total">/3</span>
+              <span class="score-total">/<%= @commission_summary[:total_products] %></span>
             </div>
-            <div class="score-label">Policies</div>
+            <div class="score-label">Products</div>
           </div>
         </div>
       </div>
@@ -113,10 +113,10 @@
             <div class="metric-item mb-3">
               <div class="d-flex justify-content-between align-items-center">
                 <span class="metric-label">Coverage Percentage</span>
-                <span class="metric-value text-primary"><%= ((@commission_summary[:opted_count] / 3.0) * 100).round(1) %>%</span>
+                <span class="metric-value text-primary"><%= @commission_summary[:coverage_percentage] %>%</span>
               </div>
               <div class="progress mt-2" style="height: 8px;">
-                <div class="progress-bar bg-primary" style="width: <%= ((@commission_summary[:opted_count] / 3.0) * 100).round(1) %>%"></div>
+                <div class="progress-bar bg-primary" style="width: <%= @commission_summary[:coverage_percentage] %>%"></div>
               </div>
             </div>
 
@@ -140,58 +140,111 @@
       </div>
     </div>
 
-    <!-- Policy Matrix Table -->
-    <div class="table-responsive">
-      <table class="table table-hover mb-0 policy-matrix-table">
-        <thead class="bg-light">
-          <tr>
-            <th class="border-0 text-center fw-bold">Policy Type</th>
-            <th class="border-0 text-center fw-bold">
-              <i class="bi bi-heart-pulse text-success me-2"></i>Health Insurance
+    <!-- Comprehensive Product Matrix Table -->
+    <div class="table-responsive product-matrix-container">
+      <table class="table table-bordered mb-0 product-matrix-table">
+        <thead>
+          <tr class="table-header-row">
+            <th rowspan="2" class="client-name-cell">
+              <div class="client-info">
+                <div class="client-name-label">Client Name</div>
+                <div class="client-name"><%= @customer.display_name %></div>
+              </div>
             </th>
-            <th class="border-0 text-center fw-bold">
-              <i class="bi bi-shield-check text-primary me-2"></i>Life Insurance
+            <th rowspan="2" class="status-cell">
+              <div class="status-toggle">
+                <div class="status-item active">Active</div>
+                <div class="status-item">Inactive</div>
+              </div>
             </th>
-            <th class="border-0 text-center fw-bold">
-              <i class="bi bi-car-front text-warning me-2"></i>Motor Insurance
+            <th colspan="5" class="product-category insurance-category">
+              <i class="bi bi-shield-check me-2"></i>Insurance
+            </th>
+            <th colspan="4" class="product-category investments-category">
+              <i class="bi bi-graph-up me-2"></i>Investments
+            </th>
+            <th colspan="3" class="product-category loans-category">
+              <i class="bi bi-bank me-2"></i>Loans
+            </th>
+            <th class="product-category taxation-category">
+              <i class="bi bi-calculator me-2"></i>Taxation
+            </th>
+            <th colspan="4" class="product-category travel-category">
+              <i class="bi bi-airplane me-2"></i>Travel
+            </th>
+          </tr>
+          <tr class="sub-header-row">
+            <th class="product-subheader health">
+              <i class="bi bi-heart-pulse me-1"></i>Life
+            </th>
+            <th class="product-subheader health">
+              <i class="bi bi-activity me-1"></i>Health
+            </th>
+            <th class="product-subheader motor">
+              <i class="bi bi-car-front me-1"></i>Motor
+            </th>
+            <th class="product-subheader general">
+              <i class="bi bi-umbrella me-1"></i>General
+            </th>
+            <th class="product-subheader travel-ins">
+              <i class="bi bi-airplane-engines me-1"></i>Travel
+            </th>
+            <th class="product-subheader mutual-fund">
+              <i class="bi bi-pie-chart me-1"></i>Mutual Fund
+            </th>
+            <th class="product-subheader gold">
+              <i class="bi bi-coin me-1"></i>Gold
+            </th>
+            <th class="product-subheader nps">
+              <i class="bi bi-building me-1"></i>NPS
+            </th>
+            <th class="product-subheader bonds">
+              <i class="bi bi-receipt me-1"></i>Bonds
+            </th>
+            <th class="product-subheader personal">
+              <i class="bi bi-person me-1"></i>Personal
+            </th>
+            <th class="product-subheader home">
+              <i class="bi bi-house me-1"></i>Home
+            </th>
+            <th class="product-subheader business">
+              <i class="bi bi-briefcase me-1"></i>Business
+            </th>
+            <th class="product-subheader taxation">
+              <i class="bi bi-file-earmark-text me-1"></i>ITR
+            </th>
+            <th class="product-subheader domestic">
+              <i class="bi bi-geo me-1"></i>Domestic
+            </th>
+            <th class="product-subheader international">
+              <i class="bi bi-globe me-1"></i>International
+            </th>
+            <th class="product-subheader additional-1">
+              <i class="bi bi-plus-circle me-1"></i>Additional 1
+            </th>
+            <th class="product-subheader additional-2">
+              <i class="bi bi-plus-circle me-1"></i>Additional 2
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td class="text-center fw-bold bg-light align-middle">
-              <i class="bi bi-check-circle-fill text-primary me-2"></i>
-              Status
-            </td>
-            <% ['Health Insurance', 'Life Insurance', 'Motor Insurance'].each do |policy_type| %>
-              <% policy_data = @policy_status[policy_type] %>
-              <td class="text-center policy-status-cell">
-                <div class="policy-status-indicator <%= policy_data[:opted] ? 'opted' : 'not-opted' %>">
-                  <div class="status-icon-large mb-3">
-                    <% if policy_data[:opted] %>
-                      <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+          <tr class="status-row">
+            <% @product_status.each do |product_name, opted| %>
+              <td class="product-status-cell">
+                <div class="status-indicator-wrapper">
+                  <div class="status-indicator <%= opted ? 'opted' : 'not-opted' %>">
+                    <% if opted %>
+                      <i class="bi bi-check-circle-fill status-icon opted-icon" title="<%= product_name %> - Active"></i>
+                      <div class="status-text">Yes</div>
                     <% else %>
-                      <i class="bi bi-x-circle text-muted" style="font-size: 3rem;"></i>
+                      <i class="bi bi-x-circle status-icon not-opted-icon" title="<%= product_name %> - Not Active"></i>
+                      <div class="status-text">No</div>
                     <% end %>
                   </div>
-                  <div class="status-badge mb-2">
-                    <span class="badge bg-<%= policy_data[:opted] ? 'success' : 'secondary' %> fs-6 px-3 py-2">
-                      <%= policy_data[:opted] ? 'OPTED' : 'NOT OPTED' %>
-                    </span>
-                  </div>
-                  <% if policy_data[:opted] %>
-                    <div class="policy-details">
-                      <div class="detail-item">
-                        <small class="text-muted">Policies:</small>
-                        <strong class="ms-1"><%= policy_data[:count] %></strong>
-                      </div>
-                      <div class="detail-item">
-                        <small class="text-muted">Premium:</small>
-                        <strong class="ms-1 text-success">₹<%= number_with_delimiter(policy_data[:total_premium]) %></strong>
-                      </div>
+                  <% if opted && @policy_status["#{product_name} Insurance"] %>
+                    <div class="product-details">
+                      <small class="detail-count"><%= @policy_status["#{product_name} Insurance"][:count] %> policies</small>
                     </div>
-                  <% else %>
-                    <small class="text-muted">No policies found</small>
                   <% end %>
                 </div>
               </td>
@@ -385,7 +438,295 @@
   font-size: 1.1rem;
 }
 
-/* Policy Matrix Table */
+/* Comprehensive Product Matrix Table */
+.product-matrix-container {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.product-matrix-table {
+  font-size: 0.9rem;
+  border: none;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+}
+
+.product-matrix-table th,
+.product-matrix-table td {
+  border: 1px solid #e9ecef;
+  vertical-align: middle;
+  text-align: center;
+}
+
+/* Client Name Cell */
+.client-name-cell {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  padding: 20px 15px;
+  min-width: 150px;
+}
+
+.client-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.client-name-label {
+  font-size: 0.8rem;
+  opacity: 0.9;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.client-name {
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Status Cell */
+.status-cell {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  padding: 20px 15px;
+  min-width: 100px;
+}
+
+.status-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-item {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+.status-item.active {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  font-weight: bold;
+}
+
+/* Product Category Headers */
+.product-category {
+  font-weight: bold;
+  font-size: 1rem;
+  padding: 15px 10px;
+  text-align: center;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  border: none;
+}
+
+.insurance-category {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+}
+
+.investments-category {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.loans-category {
+  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+}
+
+.taxation-category {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+.travel-category {
+  background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+}
+
+/* Product Subheaders */
+.product-subheader {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  padding: 12px 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #495057;
+  min-width: 80px;
+}
+
+.product-subheader.health {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+  border-color: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+}
+
+.product-subheader.motor {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+  border-color: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+.product-subheader.general {
+  background: linear-gradient(135deg, rgba(13, 110, 253, 0.1) 0%, rgba(13, 110, 253, 0.05) 100%);
+  border-color: rgba(13, 110, 253, 0.2);
+  color: #0d6efd;
+}
+
+.product-subheader.travel-ins {
+  background: linear-gradient(135deg, rgba(111, 66, 193, 0.1) 0%, rgba(111, 66, 193, 0.05) 100%);
+  border-color: rgba(111, 66, 193, 0.2);
+  color: #6f42c1;
+}
+
+.product-subheader.mutual-fund {
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
+  border-color: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+}
+
+.product-subheader.gold {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+  border-color: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+.product-subheader.nps {
+  background: linear-gradient(135deg, rgba(13, 202, 240, 0.1) 0%, rgba(13, 202, 240, 0.05) 100%);
+  border-color: rgba(13, 202, 240, 0.2);
+  color: #0dcaf0;
+}
+
+.product-subheader.bonds {
+  background: linear-gradient(135deg, rgba(108, 117, 125, 0.1) 0%, rgba(108, 117, 125, 0.05) 100%);
+  border-color: rgba(108, 117, 125, 0.2);
+  color: #6c757d;
+}
+
+.product-subheader.personal {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+  border-color: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+.product-subheader.home {
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
+  border-color: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+}
+
+.product-subheader.business {
+  background: linear-gradient(135deg, rgba(13, 110, 253, 0.1) 0%, rgba(13, 110, 253, 0.05) 100%);
+  border-color: rgba(13, 110, 253, 0.2);
+  color: #0d6efd;
+}
+
+.product-subheader.taxation {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+  border-color: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+}
+
+.product-subheader.domestic {
+  background: linear-gradient(135deg, rgba(111, 66, 193, 0.1) 0%, rgba(111, 66, 193, 0.05) 100%);
+  border-color: rgba(111, 66, 193, 0.2);
+  color: #6f42c1;
+}
+
+.product-subheader.international {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+  border-color: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+}
+
+/* Product Status Cells */
+.product-status-cell {
+  padding: 15px 10px;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.product-status-cell:hover {
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.status-indicator-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+}
+
+.status-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.status-icon {
+  font-size: 1.8rem;
+  transition: all 0.3s ease;
+}
+
+.opted-icon {
+  color: #28a745;
+  animation: checkPulse 2s infinite;
+}
+
+.not-opted-icon {
+  color: #6c757d;
+}
+
+.status-text {
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-indicator.opted .status-text {
+  color: #28a745;
+}
+
+.status-indicator.not-opted .status-text {
+  color: #6c757d;
+}
+
+.product-details {
+  margin-top: 5px;
+}
+
+.detail-count {
+  font-size: 0.7rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Animations */
+@keyframes checkPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Old Policy Matrix Table (Keep for backward compatibility) */
 .policy-matrix-table {
   font-size: 1rem;
 }
@@ -462,6 +803,64 @@
   .coverage-chart-container {
     margin: 10px 0;
   }
+
+  /* Product Matrix Mobile Responsiveness */
+  .product-matrix-container {
+    padding: 10px;
+    overflow-x: auto;
+  }
+
+  .product-matrix-table {
+    min-width: 1200px;
+    font-size: 0.8rem;
+  }
+
+  .client-name-cell,
+  .status-cell {
+    min-width: 120px;
+  }
+
+  .product-category {
+    font-size: 0.9rem;
+    padding: 10px 8px;
+  }
+
+  .product-subheader {
+    font-size: 0.75rem;
+    padding: 10px 6px;
+    min-width: 70px;
+  }
+
+  .product-status-cell {
+    padding: 10px 8px;
+  }
+
+  .status-icon {
+    font-size: 1.5rem;
+  }
+
+  .status-text {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .product-matrix-table {
+    font-size: 0.7rem;
+  }
+
+  .client-name {
+    font-size: 1rem;
+  }
+
+  .client-name-label {
+    font-size: 0.7rem;
+  }
+
+  .status-item {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
 }
 </style>
 
@@ -470,30 +869,24 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Create coverage donut chart
+  // Create comprehensive coverage donut chart for all 17 products
   const ctx = document.getElementById('coverageChart');
   if (ctx) {
     new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['Health Insurance', 'Life Insurance', 'Motor Insurance', 'Not Covered'],
+        labels: ['Active Products', 'Available Products'],
         datasets: [{
           data: [
-            <%= @policy_status['Health Insurance'][:opted] ? 1 : 0 %>,
-            <%= @policy_status['Life Insurance'][:opted] ? 1 : 0 %>,
-            <%= @policy_status['Motor Insurance'][:opted] ? 1 : 0 %>,
-            <%= 3 - @commission_summary[:opted_count] %>
+            <%= @commission_summary[:opted_count] %>,
+            <%= @commission_summary[:total_products] - @commission_summary[:opted_count] %>
           ],
           backgroundColor: [
-            'rgba(25, 135, 84, 0.8)',   // Green for Health
-            'rgba(13, 110, 253, 0.8)',  // Blue for Life
-            'rgba(255, 193, 7, 0.8)',   // Yellow for Motor
-            'rgba(108, 117, 125, 0.3)'  // Gray for Not Covered
+            'rgba(25, 135, 84, 0.8)',   // Green for Active Products
+            'rgba(108, 117, 125, 0.3)'  // Gray for Available Products
           ],
           borderColor: [
             'rgba(25, 135, 84, 1)',
-            'rgba(13, 110, 253, 1)',
-            'rgba(255, 193, 7, 1)',
             'rgba(108, 117, 125, 0.5)'
           ],
           borderWidth: 2
@@ -523,10 +916,8 @@ document.addEventListener('DOMContentLoaded', function() {
               label: function(context) {
                 const label = context.label;
                 const value = context.parsed;
-                if (label === 'Not Covered') {
-                  return `${label}: ${value} policy type${value !== 1 ? 's' : ''}`;
-                }
-                return `${label}: ${value ? 'Opted' : 'Not Opted'}`;
+                const percentage = ((value / <%= @commission_summary[:total_products] %>) * 100).toFixed(1);
+                return `${label}: ${value} (${percentage}%)`;
               }
             }
           }

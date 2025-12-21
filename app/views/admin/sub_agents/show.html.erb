@@ -176,6 +176,86 @@
   </div>
 </div>
 
+<!-- Distributor Assignment -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <i class="bi bi-person-badge me-2 text-info"></i>
+    <h5 class="mb-0">Distributor Assignment</h5>
+  </div>
+  <div class="card-body">
+    <% if @assigned_distributor.present? %>
+      <div class="row">
+        <div class="col-md-6">
+          <table class="table table-borderless">
+            <tr>
+              <th class="text-muted" width="40%">Assigned To:</th>
+              <td>
+                <%= link_to admin_distributor_path(@assigned_distributor), class: "text-decoration-none" do %>
+                  <strong><%= @assigned_distributor.display_name %></strong>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th class="text-muted">Distributor Email:</th>
+              <td>
+                <a href="mailto:<%= @assigned_distributor.email %>" class="text-decoration-none">
+                  <i class="bi bi-envelope me-1"></i>
+                  <%= @assigned_distributor.email %>
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th class="text-muted">Distributor Mobile:</th>
+              <td>
+                <a href="tel:<%= @assigned_distributor.mobile %>" class="text-decoration-none">
+                  <i class="bi bi-telephone me-1"></i>
+                  <%= @assigned_distributor.mobile %>
+                </a>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <table class="table table-borderless">
+            <tr>
+              <th class="text-muted" width="40%">Assignment Date:</th>
+              <td>
+                <% if @distributor_assignment&.assigned_at.present? %>
+                  <%= @distributor_assignment.assigned_at.strftime("%d %B, %Y") %>
+                  <small class="text-muted d-block">(<%= time_ago_in_words(@distributor_assignment.assigned_at) %> ago)</small>
+                <% else %>
+                  <span class="text-muted">Date not available</span>
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <th class="text-muted">Distributor Status:</th>
+              <td>
+                <span class="badge bg-<%= @assigned_distributor.active? ? 'success' : 'secondary' %>">
+                  <%= @assigned_distributor.status.capitalize %>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <th class="text-muted">Company:</th>
+              <td><%= @assigned_distributor.company_name.presence || 'Not provided' %></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <div class="text-center py-4">
+        <i class="bi bi-person-badge display-6 text-muted mb-3 d-block"></i>
+        <h6 class="text-muted">No Distributor Assigned</h6>
+        <p class="text-muted mb-3">This sub agent is not currently assigned to any distributor.</p>
+        <%= link_to edit_admin_sub_agent_path(@sub_agent), class: "btn btn-outline-primary" do %>
+          <i class="bi bi-plus-lg me-1"></i>Assign Distributor
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
 <!-- Documents -->
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-header bg-transparent border-0 d-flex align-items-center">
@@ -230,7 +310,7 @@
                         <small class="text-muted"><%= document.document_name %></small>
                       </p>
                       <small class="text-muted">
-                        Uploaded: <%= time_ago_in_words(document.created_at) %> ago
+                        Uploaded: <%= document.created_at ? time_ago_in_words(document.created_at) + ' ago' : 'Date not available' %>
                       </small>
                     </div>
                   </div>

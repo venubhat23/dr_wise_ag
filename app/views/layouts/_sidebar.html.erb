@@ -441,8 +441,8 @@
           </li>
         <% end %>
 
-        <!-- Payouts - Hidden -->
-        <% if false && show_sidebar_item?('payouts') %>
+        <!-- Payouts -->
+        <% if show_sidebar_item?('payouts') %>
           <li class="nav-item">
             <%= link_to admin_payouts_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/payouts')}" do %>
               <div class="nav-icon-modern">

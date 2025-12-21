@@ -8,6 +8,17 @@ class Customer < ApplicationRecord
   has_many :documents, as: :documentable, dependent: :destroy
   has_one_attached :profile_image
 
+  # Insurance associations
+  has_many :health_insurances, dependent: :destroy
+  has_many :life_insurances, dependent: :destroy
+  has_many :motor_insurances, dependent: :destroy
+
+  # New product associations
+  has_many :investments, dependent: :destroy
+  has_many :loans, dependent: :destroy
+  has_many :tax_services, dependent: :destroy
+  has_many :travel_packages, dependent: :destroy
+
   # Nested attributes
   accepts_nested_attributes_for :family_members, allow_destroy: true, reject_if: :all_blank
   accepts_nested_attributes_for :corporate_members, allow_destroy: true, reject_if: :all_blank

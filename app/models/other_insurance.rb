@@ -1,9 +1,15 @@
 class OtherInsurance < ApplicationRecord
   belongs_to :policy
+  has_many_attached :documents
+  has_many_attached :policy_documents
+
+  # Callbacks
+  after_create :create_lead_record
 
   # Validations
   validates :policy_start_date, presence: true
   validates :policy_end_date, presence: true
+  validates :policy_number, presence: true, uniqueness: true
 
   # Scopes
   scope :active, -> { where('policy_end_date >= ?', Date.current) }
@@ -29,5 +35,24 @@ class OtherInsurance < ApplicationRecord
 
   def customer
     policy&.customer
+  end
+
+  def policy_number
+    read_attribute(:policy_number) || "OTHER-#{id}"
+  end
+
+  def net_premium
+    read_attribute(:net_premium) || total_premium
+  end
+
+  private
+
+  def create_lead_record
+    return if lead_id.present? # Skip if lead already exists
+    return unless policy&.customer # Skip if no customer
+
+    LeadGeneratorService.create_lead_for_insurance(self)
+  rescue StandardError => e
+    Rails.logger.error "Failed to create lead for other insurance #{id}: #{e.message}"
   end
 end

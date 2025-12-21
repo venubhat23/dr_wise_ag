@@ -182,7 +182,40 @@
     </div>
   </div>
 
-  <!-- 3. Documents & QR Code -->
+  <!-- 3. Affiliate Assignment -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-people me-2 text-info"></i>
+      <h5 class="mb-0">Affiliate Assignment</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-12">
+          <%= form.label :assigned_affiliate_ids, "Assign Affiliates", class: "form-label" %>
+          <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+            <% SubAgent.where(status: :active).each do |sub_agent| %>
+              <div class="form-check mb-2">
+                <%= check_box_tag "distributor[assigned_affiliate_ids][]", sub_agent.id, false,
+                    class: "form-check-input", id: "affiliate_#{sub_agent.id}" %>
+                <%= label_tag "affiliate_#{sub_agent.id}", class: "form-check-label ms-2" do %>
+                  <strong><%= sub_agent.display_name %></strong>
+                  <small class="text-muted d-block">
+                    <i class="bi bi-envelope"></i> <%= sub_agent.email %> |
+                    <i class="bi bi-telephone"></i> <%= sub_agent.mobile %>
+                  </small>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+          <small class="form-text text-muted mt-1">
+            Select the affiliates (sub-agents) you want to assign to this distributor
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Documents & QR Code -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-transparent border-0 d-flex align-items-center">
       <i class="bi bi-file-earmark-arrow-up me-2 text-warning"></i>

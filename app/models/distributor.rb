@@ -3,6 +3,8 @@ class Distributor < ApplicationRecord
 
   # Associations
   has_many :distributor_documents, dependent: :destroy
+  has_many :distributor_assignments, dependent: :destroy
+  has_many :assigned_sub_agents, through: :distributor_assignments, source: :sub_agent
   has_one_attached :upload_main_document
 
   # Nested attributes for documents
