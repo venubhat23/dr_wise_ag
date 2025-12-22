@@ -8,15 +8,19 @@ class CommissionCalculatorService
     company_expense: 3.0   # 3% of premium (from main agent's share)
   }.freeze
 
-  # Default commission distribution percentages (keeping existing for compatibility)
+  # Updated commission distribution percentages for main agent, affiliate, distributor
   DEFAULT_DISTRIBUTION_PERCENTAGES = {
-    'sub_agent' => 40.0,
-    'distributor' => 35.0,
-    'investor' => 25.0
+    'main_agent' => 50.0,    # Main agent gets 50% of commission
+    'affiliate' => 30.0,     # Affiliate (sub_agent) gets 30%
+    'distributor' => 20.0    # Distributor gets 20%
   }.freeze
 
   def self.create_payouts_for_policy(policy)
     new(policy).create_payouts
+  end
+
+  def self.create_enhanced_payouts_for_policy(policy)
+    new(policy).create_enhanced_payouts
   end
 
   def self.calculate_commission_breakdown(policy)
@@ -128,6 +132,31 @@ class CommissionCalculatorService
     false
   end
 
+  def create_enhanced_payouts
+    return false unless valid_policy?
+
+    ActiveRecord::Base.transaction do
+      policy_type = determine_policy_type
+
+      # Create commission payouts for each role based on the calculated amounts from policy
+      create_commission_payout_for_sub_agent if should_create_sub_agent_payout?
+      create_commission_payout_for_ambassador if should_create_ambassador_payout?
+      create_commission_payout_for_investor if should_create_investor_payout?
+      create_commission_payout_for_company_expense if should_create_company_expense_payout?
+
+      # Create specialized distributor payout if distributor exists
+      create_distributor_payout if should_create_distributor_payout?
+
+      Rails.logger.info "Successfully created enhanced payouts for #{policy_type} policy #{@policy.id}"
+    end
+
+    true
+  rescue StandardError => e
+    Rails.logger.error "Failed to create enhanced payouts for policy #{@policy.id}: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+    false
+  end
+
   private
 
   def valid_policy?
@@ -185,7 +214,6 @@ class CommissionCalculatorService
     payout = CommissionPayout.create!(
       policy_type: @policy_type,
       policy_id: @policy.id,
-      lead_id: @policy.try(:lead_id),
       payout_to: recipient_type,
       payout_amount: payout_amount,
       payout_date: calculate_payout_date,
@@ -219,13 +247,12 @@ class CommissionCalculatorService
 
   def find_recipient_id(recipient_type)
     case recipient_type
-    when 'sub_agent'
+    when 'affiliate', 'sub_agent'
       @policy.try(:sub_agent_id)
     when 'distributor'
-      # For now, return nil - could be enhanced to find related distributor
-      nil
-    when 'investor'
-      # For now, return nil - could be enhanced to find related investor
+      @policy.try(:distributor_id)
+    when 'main_agent'
+      # Could be the current user or system admin
       nil
     else
       nil
@@ -258,6 +285,145 @@ class CommissionCalculatorService
   rescue StandardError => e
     # Don't fail the transaction if audit logging fails
     Rails.logger.warn "Failed to create audit log: #{e.message}"
+  end
+
+  private
+
+  # Check if we should create payouts based on calculated commission amounts
+  def should_create_sub_agent_payout?
+    @policy.respond_to?(:sub_agent_commission_amount) &&
+    @policy.sub_agent_commission_amount.present? &&
+    @policy.sub_agent_commission_amount > 0 &&
+    @policy.sub_agent_id.present?
+  end
+
+  def should_create_ambassador_payout?
+    @policy.respond_to?(:ambassador_commission_amount) &&
+    @policy.ambassador_commission_amount.present? &&
+    @policy.ambassador_commission_amount > 0
+  end
+
+  def should_create_investor_payout?
+    @policy.respond_to?(:investor_commission_amount) &&
+    @policy.investor_commission_amount.present? &&
+    @policy.investor_commission_amount > 0 &&
+    @policy.investor_id.present?
+  end
+
+  def should_create_company_expense_payout?
+    @policy.respond_to?(:profit_amount) &&
+    @policy.profit_amount.present? &&
+    @policy.profit_amount > 0
+  end
+
+  def should_create_distributor_payout?
+    return false unless @policy.respond_to?(:distributor_id) && @policy.distributor_id.present?
+
+    # Check if policy has explicit distributor commission amount (like LifeInsurance)
+    if @policy.respond_to?(:distributor_commission_amount)
+      @policy.distributor_commission_amount.present? && @policy.distributor_commission_amount > 0
+    else
+      # For policies without explicit distributor commission (like HealthInsurance),
+      # create distributor payout using a default percentage of net premium
+      @policy.respond_to?(:net_premium) && @policy.net_premium.present? && @policy.net_premium > 0
+    end
+  end
+
+  # Create commission payout for sub agent (affiliate)
+  def create_commission_payout_for_sub_agent
+    CommissionPayout.create!(
+      policy_type: @policy_type,
+      policy_id: @policy.id,
+      payout_to: 'affiliate',
+      payout_amount: @policy.sub_agent_commission_amount,
+      payout_date: calculate_payout_date,
+      status: 'pending',
+      payment_mode: 'bank_transfer',
+      reference_number: generate_reference_number('AFF'),
+      notes: "Auto-created affiliate payout for #{@policy_type} policy. Sub-agent ID: #{@policy.sub_agent_id}. TDS Amount: #{@policy.try(:sub_agent_tds_amount)}. After TDS: #{@policy.try(:sub_agent_after_tds_value)}",
+      processed_by: 'system_auto'
+    )
+    Rails.logger.info "Created affiliate payout: #{@policy.sub_agent_commission_amount} for sub_agent_id: #{@policy.sub_agent_id}"
+  end
+
+  # Create commission payout for ambassador
+  def create_commission_payout_for_ambassador
+    CommissionPayout.create!(
+      policy_type: @policy_type,
+      policy_id: @policy.id,
+      payout_to: 'ambassador',
+      payout_amount: @policy.ambassador_commission_amount,
+      payout_date: calculate_payout_date,
+      status: 'pending',
+      payment_mode: 'bank_transfer',
+      reference_number: generate_reference_number('AMB'),
+      notes: "Auto-created ambassador payout for #{@policy_type} policy. TDS Amount: #{@policy.try(:ambassador_tds_amount)}. After TDS: #{@policy.try(:ambassador_after_tds_value)}",
+      processed_by: 'system_auto'
+    )
+    Rails.logger.info "Created ambassador payout: #{@policy.ambassador_commission_amount}"
+  end
+
+  # Create commission payout for investor
+  def create_commission_payout_for_investor
+    CommissionPayout.create!(
+      policy_type: @policy_type,
+      policy_id: @policy.id,
+      payout_to: 'investor',
+      payout_amount: @policy.investor_commission_amount,
+      payout_date: calculate_payout_date,
+      status: 'pending',
+      payment_mode: 'bank_transfer',
+      reference_number: generate_reference_number('INV'),
+      notes: "Auto-created investor payout for #{@policy_type} policy. Investor ID: #{@policy.investor_id}. TDS Amount: #{@policy.try(:investor_tds_amount)}. After TDS: #{@policy.try(:investor_after_tds_value)}",
+      processed_by: 'system_auto'
+    )
+    Rails.logger.info "Created investor payout: #{@policy.investor_commission_amount} for investor_id: #{@policy.investor_id}"
+  end
+
+  # Create commission payout for company expense (profit)
+  def create_commission_payout_for_company_expense
+    CommissionPayout.create!(
+      policy_type: @policy_type,
+      policy_id: @policy.id,
+      payout_to: 'company_expense',
+      payout_amount: @policy.profit_amount,
+      payout_date: calculate_payout_date,
+      status: 'pending',
+      payment_mode: 'internal',
+      reference_number: generate_reference_number('COMP'),
+      notes: "Auto-created company profit for #{@policy_type} policy",
+      processed_by: 'system_auto'
+    )
+    Rails.logger.info "Created company expense payout: #{@policy.profit_amount}"
+  end
+
+  # Create specialized distributor payout
+  def create_distributor_payout
+    # Calculate distributor commission amount
+    distributor_amount = if @policy.respond_to?(:distributor_commission_amount) && @policy.distributor_commission_amount.present?
+                          @policy.distributor_commission_amount
+                        else
+                          # Default to 3% of net premium for policies without explicit distributor commission
+                          @policy.net_premium * 0.03
+                        end
+
+    DistributorPayout.create!(
+      distributor_id: @policy.distributor_id,
+      policy_type: @policy_type,
+      policy_id: @policy.id,
+      payout_amount: distributor_amount,
+      payout_date: calculate_payout_date,
+      status: 'pending',
+      payment_mode: 'bank_transfer',
+      reference_number: generate_reference_number('DIST'),
+      notes: "Auto-created distributor payout for #{@policy_type} policy. TDS Amount: #{@policy.try(:distributor_tds_amount)}. After TDS: #{@policy.try(:distributor_after_tds_value)}",
+      processed_by: 'system_auto'
+    )
+    Rails.logger.info "Created distributor payout: #{distributor_amount} for distributor_id: #{@policy.distributor_id}"
+  end
+
+  def generate_reference_number(prefix)
+    "#{prefix}_#{@policy.id}_#{Time.current.to_i}"
   end
 
   def self.get_payout_status(existing_payouts, payout_type)

@@ -1,1408 +1,1203 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - Drwise Admin</title>
-  <!-- Chart.js for interactive charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
-  <!-- Additional Chart.js plugins -->
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-  <!-- Chart.js plugin for funnel chart -->
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-funnel@4.2.5/dist/chartjs-chart-funnel.min.js"></script>
+<!-- Chart.js for interactive charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+<!-- Additional Chart.js plugins -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
-  <style>
-    .dashboard-container {
-      padding: 2rem;
-      background: linear-gradient(135deg, #f8f9ff 0%, #e9ecef 100%);
-      min-height: 100vh;
-    }
+<style>
+  .dashboard-container {
+    padding: 2rem;
+    background: linear-gradient(135deg, #f8f9ff 0%, #e9ecef 100%);
+    min-height: 100vh;
+  }
 
-    .dashboard-card {
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
-      padding: 2.5rem;
-      margin-bottom: 3rem;
-      transition: all 0.4s ease;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
+  .dashboard-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+    padding: 2.5rem;
+    margin-bottom: 3rem;
+    transition: all 0.4s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
 
-    .dashboard-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
-    }
+  .dashboard-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+  }
 
-    .stat-card {
-      background: white;
-      border-radius: 15px;
-      padding: 1.5rem;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      transition: all 0.3s ease;
-      margin-bottom: 1.5rem;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-    }
+  .stat-card {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  }
 
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 6px;
-      background: var(--card-gradient);
-      border-radius: 20px 20px 0 0;
-    }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: var(--card-gradient);
+    border-radius: 20px 20px 0 0;
+  }
 
-    .stat-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-    }
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+  }
 
-    .stat-value {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #1a202c;
-      margin: 0.75rem 0;
-      background: var(--text-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1a202c;
+    margin: 0.75rem 0;
+    background: var(--text-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 
-    .stat-label {
-      color: #64748b;
-      font-size: 0.85rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
+  .stat-label {
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
 
-    .stat-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1rem;
-      background: var(--icon-gradient);
-      color: white;
-      font-size: 1.5rem;
-      box-shadow: 0 8px 20px var(--icon-shadow);
-    }
+  .stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    background: var(--icon-gradient);
+    color: white;
+    font-size: 1.5rem;
+    box-shadow: 0 8px 20px var(--icon-shadow);
+  }
 
-    .chart-card {
-      background: white;
-      border-radius: 20px;
-      padding: 3rem;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
-      margin-bottom: 3rem;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      transition: all 0.4s ease;
-    }
+  .chart-card {
+    background: white;
+    border-radius: 20px;
+    padding: 3rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+    margin-bottom: 3rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.4s ease;
+  }
 
-    .chart-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
-    }
+  .chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
+  }
 
-    .chart-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #1a202c;
-      margin-bottom: 2rem;
-      display: flex;
-      align-items: center;
-    }
+  .chart-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+  }
 
-    .chart-title::before {
-      content: '';
-      width: 6px;
-      height: 30px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      margin-right: 1rem;
-      border-radius: 3px;
-    }
+  .chart-title::before {
+    content: '';
+    width: 6px;
+    height: 30px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    margin-right: 1rem;
+    border-radius: 3px;
+  }
 
-    .recent-activity-item {
-      display: flex;
-      align-items: center;
-      padding: 1.5rem;
-      border-radius: 15px;
-      background: #f8fafc;
-      margin-bottom: 1rem;
-      transition: all 0.3s ease;
-      border: 1px solid rgba(226, 232, 240, 0.5);
-    }
+  .recent-activity-item {
+    display: flex;
+    align-items: center;
+    padding: 1.5rem;
+    border-radius: 15px;
+    background: #f8fafc;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(226, 232, 240, 0.5);
+  }
 
-    .recent-activity-item:hover {
-      background: #e2e8f0;
-      transform: translateX(8px);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-    }
+  .recent-activity-item:hover {
+    background: #e2e8f0;
+    transform: translateX(8px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  }
 
-    .activity-icon {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 1.5rem;
-      background: var(--activity-gradient);
-      color: white;
-      font-size: 1.2rem;
-      box-shadow: 0 5px 15px var(--activity-shadow);
-    }
+  .activity-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+    background: var(--activity-gradient);
+    color: white;
+    font-size: 1.2rem;
+    box-shadow: 0 5px 15px var(--activity-shadow);
+  }
 
-    .welcome-banner {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-      color: white;
-      border-radius: 25px;
-      padding: 4rem;
-      margin-bottom: 4rem;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
-    }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; }
 
-    .welcome-banner::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><defs><radialGradient id="a" cx="50%" cy="40%" r="50%"><stop offset="0%" stop-color="white" stop-opacity="0.15"/><stop offset="100%" stop-color="white" stop-opacity="0"/></radialGradient></defs><circle cx="15" cy="8" r="12" fill="url(%23a)"/><circle cx="85" cy="12" r="8" fill="url(%23a)"/><circle cx="60" cy="5" r="6" fill="url(%23a)"/></svg>');
-      opacity: 0.4;
-    }
+  @media (max-width: 1400px) {
+    .grid-4 { grid-template-columns: repeat(3, 1fr); }
+  }
 
-    .welcome-content {
-      position: relative;
-      z-index: 1;
-    }
+  @media (max-width: 1200px) {
+    .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  }
 
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; }
-    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; }
+  @media (max-width: 768px) {
+    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+    .dashboard-container { padding: 1rem; }
+  }
 
-    @media (max-width: 1400px) {
-      .grid-4 { grid-template-columns: repeat(3, 1fr); }
-    }
+  .pulse {
+    animation: pulse 2s infinite;
+  }
 
-    @media (max-width: 1200px) {
-      .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); }
-    }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.9; transform: scale(1.05); }
+  }
 
-    @media (max-width: 768px) {
-      .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
-      .dashboard-container { padding: 1rem; }
-      .welcome-banner { padding: 2rem; }
-    }
+  /* Custom gradient variables */
+  :root {
+    --gradient-blue: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-green: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    --gradient-red: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+    --gradient-yellow: linear-gradient(135deg, #ffc107 0%, #ff8f00 100%);
+    --gradient-purple: linear-gradient(135deg, #8360c3 0%, #2ebf91 100%);
+    --gradient-orange: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+    --gradient-cyan: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+    --gradient-pink: linear-gradient(135deg, #fc466b 0%, #3f5efb 100%);
+  }
 
-    .pulse {
-      animation: pulse 2s infinite;
-    }
+  .chart-container {
+    position: relative;
+    height: 400px;
+  }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.9; transform: scale(1.05); }
-    }
+  .chart-container.small {
+    height: 300px;
+  }
 
-    .floating {
-      animation: floating 3s ease-in-out infinite;
-    }
+  .section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+</style>
 
-    @keyframes floating {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-    }
-
-    /* Custom gradient variables */
-    :root {
-      --gradient-blue: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --gradient-green: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      --gradient-red: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
-      --gradient-yellow: linear-gradient(135deg, #ffc107 0%, #ff8f00 100%);
-      --gradient-purple: linear-gradient(135deg, #8360c3 0%, #2ebf91 100%);
-      --gradient-orange: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-      --gradient-cyan: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
-      --gradient-pink: linear-gradient(135deg, #fc466b 0%, #3f5efb 100%);
-    }
-
-    .metric-card {
-      background: white;
-      border-radius: 15px;
-      padding: 1.5rem;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .metric-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
-    }
-
-    .chart-container {
-      position: relative;
-      height: 400px;
-    }
-
-    .chart-container.small {
-      height: 300px;
-    }
-
-    .section-title {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #1a202c;
-      margin-bottom: 2rem;
-      text-align: center;
-    }
-
-    .section-subtitle {
-      color: #64748b;
-      text-align: center;
-      margin-bottom: 3rem;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="dashboard-container">
-    <!-- Stats Cards -->
-    <div class="grid-4">
-      <!-- Total Customers -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-blue);
-                  --icon-gradient: var(--gradient-blue);
-                  --icon-shadow: rgba(102, 126, 234, 0.3);
-                  --text-gradient: var(--gradient-blue);">
-        <div class="stat-icon">
-          <i class="bi bi-people-fill"></i>
-        </div>
-        <div class="stat-value pulse">1,247</div>
-        <div class="stat-label">Total Customers</div>
+<div class="dashboard-container">
+  <!-- Stats Cards -->
+  <div class="grid-4">
+    <!-- Total Customers -->
+    <div class="stat-card"
+         style="--card-gradient: var(--gradient-blue);
+                --icon-gradient: var(--gradient-blue);
+                --icon-shadow: rgba(102, 126, 234, 0.3);
+                --text-gradient: var(--gradient-blue);">
+      <div class="stat-icon">
+        <i class="bi bi-people-fill"></i>
       </div>
-
-      <!-- Total Agents -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-green);
-                  --icon-gradient: var(--gradient-green);
-                  --icon-shadow: rgba(17, 153, 142, 0.3);
-                  --text-gradient: var(--gradient-green);">
-        <div class="stat-icon">
-          <i class="bi bi-person-badge-fill"></i>
-        </div>
-        <div class="stat-value pulse">89</div>
-        <div class="stat-label">Active Agents</div>
-      </div>
-
-      <!-- Total Policies -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-red);
-                  --icon-gradient: var(--gradient-red);
-                  --icon-shadow: rgba(255, 65, 108, 0.3);
-                  --text-gradient: var(--gradient-red);">
-        <div class="stat-icon">
-          <i class="bi bi-file-earmark-text-fill"></i>
-        </div>
-        <div class="stat-value pulse">3,456</div>
-        <div class="stat-label">Total Policies</div>
-      </div>
-
-      <!-- Total Premium Collected -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-yellow);
-                  --icon-gradient: var(--gradient-yellow);
-                  --icon-shadow: rgba(255, 193, 7, 0.3);
-                  --text-gradient: var(--gradient-yellow);">
-        <div class="stat-icon">
-          <i class="bi bi-currency-rupee"></i>
-        </div>
-        <div class="stat-value pulse">₹24.7M</div>
-        <div class="stat-label">Premium Collected</div>
-      </div>
-
-      <!-- Total Sum Insured -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-purple);
-                  --icon-gradient: var(--gradient-purple);
-                  --icon-shadow: rgba(131, 96, 195, 0.3);
-                  --text-gradient: var(--gradient-purple);">
-        <div class="stat-icon">
-          <i class="bi bi-shield-check"></i>
-        </div>
-        <div class="stat-value pulse">₹567M</div>
-        <div class="stat-label">Sum Insured</div>
-      </div>
-
-      <!-- Total Leads -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-orange);
-                  --icon-gradient: var(--gradient-orange);
-                  --icon-shadow: rgba(255, 154, 158, 0.3);
-                  --text-gradient: var(--gradient-orange);">
-        <div class="stat-icon">
-          <i class="bi bi-funnel"></i>
-        </div>
-        <div class="stat-value pulse">856</div>
-        <div class="stat-label">Total Leads</div>
-      </div>
-
-      <!-- Renewals Due -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-cyan);
-                  --icon-gradient: var(--gradient-cyan);
-                  --icon-shadow: rgba(0, 198, 255, 0.3);
-                  --text-gradient: var(--gradient-cyan);">
-        <div class="stat-icon">
-          <i class="bi bi-clock-history"></i>
-        </div>
-        <div class="stat-value pulse">124</div>
-        <div class="stat-label">Renewals Due</div>
-      </div>
-
-      <!-- Pending Payouts -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-pink);
-                  --icon-gradient: var(--gradient-pink);
-                  --icon-shadow: rgba(252, 70, 107, 0.3);
-                  --text-gradient: var(--gradient-pink);">
-        <div class="stat-icon">
-          <i class="bi bi-cash-coin"></i>
-        </div>
-        <div class="stat-value pulse">₹2.3M</div>
-        <div class="stat-label">Pending Payouts</div>
-      </div>
+      <div class="stat-value pulse"><%= number_with_delimiter(@total_customers) %></div>
+      <div class="stat-label">Total Customers</div>
     </div>
 
-    <!-- Charts Section -->
-    <div class="grid-2">
-      <!-- Policy Type Distribution -->
-      <div class="chart-card">
-        <h3 class="chart-title">Policy Type Distribution</h3>
-        <div class="chart-container small">
-          <canvas id="policyDistributionChart"></canvas>
-        </div>
+    <!-- Total Agents -->
+    <div class="stat-card"
+         style="--card-gradient: var(--gradient-green);
+                --icon-gradient: var(--gradient-green);
+                --icon-shadow: rgba(17, 153, 142, 0.3);
+                --text-gradient: var(--gradient-green);">
+      <div class="stat-icon">
+        <i class="bi bi-person-badge-fill"></i>
       </div>
-
-      <!-- Premium Collection Trend -->
-      <div class="chart-card">
-        <h3 class="chart-title">Premium Collection Trend (2024)</h3>
-        <div class="chart-container small">
-          <canvas id="premiumTrendChart"></canvas>
-        </div>
-      </div>
+      <div class="stat-value pulse"><%= number_with_delimiter(@total_agents) %></div>
+      <div class="stat-label">Active Agents</div>
     </div>
 
-    <!-- Second Row of Charts -->
-    <div class="grid-3">
-      <!-- Lead Conversion Funnel -->
-      <div class="chart-card">
-        <h3 class="chart-title">Lead Conversion Funnel</h3>
-        <div class="chart-container small">
-          <canvas id="leadFunnelChart"></canvas>
-        </div>
+    <!-- Total Policies -->
+    <div class="stat-card"
+         style="--card-gradient: var(--gradient-red);
+                --icon-gradient: var(--gradient-red);
+                --icon-shadow: rgba(255, 65, 108, 0.3);
+                --text-gradient: var(--gradient-red);">
+      <div class="stat-icon">
+        <i class="bi bi-file-earmark-text-fill"></i>
       </div>
-
-      <!-- Renewal Status Overview -->
-      <div class="chart-card">
-        <h3 class="chart-title">Renewal Status Overview</h3>
-        <div class="chart-container small">
-          <canvas id="renewalStatusChart"></canvas>
-        </div>
-      </div>
-
-      <!-- Referral Settlement Report -->
-      <div class="chart-card">
-        <h3 class="chart-title">Referral Settlement Status</h3>
-        <div class="chart-container small">
-          <canvas id="referralChart"></canvas>
-        </div>
-      </div>
+      <div class="stat-value pulse"><%= number_with_delimiter(@total_policies) %></div>
+      <div class="stat-label">Total Policies</div>
     </div>
 
-    <!-- Third Row - Agent Performance and Commission -->
-    <div class="grid-2">
-      <!-- Agent Performance -->
-      <div class="chart-card">
-        <h3 class="chart-title">Top Agent Performance</h3>
-        <div class="chart-container">
-          <canvas id="agentPerformanceChart"></canvas>
-        </div>
+    <!-- Total Premium Collected -->
+    <div class="stat-card"
+         style="--card-gradient: var(--gradient-yellow);
+                --icon-gradient: var(--gradient-yellow);
+                --icon-shadow: rgba(255, 193, 7, 0.3);
+                --text-gradient: var(--gradient-yellow);">
+      <div class="stat-icon">
+        <i class="bi bi-currency-rupee"></i>
       </div>
-
-      <!-- Commission Summary -->
-      <div class="chart-card">
-        <h3 class="chart-title">Commission Summary</h3>
-        <div class="chart-container">
-          <canvas id="commissionChart"></canvas>
-        </div>
+      <div class="stat-value pulse">
+        <% if @total_premium_collected > 1000000 %>
+          ₹<%= (@total_premium_collected / 1000000.0).round(1) %>M
+        <% elsif @total_premium_collected > 1000 %>
+          ₹<%= (@total_premium_collected / 1000.0).round(1) %>K
+        <% else %>
+          ₹<%= number_with_delimiter(@total_premium_collected.to_i) %>
+        <% end %>
       </div>
+      <div class="stat-label">Premium Collected</div>
     </div>
 
-    <!-- Customer Location Analysis -->
+    <!-- Total Sum Insured -->
+    <div class="stat-card"
+         style="--card-gradient: var(--gradient-purple);
+                --icon-gradient: var(--gradient-purple);
+                --icon-shadow: rgba(131, 96, 195, 0.3);
+                --text-gradient: var(--gradient-purple);">
+      <div class="stat-icon">
+        <i class="bi bi-shield-check"></i>
+      </div>
+      <div class="stat-value pulse">
+        <% if @total_sum_insured > 1000000 %>
+          ₹<%= (@total_sum_insured / 1000000.0).round(1) %>M
+        <% elsif @total_sum_insured > 1000 %>
+          ₹<%= (@total_sum_insured / 1000.0).round(1) %>K
+        <% else %>
+          ₹<%= number_with_delimiter(@total_sum_insured.to_i) %>
+        <% end %>
+      </div>
+      <div class="stat-label">Sum Insured</div>
+    </div>
+
+    <!-- Total Leads -->
+    <div class="stat-card"
+         style="--card-gradient: var(--gradient-orange);
+                --icon-gradient: var(--gradient-orange);
+                --icon-shadow: rgba(255, 154, 158, 0.3);
+                --text-gradient: var(--gradient-orange);">
+      <div class="stat-icon">
+        <i class="bi bi-funnel"></i>
+      </div>
+      <div class="stat-value pulse"><%= number_with_delimiter(@total_leads) %></div>
+      <div class="stat-label">Total Leads</div>
+    </div>
+
+    <!-- Renewals Due -->
+    <div class="stat-card"
+         style="--card-gradient: var(--gradient-cyan);
+                --icon-gradient: var(--gradient-cyan);
+                --icon-shadow: rgba(0, 198, 255, 0.3);
+                --text-gradient: var(--gradient-cyan);">
+      <div class="stat-icon">
+        <i class="bi bi-clock-history"></i>
+      </div>
+      <div class="stat-value pulse"><%= number_with_delimiter(@renewal_due_count) %></div>
+      <div class="stat-label">Renewals Due</div>
+    </div>
+
+    <!-- Pending Payouts -->
+    <div class="stat-card"
+         style="--card-gradient: var(--gradient-pink);
+                --icon-gradient: var(--gradient-pink);
+                --icon-shadow: rgba(252, 70, 107, 0.3);
+                --text-gradient: var(--gradient-pink);">
+      <div class="stat-icon">
+        <i class="bi bi-cash-coin"></i>
+      </div>
+      <div class="stat-value pulse">
+        <% if @pending_payouts > 1000000 %>
+          ₹<%= (@pending_payouts / 1000000.0).round(1) %>M
+        <% elsif @pending_payouts > 1000 %>
+          ₹<%= (@pending_payouts / 1000.0).round(1) %>K
+        <% else %>
+          ₹<%= number_with_delimiter(@pending_payouts.to_i) %>
+        <% end %>
+      </div>
+      <div class="stat-label">Pending Payouts</div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="grid-2">
+    <!-- Policy Type Distribution -->
     <div class="chart-card">
-      <h3 class="chart-title">Customer Geographic Distribution</h3>
-      <div class="chart-container">
-        <canvas id="locationChart"></canvas>
+      <h3 class="chart-title">Policy Type Distribution</h3>
+      <div class="chart-container small">
+        <canvas id="policyDistributionChart"></canvas>
       </div>
     </div>
 
-    <!-- Recent Activities -->
+    <!-- Premium Collection Trend -->
     <div class="chart-card">
-      <h3 class="chart-title">Recent Activities</h3>
-      <div style="max-height: 400px; overflow-y: auto;">
-        <!-- Sample activities -->
-        <div class="recent-activity-item">
-          <div class="activity-icon"
-               style="--activity-gradient: var(--gradient-blue);
-                      --activity-shadow: rgba(102, 126, 234, 0.3);">
-            <i class="bi bi-file-earmark-plus"></i>
-          </div>
-          <div>
-            <div style="font-weight: 600; color: #1a202c;">New Health Policy Created</div>
-            <div style="color: #718096; font-size: 0.95rem;">Rajesh Kumar - Family Health Insurance</div>
-            <div style="color: #a0aec0; font-size: 0.85rem;">2 hours ago</div>
-          </div>
-        </div>
-
-        <div class="recent-activity-item">
-          <div class="activity-icon"
-               style="--activity-gradient: var(--gradient-green);
-                      --activity-shadow: rgba(17, 153, 142, 0.3);">
-            <i class="bi bi-person-plus-fill"></i>
-          </div>
-          <div>
-            <div style="font-weight: 600; color: #1a202c;">New Customer Registered</div>
-            <div style="color: #718096; font-size: 0.95rem;">Priya Sharma - Delhi</div>
-            <div style="color: #a0aec0; font-size: 0.85rem;">4 hours ago</div>
-          </div>
-        </div>
-
-        <div class="recent-activity-item">
-          <div class="activity-icon"
-               style="--activity-gradient: var(--gradient-orange);
-                      --activity-shadow: rgba(255, 154, 158, 0.3);">
-            <i class="bi bi-funnel-fill"></i>
-          </div>
-          <div>
-            <div style="font-weight: 600; color: #1a202c;">Lead Converted to Customer</div>
-            <div style="color: #718096; font-size: 0.95rem;">Suresh Patel - Motor Insurance Interest</div>
-            <div style="color: #a0aec0; font-size: 0.85rem;">6 hours ago</div>
-          </div>
-        </div>
-
-        <div class="recent-activity-item">
-          <div class="activity-icon"
-               style="--activity-gradient: var(--gradient-yellow);
-                      --activity-shadow: rgba(255, 193, 7, 0.3);">
-            <i class="bi bi-cash-coin"></i>
-          </div>
-          <div>
-            <div style="font-weight: 600; color: #1a202c;">Commission Paid</div>
-            <div style="color: #718096; font-size: 0.95rem;">Agent: Amit Shah - ₹12,500</div>
-            <div style="color: #a0aec0; font-size: 0.85rem;">1 day ago</div>
-          </div>
-        </div>
-
-        <div class="recent-activity-item">
-          <div class="activity-icon"
-               style="--activity-gradient: var(--gradient-purple);
-                      --activity-shadow: rgba(131, 96, 195, 0.3);">
-            <i class="bi bi-arrow-repeat"></i>
-          </div>
-          <div>
-            <div style="font-weight: 600; color: #1a202c;">Policy Renewed</div>
-            <div style="color: #718096; font-size: 0.95rem;">Kavita Singh - Life Insurance</div>
-            <div style="color: #a0aec0; font-size: 0.85rem;">1 day ago</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Dashboard Banners -->
-    <%= display_banners('dashboard') %>
-
-    <!-- Quick Access Cards -->
-    <div class="section-title" style="margin-top: 4rem;">Quick Access</div>
-    <div class="grid-4">
-      <!-- Renewal Policies -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-cyan);
-                  --icon-gradient: var(--gradient-cyan);
-                  --icon-shadow: rgba(0, 198, 255, 0.3);
-                  --text-gradient: var(--gradient-cyan);
-                  cursor: pointer;"
-           onclick="document.getElementById('renewal-section').scrollIntoView();">
-        <div class="stat-icon">
-          <i class="bi bi-clock-history"></i>
-        </div>
-        <div class="stat-value pulse">124</div>
-        <div class="stat-label">Renewal Due</div>
-      </div>
-
-      <!-- Expired Policies -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-red);
-                  --icon-gradient: var(--gradient-red);
-                  --icon-shadow: rgba(255, 65, 108, 0.3);
-                  --text-gradient: var(--gradient-red);
-                  cursor: pointer;"
-           onclick="document.getElementById('expired-section').scrollIntoView();">
-        <div class="stat-icon">
-          <i class="bi bi-exclamation-triangle"></i>
-        </div>
-        <div class="stat-value pulse">45</div>
-        <div class="stat-label">Expired Policies</div>
-      </div>
-
-      <!-- Client Requests -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-orange);
-                  --icon-gradient: var(--gradient-orange);
-                  --icon-shadow: rgba(255, 154, 158, 0.3);
-                  --text-gradient: var(--gradient-orange);
-                  cursor: pointer;"
-           onclick="document.getElementById('requests-section').scrollIntoView();">
-        <div class="stat-icon">
-          <i class="bi bi-chat-dots"></i>
-        </div>
-        <div class="stat-value pulse">32</div>
-        <div class="stat-label">Client Requests</div>
-      </div>
-
-      <!-- Claims Processing -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-purple);
-                  --icon-gradient: var(--gradient-purple);
-                  --icon-shadow: rgba(131, 96, 195, 0.3);
-                  --text-gradient: var(--gradient-purple);">
-        <div class="stat-icon">
-          <i class="bi bi-file-medical"></i>
-        </div>
-        <div class="stat-value pulse">18</div>
-        <div class="stat-label">Claims Processing</div>
-      </div>
-
-      <!-- Document Verification -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-yellow);
-                  --icon-gradient: var(--gradient-yellow);
-                  --icon-shadow: rgba(255, 193, 7, 0.3);
-                  --text-gradient: var(--gradient-yellow);">
-        <div class="stat-icon">
-          <i class="bi bi-file-check"></i>
-        </div>
-        <div class="stat-value pulse">67</div>
-        <div class="stat-label">Docs Pending</div>
-      </div>
-
-      <!-- Agent Commissions -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-green);
-                  --icon-gradient: var(--gradient-green);
-                  --icon-shadow: rgba(17, 153, 142, 0.3);
-                  --text-gradient: var(--gradient-green);">
-        <div class="stat-icon">
-          <i class="bi bi-wallet2"></i>
-        </div>
-        <div class="stat-value pulse">₹2.1M</div>
-        <div class="stat-label">Commissions Due</div>
-      </div>
-
-      <!-- New Leads -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-pink);
-                  --icon-gradient: var(--gradient-pink);
-                  --icon-shadow: rgba(252, 70, 107, 0.3);
-                  --text-gradient: var(--gradient-pink);">
-        <div class="stat-icon">
-          <i class="bi bi-star"></i>
-        </div>
-        <div class="stat-value pulse">156</div>
-        <div class="stat-label">New Leads</div>
-      </div>
-
-      <!-- Customer Support -->
-      <div class="stat-card"
-           style="--card-gradient: var(--gradient-blue);
-                  --icon-gradient: var(--gradient-blue);
-                  --icon-shadow: rgba(102, 126, 234, 0.3);
-                  --text-gradient: var(--gradient-blue);">
-        <div class="stat-icon">
-          <i class="bi bi-headset"></i>
-        </div>
-        <div class="stat-value pulse">89</div>
-        <div class="stat-label">Support Tickets</div>
-      </div>
-    </div>
-
-    <!-- Renewal Policies Section -->
-    <div id="renewal-section" class="section-title" style="margin-top: 4rem;">Renewal Due Policies</div>
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Policies Due for Renewal</h5>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-download me-1"></i>Export
-          </button>
-          <button class="btn btn-sm btn-primary">
-            <i class="bi bi-envelope me-1"></i>Send Reminders
-          </button>
-        </div>
-      </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover mb-0">
-            <thead class="bg-light">
-              <tr>
-                <th class="border-0">Customer</th>
-                <th class="border-0">Policy</th>
-                <th class="border-0">Type</th>
-                <th class="border-0">Expiry Date</th>
-                <th class="border-0">Premium</th>
-                <th class="border-0">Status</th>
-                <th class="border-0">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>
-                  <div>
-                    <h6 class="mb-1">Rajesh Kumar</h6>
-                    <small class="text-muted">rajesh@email.com</small>
-                  </div>
-                </td>
-                <td>
-                  <div>
-                    <div class="mb-1">HLT-2024-001</div>
-                    <small class="text-muted">Family Health Plan</small>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-primary">Health Insurance</span>
-                </td>
-                <td>
-                  <div>
-                    <div class="text-warning fw-bold">15 Dec 2024</div>
-                    <small class="text-muted">5 days left</small>
-                  </div>
-                </td>
-                <td>
-                  <div class="fw-bold">₹25,000</div>
-                </td>
-                <td>
-                  <span class="badge bg-warning">Due Soon</span>
-                </td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-success" title="Renew">
-                      <i class="bi bi-arrow-repeat"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" title="Contact">
-                      <i class="bi bi-telephone"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-info" title="View">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <div>
-                    <h6 class="mb-1">Priya Sharma</h6>
-                    <small class="text-muted">priya@email.com</small>
-                  </div>
-                </td>
-                <td>
-                  <div>
-                    <div class="mb-1">LIF-2024-089</div>
-                    <small class="text-muted">Term Life Insurance</small>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-success">Life Insurance</span>
-                </td>
-                <td>
-                  <div>
-                    <div class="text-danger fw-bold">12 Dec 2024</div>
-                    <small class="text-muted">2 days left</small>
-                  </div>
-                </td>
-                <td>
-                  <div class="fw-bold">₹18,500</div>
-                </td>
-                <td>
-                  <span class="badge bg-danger">Urgent</span>
-                </td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-success" title="Renew">
-                      <i class="bi bi-arrow-repeat"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" title="Contact">
-                      <i class="bi bi-telephone"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-info" title="View">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <div>
-                    <h6 class="mb-1">Suresh Patel</h6>
-                    <small class="text-muted">suresh@email.com</small>
-                  </div>
-                </td>
-                <td>
-                  <div>
-                    <div class="mb-1">MOT-2024-156</div>
-                    <small class="text-muted">Two Wheeler Insurance</small>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-info">Motor Insurance</span>
-                </td>
-                <td>
-                  <div>
-                    <div class="text-warning fw-bold">20 Dec 2024</div>
-                    <small class="text-muted">10 days left</small>
-                  </div>
-                </td>
-                <td>
-                  <div class="fw-bold">₹4,200</div>
-                </td>
-                <td>
-                  <span class="badge bg-warning">Due Soon</span>
-                </td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-success" title="Renew">
-                      <i class="bi bi-arrow-repeat"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" title="Contact">
-                      <i class="bi bi-telephone"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-info" title="View">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Expired Policies Section -->
-    <div id="expired-section" class="section-title" style="margin-top: 3rem;">Expired Policies</div>
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Recently Expired Policies</h5>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-download me-1"></i>Export
-          </button>
-          <button class="btn btn-sm btn-danger">
-            <i class="bi bi-exclamation-triangle me-1"></i>Send Alerts
-          </button>
-        </div>
-      </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover mb-0">
-            <thead class="bg-light">
-              <tr>
-                <th class="border-0">Customer</th>
-                <th class="border-0">Policy</th>
-                <th class="border-0">Type</th>
-                <th class="border-0">Expired Date</th>
-                <th class="border-0">Premium</th>
-                <th class="border-0">Grace Period</th>
-                <th class="border-0">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="table-danger">
-                <td>
-                  <div>
-                    <h6 class="mb-1">Kavita Singh</h6>
-                    <small class="text-muted">kavita@email.com</small>
-                  </div>
-                </td>
-                <td>
-                  <div>
-                    <div class="mb-1">HLT-2023-445</div>
-                    <small class="text-muted">Individual Health Plan</small>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-primary">Health Insurance</span>
-                </td>
-                <td>
-                  <div>
-                    <div class="text-danger fw-bold">05 Dec 2024</div>
-                    <small class="text-muted">5 days ago</small>
-                  </div>
-                </td>
-                <td>
-                  <div class="fw-bold">₹15,800</div>
-                </td>
-                <td>
-                  <span class="badge bg-danger">25 days left</span>
-                </td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-success" title="Renew">
-                      <i class="bi bi-arrow-repeat"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-warning" title="Contact">
-                      <i class="bi bi-telephone"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-info" title="View">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr class="table-warning">
-                <td>
-                  <div>
-                    <h6 class="mb-1">Amit Verma</h6>
-                    <small class="text-muted">amit@email.com</small>
-                  </div>
-                </td>
-                <td>
-                  <div>
-                    <div class="mb-1">MOT-2023-789</div>
-                    <small class="text-muted">Four Wheeler Insurance</small>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-info">Motor Insurance</span>
-                </td>
-                <td>
-                  <div>
-                    <div class="text-danger fw-bold">08 Dec 2024</div>
-                    <small class="text-muted">2 days ago</small>
-                  </div>
-                </td>
-                <td>
-                  <div class="fw-bold">₹8,950</div>
-                </td>
-                <td>
-                  <span class="badge bg-warning">28 days left</span>
-                </td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-success" title="Renew">
-                      <i class="bi bi-arrow-repeat"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-warning" title="Contact">
-                      <i class="bi bi-telephone"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-info" title="View">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Client Requests Section -->
-    <div id="requests-section" class="section-title" style="margin-top: 3rem;">Client Requests</div>
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Recent Client Requests</h5>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-filter me-1"></i>Filter
-          </button>
-          <button class="btn btn-sm btn-success">
-            <i class="bi bi-plus me-1"></i>Add Request
-          </button>
-        </div>
-      </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover mb-0">
-            <thead class="bg-light">
-              <tr>
-                <th class="border-0">Customer</th>
-                <th class="border-0">Request Type</th>
-                <th class="border-0">Description</th>
-                <th class="border-0">Priority</th>
-                <th class="border-0">Status</th>
-                <th class="border-0">Created</th>
-                <th class="border-0">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>
-                  <div>
-                    <h6 class="mb-1">Neha Gupta</h6>
-                    <small class="text-muted">neha@email.com</small>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-info">Claim Settlement</span>
-                </td>
-                <td>
-                  <div>
-                    <div class="mb-1">Health claim for hospitalization</div>
-                    <small class="text-muted">Policy: HLT-2024-567</small>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-danger">High</span>
-                </td>
-                <td>
-                  <span class="badge bg-warning">In Progress</span>
-                </td>
-                <td>
-                  <div>
-                    <div>09 Dec 2024</div>
-                    <small class="text-muted">1 day ago</small>
-                  </div>
-                </td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-success" title="Process">
-                      <i class="bi bi-check-circle"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" title="Contact">
-                      <i class="bi bi-chat"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-info" title="View">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <div>
-                    <h6 class="mb-1">Rahul Jain</h6>
-                    <small class="text-muted">rahul@email.com</small>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-success">Policy Query</span>
-                </td>
-                <td>
-                  <div>
-                    <div class="mb-1">Inquiry about coverage details</div>
-                    <small class="text-muted">Policy: LIF-2024-234</small>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-warning">Medium</span>
-                </td>
-                <td>
-                  <span class="badge bg-primary">New</span>
-                </td>
-                <td>
-                  <div>
-                    <div>10 Dec 2024</div>
-                    <small class="text-muted">Today</small>
-                  </div>
-                </td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-success" title="Assign">
-                      <i class="bi bi-person-plus"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" title="Respond">
-                      <i class="bi bi-reply"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-info" title="View">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <div>
-                    <h6 class="mb-1">Deepak Shah</h6>
-                    <small class="text-muted">deepak@email.com</small>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-purple">Document Update</span>
-                </td>
-                <td>
-                  <div>
-                    <div class="mb-1">Update nominee information</div>
-                    <small class="text-muted">Policy: LIF-2024-456</small>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-success">Low</span>
-                </td>
-                <td>
-                  <span class="badge bg-success">Completed</span>
-                </td>
-                <td>
-                  <div>
-                    <div>08 Dec 2024</div>
-                    <small class="text-muted">2 days ago</small>
-                  </div>
-                </td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-secondary" title="Completed">
-                      <i class="bi bi-check2"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-info" title="View">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <h3 class="chart-title">Premium Collection Trend</h3>
+      <div class="chart-container small">
+        <canvas id="premiumTrendChart"></canvas>
       </div>
     </div>
   </div>
 
-  <script>
-    // Chart.js Global Configuration
-    Chart.defaults.font.family = "'Poppins', sans-serif";
-    Chart.defaults.font.size = 12;
-    Chart.defaults.color = '#64748b';
+  <!-- Second Row of Charts -->
+  <div class="grid-3">
+    <!-- Lead Conversion Funnel -->
+    <div class="chart-card">
+      <h3 class="chart-title">Lead Conversion Funnel</h3>
+      <div class="chart-container small">
+        <canvas id="leadFunnelChart"></canvas>
+      </div>
+    </div>
 
-    // Color palettes
-    const gradientColors = {
-      blue: ['rgba(102, 126, 234, 0.8)', 'rgba(118, 75, 162, 0.8)'],
-      green: ['rgba(17, 153, 142, 0.8)', 'rgba(56, 239, 125, 0.8)'],
-      red: ['rgba(255, 65, 108, 0.8)', 'rgba(255, 75, 43, 0.8)'],
-      yellow: ['rgba(255, 193, 7, 0.8)', 'rgba(255, 143, 0, 0.8)'],
-      purple: ['rgba(131, 96, 195, 0.8)', 'rgba(46, 191, 145, 0.8)'],
-      orange: ['rgba(255, 154, 158, 0.8)', 'rgba(254, 207, 239, 0.8)'],
-      cyan: ['rgba(0, 198, 255, 0.8)', 'rgba(0, 114, 255, 0.8)'],
-      pink: ['rgba(252, 70, 107, 0.8)', 'rgba(63, 94, 251, 0.8)']
-    };
+    <!-- Renewal Status Overview -->
+    <div class="chart-card">
+      <h3 class="chart-title">Renewal Status Overview</h3>
+      <div class="chart-container small">
+        <canvas id="renewalStatusChart"></canvas>
+      </div>
+    </div>
 
-    // 1. Policy Type Distribution (Doughnut Chart)
-    const policyCtx = document.getElementById('policyDistributionChart').getContext('2d');
-    new Chart(policyCtx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Health Insurance', 'Life Insurance', 'Motor Insurance', 'Home Insurance', 'Travel Insurance'],
-        datasets: [{
-          data: [35, 28, 20, 12, 5],
-          backgroundColor: [
-            'rgba(102, 126, 234, 0.8)',
-            'rgba(17, 153, 142, 0.8)',
-            'rgba(255, 65, 108, 0.8)',
-            'rgba(255, 193, 7, 0.8)',
-            'rgba(131, 96, 195, 0.8)'
-          ],
-          borderWidth: 3,
-          borderColor: 'white',
-          hoverOffset: 15
-        }]
+    <!-- Referral Settlement Report -->
+    <div class="chart-card">
+      <h3 class="chart-title">Referral Settlement Status</h3>
+      <div class="chart-container small">
+        <canvas id="referralChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Third Row - Agent Performance and Commission -->
+  <div class="grid-2">
+    <!-- Agent Performance -->
+    <div class="chart-card">
+      <h3 class="chart-title">Top Agent Performance</h3>
+      <div class="chart-container">
+        <canvas id="agentPerformanceChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Commission Summary -->
+    <div class="chart-card">
+      <h3 class="chart-title">Commission Summary</h3>
+      <div class="chart-container">
+        <canvas id="commissionChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Location Analysis -->
+  <div class="chart-card">
+    <h3 class="chart-title">Customer Geographic Distribution</h3>
+    <div class="chart-container">
+      <canvas id="locationChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Recent Activities -->
+  <div class="chart-card">
+    <h3 class="chart-title">Recent Activities</h3>
+    <div style="max-height: 400px; overflow-y: auto;">
+      <% if @recent_policies.any? %>
+        <% @recent_policies.each do |policy| %>
+          <div class="recent-activity-item">
+            <div class="activity-icon"
+                 style="--activity-gradient: var(--gradient-blue);
+                        --activity-shadow: rgba(102, 126, 234, 0.3);">
+              <i class="bi bi-file-earmark-plus"></i>
+            </div>
+            <div>
+              <div style="font-weight: 600; color: #1a202c;">New <%= policy.class.name.underscore.humanize %> Created</div>
+              <div style="color: #718096; font-size: 0.95rem;">
+                <%= policy.customer&.display_name || "Customer" %> -
+                <%= policy.try(:plan_name) || policy.try(:policy_number) || "Policy" %>
+              </div>
+              <div style="color: #a0aec0; font-size: 0.85rem;"><%= time_ago_in_words(policy.created_at) %> ago</div>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+
+      <% if @recent_customers.any? %>
+        <% @recent_customers.first(3).each do |customer| %>
+          <div class="recent-activity-item">
+            <div class="activity-icon"
+                 style="--activity-gradient: var(--gradient-green);
+                        --activity-shadow: rgba(17, 153, 142, 0.3);">
+              <i class="bi bi-person-plus-fill"></i>
+            </div>
+            <div>
+              <div style="font-weight: 600; color: #1a202c;">New Customer Registered</div>
+              <div style="color: #718096; font-size: 0.95rem;"><%= customer.display_name %> - <%= customer.city || "Location N/A" %></div>
+              <div style="color: #a0aec0; font-size: 0.85rem;"><%= time_ago_in_words(customer.created_at) %> ago</div>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+
+      <% if @recent_leads.any? %>
+        <% @recent_leads.first(2).each do |lead| %>
+          <div class="recent-activity-item">
+            <div class="activity-icon"
+                 style="--activity-gradient: var(--gradient-orange);
+                        --activity-shadow: rgba(255, 154, 158, 0.3);">
+              <i class="bi bi-funnel-fill"></i>
+            </div>
+            <div>
+              <div style="font-weight: 600; color: #1a202c;">Lead <%= lead.current_stage&.humanize || "Created" %></div>
+              <div style="color: #718096; font-size: 0.95rem;"><%= lead.display_name %> - <%= lead.insurance_interest || "Insurance" %></div>
+              <div style="color: #a0aec0; font-size: 0.85rem;"><%= time_ago_in_words(lead.created_at) %> ago</div>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Quick Access Cards -->
+  <div class="section-title" style="margin-top: 4rem;">Quick Access</div>
+  <div class="grid-4">
+    <!-- New Leads -->
+    <div class="stat-card"
+         style="--card-gradient: var(--gradient-pink);
+                --icon-gradient: var(--gradient-pink);
+                --icon-shadow: rgba(252, 70, 107, 0.3);
+                --text-gradient: var(--gradient-pink);
+                cursor: pointer;"
+         onclick="window.location.href='/admin/leads'">
+      <div class="stat-icon">
+        <i class="bi bi-star"></i>
+      </div>
+      <div class="stat-value pulse"><%= @new_leads %></div>
+      <div class="stat-label">New Leads (7 days)</div>
+    </div>
+
+    <!-- Client Requests -->
+    <div class="stat-card"
+         style="--card-gradient: var(--gradient-orange);
+                --icon-gradient: var(--gradient-orange);
+                --icon-shadow: rgba(255, 154, 158, 0.3);
+                --text-gradient: var(--gradient-orange);
+                cursor: pointer;"
+         onclick="window.location.href='/admin/client_requests'">
+      <div class="stat-icon">
+        <i class="bi bi-chat-dots"></i>
+      </div>
+      <div class="stat-value pulse"><%= @client_requests_count %></div>
+      <div class="stat-label">Client Requests</div>
+    </div>
+
+    <!-- Agent Commissions -->
+    <div class="stat-card"
+         style="--card-gradient: var(--gradient-green);
+                --icon-gradient: var(--gradient-green);
+                --icon-shadow: rgba(17, 153, 142, 0.3);
+                --text-gradient: var(--gradient-green);
+                cursor: pointer;"
+         onclick="window.location.href='/admin/payouts'">
+      <div class="stat-icon">
+        <i class="bi bi-wallet2"></i>
+      </div>
+      <div class="stat-value pulse">
+        <% if @commissions_due > 1000000 %>
+          ₹<%= (@commissions_due / 1000000.0).round(1) %>M
+        <% elsif @commissions_due > 1000 %>
+          ₹<%= (@commissions_due / 1000.0).round(1) %>K
+        <% else %>
+          ₹<%= number_with_delimiter(@commissions_due.to_i) %>
+        <% end %>
+      </div>
+      <div class="stat-label">Commissions Due</div>
+    </div>
+
+    <!-- Support Tickets -->
+    <div class="stat-card"
+         style="--card-gradient: var(--gradient-blue);
+                --icon-gradient: var(--gradient-blue);
+                --icon-shadow: rgba(102, 126, 234, 0.3);
+                --text-gradient: var(--gradient-blue);
+                cursor: pointer;"
+         onclick="window.location.href='/admin/helpdesk'">
+      <div class="stat-icon">
+        <i class="bi bi-headset"></i>
+      </div>
+      <div class="stat-value pulse"><%= @support_tickets %></div>
+      <div class="stat-label">Support Tickets</div>
+    </div>
+  </div>
+
+  <!-- Renewal Policies Section -->
+  <% if @renewal_policies.any? %>
+    <div class="section-title" style="margin-top: 4rem;">Policies Due for Renewal</div>
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="bg-light">
+              <tr>
+                <th>Customer</th>
+                <th>Policy</th>
+                <th>Type</th>
+                <th>Expiry Date</th>
+                <th>Premium</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @renewal_policies.each do |policy| %>
+                <tr>
+                  <td>
+                    <h6 class="mb-1"><%= policy.customer&.display_name || "Unknown" %></h6>
+                    <small class="text-muted"><%= policy.customer&.email || "" %></small>
+                  </td>
+                  <td>
+                    <div class="mb-1"><%= policy.policy_number %></div>
+                    <small class="text-muted"><%= policy.try(:plan_name) || policy.class.name.underscore.humanize %></small>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary"><%= policy.class.name.underscore.humanize %></span>
+                  </td>
+                  <td>
+                    <% days_left = (policy.policy_end_date - Date.current).to_i if policy.policy_end_date %>
+                    <div class="text-<%= days_left && days_left < 7 ? 'danger' : 'warning' %> fw-bold">
+                      <%= policy.policy_end_date&.strftime('%d %b %Y') %>
+                    </div>
+                    <small class="text-muted"><%= days_left %> days left</small>
+                  </td>
+                  <td>₹<%= number_with_delimiter(policy.total_premium.to_i) %></td>
+                  <td>
+                    <span class="badge bg-<%= days_left && days_left < 7 ? 'danger' : 'warning' %>">
+                      <%= days_left && days_left < 7 ? 'Urgent' : 'Due Soon' %>
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Display Banners if any -->
+  <%= display_banners('dashboard') if defined?(display_banners) %>
+</div>
+
+<script>
+  // Chart.js Global Configuration
+  Chart.defaults.font.family = "'Poppins', sans-serif";
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = '#64748b';
+
+  // Dynamic data from Ruby - ensure numeric values are parsed correctly
+  const policyDistributionData = <%= @policy_type_distribution.to_json.html_safe %>;
+  const premiumTrendData = <%= @premium_collection_trend.transform_values(&:to_f).to_json.html_safe %>;
+  const leadFunnelData = <%= @lead_conversion_funnel.to_json.html_safe %>;
+  const renewalStatusData = <%= @renewal_status.to_json.html_safe %>;
+  const referralData = <%= @referral_status.to_json.html_safe %>;
+  const agentPerformanceData = <%= @agent_performance.transform_values(&:to_f).to_json.html_safe %>;
+
+  // Commission data needs special handling for nested structure
+  const commissionData = {
+    main_agent: <%= @commission_summary['main_agent'].transform_values(&:to_f).to_json.html_safe %>,
+    sub_agent: <%= @commission_summary['sub_agent'].transform_values(&:to_f).to_json.html_safe %>,
+    tds: <%= @commission_summary['tds'].transform_values(&:to_f).to_json.html_safe %>
+  };
+
+  const locationData = <%= @customer_location.to_json.html_safe %>;
+
+  // Add empty data warning overlays
+  function addNoDataMessage(chartId, message) {
+    const canvas = document.getElementById(chartId);
+    const container = canvas.parentNode;
+    if (container.querySelector('.no-data-message')) return; // Already exists
+
+    const noDataDiv = document.createElement('div');
+    noDataDiv.className = 'no-data-message';
+    noDataDiv.style.cssText = `
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: #a0aec0;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 10;
+      background: rgba(255,255,255,0.9);
+      padding: 10px;
+      border-radius: 8px;
+    `;
+    noDataDiv.innerHTML = `<i class="bi bi-info-circle me-2"></i>${message}`;
+    container.style.position = 'relative';
+    container.appendChild(noDataDiv);
+  }
+
+  // 1. Policy Type Distribution (Doughnut Chart)
+  const policyCtx = document.getElementById('policyDistributionChart').getContext('2d');
+  new Chart(policyCtx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(policyDistributionData),
+      datasets: [{
+        data: Object.values(policyDistributionData),
+        backgroundColor: [
+          'rgba(102, 126, 234, 0.8)',
+          'rgba(17, 153, 142, 0.8)',
+          'rgba(255, 65, 108, 0.8)',
+          'rgba(255, 193, 7, 0.8)',
+          'rgba(131, 96, 195, 0.8)'
+        ],
+        borderWidth: 3,
+        borderColor: 'white',
+        hoverOffset: 15
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 20,
+            usePointStyle: true,
+            pointStyle: 'circle'
+          }
+        }
+      }
+    }
+  });
+
+  // 2. Premium Collection Trend (Line Chart)
+  const premiumCtx = document.getElementById('premiumTrendChart').getContext('2d');
+  new Chart(premiumCtx, {
+    type: 'line',
+    data: {
+      labels: Object.keys(premiumTrendData),
+      datasets: [{
+        label: 'Premium Collection (₹)',
+        data: Object.values(premiumTrendData),
+        borderColor: 'rgba(102, 126, 234, 1)',
+        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+        borderWidth: 4,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 3,
+        pointRadius: 6,
+        pointHoverRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              padding: 20,
-              usePointStyle: true,
-              pointStyle: 'circle'
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0, 0, 0, 0.05)' },
+          ticks: {
+            callback: function(value) {
+              if (value > 1000000) return '₹' + (value/1000000).toFixed(1) + 'M';
+              if (value > 1000) return '₹' + (value/1000).toFixed(0) + 'K';
+              return '₹' + value;
             }
           }
         }
       }
-    });
+    }
+  });
 
-    // 2. Premium Collection Trend (Line Chart)
-    const premiumCtx = document.getElementById('premiumTrendChart').getContext('2d');
-    new Chart(premiumCtx, {
-      type: 'line',
-      data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        datasets: [{
-          label: 'Premium Collection (₹ Lakhs)',
-          data: [185, 220, 195, 267, 234, 289, 312, 278, 345, 398, 423, 467],
-          borderColor: 'rgba(102, 126, 234, 1)',
-          backgroundColor: 'rgba(102, 126, 234, 0.1)',
-          borderWidth: 4,
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: 'rgba(102, 126, 234, 1)',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 3,
-          pointRadius: 8,
-          pointHoverRadius: 10
-        }]
+  // 3. Lead Conversion Funnel (Bar Chart)
+  const leadCtx = document.getElementById('leadFunnelChart').getContext('2d');
+  const leadDataValues = Object.values(leadFunnelData);
+  const hasLeadData = leadDataValues.some(val => val > 0);
+
+  new Chart(leadCtx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(leadFunnelData),
+      datasets: [{
+        label: 'Leads',
+        data: hasLeadData ? leadDataValues : [1, 1, 1, 1, 1], // Show sample data if no real data
+        backgroundColor: [
+          'rgba(102, 126, 234, 0.8)',
+          'rgba(17, 153, 142, 0.8)',
+          'rgba(255, 193, 7, 0.8)',
+          'rgba(255, 65, 108, 0.8)',
+          'rgba(131, 96, 195, 0.8)'
+        ],
+        borderRadius: 8,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: hasLeadData
+        }
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false }
+      scales: {
+        x: { grid: { display: false } },
+        y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } }
+      }
+    }
+  });
+
+  // 4. Renewal Status Overview (Doughnut Chart)
+  const renewalCtx = document.getElementById('renewalStatusChart').getContext('2d');
+  new Chart(renewalCtx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(renewalStatusData),
+      datasets: [{
+        data: Object.values(renewalStatusData),
+        backgroundColor: [
+          'rgba(17, 153, 142, 0.8)',
+          'rgba(255, 193, 7, 0.8)',
+          'rgba(255, 65, 108, 0.8)'
+        ],
+        borderWidth: 3,
+        borderColor: 'white'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { padding: 15, usePointStyle: true }
+        }
+      }
+    }
+  });
+
+  // 5. Referral Settlement Status (Pie Chart)
+  const referralCtx = document.getElementById('referralChart').getContext('2d');
+  new Chart(referralCtx, {
+    type: 'pie',
+    data: {
+      labels: Object.keys(referralData),
+      datasets: [{
+        data: Object.values(referralData),
+        backgroundColor: [
+          'rgba(17, 153, 142, 0.8)',
+          'rgba(255, 193, 7, 0.8)',
+          'rgba(102, 126, 234, 0.8)'
+        ],
+        borderWidth: 2,
+        borderColor: 'white'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { padding: 15, usePointStyle: true }
+        }
+      }
+    }
+  });
+
+  // 6. Agent Performance (Horizontal Bar Chart)
+  const agentCtx = document.getElementById('agentPerformanceChart').getContext('2d');
+  const agentLabels = Object.keys(agentPerformanceData);
+  const agentValues = Object.values(agentPerformanceData);
+  const hasAgentData = agentLabels.length > 0 && agentValues.some(val => val > 0);
+
+  new Chart(agentCtx, {
+    type: 'bar',
+    data: {
+      labels: hasAgentData ? agentLabels : ['Agent 1', 'Agent 2', 'Agent 3'],
+      datasets: [{
+        label: 'Premium Amount (₹)',
+        data: hasAgentData ? agentValues : [100000, 80000, 60000],
+        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+        borderColor: 'rgba(102, 126, 234, 1)',
+        borderWidth: 2,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: hasAgentData }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0, 0, 0, 0.05)' },
+          ticks: {
+            callback: function(value) {
+              if (value > 1000000) return '₹' + (value/1000000).toFixed(1) + 'M';
+              if (value > 1000) return '₹' + (value/1000).toFixed(0) + 'K';
+              return '₹' + value;
+            }
+          }
         },
-        scales: {
-          x: { grid: { display: false } },
-          y: {
-            beginAtZero: true,
-            grid: { color: 'rgba(0, 0, 0, 0.05)' },
-            ticks: {
-              callback: function(value) {
-                return '₹' + value + 'L';
-              }
-            }
-          }
-        }
+        y: { grid: { display: false } }
       }
-    });
+    }
+  });
 
-    // 3. Lead Conversion Funnel (Bar Chart)
-    const leadCtx = document.getElementById('leadFunnelChart').getContext('2d');
-    new Chart(leadCtx, {
-      type: 'bar',
-      data: {
-        labels: ['Generated', 'Consultation', 'One-on-One', 'Converted', 'Policy Created'],
-        datasets: [{
-          label: 'Leads',
-          data: [856, 634, 456, 289, 234],
-          backgroundColor: [
-            'rgba(102, 126, 234, 0.8)',
-            'rgba(17, 153, 142, 0.8)',
-            'rgba(255, 193, 7, 0.8)',
-            'rgba(255, 65, 108, 0.8)',
-            'rgba(131, 96, 195, 0.8)'
-          ],
-          borderRadius: 8,
-          borderSkipped: false
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { display: false } },
-          y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } }
-        }
-      }
-    });
+  // 7. Commission Summary (Stacked Bar Chart)
+  const commissionCtx = document.getElementById('commissionChart').getContext('2d');
+  const months = Object.keys(commissionData.main_agent || {});
+  const hasCommissionData = months.length > 0 && months.some(m =>
+    (commissionData.main_agent[m] || 0) + (commissionData.sub_agent[m] || 0) + (commissionData.tds[m] || 0) > 0
+  );
 
-    // 4. Renewal Status Overview (Doughnut Chart)
-    const renewalCtx = document.getElementById('renewalStatusChart').getContext('2d');
-    new Chart(renewalCtx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Renewed', 'Pending', 'Expired'],
-        datasets: [{
-          data: [68, 24, 8],
-          backgroundColor: [
-            'rgba(17, 153, 142, 0.8)',
-            'rgba(255, 193, 7, 0.8)',
-            'rgba(255, 65, 108, 0.8)'
-          ],
-          borderWidth: 3,
-          borderColor: 'white'
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { padding: 15, usePointStyle: true }
-          }
-        }
-      }
-    });
-
-    // 5. Referral Settlement Status (Pie Chart)
-    const referralCtx = document.getElementById('referralChart').getContext('2d');
-    new Chart(referralCtx, {
-      type: 'pie',
-      data: {
-        labels: ['Paid', 'Pending', 'In-Process'],
-        datasets: [{
-          data: [156, 78, 34],
-          backgroundColor: [
-            'rgba(17, 153, 142, 0.8)',
-            'rgba(255, 193, 7, 0.8)',
-            'rgba(102, 126, 234, 0.8)'
-          ],
-          borderWidth: 2,
-          borderColor: 'white'
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { padding: 15, usePointStyle: true }
-          }
-        }
-      }
-    });
-
-    // 6. Agent Performance (Horizontal Bar Chart)
-    const agentCtx = document.getElementById('agentPerformanceChart').getContext('2d');
-    new Chart(agentCtx, {
-      type: 'bar',
-      data: {
-        labels: ['Amit Shah', 'Ravi Kumar', 'Priya Singh', 'Suresh Patel', 'Kavita Sharma', 'Rahul Gupta', 'Neha Jain'],
-        datasets: [{
-          label: 'Premium Amount (₹ Lakhs)',
-          data: [145, 132, 128, 115, 98, 87, 76],
+  new Chart(commissionCtx, {
+    type: 'bar',
+    data: {
+      labels: hasCommissionData ? months : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      datasets: [
+        {
+          label: 'Main Agent Commission',
+          data: hasCommissionData ? months.map(m => commissionData.main_agent[m] || 0) : [5000, 7000, 6000, 8000, 9000, 12000],
           backgroundColor: 'rgba(102, 126, 234, 0.8)',
-          borderColor: 'rgba(102, 126, 234, 1)',
-          borderWidth: 2,
-          borderRadius: 6
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: {
-            beginAtZero: true,
-            grid: { color: 'rgba(0, 0, 0, 0.05)' },
-            ticks: {
-              callback: function(value) {
-                return '₹' + value + 'L';
-              }
-            }
-          },
-          y: { grid: { display: false } }
-        }
-      }
-    });
-
-    // 7. Commission Summary (Stacked Bar Chart)
-    const commissionCtx = document.getElementById('commissionChart').getContext('2d');
-    new Chart(commissionCtx, {
-      type: 'bar',
-      data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        datasets: [
-          {
-            label: 'Main Agent Commission',
-            data: [45, 52, 48, 65, 58, 72, 78, 69, 86, 99, 105, 116],
-            backgroundColor: 'rgba(102, 126, 234, 0.8)',
-          },
-          {
-            label: 'Sub-Agent Commission',
-            data: [23, 28, 25, 34, 30, 38, 41, 36, 45, 52, 55, 61],
-            backgroundColor: 'rgba(17, 153, 142, 0.8)',
-          },
-          {
-            label: 'TDS Deducted',
-            data: [12, 14, 13, 18, 16, 20, 21, 19, 24, 27, 29, 32],
-            backgroundColor: 'rgba(255, 65, 108, 0.8)',
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: { stacked: true, grid: { display: false } },
-          y: {
-            stacked: true,
-            beginAtZero: true,
-            grid: { color: 'rgba(0, 0, 0, 0.05)' },
-            ticks: {
-              callback: function(value) {
-                return '₹' + value + 'K';
-              }
-            }
-          }
         },
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { padding: 20, usePointStyle: true }
+        {
+          label: 'Sub-Agent Commission',
+          data: hasCommissionData ? months.map(m => commissionData.sub_agent[m] || 0) : [2000, 3000, 2500, 4000, 3500, 5000],
+          backgroundColor: 'rgba(17, 153, 142, 0.8)',
+        },
+        {
+          label: 'TDS Deducted',
+          data: hasCommissionData ? months.map(m => commissionData.tds[m] || 0) : [700, 1000, 850, 1200, 1250, 1700],
+          backgroundColor: 'rgba(255, 65, 108, 0.8)',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          grid: { color: 'rgba(0, 0, 0, 0.05)' },
+          ticks: {
+            callback: function(value) {
+              if (value > 1000) return '₹' + (value/1000).toFixed(0) + 'K';
+              return '₹' + value;
+            }
           }
         }
-      }
-    });
-
-    // 8. Customer Location Distribution (Bar Chart)
-    const locationCtx = document.getElementById('locationChart').getContext('2d');
-    new Chart(locationCtx, {
-      type: 'bar',
-      data: {
-        labels: ['Maharashtra', 'Delhi', 'Gujarat', 'Karnataka', 'Tamil Nadu', 'Uttar Pradesh', 'West Bengal', 'Rajasthan'],
-        datasets: [{
-          label: 'Number of Customers',
-          data: [234, 189, 156, 143, 132, 98, 87, 76],
-          backgroundColor: [
-            'rgba(102, 126, 234, 0.8)',
-            'rgba(17, 153, 142, 0.8)',
-            'rgba(255, 193, 7, 0.8)',
-            'rgba(255, 65, 108, 0.8)',
-            'rgba(131, 96, 195, 0.8)',
-            'rgba(255, 154, 158, 0.8)',
-            'rgba(0, 198, 255, 0.8)',
-            'rgba(252, 70, 107, 0.8)'
-          ],
-          borderRadius: 8,
-          borderSkipped: false
-        }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { display: false } },
-          y: {
-            beginAtZero: true,
-            grid: { color: 'rgba(0, 0, 0, 0.05)' }
-          }
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { padding: 20, usePointStyle: true }
+        },
+        tooltip: { enabled: hasCommissionData }
+      }
+    }
+  });
+
+  // 8. Customer Location Distribution (Bar Chart)
+  const locationCtx = document.getElementById('locationChart').getContext('2d');
+  new Chart(locationCtx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(locationData),
+      datasets: [{
+        label: 'Number of Customers',
+        data: Object.values(locationData),
+        backgroundColor: [
+          'rgba(102, 126, 234, 0.8)',
+          'rgba(17, 153, 142, 0.8)',
+          'rgba(255, 193, 7, 0.8)',
+          'rgba(255, 65, 108, 0.8)',
+          'rgba(131, 96, 195, 0.8)',
+          'rgba(255, 154, 158, 0.8)',
+          'rgba(0, 198, 255, 0.8)',
+          'rgba(252, 70, 107, 0.8)'
+        ],
+        borderRadius: 8,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0, 0, 0, 0.05)' }
         }
       }
-    });
+    }
+  });
 
-    // Animation on load
-    document.addEventListener('DOMContentLoaded', function() {
-      const statValues = document.querySelectorAll('.stat-value');
-      statValues.forEach((stat, index) => {
+  // Add no-data messages for empty charts after all charts are created
+  if (!hasLeadData) {
+    addNoDataMessage('leadFunnelChart', 'No lead data available');
+  }
+  if (!hasAgentData) {
+    addNoDataMessage('agentPerformanceChart', 'No agent performance data');
+  }
+  if (!hasCommissionData) {
+    addNoDataMessage('commissionChart', 'No commission data available');
+  }
+
+  // Real-time updates functionality
+  let updateInterval;
+  let isUpdating = false;
+
+  // Add loading indicators to cards
+  function addLoadingIndicator(cardElement) {
+    if (cardElement.querySelector('.loading-indicator')) return;
+
+    const indicator = document.createElement('div');
+    indicator.className = 'loading-indicator';
+    indicator.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
+    indicator.style.cssText = `
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #667eea;
+      animation: spin 1s linear infinite;
+      z-index: 100;
+    `;
+    cardElement.style.position = 'relative';
+    cardElement.appendChild(indicator);
+  }
+
+  function removeLoadingIndicator(cardElement) {
+    const indicator = cardElement.querySelector('.loading-indicator');
+    if (indicator) indicator.remove();
+  }
+
+  // Format currency for display
+  function formatCurrency(amount) {
+    if (amount > 1000000) {
+      return '₹' + (amount / 1000000).toFixed(1) + 'M';
+    } else if (amount > 1000) {
+      return '₹' + (amount / 1000).toFixed(1) + 'K';
+    } else {
+      return '₹' + amount.toLocaleString();
+    }
+  }
+
+  // Update dashboard stats
+  function updateDashboardStats() {
+    if (isUpdating) return;
+    isUpdating = true;
+
+    // Get all stat cards
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach(card => addLoadingIndicator(card));
+
+    fetch('/dashboard/stats', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      // Update Client Requests card (4th quick access card)
+      const clientRequestsCard = document.querySelector('[onclick*="client_requests"] .stat-value');
+      if (clientRequestsCard) {
+        clientRequestsCard.textContent = data.client_requests_count.toLocaleString();
+      }
+
+      // Update Commissions Due card (3rd quick access card)
+      const commissionsCard = document.querySelector('[onclick*="payouts"] .stat-value');
+      if (commissionsCard) {
+        commissionsCard.textContent = formatCurrency(data.commissions_due);
+      }
+
+      // Update Support Tickets card (4th quick access card)
+      const supportCard = document.querySelector('[onclick*="helpdesk"] .stat-value');
+      if (supportCard) {
+        supportCard.textContent = data.support_tickets.toLocaleString();
+      }
+
+      // Update other main stat cards
+      const totalCustomersCard = document.querySelector('.stat-card:first-child .stat-value');
+      if (totalCustomersCard) {
+        totalCustomersCard.textContent = data.total_customers.toLocaleString();
+      }
+
+      // Add last updated time indicator
+      updateLastUpdatedTime(data.last_updated);
+
+      // Add brief flash effect to updated cards
+      statCards.forEach(card => {
+        card.style.transition = 'all 0.3s ease';
+        card.style.transform = 'scale(1.02)';
         setTimeout(() => {
-          stat.style.transform = 'scale(1.1)';
-          setTimeout(() => {
-            stat.style.transform = 'scale(1)';
-          }, 300);
-        }, index * 100);
+          card.style.transform = 'scale(1)';
+        }, 200);
       });
+
+      console.log('Dashboard updated at:', data.last_updated);
+    })
+    .catch(error => {
+      console.error('Error updating dashboard:', error);
+      showUpdateError();
+    })
+    .finally(() => {
+      isUpdating = false;
+      statCards.forEach(card => removeLoadingIndicator(card));
     });
-  </script>
-</body>
-</html>
+  }
+
+  // Add last updated time display
+  function addLastUpdatedDisplay() {
+    const container = document.querySelector('.dashboard-container');
+    const updateDisplay = document.createElement('div');
+    updateDisplay.id = 'lastUpdated';
+    updateDisplay.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(255,255,255,0.95);
+      padding: 8px 15px;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      font-size: 12px;
+      color: #64748b;
+      border: 1px solid rgba(102, 126, 234, 0.1);
+      z-index: 1000;
+    `;
+    updateDisplay.innerHTML = '<i class="bi bi-clock me-1"></i>Last updated: Just now';
+    container.appendChild(updateDisplay);
+  }
+
+  function updateLastUpdatedTime(time) {
+    const display = document.getElementById('lastUpdated');
+    if (display) {
+      display.innerHTML = `<i class="bi bi-clock me-1"></i>Last updated: ${time}`;
+      display.style.background = 'rgba(102, 126, 234, 0.1)';
+      setTimeout(() => {
+        display.style.background = 'rgba(255,255,255,0.95)';
+      }, 1000);
+    }
+  }
+
+  function showUpdateError() {
+    const display = document.getElementById('lastUpdated');
+    if (display) {
+      display.innerHTML = '<i class="bi bi-exclamation-triangle text-warning me-1"></i>Update failed';
+      display.style.background = 'rgba(255, 193, 7, 0.1)';
+    }
+  }
+
+  // Add control panel for real-time updates
+  function addUpdateControls() {
+    const container = document.querySelector('.dashboard-container');
+    const controls = document.createElement('div');
+    controls.style.cssText = `
+      position: fixed;
+      bottom: 70px;
+      right: 20px;
+      background: rgba(255,255,255,0.95);
+      padding: 10px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      border: 1px solid rgba(102, 126, 234, 0.1);
+      z-index: 1000;
+    `;
+
+    controls.innerHTML = `
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button id="toggleUpdates" class="btn btn-sm btn-primary">
+          <i class="bi bi-pause-fill"></i> Auto-refresh: ON
+        </button>
+        <button id="manualUpdate" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    `;
+
+    container.appendChild(controls);
+
+    // Add event listeners
+    document.getElementById('toggleUpdates').addEventListener('click', toggleAutoUpdates);
+    document.getElementById('manualUpdate').addEventListener('click', updateDashboardStats);
+  }
+
+  function toggleAutoUpdates() {
+    const button = document.getElementById('toggleUpdates');
+
+    if (updateInterval) {
+      clearInterval(updateInterval);
+      updateInterval = null;
+      button.innerHTML = '<i class="bi bi-play-fill"></i> Auto-refresh: OFF';
+      button.className = 'btn btn-sm btn-outline-primary';
+    } else {
+      startAutoUpdates();
+      button.innerHTML = '<i class="bi bi-pause-fill"></i> Auto-refresh: ON';
+      button.className = 'btn btn-sm btn-primary';
+    }
+  }
+
+  function startAutoUpdates() {
+    updateInterval = setInterval(updateDashboardStats, 30000); // Update every 30 seconds
+  }
+
+  // Add spinning animation for loading
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Initialize real-time updates
+  addLastUpdatedDisplay();
+  addUpdateControls();
+  startAutoUpdates();
+
+  // Update immediately on page load
+  setTimeout(updateDashboardStats, 2000);
+</script>

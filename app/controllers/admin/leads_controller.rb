@@ -52,6 +52,11 @@ class Admin::LeadsController < Admin::ApplicationController
       policy_created: @policy_created_leads,
       referral_settled: @referral_settled_leads
     }
+
+    # Temporarily use simple view for debugging
+    if params[:debug] == 'simple'
+      render 'index_simple'
+    end
   end
 
   # GET /admin/leads/1

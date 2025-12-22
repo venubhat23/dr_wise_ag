@@ -366,35 +366,8 @@
           </li>
         <% end %>
 
-        <!-- Policies -->
-        <% if show_sidebar_item?('policies') %>
-          <li class="nav-item">
-            <%= link_to admin_policies_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/policies')}" do %>
-              <div class="nav-icon-modern">
-                <div class="icon-bg gradient-purple">
-                  <i class="bi bi-file-earmark-text-fill"></i>
-                </div>
-              </div>
-              <span class="nav-text">Policies</span>
-              <div class="nav-indicator"></div>
-            <% end %>
-          </li>
-        <% end %>
 
         <!-- Agents -->
-        <% if show_sidebar_item?('agents') %>
-          <li class="nav-item">
-            <%= link_to admin_users_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/users')}" do %>
-              <div class="nav-icon-modern">
-                <div class="icon-bg gradient-orange">
-                  <i class="bi bi-person-badge-fill"></i>
-                </div>
-              </div>
-              <span class="nav-text">Agents</span>
-              <div class="nav-indicator"></div>
-            <% end %>
-          </li>
-        <% end %>
 
         <!-- Affiliate -->
         <% if show_sidebar_item?('sub_agents') %>
@@ -420,7 +393,7 @@
                   <i class="bi bi-diagram-3"></i>
                 </div>
               </div>
-              <span class="nav-text">Distributors</span>
+              <span class="nav-text">Ambassadors</span>
               <div class="nav-indicator"></div>
             <% end %>
           </li>
@@ -441,31 +414,23 @@
           </li>
         <% end %>
 
-        <!-- Payouts -->
+      </ul>
+    </div>
+
+    <!-- Payouts & Commission Section -->
+    <div class="nav-section">
+      <div class="nav-section-title">Payouts & Commission</div>
+      <ul class="nav-menu">
+        <!-- General Payouts -->
         <% if show_sidebar_item?('payouts') %>
           <li class="nav-item">
-            <%= link_to admin_payouts_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/payouts')}" do %>
+            <%= link_to admin_payouts_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/payouts') && !request.path.include?('/admin/affiliate_payouts') && !request.path.include?('/admin/distributor_payouts')}" do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-teal">
                   <i class="bi bi-cash-coin"></i>
                 </div>
               </div>
-              <span class="nav-text">Payouts</span>
-              <div class="nav-indicator"></div>
-            <% end %>
-          </li>
-        <% end %>
-
-        <!-- Payout 2 -->
-        <% if show_sidebar_item?('payouts') %>
-          <li class="nav-item">
-            <%= link_to admin_commission_tracking_index_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/commission_tracking')}" do %>
-              <div class="nav-icon-modern">
-                <div class="icon-bg gradient-lime">
-                  <i class="bi bi-wallet2"></i>
-                </div>
-              </div>
-              <span class="nav-text">Payout</span>
+              <span class="nav-text">Commission Payouts</span>
               <div class="nav-indicator"></div>
             <% end %>
           </li>
@@ -480,12 +445,47 @@
                   <i class="bi bi-person-heart"></i>
                 </div>
               </div>
-              <span class="nav-text">Affiliate Payout</span>
+              <span class="nav-text">Affiliate Payouts</span>
               <div class="nav-indicator"></div>
             <% end %>
           </li>
         <% end %>
 
+        <!-- Distributor/Ambassador Payout -->
+        <% if show_sidebar_item?('payouts') %>
+          <li class="nav-item">
+            <%= link_to admin_distributor_payouts_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/distributor_payouts')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-lime">
+                  <i class="bi bi-building-check"></i>
+                </div>
+              </div>
+              <span class="nav-text">Ambassador Payouts</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+
+        <!-- Commission Tracking -->
+        <% if show_sidebar_item?('payouts') %>
+          <li class="nav-item">
+            <%= link_to admin_commission_tracking_index_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/commission_tracking')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-purple">
+                  <i class="bi bi-diagram-3"></i>
+                </div>
+              </div>
+              <span class="nav-text">Commission Flow</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Business Partners</div>
+      <ul class="nav-menu">
         <!-- Brokers -->
         <% if show_sidebar_item?('brokers') %>
           <li class="nav-item">

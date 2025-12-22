@@ -218,8 +218,8 @@ class MotorInsurance < ApplicationRecord
     return unless commission_amount.present? && commission_amount > 0
     return if is_customer_added? # Skip auto-creation for customer-added policies
 
-    # Use the commission calculator service to create payouts
-    CommissionCalculatorService.create_payouts_for_policy(self)
+    # Use the enhanced commission calculator service to create payouts
+    CommissionCalculatorService.create_enhanced_payouts_for_policy(self)
   rescue StandardError => e
     # Don't fail policy creation if payout creation fails
     Rails.logger.error "Failed to create payouts for motor insurance #{id}: #{e.message}"

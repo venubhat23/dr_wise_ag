@@ -107,7 +107,7 @@
             <%= form.label :company_name, class: "form-label" do %>
               Company Name <span class="text-danger">*</span>
             <% end %>
-            <%= form.text_field :company_name, class: "form-control #{'is-invalid' if @customer.errors[:company_name].any?}", placeholder: "Enter Company Name", required: true %>
+            <%= form.text_field :company_name, class: "form-control #{'is-invalid' if @customer.errors[:company_name].any?}", placeholder: "Enter Company Name", id: "corporate_company_name", required: true %>
             <% if @customer.errors[:company_name].any? %>
               <div class="invalid-feedback">
                 <%= @customer.errors[:company_name].first %>
@@ -118,7 +118,7 @@
             <%= form.label :mobile, class: "form-label" do %>
               Mobile No. <span class="text-danger">*</span>
             <% end %>
-            <%= form.telephone_field :mobile, class: "form-control #{'is-invalid' if @customer.errors[:mobile].any?}", placeholder: "Enter Mobile", required: true %>
+            <%= form.telephone_field :mobile, class: "form-control #{'is-invalid' if @customer.errors[:mobile].any?}", placeholder: "Enter Mobile", id: "corporate_mobile", required: true %>
             <% if @customer.errors[:mobile].any? %>
               <div class="invalid-feedback">
                 <%= @customer.errors[:mobile].first %>
@@ -128,8 +128,10 @@
         </div>
         <div class="row mt-3">
           <div class="col-md-12">
-            <%= form.label :email, "Email", class: "form-label" %>
-            <%= form.email_field :email, class: "form-control #{'is-invalid' if @customer.errors[:email].any?}", placeholder: "Enter Email" %>
+            <%= form.label :email, class: "form-label" do %>
+              Email <span class="text-danger">*</span>
+            <% end %>
+            <%= form.email_field :email, class: "form-control #{'is-invalid' if @customer.errors[:email].any?}", placeholder: "Enter Email", required: true %>
             <% if @customer.errors[:email].any? %>
               <div class="invalid-feedback">
                 <%= @customer.errors[:email].first %>
@@ -302,7 +304,7 @@
             <%= form.label :first_name, class: "form-label" do %>
               First Name <span class="text-danger">*</span>
             <% end %>
-            <%= form.text_field :first_name, class: "form-control #{'is-invalid' if @customer.errors[:first_name].any?}", placeholder: "Enter first name", required: true %>
+            <%= form.text_field :first_name, class: "form-control #{'is-invalid' if @customer.errors[:first_name].any?}", placeholder: "Enter first name", id: "individual_first_name" %>
             <% if @customer.errors[:first_name].any? %>
               <div class="invalid-feedback">
                 <%= @customer.errors[:first_name].first %>
@@ -322,7 +324,7 @@
             <%= form.label :last_name, class: "form-label" do %>
               Last Name <span class="text-danger">*</span>
             <% end %>
-            <%= form.text_field :last_name, class: "form-control #{'is-invalid' if @customer.errors[:last_name].any?}", placeholder: "Enter last name", required: true %>
+            <%= form.text_field :last_name, class: "form-control #{'is-invalid' if @customer.errors[:last_name].any?}", placeholder: "Enter last name", id: "individual_last_name" %>
             <% if @customer.errors[:last_name].any? %>
               <div class="invalid-feedback">
                 <%= @customer.errors[:last_name].first %>
@@ -335,7 +337,7 @@
             <%= form.label :mobile, class: "form-label" do %>
               Mobile <span class="text-danger">*</span>
             <% end %>
-            <%= form.telephone_field :mobile, class: "form-control #{'is-invalid' if @customer.errors[:mobile].any?}", placeholder: "Enter mobile number", required: true %>
+            <%= form.telephone_field :mobile, class: "form-control #{'is-invalid' if @customer.errors[:mobile].any?}", placeholder: "Enter mobile number", id: "individual_mobile" %>
             <% if @customer.errors[:mobile].any? %>
               <div class="invalid-feedback">
                 <%= @customer.errors[:mobile].first %>
@@ -343,14 +345,14 @@
             <% end %>
           </div>
           <div class="col-md-6">
-            <%= form.label :email, "Email", class: "form-label" %>
+            <%= form.label :email, "Email (Optional)", class: "form-label" %>
             <%= form.email_field :email, class: "form-control #{'is-invalid' if @customer.errors[:email].any?}", placeholder: "Enter email ID" %>
             <% if @customer.errors[:email].any? %>
               <div class="invalid-feedback">
                 <%= @customer.errors[:email].first %>
               </div>
             <% else %>
-              <small class="form-text text-muted">Optional</small>
+              <small class="form-text text-muted">Optional for individual customers</small>
             <% end %>
           </div>
         </div>
@@ -639,18 +641,104 @@ document.addEventListener('DOMContentLoaded', function() {
   const individualSections = document.getElementById('individual_sections');
   const corporateSections = document.getElementById('corporate_sections');
 
+  // Initially disable all form validations until customer type is selected
+  const individualRequiredFields = ['individual_first_name', 'individual_last_name', 'individual_mobile'];
+  const corporateRequiredFields = ['corporate_company_name', 'corporate_mobile'];
+
+  // Remove required attributes initially
+  individualRequiredFields.concat(corporateRequiredFields).forEach(fieldId => {
+    const field = document.getElementById(fieldId);
+    if (field) field.removeAttribute('required');
+  });
+
+  function handleCustomerTypeChange(selectedType) {
+    if (selectedType === 'individual') {
+      individualSections.style.display = 'block';
+      corporateSections.style.display = 'none';
+
+      // Enable individual form fields
+      const individualInputs = document.querySelectorAll('#individual_sections input, #individual_sections select, #individual_sections textarea');
+      individualInputs.forEach(input => input.disabled = false);
+
+      // Disable corporate form fields to prevent submission conflicts
+      const corporateInputs = document.querySelectorAll('#corporate_sections input, #corporate_sections select, #corporate_sections textarea');
+      corporateInputs.forEach(input => input.disabled = true);
+
+      // Add required to individual fields
+      individualRequiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) field.setAttribute('required', 'required');
+      });
+
+      // Remove required from corporate fields
+      corporateRequiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) field.removeAttribute('required');
+      });
+
+      // Email is optional for individual customers
+      const individualEmailField = document.querySelector('#individual_sections input[name="customer[email]"]');
+      if (individualEmailField) {
+        individualEmailField.removeAttribute('required');
+      }
+    } else if (selectedType === 'corporate') {
+      individualSections.style.display = 'none';
+      corporateSections.style.display = 'block';
+
+      // Enable corporate form fields
+      const corporateInputs = document.querySelectorAll('#corporate_sections input, #corporate_sections select, #corporate_sections textarea');
+      corporateInputs.forEach(input => input.disabled = false);
+
+      // Disable individual form fields to prevent submission conflicts
+      const individualInputs = document.querySelectorAll('#individual_sections input, #individual_sections select, #individual_sections textarea');
+      individualInputs.forEach(input => input.disabled = true);
+
+      // Add required to corporate fields
+      corporateRequiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) field.setAttribute('required', 'required');
+      });
+
+      // Remove required from individual fields
+      individualRequiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) field.removeAttribute('required');
+      });
+
+      // Email is required for corporate customers
+      const corporateEmailField = document.querySelector('#corporate_sections input[name="customer[email]"]');
+      if (corporateEmailField) {
+        corporateEmailField.setAttribute('required', 'required');
+      }
+    } else {
+      individualSections.style.display = 'none';
+      corporateSections.style.display = 'none';
+
+      // Disable all form fields when no type is selected
+      const allInputs = document.querySelectorAll('#individual_sections input, #individual_sections select, #individual_sections textarea, #corporate_sections input, #corporate_sections select, #corporate_sections textarea');
+      allInputs.forEach(input => input.disabled = true);
+
+      // Remove required from all fields
+      individualRequiredFields.concat(corporateRequiredFields).forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) field.removeAttribute('required');
+      });
+
+      // Remove required from email fields
+      const allEmailFields = document.querySelectorAll('input[name="customer[email]"]');
+      allEmailFields.forEach(field => field.removeAttribute('required'));
+    }
+  }
+
+  // Handle initial state based on server-side data (important for validation errors)
+  const checkedRadio = document.querySelector('input[name="customer[customer_type]"]:checked');
+  if (checkedRadio) {
+    handleCustomerTypeChange(checkedRadio.value);
+  }
+
   customerTypeRadios.forEach(radio => {
     radio.addEventListener('change', function() {
-      if (this.value === 'individual') {
-        individualSections.style.display = 'block';
-        corporateSections.style.display = 'none';
-      } else if (this.value === 'corporate') {
-        individualSections.style.display = 'none';
-        corporateSections.style.display = 'block';
-      } else {
-        individualSections.style.display = 'none';
-        corporateSections.style.display = 'none';
-      }
+      handleCustomerTypeChange(this.value);
     });
   });
 

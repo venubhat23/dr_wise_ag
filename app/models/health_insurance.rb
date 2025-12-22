@@ -56,6 +56,7 @@ class HealthInsurance < ApplicationRecord
 
   # Callbacks
   before_save :calculate_totals
+  before_save :calculate_commission_structure
   before_validation :set_policy_term
   after_save :set_notification_dates
   after_create :create_commission_payouts
@@ -141,6 +142,9 @@ class HealthInsurance < ApplicationRecord
       self.tds_amount = commission_amount * (tds_percentage / 100.0)
       self.after_tds_value = commission_amount - tds_amount
     end
+
+    # Calculate commission structure for all roles
+    calculate_commission_structure if net_premium.present?
   end
 
   def set_policy_term
@@ -212,8 +216,8 @@ class HealthInsurance < ApplicationRecord
     return unless commission_amount.present? && commission_amount > 0
     return if is_customer_added? # Skip auto-creation for customer-added policies
 
-    # Use the commission calculator service to create payouts
-    CommissionCalculatorService.create_payouts_for_policy(self)
+    # Use the enhanced commission calculator service to create payouts
+    CommissionCalculatorService.create_enhanced_payouts_for_policy(self)
   rescue StandardError => e
     # Don't fail policy creation if payout creation fails
     Rails.logger.error "Failed to create payouts for health insurance #{id}: #{e.message}"
@@ -225,5 +229,70 @@ class HealthInsurance < ApplicationRecord
     LeadGeneratorService.create_lead_for_insurance(self)
   rescue StandardError => e
     Rails.logger.error "Failed to create lead for health insurance #{id}: #{e.message}"
+  end
+
+  private
+
+  def calculate_commission_structure
+    return unless net_premium.present?
+
+    # Set default company expenses percentage if not already set
+    self.company_expenses_percentage ||= 2.0
+
+    # Main income calculation (10% default)
+    main_income_percentage = 10.0
+
+    # Sub-agent commission (now Affiliate)
+    self.sub_agent_commission_percentage ||= 2.0
+    self.sub_agent_commission_amount = net_premium * (sub_agent_commission_percentage / 100.0)
+    calculate_tds_for_sub_agent
+
+    # Ambassador commission
+    self.ambassador_commission_percentage ||= 2.0
+    self.ambassador_commission_amount = net_premium * (ambassador_commission_percentage / 100.0)
+    calculate_tds_for_ambassador
+
+    # Investor commission
+    self.investor_commission_percentage ||= 2.0
+    self.investor_commission_amount = net_premium * (investor_commission_percentage / 100.0)
+    calculate_tds_for_investor
+
+    # Total distribution percentage
+    self.total_distribution_percentage =
+      sub_agent_commission_percentage +
+      ambassador_commission_percentage +
+      investor_commission_percentage
+
+    # Profit calculation
+    remaining_percentage = main_income_percentage - total_distribution_percentage
+    self.profit_percentage = remaining_percentage - company_expenses_percentage
+    self.profit_amount = net_premium * (profit_percentage / 100.0)
+  end
+
+  def calculate_tds_for_sub_agent
+    if sub_agent_commission_amount.present? && sub_agent_tds_percentage.present?
+      self.sub_agent_tds_amount = sub_agent_commission_amount * (sub_agent_tds_percentage / 100.0)
+      self.sub_agent_after_tds_value = sub_agent_commission_amount - sub_agent_tds_amount
+    else
+      self.sub_agent_after_tds_value = sub_agent_commission_amount
+    end
+  end
+
+  def calculate_tds_for_ambassador
+    if ambassador_commission_amount.present? && ambassador_tds_percentage.present?
+      self.ambassador_tds_amount = ambassador_commission_amount * (ambassador_tds_percentage / 100.0)
+      self.ambassador_after_tds_value = ambassador_commission_amount - ambassador_tds_amount
+    else
+      self.ambassador_after_tds_value = ambassador_commission_amount
+    end
+  end
+
+  def calculate_tds_for_investor
+    if investor_commission_amount.present? && investor_tds_percentage.present?
+      self.investor_tds_amount = investor_commission_amount * (investor_tds_percentage / 100.0)
+      self.investor_after_tds_value = investor_commission_amount - investor_tds_amount
+    else
+      self.investor_after_tds_value = investor_commission_amount
+    end
   end
 end

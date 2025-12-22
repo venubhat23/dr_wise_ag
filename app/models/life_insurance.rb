@@ -72,6 +72,7 @@ class LifeInsurance < ApplicationRecord
   before_save :calculate_totals
   before_validation :set_policy_term_from_dates
   after_save :set_notification_dates
+  after_create :create_commission_payouts
   after_create :create_lead_record
 
   # Instance methods
@@ -191,10 +192,15 @@ class LifeInsurance < ApplicationRecord
     self.main_income_percentage ||= 10.0
     self.main_income_amount = net_premium * (main_income_percentage / 100.0)
 
-    # Sub-agent commission
+    # Sub-agent commission (now Affiliate)
     self.sub_agent_commission_percentage ||= 2.0
     self.sub_agent_commission_amount = net_premium * (sub_agent_commission_percentage / 100.0)
     calculate_tds_for_sub_agent
+
+    # Ambassador commission
+    self.ambassador_commission_percentage ||= 2.0
+    self.ambassador_commission_amount = net_premium * (ambassador_commission_percentage / 100.0)
+    calculate_tds_for_ambassador
 
     # Distributor commission
     self.distributor_commission_percentage ||= 1.0
@@ -209,6 +215,7 @@ class LifeInsurance < ApplicationRecord
     # Total distribution percentage
     self.total_distribution_percentage =
       sub_agent_commission_percentage +
+      ambassador_commission_percentage +
       distributor_commission_percentage +
       investor_commission_percentage
 
@@ -224,6 +231,15 @@ class LifeInsurance < ApplicationRecord
       self.sub_agent_after_tds_value = sub_agent_commission_amount - sub_agent_tds_amount
     else
       self.sub_agent_after_tds_value = sub_agent_commission_amount
+    end
+  end
+
+  def calculate_tds_for_ambassador
+    if ambassador_commission_amount.present? && ambassador_tds_percentage.present?
+      self.ambassador_tds_amount = ambassador_commission_amount * (ambassador_tds_percentage / 100.0)
+      self.ambassador_after_tds_value = ambassador_commission_amount - ambassador_tds_amount
+    else
+      self.ambassador_after_tds_value = ambassador_commission_amount
     end
   end
 
@@ -322,8 +338,8 @@ class LifeInsurance < ApplicationRecord
     return unless commission_amount.present? && commission_amount > 0
     return if is_customer_added? # Skip auto-creation for customer-added policies
 
-    # Use the commission calculator service to create payouts
-    CommissionCalculatorService.create_payouts_for_policy(self)
+    # Use the enhanced commission calculator service to create payouts
+    CommissionCalculatorService.create_enhanced_payouts_for_policy(self)
   rescue StandardError => e
     # Don't fail policy creation if payout creation fails
     Rails.logger.error "Failed to create payouts for life insurance #{id}: #{e.message}"

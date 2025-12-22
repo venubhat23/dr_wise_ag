@@ -165,6 +165,14 @@ class Lead < ApplicationRecord
     end
   end
 
+  def display_name
+    name
+  end
+
+  def insurance_interest
+    product_interest&.humanize
+  end
+
   private
 
   def generate_lead_id

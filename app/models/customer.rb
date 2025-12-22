@@ -30,10 +30,13 @@ class Customer < ApplicationRecord
   # Individual Customer Required Fields
   validates :first_name, presence: true, if: :individual?
   validates :last_name, presence: true, if: :individual?
-  validates :mobile, presence: true, uniqueness: true, if: :individual?
+  validates :mobile, presence: true, if: :individual?
+  validates :mobile, uniqueness: true, allow_blank: true, if: :individual?
 
   # Corporate Customer Required Fields
   validates :company_name, presence: true, if: :corporate?
+  validates :mobile, presence: true, if: :corporate?
+  validates :mobile, uniqueness: true, allow_blank: true, if: :corporate?
 
   # Validations
   validates :status, inclusion: { in: [true, false] }
@@ -46,10 +49,8 @@ class Customer < ApplicationRecord
     self.sub_agent = "Self" if sub_agent.blank?
   end
 
-  # Corporate Customer Required Fields - Email is mandatory for corporate
+  # Email validations - different rules for individual vs corporate
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }, if: :corporate?
-
-  # Individual Customer - Email is optional
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true, if: :individual?
 
   # Optional validations
@@ -57,7 +58,6 @@ class Customer < ApplicationRecord
   validates :marital_status, inclusion: { in: ['single', 'married', 'divorced', 'widowed'] }, allow_blank: true
   validates :pan_no, format: { with: /\A[A-Z]{5}\d{4}[A-Z]\z/ }, allow_blank: true
   validates :gst_no, format: { with: /\A\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z\d][A-Z\d]\z/ }, allow_blank: true
-  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
 
   # Enums
   enum :customer_type, { individual: 'individual', corporate: 'corporate' }
@@ -69,6 +69,7 @@ class Customer < ApplicationRecord
   scope :corporates, -> { where(customer_type: 'corporate') }
 
   # Callbacks
+  before_validation :normalize_blank_values
   before_save :calculate_age
 
   # Search
@@ -111,6 +112,14 @@ class Customer < ApplicationRecord
   def bust_cache
     Rails.cache.delete("customer_#{id}_full_name")
     Rails.cache.delete("customer_#{id}_display_name")
+  end
+
+  def normalize_blank_values
+    # Convert empty strings to nil to prevent uniqueness validation issues
+    self.mobile = nil if mobile.blank?
+    self.email = nil if email.blank?
+    self.pan_no = nil if pan_no.blank?
+    self.gst_no = nil if gst_no.blank?
   end
 
   def calculate_age

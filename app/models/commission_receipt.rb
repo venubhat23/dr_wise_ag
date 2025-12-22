@@ -161,8 +161,8 @@ class CommissionReceipt < ApplicationRecord
 
     payout_audit_logs.create!(
       action: action,
-      changes: saved_changes.except('updated_at'),
-      performed_by: Current.user&.email || 'system',
+      changes: saved_changes.except('updated_at').to_json,
+      performed_by: 'system',
       notes: notes
     )
   end

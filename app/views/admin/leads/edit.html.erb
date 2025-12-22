@@ -1,0 +1,420 @@
+<!-- Edit Lead Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Edit Lead</h2>
+    <p class="text-muted mb-0">Update lead information for <%= @lead.name %></p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to admin_lead_path(@lead), class: "btn btn-outline-info" do %>
+      <i class="bi bi-eye me-1"></i>
+      View Lead
+    <% end %>
+    <%= link_to admin_leads_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Leads
+    <% end %>
+  </div>
+</div>
+
+<!-- Lead Form -->
+<div class="row">
+  <div class="col-md-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-person-gear me-2 text-primary"></i>
+          Update Lead Information
+        </h5>
+      </div>
+      <div class="card-body">
+        <%= form_with model: [:admin, @lead], local: true, class: "row g-3" do |form| %>
+          <% if @lead.errors.any? %>
+            <div class="col-md-12">
+              <div class="alert alert-danger">
+                <h6>Please correct the following errors:</h6>
+                <ul class="mb-0">
+                  <% @lead.errors.full_messages.each do |message| %>
+                    <li><%= message %></li>
+                  <% end %>
+                </ul>
+              </div>
+            </div>
+          <% end %>
+
+          <!-- Basic Information -->
+          <div class="col-md-6">
+            <%= form.label :name, "Lead Name *", class: "form-label" %>
+            <%= form.text_field :name, class: "form-control", placeholder: "Enter full name", required: true %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :contact_number, "Contact Number *", class: "form-label" %>
+            <%= form.text_field :contact_number, class: "form-control", placeholder: "+91 98765 43210", required: true %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :email, "Email Address", class: "form-label" %>
+            <%= form.email_field :email, class: "form-control", placeholder: "name@email.com" %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :product_interest, "Product Interest *", class: "form-label" %>
+            <%= form.select :product_interest, options_for_select([
+              ['Select Product', ''],
+              ['Health Insurance', 'health'],
+              ['Life Insurance', 'life'],
+              ['Motor Insurance', 'motor'],
+              ['Home Insurance', 'home'],
+              ['Travel Insurance', 'travel'],
+              ['Other Insurance', 'other']
+            ], @lead.product_interest), {}, { class: "form-select", required: true } %>
+          </div>
+
+          <!-- Address Information -->
+          <div class="col-md-12">
+            <h6 class="mt-3 mb-3 text-primary">
+              <i class="bi bi-geo-alt me-2"></i>
+              Address Information
+            </h6>
+          </div>
+
+          <div class="col-md-12">
+            <%= form.label :address, "Address", class: "form-label" %>
+            <%= form.text_area :address, class: "form-control", rows: 2, placeholder: "Complete address" %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :city, "City", class: "form-label" %>
+            <%= form.text_field :city, class: "form-control", placeholder: "City name" %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :state, "State", class: "form-label" %>
+            <%= form.select :state, options_for_select([
+              ['Select State', ''],
+              ['Andhra Pradesh', 'andhra_pradesh'],
+              ['Assam', 'assam'],
+              ['Bihar', 'bihar'],
+              ['Delhi', 'delhi'],
+              ['Gujarat', 'gujarat'],
+              ['Karnataka', 'karnataka'],
+              ['Kerala', 'kerala'],
+              ['Maharashtra', 'maharashtra'],
+              ['Punjab', 'punjab'],
+              ['Rajasthan', 'rajasthan'],
+              ['Tamil Nadu', 'tamil_nadu'],
+              ['Uttar Pradesh', 'uttar_pradesh'],
+              ['West Bengal', 'west_bengal']
+            ], @lead.state), {}, { class: "form-select" } %>
+          </div>
+
+          <!-- Lead Details -->
+          <div class="col-md-12">
+            <h6 class="mt-3 mb-3 text-primary">
+              <i class="bi bi-info-circle me-2"></i>
+              Lead Details
+            </h6>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :referred_by, "Referred By", class: "form-label" %>
+            <%= form.text_field :referred_by, class: "form-control", placeholder: "Agent name or source" %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :current_stage, "Current Stage *", class: "form-label" %>
+            <%= form.select :current_stage, options_for_select([
+              ['Consultation', 'consultation'],
+              ['One-on-One', 'one_on_one'],
+              ['Converted', 'converted'],
+              ['Policy Created', 'policy_created'],
+              ['Referral Settled', 'referral_settled']
+            ], @lead.current_stage), {}, { class: "form-select", required: true } %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :lead_source, "Lead Source", class: "form-label" %>
+            <%= form.select :lead_source, options_for_select([
+              ['Select Source', ''],
+              ['Website', 'website'],
+              ['Social Media', 'social_media'],
+              ['Referral', 'referral'],
+              ['Cold Call', 'cold_call'],
+              ['Email Campaign', 'email_campaign'],
+              ['Advertisement', 'advertisement'],
+              ['Walk-in', 'walk_in'],
+              ['Other', 'other']
+            ], @lead.lead_source), {}, { class: "form-select" } %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :call_disposition, "Call Disposition", class: "form-label" %>
+            <%= form.select :call_disposition, options_for_select([
+              ['Select Disposition', ''],
+              ['Interested', 'interested'],
+              ['Not Interested', 'not_interested'],
+              ['Call Back Later', 'call_back'],
+              ['Follow Up Required', 'follow_up'],
+              ['Number Not Reachable', 'not_reachable'],
+              ['Wrong Number', 'wrong_number'],
+              ['Do Not Call', 'do_not_call']
+            ], @lead.call_disposition), {}, { class: "form-select" } %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :referral_amount, "Referral Amount", class: "form-label" %>
+            <%= form.number_field :referral_amount, class: "form-control", step: 0.01, placeholder: "0.00" %>
+          </div>
+
+          <div class="col-md-6">
+            <%= form.label :created_date, "Lead Date", class: "form-label" %>
+            <%= form.date_field :created_date, class: "form-control" %>
+          </div>
+
+          <div class="col-md-12">
+            <%= form.label :notes, "Notes", class: "form-label" %>
+            <%= form.text_area :notes, class: "form-control", rows: 4, placeholder: "Additional notes about the lead..." %>
+          </div>
+
+          <!-- Submit Buttons -->
+          <div class="col-md-12 mt-4">
+            <div class="d-flex gap-2">
+              <%= form.submit "Update Lead", class: "btn btn-primary" %>
+              <%= link_to "Cancel", admin_lead_path(@lead), class: "btn btn-outline-secondary" %>
+              <%= link_to "Delete Lead", admin_lead_path(@lead), method: :delete,
+                  class: "btn btn-outline-danger",
+                  confirm: "Are you sure you want to delete this lead?" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lead Information Sidebar -->
+  <div class="col-md-4">
+    <!-- Lead Status -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-info-circle me-2 text-info"></i>
+          Lead Status
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="status-item mb-3">
+          <div class="d-flex justify-content-between">
+            <span class="text-muted">Current Stage:</span>
+            <span class="badge bg-<%= @lead.current_stage == 'consultation' ? 'info' :
+                                       @lead.current_stage == 'one_on_one' ? 'warning' :
+                                       @lead.current_stage == 'converted' ? 'success' :
+                                       @lead.current_stage == 'policy_created' ? 'primary' : 'dark' %>">
+              <%= @lead.current_stage&.humanize %>
+            </span>
+          </div>
+        </div>
+
+        <div class="status-item mb-3">
+          <div class="d-flex justify-content-between">
+            <span class="text-muted">Created:</span>
+            <span><%= @lead.created_at&.strftime('%d %b %Y') %></span>
+          </div>
+        </div>
+
+        <div class="status-item mb-3">
+          <div class="d-flex justify-content-between">
+            <span class="text-muted">Last Updated:</span>
+            <span><%= @lead.updated_at&.strftime('%d %b %Y') %></span>
+          </div>
+        </div>
+
+        <% if @lead.stage_updated_at %>
+          <div class="status-item mb-0">
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Stage Updated:</span>
+              <span><%= @lead.stage_updated_at&.strftime('%d %b %Y') %></span>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-lightning me-2 text-warning"></i>
+          Quick Actions
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <% if @lead.current_stage == 'consultation' %>
+            <%= link_to "Advance to One-on-One", admin_lead_path(@lead, stage: 'one_on_one'),
+                method: :patch, class: "btn btn-sm btn-warning" %>
+          <% elsif @lead.current_stage == 'one_on_one' %>
+            <%= link_to "Mark as Converted", admin_lead_path(@lead, stage: 'converted'),
+                method: :patch, class: "btn btn-sm btn-success" %>
+          <% elsif @lead.current_stage == 'converted' && @lead.converted_customer_id %>
+            <%= link_to "Create Policy", create_policy_admin_lead_path(@lead),
+                method: :patch, class: "btn btn-sm btn-primary" %>
+          <% elsif @lead.current_stage == 'policy_created' %>
+            <%= link_to "Settle Referral", transfer_referral_admin_lead_path(@lead),
+                method: :patch, class: "btn btn-sm btn-dark" %>
+          <% end %>
+
+          <% if @lead.can_go_back? %>
+            <%= link_to "Go Back Stage", go_back_stage_admin_lead_path(@lead),
+                method: :patch, class: "btn btn-sm btn-outline-secondary" %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lead Guide -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-bookmark me-2 text-info"></i>
+          Lead Stages Guide
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge <%= @lead.current_stage == 'consultation' ? 'bg-info' : 'bg-light text-dark' %> me-2">1</span>
+            <strong>Consultation</strong>
+          </div>
+          <p class="small text-muted mb-0">Initial contact and requirement gathering</p>
+        </div>
+
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge <%= @lead.current_stage == 'one_on_one' ? 'bg-warning' : 'bg-light text-dark' %> me-2">2</span>
+            <strong>One-on-One</strong>
+          </div>
+          <p class="small text-muted mb-0">Detailed discussion and product presentation</p>
+        </div>
+
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge <%= @lead.current_stage == 'converted' ? 'bg-success' : 'bg-light text-dark' %> me-2">3</span>
+            <strong>Converted</strong>
+          </div>
+          <p class="small text-muted mb-0">Customer agrees to purchase policy</p>
+        </div>
+
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge <%= @lead.current_stage == 'policy_created' ? 'bg-primary' : 'bg-light text-dark' %> me-2">4</span>
+            <strong>Policy Created</strong>
+          </div>
+          <p class="small text-muted mb-0">Policy documentation completed</p>
+        </div>
+
+        <div class="stage-item mb-0">
+          <div class="d-flex align-items-center">
+            <span class="badge <%= @lead.current_stage == 'referral_settled' ? 'bg-dark' : 'bg-light text-dark' %> me-2">5</span>
+            <strong>Referral Settled</strong>
+          </div>
+          <p class="small text-muted mb-0">Commission and referrals processed</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Styles -->
+<style>
+.status-item {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.75rem;
+}
+
+.status-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.stage-item {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.75rem;
+}
+
+.stage-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.card-header h5 {
+  font-weight: 600;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #374151;
+}
+
+.btn {
+  border-radius: 8px;
+}
+
+.form-control, .form-select {
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+</style>
+
+<!-- Form Validation Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.querySelector('form');
+  const nameField = form.querySelector('[name="lead[name]"]');
+  const phoneField = form.querySelector('[name="lead[contact_number]"]');
+  const productField = form.querySelector('[name="lead[product_interest]"]');
+
+  // Phone number formatting
+  phoneField.addEventListener('input', function() {
+    let value = this.value.replace(/\D/g, '');
+    if (value.length === 10) {
+      this.value = '+91 ' + value.substring(0, 5) + ' ' + value.substring(5);
+    }
+  });
+
+  // Form validation
+  form.addEventListener('submit', function(e) {
+    let isValid = true;
+    const errors = [];
+
+    // Validate name
+    if (nameField.value.trim().length < 2) {
+      errors.push('Lead name must be at least 2 characters long');
+      isValid = false;
+    }
+
+    // Validate phone
+    const phoneRegex = /^(\+91|91)?[6-9]\d{9}$/;
+    const cleanPhone = phoneField.value.replace(/\D/g, '');
+    if (!phoneRegex.test(cleanPhone)) {
+      errors.push('Please enter a valid Indian mobile number');
+      isValid = false;
+    }
+
+    // Validate product selection
+    if (!productField.value) {
+      errors.push('Please select a product interest');
+      isValid = false;
+    }
+
+    if (!isValid) {
+      e.preventDefault();
+      alert('Please fix the following errors:\n' + errors.join('\n'));
+    }
+  });
+});
+</script>

@@ -1,22 +1,23 @@
-class Admin::AffiliatePayoutsController < Admin::ApplicationController
+class Admin::DistributorPayoutsController < ApplicationController
   before_action :authenticate_user!
+  before_action :authorize_admin_access
 
   def index
-    @affiliate_payouts = calculate_affiliate_payouts
-    @total_affiliates = @affiliate_payouts.count
-    @total_pending_amount = @affiliate_payouts.sum { |a| a[:pending_amount] }
-    @total_paid_amount = @affiliate_payouts.sum { |a| a[:paid_amount] }
-    @total_commission_earned = @affiliate_payouts.sum { |a| a[:total_amount] }
+    @distributor_payouts = calculate_distributor_payouts
+    @total_distributors = @distributor_payouts.count
+    @total_pending_amount = @distributor_payouts.sum { |d| d[:pending_amount] }
+    @total_paid_amount = @distributor_payouts.sum { |d| d[:paid_amount] }
+    @total_commission_earned = @distributor_payouts.sum { |d| d[:total_amount] }
   end
 
   def mark_as_paid
     begin
-      affiliate_id = params[:affiliate_id]
+      distributor_id = params[:distributor_id]
       lead_ids = params[:lead_ids] || []
-      payout_type = params[:payout_type] || 'multiple_leads' # affiliate_all, lead_single, lead_multiple, affiliate_single
+      payout_type = params[:payout_type] || 'multiple_leads'
 
-      Rails.logger.info "=== AFFILIATE PAYOUT DEBUG ==="
-      Rails.logger.info "affiliate_id: #{affiliate_id}"
+      Rails.logger.info "=== DISTRIBUTOR PAYOUT DEBUG ==="
+      Rails.logger.info "distributor_id: #{distributor_id}"
       Rails.logger.info "lead_ids: #{lead_ids.inspect}"
       Rails.logger.info "payout_type: #{payout_type}"
 
@@ -24,8 +25,8 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       errors = []
 
       case payout_type
-      when 'affiliate_all'
-        # Mark all pending payouts for this affiliate as paid
+      when 'distributor_all'
+        # Mark all pending payouts for this distributor as paid
         transaction_id = params[:transaction_id]
         payment_date = params[:payment_date]
         notes = params[:notes]
@@ -42,8 +43,8 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
             errors << result[:error] if result[:error]
           end
         else
-          # Fallback: find all unpaid leads for this affiliate
-          mark_all_affiliate_payouts(affiliate_id)
+          # Fallback: find all unpaid leads for this distributor
+          mark_all_distributor_payouts(distributor_id)
           success_count = 1
         end
       when 'lead_single'
@@ -61,11 +62,11 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
         end
       when 'bulk_selection'
         # Handle bulk selection from modal
-        affiliate_ids = params[:affiliate_ids] || []
+        distributor_ids = params[:distributor_ids] || []
 
-        # Process selected affiliates (all their pending leads)
-        affiliate_ids.each do |aff_id|
-          mark_all_affiliate_payouts(aff_id)
+        # Process selected distributors (all their pending leads)
+        distributor_ids.each do |dist_id|
+          mark_all_distributor_payouts(dist_id)
           success_count += 1
         end
 
@@ -87,16 +88,16 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
           errors << result[:error] if result[:error]
         end
       when 'quick_all_pending'
-        # Handle quick payout for all pending affiliate payouts
+        # Handle quick payout for all pending distributor payouts
         transaction_id = params[:transaction_id]
         payment_date = params[:payment_date] || Date.current
-        notes = params[:notes] || "Quick batch payout for all pending affiliates"
+        notes = params[:notes] || "Quick batch payout for all pending distributors"
 
-        # Get all pending affiliate payouts
-        pending_payouts = calculate_affiliate_payouts.select { |a| a[:pending_amount] > 0 }
+        # Get all pending distributor payouts
+        pending_payouts = calculate_distributor_payouts.select { |d| d[:pending_amount] > 0 }
 
-        pending_payouts.each do |affiliate_data|
-          unpaid_leads = affiliate_data[:leads].select { |l| !l[:paid] }
+        pending_payouts.each do |distributor_data|
+          unpaid_leads = distributor_data[:leads].select { |l| !l[:paid] }
           unpaid_leads.each do |lead_data|
             result = mark_single_lead_payout_with_details(lead_data[:lead].lead_id, transaction_id, payment_date, notes)
             success_count += 1 if result[:success]
@@ -104,7 +105,7 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
           end
         end
       else
-        # Default: mark specific affiliate's leads as paid
+        # Default: mark specific distributor's leads as paid
         lead_ids.each do |lead_id|
           result = mark_single_lead_payout(lead_id)
           success_count += 1 if result[:success]
@@ -113,43 +114,43 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       end
 
       if errors.any?
-        redirect_to admin_affiliate_payouts_path, alert: "Some payouts failed: #{errors.join(', ')}"
+        redirect_to admin_distributor_payouts_path, alert: "Some payouts failed: #{errors.join(', ')}"
       else
-        redirect_to admin_affiliate_payouts_path, notice: "#{success_count} affiliate payout(s) marked as paid successfully!"
+        redirect_to admin_distributor_payouts_path, notice: "#{success_count} distributor payout(s) marked as paid successfully!"
       end
 
     rescue StandardError => e
-      redirect_to admin_affiliate_payouts_path, alert: "Error processing payouts: #{e.message}"
+      redirect_to admin_distributor_payouts_path, alert: "Error processing payouts: #{e.message}"
     end
   end
 
   def show
-    @affiliate_id = params[:id]
-    @affiliate = find_affiliate_by_id(@affiliate_id)
+    @distributor_id = params[:id]
+    @distributor = find_distributor_by_id(@distributor_id)
 
-    unless @affiliate
-      redirect_to admin_affiliate_payouts_path, alert: 'Affiliate not found'
+    unless @distributor
+      redirect_to admin_distributor_payouts_path, alert: 'Distributor not found'
       return
     end
 
-    @affiliate_details = fetch_affiliate_detailed_payouts(@affiliate_id)
-    @lead_wise_commissions = @affiliate_details[:lead_wise_commissions]
-    @summary = @affiliate_details[:summary]
+    @distributor_details = fetch_distributor_detailed_payouts(@distributor_id)
+    @lead_wise_commissions = @distributor_details[:lead_wise_commissions]
+    @summary = @distributor_details[:summary]
   end
 
   def unpaid_data
-    unpaid_affiliates = calculate_affiliate_payouts.select { |a| a[:pending_amount] > 0 }
+    unpaid_distributors = calculate_distributor_payouts.select { |d| d[:pending_amount] > 0 }
 
     render json: {
       success: true,
-      data: unpaid_affiliates.map do |affiliate_data|
+      data: unpaid_distributors.map do |distributor_data|
         {
-          affiliate: {
-            id: affiliate_data[:affiliate].id,
-            name: affiliate_data[:affiliate].display_name,
-            email: affiliate_data[:affiliate].email
+          distributor: {
+            id: distributor_data[:distributor].id,
+            name: distributor_data[:distributor].display_name,
+            email: distributor_data[:distributor].email
           },
-          leads: affiliate_data[:leads].reject { |l| l[:paid] }.map do |lead_data|
+          leads: distributor_data[:leads].reject { |l| l[:paid] }.map do |lead_data|
             {
               id: lead_data[:lead].lead_id,
               policy_id: lead_data[:policy].id,
@@ -158,7 +159,7 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
               customer_name: lead_data[:policy].customer&.display_name || 'Unknown'
             }
           end,
-          total_pending: affiliate_data[:pending_amount].round(2)
+          total_pending: distributor_data[:pending_amount].round(2)
         }
       end
     }
@@ -168,14 +169,14 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
 
   private
 
-  def calculate_affiliate_payouts
+  def calculate_distributor_payouts
     payouts = []
 
     # Get all policies where main agent commission is received
     paid_policies = get_all_paid_policies
 
-    # Group by affiliate
-    affiliate_groups = {}
+    # Group by distributor
+    distributor_groups = {}
 
     paid_policies.each do |policy|
       next unless policy.lead_id.present?
@@ -183,25 +184,25 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       lead = Lead.find_by(lead_id: policy.lead_id)
       next unless lead
 
-      # Get affiliate from the policy's sub_agent_id
-      affiliate = SubAgent.find_by(id: policy.sub_agent_id) if policy.respond_to?(:sub_agent_id) && policy.sub_agent_id.present?
-      next unless affiliate
+      # Get distributor from the policy's distributor_id field
+      distributor = Distributor.find_by(id: policy.distributor_id) if policy.respond_to?(:distributor_id) && policy.distributor_id.present?
+      next unless distributor
 
-      # Calculate affiliate commission (2% of net premium)
-      affiliate_commission = policy.net_premium * 0.02
+      # Calculate distributor commission (3% of net premium)
+      distributor_commission = policy.net_premium * 0.03
 
       # Check if already paid
-      already_paid = CommissionPayout.exists?(
+      already_paid = DistributorPayout.exists?(
         policy_type: get_policy_type(policy),
         policy_id: policy.id,
-        payout_to: 'affiliate',
+        distributor_id: distributor.id,
         status: 'paid'
       )
 
-      affiliate_key = affiliate.id
+      distributor_key = distributor.id
 
-      affiliate_groups[affiliate_key] ||= {
-        affiliate: affiliate,
+      distributor_groups[distributor_key] ||= {
+        distributor: distributor,
         leads: [],
         total_amount: 0,
         paid_amount: 0,
@@ -211,22 +212,22 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       lead_data = {
         lead: lead,
         policy: policy,
-        commission: affiliate_commission,
+        commission: distributor_commission,
         paid: already_paid
       }
 
-      affiliate_groups[affiliate_key][:leads] << lead_data
-      affiliate_groups[affiliate_key][:total_amount] += affiliate_commission
+      distributor_groups[distributor_key][:leads] << lead_data
+      distributor_groups[distributor_key][:total_amount] += distributor_commission
 
       if already_paid
-        affiliate_groups[affiliate_key][:paid_amount] += affiliate_commission
+        distributor_groups[distributor_key][:paid_amount] += distributor_commission
       else
-        affiliate_groups[affiliate_key][:pending_amount] += affiliate_commission
+        distributor_groups[distributor_key][:pending_amount] += distributor_commission
       end
     end
 
-    # Convert to array and sort by affiliate name
-    affiliate_groups.values.sort_by { |group| group[:affiliate].display_name }
+    # Convert to array and sort by distributor name
+    distributor_groups.values.sort_by { |group| group[:distributor].display_name }
   end
 
   def get_all_paid_policies
@@ -258,62 +259,11 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     policy
   end
 
-  def fetch_affiliate_payout_summary
-    affiliates_data = []
+  def fetch_distributor_detailed_payouts(distributor_id)
+    distributor_payouts = DistributorPayout.where(distributor_id: distributor_id)
 
-    # Get all affiliate commission payouts
-    affiliate_payouts = CommissionPayout.where(payout_to: 'affiliate')
-                                       .group_by { |payout| extract_affiliate_info(payout) }
-
-    affiliate_payouts.each do |affiliate_info, payouts|
-      next if affiliate_info.nil?
-
-      # Group payouts by lead/policy for this affiliate
-      lead_commissions = payouts.map do |payout|
-        policy = get_policy_from_payout(payout)
-        next unless policy
-
-        {
-          lead_id: policy.id,
-          policy_number: policy.policy_number,
-          customer_name: policy.customer&.display_name || 'Unknown',
-          commission_amount: payout.payout_amount.to_f,
-          status: payout.status,
-          policy_type: payout.policy_type
-        }
-      end.compact
-
-      total_commission = lead_commissions.sum { |lead| lead[:commission_amount] }
-      paid_amount = lead_commissions.select { |lead| lead[:status] == 'paid' }
-                                   .sum { |lead| lead[:commission_amount] }
-      pending_amount = total_commission - paid_amount
-
-      affiliates_data << {
-        affiliate_id: affiliate_info[:id],
-        affiliate_name: affiliate_info[:name],
-        affiliate_email: affiliate_info[:email],
-        lead_count: lead_commissions.count,
-        lead_commissions: lead_commissions,
-        total_commission: total_commission,
-        paid_amount: paid_amount,
-        pending_amount: pending_amount,
-        commission_status: pending_amount > 0 ? 'pending' : 'completed'
-      }
-    end
-
-    # Sort by total commission descending
-    affiliates_data.sort_by { |a| -a[:total_commission] }
-  end
-
-  def fetch_affiliate_detailed_payouts(affiliate_id)
-    affiliate_payouts = CommissionPayout.where(payout_to: 'affiliate')
-                                       .select do |payout|
-      affiliate_info = extract_affiliate_info(payout)
-      affiliate_info&.dig(:id) == affiliate_id.to_i
-    end
-
-    lead_wise_commissions = affiliate_payouts.map do |payout|
-      policy = get_policy_from_payout(payout)
+    lead_wise_commissions = distributor_payouts.map do |payout|
+      policy = payout.policy
       next unless policy
 
       {
@@ -348,51 +298,12 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     }
   end
 
-  def extract_affiliate_info(payout)
-    # For now, we'll create mock affiliate info based on payout data
-    # In a real system, you'd have an Affiliate model or reference
-    policy = get_policy_from_payout(payout)
-    return nil unless policy
-
-    # Generate consistent affiliate info based on customer or other criteria
-    # This is a simplified approach - you might want to add actual affiliate tracking
-    customer = policy.customer
-    return nil unless customer
-
-    # For demo purposes, we'll group by customer email domain or create mock affiliates
-    affiliate_id = (customer.email.hash % 10).abs + 1
-
-    {
-      id: affiliate_id,
-      name: "Affiliate #{affiliate_id}",
-      email: "affiliate#{affiliate_id}@insurebook.com"
-    }
-  end
-
-  def find_affiliate_by_id(affiliate_id)
-    # Mock affiliate data - replace with actual affiliate model when available
-    {
-      id: affiliate_id.to_i,
-      name: "Affiliate #{affiliate_id}",
-      email: "affiliate#{affiliate_id}@insurebook.com"
-    }
-  end
-
-  def get_policy_from_payout(payout)
-    case payout.policy_type
-    when 'health'
-      HealthInsurance.find_by(id: payout.policy_id)
-    when 'life'
-      LifeInsurance.find_by(id: payout.policy_id)
-    when 'motor'
-      MotorInsurance.find_by(id: payout.policy_id)
-    when 'other'
-      OtherInsurance.find_by(id: payout.policy_id)
-    end
+  def find_distributor_by_id(distributor_id)
+    Distributor.find_by(id: distributor_id)
   end
 
   def mark_single_lead_payout(lead_id)
-    mark_single_lead_payout_with_details(lead_id, "AFF_#{Time.current.to_i}", Date.current, "Affiliate payout for Lead ID: #{lead_id}")
+    mark_single_lead_payout_with_details(lead_id, "DIST_#{Time.current.to_i}", Date.current, "Distributor payout for Lead ID: #{lead_id}")
   end
 
   def mark_single_lead_payout_with_details(lead_id, transaction_id, payment_date, notes)
@@ -404,45 +315,50 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       return { success: false, error: "Policy not found for lead #{lead_id}" }
     end
 
-    # Calculate affiliate commission (2% of net premium)
-    affiliate_commission = policy.net_premium * 0.02
-    Rails.logger.info "Calculated commission: #{affiliate_commission} for policy #{policy.id}"
+    # Find distributor from policy
+    distributor = Distributor.find_by(id: policy.distributor_id) if policy.respond_to?(:distributor_id) && policy.distributor_id.present?
+    unless distributor
+      Rails.logger.error "Distributor not found for policy #{policy.id}"
+      return { success: false, error: "Distributor not found for policy #{policy.id}" }
+    end
+
+    # Calculate distributor commission (3% of net premium)
+    distributor_commission = policy.net_premium * 0.03
+    Rails.logger.info "Calculated commission: #{distributor_commission} for policy #{policy.id}"
 
     # Get correct policy type for validation
     policy_type = get_policy_type(policy)
 
     # Check if already paid
-    existing_payout = CommissionPayout.find_by(
+    existing_payout = DistributorPayout.find_by(
       policy_type: policy_type,
       policy_id: policy.id,
-      payout_to: 'affiliate'
+      distributor_id: distributor.id
     )
 
     begin
       if existing_payout
         Rails.logger.info "Updating existing payout #{existing_payout.id}"
-        existing_payout.update!(
-          status: 'paid',
-          payout_date: payment_date || Date.current,
+        existing_payout.mark_as_paid!(
           transaction_id: transaction_id,
+          payment_date: payment_date || Date.current,
           notes: notes,
-          processed_by: current_user&.email || 'system',
-          processed_at: Time.current
+          processed_by: current_user&.email || 'system'
         )
         Rails.logger.info "Successfully updated existing payout"
       else
         Rails.logger.info "Creating new payout record"
-        payout = CommissionPayout.create!(
+        payout = DistributorPayout.create!(
+          distributor_id: distributor.id,
           policy_type: policy_type,
           policy_id: policy.id,
-          payout_to: 'affiliate',
-          payout_amount: affiliate_commission,
+          payout_amount: distributor_commission,
           payout_date: payment_date || Date.current,
           status: 'paid',
           transaction_id: transaction_id,
           payment_mode: 'bank_transfer',
           reference_number: "REF_#{lead_id}_#{Time.current.to_i}",
-          notes: notes || "Affiliate payout for Lead ID: #{lead_id}",
+          notes: notes || "Distributor payout for Lead ID: #{lead_id}",
           processed_by: current_user&.email || 'system',
           processed_at: Time.current
         )
@@ -456,22 +372,22 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     end
   end
 
-  def mark_all_affiliate_payouts(affiliate_id)
-    affiliate = SubAgent.find_by(id: affiliate_id)
-    return unless affiliate
+  def mark_all_distributor_payouts(distributor_id)
+    distributor = Distributor.find_by(id: distributor_id)
+    return unless distributor
 
-    # Find all pending affiliate payouts
+    # Find all pending distributor payouts
     paid_policies = get_all_paid_policies
     paid_policies.each do |policy|
       next unless policy.lead_id.present?
-      next unless policy.sub_agent_id == affiliate_id.to_i
+      next unless policy.distributor_id == distributor_id.to_i
 
       # Check if not already paid
       policy_type = get_policy_type(policy)
-      existing_payout = CommissionPayout.find_by(
+      existing_payout = DistributorPayout.find_by(
         policy_type: policy_type,
         policy_id: policy.id,
-        payout_to: 'affiliate',
+        distributor_id: distributor_id,
         status: 'paid'
       )
       next if existing_payout
@@ -495,4 +411,7 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     end
   end
 
+  def authorize_admin_access
+    redirect_to root_path unless current_user&.user_type == 'admin'
+  end
 end

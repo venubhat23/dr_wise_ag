@@ -12,6 +12,7 @@ Rails.application.routes.draw do
 
   # Dashboard
   get 'dashboard', to: 'dashboard#index'
+  get 'dashboard/stats', to: 'dashboard#stats'
 
   # Admin routes
   namespace :admin do
@@ -53,6 +54,14 @@ Rails.application.routes.draw do
 
     # Affiliate Payout System
     resources :affiliate_payouts, only: [:index, :show] do
+      collection do
+        post :mark_as_paid
+        get :unpaid_data
+      end
+    end
+
+    # Distributor Payout System
+    resources :distributor_payouts, only: [:index, :show] do
       collection do
         post :mark_as_paid
         get :unpaid_data

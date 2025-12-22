@@ -114,7 +114,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
 
   def sub_agent_params
     params.require(:sub_agent).permit(
-      :first_name, :middle_name, :last_name, :mobile, :email, :role_id,
+      :first_name, :middle_name, :last_name, :mobile, :email, :password, :password_confirmation, :role_id,
       :state_id, :city_id, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
       :account_holder_name, :account_type, :upi_id, :status, :upload_main_document,

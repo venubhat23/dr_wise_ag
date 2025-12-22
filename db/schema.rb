@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_21_013236) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_22_043945) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -238,6 +238,27 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_21_013236) do
     t.index ["distributor_id"], name: "index_distributor_documents_on_distributor_id"
   end
 
+  create_table "distributor_payouts", force: :cascade do |t|
+    t.bigint "distributor_id", null: false
+    t.string "policy_type"
+    t.integer "policy_id"
+    t.decimal "payout_amount", precision: 10, scale: 2
+    t.date "payout_date"
+    t.string "status", default: "pending"
+    t.string "transaction_id"
+    t.string "payment_mode"
+    t.string "reference_number"
+    t.text "notes"
+    t.string "processed_by"
+    t.datetime "processed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["distributor_id", "status"], name: "index_distributor_payouts_on_distributor_id_and_status"
+    t.index ["distributor_id"], name: "index_distributor_payouts_on_distributor_id"
+    t.index ["policy_type", "policy_id"], name: "index_distributor_payouts_on_policy_type_and_policy_id"
+    t.index ["status"], name: "index_distributor_payouts_on_status"
+  end
+
   create_table "distributors", force: :cascade do |t|
     t.string "first_name", null: false
     t.string "middle_name"
@@ -359,6 +380,25 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_21_013236) do
     t.string "lead_id"
     t.bigint "distributor_id"
     t.bigint "investor_id"
+    t.decimal "ambassador_commission_percentage"
+    t.decimal "ambassador_commission_amount"
+    t.decimal "ambassador_tds_percentage"
+    t.decimal "ambassador_tds_amount"
+    t.decimal "ambassador_after_tds_value"
+    t.decimal "sub_agent_commission_percentage"
+    t.decimal "sub_agent_commission_amount"
+    t.decimal "sub_agent_tds_percentage"
+    t.decimal "sub_agent_tds_amount"
+    t.decimal "sub_agent_after_tds_value"
+    t.decimal "investor_commission_percentage"
+    t.decimal "investor_commission_amount"
+    t.decimal "investor_tds_percentage"
+    t.decimal "investor_tds_amount"
+    t.decimal "investor_after_tds_value"
+    t.decimal "company_expenses_percentage"
+    t.decimal "total_distribution_percentage"
+    t.decimal "profit_percentage"
+    t.decimal "profit_amount"
     t.index ["agency_code_id"], name: "index_health_insurances_on_agency_code_id"
     t.index ["broker_id"], name: "index_health_insurances_on_broker_id"
     t.index ["customer_id"], name: "index_health_insurances_on_customer_id"
@@ -586,6 +626,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_21_013236) do
     t.date "main_agent_commission_paid_date"
     t.text "main_agent_commission_notes"
     t.string "lead_id"
+    t.decimal "ambassador_commission_percentage"
+    t.decimal "ambassador_commission_amount"
+    t.decimal "ambassador_tds_percentage"
+    t.decimal "ambassador_tds_amount"
+    t.decimal "ambassador_after_tds_value"
     t.index ["agency_code_id"], name: "index_life_insurances_on_agency_code_id"
     t.index ["broker_id"], name: "index_life_insurances_on_broker_id"
     t.index ["customer_id"], name: "index_life_insurances_on_customer_id"
@@ -698,3 +743,317 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_21_013236) do
     t.index ["policy_number"], name: "index_motor_insurances_on_policy_number", unique: true
     t.index ["sub_agent_id"], name: "index_motor_insurances_on_sub_agent_id"
   end
+
+  create_table "other_insurances", force: :cascade do |t|
+    t.bigint "policy_id", null: false
+    t.string "other_policy_type"
+    t.decimal "main_agent_commission_percent"
+    t.decimal "main_agent_commission_amount"
+    t.decimal "main_agent_tds_percent"
+    t.decimal "main_agent_tds_amount"
+    t.string "reference_by_name"
+    t.string "broker_name"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.text "notification_dates"
+    t.date "policy_end_date"
+    t.date "policy_start_date"
+    t.date "policy_booking_date"
+    t.boolean "product_through_dr", default: false
+    t.boolean "main_agent_commission_received", default: false
+    t.string "main_agent_commission_transaction_id"
+    t.date "main_agent_commission_paid_date"
+    t.text "main_agent_commission_notes"
+    t.bigint "distributor_id"
+    t.string "lead_id"
+    t.bigint "investor_id"
+    t.index ["distributor_id"], name: "index_other_insurances_on_distributor_id"
+    t.index ["investor_id"], name: "index_other_insurances_on_investor_id"
+    t.index ["lead_id"], name: "index_other_insurances_on_lead_id", unique: true
+    t.index ["policy_id"], name: "index_other_insurances_on_policy_id"
+  end
+
+  create_table "payout_audit_logs", force: :cascade do |t|
+    t.string "auditable_type"
+    t.integer "auditable_id"
+    t.string "action"
+    t.json "changes"
+    t.string "performed_by"
+    t.string "ip_address"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["auditable_type", "auditable_id"], name: "index_payout_audit_logs_on_auditable_type_and_auditable_id"
+    t.index ["created_at"], name: "index_payout_audit_logs_on_created_at"
+    t.index ["performed_by"], name: "index_payout_audit_logs_on_performed_by"
+  end
+
+  create_table "payout_distributions", force: :cascade do |t|
+    t.bigint "commission_receipt_id", null: false
+    t.string "recipient_type", null: false
+    t.integer "recipient_id"
+    t.decimal "distribution_percentage", precision: 5, scale: 2, null: false
+    t.decimal "calculated_amount", precision: 10, scale: 2, null: false
+    t.decimal "paid_amount", precision: 10, scale: 2, default: "0.0"
+    t.decimal "pending_amount", precision: 10, scale: 2, default: "0.0"
+    t.string "status", default: "pending"
+    t.date "payment_date"
+    t.string "payment_mode"
+    t.string "transaction_id"
+    t.string "reference_number"
+    t.text "payment_notes"
+    t.string "processed_by"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["commission_receipt_id"], name: "index_payout_distributions_on_commission_receipt_id"
+    t.index ["payment_date"], name: "index_payout_distributions_on_payment_date"
+    t.index ["recipient_type", "recipient_id"], name: "index_payout_distributions_on_recipient_type_and_recipient_id"
+    t.index ["status"], name: "index_payout_distributions_on_status"
+  end
+
+  create_table "permissions", force: :cascade do |t|
+    t.string "name", limit: 100, null: false
+    t.string "module_name", limit: 50, null: false
+    t.string "action_type", limit: 20, null: false
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["action_type"], name: "index_permissions_on_action_type"
+    t.index ["module_name", "action_type"], name: "index_permissions_on_module_name_and_action_type", unique: true
+    t.index ["module_name"], name: "index_permissions_on_module_name"
+  end
+
+  create_table "policies", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "insurance_company_id", null: false
+    t.bigint "agency_broker_id", null: false
+    t.string "policy_number"
+    t.string "policy_type"
+    t.string "insurance_type"
+    t.string "plan_name"
+    t.string "payment_mode"
+    t.date "policy_booking_date"
+    t.date "policy_start_date"
+    t.date "policy_end_date"
+    t.integer "policy_term_years"
+    t.date "risk_start_date"
+    t.decimal "sum_insured"
+    t.decimal "net_premium"
+    t.decimal "gst_percentage"
+    t.decimal "total_premium"
+    t.decimal "bonus"
+    t.decimal "fund"
+    t.text "note"
+    t.boolean "status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["agency_broker_id"], name: "index_policies_on_agency_broker_id"
+    t.index ["customer_id", "created_at"], name: "index_policies_on_customer_id_and_created_at"
+    t.index ["customer_id"], name: "index_policies_on_customer_id"
+    t.index ["insurance_company_id"], name: "index_policies_on_insurance_company_id"
+    t.index ["user_id"], name: "index_policies_on_user_id"
+  end
+
+  create_table "role_permissions", force: :cascade do |t|
+    t.bigint "role_id", null: false
+    t.bigint "permission_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["permission_id"], name: "idx_role_permissions_permission"
+    t.index ["role_id", "permission_id"], name: "idx_role_permissions_unique", unique: true
+    t.index ["role_id"], name: "idx_role_permissions_role"
+  end
+
+  create_table "roles", force: :cascade do |t|
+    t.string "name", limit: 100, null: false
+    t.text "description"
+    t.boolean "status", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_roles_on_name", unique: true
+    t.index ["status"], name: "index_roles_on_status"
+  end
+
+  create_table "sub_agent_documents", force: :cascade do |t|
+    t.bigint "sub_agent_id", null: false
+    t.string "document_type", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["sub_agent_id", "document_type"], name: "index_sub_agent_documents_on_sub_agent_id_and_document_type"
+    t.index ["sub_agent_id"], name: "index_sub_agent_documents_on_sub_agent_id"
+  end
+
+  create_table "sub_agents", force: :cascade do |t|
+    t.string "first_name", null: false
+    t.string "middle_name"
+    t.string "last_name", null: false
+    t.string "mobile", null: false
+    t.string "email", null: false
+    t.integer "role_id", null: false
+    t.integer "state_id"
+    t.integer "city_id"
+    t.date "birth_date"
+    t.string "gender"
+    t.string "pan_no"
+    t.string "gst_no"
+    t.string "company_name"
+    t.text "address"
+    t.string "bank_name"
+    t.string "account_no"
+    t.string "ifsc_code"
+    t.string "account_holder_name"
+    t.string "account_type"
+    t.string "upi_id"
+    t.integer "status", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "password_digest"
+    t.bigint "distributor_id"
+    t.index ["distributor_id"], name: "index_sub_agents_on_distributor_id"
+    t.index ["email"], name: "index_sub_agents_on_email", unique: true
+    t.index ["mobile"], name: "index_sub_agents_on_mobile", unique: true
+    t.index ["role_id"], name: "index_sub_agents_on_role_id"
+    t.index ["status"], name: "index_sub_agents_on_status"
+  end
+
+  create_table "system_settings", force: :cascade do |t|
+    t.string "key", null: false
+    t.text "value"
+    t.text "description"
+    t.string "setting_type"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_system_settings_on_key", unique: true
+  end
+
+  create_table "tax_services", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.string "service_type"
+    t.string "financial_year"
+    t.date "filing_date"
+    t.decimal "amount"
+    t.boolean "status"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_tax_services_on_customer_id"
+  end
+
+  create_table "travel_packages", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.string "travel_type"
+    t.string "destination"
+    t.date "travel_date"
+    t.date "return_date"
+    t.decimal "package_amount"
+    t.boolean "status"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_travel_packages_on_customer_id"
+  end
+
+  create_table "user_roles", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.boolean "status", default: true, null: false
+    t.integer "display_order", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["display_order"], name: "index_user_roles_on_display_order"
+    t.index ["name"], name: "index_user_roles_on_name", unique: true
+    t.index ["status"], name: "index_user_roles_on_status"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.string "first_name"
+    t.string "last_name"
+    t.string "email"
+    t.string "mobile"
+    t.string "pan_number"
+    t.string "gst_number"
+    t.date "date_of_birth"
+    t.string "gender"
+    t.string "height"
+    t.string "weight"
+    t.string "education"
+    t.string "marital_status"
+    t.string "occupation"
+    t.string "job_name"
+    t.string "type_of_duty"
+    t.decimal "annual_income"
+    t.string "birth_place"
+    t.string "address"
+    t.string "state"
+    t.string "city"
+    t.string "user_type"
+    t.string "role"
+    t.boolean "status"
+    t.text "additional_info"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "encrypted_password", default: "", null: false
+    t.string "reset_password_token"
+    t.datetime "reset_password_sent_at"
+    t.datetime "remember_created_at"
+    t.bigint "role_id"
+    t.bigint "user_role_id"
+    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["role_id"], name: "idx_users_role_id"
+    t.index ["role_id"], name: "index_users_on_role_id"
+    t.index ["user_role_id"], name: "index_users_on_user_role_id"
+  end
+
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "client_requests", "users", column: "resolved_by_id"
+  add_foreign_key "corporate_members", "customers"
+  add_foreign_key "distributor_assignments", "distributors"
+  add_foreign_key "distributor_assignments", "sub_agents"
+  add_foreign_key "distributor_documents", "distributors"
+  add_foreign_key "distributor_payouts", "distributors"
+  add_foreign_key "family_members", "customers"
+  add_foreign_key "health_insurance_members", "health_insurances"
+  add_foreign_key "health_insurances", "agency_codes"
+  add_foreign_key "health_insurances", "brokers"
+  add_foreign_key "health_insurances", "customers"
+  add_foreign_key "health_insurances", "distributors"
+  add_foreign_key "health_insurances", "investors"
+  add_foreign_key "health_insurances", "policies"
+  add_foreign_key "health_insurances", "sub_agents"
+  add_foreign_key "investments", "customers"
+  add_foreign_key "investor_documents", "investors"
+  add_foreign_key "life_insurance_bank_details", "life_insurances"
+  add_foreign_key "life_insurance_documents", "life_insurances"
+  add_foreign_key "life_insurance_nominees", "life_insurances"
+  add_foreign_key "life_insurances", "agency_codes"
+  add_foreign_key "life_insurances", "brokers"
+  add_foreign_key "life_insurances", "customers"
+  add_foreign_key "life_insurances", "distributors"
+  add_foreign_key "life_insurances", "investors"
+  add_foreign_key "life_insurances", "sub_agents"
+  add_foreign_key "loans", "customers"
+  add_foreign_key "motor_insurances", "agency_codes"
+  add_foreign_key "motor_insurances", "brokers"
+  add_foreign_key "motor_insurances", "customers"
+  add_foreign_key "motor_insurances", "distributors"
+  add_foreign_key "motor_insurances", "investors"
+  add_foreign_key "motor_insurances", "sub_agents"
+  add_foreign_key "other_insurances", "distributors"
+  add_foreign_key "other_insurances", "investors"
+  add_foreign_key "other_insurances", "policies"
+  add_foreign_key "payout_distributions", "commission_receipts"
+  add_foreign_key "policies", "agency_brokers"
+  add_foreign_key "policies", "customers"
+  add_foreign_key "policies", "insurance_companies"
+  add_foreign_key "policies", "users"
+  add_foreign_key "role_permissions", "permissions"
+  add_foreign_key "role_permissions", "roles"
+  add_foreign_key "sub_agent_documents", "sub_agents"
+  add_foreign_key "sub_agents", "distributors"
+  add_foreign_key "tax_services", "customers"
+  add_foreign_key "travel_packages", "customers"
+  add_foreign_key "users", "roles"
+  add_foreign_key "users", "user_roles"
+end

@@ -68,6 +68,21 @@
 
       <div class="row mt-3">
         <div class="col-md-6">
+          <%= form.label :password, class: "form-label" do %>
+            Password <span class="text-danger">*</span>
+          <% end %>
+          <%= form.password_field :password, class: "form-control", placeholder: "Enter password", required: true %>
+        </div>
+        <div class="col-md-6">
+          <%= form.label :password_confirmation, "Confirm Password", class: "form-label" do %>
+            Confirm Password <span class="text-danger">*</span>
+          <% end %>
+          <%= form.password_field :password_confirmation, class: "form-control", placeholder: "Confirm password", required: true %>
+        </div>
+      </div>
+
+      <div class="row mt-3">
+        <div class="col-md-6">
           <%= form.label :role_id, class: "form-label" do %>
             Role <span class="text-danger">*</span>
           <% end %>
