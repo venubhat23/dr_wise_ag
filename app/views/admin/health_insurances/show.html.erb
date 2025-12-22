@@ -182,10 +182,7 @@
         <div class="mb-3">
           <label class="form-label text-muted small">Address</label>
           <div>
-            <%= @health_insurance.customer.address_line_1 %><br>
-            <% if @health_insurance.customer.address_line_2.present? %>
-              <%= @health_insurance.customer.address_line_2 %><br>
-            <% end %>
+            <%= @health_insurance.customer.address.present? ? @health_insurance.customer.address : 'Not provided' %><br>
             <%= @health_insurance.customer.city %>, <%= @health_insurance.customer.state %>
             <% if @health_insurance.customer.pincode.present? %>
               - <%= @health_insurance.customer.pincode %>
