@@ -10,6 +10,7 @@ class CommissionPayout < ApplicationRecord
   end
 
   # Associations
+  belongs_to :payout, optional: true
   has_many :payout_audit_logs, as: :auditable, dependent: :destroy
 
   # Enums

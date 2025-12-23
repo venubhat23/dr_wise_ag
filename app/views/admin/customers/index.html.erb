@@ -198,7 +198,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>
                   <div>
                     <h6 class="mb-1"><%= customer.display_name %></h6>
-                    <small class="text-muted"><%= customer.email %></small>
+                    <small class="text-muted d-block"><%= customer.email %></small>
+                    <% user = User.find_by(email: customer.email, user_type: 'customer') %>
+                    <% if user %>
+                      <small class="text-success d-block">
+                        <i class="bi bi-key me-1"></i>Password: <span class="text-primary fw-bold">
+                          <% if user.created_at > 1.day.ago %>
+                            <%= "password123" %>
+                          <% else %>
+                            <%= "Set (contact admin)" %>
+                          <% end %>
+                        </span>
+                      </small>
+                    <% else %>
+                      <small class="text-warning d-block">
+                        <i class="bi bi-key me-1"></i>Password: <span class="text-muted">Not set</span>
+                      </small>
+                    <% end %>
                   </div>
                 </td>
                 <td>
@@ -210,8 +226,11 @@ document.addEventListener('DOMContentLoaded', function() {
                   <div>
                     <div class="mb-1"><%= customer.mobile %></div>
                     <% if customer.pan_number.present? %>
-                      <small class="text-muted">PAN: <%= customer.pan_number %></small>
+                      <small class="text-muted d-block">PAN: <%= customer.pan_number %></small>
                     <% end %>
+                    <small class="text-muted d-block">
+                      <i class="bi bi-calendar me-1"></i>Created: <%= customer.created_at.strftime('%d %b %Y') %>
+                    </small>
                   </div>
                 </td>
                 <td>

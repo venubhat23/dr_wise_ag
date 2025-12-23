@@ -318,9 +318,42 @@ class Admin::CustomersController < Admin::ApplicationController
   def create
     @customer = Customer.new(customer_params)
 
-    if @customer.save
-      redirect_to admin_customer_path(@customer), notice: 'Customer was successfully created.'
-    else
+    # Handle password creation if provided
+    password = params[:customer][:password]
+    password_confirmation = params[:customer][:password_confirmation]
+
+    begin
+      ActiveRecord::Base.transaction do
+        if @customer.save
+          # Create User account if password is provided
+          if password.present? && password_confirmation.present?
+            if password == password_confirmation
+              User.create!(
+                first_name: @customer.first_name,
+                last_name: @customer.last_name || @customer.company_name,
+                email: @customer.email,
+                mobile: @customer.mobile,
+                password: password,
+                password_confirmation: password_confirmation,
+                user_type: 'customer',
+                status: true
+              )
+              redirect_to admin_customer_path(@customer), notice: 'Customer and login account created successfully.'
+            else
+              @customer.destroy
+              @customer.errors.add(:password_confirmation, "doesn't match Password")
+              render :new, status: :unprocessable_entity
+              return
+            end
+          else
+            redirect_to admin_customer_path(@customer), notice: 'Customer was successfully created.'
+          end
+        else
+          render :new, status: :unprocessable_entity
+        end
+      end
+    rescue => e
+      @customer.errors.add(:base, "Failed to create login account: #{e.message}")
       render :new, status: :unprocessable_entity
     end
   end

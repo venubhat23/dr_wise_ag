@@ -593,10 +593,10 @@
       <div class="alert alert-info mt-3">
         <h6 class="mb-2">Commission Calculation Summary:</h6>
         <ul class="mb-0">
-          <li><strong>Main Income:</strong> 10% of Net Premium</li>
-          <li><strong>Distribution:</strong> Sub-agent + Investor commissions</li>
+          <li><strong>Main Agent Commission:</strong> <span id="main-income-display">0%</span> of Net Premium</li>
+          <li><strong>Total Distribution:</strong> <span id="distribution-display">6.0%</span> (Affiliate + Ambassador + Investor)</li>
           <li><strong>Company Expenses:</strong> <span id="expenses-display">2.0%</span> of Net Premium</li>
-          <li><strong>Profit:</strong> Main Income - Total Distribution - Company Expenses</li>
+          <li><strong>Profit:</strong> Main Agent Commission - Total Distribution - Company Expenses</li>
         </ul>
       </div>
     </div>
@@ -752,7 +752,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Calculate company expenses and profit
   function calculateProfitAndExpenses() {
     const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
-    const mainIncomePercentage = 10.0; // Fixed at 10%
+    const mainAgentCommissionPercentage = parseFloat(document.getElementById('commission_percentage').value) || 0;
 
     // Get commission percentages
     const subAgentPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage').value) || 2.0;
@@ -763,8 +763,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Calculate total distribution
     const totalDistributionPercentage = subAgentPercentage + ambassadorPercentage + investorPercentage;
 
-    // Calculate profit
-    const profitPercentage = mainIncomePercentage - totalDistributionPercentage - companyExpensesPercentage;
+    // Calculate profit: Main Agent Commission - Affiliate Commission - Ambassador Commission - Investor Commission - Company Expenses
+    const profitPercentage = mainAgentCommissionPercentage - totalDistributionPercentage - companyExpensesPercentage;
     const profitAmount = netPremium * (profitPercentage / 100);
 
     // Update fields
@@ -773,6 +773,18 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('.profit-amount').value = profitAmount.toFixed(2);
 
     // Update display in summary
+    document.getElementById('expenses-display').textContent = companyExpensesPercentage.toFixed(1) + '%';
+    updateCommissionSummary();
+  }
+
+  // Update the commission calculation summary dynamically
+  function updateCommissionSummary() {
+    const mainAgentCommissionPercentage = parseFloat(document.getElementById('commission_percentage').value) || 0;
+    const totalDistributionPercentage = parseFloat(document.querySelector('.total-distribution-percentage').value) || 0;
+    const companyExpensesPercentage = parseFloat(document.querySelector('.company-expenses-percentage').value) || 0;
+
+    document.getElementById('main-income-display').textContent = mainAgentCommissionPercentage.toFixed(1) + '%';
+    document.getElementById('distribution-display').textContent = totalDistributionPercentage.toFixed(1) + '%';
     document.getElementById('expenses-display').textContent = companyExpensesPercentage.toFixed(1) + '%';
   }
 
@@ -858,7 +870,10 @@ document.addEventListener('DOMContentLoaded', function() {
     calculateAllCommissions();
   });
   document.getElementById('first_year_gst').addEventListener('input', calculateTotalPremium);
-  document.getElementById('commission_percentage').addEventListener('input', calculateCommission);
+  document.getElementById('commission_percentage').addEventListener('input', function() {
+    calculateCommission();
+    calculateProfitAndExpenses();
+  });
   document.getElementById('tds_percentage').addEventListener('input', calculateCommission);
   document.getElementById('start_date').addEventListener('change', calculateEndDate);
   document.getElementById('policy_term').addEventListener('change', calculateEndDate);
@@ -896,6 +911,10 @@ document.addEventListener('DOMContentLoaded', function() {
   if (paymentModeSelect) {
     paymentModeSelect.addEventListener('change', calculateEndDate);
   }
+
+  // Initialize calculations and summary on page load
+  calculateAllCommissions();
+  updateCommissionSummary();
 
 });
 </script>

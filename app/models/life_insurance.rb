@@ -44,6 +44,9 @@ class LifeInsurance < ApplicationRecord
   validate :company_name_must_be_valid
   validate :end_date_after_start_date
 
+  # Callbacks
+  after_create :create_structured_payout
+
   # Enums for dropdowns
   POLICY_TYPES = ['New', 'Renewal', 'Porting'].freeze
   PAYMENT_MODES = ['Yearly', 'Half-Yearly', 'Quarterly', 'Monthly', 'Single'].freeze
@@ -351,5 +354,15 @@ class LifeInsurance < ApplicationRecord
     LeadGeneratorService.create_lead_for_insurance(self)
   rescue StandardError => e
     Rails.logger.error "Failed to create lead for life insurance #{id}: #{e.message}"
+  end
+
+  def create_structured_payout
+    return unless net_premium.present? && net_premium > 0
+    return if is_customer_added? # Skip auto-creation for customer-added policies
+
+    # Create structured payout with hierarchical commission structure
+    StructuredPayoutService.create_for_policy(self, 'life')
+  rescue StandardError => e
+    Rails.logger.error "Failed to create structured payout for life insurance #{id}: #{e.message}"
   end
 end

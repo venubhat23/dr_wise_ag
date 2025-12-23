@@ -139,6 +139,26 @@
             <% end %>
           </div>
         </div>
+
+        <!-- Login Credentials Section (Corporate) -->
+        <div class="row mt-4">
+          <div class="col-12">
+            <h6 class="text-primary mb-3">
+              <i class="bi bi-key me-2"></i>Login Credentials (Optional)
+            </h6>
+            <p class="text-muted small mb-3">Create login account for this corporate customer</p>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="corporate_password">Password</label>
+            <input type="password" class="form-control" id="corporate_password" name="customer[password]" placeholder="Enter password">
+            <small class="form-text text-muted">Leave blank to skip login account creation</small>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="corporate_password_confirmation">Confirm Password</label>
+            <input type="password" class="form-control" id="corporate_password_confirmation" name="customer[password_confirmation]" placeholder="Confirm password">
+            <small class="form-text text-muted">Must match the password above</small>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -354,6 +374,26 @@
             <% else %>
               <small class="form-text text-muted">Optional for individual customers</small>
             <% end %>
+          </div>
+        </div>
+
+        <!-- Login Credentials Section -->
+        <div class="row mt-4">
+          <div class="col-12">
+            <h6 class="text-primary mb-3">
+              <i class="bi bi-key me-2"></i>Login Credentials (Optional)
+            </h6>
+            <p class="text-muted small mb-3">Create login account for this customer to access mobile app</p>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="customer_password">Password</label>
+            <input type="password" class="form-control" id="customer_password" name="customer[password]" placeholder="Enter password">
+            <small class="form-text text-muted">Leave blank to skip login account creation</small>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="customer_password_confirmation">Confirm Password</label>
+            <input type="password" class="form-control" id="customer_password_confirmation" name="customer[password_confirmation]" placeholder="Confirm password">
+            <small class="form-text text-muted">Must match the password above</small>
           </div>
         </div>
       </div>

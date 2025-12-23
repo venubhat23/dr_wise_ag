@@ -269,21 +269,19 @@
       </div>
 
       <!-- Current Files -->
-      <% if @customer.profile_images.any? || @customer.documents.any? %>
+      <% if @customer.profile_image.attached? || @customer.documents.any? %>
         <div class="card border-0 shadow-sm mb-4">
           <div class="card-header bg-transparent border-0">
             <h5 class="mb-0">Current Files</h5>
           </div>
           <div class="card-body">
-            <% if @customer.profile_images.any? %>
-              <h6>Profile Images</h6>
+            <% if @customer.profile_image.attached? %>
+              <h6>Profile Image</h6>
               <div class="row g-2 mb-3">
-                <% @customer.profile_images.each do |image| %>
-                  <div class="col-md-3">
-                    <%= image_tag image, class: "img-thumbnail", style: "max-height: 100px;" %>
-                    <small class="d-block text-muted"><%= image.filename %></small>
-                  </div>
-                <% end %>
+                <div class="col-md-3">
+                  <%= image_tag @customer.profile_image, class: "img-thumbnail", style: "max-height: 100px;" %>
+                  <small class="d-block text-muted"><%= @customer.profile_image.filename %></small>
+                </div>
               </div>
             <% end %>
 

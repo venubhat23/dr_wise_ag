@@ -2,81 +2,82 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
 
   # POST /api/v1/mobile/auth/login
   def login
-    email = params[:username] || params[:email]
+    # Support login with email or mobile number
+    login_field = params[:username] || params[:email] || params[:mobile]
     password = params[:password]
 
-    if email.blank? || password.blank?
+    if login_field.blank? || password.blank?
       return render json: {
         success: false,
-        message: 'Username and password are required'
+        message: 'Email/Mobile and password are required'
       }, status: :unprocessable_entity
     end
 
-    # Check if it's a customer login
-    customer = Customer.find_by(email: email)
-    if customer && customer.status
-      # For customers, we don't have password authentication in current model
-      # You might need to add password field to customers table
-      token = generate_token(customer, 'customer')
+    # Check if it's a user login (including customers, agents, admin)
+    # Support login with both email and mobile number
+    user = User.find_by(email: login_field) || User.find_by(mobile: login_field)
+    if user && user.valid_password?(password) && user.status
 
-      # Get customer portfolio statistics
-      portfolio_stats = get_customer_portfolio_stats(customer)
+      if user.customer?
+        # Customer login - find associated customer record
+        customer = Customer.find_by(email: user.email) || Customer.find_by(mobile: user.mobile)
+        if customer
+          token = generate_token(user, 'customer')
+          portfolio_stats = get_customer_portfolio_stats(customer)
 
-      render json: {
-        success: true,
-        data: {
-          token: token,
-          username: customer.display_name,
-          role: 'customer',
-          user_id: customer.id,
-          email: customer.email,
-          mobile: customer.mobile,
-          portfolio_summary: {
-            total_policies: portfolio_stats[:total_policies],
-            upcoming_installments: portfolio_stats[:upcoming_installments],
-            renewal_policies: portfolio_stats[:renewal_policies]
+          render json: {
+            success: true,
+            data: {
+              token: token,
+              username: user.full_name,
+              role: 'customer',
+              user_id: user.id,
+              customer_id: customer.id,
+              email: user.email,
+              mobile: user.mobile,
+              portfolio_summary: {
+                total_policies: portfolio_stats[:total_policies],
+                upcoming_installments: portfolio_stats[:upcoming_installments],
+                renewal_policies: portfolio_stats[:renewal_policies]
+              }
+            }
+          }
+          return
+        end
+      elsif user.agent? || user.admin? || user.sub_agent?
+        # Agent/Admin login
+        token = generate_token(user, user.user_type)
+        agent_stats = get_agent_statistics(user)
+
+        render json: {
+          success: true,
+          data: {
+            token: token,
+            username: user.full_name,
+            role: user.user_type,
+            user_id: user.id,
+            email: user.email,
+            mobile: user.mobile,
+            commission_earned: agent_stats[:commission_earned],
+            customers_count: agent_stats[:customers_count],
+            policies_count: agent_stats[:policies_count],
+            commission_breakdown: agent_stats[:commission_breakdown],
+            dashboard_stats: {
+              total_commission: agent_stats[:commission_earned],
+              monthly_target: 75000,
+              achievement_percentage: ((agent_stats[:commission_earned] / 75000) * 100).round(2),
+              policies_this_month: (agent_stats[:policies_count] * 0.3).round,
+              customers_this_month: (agent_stats[:customers_count] * 0.25).round,
+              conversion_rate: "#{rand(65..85)}%"
+            }
           }
         }
-      }
-      return
-    end
-
-    # Check if it's a user/agent login
-    user = User.find_by(email: email)
-    if user && user.valid_password?(password)
-      token = generate_token(user, 'agent')
-
-      # Get agent statistics
-      agent_stats = get_agent_statistics(user)
-
-      render json: {
-        success: true,
-        data: {
-          token: token,
-          username: user.first_name + ' ' + user.last_name,
-          role: 'agent',
-          user_id: user.id,
-          email: user.email,
-          mobile: user.mobile,
-          commission_earned: agent_stats[:commission_earned],
-          customers_count: agent_stats[:customers_count],
-          policies_count: agent_stats[:policies_count],
-          commission_breakdown: agent_stats[:commission_breakdown],
-          dashboard_stats: {
-            total_commission: agent_stats[:commission_earned],
-            monthly_target: 75000,
-            achievement_percentage: ((agent_stats[:commission_earned] / 75000) * 100).round(2),
-            policies_this_month: (agent_stats[:policies_count] * 0.3).round,
-            customers_this_month: (agent_stats[:customers_count] * 0.25).round,
-            conversion_rate: "#{rand(65..85)}%"
-          }
-        }
-      }
-      return
+        return
+      end
     end
 
     # Check sub-agent login
-    sub_agent = SubAgent.find_by(email: email)
+    sub_agent = SubAgent.find_by(email: login_field) || SubAgent.find_by(mobile: login_field)
     if sub_agent && sub_agent.status == 'active'
       # For sub-agents, we also don't have password in current model
       token = generate_token(sub_agent, 'sub_agent')
@@ -129,19 +130,19 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
 
   # POST /api/v1/mobile/auth/forgot_password
   def forgot_password
-    email = params[:email]
+    login_field = params[:email] || params[:mobile]
 
-    if email.blank?
+    if login_field.blank?
       return render json: {
         success: false,
-        message: 'Email is required'
+        message: 'Email or mobile number is required'
       }, status: :unprocessable_entity
     end
 
     # Check in all user types
-    user = User.find_by(email: email) ||
-           Customer.find_by(email: email) ||
-           SubAgent.find_by(email: email)
+    user = User.find_by(email: login_field) || User.find_by(mobile: login_field) ||
+           Customer.find_by(email: login_field) || Customer.find_by(mobile: login_field) ||
+           SubAgent.find_by(email: login_field) || SubAgent.find_by(mobile: login_field)
 
     if user
       # Generate reset token (simplified - you might want to use a proper token system)
@@ -182,48 +183,72 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
   def register_customer
     customer_params = params.permit(:first_name, :last_name, :email, :mobile, :password)
 
-    if customer_params[:email].blank? || customer_params[:mobile].blank?
+    if customer_params[:email].blank? || customer_params[:mobile].blank? || customer_params[:password].blank?
       return render json: {
         success: false,
-        message: 'Email and mobile number are required'
+        message: 'Email, mobile number, and password are required'
       }, status: :unprocessable_entity
     end
 
-    # Check if customer already exists
-    if Customer.exists?(email: customer_params[:email]) || Customer.exists?(mobile: customer_params[:mobile])
+    # Check if customer or user already exists
+    if Customer.exists?(email: customer_params[:email]) || Customer.exists?(mobile: customer_params[:mobile]) ||
+       User.exists?(email: customer_params[:email]) || User.exists?(mobile: customer_params[:mobile])
       return render json: {
         success: false,
         message: 'Customer with this email or mobile number already exists'
       }, status: :conflict
     end
 
-    customer = Customer.new(
-      customer_type: 'individual',
-      first_name: customer_params[:first_name],
-      last_name: customer_params[:last_name],
-      email: customer_params[:email],
-      mobile: customer_params[:mobile],
-      status: true,
-      added_by: 'self_registration'
-    )
+    # Use database transaction to ensure both records are created together
+    begin
+      ActiveRecord::Base.transaction do
+        # Create Customer record
+        customer = Customer.create!(
+          customer_type: 'individual',
+          first_name: customer_params[:first_name],
+          last_name: customer_params[:last_name],
+          email: customer_params[:email],
+          mobile: customer_params[:mobile],
+          status: true,
+          added_by: 'self_registration'
+        )
 
-    if customer.save
-      render json: {
-        success: true,
-        message: 'Customer registration successful. Please contact your agent for account activation.',
-        data: {
-          customer_id: customer.id,
-          email: customer.email,
-          mobile: customer.mobile,
-          role: 'customer'
+        # Create User record for login
+        user = User.create!(
+          first_name: customer_params[:first_name],
+          last_name: customer_params[:last_name],
+          email: customer_params[:email],
+          mobile: customer_params[:mobile],
+          password: customer_params[:password],
+          password_confirmation: customer_params[:password],
+          user_type: 'customer',
+          status: true
+        )
+
+        render json: {
+          success: true,
+          message: 'Customer registration successful. You can now login with your credentials.',
+          data: {
+            customer_id: customer.id,
+            user_id: user.id,
+            email: customer.email,
+            mobile: customer.mobile,
+            role: 'customer'
+          }
         }
-      }
-    else
+      end
+    rescue ActiveRecord::RecordInvalid => e
       render json: {
         success: false,
         message: 'Customer registration failed',
-        errors: customer.errors.full_messages
+        errors: e.record.errors.full_messages
       }, status: :unprocessable_entity
+    rescue => e
+      render json: {
+        success: false,
+        message: 'Registration failed due to system error',
+        error: e.message
+      }, status: :internal_server_error
     end
   end
 
