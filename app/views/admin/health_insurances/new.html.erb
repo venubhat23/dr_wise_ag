@@ -89,13 +89,7 @@
                     { class: "form-select", required: true, id: "distributor_select" } %>
               </div>
 
-              <div class="col-md-6 mb-3">
-                <%= form.label :investor_id, "Investor*", class: "form-label required" %>
-                <%= form.select :investor_id,
-                    options_for_select([['Select Investor', '']] + @investors.map { |i| [i.display_name, i.id] }),
-                    { prompt: 'Select Investor' },
-                    { class: "form-select", required: true } %>
-              </div>
+              <!-- Investor selection removed - commission is collectively distributed -->
             </div>
           </div>
         </div>
@@ -197,9 +191,12 @@
                 <%= form.number_field :total_premium, class: "form-control", step: 0.01, required: true, readonly: true, id: "total_premium" %>
               </div>
 
-              <div class="col-12 mb-3">
+              <div class="col-md-6 mb-3">
                 <%= form.label :claim_process, "Claim Process", class: "form-label" %>
-                <%= form.text_area :claim_process, class: "form-control", rows: 3, placeholder: "Describe the claim process..." %>
+                <%= form.select :claim_process,
+                    options_for_select(HealthInsurance::CLAIM_PROCESSES.map { |process| [process, process] }),
+                    { prompt: 'Select Claim Process' },
+                    { class: "form-select" } %>
               </div>
             </div>
           </div>

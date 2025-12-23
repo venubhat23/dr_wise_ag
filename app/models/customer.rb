@@ -40,13 +40,13 @@ class Customer < ApplicationRecord
 
   # Validations
   validates :status, inclusion: { in: [true, false] }
+  validates :sub_agent, presence: { message: "must be selected" }
 
   # Set default values
   after_initialize :set_defaults
 
   def set_defaults
     self.status = true if status.nil?
-    self.sub_agent = "Self" if sub_agent.blank?
   end
 
   # Email validations - different rules for individual vs corporate

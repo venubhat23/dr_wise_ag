@@ -176,7 +176,7 @@ class StructuredPayoutService
 
   def create_investor_commission(main_payout)
     amount = calculate_investor_amount
-    return nil if amount <= 0 || !@policy.respond_to?(:investor_id) || !@policy.investor_id
+    return nil if amount <= 0
 
     CommissionPayout.create!(
       payout_id: main_payout.id,

@@ -98,8 +98,14 @@
             <small class="form-text text-muted">No file chosen</small>
           </div>
           <div class="col-md-6">
-            <%= form.label :sub_agent, "Sub Agent", class: "form-label" %>
-            <%= form.text_field :sub_agent, value: "Self", class: "form-control" %>
+            <%= form.label :sub_agent, "Sub Agent *", class: "form-label" %>
+            <%= form.select :sub_agent,
+                options_for_select([['Self', 'Self']] + @sub_agents.map { |sa| ["#{sa.first_name} #{sa.last_name}", sa.display_name] }),
+                { prompt: 'Select Sub Agent' },
+                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent].any?}", required: true } %>
+            <% if @customer.errors[:sub_agent].any? %>
+              <div class="invalid-feedback"><%= @customer.errors[:sub_agent].first %></div>
+            <% end %>
           </div>
         </div>
         <div class="row mt-3">
@@ -179,7 +185,7 @@
                   ['Delhi', 'Delhi'], ['West Bengal', 'West Bengal']
                 ], @customer.state),
                 { prompt: '' },
-                { class: "form-select" } %>
+                { class: "form-select", id: "customer_state_individual" } %>
           </div>
           <div class="col-md-4">
             <%= form.label :city, "City", class: "form-label" %>
@@ -192,9 +198,13 @@
                 { prompt: 'Select City' },
                 { class: "form-select" } %>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <%= form.label :address, "Address", class: "form-label" %>
             <%= form.text_area :address, class: "form-control", rows: 1, placeholder: "Enter Address" %>
+          </div>
+          <div class="col-md-1">
+            <%= form.label :pincode, "Pincode", class: "form-label" %>
+            <%= form.text_field :pincode, class: "form-control", placeholder: "000000", id: "customer_pincode_individual" %>
           </div>
         </div>
         <div class="row mt-3">
@@ -314,9 +324,15 @@
             <small class="form-text text-muted">Upload profile photo (optional)</small>
           </div>
           <div class="col-md-6">
-            <%= form.label :sub_agent, "Sub Agent", class: "form-label" %>
-            <%= form.text_field :sub_agent, value: "Self", class: "form-control" %>
-            <small class="form-text text-muted">Default: Self</small>
+            <%= form.label :sub_agent, "Sub Agent *", class: "form-label" %>
+            <%= form.select :sub_agent,
+                options_for_select([['Self', 'Self']] + @sub_agents.map { |sa| ["#{sa.first_name} #{sa.last_name}", sa.display_name] }),
+                { prompt: 'Select Sub Agent' },
+                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent].any?}", required: true } %>
+            <% if @customer.errors[:sub_agent].any? %>
+              <div class="invalid-feedback"><%= @customer.errors[:sub_agent].first %></div>
+            <% end %>
+            <small class="form-text text-muted">Select the sub agent for this customer</small>
           </div>
         </div>
         <div class="row mt-3">

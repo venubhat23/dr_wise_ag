@@ -38,6 +38,7 @@ class HealthInsurance < ApplicationRecord
   POLICY_TYPES = ['New', 'Renewal', 'Porting', 'Migration'].freeze
   INSURANCE_TYPES = ['Individual', 'Family Floater', 'Group'].freeze
   PAYMENT_MODES = ['Yearly', 'Half Yearly', 'Quarterly', 'Monthly', 'Single'].freeze
+  CLAIM_PROCESSES = ['Inhouse', 'TPA'].freeze
 
   # Scopes
   scope :active, -> { where('policy_end_date >= ?', Date.current) }
@@ -212,15 +213,9 @@ class HealthInsurance < ApplicationRecord
   end
 
   def create_commission_payouts
-    # Only create payouts if commission amount is available and policy is not customer-added
-    return unless commission_amount.present? && commission_amount > 0
-    return if is_customer_added? # Skip auto-creation for customer-added policies
-
-    # Use the enhanced commission calculator service to create payouts
-    CommissionCalculatorService.create_enhanced_payouts_for_policy(self)
-  rescue StandardError => e
-    # Don't fail policy creation if payout creation fails
-    Rails.logger.error "Failed to create payouts for health insurance #{id}: #{e.message}"
+    # Commission payouts are now handled by StructuredPayoutService in create_structured_payout
+    # This method is kept for backward compatibility but does nothing to avoid duplicates
+    Rails.logger.info "Commission payouts handled by StructuredPayoutService for health insurance #{id}"
   end
 
   def create_lead_record

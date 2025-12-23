@@ -52,16 +52,7 @@
       </div>
 
       <div class="row">
-        <div class="col-md-6 mb-3">
-          <%= form.label :investor_id, "Investor*", class: "form-label" %>
-          <%= form.select :investor_id,
-              options_for_select(@investors.map { |i| [i.display_name, i.id] }, @life_insurance.investor_id),
-              { prompt: 'Select Investor' },
-              { class: "form-control #{'is-invalid' if @life_insurance.errors[:investor_id].any?}", required: true } %>
-          <% if @life_insurance.errors[:investor_id].any? %>
-            <div class="invalid-feedback"><%= @life_insurance.errors[:investor_id].first %></div>
-          <% end %>
-        </div>
+        <!-- Investor selection removed - commission is collectively distributed -->
 
         <div class="col-md-6 mb-3">
           <%= form.label :insured_name, "Insured Name", class: "form-label" %>
@@ -177,9 +168,20 @@
 
         <div class="col-md-4 mb-3">
           <%= form.label :policy_term, "Policy Term (Y)*", class: "form-label" %>
-          <%= form.number_field :policy_term,
-              class: "form-control #{'is-invalid' if @life_insurance.errors[:policy_term].any?}",
-              placeholder: "Years", required: true, id: "policy_term" %>
+          <%= form.select :policy_term,
+              options_for_select([
+                ['1 Year', 1],
+                ['2 Years', 2],
+                ['3 Years', 3],
+                ['5 Years', 5],
+                ['10 Years', 10],
+                ['15 Years', 15],
+                ['20 Years', 20],
+                ['25 Years', 25],
+                ['30 Years', 30]
+              ], @life_insurance.policy_term),
+              { prompt: 'Select Policy Term' },
+              { class: "form-control #{'is-invalid' if @life_insurance.errors[:policy_term].any?}", required: true, id: "policy_term" } %>
           <% if @life_insurance.errors[:policy_term].any? %>
             <div class="invalid-feedback"><%= @life_insurance.errors[:policy_term].first %></div>
           <% end %>
@@ -189,7 +191,7 @@
           <%= form.label :premium_payment_term, "Premium Payment Term*", class: "form-label" %>
           <%= form.number_field :premium_payment_term,
               class: "form-control #{'is-invalid' if @life_insurance.errors[:premium_payment_term].any?}",
-              placeholder: "Years", required: true %>
+              placeholder: "Years", required: true, min: 1, step: 1, id: "premium_payment_term" %>
           <% if @life_insurance.errors[:premium_payment_term].any? %>
             <div class="invalid-feedback"><%= @life_insurance.errors[:premium_payment_term].first %></div>
           <% end %>
@@ -204,9 +206,22 @@
 
         <div class="col-md-4 mb-3">
           <%= form.label :sum_insured, "Sum Insured", class: "form-label" %>
-          <%= form.number_field :sum_insured,
-              class: "form-control #{'is-invalid' if @life_insurance.errors[:sum_insured].any?}",
-              placeholder: "SI(Sum Insured)", step: 0.01, required: true %>
+          <%= form.select :sum_insured,
+              options_for_select([
+                ['₹5 Lakhs', 500000],
+                ['₹10 Lakhs', 1000000],
+                ['₹15 Lakhs', 1500000],
+                ['₹20 Lakhs', 2000000],
+                ['₹25 Lakhs', 2500000],
+                ['₹50 Lakhs', 5000000],
+                ['₹75 Lakhs', 7500000],
+                ['₹1 Crore', 10000000],
+                ['₹1.5 Crore', 15000000],
+                ['₹2 Crore', 20000000],
+                ['₹5 Crore', 50000000]
+              ], @life_insurance.sum_insured),
+              { prompt: 'Select Sum Insured' },
+              { class: "form-control #{'is-invalid' if @life_insurance.errors[:sum_insured].any?}", required: true } %>
           <% if @life_insurance.errors[:sum_insured].any? %>
             <div class="invalid-feedback"><%= @life_insurance.errors[:sum_insured].first %></div>
           <% end %>

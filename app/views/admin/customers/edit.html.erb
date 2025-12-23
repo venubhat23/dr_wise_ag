@@ -50,6 +50,19 @@
                   { class: "form-select" } %>
             </div>
           </div>
+          <div class="row mt-3">
+            <div class="col-md-6">
+              <%= form.label :sub_agent, "Sub Agent *", class: "form-label" %>
+              <%= form.select :sub_agent,
+                  options_for_select([['Self', 'Self']] + @sub_agents.map { |sa| ["#{sa.first_name} #{sa.last_name}", sa.display_name] }, @customer.sub_agent),
+                  { prompt: 'Select Sub Agent' },
+                  { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent].any?}", required: true } %>
+              <% if @customer.errors[:sub_agent].any? %>
+                <div class="invalid-feedback"><%= @customer.errors[:sub_agent].first %></div>
+              <% end %>
+              <small class="form-text text-muted">Select the sub agent for this customer</small>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -227,19 +240,19 @@
               <%= form.label :state, class: "form-label" do %>
                 State <span class="text-danger">*</span>
               <% end %>
-              <%= form.text_field :state, class: "form-control", placeholder: "Enter state" %>
+              <%= form.text_field :state, class: "form-control", placeholder: "Enter state", id: "customer_state" %>
               <div class="invalid-feedback">Please provide a state.</div>
             </div>
             <div class="col-md-4">
               <%= form.label :city, class: "form-label" do %>
                 City <span class="text-danger">*</span>
               <% end %>
-              <%= form.text_field :city, class: "form-control", placeholder: "Enter city" %>
+              <%= form.text_field :city, class: "form-control", placeholder: "Enter city", id: "customer_city" %>
               <div class="invalid-feedback">Please provide a city.</div>
             </div>
             <div class="col-md-4">
               <%= form.label :pincode, class: "form-label" %>
-              <%= form.text_field :pincode, class: "form-control", placeholder: "Enter pincode" %>
+              <%= form.text_field :pincode, class: "form-control", placeholder: "Enter pincode", id: "customer_pincode" %>
             </div>
           </div>
         </div>
@@ -360,8 +373,8 @@
       </div>
       <div class="card-body">
         <div class="d-flex align-items-center mb-3">
-          <% if @customer.profile_images.any? %>
-            <%= image_tag @customer.profile_images.first, class: "rounded-circle me-3", style: "width: 50px; height: 50px; object-fit: cover;" %>
+          <% if @customer.profile_image.attached? %>
+            <%= image_tag @customer.profile_image, class: "rounded-circle me-3", style: "width: 50px; height: 50px; object-fit: cover;" %>
           <% else %>
             <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
               <i class="bi bi-person text-primary"></i>
@@ -454,6 +467,70 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize on page load
   if (customerTypeSelect.value) {
     toggleCustomerType();
+  }
+
+  // Pincode lookup functionality
+  const pincodeField = document.getElementById('customer_pincode');
+  const cityField = document.getElementById('customer_city');
+  const stateField = document.getElementById('customer_state');
+
+  if (pincodeField && cityField && stateField) {
+    pincodeField.addEventListener('blur', function() {
+      const pincode = this.value.trim();
+      if (pincode.length === 6 && /^\d{6}$/.test(pincode)) {
+        fetchLocationFromPincode(pincode);
+      }
+    });
+  }
+
+  async function fetchLocationFromPincode(pincode) {
+    try {
+      // Show loading indication
+      cityField.value = 'Loading...';
+      stateField.value = 'Loading...';
+
+      // Using Indian Postal Code API (free service)
+      const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+      const data = await response.json();
+
+      if (data && data[0] && data[0].Status === 'Success' && data[0].PostOffice) {
+        const postOffice = data[0].PostOffice[0];
+        cityField.value = postOffice.District || '';
+        stateField.value = postOffice.State || '';
+      } else {
+        // Clear loading and show not found
+        cityField.value = '';
+        stateField.value = '';
+        // Show a small notification that pincode was not found
+        showPincodeNotification('Pincode not found. Please enter city and state manually.', 'warning');
+      }
+    } catch (error) {
+      console.error('Error fetching pincode data:', error);
+      cityField.value = '';
+      stateField.value = '';
+      showPincodeNotification('Unable to fetch location. Please enter city and state manually.', 'error');
+    }
+  }
+
+  function showPincodeNotification(message, type) {
+    // Create a small notification near the pincode field
+    const existingNotification = document.querySelector('.pincode-notification');
+    if (existingNotification) {
+      existingNotification.remove();
+    }
+
+    const notification = document.createElement('div');
+    notification.className = `pincode-notification small mt-1 text-${type === 'warning' ? 'warning' : 'danger'}`;
+    notification.innerHTML = `<i class="bi bi-info-circle me-1"></i>${message}`;
+
+    pincodeField.parentElement.appendChild(notification);
+
+    // Remove notification after 5 seconds
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove();
+      }
+    }, 5000);
   }
 
   // Form validation

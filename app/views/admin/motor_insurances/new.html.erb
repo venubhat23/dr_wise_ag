@@ -89,13 +89,7 @@
                     { class: "form-select", required: true, id: "distributor_select" } %>
               </div>
 
-              <div class="col-md-6 mb-3">
-                <%= form.label :investor_id, "Investor*", class: "form-label required" %>
-                <%= form.select :investor_id,
-                    options_for_select([['Select Investor', '']] + @investors.map { |i| [i.display_name, i.id] }),
-                    { prompt: 'Select Investor' },
-                    { class: "form-select", required: true } %>
-              </div>
+              <!-- Investor selection removed - commission is collectively distributed -->
             </div>
           </div>
         </div>

@@ -99,6 +99,7 @@ Rails.application.routes.draw do
         patch :toggle_status
         get :distributor
       end
+      resources :sub_agent_documents, except: [:show, :index]
     end
 
     # Distributor management
@@ -121,6 +122,7 @@ Rails.application.routes.draw do
         patch :toggle_status
         get :policy_chart
         get :trace_commission
+        get :product_selection
       end
       collection do
         get :export

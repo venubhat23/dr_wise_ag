@@ -38,7 +38,7 @@ class LifeInsurance < ApplicationRecord
   validates :policy_term, presence: true, numericality: { greater_than: 0 }
   validates :premium_payment_term, presence: true, numericality: { greater_than: 0 }
   validates :distributor_id, presence: true
-  validates :investor_id, presence: true
+  # investor_id removed - commission is collectively distributed
 
   # Custom validation
   validate :company_name_must_be_valid
@@ -74,6 +74,7 @@ class LifeInsurance < ApplicationRecord
   # Callbacks
   before_save :calculate_totals
   before_validation :set_policy_term_from_dates
+  before_validation :normalize_numeric_fields
   after_save :set_notification_dates
   after_create :create_commission_payouts
   after_create :create_lead_record
@@ -337,15 +338,9 @@ class LifeInsurance < ApplicationRecord
   end
 
   def create_commission_payouts
-    # Only create payouts if commission amount is available and policy is not customer-added
-    return unless commission_amount.present? && commission_amount > 0
-    return if is_customer_added? # Skip auto-creation for customer-added policies
-
-    # Use the enhanced commission calculator service to create payouts
-    CommissionCalculatorService.create_enhanced_payouts_for_policy(self)
-  rescue StandardError => e
-    # Don't fail policy creation if payout creation fails
-    Rails.logger.error "Failed to create payouts for life insurance #{id}: #{e.message}"
+    # Commission payouts are now handled by StructuredPayoutService in create_structured_payout
+    # This method is kept for backward compatibility but does nothing to avoid duplicates
+    Rails.logger.info "Commission payouts handled by StructuredPayoutService for life insurance #{id}"
   end
 
   def create_lead_record
@@ -364,5 +359,13 @@ class LifeInsurance < ApplicationRecord
     StructuredPayoutService.create_for_policy(self, 'life')
   rescue StandardError => e
     Rails.logger.error "Failed to create structured payout for life insurance #{id}: #{e.message}"
+  end
+
+  def normalize_numeric_fields
+    # Convert empty strings to nil for numeric fields to prevent validation errors
+    self.premium_payment_term = nil if premium_payment_term.blank?
+    self.policy_term = nil if policy_term.blank?
+    self.net_premium = nil if net_premium.blank?
+    self.total_premium = nil if total_premium.blank?
   end
 end

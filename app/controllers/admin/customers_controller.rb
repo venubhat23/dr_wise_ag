@@ -1,5 +1,5 @@
 class Admin::CustomersController < Admin::ApplicationController
-  before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart, :trace_commission]
+  before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart, :trace_commission, :product_selection]
 
   # GET /admin/customers
   def index
@@ -307,11 +307,12 @@ class Admin::CustomersController < Admin::ApplicationController
   def new
     @customer = Customer.new
     @customer.status = true
-    @customer.sub_agent = "Self"
+    @sub_agents = SubAgent.where(status: true).order(:first_name, :last_name)
   end
 
   # GET /admin/customers/1/edit
   def edit
+    @sub_agents = SubAgent.where(status: true).order(:first_name, :last_name)
   end
 
   # POST /admin/customers
@@ -338,22 +339,25 @@ class Admin::CustomersController < Admin::ApplicationController
                 user_type: 'customer',
                 status: true
               )
-              redirect_to admin_customer_path(@customer), notice: 'Customer and login account created successfully.'
+              redirect_to product_selection_admin_customer_path(@customer), notice: 'Customer and login account created successfully.'
             else
               @customer.destroy
               @customer.errors.add(:password_confirmation, "doesn't match Password")
+              @sub_agents = SubAgent.where(status: true).order(:first_name, :last_name)
               render :new, status: :unprocessable_entity
               return
             end
           else
-            redirect_to admin_customer_path(@customer), notice: 'Customer was successfully created.'
+            redirect_to product_selection_admin_customer_path(@customer), notice: 'Customer was successfully created.'
           end
         else
+          @sub_agents = SubAgent.where(status: true).order(:first_name, :last_name)
           render :new, status: :unprocessable_entity
         end
       end
     rescue => e
       @customer.errors.add(:base, "Failed to create login account: #{e.message}")
+      @sub_agents = SubAgent.where(status: true).order(:first_name, :last_name)
       render :new, status: :unprocessable_entity
     end
   end
@@ -363,6 +367,7 @@ class Admin::CustomersController < Admin::ApplicationController
     if @customer.update(customer_params)
       redirect_to admin_customer_path(@customer), notice: 'Customer was successfully updated.'
     else
+      @sub_agents = SubAgent.where(status: true).order(:first_name, :last_name)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -414,6 +419,20 @@ class Admin::CustomersController < Admin::ApplicationController
       #   send_data generate_customers_xlsx(@customers), filename: "customers_#{Date.current}.xlsx"
       # end
     end
+  end
+
+  # GET /admin/customers/:id/product_selection
+  def product_selection
+    # Available products for selection
+    @products = [
+      { name: 'Health Insurance', path: new_admin_health_insurance_path(customer_id: @customer.id), icon: 'heart-pulse', description: 'Medical coverage and health protection' },
+      { name: 'Life Insurance', path: new_admin_life_insurance_path(customer_id: @customer.id), icon: 'shield-heart', description: 'Life coverage and financial security' },
+      { name: 'Motor Insurance', path: new_admin_motor_insurance_path(customer_id: @customer.id), icon: 'car-front', description: 'Vehicle insurance coverage' },
+      { name: 'Investment', path: '#', icon: 'graph-up', description: 'Investment opportunities and plans' },
+      { name: 'Loans', path: '#', icon: 'cash-coin', description: 'Personal and business loan options' },
+      { name: 'Tax Services', path: '#', icon: 'receipt', description: 'Tax planning and consultation' },
+      { name: 'Travel Packages', path: '#', icon: 'airplane', description: 'Travel insurance and packages' }
+    ]
   end
 
   private
