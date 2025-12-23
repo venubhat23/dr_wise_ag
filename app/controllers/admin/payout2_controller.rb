@@ -1,4 +1,4 @@
-class Admin::Payout2Controller < Admin::BaseController
+class Admin::Payout2Controller < Admin::ApplicationController
   def index
     @payouts = fetch_payouts_with_details
     @total_payouts = @payouts.count
@@ -24,32 +24,49 @@ class Admin::Payout2Controller < Admin::BaseController
   end
 
   def commission_breakdown
-    @payout = find_payout_by_type_and_id
-    @commission_payouts = CommissionPayout.where(
-      policy_type: params[:policy_type],
-      policy_id: params[:policy_id]
-    ).includes(:policy)
+    begin
+      @policy = find_payout_by_type_and_id
+      @commission_payouts = CommissionPayout.where(
+        policy_type: params[:policy_type],
+        policy_id: params[:policy_id]
+      )
 
-    respond_to do |format|
-      format.html
-      format.json do
-        render json: {
-          policy: {
-            number: @payout.try(:policy_number),
-            type: params[:policy_type],
-            customer: @payout.try(:customer)&.display_name,
-            company: @payout.try(:insurance_company_name)
-          },
-          commissions: @commission_payouts.map do |cp|
-            {
-              type: cp.payout_to.humanize,
-              amount: cp.payout_amount,
-              status: cp.status,
-              date: cp.payout_date,
-              reference: cp.reference_number
-            }
-          end
-        }
+      respond_to do |format|
+        format.html
+        format.json do
+          render json: {
+            policy: {
+              number: @policy.try(:policy_number) || 'Unknown',
+              type: params[:policy_type].capitalize,
+              customer: @policy.try(:customer)&.display_name || 'Unknown',
+              company: @policy.try(:insurance_company_name) || 'Unknown'
+            },
+            commissions: @commission_payouts.map do |cp|
+              {
+                type: cp.payout_to.humanize,
+                amount: cp.payout_amount.to_f,
+                status: cp.status,
+                date: cp.payout_date,
+                reference: cp.reference_number || 'No Reference'
+              }
+            end
+          }
+        end
+      end
+    rescue => e
+      respond_to do |format|
+        format.json do
+          render json: {
+            error: "Failed to load commission breakdown: #{e.message}",
+            policy: {
+              number: 'Error',
+              type: params[:policy_type],
+              customer: 'Error',
+              company: 'Error'
+            },
+            commissions: []
+          }, status: 500
+        end
       end
     end
   end
@@ -57,62 +74,83 @@ class Admin::Payout2Controller < Admin::BaseController
   private
 
   def fetch_payouts_with_details
+    # Get all commission payouts with their policy information in a single optimized query
+    commission_data = CommissionPayout.joins(
+      "LEFT JOIN life_insurances ON commission_payouts.policy_type = 'life' AND commission_payouts.policy_id = life_insurances.id " +
+      "LEFT JOIN health_insurances ON commission_payouts.policy_type = 'health' AND commission_payouts.policy_id = health_insurances.id " +
+      "LEFT JOIN motor_insurances ON commission_payouts.policy_type = 'motor' AND commission_payouts.policy_id = motor_insurances.id " +
+      "LEFT JOIN other_insurances ON commission_payouts.policy_type = 'other' AND commission_payouts.policy_id = other_insurances.id " +
+      "LEFT JOIN policies ON commission_payouts.policy_type = 'other' AND other_insurances.policy_id = policies.id " +
+      "LEFT JOIN customers ON (life_insurances.customer_id = customers.id OR health_insurances.customer_id = customers.id OR motor_insurances.customer_id = customers.id OR policies.customer_id = customers.id)"
+    ).select(
+      "commission_payouts.policy_type, commission_payouts.policy_id, " +
+      "commission_payouts.payout_to, commission_payouts.payout_amount, commission_payouts.status, " +
+      "COALESCE(life_insurances.policy_number, health_insurances.policy_number, motor_insurances.policy_number, policies.policy_number) as policy_number, " +
+      "COALESCE(life_insurances.insurance_company_name, health_insurances.insurance_company_name, motor_insurances.insurance_company_name, 'Other Insurance') as company_name, " +
+      "COALESCE(life_insurances.total_premium, health_insurances.total_premium, motor_insurances.total_premium, policies.total_premium) as total_premium, " +
+      "COALESCE(life_insurances.created_at, health_insurances.created_at, motor_insurances.created_at, other_insurances.created_at) as policy_created_at, " +
+      "customers.first_name, customers.last_name, customers.company_name as customer_company_name, customers.customer_type, " +
+      "COALESCE(life_insurances.sub_agent_commission_percentage, health_insurances.sub_agent_commission_percentage, 0) as sub_agent_percentage, " +
+      "COALESCE(life_insurances.ambassador_commission_percentage, health_insurances.ambassador_commission_percentage, 0) as ambassador_percentage, " +
+      "COALESCE(life_insurances.investor_commission_percentage, health_insurances.investor_commission_percentage, 0) as investor_percentage, " +
+      "COALESCE(life_insurances.company_expenses_percentage, health_insurances.company_expenses_percentage, 0) as company_percentage"
+    ).group_by { |cp| "#{cp.policy_type}_#{cp.policy_id}" }
+
     payouts = []
 
-    # Get all insurance types and their policies
-    %w[life health motor other].each do |policy_type|
-      model_class = get_model_class(policy_type)
-      next unless model_class
+    commission_data.each do |policy_key, commissions|
+      next if commissions.empty?
 
-      model_class.includes(:customer, :sub_agent).find_each do |policy|
-        commission_payouts = CommissionPayout.where(
-          policy_type: policy_type,
-          policy_id: policy.id
-        )
+      first_commission = commissions.first
 
-        next if commission_payouts.empty?
+      # Calculate totals and breakdowns
+      total_commission = commissions.sum(&:payout_amount)
+      paid_count = commissions.count { |cp| cp.status == 'paid' }
+      total_count = commissions.count
 
-        total_commission = commission_payouts.sum(:payout_amount)
-        paid_count = commission_payouts.where(status: 'paid').count
-        total_count = commission_payouts.count
+      # Group by payout type for breakdown
+      breakdown = commissions.group_by(&:payout_to).transform_values { |cps| cps.sum(&:payout_amount) }
 
-        # Get commission breakdown
-        breakdown = commission_payouts.group(:payout_to).sum(:payout_amount)
+      # Get customer name
+      customer_name = if first_commission.customer_type == 'individual'
+                        "#{first_commission.first_name} #{first_commission.last_name}".strip
+                      else
+                        first_commission.customer_company_name
+                      end
 
-        payouts << {
-          policy_id: policy.id,
-          policy_type: policy_type,
-          policy_number: policy.policy_number,
-          customer_name: policy.customer&.display_name || 'Unknown',
-          company_name: policy.insurance_company_name || 'Unknown',
-          premium_amount: policy.respond_to?(:total_premium) ? policy.total_premium : 0,
-          total_commission: total_commission,
-          main_agent_commission: breakdown['main_agent'] || 0,
-          main_agent_percentage: calculate_percentage(breakdown['main_agent'], policy),
-          paid_count: paid_count,
-          total_count: total_count,
-          transfer_status: paid_count == total_count ? 'Completed' : "#{paid_count}/#{total_count}",
-          breakdown: {
-            affiliate: {
-              amount: breakdown['affiliate'] || 0,
-              percentage: calculate_commission_percentage(policy, 'sub_agent_commission_percentage')
-            },
-            ambassador: {
-              amount: breakdown['ambassador'] || 0,
-              percentage: calculate_commission_percentage(policy, 'ambassador_commission_percentage')
-            },
-            investor: {
-              amount: breakdown['investor'] || 0,
-              percentage: calculate_commission_percentage(policy, 'investor_commission_percentage')
-            },
-            company: {
-              amount: breakdown['company_expense'] || 0,
-              percentage: calculate_commission_percentage(policy, 'company_expenses_percentage')
-            }
+      payouts << {
+        policy_id: first_commission.policy_id,
+        policy_type: first_commission.policy_type,
+        policy_number: first_commission.policy_number || 'Unknown',
+        customer_name: customer_name.presence || 'Unknown',
+        company_name: first_commission.company_name || 'Unknown',
+        premium_amount: first_commission.total_premium || 0,
+        total_commission: total_commission,
+        main_agent_commission: breakdown['main_agent'] || 0,
+        main_agent_percentage: calculate_percentage_from_premium(breakdown['main_agent'], first_commission.total_premium),
+        paid_count: paid_count,
+        total_count: total_count,
+        transfer_status: paid_count == total_count ? 'Completed' : "#{paid_count}/#{total_count}",
+        breakdown: {
+          affiliate: {
+            amount: breakdown['affiliate'] || 0,
+            percentage: first_commission.sub_agent_percentage || 0
           },
-          created_at: policy.created_at
-        }
-      end
+          ambassador: {
+            amount: breakdown['ambassador'] || 0,
+            percentage: first_commission.ambassador_percentage || 0
+          },
+          investor: {
+            amount: breakdown['investor'] || 0,
+            percentage: first_commission.investor_percentage || 0
+          },
+          company: {
+            amount: breakdown['company_expense'] || 0,
+            percentage: first_commission.company_percentage || 0
+          }
+        },
+        created_at: first_commission.policy_created_at || Time.current
+      }
     end
 
     payouts.sort_by { |p| p[:created_at] }.reverse
@@ -141,6 +179,11 @@ class Admin::Payout2Controller < Admin::BaseController
   def calculate_percentage(amount, policy)
     return 0 if !amount || amount == 0 || !policy.respond_to?(:total_premium) || policy.total_premium == 0
     ((amount / policy.total_premium) * 100).round(2)
+  end
+
+  def calculate_percentage_from_premium(amount, premium)
+    return 0 if !amount || amount == 0 || !premium || premium == 0
+    ((amount / premium) * 100).round(2)
   end
 
   def calculate_commission_percentage(policy, field)

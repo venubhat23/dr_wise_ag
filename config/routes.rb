@@ -67,6 +67,14 @@ Rails.application.routes.draw do
         get :unpaid_data
       end
     end
+
+    # Payout 2 System - Comprehensive Payout Management
+    resources :payout2, only: [:index] do
+      collection do
+        patch :mark_as_paid
+        get :commission_breakdown
+      end
+    end
     # Users (Admins/Agents) management
     resources :users
 

@@ -480,6 +480,21 @@
             <% end %>
           </li>
         <% end %>
+
+        <!-- Payout 2 - Comprehensive Payout Management -->
+        <% if show_sidebar_item?('payouts') %>
+          <li class="nav-item">
+            <%= link_to admin_payout2_index_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/payout2')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-orange">
+                  <i class="bi bi-wallet2"></i>
+                </div>
+              </div>
+              <span class="nav-text">Payout 2</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
       </ul>
     </div>
 
