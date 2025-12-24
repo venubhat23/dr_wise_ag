@@ -188,8 +188,9 @@ class Admin::DistributorPayoutsController < ApplicationController
       distributor = Distributor.find_by(id: policy.distributor_id) if policy.respond_to?(:distributor_id) && policy.distributor_id.present?
       next unless distributor
 
-      # Calculate distributor commission (3% of net premium)
-      distributor_commission = policy.net_premium * 0.03
+      # Get the actual saved ambassador commission amount (distributors = ambassadors)
+      payout = Payout.find_by(policy_type: get_policy_type(policy), policy_id: policy.id)
+      distributor_commission = payout&.ambassador_commission_amount || (policy.net_premium * 0.03)
 
       # Check if already paid
       already_paid = DistributorPayout.exists?(
@@ -322,8 +323,9 @@ class Admin::DistributorPayoutsController < ApplicationController
       return { success: false, error: "Distributor not found for policy #{policy.id}" }
     end
 
-    # Calculate distributor commission (3% of net premium)
-    distributor_commission = policy.net_premium * 0.03
+    # Get the actual saved ambassador commission amount (distributors = ambassadors)
+    payout = Payout.find_by(policy_type: get_policy_type(policy), policy_id: policy.id)
+    distributor_commission = payout&.ambassador_commission_amount || (policy.net_premium * 0.03)
     Rails.logger.info "Calculated commission: #{distributor_commission} for policy #{policy.id}"
 
     # Get correct policy type for validation

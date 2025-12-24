@@ -297,7 +297,12 @@ body.modal-open {
                 </td>
 
                 <td>
-                  <strong>₹<%= number_with_delimiter(policy.total_premium.to_i) %></strong>
+                  <div>
+                    <strong>₹<%= number_with_delimiter(policy.total_premium.to_i) %></strong>
+                    <% if policy.try(:lead_id).present? %>
+                      <small class="text-muted d-block">Lead: <%= policy.lead_id %></small>
+                    <% end %>
+                  </div>
                 </td>
 
                 <td>
@@ -307,7 +312,7 @@ body.modal-open {
                     </span>
                     <small class="text-muted d-block mt-1">
                       Main Agent: ₹<%= number_with_delimiter(commission_data.dig(:main_agent, :total_commission).to_i) %>
-                      <span class="text-muted">(<%= policy.try(:main_agent_commission_percentage) || '0' %>%)</span>
+                      <span class="text-muted">(<%= policy_data[:saved_payout]&.main_agent_percentage || policy.try(:main_agent_commission_percentage) || '0' %>%)</span>
                     </small>
                   </div>
                 </td>
@@ -349,19 +354,19 @@ body.modal-open {
                   <div>
                     <small class="d-block">
                       Affiliate: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :affiliate).to_i) %>
-                      <span class="text-muted">(<%= policy.try(:sub_agent_commission_percentage) || '0' %>%)</span>
+                      <span class="text-muted">(<%= policy_data[:saved_payout]&.affiliate_percentage || policy.try(:sub_agent_commission_percentage) || '0' %>%)</span>
                     </small>
                     <small class="d-block">
                       Ambassador: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :ambassador).to_i) %>
-                      <span class="text-muted">(<%= policy.try(:ambassador_commission_percentage) || '0' %>%)</span>
+                      <span class="text-muted">(<%= policy_data[:saved_payout]&.ambassador_percentage || policy.try(:ambassador_commission_percentage) || '0' %>%)</span>
                     </small>
                     <small class="d-block">
                       Investor: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :investor).to_i) %>
-                      <span class="text-muted">(<%= policy.try(:investor_commission_percentage) || '0' %>%)</span>
+                      <span class="text-muted">(<%= policy_data[:saved_payout]&.investor_percentage || policy.try(:investor_commission_percentage) || '0' %>%)</span>
                     </small>
                     <small class="d-block">
                       Company: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :company_expense).to_i) %>
-                      <span class="text-muted">(<%= policy.try(:company_expenses_percentage) || '0' %>%)</span>
+                      <span class="text-muted">(<%= policy_data[:saved_payout]&.company_expense_percentage || policy.try(:company_expenses_percentage) || '0' %>%)</span>
                     </small>
                   </div>
                 </td>

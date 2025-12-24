@@ -44,14 +44,9 @@ class StructuredPayoutService
   def calculate_life_commission
     return 0.0 unless @policy.respond_to?(:net_premium) && @policy.net_premium
 
-    # Use existing commission fields or calculate defaults
-    main_agent_commission = @policy.try(:main_agent_commission_amount) || 0
-    affiliate_commission = @policy.try(:sub_agent_commission_amount) || 0
-    ambassador_commission = @policy.try(:ambassador_commission_amount) || 0
-    investor_commission = @policy.try(:investor_commission_amount) || 0
-    company_expense = calculate_company_expense
-
-    main_agent_commission + affiliate_commission + ambassador_commission + investor_commission + company_expense
+    # For life insurance, the total commission amount should be the net premium
+    # This represents the total commission-eligible amount, not the sum of individual payouts
+    @policy.net_premium.to_f
   end
 
   def calculate_health_commission

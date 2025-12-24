@@ -30,12 +30,30 @@ class Admin::CommissionTrackingController < ApplicationController
   end
 
   def show
-    @commission_breakdown = CommissionCalculatorService.get_policy_commission_summary(@policy)
+    # Check if we have saved payout data
+    policy_type = @policy.class.name.underscore.gsub('_insurance', '')
+    saved_payout = Payout.find_by(policy_type: policy_type, policy_id: @policy.id)
+
+    @commission_breakdown = if saved_payout
+                             get_policy_breakdown_from_payout(saved_payout)
+                           else
+                             CommissionCalculatorService.get_policy_commission_summary(@policy)
+                           end
+
     @transfer_history = fetch_transfer_history(@policy)
+    @saved_payout = saved_payout
   end
 
   def policy_breakdown
-    @commission_breakdown = CommissionCalculatorService.get_policy_commission_summary(@policy)
+    # Check if we have saved payout data
+    policy_type = @policy.class.name.underscore.gsub('_insurance', '')
+    saved_payout = Payout.find_by(policy_type: policy_type, policy_id: @policy.id)
+
+    @commission_breakdown = if saved_payout
+                             get_policy_breakdown_from_payout(saved_payout)
+                           else
+                             CommissionCalculatorService.get_policy_commission_summary(@policy)
+                           end
 
     respond_to do |format|
       format.json { render json: @commission_breakdown }
@@ -308,11 +326,14 @@ class Admin::CommissionTrackingController < ApplicationController
                                                    .pluck(:id)
     end
 
-    # Pre-load all relevant commission payouts in one query
+    # Pre-load all relevant commission payouts and main payouts in one query
     all_payouts = {}
+    all_main_payouts = {}
+
     policy_ids_by_type.each do |policy_type, ids|
       next if ids.empty?
 
+      # Load commission payouts
       payouts = CommissionPayout.where(policy_type: policy_type, policy_id: ids)
                                .select(:policy_type, :policy_id, :status, :payout_amount)
 
@@ -320,6 +341,13 @@ class Admin::CommissionTrackingController < ApplicationController
         key = "#{payout.policy_type}_#{payout.policy_id}"
         all_payouts[key] ||= []
         all_payouts[key] << payout
+      end
+
+      # Load main payouts with saved commission details
+      main_payouts = Payout.where(policy_type: policy_type, policy_id: ids)
+      main_payouts.each do |main_payout|
+        key = "#{main_payout.policy_type}_#{main_payout.policy_id}"
+        all_main_payouts[key] = main_payout
       end
     end
 
@@ -342,14 +370,24 @@ class Admin::CommissionTrackingController < ApplicationController
         .each do |policy|
           break if collected_count >= per_page
 
-          commission_data = CommissionCalculatorService.calculate_commission_breakdown(policy)
+          # Use saved payout data if available, otherwise calculate
+          payout_key = "#{insurance_info[:type]}_#{policy.id}"
+          saved_payout = all_main_payouts[payout_key]
+
+          commission_data = if saved_payout
+                             get_commission_data_from_payout(saved_payout)
+                           else
+                             CommissionCalculatorService.calculate_commission_breakdown(policy)
+                           end
+
           next if commission_data.empty?
 
           policies << {
             policy: policy,
             type: insurance_info[:type],
             commission_data: commission_data,
-            transfer_status: get_transfer_status_optimized(policy, insurance_info[:type], all_payouts)
+            transfer_status: get_transfer_status_optimized(policy, insurance_info[:type], all_payouts),
+            saved_payout: saved_payout
           }
           collected_count += 1
         end
@@ -526,6 +564,99 @@ class Admin::CommissionTrackingController < ApplicationController
   def transfer_status_breakdown
     # Implementation for transfer status breakdown
     {}
+  end
+
+  def get_commission_data_from_payout(saved_payout)
+    # Convert saved payout data to the format expected by the view
+    # Use net_premium from policy if available, otherwise use total_commission_amount
+    net_premium_value = saved_payout.policy&.net_premium || saved_payout.total_commission_amount || 0
+
+    {
+      summary: {
+        total_commission_generated: net_premium_value
+      },
+      main_agent: {
+        total_commission: saved_payout.main_agent_commission_amount || 0
+      },
+      payouts: {
+        affiliate: saved_payout.affiliate_commission_amount || 0,
+        ambassador: saved_payout.ambassador_commission_amount || 0,
+        investor: saved_payout.investor_commission_amount || 0,
+        company_expense: saved_payout.company_expense_amount || 0
+      }
+    }
+  end
+
+  def get_policy_breakdown_from_payout(saved_payout)
+    # Convert saved payout data to the full breakdown format expected by the show view
+
+    # Calculate deductions (amounts taken from main agent)
+    main_agent_total = saved_payout.main_agent_commission_amount || 0
+    affiliate_amount = saved_payout.affiliate_commission_amount || 0
+    ambassador_amount = saved_payout.ambassador_commission_amount || 0
+    investor_amount = saved_payout.investor_commission_amount || 0
+    company_expense_amount = saved_payout.company_expense_amount || 0
+
+    final_profit = main_agent_total - affiliate_amount - ambassador_amount - investor_amount - company_expense_amount
+
+    # Get commission payout statuses
+    commission_payouts = saved_payout.commission_payouts.index_by(&:payout_to)
+
+    {
+      policy: {
+        number: saved_payout.policy&.policy_number || 'N/A',
+        type: saved_payout.policy_type,
+        customer: saved_payout.policy&.customer&.display_name || 'N/A',
+        premium: saved_payout.policy&.total_premium || 0
+      },
+      commission_breakdown: {
+        premium_amount: saved_payout.policy&.total_premium || 0,
+        main_agent: {
+          total_commission: main_agent_total,
+          deductions: {
+            affiliate: affiliate_amount,
+            ambassador: ambassador_amount,
+            investor: investor_amount,
+            company_expense: company_expense_amount
+          },
+          final_profit: final_profit
+        },
+        payouts: {
+          affiliate: affiliate_amount,
+          ambassador: ambassador_amount,
+          investor: investor_amount,
+          company_expense: company_expense_amount
+        },
+        summary: {
+          total_distributed: affiliate_amount + ambassador_amount + investor_amount,
+          company_expense: company_expense_amount
+        }
+      },
+      payout_status: {
+        affiliate: get_payout_status(commission_payouts['affiliate']),
+        ambassador: get_payout_status(commission_payouts['ambassador']),
+        investor: get_payout_status(commission_payouts['investor']),
+        company_expense: get_payout_status(commission_payouts['company_expense'])
+      }
+    }
+  end
+
+  def get_payout_status(commission_payout)
+    if commission_payout
+      {
+        status: commission_payout.status,
+        amount: commission_payout.payout_amount,
+        payout_date: commission_payout.payout_date&.strftime("%b %d, %Y"),
+        transaction_id: commission_payout.transaction_id
+      }
+    else
+      {
+        status: 'pending',
+        amount: 0,
+        payout_date: nil,
+        transaction_id: nil
+      }
+    end
   end
 
   def authorize_admin_access

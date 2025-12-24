@@ -187,8 +187,9 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       affiliate = SubAgent.find_by(id: policy.sub_agent_id) if policy.respond_to?(:sub_agent_id) && policy.sub_agent_id.present?
       next unless affiliate
 
-      # Calculate affiliate commission (2% of net premium)
-      affiliate_commission = policy.net_premium * 0.02
+      # Get the actual saved affiliate commission amount
+      payout = Payout.find_by(policy_type: get_policy_type(policy), policy_id: policy.id)
+      affiliate_commission = payout&.affiliate_commission_amount || (policy.net_premium * 0.02)
 
       # Check if already paid
       already_paid = CommissionPayout.exists?(
@@ -404,8 +405,9 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       return { success: false, error: "Policy not found for lead #{lead_id}" }
     end
 
-    # Calculate affiliate commission (2% of net premium)
-    affiliate_commission = policy.net_premium * 0.02
+    # Get the actual saved affiliate commission amount
+    payout = Payout.find_by(policy_type: get_policy_type(policy), policy_id: policy.id)
+    affiliate_commission = payout&.affiliate_commission_amount || (policy.net_premium * 0.02)
     Rails.logger.info "Calculated commission: #{affiliate_commission} for policy #{policy.id}"
 
     # Get correct policy type for validation

@@ -104,7 +104,7 @@
       <div class="col-md-6 mb-4">
         <div class="bg-light rounded p-4 h-100">
           <h6 class="text-primary fw-bold mb-3">
-            <i class="bi bi-person-badge me-2"></i>Main Agent Commission (10%)
+            <i class="bi bi-person-badge me-2"></i>Main Agent Commission (<%= @saved_payout&.main_agent_percentage || 10 %>%)
           </h6>
           <div class="d-flex justify-content-between py-2 border-bottom">
             <span>Total Commission</span>
@@ -140,19 +140,19 @@
             <i class="bi bi-diagram-3 me-2"></i>Distribution Summary
           </h6>
           <div class="d-flex justify-content-between py-2 border-bottom">
-            <span>Affiliate (2%)</span>
+            <span>Affiliate (<%= @saved_payout&.affiliate_percentage || 2 %>%)</span>
             <strong class="text-success">₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:payouts][:affiliate].to_i) %></strong>
           </div>
           <div class="d-flex justify-content-between py-2 border-bottom">
-            <span>Ambassador (2%)</span>
+            <span>Ambassador (<%= @saved_payout&.ambassador_percentage || 2 %>%)</span>
             <strong class="text-success">₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:payouts][:ambassador].to_i) %></strong>
           </div>
           <div class="d-flex justify-content-between py-2 border-bottom">
-            <span>Investor (1%)</span>
+            <span>Investor (<%= @saved_payout&.investor_percentage || 1 %>%)</span>
             <strong class="text-success">₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:payouts][:investor].to_i) %></strong>
           </div>
           <div class="d-flex justify-content-between py-2 border-bottom">
-            <span>Company Expense (3%)</span>
+            <span>Company Expense (<%= @saved_payout&.company_expense_percentage || 3 %>%)</span>
             <strong class="text-warning">₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:payouts][:company_expense].to_i) %></strong>
           </div>
           <div class="d-flex justify-content-between py-2 fw-bold text-primary">
