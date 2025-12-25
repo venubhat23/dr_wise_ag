@@ -348,9 +348,30 @@ class Admin::DistributorPayoutsController < ApplicationController
           processed_by: current_user&.email || 'system'
         )
         Rails.logger.info "Successfully updated existing payout"
+
+        # Also update the corresponding CommissionPayout for ambassador/distributor
+        commission_payout = CommissionPayout.find_by(
+          policy_type: policy_type,
+          policy_id: policy.id,
+          payout_to: 'ambassador'
+        )
+
+        if commission_payout
+          commission_payout.update!(
+            status: 'paid',
+            payout_date: payment_date || Date.current,
+            transaction_id: transaction_id,
+            notes: notes || "Distributor/Ambassador payout processed",
+            processed_by: current_user&.email || 'system',
+            processed_at: Time.current
+          )
+          Rails.logger.info "Updated CommissionPayout #{commission_payout.id} status to paid for ambassador (existing payout case)"
+        else
+          Rails.logger.warn "No CommissionPayout found for policy #{policy.id} (#{policy_type}) ambassador (existing payout case)"
+        end
       else
         Rails.logger.info "Creating new payout record"
-        payout = DistributorPayout.create!(
+        distributor_payout = DistributorPayout.create!(
           distributor_id: distributor.id,
           policy_type: policy_type,
           policy_id: policy.id,
@@ -364,7 +385,28 @@ class Admin::DistributorPayoutsController < ApplicationController
           processed_by: current_user&.email || 'system',
           processed_at: Time.current
         )
-        Rails.logger.info "Successfully created new payout: #{payout.id}"
+        Rails.logger.info "Successfully created new payout: #{distributor_payout.id}"
+
+        # Also update the corresponding CommissionPayout for ambassador/distributor
+        commission_payout = CommissionPayout.find_by(
+          policy_type: policy_type,
+          policy_id: policy.id,
+          payout_to: 'ambassador'
+        )
+
+        if commission_payout
+          commission_payout.update!(
+            status: 'paid',
+            payout_date: payment_date || Date.current,
+            transaction_id: transaction_id,
+            notes: notes || "Distributor/Ambassador payout processed",
+            processed_by: current_user&.email || 'system',
+            processed_at: Time.current
+          )
+          Rails.logger.info "Updated CommissionPayout #{commission_payout.id} status to paid for ambassador"
+        else
+          Rails.logger.warn "No CommissionPayout found for policy #{policy.id} (#{policy_type}) ambassador"
+        end
       end
       { success: true }
     rescue => e

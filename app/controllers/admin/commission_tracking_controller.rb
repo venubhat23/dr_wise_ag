@@ -134,12 +134,37 @@ class Admin::CommissionTrackingController < ApplicationController
     end
 
     begin
+      policy_type = @policy.class.name.underscore.gsub('_insurance', '')
+      paid_date_parsed = paid_date.present? ? Date.parse(paid_date) : Date.current
+
+      # Update the policy record
       @policy.update!(
         main_agent_commission_received: true,
         main_agent_commission_transaction_id: transaction_id,
-        main_agent_commission_paid_date: paid_date.present? ? Date.parse(paid_date) : Date.current,
+        main_agent_commission_paid_date: paid_date_parsed,
         main_agent_commission_notes: notes
       )
+
+      # Also update the corresponding CommissionPayout record for main agent
+      commission_payout = CommissionPayout.find_by(
+        policy_type: policy_type,
+        policy_id: @policy.id,
+        payout_to: 'main_agent'
+      )
+
+      if commission_payout
+        commission_payout.update!(
+          status: 'paid',
+          payout_date: paid_date_parsed,
+          transaction_id: transaction_id,
+          notes: notes,
+          processed_by: current_user&.email || 'admin',
+          processed_at: Time.current
+        )
+        Rails.logger.info "Updated CommissionPayout #{commission_payout.id} status to paid"
+      else
+        Rails.logger.warn "No CommissionPayout found for policy #{@policy.id} (#{policy_type}) main_agent"
+      end
 
       render json: {
         success: true,
@@ -149,7 +174,8 @@ class Admin::CommissionTrackingController < ApplicationController
           policy_number: @policy.policy_number,
           transaction_id: transaction_id,
           paid_date: @policy.main_agent_commission_paid_date&.strftime('%d %b %Y'),
-          received_status: true
+          received_status: true,
+          commission_payout_updated: commission_payout.present?
         }
       }
     rescue StandardError => e
@@ -394,127 +420,62 @@ class Admin::CommissionTrackingController < ApplicationController
   end
 
   def fetch_policies_with_commission_optimized(page = 1, per_page = 10)
-    # Emergency simplified version for performance
     page = page.to_i
     page = 1 if page < 1
 
-    # Just get the most recent 20 policies total and paginate those
     all_policies = []
 
-    # Get 10 most recent health policies (without includes to speed up)
-    HealthInsurance.order(created_at: :desc).limit(10).each do |policy|
-      next unless policy.total_premium.present? && policy.total_premium > 0
+    # Just show payouts we have with policy information - recent payouts at top
+    payouts = Payout.order(created_at: :desc)
 
+    payouts.each do |payout|
       begin
-        customer = Customer.find(policy.customer_id)
-        premium = policy.total_premium.to_f
-        net_premium = policy.net_premium.to_f || premium # Use net_premium for percentage calculations
+        policy = case payout.policy_type
+                 when 'health'
+                   HealthInsurance.find_by(id: payout.policy_id)
+                 when 'life'
+                   LifeInsurance.find_by(id: payout.policy_id)
+                 when 'motor'
+                   MotorInsurance.find_by(id: payout.policy_id)
+                 when 'other'
+                   OtherInsurance.find_by(id: payout.policy_id)
+                 end
 
-        # Use calculated commission amounts from policy instead of hardcoded percentages
-        main_commission = (policy.commission_amount || (net_premium * 0.10)) # Use actual commission or 10% fallback
-        affiliate_commission = policy.sub_agent_commission_amount || 0
-        ambassador_commission = policy.ambassador_commission_amount || 0
-        investor_commission = policy.investor_commission_amount || 0
-        company_expense = policy.company_expense_amount || 0
+        next unless policy && policy.customer_id
 
-        # Use stored percentages from policy (payout model) if available, otherwise calculate based on net_premium
-        main_percentage = policy.main_agent_commission_percentage || (net_premium > 0 ? (main_commission / net_premium * 100).round(2) : 0)
-        affiliate_percentage = policy.sub_agent_commission_percentage || (net_premium > 0 ? (affiliate_commission / net_premium * 100).round(2) : 0)
-        ambassador_percentage = policy.ambassador_commission_percentage || (net_premium > 0 ? (ambassador_commission / net_premium * 100).round(2) : 0)
-        investor_percentage = policy.investor_commission_percentage || (net_premium > 0 ? (investor_commission / net_premium * 100).round(2) : 0)
-        company_percentage = policy.company_expenses_percentage || (net_premium > 0 ? (company_expense / net_premium * 100).round(2) : 0)
+        customer = Customer.find_by(id: policy.customer_id)
+        next unless customer
 
         all_policies << {
           policy: OpenStruct.new(
             id: policy.id,
-            policy_number: policy.policy_number || "HEALTH-#{policy.id}",
-            total_premium: premium,
+            policy_number: policy.policy_number || "#{payout.policy_type.upcase}-#{policy.id}",
+            total_premium: policy.total_premium || 0,
             insurance_company_name: policy.insurance_company_name || 'Unknown',
             lead_id: policy.lead_id,
             main_agent_commission_received: false,
             main_agent_commission_paid_date: nil,
             created_at: policy.created_at,
-            customer: OpenStruct.new(display_name: "#{customer.first_name} #{customer.last_name}".strip),
+            customer: OpenStruct.new(display_name: customer.display_name || "#{customer.first_name} #{customer.last_name}".strip),
             try: ->(method) { policy.send(method) rescue nil }
           ),
-          type: 'health',
-          commission_data: {
-            summary: { total_commission_generated: main_commission },
-            main_agent: { total_commission: main_commission, percentage: main_percentage },
-            payouts: { affiliate: affiliate_commission, ambassador: ambassador_commission, investor: investor_commission, company_expense: company_expense },
-            percentages: { main_agent: main_percentage, affiliate: affiliate_percentage, ambassador: ambassador_percentage, investor: investor_percentage, company_expense: company_percentage }
-          },
-          transfer_status: { total_payouts: 0, paid_payouts: 0, pending_payouts: 0, total_amount: 0, paid_amount: 0 },
-          saved_payout: nil,
-          created_at: policy.created_at
+          type: payout.policy_type,
+          commission_data: get_commission_data_from_payout(payout),
+          transfer_status: get_transfer_status_from_payout(payout),
+          saved_payout: payout,
+          created_at: payout.created_at # Use payout created_at to show recent payouts first
         }
       rescue => e
-        Rails.logger.warn "Error processing health policy #{policy.id}: #{e.message}"
+        Rails.logger.warn "Error processing payout #{payout.id}: #{e.message}"
       end
     end
-
-    # Get 10 most recent life policies
-    LifeInsurance.order(created_at: :desc).limit(10).each do |policy|
-      next unless policy.total_premium.present? && policy.total_premium > 0
-
-      begin
-        customer = Customer.find(policy.customer_id)
-        premium = policy.total_premium.to_f
-        net_premium = policy.net_premium.to_f || premium # Use net_premium for percentage calculations
-
-        # Use calculated commission amounts from policy instead of hardcoded percentages
-        main_commission = (policy.main_income_amount || (net_premium * 0.10)) # Use actual commission or 10% fallback
-        affiliate_commission = policy.sub_agent_commission_amount || 0
-        ambassador_commission = policy.ambassador_commission_amount || 0
-        distributor_commission = policy.distributor_commission_amount || 0
-        investor_commission = policy.investor_commission_amount || 0
-        company_expense = policy.company_expense_amount || 0
-
-        # Use stored percentages from policy (payout model) if available, otherwise calculate based on net_premium
-        main_percentage = policy.main_income_percentage || (net_premium > 0 ? (main_commission / net_premium * 100).round(2) : 0)
-        affiliate_percentage = policy.sub_agent_commission_percentage || (net_premium > 0 ? (affiliate_commission / net_premium * 100).round(2) : 0)
-        ambassador_percentage = policy.ambassador_commission_percentage || (net_premium > 0 ? (ambassador_commission / net_premium * 100).round(2) : 0)
-        investor_percentage = policy.investor_commission_percentage || (net_premium > 0 ? (investor_commission / net_premium * 100).round(2) : 0)
-        company_percentage = policy.company_expenses_percentage || (net_premium > 0 ? (company_expense / net_premium * 100).round(2) : 0)
-
-        all_policies << {
-          policy: OpenStruct.new(
-            id: policy.id,
-            policy_number: policy.policy_number || "LIFE-#{policy.id}",
-            total_premium: premium,
-            insurance_company_name: policy.insurance_company_name || 'Unknown',
-            lead_id: policy.lead_id,
-            main_agent_commission_received: false,
-            main_agent_commission_paid_date: nil,
-            created_at: policy.created_at,
-            customer: OpenStruct.new(display_name: "#{customer.first_name} #{customer.last_name}".strip),
-            try: ->(method) { policy.send(method) rescue nil }
-          ),
-          type: 'life',
-          commission_data: {
-            summary: { total_commission_generated: main_commission },
-            main_agent: { total_commission: main_commission, percentage: main_percentage },
-            payouts: { affiliate: affiliate_commission, ambassador: ambassador_commission, investor: investor_commission, company_expense: company_expense },
-            percentages: { main_agent: main_percentage, affiliate: affiliate_percentage, ambassador: ambassador_percentage, investor: investor_percentage, company_expense: company_percentage }
-          },
-          transfer_status: { total_payouts: 0, paid_payouts: 0, pending_payouts: 0, total_amount: 0, paid_amount: 0 },
-          saved_payout: nil,
-          created_at: policy.created_at
-        }
-      rescue => e
-        Rails.logger.warn "Error processing life policy #{policy.id}: #{e.message}"
-      end
-    end
-
-    # Sort by creation date and paginate
-    all_policies.sort! { |a, b| b[:created_at] <=> a[:created_at] }
 
     # Simple pagination
     offset = (page - 1) * per_page
     page_policies = all_policies.slice(offset, per_page) || []
 
-    # Set pagination info based on what we have
-    @total_policies_count = [all_policies.length, 50].min  # Cap at 50 for performance
+    # Set pagination info
+    @total_policies_count = all_policies.length
     @total_pages = (@total_policies_count.to_f / per_page).ceil
     @has_next_page = page < @total_pages
     @has_prev_page = page > 1
@@ -692,21 +653,21 @@ class Admin::CommissionTrackingController < ApplicationController
     net_premium_value = saved_payout.policy&.net_premium || saved_payout.total_commission_amount || 0
     policy_premium = saved_payout.policy&.total_premium || net_premium_value || 0
 
-    # Calculate percentages based on policy premium
+    # Use stored percentages from payout when available, otherwise calculate
     main_agent_amount = saved_payout.main_agent_commission_amount || 0
-    main_agent_percentage = policy_premium > 0 ? (main_agent_amount.to_f / policy_premium * 100).round(2) : 0
+    main_agent_percentage = saved_payout.main_agent_percentage || (policy_premium > 0 ? (main_agent_amount.to_f / policy_premium * 100).round(2) : 0)
 
     affiliate_amount = saved_payout.affiliate_commission_amount || 0
-    affiliate_percentage = policy_premium > 0 ? (affiliate_amount.to_f / policy_premium * 100).round(2) : 0
+    affiliate_percentage = saved_payout.affiliate_percentage || (policy_premium > 0 ? (affiliate_amount.to_f / policy_premium * 100).round(2) : 0)
 
     ambassador_amount = saved_payout.ambassador_commission_amount || 0
-    ambassador_percentage = policy_premium > 0 ? (ambassador_amount.to_f / policy_premium * 100).round(2) : 0
+    ambassador_percentage = saved_payout.ambassador_percentage || (policy_premium > 0 ? (ambassador_amount.to_f / policy_premium * 100).round(2) : 0)
 
     investor_amount = saved_payout.investor_commission_amount || 0
-    investor_percentage = policy_premium > 0 ? (investor_amount.to_f / policy_premium * 100).round(2) : 0
+    investor_percentage = saved_payout.investor_percentage || (policy_premium > 0 ? (investor_amount.to_f / policy_premium * 100).round(2) : 0)
 
     company_expense_amount = saved_payout.company_expense_amount || 0
-    company_expense_percentage = policy_premium > 0 ? (company_expense_amount.to_f / policy_premium * 100).round(2) : 0
+    company_expense_percentage = saved_payout.company_expense_percentage || (policy_premium > 0 ? (company_expense_amount.to_f / policy_premium * 100).round(2) : 0)
 
     {
       summary: {
@@ -802,6 +763,18 @@ class Admin::CommissionTrackingController < ApplicationController
         transaction_id: nil
       }
     end
+  end
+
+  def get_transfer_status_from_payout(payout)
+    commission_payouts = payout.commission_payouts || []
+
+    {
+      total_payouts: commission_payouts.count,
+      paid_payouts: commission_payouts.count { |cp| cp.status == 'paid' },
+      pending_payouts: commission_payouts.count { |cp| cp.status == 'pending' },
+      total_amount: commission_payouts.sum(&:payout_amount),
+      paid_amount: commission_payouts.select { |cp| cp.status == 'paid' }.sum(&:payout_amount)
+    }
   end
 
   def authorize_admin_access

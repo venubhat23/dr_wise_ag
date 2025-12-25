@@ -1,14 +1,9 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-1">Insurance Summary</h2>
-    <p class="text-muted mb-0">Test Customer - Policy opt-in status and commission details</p>
+    <h2 class="mb-1">Payout Management</h2>
   </div>
   <div class="d-flex gap-2">
-    <%= link_to dashboard_admin_commission_tracking_index_path, class: "btn btn-outline-primary" do %>
-      <i class="bi bi-graph-up me-1"></i>
-      Dashboard View
-    <% end %>
     <%= link_to summary_admin_commission_tracking_index_path, class: "btn btn-outline-secondary" do %>
       <i class="bi bi-file-earmark-text me-1"></i>
       Summary Report
@@ -71,8 +66,8 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Company Expenses (3%)</h6>
-            <h3 class="mb-0 text-info">₹<%= number_with_delimiter((@total_commission_generated * 0.03).to_i) %></h3>
+            <h6 class="text-muted mb-2">Company Expenses</h6>
+            <h3 class="mb-0 text-info">₹<%= number_with_delimiter(@company_expenses.to_i) %></h3>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">
             <i class="bi bi-building text-info fs-4"></i>
@@ -140,7 +135,7 @@
 
 #mainAgentCommissionModal .modal-dialog {
   max-width: 480px;
-  margin: 1rem auto !important;
+  margin: 8rem auto 2rem auto !important;
   z-index: 10000 !important;
   position: relative;
 }
@@ -197,13 +192,13 @@
 /* Simple responsive positioning */
 @media (min-width: 576px) {
   #mainAgentCommissionModal .modal-dialog {
-    margin: 2rem auto !important;
+    margin: 8rem auto 2rem auto !important;
   }
 }
 
 @media (max-width: 575px) {
   #mainAgentCommissionModal .modal-dialog {
-    margin: 1rem !important;
+    margin: 4rem 1rem 2rem 1rem !important;
   }
 }
 
@@ -330,7 +325,7 @@ body.modal-open {
                     <% end %>
                   <% else %>
                     <a href="#" class="text-primary text-decoration-none"
-                       onclick="openMainAgentCommissionModal(<%= policy.id %>, '<%= type %>', '<%= policy.policy_number %>'); return false;">
+                       onclick="openMainAgentCommissionModal(<%= policy.id %>, '<%= type %>', '<%= policy.policy_number %>', <%= commission_data.dig(:main_agent, :total_commission).to_i %>); return false;">
                       Mark as Paid
                     </a>
                   <% end %>
@@ -379,14 +374,6 @@ body.modal-open {
                     <%= link_to admin_commission_tracking_path(policy.id, policy_type: type),
                         class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
                       <i class="bi bi-eye"></i>
-                    <% end %>
-
-                    <% if transfer_status[:pending_payouts] > 0 %>
-                      <button class="btn btn-sm btn-outline-success"
-                              onclick="openTransferModal('<%= policy.id %>', '<%= type %>', '<%= policy.policy_number %>')"
-                              title="Manual Transfer">
-                        <i class="bi bi-arrow-right-circle"></i>
-                      </button>
                     <% end %>
                   </div>
                 </td>
@@ -778,7 +765,7 @@ function processTransfer(transferType, policyId, policyType) {
 }
 
 // Main Agent Commission Modal Functions
-function openMainAgentCommissionModal(policyId, policyType, policyNumber) {
+function openMainAgentCommissionModal(policyId, policyType, policyNumber, commissionAmount) {
   // Remove any existing modal backdrops and reset body state
   document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
   document.body.classList.remove('modal-open');
@@ -800,42 +787,24 @@ function openMainAgentCommissionModal(policyId, policyType, policyNumber) {
     focus: true
   });
 
-  // Show loading state
-  document.getElementById('modalPolicyNumber').textContent = 'Loading...';
-  document.getElementById('modalPolicyType').textContent = '-';
-  document.getElementById('modalCommissionAmount').textContent = '0';
+  // Populate modal fields immediately (no API call needed)
+  document.getElementById('modalPolicyNumber').textContent = policyNumber;
+  document.getElementById('modalPolicyType').textContent = policyType.toUpperCase();
+  document.getElementById('modalCommissionAmount').textContent = (commissionAmount || 0).toLocaleString();
+  document.getElementById('modalPolicyId').value = policyId;
+  document.getElementById('modalPolicyTypeField').value = policyType;
 
-  // Show modal first, then load data
+  // Clear form fields
+  document.getElementById('transactionId').value = '';
+  document.getElementById('commissionNotes').value = '';
+
+  // Show modal
   modal.show();
 
-  // Load policy commission data
-  fetch(`/admin/commission_tracking/${policyId}/policy_breakdown?policy_type=${policyType}`)
-    .then(response => response.json())
-    .then(data => {
-      const mainAgentCommission = data.commission_breakdown?.main_agent?.total_commission || 0;
-
-      // Populate modal fields
-      document.getElementById('modalPolicyNumber').textContent = policyNumber;
-      document.getElementById('modalPolicyType').textContent = policyType.toUpperCase();
-      document.getElementById('modalCommissionAmount').textContent = mainAgentCommission.toLocaleString();
-      document.getElementById('modalPolicyId').value = policyId;
-      document.getElementById('modalPolicyTypeField').value = policyType;
-
-      // Clear form fields
-      document.getElementById('transactionId').value = '';
-      document.getElementById('commissionNotes').value = '';
-
-      // Focus on transaction ID input
-      setTimeout(() => {
-        document.getElementById('transactionId').focus();
-      }, 500);
-    })
-    .catch(error => {
-      console.error('Error loading commission data:', error);
-      document.getElementById('modalPolicyNumber').textContent = 'Error loading data';
-      document.getElementById('modalPolicyType').textContent = 'ERROR';
-      alert('Failed to load commission details. Please try again.');
-    });
+  // Focus on transaction ID input
+  setTimeout(() => {
+    document.getElementById('transactionId').focus();
+  }, 200);
 }
 
 // Function to close the modal
