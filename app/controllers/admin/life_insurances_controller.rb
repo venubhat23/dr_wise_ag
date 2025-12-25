@@ -166,11 +166,12 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       :main_agent_commission_percentage, :commission_amount, :tds_percentage,
       :tds_amount, :after_tds_value, :installment_autopay_start_date,
       :installment_autopay_end_date, :active,
-      # New commission fields
-      :sub_agent_commission_percentage, :sub_agent_tds_percentage,
-      :distributor_commission_percentage, :distributor_tds_percentage,
-      :investor_commission_percentage, :investor_tds_percentage,
-      :main_income_percentage,
+      # New commission fields - All commission details
+      :sub_agent_commission_percentage, :sub_agent_commission_amount, :sub_agent_tds_percentage, :sub_agent_tds_amount, :sub_agent_after_tds_value,
+      :distributor_commission_percentage, :distributor_commission_amount, :distributor_tds_percentage, :distributor_tds_amount, :distributor_after_tds_value,
+      :ambassador_commission_percentage, :ambassador_commission_amount, :ambassador_tds_percentage, :ambassador_tds_amount, :ambassador_after_tds_value,
+      :investor_commission_percentage, :investor_commission_amount, :investor_tds_percentage, :investor_tds_amount, :investor_after_tds_value,
+      :main_income_percentage, :main_income_amount,
       # Company expenses and profit fields
       :company_expenses_percentage, :total_distribution_percentage,
       :profit_percentage, :profit_amount,

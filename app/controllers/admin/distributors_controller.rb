@@ -18,7 +18,11 @@ class Admin::DistributorsController < Admin::ApplicationController
       @distributors = @distributors.inactive
     end
 
-    @distributors = @distributors.order(created_at: :desc).page(params[:page])
+    # Get total count before pagination for display purposes
+    @total_filtered_count = @distributors.count
+
+    # Order and paginate (10 records per page)
+    @distributors = @distributors.order(created_at: :desc).page(params[:page]).per(10)
 
     # Statistics
     @total_distributors = Distributor.count

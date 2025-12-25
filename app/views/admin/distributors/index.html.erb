@@ -205,12 +205,27 @@
       </div>
 
       <!-- Pagination -->
-      <div class="d-flex justify-content-between align-items-center mt-4">
-        <div class="text-muted">
-          Showing <%= @distributors.offset_value + 1 %> to <%= [@distributors.offset_value + @distributors.limit_value, @distributors.total_count].min %> of <%= @distributors.total_count %> entries
-        </div>
-        <div>
-          <%= paginate @distributors %>
+      <div class="card-footer bg-transparent border-0">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+          <small class="text-muted mb-2 mb-md-0">
+            <% if defined?(@total_filtered_count) && @total_filtered_count.present? %>
+              Showing <%= @distributors.current_page == 1 ? 1 : ((@distributors.current_page - 1) * @distributors.limit_value + 1) %>
+              to <%= [@distributors.current_page * @distributors.limit_value, @total_filtered_count].min %>
+              of <%= number_with_delimiter(@total_filtered_count) %> distributors
+            <% elsif @distributors.respond_to?(:total_count) %>
+              Showing <%= @distributors.current_page == 1 ? 1 : ((@distributors.current_page - 1) * @distributors.limit_value + 1) %>
+              to <%= [@distributors.current_page * @distributors.limit_value, @distributors.total_count].min %>
+              of <%= number_with_delimiter(@distributors.total_count) %> distributors
+            <% else %>
+              Showing <%= @distributors.count %> distributors
+            <% end %>
+          </small>
+
+          <% if @distributors.respond_to?(:total_pages) && @distributors.total_pages > 1 %>
+            <div class="pagination-wrapper">
+              <%= paginate @distributors %>
+            </div>
+          <% end %>
         </div>
       </div>
     <% else %>

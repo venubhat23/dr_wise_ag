@@ -181,6 +181,9 @@ Rails.application.routes.draw do
       member do
         patch :toggle_status
       end
+      collection do
+        get :search
+      end
     end
 
     # Agency Code management

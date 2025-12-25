@@ -94,12 +94,15 @@
 
       <!-- Pagination Info -->
       <div class="d-flex gap-2 align-items-center">
-        <span class="badge bg-primary">Page <%= @page %> | Showing <%= @per_page %> records</span>
+        <span class="badge bg-primary">
+          Page <%= @page %> of <%= @total_pages || 1 %> |
+          Showing <%= @policies_with_commission.count %> of <%= @total_policies_count || 0 %> records
+        </span>
 
         <!-- Pagination Controls -->
         <div class="btn-group">
           <% current_page = @page.to_i %>
-          <% if current_page > 1 %>
+          <% if @has_prev_page %>
             <%= link_to "Previous", admin_commission_tracking_index_path(page: current_page - 1),
                 class: "btn btn-sm btn-outline-primary" %>
           <% else %>
@@ -108,7 +111,7 @@
 
           <span class="btn btn-sm btn-primary"><%= current_page %></span>
 
-          <% if @policies_with_commission.count == @per_page %>
+          <% if @has_next_page %>
             <%= link_to "Next", admin_commission_tracking_index_path(page: current_page + 1),
                 class: "btn btn-sm btn-outline-primary" %>
           <% else %>
@@ -289,9 +292,9 @@ body.modal-open {
 
                 <td>
                   <div>
-                    <h6 class="mb-1"><%= policy.customer.display_name %></h6>
+                    <h6 class="mb-1"><%= policy.customer&.display_name || 'N/A' %></h6>
                     <small class="text-muted">
-                      <%= policy.try(:insurance_company_name) || 'N/A' %>
+                      <%= policy&.insurance_company_name || 'N/A' %>
                     </small>
                   </div>
                 </td>
@@ -299,7 +302,7 @@ body.modal-open {
                 <td>
                   <div>
                     <strong>₹<%= number_with_delimiter(policy.total_premium.to_i) %></strong>
-                    <% if policy.try(:lead_id).present? %>
+                    <% if policy&.lead_id.present? %>
                       <small class="text-muted d-block">Lead: <%= policy.lead_id %></small>
                     <% end %>
                   </div>
@@ -312,15 +315,15 @@ body.modal-open {
                     </span>
                     <small class="text-muted d-block mt-1">
                       Main Agent: ₹<%= number_with_delimiter(commission_data.dig(:main_agent, :total_commission).to_i) %>
-                      <span class="text-muted">(<%= policy_data[:saved_payout]&.main_agent_percentage || policy.try(:main_agent_commission_percentage) || '0' %>%)</span>
+                      <span class="text-muted">(<%= commission_data.dig(:percentages, :main_agent) || commission_data.dig(:main_agent, :percentage) || policy&.main_agent_commission_percentage || '0' %>%)</span>
                     </small>
                   </div>
                 </td>
 
                 <td>
-                  <% if policy.try(:main_agent_commission_received) %>
+                  <% if policy&.main_agent_commission_received %>
                     <span class="text-success">✓ Received</span>
-                    <% if policy.try(:main_agent_commission_paid_date) %>
+                    <% if policy&.main_agent_commission_paid_date %>
                       <small class="text-muted d-block">
                         Paid: <%= policy.main_agent_commission_paid_date.strftime('%d %b %Y') %>
                       </small>
@@ -354,19 +357,19 @@ body.modal-open {
                   <div>
                     <small class="d-block">
                       Affiliate: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :affiliate).to_i) %>
-                      <span class="text-muted">(<%= policy_data[:saved_payout]&.affiliate_percentage || policy.try(:sub_agent_commission_percentage) || '0' %>%)</span>
+                      <span class="text-muted">(<%= commission_data.dig(:percentages, :affiliate) || policy&.sub_agent_commission_percentage || '0' %>%)</span>
                     </small>
                     <small class="d-block">
                       Ambassador: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :ambassador).to_i) %>
-                      <span class="text-muted">(<%= policy_data[:saved_payout]&.ambassador_percentage || policy.try(:ambassador_commission_percentage) || '0' %>%)</span>
+                      <span class="text-muted">(<%= commission_data.dig(:percentages, :ambassador) || policy&.ambassador_commission_percentage || '0' %>%)</span>
                     </small>
                     <small class="d-block">
                       Investor: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :investor).to_i) %>
-                      <span class="text-muted">(<%= policy_data[:saved_payout]&.investor_percentage || policy.try(:investor_commission_percentage) || '0' %>%)</span>
+                      <span class="text-muted">(<%= commission_data.dig(:percentages, :investor) || policy&.investor_commission_percentage || '0' %>%)</span>
                     </small>
                     <small class="d-block">
                       Company: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :company_expense).to_i) %>
-                      <span class="text-muted">(<%= policy_data[:saved_payout]&.company_expense_percentage || policy.try(:company_expenses_percentage) || '0' %>%)</span>
+                      <span class="text-muted">(<%= commission_data.dig(:percentages, :company_expense) || policy&.company_expenses_percentage || '0' %>%)</span>
                     </small>
                   </div>
                 </td>
@@ -402,6 +405,76 @@ body.modal-open {
       </div>
     <% end %>
   </div>
+
+  <!-- Bottom Pagination -->
+  <% if @policies_with_commission.any? && (@total_pages || 1) > 1 %>
+    <div class="card-footer bg-transparent border-0">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <small class="text-muted">
+            Showing <%= ((@page.to_i - 1) * @per_page) + 1 %> to <%= [@page.to_i * @per_page, @total_policies_count || 0].min %>
+            of <%= @total_policies_count || 0 %> results
+          </small>
+        </div>
+
+        <nav aria-label="Policies pagination">
+          <ul class="pagination pagination-sm mb-0">
+            <% current_page = @page.to_i %>
+            <% total_pages = @total_pages || 1 %>
+
+            <!-- Previous Button -->
+            <li class="page-item <%= 'disabled' unless @has_prev_page %>">
+              <% if @has_prev_page %>
+                <%= link_to "Previous", admin_commission_tracking_index_path(page: current_page - 1),
+                    class: "page-link" %>
+              <% else %>
+                <span class="page-link">Previous</span>
+              <% end %>
+            </li>
+
+            <!-- Page Numbers -->
+            <% start_page = [1, current_page - 2].max %>
+            <% end_page = [total_pages, current_page + 2].min %>
+
+            <% if start_page > 1 %>
+              <li class="page-item">
+                <%= link_to "1", admin_commission_tracking_index_path(page: 1), class: "page-link" %>
+              </li>
+              <% if start_page > 2 %>
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+              <% end %>
+            <% end %>
+
+            <% (start_page..end_page).each do |page_num| %>
+              <li class="page-item <%= 'active' if page_num == current_page %>">
+                <%= link_to page_num, admin_commission_tracking_index_path(page: page_num),
+                    class: "page-link" %>
+              </li>
+            <% end %>
+
+            <% if end_page < total_pages %>
+              <% if end_page < total_pages - 1 %>
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+              <% end %>
+              <li class="page-item">
+                <%= link_to total_pages, admin_commission_tracking_index_path(page: total_pages), class: "page-link" %>
+              </li>
+            <% end %>
+
+            <!-- Next Button -->
+            <li class="page-item <%= 'disabled' unless @has_next_page %>">
+              <% if @has_next_page %>
+                <%= link_to "Next", admin_commission_tracking_index_path(page: current_page + 1),
+                    class: "page-link" %>
+              <% else %>
+                <span class="page-link">Next</span>
+              <% end %>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  <% end %>
 </div>
 
 <!-- Transfer Modal -->

@@ -22,12 +22,16 @@ class Admin::AgencyCodesController < Admin::ApplicationController
       @agency_codes = @agency_codes.by_insurance_type(params[:insurance_type])
     end
 
-    @agency_codes = @agency_codes.order(:created_at)
+    # Get total count before pagination for display purposes
+    @total_filtered_count = @agency_codes.count
+
+    # Apply pagination (10 records per page)
+    @agency_codes = @agency_codes.order(:created_at).page(params[:page]).per(10)
 
     # For filters
     @insurance_companies = insurance_companies_list
 
-    # Statistics
+    # Statistics (use unfiltered counts for stats cards)
     @total_codes = AgencyCode.count
     @health_codes = AgencyCode.where(insurance_type: 'Health').count
     @motor_codes = AgencyCode.where(insurance_type: 'Motor').count
@@ -97,9 +101,13 @@ class Admin::AgencyCodesController < Admin::ApplicationController
       @agency_codes = @agency_codes.by_insurance_type(params[:insurance_type])
     end
 
-    @agency_codes = @agency_codes.order(:created_at)
+    # Get total count before pagination for display purposes
+    @total_filtered_count = @agency_codes.count
 
-    render partial: 'agency_codes_table', locals: { agency_codes: @agency_codes }
+    # Apply pagination (10 records per page)
+    @agency_codes = @agency_codes.order(:created_at).page(params[:page]).per(10)
+
+    render partial: 'agency_codes_table', locals: { agency_codes: @agency_codes, total_filtered_count: @total_filtered_count }
   end
 
   private

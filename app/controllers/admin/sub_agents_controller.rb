@@ -18,7 +18,11 @@ class Admin::SubAgentsController < Admin::ApplicationController
       @sub_agents = @sub_agents.inactive
     end
 
-    @sub_agents = @sub_agents.order(created_at: :desc).page(params[:page])
+    # Get total count before pagination for display purposes
+    @total_filtered_count = @sub_agents.count
+
+    # Order and paginate (10 records per page)
+    @sub_agents = @sub_agents.order(created_at: :desc).page(params[:page]).per(10)
 
     # Statistics
     @total_sub_agents = SubAgent.count

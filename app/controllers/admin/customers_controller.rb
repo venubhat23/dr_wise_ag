@@ -41,8 +41,11 @@ class Admin::CustomersController < Admin::ApplicationController
       @customers = @customers.where(status: false)
     end
 
-    # Order and paginate
-    @customers = @customers.order(created_at: :desc).page(params[:page]).per(25)
+    # Get total count before pagination for display purposes
+    @total_filtered_count = @customers.count
+
+    # Order and paginate (10 records per page)
+    @customers = @customers.order(created_at: :desc).page(params[:page]).per(10)
 
     # Calculate statistics
     # Create a separate scope for statistics to avoid pg_search GROUP BY issues

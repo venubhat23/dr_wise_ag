@@ -301,11 +301,12 @@
       </div>
 
       <!-- Existing Documents -->
-      <% if @sub_agent.sub_agent_documents.any? %>
+      <% persisted_documents = @sub_agent.sub_agent_documents.select(&:persisted?) %>
+      <% if persisted_documents.any? %>
         <div class="border-bottom pb-4 mb-4">
           <h6 class="mb-3">Existing Documents</h6>
           <div class="row">
-            <% @sub_agent.sub_agent_documents.each do |document| %>
+            <% persisted_documents.each do |document| %>
               <div class="col-md-6 mb-3">
                 <div class="card h-100">
                   <div class="card-body">

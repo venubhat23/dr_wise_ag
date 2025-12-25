@@ -29,6 +29,9 @@ class StructuredPayoutService
   attr_reader :policy, :policy_type, :customer
 
   def calculate_total_commission
+    # Use net premium as base for total commission calculation
+    return @policy.net_premium if @policy.respond_to?(:net_premium) && @policy.net_premium
+
     case @policy_type
     when 'life'
       calculate_life_commission
@@ -93,7 +96,8 @@ class StructuredPayoutService
       payout_date: calculate_payout_date,
       reference_number: generate_reference_number,
       notes: "Structured payout for #{@policy_type} policy ##{@policy.policy_number}",
-      processed_by: 'system_auto'
+      processed_by: 'system_auto',
+      net_premium: @policy.try(:net_premium) || 0.0
     )
   end
 
@@ -211,7 +215,7 @@ class StructuredPayoutService
   def calculate_main_agent_amount
     case @policy_type
     when 'life'
-      @policy.try(:main_agent_commission_amount) || (@policy.net_premium * 0.10)
+      @policy.try(:after_tds_value) || @policy.try(:commission_amount) || (@policy.net_premium * 0.10)
     when 'health'
       @policy.try(:commission_amount) || (@policy.net_premium * 0.10)
     when 'motor'
@@ -222,20 +226,20 @@ class StructuredPayoutService
   end
 
   def calculate_affiliate_amount
+    @policy.try(:sub_agent_after_tds_value) ||
     @policy.try(:sub_agent_commission_amount) ||
-    (@policy.try(:sub_agent_after_tds_value)) ||
     (@policy.net_premium * 0.02)
   end
 
   def calculate_ambassador_amount
+    @policy.try(:ambassador_after_tds_value) ||
     @policy.try(:ambassador_commission_amount) ||
-    (@policy.try(:ambassador_after_tds_value)) ||
     (@policy.net_premium * 0.02)
   end
 
   def calculate_investor_amount
+    @policy.try(:investor_after_tds_value) ||
     @policy.try(:investor_commission_amount) ||
-    (@policy.try(:investor_after_tds_value)) ||
     (@policy.net_premium * 0.02)
   end
 
