@@ -574,6 +574,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // Clean up any existing modal backdrops
   document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
 
+  // Clear any running progress intervals from previous page loads
+  if (window.paymentProgressInterval) {
+    clearInterval(window.paymentProgressInterval);
+    window.paymentProgressInterval = null;
+  }
+
   // Search functionality
   const searchInput = document.getElementById('policySearch');
   let searchTimeout;
@@ -874,12 +880,12 @@ function simulateProgress() {
     { percent: 60, text: "Processing commission payout..." },
     { percent: 80, text: "Updating payment status..." },
     { percent: 90, text: "Finalizing transaction..." },
-    { percent: 100, text: "Payment processed successfully!" }
+    { percent: 100, text: "Payment completed successfully! 🎉" }
   ];
 
   let stepIndex = 0;
 
-  const progressInterval = setInterval(() => {
+  window.paymentProgressInterval = setInterval(() => {
     if (stepIndex < progressSteps.length) {
       const step = progressSteps[stepIndex];
       progress = step.percent;
@@ -887,10 +893,16 @@ function simulateProgress() {
       progressBar.setAttribute('aria-valuenow', progress);
       progressText.textContent = step.text;
       stepIndex++;
-    } else {
-      clearInterval(progressInterval);
+
+      // If we reached 100%, immediately refresh
+      if (progress === 100) {
+        clearInterval(window.paymentProgressInterval);
+        setTimeout(() => {
+          location.reload();
+        }, 500); // Small delay to show 100% complete
+      }
     }
-  }, 500);
+  }, 400); // Faster intervals for quicker progress
 }
 
 // Function to close the modal
@@ -942,29 +954,18 @@ function markMainAgentCommissionReceived() {
   .then(response => response.json())
   .then(data => {
     if (data.success) {
-      // Wait for progress to complete, then show success
-      setTimeout(() => {
-        // Update final progress text
-        document.getElementById('progressText').textContent = 'Payment completed successfully! 🎉';
-
-        // Close modal after 2 seconds
-        setTimeout(() => {
-          const modalElement = document.getElementById('mainAgentCommissionModal');
-          const modal = bootstrap.Modal.getInstance(modalElement);
-          if (modal) {
-            modal.hide();
-          }
-          location.reload();
-        }, 2000);
-      }, 3000); // Wait for progress animation to complete
+      // Let the progress animation handle the reload automatically
+      // Progress will reach 100% and trigger reload
     } else {
       hideProgressLoader();
+      clearInterval(window.paymentProgressInterval);
       alert('Failed to update commission status: ' + data.message);
     }
   })
   .catch(error => {
     console.error('Commission update error:', error);
     hideProgressLoader();
+    clearInterval(window.paymentProgressInterval);
     alert('Failed to update commission status. Please try again.');
   });
 }

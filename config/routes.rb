@@ -122,6 +122,7 @@ Rails.application.routes.draw do
       member do
         patch :toggle_status
       end
+      resources :investor_documents, only: [:destroy]
     end
 
     # Customer management

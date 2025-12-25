@@ -1,13 +1,22 @@
 class Admin::InvestorsController < Admin::ApplicationController
-  before_action :set_investor, only: [:show, :edit, :update, :destroy]
+  before_action :set_investor, only: [:show, :edit, :update, :destroy, :toggle_status]
 
   # GET /admin/investors
   def index
+    # Check if search is active first
+    search_active = params[:search].present? && params[:search].strip.length >= 4
+
     @investors = Investor.all
 
-    # Search functionality
+    # Search functionality - only search if 4+ characters or empty
     if params[:search].present?
-      @investors = @investors.search_by_name_mobile_email(params[:search])
+      search_term = params[:search].strip
+      if search_term.length >= 4
+        @investors = @investors.search_by_name_mobile_email(search_term) if @investors.respond_to?(:search_by_name_mobile_email)
+      elsif search_term.length > 0
+        # Return empty result if search term is too short
+        @investors = @investors.none
+      end
     end
 
     # Filter by status
@@ -18,12 +27,36 @@ class Admin::InvestorsController < Admin::ApplicationController
       @investors = @investors.inactive
     end
 
-    @investors = @investors.order(created_at: :desc).page(params[:page])
+    # Get total count before pagination for display purposes
+    @total_filtered_count = @investors.count
+
+    # Order and paginate (10 records per page)
+    @investors = @investors.order(created_at: :desc).page(params[:page]).per(10)
+
+    # Calculate statistics using separate scope for stats
+    stats_scope = Investor.all
+
+    # Apply filters but handle search differently for stats
+    if params[:search].present? && params[:search].strip.length >= 4
+      # For statistics, use a simple where clause instead of pg_search to avoid GROUP BY issues
+      search_term = params[:search].strip
+      stats_scope = stats_scope.where(
+        "first_name ILIKE ? OR last_name ILIKE ? OR email ILIKE ? OR mobile ILIKE ?",
+        "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%"
+      )
+    end
+
+    case params[:status]
+    when 'active'
+      stats_scope = stats_scope.active
+    when 'inactive'
+      stats_scope = stats_scope.inactive
+    end
 
     # Statistics
-    @total_investors = Investor.count
-    @active_investors = Investor.active.count
-    @inactive_investors = Investor.inactive.count
+    @total_investors = stats_scope.count
+    @active_investors = stats_scope.active.count
+    @inactive_investors = stats_scope.inactive.count
   end
 
   # GET /admin/investors/1
@@ -74,7 +107,6 @@ class Admin::InvestorsController < Admin::ApplicationController
 
   # PATCH /admin/investors/1/toggle_status
   def toggle_status
-    @investor = Investor.find(params[:id])
     new_status = @investor.active? ? :inactive : :active
 
     if @investor.update(status: new_status)
