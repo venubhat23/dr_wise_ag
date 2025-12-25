@@ -145,6 +145,24 @@ class Admin::CommissionTrackingController < ApplicationController
         main_agent_commission_notes: notes
       )
 
+      # Update the corresponding Payout record
+      payout_record = Payout.find_by(
+        policy_type: policy_type,
+        policy_id: @policy.id
+      )
+
+      if payout_record
+        payout_record.update!(
+          main_agent_commission_received: true,
+          main_agent_commission_transaction_id: transaction_id,
+          main_agent_commission_paid_date: paid_date_parsed,
+          notes: "#{payout_record.notes || ''}\nMain agent commission paid - Transaction: #{transaction_id} on #{paid_date_parsed.strftime('%Y-%m-%d')}".strip
+        )
+        Rails.logger.info "Updated Payout #{payout_record.id} with main agent commission details"
+      else
+        Rails.logger.warn "No Payout found for policy #{@policy.id} (#{policy_type})"
+      end
+
       # Also update the corresponding CommissionPayout record for main agent
       commission_payout = CommissionPayout.find_by(
         policy_type: policy_type,

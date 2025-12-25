@@ -316,18 +316,32 @@ body.modal-open {
                 </td>
 
                 <td>
-                  <% if policy&.main_agent_commission_received %>
-                    <span class="text-success">✓ Received</span>
-                    <% if policy&.main_agent_commission_paid_date %>
-                      <small class="text-muted d-block">
-                        Paid: <%= policy.main_agent_commission_paid_date.strftime('%d %b %Y') %>
-                      </small>
-                    <% end %>
-                  <% else %>
+                  <%
+                    # Check CommissionPayout status for main_agent
+                    main_agent_payout = CommissionPayout.find_by(
+                      policy_type: type,
+                      policy_id: policy.id,
+                      payout_to: 'main_agent'
+                    )
+                  %>
+                  <% if main_agent_payout&.status == 'paid' %>
+                    <div>
+                      <span class="text-success">
+                        <i class="bi bi-check-circle me-1"></i>₹<%= number_with_delimiter(main_agent_payout.payout_amount.to_i) %>
+                      </span>
+                      <% if main_agent_payout.payout_date %>
+                        <small class="text-success d-block">
+                          Paid on <%= main_agent_payout.payout_date.strftime('%d %b %Y') %>
+                        </small>
+                      <% end %>
+                    </div>
+                  <% elsif main_agent_payout&.status == 'pending' %>
                     <a href="#" class="text-primary text-decoration-none"
                        onclick="openMainAgentCommissionModal(<%= policy.id %>, '<%= type %>', '<%= policy.policy_number %>', <%= commission_data.dig(:main_agent, :total_commission).to_i %>); return false;">
                       Mark as Paid
                     </a>
+                  <% else %>
+                    <span class="text-muted">-</span>
                   <% end %>
                 </td>
 
@@ -527,12 +541,27 @@ body.modal-open {
             <input type="hidden" id="modalPolicyTypeField" name="policy_type">
           </form>
         </div>
+
+        <!-- Progress Loader -->
+        <div id="paymentProgressLoader" class="d-none" style="padding: 2rem; text-align: center;">
+          <div class="mb-3">
+            <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem;">
+              <span class="visually-hidden">Processing...</span>
+            </div>
+          </div>
+          <h5 class="text-success mb-3">Processing Payment...</h5>
+          <div class="progress mb-3" style="height: 8px;">
+            <div id="progressBar" class="progress-bar bg-success progress-bar-striped progress-bar-animated"
+                 role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          <p id="progressText" class="text-muted mb-0">Initializing payment process...</p>
+        </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="closeMainAgentModal()">
+        <button type="button" class="btn btn-secondary" onclick="closeMainAgentModal()" id="cancelBtn">
           Cancel
         </button>
-        <button type="button" class="btn btn-success" onclick="markMainAgentCommissionReceived()">
+        <button type="button" class="btn btn-success" onclick="markMainAgentCommissionReceived()" id="submitBtn">
           Mark as Received
         </button>
       </div>
@@ -807,6 +836,63 @@ function openMainAgentCommissionModal(policyId, policyType, policyNumber, commis
   }, 200);
 }
 
+// Progress loader functions
+function showProgressLoader() {
+  // Hide form and footer buttons
+  document.getElementById('mainAgentCommissionForm').classList.add('d-none');
+  document.getElementById('submitBtn').classList.add('d-none');
+  document.getElementById('cancelBtn').classList.add('d-none');
+
+  // Show progress loader
+  document.getElementById('paymentProgressLoader').classList.remove('d-none');
+
+  // Start progress animation
+  simulateProgress();
+}
+
+function hideProgressLoader() {
+  // Show form and footer buttons
+  document.getElementById('mainAgentCommissionForm').classList.remove('d-none');
+  document.getElementById('submitBtn').classList.remove('d-none');
+  document.getElementById('cancelBtn').classList.remove('d-none');
+
+  // Hide progress loader
+  document.getElementById('paymentProgressLoader').classList.add('d-none');
+
+  // Reset progress
+  document.getElementById('progressBar').style.width = '0%';
+}
+
+function simulateProgress() {
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+  let progress = 0;
+
+  const progressSteps = [
+    { percent: 20, text: "Validating transaction details..." },
+    { percent: 40, text: "Updating policy records..." },
+    { percent: 60, text: "Processing commission payout..." },
+    { percent: 80, text: "Updating payment status..." },
+    { percent: 90, text: "Finalizing transaction..." },
+    { percent: 100, text: "Payment processed successfully!" }
+  ];
+
+  let stepIndex = 0;
+
+  const progressInterval = setInterval(() => {
+    if (stepIndex < progressSteps.length) {
+      const step = progressSteps[stepIndex];
+      progress = step.percent;
+      progressBar.style.width = progress + '%';
+      progressBar.setAttribute('aria-valuenow', progress);
+      progressText.textContent = step.text;
+      stepIndex++;
+    } else {
+      clearInterval(progressInterval);
+    }
+  }, 500);
+}
+
 // Function to close the modal
 function closeMainAgentModal() {
   const modalElement = document.getElementById('mainAgentCommissionModal');
@@ -837,17 +923,14 @@ function markMainAgentCommissionReceived() {
     return;
   }
 
+  // Show progress loader and hide form
+  showProgressLoader();
+
   const formData = new FormData();
   formData.append('transaction_id', transactionId);
   formData.append('paid_date', paidDate);
   formData.append('notes', notes);
   formData.append('authenticity_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-
-  // Show loading state
-  const submitButton = document.querySelector('button[onclick="markMainAgentCommissionReceived()"]');
-  const originalText = submitButton.innerHTML;
-  submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Processing...';
-  submitButton.disabled = true;
 
   fetch(`/admin/commission_tracking/${policyId}/mark_main_agent_commission_received?policy_type=${policyType}`, {
     method: 'PATCH',
@@ -859,30 +942,30 @@ function markMainAgentCommissionReceived() {
   .then(response => response.json())
   .then(data => {
     if (data.success) {
-      // Close modal properly
-      const modalElement = document.getElementById('mainAgentCommissionModal');
-      const modal = bootstrap.Modal.getInstance(modalElement);
-      if (modal) {
-        modal.hide();
-      }
-
-      // Show success message and reload after a brief delay
-      alert('Main agent commission marked as received successfully!');
+      // Wait for progress to complete, then show success
       setTimeout(() => {
-        location.reload();
-      }, 100);
+        // Update final progress text
+        document.getElementById('progressText').textContent = 'Payment completed successfully! 🎉';
+
+        // Close modal after 2 seconds
+        setTimeout(() => {
+          const modalElement = document.getElementById('mainAgentCommissionModal');
+          const modal = bootstrap.Modal.getInstance(modalElement);
+          if (modal) {
+            modal.hide();
+          }
+          location.reload();
+        }, 2000);
+      }, 3000); // Wait for progress animation to complete
     } else {
+      hideProgressLoader();
       alert('Failed to update commission status: ' + data.message);
     }
   })
   .catch(error => {
     console.error('Commission update error:', error);
+    hideProgressLoader();
     alert('Failed to update commission status. Please try again.');
-  })
-  .finally(() => {
-    // Restore button state
-    submitButton.innerHTML = originalText;
-    submitButton.disabled = false;
   });
 }
 </script>
