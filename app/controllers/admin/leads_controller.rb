@@ -1,4 +1,5 @@
 class Admin::LeadsController < Admin::ApplicationController
+  include LocationData
   before_action :set_lead, only: [:show, :edit, :update, :destroy, :convert_to_customer, :create_policy, :transfer_referral, :advance_stage, :go_back_stage, :update_stage]
 
   # GET /admin/leads
@@ -20,9 +21,14 @@ class Admin::LeadsController < Admin::ApplicationController
       @leads = @leads.by_source(params[:lead_source])
     end
 
-    # Filter by product interest
-    if params[:product_interest].present?
-      @leads = @leads.by_product(params[:product_interest])
+    # Filter by product category
+    if params[:product_category].present?
+      @leads = @leads.by_product_category(params[:product_category])
+    end
+
+    # Filter by product subcategory
+    if params[:product_subcategory].present?
+      @leads = @leads.by_product_subcategory(params[:product_subcategory])
     end
 
     # Filter by referred by
@@ -30,7 +36,7 @@ class Admin::LeadsController < Admin::ApplicationController
       @leads = @leads.where("referred_by ILIKE ?", "%#{params[:referred_by]}%")
     end
 
-    @leads = @leads.recent.includes(:converted_customer, :created_policy)
+    @leads = @leads.order(created_at: :desc).includes(:converted_customer, :created_policy)
 
     # Statistics for dashboard
     @total_leads = Lead.count
@@ -83,6 +89,8 @@ class Admin::LeadsController < Admin::ApplicationController
     if @lead.save
       redirect_to admin_lead_path(@lead), notice: 'Lead was successfully created.'
     else
+      Rails.logger.error "Lead creation failed: #{@lead.errors.full_messages.join(', ')}"
+      flash.now[:alert] = "Failed to create lead: #{@lead.errors.full_messages.join(', ')}"
       render :new, status: :unprocessable_entity
     end
   end
@@ -112,18 +120,40 @@ class Admin::LeadsController < Admin::ApplicationController
     end
 
     ActiveRecord::Base.transaction do
-      # Create customer from lead data
-      customer = Customer.create!(
-        customer_type: 'individual',
-        first_name: extract_first_name(@lead.name),
-        last_name: extract_last_name(@lead.name),
-        email: @lead.email,
+      # Prepare customer attributes based on customer type
+      customer_attrs = {
+        customer_type: @lead.customer_type || 'individual',
         mobile: @lead.contact_number,
-        address: @lead.address || 'To be updated',
-        state: @lead.state || 'To be updated',
-        city: @lead.city || 'To be updated',
+        address: @lead.address,
+        state: @lead.state,
+        city: @lead.city,
         status: true
-      )
+      }
+
+      if @lead.individual?
+        # Individual customer attributes
+        customer_attrs.merge!(
+          first_name: @lead.first_name || extract_first_name(@lead.name),
+          middle_name: @lead.middle_name,
+          last_name: @lead.last_name || extract_last_name(@lead.name),
+          email: @lead.email,
+          birth_date: @lead.birth_date,
+          gender: @lead.gender,
+          marital_status: @lead.marital_status,
+          pan_no: @lead.pan_no
+        )
+      elsif @lead.corporate?
+        # Corporate customer attributes
+        customer_attrs.merge!(
+          company_name: @lead.company_name || @lead.name,
+          email: @lead.email, # Required for corporate
+          pan_no: @lead.pan_no,
+          gst_no: @lead.gst_no
+        )
+      end
+
+      # Create customer from lead data
+      customer = Customer.create!(customer_attrs)
 
       # Update lead with customer reference
       @lead.update!(
@@ -144,17 +174,21 @@ class Admin::LeadsController < Admin::ApplicationController
       return
     end
 
-    case @lead.product_interest
-    when 'health'
-      redirect_to new_admin_health_insurance_path(customer_id: @lead.converted_customer_id, lead_id: @lead.id)
-    when 'life'
-      redirect_to new_admin_life_insurance_path(customer_id: @lead.converted_customer_id, lead_id: @lead.id)
-    when 'motor'
-      redirect_to new_admin_motor_insurance_path(customer_id: @lead.converted_customer_id, lead_id: @lead.id)
-    when 'other'
-      redirect_to new_admin_other_insurance_path(customer_id: @lead.converted_customer_id, lead_id: @lead.id)
+    if @lead.product_category == 'insurance'
+      case @lead.product_subcategory
+      when 'health'
+        redirect_to new_admin_health_insurance_path(customer_id: @lead.converted_customer_id, lead_id: @lead.id)
+      when 'life'
+        redirect_to new_admin_life_insurance_path(customer_id: @lead.converted_customer_id, lead_id: @lead.id)
+      when 'motor'
+        redirect_to new_admin_motor_insurance_path(customer_id: @lead.converted_customer_id, lead_id: @lead.id)
+      when 'general', 'travel', 'other'
+        redirect_to new_admin_other_insurance_path(customer_id: @lead.converted_customer_id, lead_id: @lead.id)
+      else
+        redirect_to admin_lead_path(@lead), alert: 'Unknown insurance type.'
+      end
     else
-      redirect_to admin_lead_path(@lead), alert: 'Unknown product interest.'
+      redirect_to admin_lead_path(@lead), alert: 'Policy creation is only available for insurance products.'
     end
   end
 
@@ -274,8 +308,11 @@ class Admin::LeadsController < Admin::ApplicationController
   def lead_params
     params.require(:lead).permit(
       :name, :contact_number, :email, :address, :city, :state,
-      :referred_by, :product_interest, :current_stage, :lead_source,
-      :call_disposition, :referral_amount, :notes, :created_date
+      :referred_by, :product_category, :product_subcategory, :customer_type, :current_stage, :lead_source,
+      :call_disposition, :referral_amount, :notes, :created_date,
+      :note, :is_direct, :affiliate_id,
+      :first_name, :middle_name, :last_name, :birth_date, :gender, :pan_no, :gst_no,
+      :company_name, :marital_status
     )
   end
 

@@ -98,13 +98,13 @@
             <small class="form-text text-muted">No file chosen</small>
           </div>
           <div class="col-md-6">
-            <%= form.label :sub_agent, "Sub Agent *", class: "form-label" %>
-            <%= form.select :sub_agent,
-                options_for_select([['Self', 'Self']] + @sub_agents.map { |sa| ["#{sa.first_name} #{sa.last_name}", sa.display_name] }),
-                { prompt: 'Select Sub Agent' },
-                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent].any?}", required: true } %>
-            <% if @customer.errors[:sub_agent].any? %>
-              <div class="invalid-feedback"><%= @customer.errors[:sub_agent].first %></div>
+            <%= form.label :sub_agent_id, "Affiliate *", class: "form-label" %>
+            <%= form.select :sub_agent_id,
+                options_for_select(@sub_agents.map { |sa| ["#{sa.first_name} #{sa.last_name}", sa.id] }, @customer.sub_agent_id),
+                { prompt: 'Select Affiliate' },
+                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent_id].any?}", required: true } %>
+            <% if @customer.errors[:sub_agent_id].any? %>
+              <div class="invalid-feedback"><%= @customer.errors[:sub_agent_id].first %></div>
             <% end %>
           </div>
         </div>
@@ -150,19 +150,42 @@
         <div class="row mt-4">
           <div class="col-12">
             <h6 class="text-primary mb-3">
-              <i class="bi bi-key me-2"></i>Login Credentials (Optional)
+              <i class="bi bi-key me-2"></i>Login Credentials
             </h6>
             <p class="text-muted small mb-3">Create login account for this corporate customer</p>
           </div>
-          <div class="col-md-6">
-            <label class="form-label" for="corporate_password">Password</label>
-            <input type="password" class="form-control" id="corporate_password" name="customer[password]" placeholder="Enter password">
-            <small class="form-text text-muted">Leave blank to skip login account creation</small>
+
+          <!-- Password Type Selection -->
+          <div class="col-12 mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="corporate_user_enter_password" name="customer[user_enter_password]">
+              <label class="form-check-label" for="corporate_user_enter_password">
+                User Enter Password
+              </label>
+              <small class="form-text text-muted d-block">Check if user wants to enter password manually, otherwise system will generate it</small>
+            </div>
           </div>
-          <div class="col-md-6">
-            <label class="form-label" for="corporate_password_confirmation">Confirm Password</label>
-            <input type="password" class="form-control" id="corporate_password_confirmation" name="customer[password_confirmation]" placeholder="Confirm password">
-            <small class="form-text text-muted">Must match the password above</small>
+
+          <!-- Manual Password Fields (hidden by default) -->
+          <div id="corporate_manual_password_fields" style="display: none;">
+            <div class="col-md-6">
+              <label class="form-label" for="corporate_password">Password *</label>
+              <input type="password" class="form-control" id="corporate_password" name="customer[password]" placeholder="Enter password">
+              <small class="form-text text-muted">Minimum 8 characters with letters and numbers</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="corporate_password_confirmation">Confirm Password *</label>
+              <input type="password" class="form-control" id="corporate_password_confirmation" name="customer[password_confirmation]" placeholder="Confirm password">
+              <small class="form-text text-muted">Must match the password above</small>
+            </div>
+          </div>
+
+          <!-- System Generated Password Info -->
+          <div id="corporate_system_password_info" class="col-12">
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              <strong>System Generated Password:</strong> A secure password will be automatically generated and sent to the customer via email.
+            </div>
           </div>
         </div>
       </div>
@@ -179,24 +202,16 @@
           <div class="col-md-4">
             <%= form.label :state, "State", class: "form-label" %>
             <%= form.select :state,
-                options_for_select([
-                  ['Karnataka', 'Karnataka'], ['Tamil Nadu', 'Tamil Nadu'],
-                  ['Maharashtra', 'Maharashtra'], ['Gujarat', 'Gujarat'],
-                  ['Delhi', 'Delhi'], ['West Bengal', 'West Bengal']
-                ], @customer.state),
-                { prompt: '' },
+                options_for_select(LocationData.states_for_select, @customer.state),
+                { prompt: 'Select State' },
                 { class: "form-select", id: "customer_state_individual" } %>
           </div>
           <div class="col-md-4">
             <%= form.label :city, "City", class: "form-label" %>
             <%= form.select :city,
-                options_for_select([
-                  ['Bangalore', 'Bangalore'], ['Mumbai', 'Mumbai'],
-                  ['Chennai', 'Chennai'], ['Delhi', 'Delhi'],
-                  ['Kolkata', 'Kolkata'], ['Pune', 'Pune']
-                ], @customer.city),
-                { prompt: 'Select City' },
-                { class: "form-select" } %>
+                options_for_select([], @customer.city),
+                { prompt: 'Select State First' },
+                { class: "form-select searchable-select", id: "customer_city_individual", disabled: true } %>
           </div>
           <div class="col-md-3">
             <%= form.label :address, "Address", class: "form-label" %>
@@ -324,15 +339,15 @@
             <small class="form-text text-muted">Upload profile photo (optional)</small>
           </div>
           <div class="col-md-6">
-            <%= form.label :sub_agent, "Sub Agent *", class: "form-label" %>
-            <%= form.select :sub_agent,
-                options_for_select([['Self', 'Self']] + @sub_agents.map { |sa| ["#{sa.first_name} #{sa.last_name}", sa.display_name] }),
-                { prompt: 'Select Sub Agent' },
-                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent].any?}", required: true } %>
-            <% if @customer.errors[:sub_agent].any? %>
-              <div class="invalid-feedback"><%= @customer.errors[:sub_agent].first %></div>
+            <%= form.label :sub_agent_id, "Affiliate *", class: "form-label" %>
+            <%= form.select :sub_agent_id,
+                options_for_select(@sub_agents.map { |sa| ["#{sa.first_name} #{sa.last_name}", sa.id] }, @customer.sub_agent_id),
+                { prompt: 'Select Affiliate' },
+                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent_id].any?}", required: true } %>
+            <% if @customer.errors[:sub_agent_id].any? %>
+              <div class="invalid-feedback"><%= @customer.errors[:sub_agent_id].first %></div>
             <% end %>
-            <small class="form-text text-muted">Select the sub agent for this customer</small>
+            <small class="form-text text-muted">Select the affiliate for this customer</small>
           </div>
         </div>
         <div class="row mt-3">
@@ -381,14 +396,14 @@
             <% end %>
           </div>
           <div class="col-md-6">
-            <%= form.label :email, "Email (Optional)", class: "form-label" %>
-            <%= form.email_field :email, class: "form-control #{'is-invalid' if @customer.errors[:email].any?}", placeholder: "Enter email ID" %>
+            <%= form.label :email, class: "form-label" do %>
+              Email <span class="text-danger">*</span>
+            <% end %>
+            <%= form.email_field :email, class: "form-control #{'is-invalid' if @customer.errors[:email].any?}", placeholder: "Enter email ID", required: true %>
             <% if @customer.errors[:email].any? %>
               <div class="invalid-feedback">
                 <%= @customer.errors[:email].first %>
               </div>
-            <% else %>
-              <small class="form-text text-muted">Optional for individual customers</small>
             <% end %>
           </div>
         </div>
@@ -397,19 +412,42 @@
         <div class="row mt-4">
           <div class="col-12">
             <h6 class="text-primary mb-3">
-              <i class="bi bi-key me-2"></i>Login Credentials (Optional)
+              <i class="bi bi-key me-2"></i>Login Credentials
             </h6>
             <p class="text-muted small mb-3">Create login account for this customer to access mobile app</p>
           </div>
-          <div class="col-md-6">
-            <label class="form-label" for="customer_password">Password</label>
-            <input type="password" class="form-control" id="customer_password" name="customer[password]" placeholder="Enter password">
-            <small class="form-text text-muted">Leave blank to skip login account creation</small>
+
+          <!-- Password Type Selection -->
+          <div class="col-12 mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="user_enter_password" name="customer[user_enter_password]">
+              <label class="form-check-label" for="user_enter_password">
+                User Enter Password
+              </label>
+              <small class="form-text text-muted d-block">Check if user wants to enter password manually, otherwise system will generate it</small>
+            </div>
           </div>
-          <div class="col-md-6">
-            <label class="form-label" for="customer_password_confirmation">Confirm Password</label>
-            <input type="password" class="form-control" id="customer_password_confirmation" name="customer[password_confirmation]" placeholder="Confirm password">
-            <small class="form-text text-muted">Must match the password above</small>
+
+          <!-- Manual Password Fields (hidden by default) -->
+          <div id="manual_password_fields" style="display: none;">
+            <div class="col-md-6">
+              <label class="form-label" for="customer_password">Password *</label>
+              <input type="password" class="form-control" id="customer_password" name="customer[password]" placeholder="Enter password">
+              <small class="form-text text-muted">Minimum 8 characters with letters and numbers</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="customer_password_confirmation">Confirm Password *</label>
+              <input type="password" class="form-control" id="customer_password_confirmation" name="customer[password_confirmation]" placeholder="Confirm password">
+              <small class="form-text text-muted">Must match the password above</small>
+            </div>
+          </div>
+
+          <!-- System Generated Password Info -->
+          <div id="system_password_info" class="col-12">
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              <strong>System Generated Password:</strong> A secure password will be automatically generated and sent to the customer via email.
+            </div>
           </div>
         </div>
       </div>
@@ -426,24 +464,16 @@
           <div class="col-md-4">
             <%= form.label :state, "State", class: "form-label" %>
             <%= form.select :state,
-                options_for_select([
-                  ['Karnataka', 'Karnataka'], ['Tamil Nadu', 'Tamil Nadu'],
-                  ['Maharashtra', 'Maharashtra'], ['Gujarat', 'Gujarat'],
-                  ['Delhi', 'Delhi'], ['West Bengal', 'West Bengal']
-                ], @customer.state),
+                options_for_select(LocationData.states_for_select, @customer.state),
                 { prompt: 'Select State' },
-                { class: "form-select" } %>
+                { class: "form-select", id: "customer_state_corporate" } %>
           </div>
           <div class="col-md-4">
             <%= form.label :city, "City", class: "form-label" %>
             <%= form.select :city,
-                options_for_select([
-                  ['Bangalore', 'Bangalore'], ['Mumbai', 'Mumbai'],
-                  ['Chennai', 'Chennai'], ['Delhi', 'Delhi'],
-                  ['Kolkata', 'Kolkata'], ['Pune', 'Pune']
-                ], @customer.city),
-                { prompt: 'Select City' },
-                { class: "form-select" } %>
+                options_for_select([], @customer.city),
+                { prompt: 'Select State First' },
+                { class: "form-select searchable-select", id: "customer_city_corporate", disabled: true } %>
           </div>
           <div class="col-md-4">
             <%= form.label :address, "Address", class: "form-label" %>
@@ -463,8 +493,8 @@
           </div>
           <div class="col-md-4">
             <%= form.label :age, "Age", class: "form-label" %>
-            <%= form.number_field :age, class: "form-control", readonly: true, placeholder: "Auto calculated from DOB" %>
-            <small class="form-text text-muted">Auto calculated from DOB</small>
+            <%= form.text_field :age, class: "form-control", readonly: true, placeholder: "Auto calculated from DOB" %>
+            <small class="form-text text-muted">Format: X years, Y days</small>
           </div>
         </div>
 
@@ -480,13 +510,8 @@
           </div>
           <div class="col-md-4">
             <%= form.label :height_feet, "Height (Feet)", class: "form-label" %>
-            <%= form.select :height_feet,
-                options_for_select([
-                  ['4.0', '4.0'], ['4.5', '4.5'], ['5.0', '5.0'], ['5.5', '5.5'],
-                  ['6.0', '6.0'], ['6.5', '6.5'], ['7.0', '7.0']
-                ], @customer.height_feet),
-                { prompt: 'Select Height' },
-                { class: "form-select" } %>
+            <%= form.number_field :height_feet, class: "form-control", placeholder: "Enter height", step: 0.1, min: 3.5, max: 8.0 %>
+            <small class="form-text text-muted">Range: 3.5 - 8.0 feet</small>
           </div>
           <div class="col-md-4">
             <%= form.label :weight_kg, "Weight (Kg)", class: "form-label" %>
@@ -732,10 +757,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (field) field.removeAttribute('required');
       });
 
-      // Email is optional for individual customers
+      // Email is required for individual customers
       const individualEmailField = document.querySelector('#individual_sections input[name="customer[email]"]');
       if (individualEmailField) {
-        individualEmailField.removeAttribute('required');
+        individualEmailField.setAttribute('required', 'required');
       }
     } else if (selectedType === 'corporate') {
       individualSections.style.display = 'none';
@@ -798,22 +823,150 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Auto-calculate age from birth date
+  // Auto-calculate age from birth date with years and days
   const birthDateField = document.querySelector('input[name="customer[birth_date]"]');
   const ageField = document.querySelector('input[name="customer[age]"]');
 
+  function calculateDetailedAge(birthDateString) {
+    if (!birthDateString) return '';
+
+    const birthDate = new Date(birthDateString);
+    const today = new Date();
+
+    // Calculate years
+    let years = today.getFullYear() - birthDate.getFullYear();
+
+    // Calculate if birthday hasn't occurred this year yet
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const dayDiff = today.getDate() - birthDate.getDate();
+
+    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+      years--;
+    }
+
+    if (years === 0) {
+      // If less than a year old, calculate days from birth
+      const timeDiff = today.getTime() - birthDate.getTime();
+      const days = Math.floor(timeDiff / (1000 * 3600 * 24));
+      return `${days} days`;
+    } else {
+      // Calculate days since last birthday
+      let lastBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+      if (lastBirthday > today) {
+        lastBirthday = new Date(today.getFullYear() - 1, birthDate.getMonth(), birthDate.getDate());
+      }
+
+      const timeDiff = today.getTime() - lastBirthday.getTime();
+      const days = Math.floor(timeDiff / (1000 * 3600 * 24));
+
+      if (days === 0) {
+        return `${years} years`;
+      } else {
+        return `${years} years, ${days} days`;
+      }
+    }
+  }
+
   if (birthDateField && ageField) {
     birthDateField.addEventListener('change', function() {
-      const birthDate = new Date(this.value);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
+      ageField.value = calculateDetailedAge(this.value);
+    });
 
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        ageField.value = age - 1;
+    // Calculate age on page load if birth date is already set
+    if (birthDateField.value) {
+      ageField.value = calculateDetailedAge(birthDateField.value);
+    }
+  }
+
+  // Password type toggle functionality
+  const userEnterPasswordCheckbox = document.getElementById('user_enter_password');
+  const corporateUserEnterPasswordCheckbox = document.getElementById('corporate_user_enter_password');
+  const manualPasswordFields = document.getElementById('manual_password_fields');
+  const systemPasswordInfo = document.getElementById('system_password_info');
+  const corporateManualPasswordFields = document.getElementById('corporate_manual_password_fields');
+  const corporateSystemPasswordInfo = document.getElementById('corporate_system_password_info');
+  const customerPasswordField = document.getElementById('customer_password');
+  const customerPasswordConfirmationField = document.getElementById('customer_password_confirmation');
+  const corporatePasswordField = document.getElementById('corporate_password');
+  const corporatePasswordConfirmationField = document.getElementById('corporate_password_confirmation');
+
+  // Individual customer password toggle
+  if (userEnterPasswordCheckbox) {
+    userEnterPasswordCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        // User wants to enter password manually
+        manualPasswordFields.style.display = 'block';
+        systemPasswordInfo.style.display = 'none';
+        customerPasswordField.setAttribute('required', 'required');
+        customerPasswordConfirmationField.setAttribute('required', 'required');
       } else {
-        ageField.value = age;
+        // System will generate password
+        manualPasswordFields.style.display = 'none';
+        systemPasswordInfo.style.display = 'block';
+        customerPasswordField.removeAttribute('required');
+        customerPasswordConfirmationField.removeAttribute('required');
+        customerPasswordField.value = '';
+        customerPasswordConfirmationField.value = '';
       }
+    });
+  }
+
+  // Corporate customer password toggle
+  if (corporateUserEnterPasswordCheckbox) {
+    corporateUserEnterPasswordCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        // User wants to enter password manually
+        corporateManualPasswordFields.style.display = 'block';
+        corporateSystemPasswordInfo.style.display = 'none';
+        corporatePasswordField.setAttribute('required', 'required');
+        corporatePasswordConfirmationField.setAttribute('required', 'required');
+      } else {
+        // System will generate password
+        corporateManualPasswordFields.style.display = 'none';
+        corporateSystemPasswordInfo.style.display = 'block';
+        corporatePasswordField.removeAttribute('required');
+        corporatePasswordConfirmationField.removeAttribute('required');
+        corporatePasswordField.value = '';
+        corporatePasswordConfirmationField.value = '';
+      }
+    });
+  }
+
+  // Password validation for manual entry
+  function validatePasswords(passwordField, confirmationField) {
+    const password = passwordField.value;
+    const confirmation = confirmationField.value;
+
+    if (password && confirmation) {
+      if (password !== confirmation) {
+        confirmationField.setCustomValidity('Passwords do not match');
+      } else if (password.length < 8) {
+        passwordField.setCustomValidity('Password must be at least 8 characters long');
+      } else if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(password)) {
+        passwordField.setCustomValidity('Password must contain both letters and numbers');
+      } else {
+        passwordField.setCustomValidity('');
+        confirmationField.setCustomValidity('');
+      }
+    }
+  }
+
+  // Add password validation listeners
+  if (customerPasswordField && customerPasswordConfirmationField) {
+    customerPasswordField.addEventListener('input', function() {
+      validatePasswords(customerPasswordField, customerPasswordConfirmationField);
+    });
+    customerPasswordConfirmationField.addEventListener('input', function() {
+      validatePasswords(customerPasswordField, customerPasswordConfirmationField);
+    });
+  }
+
+  if (corporatePasswordField && corporatePasswordConfirmationField) {
+    corporatePasswordField.addEventListener('input', function() {
+      validatePasswords(corporatePasswordField, corporatePasswordConfirmationField);
+    });
+    corporatePasswordConfirmationField.addEventListener('input', function() {
+      validatePasswords(corporatePasswordField, corporatePasswordConfirmationField);
     });
   }
 
@@ -892,7 +1045,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <div class="col-md-4">
             <label class="form-label">Age</label>
-            <input type="number" name="customer[family_members_attributes][${familyMemberIndex}][age]" class="form-control" readonly placeholder="Auto calculated">
+            <input type="text" name="customer[family_members_attributes][${familyMemberIndex}][age]" class="form-control" readonly placeholder="Auto calculated from DOB">
           </div>
         </div>
 
@@ -920,7 +1073,8 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <div class="col-md-4">
             <label class="form-label">Height (Feet)</label>
-            <input type="text" name="customer[family_members_attributes][${familyMemberIndex}][height_feet]" class="form-control">
+            <input type="number" name="customer[family_members_attributes][${familyMemberIndex}][height_feet]" class="form-control" placeholder="Enter height" step="0.1" min="3.5" max="8.0">
+            <small class="form-text text-muted">Range: 3.5 - 8.0 feet</small>
           </div>
         </div>
 
@@ -1031,7 +1185,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <div class="col-md-4">
             <label class="form-label">Age</label>
-            <input type="number" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][age]" class="form-control" readonly placeholder="Auto calculated">
+            <input type="text" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][age]" class="form-control" readonly placeholder="Auto calculated from DOB">
           </div>
         </div>
 
@@ -1059,7 +1213,8 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <div class="col-md-4">
             <label class="form-label">Height (Feet)</label>
-            <input type="text" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][height_feet]" class="form-control">
+            <input type="number" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][height_feet]" class="form-control" placeholder="Enter height" step="0.1" min="3.5" max="8.0">
+            <small class="form-text text-muted">Range: 3.5 - 8.0 feet</small>
           </div>
         </div>
 
@@ -1338,27 +1493,93 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Auto-calculate family member ages
+  // Auto-calculate family member ages with years and days
   document.addEventListener('change', function(e) {
     if (e.target.matches('input[name*="birth_date"]')) {
-      const birthDate = new Date(e.target.value);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-
       let ageField = e.target.closest('.row').parentNode.querySelector('input[name*="[age]"]');
       if (!ageField) {
         ageField = e.target.closest('.family-member-entry')?.querySelector('input[name*="[age]"]');
       }
 
       if (ageField) {
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-          ageField.value = age - 1;
-        } else {
-          ageField.value = age;
-        }
+        ageField.value = calculateDetailedAge(e.target.value);
       }
     }
   });
+
+  // Simple State-City Dropdown
+  console.log('Setting up state-city dropdowns...');
+
+  // Use API for city data
+  let citiesData = {};
+
+  function loadCitiesForState(stateValue, cityDropdown) {
+    console.log('Loading cities for:', stateValue);
+
+    // Clear and disable if no state
+    if (!stateValue) {
+      cityDropdown.innerHTML = '<option value="">Select State First</option>';
+      cityDropdown.disabled = true;
+      return;
+    }
+
+    // Use API call to get cities
+    fetch(`/api/cities?state=${stateValue}`)
+      .then(response => response.json())
+      .then(data => {
+        const cities = data.cities || [];
+        populateCityDropdown(cities, cityDropdown);
+      })
+      .catch(error => {
+        console.error('Error loading cities:', error);
+        cityDropdown.innerHTML = '<option value="">Error loading cities</option>';
+        cityDropdown.disabled = true;
+      });
+  }
+
+  function populateCityDropdown(cities, cityDropdown) {
+    // Clear dropdown and add cities
+    cityDropdown.innerHTML = '<option value="">Select City</option>';
+
+    cities.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      cityDropdown.appendChild(option);
+    });
+
+    cityDropdown.disabled = false;
+    console.log(`Loaded ${cities.length} cities`);
+  }
+
+  // Setup for Individual customer
+  const individualState = document.getElementById('customer_state_individual');
+  const individualCity = document.getElementById('customer_city_individual');
+
+  if (individualState && individualCity) {
+    individualState.addEventListener('change', function() {
+      loadCitiesForState(this.value, individualCity);
+    });
+    // Load cities if state already selected
+    if (individualState.value) {
+      loadCitiesForState(individualState.value, individualCity);
+    }
+  }
+
+  // Setup for Corporate customer
+  const corporateState = document.getElementById('customer_state_corporate');
+  const corporateCity = document.getElementById('customer_city_corporate');
+
+  if (corporateState && corporateCity) {
+    corporateState.addEventListener('change', function() {
+      loadCitiesForState(this.value, corporateCity);
+    });
+    // Load cities if state already selected
+    if (corporateState.value) {
+      loadCitiesForState(corporateState.value, corporateCity);
+    }
+  }
+
+  console.log('State-city dropdowns ready!');
 });
 </script>

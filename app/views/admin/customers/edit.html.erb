@@ -52,15 +52,15 @@
           </div>
           <div class="row mt-3">
             <div class="col-md-6">
-              <%= form.label :sub_agent, "Sub Agent *", class: "form-label" %>
-              <%= form.select :sub_agent,
-                  options_for_select([['Self', 'Self']] + @sub_agents.map { |sa| ["#{sa.first_name} #{sa.last_name}", sa.display_name] }, @customer.sub_agent),
-                  { prompt: 'Select Sub Agent' },
-                  { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent].any?}", required: true } %>
-              <% if @customer.errors[:sub_agent].any? %>
-                <div class="invalid-feedback"><%= @customer.errors[:sub_agent].first %></div>
+              <%= form.label :sub_agent_id, "Affiliate *", class: "form-label" %>
+              <%= form.select :sub_agent_id,
+                  options_for_select([['Self', nil]] + @sub_agents.map { |sa| ["#{sa.first_name} #{sa.last_name}", sa.id] }, @customer.sub_agent_id),
+                  { prompt: 'Select Affiliate' },
+                  { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent_id].any?}", required: true } %>
+              <% if @customer.errors[:sub_agent_id].any? %>
+                <div class="invalid-feedback"><%= @customer.errors[:sub_agent_id].first %></div>
               <% end %>
-              <small class="form-text text-muted">Select the sub agent for this customer</small>
+              <small class="form-text text-muted">Select the affiliate for this customer</small>
             </div>
           </div>
         </div>

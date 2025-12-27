@@ -770,6 +770,25 @@
       </div>
     <% end %>
 
+    <!-- Invoice Section -->
+    <div class="nav-section">
+      <div class="nav-section-title">Invoice</div>
+      <ul class="nav-menu">
+        <!-- Invoices -->
+        <li class="nav-item">
+          <%= link_to admin_invoices_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/invoices')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-orange">
+                <i class="bi bi-receipt"></i>
+              </div>
+            </div>
+            <span class="nav-text">Invoices</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+      </ul>
+    </div>
+
     <!-- Settings Section -->
     <% if show_sidebar_item?('settings') %>
       <div class="nav-section">

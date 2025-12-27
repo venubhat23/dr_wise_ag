@@ -7,6 +7,7 @@ class Customer < ApplicationRecord
   has_many :corporate_members, dependent: :destroy
   has_many :documents, as: :documentable, dependent: :destroy
   has_one_attached :profile_image
+  belongs_to :affiliate, class_name: 'SubAgent', foreign_key: 'sub_agent_id', optional: true
 
   # Insurance associations
   has_many :health_insurances, dependent: :destroy
@@ -40,7 +41,6 @@ class Customer < ApplicationRecord
 
   # Validations
   validates :status, inclusion: { in: [true, false] }
-  validates :sub_agent, presence: { message: "must be selected" }
 
   # Set default values
   after_initialize :set_defaults
@@ -74,7 +74,7 @@ class Customer < ApplicationRecord
 
   # Search
   pg_search_scope :search_customers,
-    against: [:first_name, :last_name, :company_name, :email, :mobile, :pan_number],
+    against: [:first_name, :last_name, :company_name, :email, :mobile, :pan_no],
     using: {
       tsearch: { prefix: true, any_word: true }
     }
@@ -82,7 +82,7 @@ class Customer < ApplicationRecord
   # Instance methods
   def full_name
     if individual?
-      "#{first_name} #{last_name}".strip
+      "#{first_name} #{middle_name} #{last_name}".strip.squeeze(' ')
     else
       company_name
     end
@@ -104,8 +104,66 @@ class Customer < ApplicationRecord
     customer_type == 'corporate'
   end
 
+
   # Cache busting callback
   after_update :bust_cache
+
+  def calculate_age
+    if birth_date.present?
+      today = Date.current
+      birth = birth_date
+
+      # Calculate years
+      years = today.year - birth.year
+
+      # Calculate if birthday hasn't occurred this year yet
+      if today.month < birth.month || (today.month == birth.month && today.day < birth.day)
+        years -= 1
+      end
+
+      # Store numeric age for compatibility
+      self.age = years
+    end
+  end
+
+  def formatted_age
+    if birth_date.present?
+      today = Date.current
+      birth = birth_date
+
+      # Calculate years
+      years = today.year - birth.year
+
+      # Calculate if birthday hasn't occurred this year yet
+      if today.month < birth.month || (today.month == birth.month && today.day < birth.day)
+        years -= 1
+      end
+
+      # Calculate the last birthday and days
+      if years == 0
+        # If less than a year old, calculate days from birth
+        days = (today - birth).to_i
+        "#{days} days"
+      else
+        # Calculate days since last birthday
+        last_birthday = Date.new(today.year, birth.month, birth.day)
+        if last_birthday > today
+          last_birthday = Date.new(today.year - 1, birth.month, birth.day)
+        end
+
+        days = (today - last_birthday).to_i
+
+        # Format the age string
+        if days == 0
+          "#{years} years"
+        else
+          "#{years} years, #{days} days"
+        end
+      end
+    else
+      ""
+    end
+  end
 
   private
 
@@ -122,10 +180,4 @@ class Customer < ApplicationRecord
     self.gst_no = nil if gst_no.blank?
   end
 
-  def calculate_age
-    if birth_date.present?
-      self.age = Date.current.year - birth_date.year
-      self.age -= 1 if Date.current < birth_date + age.years
-    end
-  end
 end

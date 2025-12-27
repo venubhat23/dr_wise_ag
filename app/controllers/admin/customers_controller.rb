@@ -1,4 +1,5 @@
 class Admin::CustomersController < Admin::ApplicationController
+  include LocationData
   before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart, :trace_commission, :product_selection]
 
   # GET /admin/customers
@@ -310,57 +311,101 @@ class Admin::CustomersController < Admin::ApplicationController
   def new
     @customer = Customer.new
     @customer.status = true
-    @sub_agents = SubAgent.where(status: true).order(:first_name, :last_name)
+    @sub_agents = SubAgent.active.order(:first_name, :last_name)
+
+    # If lead_id is provided, populate customer with lead data
+    if params[:lead_id].present?
+      @lead = Lead.find(params[:lead_id])
+      @customer.customer_type = @lead.customer_type
+      @customer.first_name = extract_first_name(@lead.name)
+      @customer.last_name = extract_last_name(@lead.name)
+      @customer.email = @lead.email
+      @customer.mobile = @lead.contact_number
+      @customer.address = @lead.address
+      @customer.city = @lead.city
+      @customer.state = @lead.state
+
+      # Auto-populate affiliate from lead
+      if @lead.affiliate_id.present?
+        @customer.sub_agent_id = @lead.affiliate_id
+      end
+    end
   end
 
   # GET /admin/customers/1/edit
   def edit
-    @sub_agents = SubAgent.where(status: true).order(:first_name, :last_name)
+    @sub_agents = SubAgent.active.order(:first_name, :last_name)
   end
 
   # POST /admin/customers
   def create
-    @customer = Customer.new(customer_params)
-
-    # Handle password creation if provided
+    # Extract password params separately before creating customer
     password = params[:customer][:password]
     password_confirmation = params[:customer][:password_confirmation]
+
+    @customer = Customer.new(customer_params)
 
     begin
       ActiveRecord::Base.transaction do
         if @customer.save
-          # Create User account if password is provided
-          if password.present? && password_confirmation.present?
-            if password == password_confirmation
+          # Create User account - auto-generate password if not provided
+          should_create_user = params[:customer][:user_enter_password] == '1' ||
+                             (@customer.email.present? && password.blank?)
+
+          if should_create_user
+            if password.present? && password_confirmation.present?
+              # Use provided password
+              if password == password_confirmation
+                generated_password = password
+                User.create!(
+                  first_name: @customer.first_name,
+                  last_name: @customer.last_name || @customer.company_name,
+                  email: @customer.email,
+                  mobile: @customer.mobile,
+                  password: generated_password,
+                  password_confirmation: generated_password,
+                  original_password: generated_password,
+                  user_type: 'customer',
+                  status: true
+                )
+                redirect_to product_selection_admin_customer_path(@customer), notice: 'Customer and login account created successfully.'
+              else
+                @customer.destroy
+                @customer.errors.add(:password_confirmation, "doesn't match Password")
+                @sub_agents = SubAgent.active.order(:first_name, :last_name)
+                render :new, status: :unprocessable_entity
+                return
+              end
+            else
+              # Auto-generate password if no password provided but user account creation requested
+              generated_password = generate_secure_password
               User.create!(
                 first_name: @customer.first_name,
                 last_name: @customer.last_name || @customer.company_name,
                 email: @customer.email,
                 mobile: @customer.mobile,
-                password: password,
-                password_confirmation: password_confirmation,
+                password: generated_password,
+                password_confirmation: generated_password,
+                original_password: generated_password,
                 user_type: 'customer',
                 status: true
               )
-              redirect_to product_selection_admin_customer_path(@customer), notice: 'Customer and login account created successfully.'
-            else
-              @customer.destroy
-              @customer.errors.add(:password_confirmation, "doesn't match Password")
-              @sub_agents = SubAgent.where(status: true).order(:first_name, :last_name)
-              render :new, status: :unprocessable_entity
-              return
+              # Store generated password in flash for display (in production, send via email/SMS)
+              flash[:generated_password] = generated_password
+              redirect_to product_selection_admin_customer_path(@customer),
+                         notice: "Customer created successfully. Auto-generated password: #{generated_password}"
             end
           else
             redirect_to product_selection_admin_customer_path(@customer), notice: 'Customer was successfully created.'
           end
         else
-          @sub_agents = SubAgent.where(status: true).order(:first_name, :last_name)
+          @sub_agents = SubAgent.active.order(:first_name, :last_name)
           render :new, status: :unprocessable_entity
         end
       end
     rescue => e
       @customer.errors.add(:base, "Failed to create login account: #{e.message}")
-      @sub_agents = SubAgent.where(status: true).order(:first_name, :last_name)
+      @sub_agents = SubAgent.active.order(:first_name, :last_name)
       render :new, status: :unprocessable_entity
     end
   end
@@ -370,7 +415,7 @@ class Admin::CustomersController < Admin::ApplicationController
     if @customer.update(customer_params)
       redirect_to admin_customer_path(@customer), notice: 'Customer was successfully updated.'
     else
-      @sub_agents = SubAgent.where(status: true).order(:first_name, :last_name)
+      @sub_agents = SubAgent.active.order(:first_name, :last_name)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -438,7 +483,25 @@ class Admin::CustomersController < Admin::ApplicationController
     ]
   end
 
+  # API endpoint for cities
+  def cities
+    state = params[:state]
+    query = params[:query]
+
+    # Return all cities for the selected state
+    cities = LocationData.cities_for_state(state)
+
+    render json: { cities: cities }
+  end
+
   private
+
+  # Generate a secure password for auto-creation
+  def generate_secure_password
+    # Generate a secure 8-character password with mix of letters, numbers, and symbols
+    charset = Array('A'..'Z') + Array('a'..'z') + Array(0..9) + ['@', '#', '$', '%']
+    Array.new(8) { charset.sample }.join
+  end
 
   def set_customer
     @customer = Customer.find(params[:id])
@@ -451,7 +514,7 @@ class Admin::CustomersController < Admin::ApplicationController
       :gender, :occupation, :annual_income, :nominee_name, :nominee_relation,
       :nominee_date_of_birth, :status, :birth_place, :height_feet, :weight_kg, :education,
       :marital_status, :business_job, :business_name, :type_of_duty, :additional_information,
-      :added_by, :sub_agent, :age,
+      :added_by, :sub_agent_id, :age, :user_enter_password,
       profile_image: [],
       documents_attributes: [:id, :document_type, :file, :_destroy],
       family_members_attributes: [
@@ -579,5 +642,14 @@ class Admin::CustomersController < Admin::ApplicationController
     end
 
     workbook.stream.string
+  end
+
+  def extract_first_name(full_name)
+    full_name.to_s.split(' ').first || 'Unknown'
+  end
+
+  def extract_last_name(full_name)
+    names = full_name.to_s.split(' ')
+    names.length > 1 ? names[1..-1].join(' ') : 'Unknown'
   end
 end

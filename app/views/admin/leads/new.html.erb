@@ -1,10 +1,10 @@
-<!-- Add New Lead Header -->
+<!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h2 class="mb-1">Add New Lead</h2>
     <p class="text-muted mb-0">Create a new lead record for potential insurance customers</p>
   </div>
-  <div class="d-flex gap-2">
+  <div>
     <%= link_to admin_leads_path, class: "btn btn-outline-secondary" do %>
       <i class="bi bi-arrow-left me-1"></i>
       Back to Leads
@@ -12,311 +12,492 @@
   </div>
 </div>
 
-<!-- Lead Form -->
-<div class="row">
-  <div class="col-md-8">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-light border-0">
-        <h5 class="mb-0">
-          <i class="bi bi-person-plus me-2 text-primary"></i>
-          Lead Information
-        </h5>
-      </div>
-      <div class="card-body">
-        <%= form_with model: [:admin, @lead || Lead.new], local: true, class: "row g-3" do |form| %>
-          <!-- Basic Information -->
+<%= form_with model: [:admin, @lead || Lead.new], local: true, class: "needs-validation", novalidate: true do |form| %>
+
+  <!-- 1. Customer Type Selection -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-person-gear me-2 text-primary"></i>
+      <h5 class="mb-0">Customer Type</h5>
+    </div>
+    <div class="card-body">
+      <div class="customer-type-selection">
+        <div class="row">
           <div class="col-md-6">
-            <%= form.label :name, "Lead Name *", class: "form-label" %>
-            <%= form.text_field :name, class: "form-control", placeholder: "Enter full name", required: true %>
-          </div>
-
-          <div class="col-md-6">
-            <%= form.label :contact_number, "Contact Number *", class: "form-label" %>
-            <%= form.text_field :contact_number, class: "form-control", placeholder: "+91 98765 43210", required: true %>
-          </div>
-
-          <div class="col-md-6">
-            <%= form.label :email, "Email Address", class: "form-label" %>
-            <%= form.email_field :email, class: "form-control", placeholder: "name@email.com" %>
-          </div>
-
-          <div class="col-md-6">
-            <%= form.label :product_interest, "Product Interest *", class: "form-label" %>
-            <%= form.select :product_interest, options_for_select([
-              ['Select Product', ''],
-              ['Health Insurance', 'health'],
-              ['Life Insurance', 'life'],
-              ['Motor Insurance', 'motor'],
-              ['Home Insurance', 'home'],
-              ['Travel Insurance', 'travel'],
-              ['Other Insurance', 'other']
-            ]), {}, { class: "form-select", required: true } %>
-          </div>
-
-          <!-- Address Information -->
-          <div class="col-md-12">
-            <h6 class="mt-3 mb-3 text-primary">
-              <i class="bi bi-geo-alt me-2"></i>
-              Address Information
-            </h6>
-          </div>
-
-          <div class="col-md-12">
-            <%= form.label :address, "Address", class: "form-label" %>
-            <%= form.text_area :address, class: "form-control", rows: 2, placeholder: "Complete address" %>
-          </div>
-
-          <div class="col-md-6">
-            <%= form.label :city, "City", class: "form-label" %>
-            <%= form.text_field :city, class: "form-control", placeholder: "City name" %>
-          </div>
-
-          <div class="col-md-6">
-            <%= form.label :state, "State", class: "form-label" %>
-            <%= form.select :state, options_for_select([
-              ['Select State', ''],
-              ['Andhra Pradesh', 'andhra_pradesh'],
-              ['Assam', 'assam'],
-              ['Bihar', 'bihar'],
-              ['Delhi', 'delhi'],
-              ['Gujarat', 'gujarat'],
-              ['Karnataka', 'karnataka'],
-              ['Kerala', 'kerala'],
-              ['Maharashtra', 'maharashtra'],
-              ['Punjab', 'punjab'],
-              ['Rajasthan', 'rajasthan'],
-              ['Tamil Nadu', 'tamil_nadu'],
-              ['Uttar Pradesh', 'uttar_pradesh'],
-              ['West Bengal', 'west_bengal']
-            ]), {}, { class: "form-select" } %>
-          </div>
-
-          <!-- Lead Details -->
-          <div class="col-md-12">
-            <h6 class="mt-3 mb-3 text-primary">
-              <i class="bi bi-info-circle me-2"></i>
-              Lead Details
-            </h6>
-          </div>
-
-          <div class="col-md-6">
-            <%= form.label :referred_by, "Referred By", class: "form-label" %>
-            <%= form.text_field :referred_by, class: "form-control", placeholder: "Agent name or source" %>
-          </div>
-
-          <div class="col-md-6">
-            <%= form.label :current_stage, "Current Stage *", class: "form-label" %>
-            <%= form.select :current_stage, options_for_select([
-              ['Consultation', 'consultation'],
-              ['One-on-One', 'one_on_one'],
-              ['Converted', 'converted'],
-              ['Policy Created', 'policy_created'],
-              ['Referral Settled', 'referral_settled']
-            ], 'consultation'), {}, { class: "form-select", required: true } %>
-          </div>
-
-          <div class="col-md-6">
-            <%= form.label :created_date, "Lead Date", class: "form-label" %>
-            <%= form.date_field :created_date, class: "form-control", value: Date.current %>
-          </div>
-
-          <div class="col-md-6">
-            <%= form.label :priority, "Priority Level", class: "form-label" %>
-            <%= form.select :priority, options_for_select([
-              ['High', 'high'],
-              ['Medium', 'medium'],
-              ['Low', 'low']
-            ], 'medium'), {}, { class: "form-select" } %>
-          </div>
-
-          <div class="col-md-12">
-            <%= form.label :note, "Notes", class: "form-label" %>
-            <%= form.text_area :note, class: "form-control", rows: 4, placeholder: "Additional notes about the lead..." %>
-          </div>
-
-          <!-- Submit Buttons -->
-          <div class="col-md-12 mt-4">
-            <div class="d-flex gap-2">
-              <%= form.submit "Create Lead", class: "btn btn-primary" %>
-              <%= form.submit "Create & Add Another", class: "btn btn-outline-primary", name: "create_and_new" %>
-              <%= link_to "Cancel", admin_leads_path, class: "btn btn-outline-secondary" %>
+            <div class="customer-type-card" data-type="individual">
+              <%= form.radio_button :customer_type, 'individual',
+                  class: "form-check-input d-none",
+                  id: "customer_type_individual",
+                  required: true %>
+              <label for="customer_type_individual" class="customer-type-label">
+                <div class="text-center p-4">
+                  <i class="bi bi-person-circle fs-1 d-block mb-3 text-primary"></i>
+                  <h6 class="fw-bold">Individual</h6>
+                  <p class="text-muted small mb-0">Personal Customer</p>
+                </div>
+              </label>
             </div>
           </div>
+          <div class="col-md-6">
+            <div class="customer-type-card" data-type="corporate">
+              <%= form.radio_button :customer_type, 'corporate',
+                  class: "form-check-input d-none",
+                  id: "customer_type_corporate",
+                  required: true %>
+              <label for="customer_type_corporate" class="customer-type-label">
+                <div class="text-center p-4">
+                  <i class="bi bi-building fs-1 d-block mb-3 text-success"></i>
+                  <h6 class="fw-bold">Corporate</h6>
+                  <p class="text-muted small mb-0">Business Customer</p>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Basic Contact Information -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-telephone me-2 text-primary"></i>
+      <h5 class="mb-0">Contact Information</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :contact_number, "Contact Number *", class: "form-label" %>
+          <%= form.text_field :contact_number, class: "form-control", placeholder: "+91 98765 43210", required: true %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :email, "Email Address", class: "form-label" %>
+          <%= form.email_field :email, class: "form-control", placeholder: "name@email.com" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Individual Customer Details -->
+  <div id="individual_sections" style="display: none;">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center">
+        <i class="bi bi-person-circle me-2 text-primary"></i>
+        <h5 class="mb-0">Individual Customer Information</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <%= form.label :first_name, "First Name *", class: "form-label" %>
+            <%= form.text_field :first_name, class: "form-control", placeholder: "Enter first name", required: true %>
+          </div>
+          <div class="col-md-4 mb-3">
+            <%= form.label :middle_name, "Middle Name", class: "form-label" %>
+            <%= form.text_field :middle_name, class: "form-control", placeholder: "Enter middle name" %>
+          </div>
+          <div class="col-md-4 mb-3">
+            <%= form.label :last_name, "Last Name *", class: "form-label" %>
+            <%= form.text_field :last_name, class: "form-control", placeholder: "Enter last name", required: true %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :birth_date, "Date of Birth", class: "form-label" %>
+            <%= form.date_field :birth_date, class: "form-control" %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :gender, "Gender", class: "form-label" %>
+            <%= form.select :gender, options_for_select([
+              ['Select Gender', ''],
+              ['Male', 'male'],
+              ['Female', 'female'],
+              ['Other', 'other']
+            ]), {}, { class: "form-select" } %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :marital_status, "Marital Status", class: "form-label" %>
+            <%= form.select :marital_status, options_for_select([
+              ['Select Status', ''],
+              ['Single', 'single'],
+              ['Married', 'married'],
+              ['Divorced', 'divorced'],
+              ['Widowed', 'widowed']
+            ]), {}, { class: "form-select" } %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :pan_no, "PAN Number", class: "form-label" %>
+            <%= form.text_field :pan_no, class: "form-control", placeholder: "ABCDE1234F", pattern: "[A-Z]{5}[0-9]{4}[A-Z]{1}" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Corporate Customer Details -->
+  <div id="corporate_sections" style="display: none;">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center">
+        <i class="bi bi-building me-2 text-success"></i>
+        <h5 class="mb-0">Corporate Customer Information</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <%= form.label :company_name, "Company Name *", class: "form-label" %>
+            <%= form.text_field :company_name, class: "form-control", placeholder: "Enter company name", required: true %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :pan_no, "PAN Number", class: "form-label" %>
+            <%= form.text_field :pan_no, class: "form-control", placeholder: "ABCDE1234F", pattern: "[A-Z]{5}[0-9]{4}[A-Z]{1}" %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :gst_no, "GST Number", class: "form-label" %>
+            <%= form.text_field :gst_no, class: "form-control", placeholder: "22AAAAA0000A1Z5", pattern: "[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z0-9A-Z]{1}[0-9A-Z]{1}" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Product Information (shown after customer type selected) -->
+  <div id="product_section" style="display: none;">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center">
+        <i class="bi bi-briefcase me-2 text-primary"></i>
+        <h5 class="mb-0">Product Information</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <%= form.label :product_category, "Product Category *", class: "form-label" %>
+            <%= form.select :product_category, options_for_select([
+              ['Select Category', ''],
+              ['Insurance', 'insurance'],
+              ['Investments', 'investments'],
+              ['Loans', 'loans'],
+              ['Taxation', 'taxation']
+            ]), {}, { class: "form-select", required: true, id: "product_category" } %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :product_subcategory, "Product Type *", class: "form-label" %>
+            <%= form.select :product_subcategory, options_for_select([
+              ['Select Category First', '']
+            ]), {}, { class: "form-select", required: true, id: "product_subcategory", disabled: true } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legacy name field (hidden but kept for compatibility) -->
+  <%= form.hidden_field :name, value: "Placeholder" %>
+
+  <!-- 6. Address Information -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-geo-alt me-2 text-primary"></i>
+      <h5 class="mb-0">Address Information</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-12 mb-3">
+          <%= form.label :address, "Address", class: "form-label" %>
+          <%= form.text_area :address, class: "form-control", rows: 2, placeholder: "Complete address" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :state, "State", class: "form-label" %>
+          <%= form.select :state,
+              options_for_select(LocationData.states_for_select, @lead&.state),
+              { prompt: 'Select State' },
+              { class: "form-select", id: "lead_state" } %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :city, "City", class: "form-label" %>
+          <%= form.select :city,
+              options_for_select([], @lead&.city),
+              { prompt: 'Select State First' },
+              { class: "form-select", id: "lead_city", disabled: true } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Lead Details -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-info-circle me-2 text-primary"></i>
+      <h5 class="mb-0">Lead Details</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <!-- Direct/Referred Selection -->
+        <div class="col-md-6 mb-3">
+          <div class="form-check mt-2">
+            <%= form.check_box :is_direct, { class: "form-check-input", checked: true, id: "is_direct_checkbox" } %>
+            <%= form.label :is_direct, "Direct Lead", class: "form-check-label fw-bold" %>
+            <small class="form-text text-muted d-block">Check if this is a direct lead, uncheck if referred</small>
+          </div>
+        </div>
+
+        <!-- Affiliate Selection (hidden by default) -->
+        <div class="col-md-6 mb-3" id="affiliate_selection" style="display: none;">
+          <%= form.label :affiliate_id, "Select Affiliate *", class: "form-label" %>
+          <%= form.select :affiliate_id, options_for_select([
+            ['Select Affiliate', '']
+          ] + SubAgent.active.collect { |agent| [agent.display_name, agent.id] }),
+          { include_blank: false },
+          { class: "form-select", id: "affiliate_dropdown" } %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :referred_by, "Referred By", class: "form-label" %>
+          <%= form.text_field :referred_by, class: "form-control", placeholder: "Agent name or source" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :current_stage, "Current Stage *", class: "form-label" %>
+          <%= form.select :current_stage, options_for_select([
+            ['Consultation', 'consultation'],
+            ['One-on-One', 'one_on_one'],
+            ['Converted', 'converted'],
+            ['Policy Created', 'policy_created'],
+            ['Referral Settled', 'referral_settled']
+          ], 'consultation'), {}, { class: "form-select", required: true } %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :created_date, "Lead Date", class: "form-label" %>
+          <%= form.date_field :created_date, class: "form-control", value: Date.current.strftime("%Y-%m-%d") %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :lead_source, "Lead Source *", class: "form-label" %>
+          <%= form.select :lead_source, options_for_select([
+            ['Select Source', ''],
+            ['Online', 'online'],
+            ['Offline', 'offline'],
+            ['Agent Referral', 'agent_referral'],
+            ['Walk In', 'walk_in'],
+            ['Tele Calling', 'tele_calling'],
+            ['Campaign', 'campaign']
+          ]), {}, { class: "form-select", required: true } %>
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <%= form.label :note, "Notes", class: "form-label" %>
+          <%= form.text_area :note, class: "form-control", rows: 4, placeholder: "Additional notes about the lead..." %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Submit Actions -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body text-center py-4">
+      <div class="d-flex justify-content-center gap-3 flex-wrap">
+        <%= form.submit "✨ Create Lead", class: "btn btn-primary btn-lg px-5" %>
+        <%= form.submit "🔄 Create & Add Another", class: "btn btn-outline-primary btn-lg px-4", name: "create_and_new" %>
+        <%= link_to admin_leads_path, class: "btn btn-outline-secondary btn-lg px-4" do %>
+          <i class="bi bi-arrow-left me-2"></i>Cancel
         <% end %>
       </div>
-    </div>
-  </div>
-
-  <!-- Quick Tips Sidebar -->
-  <div class="col-md-4">
-    <!-- Lead Creation Tips -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-light border-0">
-        <h5 class="mb-0">
-          <i class="bi bi-lightbulb me-2 text-warning"></i>
-          Lead Creation Tips
-        </h5>
-      </div>
-      <div class="card-body">
-        <div class="tip-item mb-3">
-          <h6 class="mb-1">
-            <i class="bi bi-check-circle text-success me-2"></i>
-            Complete Information
-          </h6>
-          <p class="small text-muted mb-0">Fill in as much information as possible to improve lead quality and conversion chances.</p>
-        </div>
-
-        <div class="tip-item mb-3">
-          <h6 class="mb-1">
-            <i class="bi bi-telephone text-info me-2"></i>
-            Contact Verification
-          </h6>
-          <p class="small text-muted mb-0">Verify phone number and email before creating the lead to ensure accurate communication.</p>
-        </div>
-
-        <div class="tip-item mb-3">
-          <h6 class="mb-1">
-            <i class="bi bi-star text-warning me-2"></i>
-            Priority Setting
-          </h6>
-          <p class="small text-muted mb-0">Set priority based on customer urgency and potential policy value.</p>
-        </div>
-
-        <div class="tip-item mb-0">
-          <h6 class="mb-1">
-            <i class="bi bi-sticky text-primary me-2"></i>
-            Detailed Notes
-          </h6>
-          <p class="small text-muted mb-0">Add comprehensive notes about customer requirements and preferences.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Reference -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-light border-0">
-        <h5 class="mb-0">
-          <i class="bi bi-bookmark me-2 text-info"></i>
-          Lead Stages Guide
-        </h5>
-      </div>
-      <div class="card-body">
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge bg-info me-2">1</span>
-            <strong>Consultation</strong>
-          </div>
-          <p class="small text-muted mb-0">Initial contact and requirement gathering</p>
-        </div>
-
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge bg-warning me-2">2</span>
-            <strong>One-on-One</strong>
-          </div>
-          <p class="small text-muted mb-0">Detailed discussion and product presentation</p>
-        </div>
-
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge bg-success me-2">3</span>
-            <strong>Converted</strong>
-          </div>
-          <p class="small text-muted mb-0">Customer agrees to purchase policy</p>
-        </div>
-
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge bg-primary me-2">4</span>
-            <strong>Policy Created</strong>
-          </div>
-          <p class="small text-muted mb-0">Policy documentation completed</p>
-        </div>
-
-        <div class="stage-item mb-0">
-          <div class="d-flex align-items-center">
-            <span class="badge bg-dark me-2">5</span>
-            <strong>Referral Settled</strong>
-          </div>
-          <p class="small text-muted mb-0">Commission and referrals processed</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Lead Statistics -->
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-light border-0">
-        <h5 class="mb-0">
-          <i class="bi bi-graph-up me-2 text-success"></i>
-          This Month's Stats
-        </h5>
-      </div>
-      <div class="card-body">
-        <div class="stat-row d-flex justify-content-between mb-2">
-          <span>Total Leads Added:</span>
-          <strong class="text-primary">127</strong>
-        </div>
-        <div class="stat-row d-flex justify-content-between mb-2">
-          <span>Converted Leads:</span>
-          <strong class="text-success">89</strong>
-        </div>
-        <div class="stat-row d-flex justify-content-between mb-2">
-          <span>Conversion Rate:</span>
-          <strong class="text-info">70.1%</strong>
-        </div>
-        <div class="stat-row d-flex justify-content-between mb-0">
-          <span>Your Avg. Time:</span>
-          <strong class="text-warning">3.2 days</strong>
-        </div>
+      <div class="mt-3">
+        <small class="text-muted">
+          <i class="bi bi-info-circle me-1"></i>
+          All fields marked with * are required
+        </small>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Custom Styles -->
+<% end %>
+
+<!-- Customer Form Style -->
 <style>
-.tip-item {
-  border-left: 3px solid #e2e8f0;
-  padding-left: 1rem;
+/* Customer Type Selection Cards */
+.customer-type-selection {
+  margin-bottom: 1.5rem;
 }
 
-.stage-item {
-  border-bottom: 1px solid #f1f5f9;
-  padding-bottom: 0.75rem;
+.customer-type-card {
+  height: 100%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-.stage-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+.customer-type-label {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin: 0;
 }
 
-.stat-row {
-  font-size: 0.9rem;
+.customer-type-label:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
+}
+
+.customer-type-card input[type="radio"]:checked + .customer-type-label {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.25);
+  transform: translateY(-2px);
+}
+
+.customer-type-card input[type="radio"]:checked + .customer-type-label i {
+  color: #667eea !important;
+}
+
+/* Form Cards */
+.card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  margin-bottom: 2rem;
+}
+
+.card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.card-header {
+  background: transparent;
+  border: none;
+  padding: 1.5rem 1.5rem 0.5rem;
 }
 
 .card-header h5 {
   font-weight: 600;
+  color: #374151;
+  font-size: 1.125rem;
 }
 
+.card-body {
+  padding: 1rem 1.5rem 1.5rem;
+}
+
+/* Form Controls */
 .form-label {
   font-weight: 500;
   color: #374151;
-}
-
-.btn {
-  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
 }
 
 .form-control, .form-select {
+  border: 1.5px solid #d1d5db;
   border-radius: 8px;
-  border: 1px solid #d1d5db;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
 }
 
 .form-control:focus, .form-select:focus {
   border-color: #667eea;
-  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background-color: #ffffff;
+}
+
+/* Buttons */
+.btn {
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  padding: 0.75rem 1.5rem;
+}
+
+.btn-primary {
+  background-color: #667eea;
+  border-color: #667eea;
+}
+
+.btn-primary:hover {
+  background-color: #5a67d8;
+  border-color: #5a67d8;
+  transform: translateY(-1px);
+}
+
+.btn-outline-primary {
+  color: #667eea;
+  border-color: #667eea;
+}
+
+.btn-outline-primary:hover {
+  background-color: #667eea;
+  border-color: #667eea;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.btn-outline-secondary:hover {
+  transform: translateY(-1px);
+}
+
+/* Section Animations */
+#individual_sections, #corporate_sections, #product_section {
+  animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom checkbox styling */
+.form-check-input:checked {
+  background-color: #667eea;
+  border-color: #667eea;
+}
+
+.form-check-input:focus {
+  box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+}
+
+/* Icon colors */
+.text-primary {
+  color: #667eea !important;
+}
+
+.text-success {
+  color: #10b981 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .card-body {
+    padding: 1rem;
+  }
+
+  .d-flex.gap-3.flex-wrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .d-flex.gap-3.flex-wrap .btn {
+    margin-bottom: 0.5rem;
+  }
 }
 </style>
+
+<!-- Include Location Data -->
+<script>
+<%= File.read(Rails.root.join('app/assets/javascripts/location_data.js')).html_safe %>
+</script>
 
 <!-- Form Validation Script -->
 <script>
@@ -324,15 +505,257 @@ document.addEventListener('DOMContentLoaded', function() {
   const form = document.querySelector('form');
   const nameField = form.querySelector('[name="lead[name]"]');
   const phoneField = form.querySelector('[name="lead[contact_number]"]');
-  const productField = form.querySelector('[name="lead[product_interest]"]');
+  const productCategoryField = document.getElementById('product_category');
+  const productSubcategoryField = document.getElementById('product_subcategory');
+  const customerTypeRadios = document.querySelectorAll('input[name="lead[customer_type]"]');
+  const directCheckbox = document.getElementById('is_direct_checkbox');
+  const affiliateSelection = document.getElementById('affiliate_selection');
+  const affiliateDropdown = document.getElementById('affiliate_dropdown');
 
-  // Phone number formatting
-  phoneField.addEventListener('input', function() {
+  // Customer type conditional sections
+  const individualSections = document.getElementById('individual_sections');
+  const corporateSections = document.getElementById('corporate_sections');
+  const productSection = document.getElementById('product_section');
+
+  // Product subcategory options
+  const subcategoryOptions = {
+    'insurance': [
+      ['Life Insurance', 'life'],
+      ['Health Insurance', 'health'],
+      ['Motor Insurance', 'motor'],
+      ['General Insurance', 'general'],
+      ['Travel Insurance', 'travel'],
+      ['Other Insurance', 'other']
+    ],
+    'investments': [
+      ['Mutual Fund', 'mutual_fund'],
+      ['Gold', 'gold'],
+      ['NPS', 'nps'],
+      ['Bonds', 'bonds'],
+      ['Other', 'other']
+    ],
+    'loans': [
+      ['Personal Loan', 'personal'],
+      ['Home Loan', 'home'],
+      ['Business Loan', 'business'],
+      ['Other', 'other']
+    ],
+    'taxation': [
+      ['ITR', 'itr'],
+      ['Other', 'other']
+    ]
+  };
+
+  // Phone number formatting - allows normal editing and backfill
+  phoneField.addEventListener('blur', function() {
     let value = this.value.replace(/\D/g, '');
+
+    // Format only on blur (when user finishes editing) and has 10 digits
     if (value.length === 10) {
       this.value = '+91 ' + value.substring(0, 5) + ' ' + value.substring(5);
     }
   });
+
+  // Native HTML5 date picker is now used - no additional formatting needed
+
+  // Handle customer type change with radio buttons
+  customerTypeRadios.forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.checked) {
+        const selectedType = this.value;
+
+        // Hide all customer type specific sections
+        individualSections.style.display = 'none';
+        corporateSections.style.display = 'none';
+        productSection.style.display = 'block'; // Always show product section after type selection
+
+        // Clear required attributes and values from all fields
+        const allInputs = form.querySelectorAll('#individual_sections input, #individual_sections select, #corporate_sections input, #corporate_sections select');
+        allInputs.forEach(input => {
+          input.removeAttribute('required');
+          if (input.type !== 'hidden' && input.type !== 'radio' && input.type !== 'checkbox') {
+            input.value = '';
+          }
+        });
+
+        if (selectedType === 'individual') {
+          individualSections.style.display = 'block';
+
+          // Set required fields for individual
+          form.querySelector('[name="lead[first_name]"]').setAttribute('required', 'required');
+          form.querySelector('[name="lead[last_name]"]').setAttribute('required', 'required');
+
+          // Update the hidden name field with a default value
+          nameField.value = 'Individual Customer';
+        } else if (selectedType === 'corporate') {
+          corporateSections.style.display = 'block';
+
+          // Set required fields for corporate
+          form.querySelector('[name="lead[company_name]"]').setAttribute('required', 'required');
+
+          // Update the hidden name field with a default value
+          nameField.value = 'Corporate Customer';
+        }
+      }
+    });
+  });
+
+  // Auto-update name field for individual customers
+  const firstNameField = form.querySelector('[name="lead[first_name]"]');
+  const middleNameField = form.querySelector('[name="lead[middle_name]"]');
+  const lastNameField = form.querySelector('[name="lead[last_name]"]');
+  const companyNameField = form.querySelector('[name="lead[company_name]"]');
+
+  function updateNameField() {
+    const selectedCustomerType = document.querySelector('input[name="lead[customer_type]"]:checked')?.value;
+
+    if (selectedCustomerType === 'individual') {
+      const firstName = firstNameField?.value || '';
+      const middleName = middleNameField?.value || '';
+      const lastName = lastNameField?.value || '';
+      nameField.value = `${firstName} ${middleName} ${lastName}`.trim().replace(/\s+/g, ' ');
+    } else if (selectedCustomerType === 'corporate') {
+      nameField.value = companyNameField?.value || 'Corporate Customer';
+    }
+  }
+
+  if (firstNameField) firstNameField.addEventListener('input', updateNameField);
+  if (middleNameField) middleNameField.addEventListener('input', updateNameField);
+  if (lastNameField) lastNameField.addEventListener('input', updateNameField);
+  if (companyNameField) companyNameField.addEventListener('input', updateNameField);
+
+  // Progress tracking
+  function updateProgress() {
+    const allInputs = form.querySelectorAll('input[required], select[required]');
+    const filledInputs = Array.from(allInputs).filter(input => {
+      if (input.type === 'checkbox') return input.checked;
+      return input.value.trim() !== '';
+    });
+
+    const progress = (filledInputs.length / allInputs.length) * 100;
+    const progressBar = document.getElementById('formProgress');
+    if (progressBar) {
+      progressBar.style.width = progress + '%';
+    }
+  }
+
+  // Add progress tracking to all form inputs
+  const allFormInputs = form.querySelectorAll('input, select, textarea');
+  allFormInputs.forEach(input => {
+    input.addEventListener('input', updateProgress);
+    input.addEventListener('change', updateProgress);
+  });
+
+  // Handle product category change
+  productCategoryField.addEventListener('change', function() {
+    const selectedCategory = this.value;
+    const subcategorySelect = productSubcategoryField;
+
+    // Clear existing options
+    subcategorySelect.innerHTML = '<option value="">Select Product Type</option>';
+
+    if (selectedCategory && subcategoryOptions[selectedCategory]) {
+      // Enable the subcategory dropdown
+      subcategorySelect.disabled = false;
+
+      // Add new options
+      subcategoryOptions[selectedCategory].forEach(function(option) {
+        const optionElement = document.createElement('option');
+        optionElement.value = option[1];
+        optionElement.textContent = option[0];
+        subcategorySelect.appendChild(optionElement);
+      });
+    } else {
+      // Disable the subcategory dropdown
+      subcategorySelect.disabled = true;
+    }
+  });
+
+  // Handle direct/referred toggle
+  directCheckbox.addEventListener('change', function() {
+    if (this.checked) {
+      // Direct lead - hide affiliate selection and clear value
+      affiliateSelection.style.display = 'none';
+      affiliateDropdown.value = '';
+      affiliateDropdown.removeAttribute('required');
+    } else {
+      // Referred lead - show affiliate selection and make it required
+      affiliateSelection.style.display = 'block';
+      affiliateDropdown.setAttribute('required', 'required');
+    }
+  });
+
+  // Simple State-City Dropdown for Lead Form
+  const leadStateSelect = document.getElementById('lead_state');
+  const leadCitySelect = document.getElementById('lead_city');
+
+  // Use global location data or API fallback
+  let leadCitiesData = {};
+
+  if (window.LocationData && window.LocationData.states) {
+    leadCitiesData = Object.keys(window.LocationData.states).reduce((acc, key) => {
+      acc[key] = window.LocationData.states[key].cities;
+      return acc;
+    }, {});
+  }
+
+  function loadLeadCitiesForState(stateValue) {
+    console.log('Loading cities for lead form:', stateValue);
+
+    if (!stateValue) {
+      leadCitySelect.innerHTML = '<option value="">Select State First</option>';
+      leadCitySelect.disabled = true;
+      return;
+    }
+
+    // Get cities for this state from local data first
+    let cities = leadCitiesData[stateValue] || [];
+
+    if (cities.length > 0) {
+      // Use local data if available
+      populateCityDropdown(cities);
+    } else {
+      // Fallback to API call
+      fetch(`/api/cities?state=${stateValue}`)
+        .then(response => response.json())
+        .then(data => {
+          cities = data.cities || [];
+          populateCityDropdown(cities);
+        })
+        .catch(error => {
+          console.error('Error loading cities:', error);
+          leadCitySelect.innerHTML = '<option value="">Error loading cities</option>';
+          leadCitySelect.disabled = true;
+        });
+    }
+  }
+
+  function populateCityDropdown(cities) {
+    // Clear dropdown and add cities
+    leadCitySelect.innerHTML = '<option value="">Select City</option>';
+
+    cities.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      leadCitySelect.appendChild(option);
+    });
+
+    leadCitySelect.disabled = false;
+    console.log(`Loaded ${cities.length} cities for leads form`);
+  }
+
+  // Setup lead form state-city functionality
+  if (leadStateSelect && leadCitySelect) {
+    leadStateSelect.addEventListener('change', function() {
+      loadLeadCitiesForState(this.value);
+    });
+
+    // Load cities if state is pre-selected
+    if (leadStateSelect.value) {
+      loadLeadCitiesForState(leadStateSelect.value);
+    }
+  }
 
   // Form validation
   form.addEventListener('submit', function(e) {
@@ -345,17 +768,42 @@ document.addEventListener('DOMContentLoaded', function() {
       isValid = false;
     }
 
-    // Validate phone
-    const phoneRegex = /^(\+91|91)?[6-9]\d{9}$/;
+    // Validate phone - allow spaces, hyphens, brackets
     const cleanPhone = phoneField.value.replace(/\D/g, '');
-    if (!phoneRegex.test(cleanPhone)) {
-      errors.push('Please enter a valid Indian mobile number');
+    if (cleanPhone.length < 10) {
+      errors.push('Please enter a valid contact number (minimum 10 digits)');
       isValid = false;
     }
 
-    // Validate product selection
-    if (!productField.value) {
-      errors.push('Please select a product interest');
+    // Validate product category selection
+    if (!productCategoryField.value) {
+      errors.push('Please select a product category');
+      isValid = false;
+    }
+
+    // Validate product subcategory selection
+    if (!productSubcategoryField.value) {
+      errors.push('Please select a product type');
+      isValid = false;
+    }
+
+    // Validate customer type selection
+    const selectedCustomerType = document.querySelector('input[name="lead[customer_type]"]:checked');
+    if (!selectedCustomerType) {
+      errors.push('Please select a customer type');
+      isValid = false;
+    }
+
+    // Validate affiliate selection for referred leads
+    if (!directCheckbox.checked && !affiliateDropdown.value) {
+      errors.push('Please select an affiliate for referred leads');
+      isValid = false;
+    }
+
+    // Native date field validation - HTML5 date input handles format validation
+    const dateField = form.querySelector('[name="lead[created_date]"]');
+    if (dateField && !dateField.value) {
+      errors.push('Please select a lead date');
       isValid = false;
     }
 

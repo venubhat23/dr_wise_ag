@@ -25,7 +25,7 @@ class LifeInsurance < ApplicationRecord
   # Validations
   validates :policy_holder, presence: true
   validates :insurance_company_name, presence: true
-  validates :policy_type, presence: true, inclusion: { in: ['New', 'Renewal', 'Porting'] }
+  validates :policy_type, presence: true, inclusion: { in: ['New', 'Renewal'] }
   validates :policy_number, presence: true, uniqueness: true
   validates :policy_booking_date, presence: true
   validates :policy_start_date, presence: true
@@ -48,7 +48,7 @@ class LifeInsurance < ApplicationRecord
   after_create :create_structured_payout
 
   # Enums for dropdowns
-  POLICY_TYPES = ['New', 'Renewal', 'Porting'].freeze
+  POLICY_TYPES = ['New', 'Renewal'].freeze
   PAYMENT_MODES = ['Yearly', 'Half-Yearly', 'Quarterly', 'Monthly', 'Single'].freeze
   RELATIONSHIPS = ['Self', 'Spouse', 'Father', 'Mother', 'Son', 'Daughter', 'Brother', 'Sister', 'Other'].freeze
   ACCOUNT_TYPES = ['Savings', 'Current', 'Salary', 'Business'].freeze

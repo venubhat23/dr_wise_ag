@@ -1,6 +1,9 @@
 class AgencyCode < ApplicationRecord
   include InsuranceCompanyConstants
 
+  # Relationships
+  belongs_to :broker, optional: true
+
   # Validations
   validates :insurance_type, presence: true, inclusion: { in: ['Health', 'Motor', 'Life', 'General', 'Other'] }
   validates :company_name, presence: true

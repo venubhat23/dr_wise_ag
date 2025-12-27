@@ -14,6 +14,11 @@ Rails.application.routes.draw do
   get 'dashboard', to: 'dashboard#index'
   get 'dashboard/stats', to: 'dashboard#stats'
 
+  # API routes
+  namespace :api do
+    resources :cities, only: [:index]
+  end
+
   # Admin routes
   namespace :admin do
     resources :payouts do
@@ -73,6 +78,17 @@ Rails.application.routes.draw do
       collection do
         patch :mark_as_paid
         get :commission_breakdown
+      end
+    end
+
+    # Invoice System
+    resources :invoices do
+      member do
+        patch :mark_as_paid
+        get :download_pdf
+      end
+      collection do
+        post :generate_invoice
       end
     end
     # Users (Admins/Agents) management
@@ -135,6 +151,7 @@ Rails.application.routes.draw do
       end
       collection do
         get :export
+        get :cities
       end
       resources :family_members
     end
@@ -150,6 +167,8 @@ Rails.application.routes.draw do
     resources :life_insurances, path: 'insurance/life' do
       collection do
         get :policy_holder_options
+        get :brokers_by_company
+        get :agency_codes_by_broker
       end
       member do
         get :commission_details

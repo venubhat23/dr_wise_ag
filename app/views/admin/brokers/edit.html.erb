@@ -62,6 +62,24 @@
 
         <div class="col-md-4">
           <div class="mb-4">
+            <%= form.label :insurance_company_id, class: "form-label" do %>
+              <i class="bi bi-building me-2 text-primary"></i>
+              Insurance Company
+            <% end %>
+            <%= form.select :insurance_company_id,
+                options_from_collection_for_select(@insurance_companies, :id, :name, @broker.insurance_company_id),
+                { prompt: 'Select Insurance Company (Optional)' },
+                { class: "form-select form-select-lg" } %>
+            <small class="form-text text-muted">
+              Choose the insurance company this broker represents
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4">
+          <div class="mb-4">
             <%= form.label :status, class: "form-label" do %>
               <i class="bi bi-toggle-on me-2 text-success"></i>
               Status <span class="text-danger">*</span>

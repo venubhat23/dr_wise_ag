@@ -1,50 +1,40 @@
-<div class="container-fluid">
-  <!-- Breadcrumb -->
-  <nav aria-label="breadcrumb" class="mb-4">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item">
-        <%= link_to "Home", root_path, class: "text-primary text-decoration-none" %>
-      </li>
-      <li class="breadcrumb-item">
-        <%= link_to "Health Insurance", admin_health_insurances_path, class: "text-primary text-decoration-none" %>
-      </li>
-      <li class="breadcrumb-item active">Add Health Insurance</li>
-    </ol>
-  </nav>
-
-  <!-- Header -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center">
-        <h1 class="h3 text-gray-800">Add Health Insurance</h1>
-        <%= link_to admin_health_insurances_path, class: "btn btn-outline-secondary" do %>
-          <i class="bi bi-arrow-left me-1"></i>Back to List
-        <% end %>
-      </div>
-    </div>
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Add Health Insurance</h2>
+    <p class="text-muted mb-0">Create a new health insurance policy</p>
   </div>
+  <div>
+    <%= link_to admin_health_insurances_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to List
+    <% end %>
+  </div>
+</div>
 
-  <%= form_with model: [:admin, @health_insurance], local: true, multipart: true, id: "healthInsuranceForm" do |form| %>
-    <div class="row">
-      <div class="col-lg-8">
-        <!-- Error Display -->
-        <% if @health_insurance.errors.any? %>
-          <div class="alert alert-danger alert-dismissible fade show mb-4">
-            <h6><i class="bi bi-exclamation-triangle me-2"></i>Please correct the following errors:</h6>
-            <ul class="mb-0">
-              <% @health_insurance.errors.full_messages.each do |message| %>
-                <li><%= message %></li>
-              <% end %>
-            </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
+<%= form_with model: [:admin, @health_insurance], local: true, multipart: true, id: "healthInsuranceForm", class: "needs-validation", novalidate: true do |form| %>
+  <!-- Error Display -->
+  <% if @health_insurance.errors.any? %>
+    <div class="alert alert-danger alert-dismissible fade show mb-4">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      <strong>Please correct the following errors:</strong>
+      <ul class="mb-0 mt-2">
+        <% @health_insurance.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
         <% end %>
+      </ul>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% end %>
 
-        <!-- 1. Client Details Section -->
-        <div class="card mb-4">
-          <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="bi bi-person-circle me-2"></i>1. Client Details</h5>
-          </div>
+  <!-- Client & Agent Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-person me-2 text-primary"></i>
+        Client & Agent Details
+      </h5>
+    </div>
           <div class="card-body">
             <div class="row">
               <div class="col-md-6 mb-3">
@@ -94,11 +84,14 @@
           </div>
         </div>
 
-        <!-- 2. Insurance Details Section -->
-        <div class="card mb-4">
-          <div class="card-header bg-success text-white">
-            <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>2. Insurance Details</h5>
-          </div>
+  <!-- Policy Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-file-text me-2 text-primary"></i>
+        Policy Details
+      </h5>
+    </div>
           <div class="card-body">
             <div class="row">
               <div class="col-md-6 mb-3">
@@ -202,11 +195,14 @@
           </div>
         </div>
 
-        <!-- 3. Commission Details Section -->
-        <div class="card mb-4">
-          <div class="card-header bg-warning text-dark">
-            <h5 class="mb-0"><i class="bi bi-currency-rupee me-2"></i>3. Commission Details</h5>
-          </div>
+  <!-- Commission Detail Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-percent me-2 text-primary"></i>
+        Commission Detail
+      </h5>
+    </div>
           <div class="card-body">
             <!-- Main Agent Commission -->
             <h6>Main Agent Commission</h6>
@@ -407,11 +403,14 @@
           </div>
         </div>
 
-        <!-- 4. Family/Employee Coverage Section -->
-        <div class="card mb-4" id="family_coverage_section">
-          <div class="card-header bg-info text-white">
-            <h5 class="mb-0"><i class="bi bi-people me-2"></i>4. Family Coverage</h5>
-          </div>
+  <!-- Family/Employee Coverage Section -->
+  <div class="card mb-4" id="family_coverage_section">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-people me-2 text-primary"></i>
+        Family Coverage
+      </h5>
+    </div>
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
               <h6 class="mb-0">Family Members</h6>
@@ -461,11 +460,14 @@
           </div>
         </div>
 
-        <!-- 5. Autopay Installment Section -->
-        <div class="card mb-4">
-          <div class="card-header bg-dark text-white">
-            <h5 class="mb-0"><i class="bi bi-credit-card me-2"></i>5. Autopay Installment</h5>
-          </div>
+  <!-- Autopay Installment Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-calendar-event me-2 text-primary"></i>
+        Autopay Installment
+      </h5>
+    </div>
           <div class="card-body">
             <div class="row">
               <div class="col-md-6 mb-3">
@@ -480,11 +482,14 @@
           </div>
         </div>
 
-        <!-- 6. Document Upload Section -->
-        <div class="card mb-4">
-          <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0"><i class="bi bi-file-earmark-pdf me-2"></i>6. Document Upload</h5>
-          </div>
+  <!-- Policy Upload Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-cloud-upload me-2 text-primary"></i>
+        Policy Upload
+      </h5>
+    </div>
           <div class="card-body">
             <!-- Policy PDF Upload -->
             <div class="mb-4">
@@ -544,114 +549,132 @@
           </div>
         </div>
 
-        <!-- Form Actions -->
-        <div class="card">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <%= link_to admin_health_insurances_path, class: "btn btn-outline-secondary" do %>
-                <i class="bi bi-x-lg me-1"></i>Cancel
-              <% end %>
-              <%= form.submit "Create Health Insurance", class: "btn btn-primary btn-lg" %>
-            </div>
-          </div>
+  <!-- Form Actions -->
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between">
+        <div>
+          <%= link_to admin_health_insurances_path, class: "btn btn-outline-secondary" do %>
+            <i class="bi bi-x-lg me-2"></i>
+            Back to List
+          <% end %>
         </div>
-      </div>
-
-      <!-- Sidebar -->
-      <div class="col-lg-4">
-        <!-- Summary Card -->
-        <div class="card mb-4">
-          <div class="card-header bg-primary text-white">
-            <h6 class="mb-0"><i class="bi bi-calculator me-2"></i>Premium Summary</h6>
-          </div>
-          <div class="card-body">
-            <div class="row text-center">
-              <div class="col-6 border-end">
-                <h5 class="text-primary mb-1">₹<span id="summary_net_premium">0</span></h5>
-                <small class="text-muted">Net Premium</small>
-              </div>
-              <div class="col-6">
-                <h5 class="text-success mb-1">₹<span id="summary_total_premium">0</span></h5>
-                <small class="text-muted">Total Premium</small>
-              </div>
-            </div>
-            <hr>
-            <div class="row text-center">
-              <div class="col-6 border-end">
-                <h6 class="text-warning mb-1">₹<span id="summary_commission">0</span></h6>
-                <small class="text-muted">Commission</small>
-              </div>
-              <div class="col-6">
-                <h6 class="text-info mb-1">₹<span id="summary_after_tds">0</span></h6>
-                <small class="text-muted">After TDS</small>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Help Card -->
-        <div class="card">
-          <div class="card-header bg-info text-white">
-            <h6 class="mb-0"><i class="bi bi-question-circle me-2"></i>Quick Guide</h6>
-          </div>
-          <div class="card-body">
-            <div class="help-step">
-              <strong>Step 1:</strong> Select client and policy holder
-            </div>
-            <div class="help-step">
-              <strong>Step 2:</strong> Choose insurance company and policy details
-            </div>
-            <div class="help-step">
-              <strong>Step 3:</strong> Enter premium and commission information
-            </div>
-            <div class="help-step">
-              <strong>Step 4:</strong> Add family members (if applicable)
-            </div>
-            <div class="help-step">
-              <strong>Step 5:</strong> Upload policy documents
-            </div>
-          </div>
+        <div>
+          <%= form.submit "Save Policy", class: "btn btn-primary btn-lg" %>
         </div>
       </div>
     </div>
-  <% end %>
-</div>
+  </div>
+
+<% end %>
 
 <style>
+/* Form Cards */
+.card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  margin-bottom: 2rem;
+}
+
+.card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.card-header {
+  background: transparent;
+  border: none;
+  padding: 1.5rem 1.5rem 0.5rem;
+}
+
+.card-header h5 {
+  font-weight: 600;
+  color: #374151;
+  font-size: 1.125rem;
+}
+
+.card-body {
+  padding: 1rem 1.5rem 1.5rem;
+}
+
+/* Form Controls */
+.form-label {
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.form-control, .form-select {
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background-color: #ffffff;
+}
+
+/* Buttons */
+.btn {
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  padding: 0.75rem 1.5rem;
+}
+
+.btn-primary {
+  background-color: #667eea;
+  border-color: #667eea;
+}
+
+.btn-primary:hover {
+  background-color: #5a67d8;
+  border-color: #5a67d8;
+  transform: translateY(-1px);
+}
+
+.btn-outline-secondary:hover {
+  transform: translateY(-1px);
+}
+
+/* Required fields */
 .required::after {
   content: " *";
-  color: red;
+  color: #ef4444;
+  font-weight: 600;
 }
 
-.help-step {
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.help-step:last-child {
-  border-bottom: none;
-}
-
+/* Family member rows */
 .family-member-row {
   background-color: #f8f9fa;
+  border-radius: 8px;
 }
 
+/* Upload area styling */
 .upload-area {
-  border: 2px dashed #dee2e6;
-  border-radius: 8px;
-  background-color: #f8f9fa;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  background-color: #f9fafb;
   transition: all 0.3s ease;
   min-height: 150px;
 }
 
 .upload-area:hover {
-  border-color: #007bff;
-  background-color: #e3f2fd;
+  border-color: #667eea;
+  background-color: #f0f4ff;
 }
 
 .upload-area.dragover {
-  border-color: #007bff;
-  background-color: #e3f2fd;
+  border-color: #667eea;
+  background-color: #f0f4ff;
   border-style: solid;
 }
 
@@ -663,6 +686,7 @@
   height: 100%;
 }
 
+/* File input styling */
 .file-input-wrapper {
   position: relative;
 }
@@ -678,6 +702,12 @@
 
 .document-upload-row {
   background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+/* Icon colors */
+.text-primary {
+  color: #667eea !important;
 }
 </style>
 
@@ -692,8 +722,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const totalPremium = netPremium + gstAmount;
 
     document.getElementById('total_premium').value = totalPremium.toFixed(2);
-    document.getElementById('summary_net_premium').textContent = netPremium.toLocaleString();
-    document.getElementById('summary_total_premium').textContent = totalPremium.toLocaleString();
 
     calculateCommission();
   }
@@ -711,8 +739,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('commission_amount').value = commissionAmount.toFixed(2);
     document.getElementById('tds_amount').value = tdsAmount.toFixed(2);
     document.getElementById('after_tds_value').value = afterTdsValue.toFixed(2);
-    document.getElementById('summary_commission').textContent = commissionAmount.toLocaleString();
-    document.getElementById('summary_after_tds').textContent = afterTdsValue.toLocaleString();
   }
 
   // Auto-calculate affiliate commission

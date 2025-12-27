@@ -26,7 +26,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     @total_filtered_count = @agency_codes.count
 
     # Apply pagination (10 records per page)
-    @agency_codes = @agency_codes.order(:created_at).page(params[:page]).per(10)
+    @agency_codes = @agency_codes.order(created_at: :desc).page(params[:page]).per(10)
 
     # For filters
     @insurance_companies = insurance_companies_list
@@ -47,12 +47,14 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     @agency_code = AgencyCode.new
     @insurance_companies = insurance_companies_list
     @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
+    @brokers = Broker.active.order(:name)
   end
 
   # GET /admin/agency_codes/1/edit
   def edit
     @insurance_companies = insurance_companies_list
     @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
+    @brokers = Broker.active.order(:name)
   end
 
   # POST /admin/agency_codes
@@ -64,6 +66,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     else
       @insurance_companies = insurance_companies_list
       @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
+      @brokers = Broker.active.order(:name)
       render :new, status: :unprocessable_entity
     end
   end
@@ -75,6 +78,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     else
       @insurance_companies = insurance_companies_list
       @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
+      @brokers = Broker.active.order(:name)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -105,7 +109,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     @total_filtered_count = @agency_codes.count
 
     # Apply pagination (10 records per page)
-    @agency_codes = @agency_codes.order(:created_at).page(params[:page]).per(10)
+    @agency_codes = @agency_codes.order(created_at: :desc).page(params[:page]).per(10)
 
     render partial: 'agency_codes_table', locals: { agency_codes: @agency_codes, total_filtered_count: @total_filtered_count }
   end
@@ -117,6 +121,6 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   end
 
   def agency_code_params
-    params.require(:agency_code).permit(:insurance_type, :company_name, :agent_name, :code)
+    params.require(:agency_code).permit(:insurance_type, :company_name, :agent_name, :code, :broker_id)
   end
 end

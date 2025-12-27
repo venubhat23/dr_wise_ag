@@ -116,7 +116,9 @@ class Admin::DistributorPayoutsController < ApplicationController
       if errors.any?
         redirect_to admin_distributor_payouts_path, alert: "Some payouts failed: #{errors.join(', ')}"
       else
-        redirect_to admin_distributor_payouts_path, notice: "#{success_count} distributor payout(s) marked as paid successfully!"
+        # Generate invoices after successful payouts
+        generate_distributor_invoices(distributor_id, lead_ids, payout_type)
+        redirect_to admin_distributor_payouts_path, notice: "#{success_count} distributor payout(s) marked as paid successfully! Invoices have been generated."
       end
 
     rescue StandardError => e
@@ -453,6 +455,117 @@ class Admin::DistributorPayoutsController < ApplicationController
     else
       'health' # fallback
     end
+  end
+
+  def generate_distributor_invoices(distributor_id, lead_ids, payout_type)
+    begin
+      case payout_type
+      when 'distributor_all', 'bulk_selection'
+        # Generate invoice for specific distributor
+        if distributor_id.present?
+          generate_single_distributor_invoice(distributor_id)
+        end
+
+        # Generate invoices for distributor_ids if it's bulk selection
+        if payout_type == 'bulk_selection' && params[:distributor_ids].present?
+          params[:distributor_ids].each do |dist_id|
+            generate_single_distributor_invoice(dist_id)
+          end
+        end
+
+      when 'lead_single', 'lead_multiple', 'bulk_modal_selection'
+        # Generate invoices by grouping leads by distributor
+        generate_invoices_for_distributor_leads(lead_ids)
+
+      when 'quick_all_pending'
+        # Generate invoices for all distributors with pending payouts
+        pending_payouts = calculate_distributor_payouts.select { |d| d[:pending_amount] > 0 }
+        pending_payouts.each do |distributor_data|
+          generate_single_distributor_invoice(distributor_data[:distributor].id)
+        end
+      end
+
+    rescue => e
+      Rails.logger.error "Distributor invoice generation failed: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+    end
+  end
+
+  def generate_single_distributor_invoice(distributor_id)
+    distributor = Distributor.find_by(id: distributor_id)
+    return unless distributor
+
+    # Calculate total commission for this distributor
+    total_commission = calculate_distributor_total_commission(distributor_id)
+    return if total_commission <= 0
+
+    # Check if invoice already exists for this distributor this month
+    existing_invoice = Invoice.find_by(
+      payout_type: 'distributor',
+      payout_id: distributor_id,
+      invoice_date: Date.current.beginning_of_month..Date.current.end_of_month
+    )
+
+    return if existing_invoice
+
+    # Create invoice
+    invoice = Invoice.create!(
+      invoice_number: generate_distributor_invoice_number,
+      payout_type: 'distributor',
+      payout_id: distributor_id,
+      total_amount: total_commission,
+      status: 'paid',
+      invoice_date: Date.current,
+      due_date: Date.current,
+      paid_at: Time.current,
+      recipient_name: distributor.name,
+      recipient_email: distributor.email,
+      recipient_address: distributor.address
+    )
+
+    Rails.logger.info "Generated invoice #{invoice.invoice_number} for distributor #{distributor.name} (#{distributor.id})"
+  end
+
+  def generate_invoices_for_distributor_leads(lead_ids)
+    # Group leads by distributor
+    distributor_groups = {}
+
+    lead_ids.each do |lead_id|
+      policy = find_policy_by_lead_id(lead_id)
+      next unless policy
+      next unless policy.respond_to?(:distributor_id) && policy.distributor_id.present?
+
+      distributor_id = policy.distributor_id
+      distributor_groups[distributor_id] ||= []
+      distributor_groups[distributor_id] << lead_id
+    end
+
+    # Generate invoice for each distributor group
+    distributor_groups.each do |distributor_id, group_lead_ids|
+      generate_single_distributor_invoice(distributor_id)
+    end
+  end
+
+  def calculate_distributor_total_commission(distributor_id)
+    total_commission = 0
+
+    # Get all policies for this distributor where main agent commission is received
+    paid_policies = get_all_paid_policies.select do |policy|
+      policy.respond_to?(:distributor_id) && policy.distributor_id == distributor_id.to_i
+    end
+
+    paid_policies.each do |policy|
+      # Get commission amount
+      payout = Payout.find_by(policy_type: get_policy_type(policy), policy_id: policy.id)
+      commission = payout&.distributor_commission_amount || (policy.net_premium * 0.05)
+      total_commission += commission
+    end
+
+    total_commission
+  end
+
+  def generate_distributor_invoice_number
+    "INV-DIST-#{Date.current.strftime('%Y%m%d')}-#{rand(10000..99999)}"
   end
 
   def authorize_admin_access

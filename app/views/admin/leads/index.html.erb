@@ -5,17 +5,7 @@
     <h2 class="mb-1">Leads Management</h2>
     <p class="text-muted mb-0">Track, manage, and convert leads into customers and policies</p>
   </div>
-  <div class="d-flex gap-2">
-    <div class="dropdown">
-      <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-        <i class="bi bi-download me-1"></i>
-        Export
-      </button>
-      <ul class="dropdown-menu">
-        <li><a href="#" class="dropdown-item">Export as CSV</a></li>
-        <li><a href="#" class="dropdown-item">Export as Excel</a></li>
-      </ul>
-    </div>
+  <div>
     <%= link_to new_admin_lead_path, class: "btn btn-primary" do %>
       <i class="bi bi-plus-lg me-1"></i>
       Add New Lead
@@ -90,65 +80,6 @@
   </div>
 </div>
 
-<!-- Lead Pipeline Visualization -->
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-body">
-    <h5 class="card-title mb-4">
-      <i class="bi bi-funnel me-2 text-primary"></i>
-      Lead Conversion Pipeline
-    </h5>
-    <div class="row text-center">
-      <div class="col-md-2">
-        <div class="pipeline-stage">
-          <div class="pipeline-icon consultation">
-            <i class="bi bi-telephone"></i>
-          </div>
-          <h6 class="mt-2 mb-1">Consultation</h6>
-          <span class="badge bg-info"><%= @pipeline_stats[:consultation] %> leads</span>
-        </div>
-      </div>
-      <div class="col-md-1 d-flex align-items-center justify-content-center">
-        <i class="bi bi-arrow-right text-muted"></i>
-      </div>
-      <div class="col-md-2">
-        <div class="pipeline-stage">
-          <div class="pipeline-icon one-on-one">
-            <i class="bi bi-person-lines-fill"></i>
-          </div>
-          <h6 class="mt-2 mb-1">One-on-One</h6>
-          <span class="badge bg-warning"><%= @pipeline_stats[:one_on_one] %> leads</span>
-        </div>
-      </div>
-      <div class="col-md-1 d-flex align-items-center justify-content-center">
-        <i class="bi bi-arrow-right text-muted"></i>
-      </div>
-      <div class="col-md-2">
-        <div class="pipeline-stage">
-          <div class="pipeline-icon converted">
-            <i class="bi bi-person-check"></i>
-          </div>
-          <h6 class="mt-2 mb-1">Converted</h6>
-          <span class="badge bg-success"><%= @pipeline_stats[:converted] %> leads</span>
-        </div>
-      </div>
-      <div class="col-md-1 d-flex align-items-center justify-content-center">
-        <i class="bi bi-arrow-right text-muted"></i>
-      </div>
-      <div class="col-md-2">
-        <div class="pipeline-stage">
-          <div class="pipeline-icon policy-created">
-            <i class="bi bi-file-earmark-check"></i>
-          </div>
-          <h6 class="mt-2 mb-1">Policy Created</h6>
-          <span class="badge bg-primary"><%= @pipeline_stats[:policy_created] %> leads</span>
-        </div>
-      </div>
-      <div class="col-md-1 d-flex align-items-center justify-content-center">
-        <i class="bi bi-arrow-right text-muted"></i>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- Search and Filters -->
 <div class="card border-0 shadow-sm mb-4">
@@ -168,13 +99,13 @@
         ], params[:current_stage]), {}, { class: "form-select" } %>
       </div>
       <div class="col-md-2">
-        <%= form.select :product_interest, options_for_select([
-          ['All Products', ''],
-          ['Health Insurance', 'health'],
-          ['Life Insurance', 'life'],
-          ['Motor Insurance', 'motor'],
-          ['Other Insurance', 'other']
-        ], params[:product_interest]), {}, { class: "form-select" } %>
+        <%= form.select :product_category, options_for_select([
+          ['All Categories', ''],
+          ['Insurance', 'insurance'],
+          ['Investments', 'investments'],
+          ['Loans', 'loans'],
+          ['Taxation', 'taxation']
+        ], params[:product_category]), {}, { class: "form-select" } %>
       </div>
       <div class="col-md-2">
         <%= form.select :referred_by, options_for_select([
@@ -237,8 +168,7 @@
                 <input class="form-check-input" type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
               </div>
             </th>
-            <th class="border-0">Lead ID</th>
-            <th class="border-0">Lead Name</th>
+            <th class="border-0">Lead Details</th>
             <th class="border-0">Contact Information</th>
             <th class="border-0">Referred By</th>
             <th class="border-0">Product Interest</th>
@@ -257,10 +187,8 @@
                   </div>
                 </td>
                 <td>
-                  <span class="badge bg-primary"><%= lead.lead_id.presence || "LEAD-#{lead.id}" %></span>
-                </td>
-                <td>
                   <div>
+                    <span class="badge bg-primary mb-1 d-block"><%= lead.lead_id.presence || "LEAD-#{lead.id}" %></span>
                     <h6 class="mb-1"><%= lead.name %></h6>
                     <small class="text-muted"><%= lead.email %></small>
                   </div>
@@ -278,7 +206,7 @@
                 </td>
                 <td>
                   <span class="badge <%= lead.product_badge_class %>">
-                    <%= lead.product_interest&.humanize || 'Not specified' %>
+                    <%= lead.product_display_name || 'Not specified' %>
                   </span>
                 </td>
                 <td>
@@ -288,7 +216,7 @@
                 </td>
                 <td>
                   <div>
-                    <div><%= lead.created_date&.strftime('%b %d, %Y') || lead.created_at&.strftime('%b %d, %Y') %></div>
+                    <div><%= lead.created_date&.strftime('%d/%m/%Y') || lead.created_at&.strftime('%d/%m/%Y') %></div>
                     <small class="text-muted"><%= time_ago_in_words(lead.created_at) %> ago</small>
                   </div>
                 </td>
@@ -298,31 +226,8 @@
                       <i class="bi bi-eye"></i>
                     <% end %>
 
-                    <% if lead.can_convert_to_customer? %>
-                      <%= form_with url: convert_to_customer_admin_lead_path(lead), method: :patch, local: true,
-                          style: "display: inline;",
-                          onsubmit: "return confirm('Are you sure you want to convert this lead to a customer?')" do |f| %>
-                        <button type="submit" class="btn btn-sm btn-outline-success" title="Convert to Customer">
-                          <i class="bi bi-person-plus"></i>
-                        </button>
-                      <% end %>
-                    <% else %>
-                      <button class="btn btn-sm btn-outline-secondary" disabled title="Cannot convert at this stage">
-                        <i class="bi bi-person-plus"></i>
-                      </button>
-                    <% end %>
-
-                    <% if lead.can_create_policy? %>
-                      <%= form_with url: create_policy_admin_lead_path(lead), method: :patch, local: true,
-                          style: "display: inline;" do |f| %>
-                        <button type="submit" class="btn btn-sm btn-outline-info" title="Create Policy">
-                          <i class="bi bi-file-earmark-plus"></i>
-                        </button>
-                      <% end %>
-                    <% else %>
-                      <button class="btn btn-sm btn-outline-secondary" disabled title="Cannot create policy at this stage">
-                        <i class="bi bi-file-earmark-plus"></i>
-                      </button>
+                    <%= link_to new_admin_customer_path(lead_id: lead.id), class: "btn btn-sm btn-outline-success", title: "Convert to Customer" do %>
+                      <i class="bi bi-person-plus"></i>
                     <% end %>
 
                     <div class="dropdown">
@@ -413,7 +318,7 @@
             <% end %>
           <% else %>
             <tr>
-              <td colspan="9" class="text-center py-5">
+              <td colspan="8" class="text-center py-5">
                 <div class="text-muted">
                   <i class="bi bi-funnel fs-1 mb-3 d-block"></i>
                   <h5>No leads found</h5>
@@ -446,26 +351,6 @@
 
 <!-- Custom Styles -->
 <style>
-.pipeline-stage {
-  padding: 1rem;
-}
-
-.pipeline-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-  font-size: 1.8rem;
-  color: white;
-}
-
-.pipeline-icon.consultation { background: linear-gradient(135deg, #17a2b8, #20c997); }
-.pipeline-icon.one-on-one { background: linear-gradient(135deg, #ffc107, #fd7e14); }
-.pipeline-icon.converted { background: linear-gradient(135deg, #28a745, #20c997); }
-.pipeline-icon.policy-created { background: linear-gradient(135deg, #007bff, #6f42c1); }
 
 .lead-row:hover {
   background-color: rgba(0, 123, 255, 0.05);

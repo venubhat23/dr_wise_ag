@@ -1,0 +1,180 @@
+<% content_for :title, "Invoices" %>
+
+<div class="page-header">
+  <div class="row align-items-center">
+    <div class="col-auto">
+      <h1 class="page-title">
+        <i class="fas fa-receipt me-3"></i>
+        Invoices Management
+      </h1>
+      <p class="text-muted">Manage and track payout invoices</p>
+    </div>
+    <div class="col-auto ms-auto">
+      <div class="btn-list">
+        <!-- Filter Buttons -->
+        <div class="dropdown">
+          <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="fas fa-filter me-2"></i>Filter
+          </button>
+          <ul class="dropdown-menu">
+            <li><%= link_to "All Invoices", admin_invoices_path, class: "dropdown-item" %></li>
+            <li><%= link_to "Pending", admin_invoices_path(status: 'pending'), class: "dropdown-item" %></li>
+            <li><%= link_to "Paid", admin_invoices_path(status: 'paid'), class: "dropdown-item" %></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><%= link_to "Affiliate Payouts", admin_invoices_path(payout_type: 'affiliate'), class: "dropdown-item" %></li>
+            <li><%= link_to "Ambassador Payouts", admin_invoices_path(payout_type: 'distributor'), class: "dropdown-item" %></li>
+            <li><%= link_to "Commission Payouts", admin_invoices_path(payout_type: 'commission'), class: "dropdown-item" %></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="display-6 text-primary"><%= Invoice.count %></div>
+        <div class="text-muted">Total Invoices</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="display-6 text-warning"><%= Invoice.pending.count %></div>
+        <div class="text-muted">Pending</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="display-6 text-success"><%= Invoice.paid.count %></div>
+        <div class="text-muted">Paid</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <div class="display-6 text-danger"><%= Invoice.overdue.count %></div>
+        <div class="text-muted">Overdue</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Invoices Table -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">
+      <i class="fas fa-list me-2"></i>Invoices List
+    </h3>
+  </div>
+  <div class="card-body">
+    <% if @invoices.any? %>
+      <div class="table-responsive">
+        <table class="table table-vcenter">
+          <thead>
+            <tr>
+              <th>Invoice #</th>
+              <th>Recipient</th>
+              <th>Payout Type</th>
+              <th>Amount</th>
+              <th>Invoice Date</th>
+              <th>Due Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @invoices.each do |invoice| %>
+              <tr>
+                <td>
+                  <strong><%= invoice.invoice_number %></strong>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="avatar bg-secondary-lt me-3">
+                      <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                      <strong><%= invoice.payout_recipient %></strong>
+                      <div class="text-muted small"><%= invoice.payout_type.humanize %></div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-<%= invoice.payout_type == 'affiliate' ? 'purple' : invoice.payout_type == 'distributor' ? 'green' : 'blue' %>">
+                    <%= invoice.payout_type.humanize %>
+                  </span>
+                </td>
+                <td>
+                  <strong class="text-success"><%= invoice.formatted_amount %></strong>
+                </td>
+                <td>
+                  <%= invoice.invoice_date.strftime('%d %b %Y') %>
+                </td>
+                <td>
+                  <%= invoice.due_date.strftime('%d %b %Y') %>
+                  <% if invoice.overdue? %>
+                    <div class="text-danger small">
+                      Overdue by <%= invoice.days_overdue %> days
+                    </div>
+                  <% end %>
+                </td>
+                <td>
+                  <% if invoice.status == 'pending' %>
+                    <span class="badge bg-warning">Pending</span>
+                  <% elsif invoice.status == 'paid' %>
+                    <span class="badge bg-success">Paid</span>
+                  <% else %>
+                    <span class="badge bg-danger">Cancelled</span>
+                  <% end %>
+                </td>
+                <td>
+                  <div class="btn-list">
+                    <%= link_to admin_invoice_path(invoice), class: "btn btn-sm btn-outline-primary" do %>
+                      <i class="fas fa-eye"></i>
+                    <% end %>
+                    <%= link_to admin_invoice_path(invoice, format: :pdf), class: "btn btn-sm btn-outline-secondary", target: "_blank" do %>
+                      <i class="fas fa-download"></i>
+                    <% end %>
+                    <% if invoice.status == 'pending' %>
+                      <%= link_to mark_as_paid_admin_invoice_path(invoice), method: :patch,
+                                  class: "btn btn-sm btn-outline-success",
+                                  confirm: "Mark this invoice as paid?",
+                                  title: "Mark as Paid" do %>
+                        <i class="fas fa-check"></i>
+                      <% end %>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <% if @invoices.respond_to?(:current_page) %>
+        <div class="d-flex justify-content-center mt-4">
+          <%= paginate @invoices %>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="empty">
+        <div class="empty-img">
+          <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDEyOCAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEyOCIgaGVpZ2h0PSIxMjgiIGZpbGw9IiNGOEZBRkMiLz48cGF0aCBkPSJNNDMuODU3IDY5LjI4NTdINzAuMTQzVjc1LjQyODZINDMuODU3VjY5LjI4NTdaIiBmaWxsPSIjRTlFQ0VGIi8+PHBhdGggZD0iTTQzLjg1NyA1My4xNDI5SDE4LjI4NTdWNTkuMjg1N0g0My44NTdWNTMuMTQyOVoiIGZpbGw9IiNFOUVDRUYiLz48cGF0aCBkPSJNNTUuNDI4NiA4MC41NzE0SDE4LjI4NTdWODYuNzE0M0g1NS40Mjg2VjgwLjU3MTRaIiBmaWxsPSIjRTlFQ0VGIi8+PC9zdmc+" alt="" height="128" width="128">
+        </div>
+        <p class="empty-title">No invoices found</p>
+        <p class="empty-subtitle text-muted">
+          No invoices have been generated yet. Invoices are automatically created when payouts are processed.
+        </p>
+      </div>
+    <% end %>
+  </div>
+</div>

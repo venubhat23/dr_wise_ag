@@ -115,7 +115,9 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       if errors.any?
         redirect_to admin_affiliate_payouts_path, alert: "Some payouts failed: #{errors.join(', ')}"
       else
-        redirect_to admin_affiliate_payouts_path, notice: "#{success_count} affiliate payout(s) marked as paid successfully!"
+        # Generate invoices after successful payouts
+        generate_affiliate_invoices(affiliate_id, lead_ids, payout_type)
+        redirect_to admin_affiliate_payouts_path, notice: "#{success_count} affiliate payout(s) marked as paid successfully! Invoices have been generated."
       end
 
     rescue StandardError => e
@@ -495,6 +497,117 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     else
       'health' # fallback
     end
+  end
+
+  def generate_affiliate_invoices(affiliate_id, lead_ids, payout_type)
+    begin
+      case payout_type
+      when 'affiliate_all', 'bulk_selection'
+        # Generate invoice for specific affiliate
+        if affiliate_id.present?
+          generate_single_affiliate_invoice(affiliate_id)
+        end
+
+        # Generate invoices for affiliate_ids if it's bulk selection
+        if payout_type == 'bulk_selection' && params[:affiliate_ids].present?
+          params[:affiliate_ids].each do |aff_id|
+            generate_single_affiliate_invoice(aff_id)
+          end
+        end
+
+      when 'lead_single', 'lead_multiple', 'bulk_modal_selection'
+        # Generate invoices by grouping leads by affiliate
+        generate_invoices_for_leads(lead_ids)
+
+      when 'quick_all_pending'
+        # Generate invoices for all affiliates with pending payouts
+        pending_payouts = calculate_affiliate_payouts.select { |a| a[:pending_amount] > 0 }
+        pending_payouts.each do |affiliate_data|
+          generate_single_affiliate_invoice(affiliate_data[:affiliate].id)
+        end
+      end
+
+    rescue => e
+      Rails.logger.error "Invoice generation failed: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+    end
+  end
+
+  def generate_single_affiliate_invoice(affiliate_id)
+    affiliate = SubAgent.find_by(id: affiliate_id)
+    return unless affiliate
+
+    # Calculate total commission for this affiliate
+    total_commission = calculate_affiliate_total_commission(affiliate_id)
+    return if total_commission <= 0
+
+    # Check if invoice already exists for this affiliate this month
+    existing_invoice = Invoice.find_by(
+      payout_type: 'affiliate',
+      payout_id: affiliate_id,
+      invoice_date: Date.current.beginning_of_month..Date.current.end_of_month
+    )
+
+    return if existing_invoice
+
+    # Create invoice
+    invoice = Invoice.create!(
+      invoice_number: generate_invoice_number,
+      payout_type: 'affiliate',
+      payout_id: affiliate_id,
+      total_amount: total_commission,
+      status: 'paid', # Mark as paid since payouts are already processed
+      invoice_date: Date.current,
+      due_date: Date.current,
+      paid_at: Time.current,
+      recipient_name: affiliate.display_name,
+      recipient_email: affiliate.email,
+      recipient_address: affiliate.address
+    )
+
+    Rails.logger.info "Generated invoice #{invoice.invoice_number} for affiliate #{affiliate.display_name} (#{affiliate.id})"
+  end
+
+  def generate_invoices_for_leads(lead_ids)
+    # Group leads by affiliate
+    affiliate_groups = {}
+
+    lead_ids.each do |lead_id|
+      policy = find_policy_by_lead_id(lead_id)
+      next unless policy
+      next unless policy.respond_to?(:sub_agent_id) && policy.sub_agent_id.present?
+
+      affiliate_id = policy.sub_agent_id
+      affiliate_groups[affiliate_id] ||= []
+      affiliate_groups[affiliate_id] << lead_id
+    end
+
+    # Generate invoice for each affiliate group
+    affiliate_groups.each do |affiliate_id, group_lead_ids|
+      generate_single_affiliate_invoice(affiliate_id)
+    end
+  end
+
+  def calculate_affiliate_total_commission(affiliate_id)
+    total_commission = 0
+
+    # Get all policies for this affiliate where main agent commission is received
+    paid_policies = get_all_paid_policies.select do |policy|
+      policy.respond_to?(:sub_agent_id) && policy.sub_agent_id == affiliate_id.to_i
+    end
+
+    paid_policies.each do |policy|
+      # Get commission amount
+      payout = Payout.find_by(policy_type: get_policy_type(policy), policy_id: policy.id)
+      commission = payout&.affiliate_commission_amount || (policy.net_premium * 0.02)
+      total_commission += commission
+    end
+
+    total_commission
+  end
+
+  def generate_invoice_number
+    "INV-AFF-#{Date.current.strftime('%Y%m%d')}-#{rand(10000..99999)}"
   end
 
 end

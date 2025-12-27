@@ -10,6 +10,7 @@ class SubAgent < ApplicationRecord
   has_one :assigned_distributor, through: :distributor_assignment, source: :distributor
   belongs_to :distributor, optional: true
   has_one_attached :upload_main_document
+  has_many :customers, foreign_key: 'sub_agent_id'
 
   # Nested attributes for documents
   accepts_nested_attributes_for :sub_agent_documents, allow_destroy: true, reject_if: :all_blank

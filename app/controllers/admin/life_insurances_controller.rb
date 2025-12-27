@@ -128,6 +128,40 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     # This will render the commission details view
   end
 
+  # API endpoint for getting brokers by insurance company
+  def brokers_by_company
+    company_name = params[:company_name]
+    brokers = if company_name.present?
+                # First get insurance_company by name, then get brokers
+                insurance_company = InsuranceCompany.find_by(name: company_name)
+                if insurance_company
+                  Broker.where(insurance_company: insurance_company).active.order(:name)
+                else
+                  Broker.none
+                end
+              else
+                Broker.none
+              end
+
+    render json: {
+      brokers: brokers.map { |b| { id: b.id, name: b.name } }
+    }
+  end
+
+  # API endpoint for getting agency codes by broker
+  def agency_codes_by_broker
+    broker_id = params[:broker_id]
+    agency_codes = if broker_id.present?
+                     AgencyCode.where(broker_id: broker_id, insurance_type: 'Life').order(:code)
+                   else
+                     AgencyCode.none
+                   end
+
+    render json: {
+      agency_codes: agency_codes.map { |a| { id: a.id, name: "#{a.company_name} - #{a.code}" } }
+    }
+  end
+
   private
 
   def set_life_insurance
@@ -139,8 +173,25 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     @sub_agents = SubAgent.active.order(:first_name, :last_name)
     @distributors = Distributor.active.order(:first_name, :last_name)
     @investors = Investor.active.order(:first_name, :last_name)
-    @agency_codes = AgencyCode.where(insurance_type: 'Life')
-    @brokers = Broker.active.order(:name)
+
+    # For cascading dropdowns, load empty or filtered data based on existing selections
+    if @life_insurance&.insurance_company_name.present?
+      # If editing and company is selected, load relevant brokers
+      insurance_company = InsuranceCompany.find_by(name: @life_insurance.insurance_company_name)
+      @brokers = insurance_company ? Broker.where(insurance_company: insurance_company).active.order(:name) : []
+
+      if @life_insurance.broker_id.present?
+        # If editing and broker is selected, load relevant agency codes
+        @agency_codes = AgencyCode.where(broker_id: @life_insurance.broker_id, insurance_type: 'Life').order(:code)
+      else
+        @agency_codes = []
+      end
+    else
+      # For new records or when no company is selected, start with empty dependent dropdowns
+      @brokers = []
+      @agency_codes = []
+    end
+
     @insurance_companies = InsuranceCompanyHelper.company_names
     @policy_types = LifeInsurance::POLICY_TYPES
     @payment_modes = LifeInsurance::PAYMENT_MODES

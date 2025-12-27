@@ -2,17 +2,36 @@ class Lead < ApplicationRecord
   include PgSearch::Model
 
   validates :name, presence: true
-  validates :contact_number, presence: true, format: { with: /\A[\+]?[0-9]+\z/, message: "Invalid phone number format" }
+  validates :contact_number, presence: true, format: { with: /\A[\+]?[0-9\s\-\(\)]+\z/, message: "Invalid phone number format" }
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :current_stage, presence: true, inclusion: { in: ['consultation', 'one_on_one', 'converted', 'policy_created', 'referral_settled'] }
   validates :lead_source, presence: true, inclusion: { in: ['online', 'offline', 'agent_referral', 'walk_in', 'tele_calling', 'campaign'] }
-  validates :product_interest, presence: true, inclusion: { in: ['health', 'life', 'motor', 'other'] }
+  validates :product_category, presence: true, inclusion: { in: ['insurance', 'investments', 'loans', 'taxation'] }
+  validates :product_subcategory, presence: true
+  validates :customer_type, presence: true, inclusion: { in: ['individual', 'corporate'] }
+  validates :affiliate_id, presence: true, if: -> { !is_direct }
+  validates :is_direct, inclusion: { in: [true, false] }
+
+  # Individual Customer Required Fields
+  validates :first_name, presence: true, if: :individual?
+  validates :last_name, presence: true, if: :individual?
+
+  # Corporate Customer Required Fields
+  validates :company_name, presence: true, if: :corporate?
+
+  # Optional validations
+  validates :gender, inclusion: { in: ['male', 'female', 'other'] }, allow_blank: true
+  validates :marital_status, inclusion: { in: ['single', 'married', 'divorced', 'widowed'] }, allow_blank: true
+  validates :pan_no, format: { with: /\A[A-Z]{5}\d{4}[A-Z]\z/ }, allow_blank: true
+  validates :gst_no, format: { with: /\A\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z\d][A-Z\d]\z/ }, allow_blank: true
 
   belongs_to :converted_customer, class_name: 'Customer', optional: true
   belongs_to :created_policy, class_name: 'Policy', optional: true
+  belongs_to :affiliate, class_name: 'SubAgent', optional: true
 
   before_create :generate_lead_id
   before_update :update_stage_timestamp, if: :current_stage_changed?
+  before_validation :set_name_from_customer_details
 
   enum :current_stage, {
     consultation: 'consultation',
@@ -31,22 +50,40 @@ class Lead < ApplicationRecord
     campaign: 'campaign'
   }
 
-  enum :product_interest, {
-    health: 'health',
-    life: 'life',
-    motor: 'motor',
-    other: 'other'
+  enum :product_category, {
+    insurance: 'insurance',
+    investments: 'investments',
+    loans: 'loans',
+    taxation: 'taxation'
   }
+
+  enum :customer_type, {
+    individual: 'individual',
+    corporate: 'corporate'
+  }
+
+  # Define valid subcategories for each category
+  PRODUCT_SUBCATEGORIES = {
+    'insurance' => ['life', 'health', 'motor', 'general', 'travel', 'other'],
+    'investments' => ['mutual_fund', 'gold', 'nps', 'bonds', 'other'],
+    'loans' => ['personal', 'home', 'business', 'other'],
+    'taxation' => ['itr', 'other']
+  }.freeze
 
   scope :by_stage, ->(stage) { where(current_stage: stage) }
   scope :by_source, ->(source) { where(lead_source: source) }
-  scope :by_product, ->(product) { where(product_interest: product) }
+  scope :by_product_category, ->(category) { where(product_category: category) }
+  scope :by_product_subcategory, ->(subcategory) { where(product_subcategory: subcategory) }
   scope :recent, -> { order(created_date: :desc) }
   scope :pending_conversion, -> { where(current_stage: ['consultation', 'one_on_one']) }
   scope :converted_leads, -> { where(current_stage: ['converted', 'policy_created', 'referral_settled']) }
+  scope :direct_leads, -> { where(is_direct: true) }
+  scope :referred_leads, -> { where(is_direct: false) }
+  scope :by_affiliate, ->(affiliate_id) { where(affiliate_id: affiliate_id) }
 
   pg_search_scope :search_leads,
-    against: [:name, :contact_number, :email, :referred_by, :product_interest, :lead_id],
+    against: [:name, :contact_number, :email, :referred_by, :product_category, :product_subcategory, :lead_id,
+              :first_name, :middle_name, :last_name, :company_name],
     using: {
       tsearch: { prefix: true, any_word: true }
     }
@@ -94,11 +131,11 @@ class Lead < ApplicationRecord
   end
 
   def product_badge_class
-    case product_interest
-    when 'health' then 'bg-info'
-    when 'life' then 'bg-danger'
-    when 'motor' then 'bg-warning'
-    when 'other' then 'bg-success'
+    case product_category
+    when 'insurance' then 'bg-primary'
+    when 'investments' then 'bg-success'
+    when 'loans' then 'bg-warning'
+    when 'taxation' then 'bg-info'
     else 'bg-secondary'
     end
   end
@@ -166,11 +203,59 @@ class Lead < ApplicationRecord
   end
 
   def display_name
-    name
+    if individual?
+      "#{first_name} #{middle_name} #{last_name}".strip.squeeze(' ')
+    elsif corporate?
+      company_name
+    else
+      name
+    end
+  end
+
+  def individual?
+    customer_type == 'individual'
+  end
+
+  def corporate?
+    customer_type == 'corporate'
+  end
+
+  def full_name
+    if individual?
+      "#{first_name} #{middle_name} #{last_name}".strip.squeeze(' ')
+    else
+      company_name || name
+    end
+  end
+
+  def product_display_name
+    "#{product_category&.humanize} - #{product_subcategory&.humanize}"
   end
 
   def insurance_interest
-    product_interest&.humanize
+    product_subcategory&.humanize
+  end
+
+  def referral_type
+    is_direct ? 'Direct' : 'Referred'
+  end
+
+  def affiliate_name
+    affiliate&.display_name || 'N/A'
+  end
+
+  def created_date=(value)
+    if value.is_a?(String) && value.match(/^\d{2}\/\d{2}\/\d{4}$/)
+      parts = value.split('/')
+      day, month, year = parts[0].to_i, parts[1].to_i, parts[2].to_i
+      super(Date.new(year, month, day))
+    else
+      super(value)
+    end
+  end
+
+  def formatted_created_date
+    created_date&.strftime('%d/%m/%Y')
   end
 
   private
@@ -184,5 +269,18 @@ class Lead < ApplicationRecord
 
   def update_stage_timestamp
     self.stage_updated_at = Time.current
+  end
+
+  def set_name_from_customer_details
+    if name.blank?
+      if individual? && first_name.present? && last_name.present?
+        self.name = "#{first_name} #{middle_name} #{last_name}".strip.squeeze(' ')
+      elsif corporate? && company_name.present?
+        self.name = company_name
+      else
+        # Fallback for cases where customer type isn't set yet
+        self.name = 'Lead' if name.blank?
+      end
+    end
   end
 end

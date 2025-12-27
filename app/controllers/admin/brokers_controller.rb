@@ -2,7 +2,7 @@ class Admin::BrokersController < Admin::ApplicationController
   before_action :set_broker, only: [:show, :edit, :update, :destroy, :toggle_status]
 
   def index
-    @brokers = Broker.all
+    @brokers = Broker.includes(:insurance_company)
     @brokers = @brokers.where("name ILIKE ?", "%#{params[:search]}%") if params[:search].present?
 
     # Get total count before pagination for display purposes
@@ -24,6 +24,7 @@ class Admin::BrokersController < Admin::ApplicationController
 
   def new
     @broker = Broker.new
+    @insurance_companies = InsuranceCompany.where(status: true).order(:name)
   end
 
   def create
@@ -32,17 +33,20 @@ class Admin::BrokersController < Admin::ApplicationController
     if @broker.save
       redirect_to admin_brokers_path, notice: 'Broker was successfully created.'
     else
+      @insurance_companies = InsuranceCompany.where(status: true).order(:name)
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
+    @insurance_companies = InsuranceCompany.where(status: true).order(:name)
   end
 
   def update
     if @broker.update(broker_params)
       redirect_to admin_brokers_path, notice: 'Broker was successfully updated.'
     else
+      @insurance_companies = InsuranceCompany.where(status: true).order(:name)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -59,7 +63,7 @@ class Admin::BrokersController < Admin::ApplicationController
 
   # GET /admin/brokers/search - For AJAX search
   def search
-    @brokers = Broker.all
+    @brokers = Broker.includes(:insurance_company)
     @brokers = @brokers.where("name ILIKE ?", "%#{params[:search]}%") if params[:search].present?
 
     # Get total count before pagination for display purposes
@@ -78,6 +82,6 @@ class Admin::BrokersController < Admin::ApplicationController
   end
 
   def broker_params
-    params.require(:broker).permit(:name, :status)
+    params.require(:broker).permit(:name, :status, :insurance_company_id)
   end
 end

@@ -10,6 +10,7 @@
           <thead class="bg-light">
             <tr>
               <th class="border-0">Broker Name</th>
+              <th class="border-0">Insurance Company</th>
               <th class="border-0">Status</th>
               <th class="border-0">Created Date</th>
               <th class="border-0">Actions</th>
@@ -28,6 +29,26 @@
                       <small class="text-muted">Broker ID: #<%= broker.id %></small>
                     </div>
                   </div>
+                </td>
+                <td>
+                  <% if broker.insurance_company.present? %>
+                    <div class="d-flex align-items-center">
+                      <div class="bg-info bg-opacity-10 rounded-circle p-1 me-2">
+                        <i class="bi bi-building text-info"></i>
+                      </div>
+                      <div>
+                        <span class="fw-medium"><%= broker.insurance_company.name %></span>
+                        <% if broker.insurance_company.code.present? %>
+                          <br><small class="text-muted">Code: <%= broker.insurance_company.code %></small>
+                        <% end %>
+                      </div>
+                    </div>
+                  <% else %>
+                    <span class="text-muted">
+                      <i class="bi bi-dash-circle me-1"></i>
+                      Not assigned
+                    </span>
+                  <% end %>
                 </td>
                 <td>
                   <% if broker.active? %>
