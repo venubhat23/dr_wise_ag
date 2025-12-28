@@ -3,7 +3,7 @@ class LifeInsurance < ApplicationRecord
   include InsuranceCompanyConstants
 
   # Associations
-  belongs_to :customer
+  belongs_to :customer, counter_cache: :policies_count
   belongs_to :sub_agent, class_name: 'SubAgent', optional: true
   belongs_to :distributor, optional: true
   belongs_to :investor, optional: true
@@ -26,7 +26,7 @@ class LifeInsurance < ApplicationRecord
   validates :policy_holder, presence: true
   validates :insurance_company_name, presence: true
   validates :policy_type, presence: true, inclusion: { in: ['New', 'Renewal'] }
-  validates :policy_number, presence: true, uniqueness: true
+  validates :policy_number, presence: true, uniqueness: { message: 'has already been taken. Each policy must have a unique policy number.' }
   validates :policy_booking_date, presence: true
   validates :policy_start_date, presence: true
   validates :policy_end_date, presence: true

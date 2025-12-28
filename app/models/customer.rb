@@ -38,6 +38,7 @@ class Customer < ApplicationRecord
   validates :company_name, presence: true, if: :corporate?
   validates :mobile, presence: true, if: :corporate?
   validates :mobile, uniqueness: true, allow_blank: true, if: :corporate?
+  validates :gst_no, presence: true, if: :corporate?
 
   # Validations
   validates :status, inclusion: { in: [true, false] }

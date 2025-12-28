@@ -38,6 +38,7 @@
   -webkit-backdrop-filter: blur(20px) !important;
   display: flex !important;
   flex-direction: column !important;
+  scroll-behavior: smooth !important;
 }
 
 .sidebar::before, .modern-sidebar::before {
@@ -434,6 +435,7 @@
   transition: transform 0.3s ease !important;
   display: flex !important;
   flex-direction: column !important;
+  scroll-behavior: smooth !important;
 }
 
 .sidebar-nav {

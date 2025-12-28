@@ -112,7 +112,60 @@ class Admin::CustomersController < Admin::ApplicationController
   # GET /admin/customers/1
   def show
     @family_members = @customer.family_members.order(:created_at)
-    @policies = @customer.policies.includes(:insurance_company).order(created_at: :desc)
+
+    # Gather all policies from different insurance types
+    @all_policies = []
+
+    # Health Insurance policies
+    @customer.health_insurances.each do |policy|
+      @all_policies << {
+        type: 'Health Insurance',
+        policy: policy,
+        policy_number: policy.policy_number,
+        company_name: policy.insurance_company_name,
+        premium: policy.total_premium,
+        start_date: policy.policy_start_date,
+        end_date: policy.policy_end_date,
+        status: policy.active? ? 'Active' : 'Expired',
+        created_at: policy.created_at
+      }
+    end
+
+    # Life Insurance policies
+    @customer.life_insurances.each do |policy|
+      @all_policies << {
+        type: 'Life Insurance',
+        policy: policy,
+        policy_number: policy.policy_number,
+        company_name: policy.insurance_company_name,
+        premium: policy.total_premium,
+        start_date: policy.policy_start_date,
+        end_date: policy.policy_end_date,
+        status: policy.active? ? 'Active' : 'Expired',
+        created_at: policy.created_at
+      }
+    end
+
+    # Motor Insurance policies
+    @customer.motor_insurances.each do |policy|
+      @all_policies << {
+        type: 'Motor Insurance',
+        policy: policy,
+        policy_number: policy.policy_number,
+        company_name: policy.insurance_company_name,
+        premium: policy.total_premium,
+        start_date: policy.policy_start_date,
+        end_date: policy.policy_end_date,
+        status: policy.active? ? 'Active' : 'Expired',
+        created_at: policy.created_at
+      }
+    end
+
+    # Sort all policies by creation date (newest first)
+    @all_policies.sort_by! { |p| p[:created_at] }.reverse!
+
+    # For backwards compatibility, set @policies
+    @policies = @all_policies
   end
 
   # GET /admin/customers/:id/policy_chart
@@ -498,9 +551,24 @@ class Admin::CustomersController < Admin::ApplicationController
 
   # Generate a secure password for auto-creation
   def generate_secure_password
-    # Generate a secure 8-character password with mix of letters, numbers, and symbols
-    charset = Array('A'..'Z') + Array('a'..'z') + Array(0..9) + ['@', '#', '$', '%']
-    Array.new(8) { charset.sample }.join
+    # Generate password in format: first 4 letters of name + @ + 4-digit year from DOB
+    # Example: PRAMOD with DOB 26/02/1996 becomes PRAM@1996
+
+    # Get first name - use first_name from customer
+    first_name = @customer.first_name.to_s.strip.upcase
+
+    # Get first 4 characters of name, pad with 'X' if less than 4 characters
+    name_part = first_name[0..3].ljust(4, 'X')
+
+    # Get birth year from birth_date
+    if @customer.birth_date.present?
+      year_part = @customer.birth_date.year.to_s
+    else
+      # Default to current year if no birth date
+      year_part = Date.current.year.to_s
+    end
+
+    "#{name_part}@#{year_part}"
   end
 
   def set_customer

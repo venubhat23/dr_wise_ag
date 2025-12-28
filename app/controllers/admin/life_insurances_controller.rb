@@ -53,10 +53,20 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     @life_insurance = LifeInsurance.new(life_insurance_params)
     set_distributor_from_affiliate(@life_insurance)
 
-    if @life_insurance.save
-      redirect_to admin_life_insurances_path,
-                  notice: 'Life insurance policy was successfully created.'
-    else
+    begin
+      if @life_insurance.save
+        redirect_to admin_life_insurances_path,
+                    notice: 'Life insurance policy was successfully created.'
+      else
+        set_form_data
+        render :new, status: :unprocessable_entity
+      end
+    rescue ActiveRecord::RecordNotUnique => e
+      if e.message.include?('policy_number')
+        @life_insurance.errors.add(:policy_number, 'has already been taken')
+      else
+        @life_insurance.errors.add(:base, 'A record with similar details already exists')
+      end
       set_form_data
       render :new, status: :unprocessable_entity
     end
@@ -67,10 +77,20 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     @life_insurance.assign_attributes(life_insurance_params)
     set_distributor_from_affiliate(@life_insurance)
 
-    if @life_insurance.save
-      redirect_to admin_life_insurances_path,
-                  notice: 'Life insurance policy was successfully updated.'
-    else
+    begin
+      if @life_insurance.save
+        redirect_to admin_life_insurances_path,
+                    notice: 'Life insurance policy was successfully updated.'
+      else
+        set_form_data
+        render :edit, status: :unprocessable_entity
+      end
+    rescue ActiveRecord::RecordNotUnique => e
+      if e.message.include?('policy_number')
+        @life_insurance.errors.add(:policy_number, 'has already been taken')
+      else
+        @life_insurance.errors.add(:base, 'A record with similar details already exists')
+      end
       set_form_data
       render :edit, status: :unprocessable_entity
     end
@@ -162,6 +182,24 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     }
   end
 
+  # API endpoint for getting all agency codes (for Direct selection)
+  def all_agency_codes
+    agency_codes = AgencyCode.where(insurance_type: 'Life').order(:code)
+
+    render json: {
+      agency_codes: agency_codes.map { |a| { id: a.id, name: "#{a.company_name} - #{a.code}" } }
+    }
+  end
+
+  # API endpoint for getting all brokers (for Broking selection)
+  def all_brokers
+    brokers = Broker.active.order(:name)
+
+    render json: {
+      brokers: brokers.map { |b| { id: b.id, name: b.name } }
+    }
+  end
+
   private
 
   def set_life_insurance
@@ -202,7 +240,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
   def life_insurance_params
     params.require(:life_insurance).permit(
-      :customer_id, :sub_agent_id, :distributor_id, :investor_id, :agency_code_id, :broker_id,
+      :customer_id, :sub_agent_id, :distributor_id, :investor_id, :agency_code_id, :broker_id, :broker_code_type,
       :policy_holder, :insured_name, :insurance_company_name, :policy_type,
       :payment_mode, :policy_number, :policy_booking_date, :policy_start_date,
       :policy_end_date, :risk_start_date, :policy_term, :premium_payment_term,

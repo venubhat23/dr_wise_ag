@@ -2,8 +2,8 @@ class Lead < ApplicationRecord
   include PgSearch::Model
 
   validates :name, presence: true
-  validates :contact_number, presence: true, format: { with: /\A[\+]?[0-9\s\-\(\)]+\z/, message: "Invalid phone number format" }
-  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
+  validates :contact_number, presence: true, uniqueness: { message: "Contact number already exists" }, format: { with: /\A[\+]?[0-9\s\-\(\)]+\z/, message: "Invalid phone number format" }
+  validates :email, uniqueness: { message: "Email already exists" }, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :current_stage, presence: true, inclusion: { in: ['consultation', 'one_on_one', 'converted', 'policy_created', 'referral_settled'] }
   validates :lead_source, presence: true, inclusion: { in: ['online', 'offline', 'agent_referral', 'walk_in', 'tele_calling', 'campaign'] }
   validates :product_category, presence: true, inclusion: { in: ['insurance', 'investments', 'loans', 'taxation'] }
@@ -13,8 +13,9 @@ class Lead < ApplicationRecord
   validates :is_direct, inclusion: { in: [true, false] }
 
   # Individual Customer Required Fields
-  validates :first_name, presence: true, if: :individual?
-  validates :last_name, presence: true, if: :individual?
+  validates :first_name, presence: true, format: { with: /\A[a-zA-Z\s]+\z/, message: "First name can only contain letters and spaces" }, if: :individual?
+  validates :last_name, presence: true, format: { with: /\A[a-zA-Z\s]+\z/, message: "Last name can only contain letters and spaces" }, if: :individual?
+  validates :middle_name, format: { with: /\A[a-zA-Z\s]*\z/, message: "Middle name can only contain letters and spaces" }, allow_blank: true, if: :individual?
 
   # Corporate Customer Required Fields
   validates :company_name, presence: true, if: :corporate?
@@ -22,7 +23,7 @@ class Lead < ApplicationRecord
   # Optional validations
   validates :gender, inclusion: { in: ['male', 'female', 'other'] }, allow_blank: true
   validates :marital_status, inclusion: { in: ['single', 'married', 'divorced', 'widowed'] }, allow_blank: true
-  validates :pan_no, format: { with: /\A[A-Z]{5}\d{4}[A-Z]\z/ }, allow_blank: true
+  validates :pan_no, uniqueness: { message: "PAN number already exists" }, format: { with: /\A[A-Z]{5}\d{4}[A-Z]\z/ }, allow_blank: true
   validates :gst_no, format: { with: /\A\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z\d][A-Z\d]\z/ }, allow_blank: true
 
   belongs_to :converted_customer, class_name: 'Customer', optional: true

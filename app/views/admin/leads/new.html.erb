@@ -247,7 +247,7 @@
           { class: "form-select", id: "affiliate_dropdown" } %>
         </div>
 
-        <div class="col-md-6 mb-3">
+        <div class="col-md-6 mb-3" id="referred_by_field" style="display: none;">
           <%= form.label :referred_by, "Referred By", class: "form-label" %>
           <%= form.text_field :referred_by, class: "form-control", placeholder: "Agent name or source" %>
         </div>
@@ -511,6 +511,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const directCheckbox = document.getElementById('is_direct_checkbox');
   const affiliateSelection = document.getElementById('affiliate_selection');
   const affiliateDropdown = document.getElementById('affiliate_dropdown');
+  const referredByField = document.getElementById('referred_by_field');
 
   // Customer type conditional sections
   const individualSections = document.getElementById('individual_sections');
@@ -546,7 +547,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ]
   };
 
-  // Phone number formatting - allows normal editing and backfill
+  // Phone number formatting and customer checking
   phoneField.addEventListener('blur', function() {
     let value = this.value.replace(/\D/g, '');
 
@@ -554,7 +555,129 @@ document.addEventListener('DOMContentLoaded', function() {
     if (value.length === 10) {
       this.value = '+91 ' + value.substring(0, 5) + ' ' + value.substring(5);
     }
+
+    // Check for existing customer
+    checkExistingCustomer();
   });
+
+  // Email field customer checking
+  const emailField = form.querySelector('[name="lead[email]"]');
+  if (emailField) {
+    emailField.addEventListener('blur', checkExistingCustomer);
+  }
+
+  // Function to check for existing customers
+  function checkExistingCustomer() {
+    const contactNumber = phoneField.value.trim();
+    const email = emailField ? emailField.value.trim() : '';
+
+    // Only check if we have contact number or email
+    if (!contactNumber && !email) return;
+
+    // Show loading indicator
+    showLoadingIndicator();
+
+    // Make API call to check existing customer
+    fetch('/admin/leads/check_existing_customer?' + new URLSearchParams({
+      contact_number: contactNumber,
+      email: email
+    }))
+    .then(response => response.json())
+    .then(data => {
+      hideLoadingIndicator();
+
+      if (data.exists && data.customers.length > 0) {
+        showExistingCustomerWarning(data.customers);
+      } else {
+        hideExistingCustomerWarning();
+      }
+    })
+    .catch(error => {
+      console.error('Error checking existing customer:', error);
+      hideLoadingIndicator();
+      hideExistingCustomerWarning();
+    });
+  }
+
+  // Function to show loading indicator
+  function showLoadingIndicator() {
+    hideExistingCustomerWarning(); // Hide any existing warnings
+
+    const indicator = document.getElementById('customer-check-loading');
+    if (indicator) {
+      indicator.style.display = 'block';
+    } else {
+      // Create loading indicator if it doesn't exist
+      const loadingDiv = document.createElement('div');
+      loadingDiv.id = 'customer-check-loading';
+      loadingDiv.className = 'alert alert-info mt-2';
+      loadingDiv.innerHTML = '<i class="bi bi-clock-history me-2"></i>Checking for existing customers...';
+
+      // Insert after contact information card
+      const contactCard = document.querySelector('.card:has([name="lead[contact_number]"])');
+      if (contactCard) {
+        contactCard.insertAdjacentElement('afterend', loadingDiv);
+      }
+    }
+  }
+
+  // Function to hide loading indicator
+  function hideLoadingIndicator() {
+    const indicator = document.getElementById('customer-check-loading');
+    if (indicator) {
+      indicator.style.display = 'none';
+    }
+  }
+
+  // Function to show existing customer warning
+  function showExistingCustomerWarning(customers) {
+    hideLoadingIndicator();
+
+    let warningDiv = document.getElementById('existing-customer-warning');
+    if (!warningDiv) {
+      // Create warning div if it doesn't exist
+      warningDiv = document.createElement('div');
+      warningDiv.id = 'existing-customer-warning';
+      warningDiv.className = 'alert alert-warning mt-2';
+
+      // Insert after contact information card
+      const contactCard = document.querySelector('.card:has([name="lead[contact_number]"])');
+      if (contactCard) {
+        contactCard.insertAdjacentElement('afterend', warningDiv);
+      }
+    }
+
+    // Build warning message
+    let warningHtml = '<div class="d-flex align-items-start">';
+    warningHtml += '<i class="bi bi-exclamation-triangle-fill me-2 text-warning fs-5"></i>';
+    warningHtml += '<div class="flex-grow-1">';
+    warningHtml += '<h6 class="mb-2"><strong>Existing Customer Found!</strong></h6>';
+    warningHtml += '<p class="mb-2">We found existing customer(s) with matching information:</p>';
+
+    customers.forEach(customer => {
+      warningHtml += '<div class="border rounded p-2 mb-2 bg-light">';
+      warningHtml += `<div class="fw-bold">${customer.name}</div>`;
+      warningHtml += `<small class="text-muted">`;
+      warningHtml += `Mobile: ${customer.mobile || 'N/A'} | Email: ${customer.email || 'N/A'}`;
+      warningHtml += `<br>Match Type: ${customer.match_type.charAt(0).toUpperCase() + customer.match_type.slice(1)}`;
+      warningHtml += `</small>`;
+      warningHtml += '</div>';
+    });
+
+    warningHtml += '<p class="mb-0 small"><strong>Note:</strong> Please verify if this is a duplicate before creating a new lead.</p>';
+    warningHtml += '</div></div>';
+
+    warningDiv.innerHTML = warningHtml;
+    warningDiv.style.display = 'block';
+  }
+
+  // Function to hide existing customer warning
+  function hideExistingCustomerWarning() {
+    const warningDiv = document.getElementById('existing-customer-warning');
+    if (warningDiv) {
+      warningDiv.style.display = 'none';
+    }
+  }
 
   // Native HTML5 date picker is now used - no additional formatting needed
 
@@ -674,14 +797,18 @@ document.addEventListener('DOMContentLoaded', function() {
   // Handle direct/referred toggle
   directCheckbox.addEventListener('change', function() {
     if (this.checked) {
-      // Direct lead - hide affiliate selection and clear value
+      // Direct lead - hide affiliate selection and referred by field, clear values
       affiliateSelection.style.display = 'none';
+      referredByField.style.display = 'none';
       affiliateDropdown.value = '';
       affiliateDropdown.removeAttribute('required');
+      form.querySelector('[name="lead[referred_by]"]').value = '';
     } else {
-      // Referred lead - show affiliate selection and make it required
+      // Referred lead - show only affiliate selection, keep referred by field hidden
       affiliateSelection.style.display = 'block';
+      referredByField.style.display = 'none';
       affiliateDropdown.setAttribute('required', 'required');
+      form.querySelector('[name="lead[referred_by]"]').value = '';
     }
   });
 

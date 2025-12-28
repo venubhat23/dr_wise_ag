@@ -7,6 +7,59 @@ export default class extends Controller {
   connect() {
     console.log("Sidebar controller connected")
     this.initializeActiveStates()
+    this.initializeScrollPosition()
+    this.setupScrollSaving()
+  }
+
+  initializeScrollPosition() {
+    // Restore scroll position from sessionStorage
+    const savedScrollPosition = sessionStorage.getItem('sidebarScrollPosition')
+    if (savedScrollPosition) {
+      this.element.scrollTop = parseInt(savedScrollPosition, 10)
+    }
+  }
+
+  setupScrollSaving() {
+    // Save scroll position before navigation
+    this.element.addEventListener('scroll', this.saveScrollPosition.bind(this))
+
+    // Save scroll position when clicking on navigation links
+    const navLinks = this.element.querySelectorAll('a')
+    navLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        this.saveScrollPosition()
+      })
+    })
+
+    // Save scroll position before page unload
+    window.addEventListener('beforeunload', () => {
+      this.saveScrollPosition()
+    })
+
+    // Save scroll position on turbo:before-visit
+    document.addEventListener('turbo:before-visit', () => {
+      this.saveScrollPosition()
+    })
+
+    // Restore scroll position after turbo navigation
+    document.addEventListener('turbo:load', () => {
+      this.restoreScrollPosition()
+    })
+  }
+
+  saveScrollPosition() {
+    const scrollPosition = this.element.scrollTop
+    sessionStorage.setItem('sidebarScrollPosition', scrollPosition.toString())
+  }
+
+  restoreScrollPosition() {
+    const savedScrollPosition = sessionStorage.getItem('sidebarScrollPosition')
+    if (savedScrollPosition) {
+      // Use setTimeout to ensure DOM is fully rendered
+      setTimeout(() => {
+        this.element.scrollTop = parseInt(savedScrollPosition, 10)
+      }, 50)
+    }
   }
 
   toggleSubmenu(event) {

@@ -3,7 +3,7 @@ class HealthInsurance < ApplicationRecord
   include InsuranceCompanyConstants
 
   # Associations
-  belongs_to :customer
+  belongs_to :customer, counter_cache: :policies_count
   belongs_to :sub_agent, class_name: 'SubAgent', optional: true
   belongs_to :distributor, optional: true
   belongs_to :investor, optional: true

@@ -24,29 +24,26 @@ class Admin::BrokersController < Admin::ApplicationController
 
   def new
     @broker = Broker.new
-    @insurance_companies = InsuranceCompany.where(status: true).order(:name)
   end
 
   def create
     @broker = Broker.new(broker_params)
+    @broker.status = 'active' # Default status
 
     if @broker.save
       redirect_to admin_brokers_path, notice: 'Broker was successfully created.'
     else
-      @insurance_companies = InsuranceCompany.where(status: true).order(:name)
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
-    @insurance_companies = InsuranceCompany.where(status: true).order(:name)
   end
 
   def update
     if @broker.update(broker_params)
       redirect_to admin_brokers_path, notice: 'Broker was successfully updated.'
     else
-      @insurance_companies = InsuranceCompany.where(status: true).order(:name)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -82,6 +79,6 @@ class Admin::BrokersController < Admin::ApplicationController
   end
 
   def broker_params
-    params.require(:broker).permit(:name, :status, :insurance_company_id)
+    params.require(:broker).permit(:name)
   end
 end

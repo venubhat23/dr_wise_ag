@@ -5,6 +5,8 @@ class Broker < ApplicationRecord
   validates :name, presence: true, uniqueness: { case_sensitive: false }
   validates :status, inclusion: { in: %w[active inactive] }
 
+  before_validation :set_default_status, on: :create
+
   scope :active, -> { where(status: 'active') }
   scope :inactive, -> { where(status: 'inactive') }
 
@@ -14,5 +16,11 @@ class Broker < ApplicationRecord
 
   def inactive?
     status == 'inactive'
+  end
+
+  private
+
+  def set_default_status
+    self.status ||= 'active'
   end
 end

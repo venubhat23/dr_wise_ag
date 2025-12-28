@@ -169,6 +169,8 @@ Rails.application.routes.draw do
         get :policy_holder_options
         get :brokers_by_company
         get :agency_codes_by_broker
+        get :all_agency_codes
+        get :all_brokers
       end
       member do
         get :commission_details
@@ -259,6 +261,7 @@ Rails.application.routes.draw do
         get :export
         get :statistics
         patch :bulk_update_stage
+        get :check_existing_customer
       end
     end
 

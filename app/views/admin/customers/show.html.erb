@@ -258,6 +258,102 @@
       </div>
     <% end %>
 
+    <!-- All Policies -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-shield-check me-2 text-primary"></i>
+          Insurance Policies
+        </h5>
+        <div class="d-flex gap-2">
+          <%= link_to policy_chart_admin_customer_path(@customer), class: "btn btn-sm btn-outline-info" do %>
+            <i class="bi bi-bar-chart me-1"></i>Policy Chart
+          <% end %>
+          <div class="dropdown">
+            <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="bi bi-plus me-1"></i>Add Policy
+            </button>
+            <ul class="dropdown-menu">
+              <li><%= link_to "Health Insurance", new_admin_health_insurance_path(customer_id: @customer.id), class: "dropdown-item" %></li>
+              <li><%= link_to "Life Insurance", new_admin_life_insurance_path(customer_id: @customer.id), class: "dropdown-item" %></li>
+              <li><%= link_to "Motor Insurance", new_admin_motor_insurance_path(customer_id: @customer.id), class: "dropdown-item" %></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <% if @all_policies.any? %>
+          <div class="row">
+            <% @all_policies.each do |policy_data| %>
+              <div class="col-md-6 mb-3">
+                <div class="card border h-100">
+                  <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 class="mb-0">
+                        <%= policy_data[:type] %>
+                        <span class="badge bg-<%= policy_data[:status] == 'Active' ? 'success' : 'danger' %> ms-2">
+                          <%= policy_data[:status] %>
+                        </span>
+                      </h6>
+                    </div>
+                    <small class="text-muted"><%= policy_data[:created_at].strftime("%b %d, %Y") %></small>
+                  </div>
+                  <div class="card-body">
+                    <div class="row g-2">
+                      <div class="col-12">
+                        <strong class="text-primary d-block">Policy Number</strong>
+                        <span class="font-monospace"><%= policy_data[:policy_number] %></span>
+                      </div>
+                      <div class="col-12">
+                        <strong class="text-muted d-block">Insurance Company</strong>
+                        <%= policy_data[:company_name] %>
+                      </div>
+                      <div class="col-6">
+                        <strong class="text-muted d-block">Premium</strong>
+                        <span class="text-success fw-bold">₹<%= number_with_delimiter(policy_data[:premium].to_i) %></span>
+                      </div>
+                      <div class="col-6">
+                        <strong class="text-muted d-block">Policy Period</strong>
+                        <% if policy_data[:start_date] && policy_data[:end_date] %>
+                          <%= policy_data[:start_date].strftime("%b %Y") %> - <%= policy_data[:end_date].strftime("%b %Y") %>
+                        <% else %>
+                          N/A
+                        <% end %>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-footer d-flex justify-content-between">
+                    <% case policy_data[:type] %>
+                    <% when 'Health Insurance' %>
+                      <%= link_to "View Details", admin_health_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-primary" %>
+                      <%= link_to "Edit", edit_admin_health_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-warning" %>
+                    <% when 'Life Insurance' %>
+                      <%= link_to "View Details", admin_life_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-primary" %>
+                      <%= link_to "Edit", edit_admin_life_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-warning" %>
+                    <% when 'Motor Insurance' %>
+                      <%= link_to "View Details", admin_motor_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-primary" %>
+                      <%= link_to "Edit", edit_admin_motor_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-warning" %>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-center text-muted py-5">
+            <i class="bi bi-shield-x fs-1 d-block mb-3 text-muted"></i>
+            <h5>No Policies Found</h5>
+            <p class="mb-3">This customer doesn't have any insurance policies yet.</p>
+            <div class="d-flex gap-2 justify-content-center">
+              <%= link_to "Add Health Insurance", new_admin_health_insurance_path(customer_id: @customer.id), class: "btn btn-primary" %>
+              <%= link_to "Add Life Insurance", new_admin_life_insurance_path(customer_id: @customer.id), class: "btn btn-primary" %>
+              <%= link_to "Add Motor Insurance", new_admin_motor_insurance_path(customer_id: @customer.id), class: "btn btn-primary" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
     <!-- Family Members -->
     <% if @customer.individual? %>
       <div class="card border-0 shadow-sm mb-4">
@@ -330,7 +426,7 @@
         <div class="row g-3">
           <div class="col-6">
             <div class="text-center">
-              <h4 class="text-primary mb-1"><%= @policies.count %></h4>
+              <h4 class="text-primary mb-1"><%= @all_policies.count %></h4>
               <small class="text-muted">Policies</small>
             </div>
           </div>
@@ -410,27 +506,42 @@
     </div>
 
     <!-- Recent Policies -->
-    <% if @policies.any? %>
+    <% if @all_policies.any? %>
       <div class="card border-0 shadow-sm">
         <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
           <h6 class="mb-0">Recent Policies</h6>
-          <%= link_to admin_policies_path(customer_id: @customer.id), class: "btn btn-sm btn-outline-primary" do %>
+          <%= link_to policy_chart_admin_customer_path(@customer), class: "btn btn-sm btn-outline-primary" do %>
             View All
           <% end %>
         </div>
         <div class="card-body p-0">
           <div class="list-group list-group-flush">
-            <% @policies.limit(3).each do |policy| %>
+            <% @all_policies.first(5).each do |policy_data| %>
               <div class="list-group-item">
-                <div class="d-flex w-100 justify-content-between">
-                  <h6 class="mb-1"><%= policy.policy_number %></h6>
-                  <small class="text-success">₹<%= number_with_delimiter(policy.total_premium.to_i) %></small>
+                <div class="d-flex w-100 justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1">
+                      <%= policy_data[:policy_number] %>
+                      <span class="badge bg-<%= policy_data[:status] == 'Active' ? 'success' : 'danger' %> ms-2">
+                        <%= policy_data[:status] %>
+                      </span>
+                    </h6>
+                    <p class="mb-1 small text-muted"><%= policy_data[:company_name] %></p>
+                    <small class="text-muted">
+                      <i class="bi bi-shield-check me-1"></i>
+                      <%= policy_data[:type] %> •
+                      <%= policy_data[:created_at].strftime("%B %d, %Y") %>
+                    </small>
+                  </div>
+                  <div class="text-end">
+                    <small class="text-success fw-bold d-block">₹<%= number_with_delimiter(policy_data[:premium].to_i) %></small>
+                    <% if policy_data[:end_date] %>
+                      <small class="text-muted">
+                        Exp: <%= policy_data[:end_date].strftime("%b %Y") %>
+                      </small>
+                    <% end %>
+                  </div>
                 </div>
-                <p class="mb-1 small"><%= policy.insurance_company.name %></p>
-                <small class="text-muted">
-                  <%= policy.insurance_type.humanize %> •
-                  <%= policy.created_at.strftime("%B %d, %Y") %>
-                </small>
               </div>
             <% end %>
           </div>

@@ -57,16 +57,6 @@
         <% end %>
       </div>
 
-      <div class="col-md-6">
-        <label class="form-label">Broker <small class="text-muted">(Optional)</small></label>
-        <%= form.select :broker_id,
-            options_for_select(@brokers.map { |broker| [broker.name, broker.id] }, @agency_code.broker_id),
-            { prompt: 'Select Broker (Optional)' },
-            { class: "form-select" } %>
-        <% if @agency_code.errors[:broker_id].any? %>
-          <div class="text-danger small mt-1"><%= @agency_code.errors[:broker_id].first %></div>
-        <% end %>
-      </div>
 
       <div class="col-md-6">
         <label class="form-label">Agency Code</label>

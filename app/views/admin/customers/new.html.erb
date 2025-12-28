@@ -232,8 +232,15 @@
             <%= form.text_field :pan_no, class: "form-control", placeholder: "Enter PAN number" %>
           </div>
           <div class="col-md-4">
-            <%= form.label :gst_no, "GST No.", class: "form-label" %>
-            <%= form.text_field :gst_no, class: "form-control", placeholder: "Enter GST" %>
+            <%= form.label :gst_no, class: "form-label" do %>
+              GST No. <span class="text-danger">*</span>
+            <% end %>
+            <%= form.text_field :gst_no, class: "form-control #{'is-invalid' if @customer.errors[:gst_no].any?}", placeholder: "Enter GST", id: "corporate_gst_no", required: true %>
+            <% if @customer.errors[:gst_no].any? %>
+              <div class="invalid-feedback">
+                <%= @customer.errors[:gst_no].first %>
+              </div>
+            <% end %>
           </div>
         </div>
         <div class="row mt-3">
@@ -563,15 +570,11 @@
         </div>
 
         <div class="row mt-3">
-          <div class="col-md-4">
+          <div class="col-md-6">
             <%= form.label :pan_no, "PAN No", class: "form-label" %>
             <%= form.text_field :pan_no, class: "form-control", placeholder: "Enter PAN number" %>
           </div>
-          <div class="col-md-4">
-            <%= form.label :gst_no, "GST No", class: "form-label" %>
-            <%= form.text_field :gst_no, class: "form-control", placeholder: "Enter GST number" %>
-          </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <%= form.label :additional_information, "Additional Information", class: "form-label" %>
             <%= form.text_area :additional_information, class: "form-control", rows: 1, placeholder: "Enter additional notes" %>
           </div>
@@ -724,7 +727,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initially disable all form validations until customer type is selected
   const individualRequiredFields = ['individual_first_name', 'individual_last_name', 'individual_mobile'];
-  const corporateRequiredFields = ['corporate_company_name', 'corporate_mobile'];
+  const corporateRequiredFields = ['corporate_company_name', 'corporate_mobile', 'corporate_gst_no'];
 
   // Remove required attributes initially
   individualRequiredFields.concat(corporateRequiredFields).forEach(fieldId => {

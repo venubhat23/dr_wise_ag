@@ -160,6 +160,41 @@
 
     <!-- Global Modal Fix Script & Toast Notifications -->
     <script>
+      // Sidebar Scroll Position Management
+      function saveSidebarScrollPosition() {
+        const sidebar = document.querySelector('.modern-sidebar, .sidebar, #sidebar');
+        if (sidebar) {
+          const scrollPosition = sidebar.scrollTop;
+          sessionStorage.setItem('sidebarScrollPosition', scrollPosition.toString());
+        }
+      }
+
+      function restoreSidebarScrollPosition() {
+        const sidebar = document.querySelector('.modern-sidebar, .sidebar, #sidebar');
+        const savedScrollPosition = sessionStorage.getItem('sidebarScrollPosition');
+
+        if (sidebar && savedScrollPosition) {
+          // Use setTimeout to ensure DOM is fully rendered
+          setTimeout(() => {
+            sidebar.scrollTop = parseInt(savedScrollPosition, 10);
+          }, 100);
+        }
+      }
+
+      function setupSidebarScrollTracking() {
+        const sidebar = document.querySelector('.modern-sidebar, .sidebar, #sidebar');
+        if (!sidebar) return;
+
+        // Save scroll position on scroll
+        sidebar.addEventListener('scroll', saveSidebarScrollPosition);
+
+        // Save scroll position when clicking navigation links
+        const navLinks = sidebar.querySelectorAll('a');
+        navLinks.forEach(link => {
+          link.addEventListener('click', saveSidebarScrollPosition);
+        });
+      }
+
       // Global modal fix to ensure all modals work properly
       document.addEventListener('DOMContentLoaded', function() {
         // Configure default Bootstrap modal options
@@ -186,6 +221,10 @@
 
         // Initialize toast notifications
         initToastNotifications();
+
+        // Setup sidebar scroll tracking and restore position
+        setupSidebarScrollTracking();
+        restoreSidebarScrollPosition();
       });
 
       // Fix modals after Turbo navigation
@@ -211,7 +250,15 @@
 
         // Initialize toast notifications
         initToastNotifications();
+
+        // Restore sidebar scroll position after Turbo navigation
+        restoreSidebarScrollPosition();
+        setupSidebarScrollTracking();
       });
+
+      // Save sidebar position before navigation and page unload
+      document.addEventListener('turbo:before-visit', saveSidebarScrollPosition);
+      window.addEventListener('beforeunload', saveSidebarScrollPosition);
 
       // Toast notification functions
       function initToastNotifications() {

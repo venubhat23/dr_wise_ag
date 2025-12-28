@@ -94,23 +94,6 @@
           </div>
         </div>
 
-        <div class="col-md-6">
-          <%= form.label :broker_id, "Broker", class: "form-label" do %>
-            <i class="bi bi-person-badge me-2 text-primary"></i>
-            Broker <small class="text-muted">(Optional)</small>
-          <% end %>
-          <%= form.select :broker_id,
-              options_for_select(@brokers.map { |broker| [broker.name, broker.id] }, @agency_code.broker_id),
-              { prompt: 'Select Broker (Optional)' },
-              { class: "form-select form-select-lg" } %>
-          <small class="form-text text-muted">
-            <i class="bi bi-info-circle me-1"></i>
-            Link this agency code to a broker (optional)
-          </small>
-          <div class="invalid-feedback">
-            Please select a valid broker.
-          </div>
-        </div>
 
         <div class="col-md-6">
           <%= form.label :code, "Agency Code", class: "form-label" do %>

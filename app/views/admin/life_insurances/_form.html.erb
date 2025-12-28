@@ -74,6 +74,34 @@
     </div>
     <div class="card-body">
       <div class="row">
+        <!-- 1st: Broker Code dropdown with Direct/Broking options -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :broker_code_type, "Broker Code", class: "form-label" %>
+          <%= form.select :broker_code_type,
+              options_for_select([
+                ['Direct', 'direct'],
+                ['Broking', 'broking']
+              ], @life_insurance.broker_code_type),
+              { prompt: 'Select Broker Code' },
+              { class: "form-control", id: "broker_code_type_select" } %>
+        </div>
+
+        <!-- 2nd: Agency Code (Dynamic based on Broker Code Type) -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
+          <%= form.select :agency_code_id,
+              options_for_select(@agency_codes.map { |a| ["#{a.company_name} - #{a.code}", a.id] }, @life_insurance.agency_code_id),
+              { prompt: 'Select Agency Code' },
+              { class: "form-control", id: "agency_code_select" } %>
+
+          <!-- Hidden field for broker selection when Broking is chosen -->
+          <%= form.select :broker_id,
+              options_for_select(@brokers.map { |b| [b.name, b.id] }, @life_insurance.broker_id),
+              { prompt: 'Select Broker' },
+              { class: "form-control", id: "broker_select", style: "display: none;" } %>
+        </div>
+
+        <!-- 3rd: Insurance Company Name -->
         <div class="col-md-4 mb-3">
           <%= form.label :insurance_company_name, "Insurance Company Name*", class: "form-label" %>
           <%= form.select :insurance_company_name,
@@ -83,22 +111,6 @@
           <% if @life_insurance.errors[:insurance_company_name].any? %>
             <div class="invalid-feedback"><%= @life_insurance.errors[:insurance_company_name].first %></div>
           <% end %>
-        </div>
-
-        <div class="col-md-4 mb-3">
-          <%= form.label :broker_id, "Broker Code", class: "form-label" %>
-          <%= form.select :broker_id,
-              options_for_select(@brokers.map { |b| [b.name, b.id] }, @life_insurance.broker_id),
-              { prompt: 'Select Broker Code' },
-              { class: "form-control", id: "broker_select" } %>
-        </div>
-
-        <div class="col-md-4 mb-3">
-          <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
-          <%= form.select :agency_code_id,
-              options_for_select(@agency_codes.map { |a| ["#{a.company_name} - #{a.code}", a.id] }, @life_insurance.agency_code_id),
-              { prompt: 'Select Agency Code' },
-              { class: "form-control", id: "agency_code_select" } %>
         </div>
 
         <div class="col-md-4 mb-3">
@@ -122,6 +134,7 @@
             <div class="invalid-feedback"><%= @life_insurance.errors[:payment_mode].first %></div>
           <% end %>
         </div>
+
 
         <div class="col-md-4 mb-3">
           <%= form.label :policy_number, "Policy Number*", class: "form-label" %>
@@ -901,7 +914,95 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Load agency codes when broker changes
+  // Handle broker code type change (Direct/Broking)
+  function handleBrokerCodeTypeChange() {
+    const brokerCodeType = document.getElementById('broker_code_type_select').value;
+    const agencyCodeSelect = document.getElementById('agency_code_select');
+    const brokerSelect = document.getElementById('broker_select');
+    const label = agencyCodeSelect.parentElement.querySelector('label');
+
+    // Clear both dropdowns
+    agencyCodeSelect.innerHTML = '';
+    brokerSelect.innerHTML = '';
+
+    if (brokerCodeType === 'direct') {
+      // Show Agency Code dropdown, hide Broker dropdown
+      agencyCodeSelect.style.display = 'block';
+      brokerSelect.style.display = 'none';
+      label.textContent = 'Agency Code';
+
+      // Load all agency codes
+      loadAllAgencyCodes();
+    } else if (brokerCodeType === 'broking') {
+      // Show Broker dropdown, hide Agency Code dropdown
+      agencyCodeSelect.style.display = 'none';
+      brokerSelect.style.display = 'block';
+      label.textContent = 'Broker';
+
+      // Load all brokers
+      loadAllBrokers();
+    } else {
+      // Neither selected - show default Agency Code dropdown
+      agencyCodeSelect.style.display = 'block';
+      brokerSelect.style.display = 'none';
+      label.textContent = 'Agency Code';
+      agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
+    }
+  }
+
+  // Load all agency codes for Direct selection
+  function loadAllAgencyCodes() {
+    const agencyCodeSelect = document.getElementById('agency_code_select');
+    agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
+
+    fetch('/admin/insurance/life/all_agency_codes', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.agency_codes && data.agency_codes.length > 0) {
+          data.agency_codes.forEach(agencyCode => {
+            const option = new Option(agencyCode.name, agencyCode.id);
+            agencyCodeSelect.add(option);
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error loading agency codes:', error);
+      });
+  }
+
+  // Load all brokers for Broking selection
+  function loadAllBrokers() {
+    const brokerSelect = document.getElementById('broker_select');
+    brokerSelect.innerHTML = '<option value="">Select Broker</option>';
+
+    fetch('/admin/insurance/life/all_brokers', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.brokers && data.brokers.length > 0) {
+          data.brokers.forEach(broker => {
+            const option = new Option(broker.name, broker.id);
+            brokerSelect.add(option);
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error loading brokers:', error);
+      });
+  }
+
+  // Load agency codes when broker changes (legacy function - keeping for compatibility)
   function loadAgencyCodesByBroker() {
     const brokerId = document.getElementById('broker_select').value;
     const agencyCodeSelect = document.getElementById('agency_code_select');
@@ -973,6 +1074,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Cascading dropdown event listeners
   document.getElementById('insurance_company_select').addEventListener('change', loadBrokersByCompany);
   document.getElementById('broker_select').addEventListener('change', loadAgencyCodesByBroker);
+
+  // Broker code type change listener
+  document.getElementById('broker_code_type_select').addEventListener('change', handleBrokerCodeTypeChange);
 
   // Sub-agent commission event listeners
   document.querySelector('.sub-agent-commission-percentage').addEventListener('input', function() {

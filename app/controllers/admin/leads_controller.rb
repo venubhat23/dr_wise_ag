@@ -264,6 +264,48 @@ class Admin::LeadsController < Admin::ApplicationController
     end
   end
 
+  # GET /admin/leads/check_existing_customer
+  def check_existing_customer
+    contact_number = params[:contact_number]
+    email = params[:email]
+
+    existing_customers = []
+
+    # Check by contact number/mobile
+    if contact_number.present?
+      clean_contact = contact_number.gsub(/\D/, '')
+      customer_by_mobile = Customer.where("mobile LIKE ?", "%#{clean_contact}%").first
+      if customer_by_mobile
+        existing_customers << {
+          id: customer_by_mobile.id,
+          name: customer_by_mobile.display_name,
+          mobile: customer_by_mobile.mobile,
+          email: customer_by_mobile.email,
+          match_type: 'mobile'
+        }
+      end
+    end
+
+    # Check by email
+    if email.present?
+      customer_by_email = Customer.where(email: email).first
+      if customer_by_email && !existing_customers.any? { |c| c[:id] == customer_by_email.id }
+        existing_customers << {
+          id: customer_by_email.id,
+          name: customer_by_email.display_name,
+          mobile: customer_by_email.mobile,
+          email: customer_by_email.email,
+          match_type: 'email'
+        }
+      end
+    end
+
+    render json: {
+      exists: existing_customers.any?,
+      customers: existing_customers
+    }
+  end
+
   # PATCH /admin/leads/bulk_update_stage
   def bulk_update_stage
     lead_ids = params[:lead_ids]
