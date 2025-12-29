@@ -409,36 +409,9 @@ class Admin::AgencyCodesController < Admin::ApplicationController
 
   # GET /admin/agency_codes/all_companies - API endpoint for fetching ALL companies for Broking mode
   def all_companies
-    insurance_type = params[:insurance_type] || 'Life'
-
-    # Get all unique company names from agency codes for the specified insurance type
-    companies = AgencyCode.where(insurance_type: insurance_type)
-                          .select('company_name')
-                          .group(:company_name)
-                          .order(:company_name)
-                          .map(&:company_name)
-                          .compact
-                          .reject(&:blank?)
-
-    # If no companies found in agency codes, provide hardcoded fallback
-    if companies.empty?
-      if insurance_type == 'Life'
-        companies = [
-          'ICICI Prudential Life Insurance Co Ltd',
-          'HDFC Life Insurance Co Ltd',
-          'SBI Life Insurance Co Ltd',
-          'LIC of India',
-          'Bajaj Allianz Life Insurance Co Ltd',
-          'Max Life Insurance Co Ltd',
-          'Aditya Birla Sun Life Insurance Co Ltd',
-          'Tata AIA Life Insurance Co Ltd',
-          'Kotak Mahindra Life Insurance Co Ltd',
-          'Reliance Nippon Life Insurance Co Ltd'
-        ]
-      else
-        companies = []
-      end
-    end
+    # Get all insurance companies from the InsuranceCompany table
+    # This shows the same companies as in the admin sidebar
+    companies = InsuranceCompany.order(:name).pluck(:name).compact.reject(&:blank?)
 
     respond_to do |format|
       format.json do

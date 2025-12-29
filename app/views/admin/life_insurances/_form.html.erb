@@ -1455,7 +1455,7 @@ document.addEventListener('DOMContentLoaded', function() {
       companiesHeaders['X-CSRF-Token'] = csrfToken;
     }
 
-    const fetchPromise = fetch('/admin/agency_codes/all_companies.json?insurance_type=Life', {
+    const fetchPromise = fetch('/admin/agency_codes/all_companies.json', {
       headers: companiesHeaders,
       credentials: 'same-origin'
     });
@@ -1485,7 +1485,7 @@ document.addEventListener('DOMContentLoaded', function() {
           option.textContent = company;
           insuranceCompanySelect.appendChild(option);
         });
-        console.log(`Loaded ${data.companies.length} companies for Broking mode`);
+        console.log(`Loaded ${data.companies.length} insurance companies for Broking mode`);
       } else {
         const option = document.createElement('option');
         option.value = '';
