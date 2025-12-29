@@ -2,8 +2,7 @@ class Admin::InvoicesController < ApplicationController
   before_action :set_invoice, only: [:show, :show_premium, :download_pdf, :download_premium_pdf, :mark_as_paid]
 
   def index
-    @invoices = Invoice.includes(:payout_record)
-                      .order(created_at: :desc)
+    @invoices = Invoice.order(created_at: :desc)
                       .page(params[:page])
                       .per(20)
 
@@ -33,13 +32,18 @@ class Admin::InvoicesController < ApplicationController
 
     case payout_type
     when 'affiliate'
-      payout = AffiliatePayout.find(payout_id)
+      payout = CommissionPayout.find_by(id: payout_id, payout_to: 'affiliate')
     when 'distributor'
       payout = DistributorPayout.find(payout_id)
     when 'commission'
       payout = Payout.find(payout_id)
     else
       render json: { error: 'Invalid payout type' }, status: 400
+      return
+    end
+
+    unless payout
+      render json: { error: 'Payout record not found' }, status: 404
       return
     end
 
@@ -136,10 +140,10 @@ class Admin::InvoicesController < ApplicationController
 
   def calculate_total_amount(payout)
     case payout.class.name
-    when 'AffiliatePayout'
-      payout.commission_amount || 0
+    when 'CommissionPayout'
+      payout.payout_amount || 0
     when 'DistributorPayout'
-      payout.commission_amount || 0
+      payout.commission_amount || payout.payout_amount || 0
     when 'Payout'
       payout.total_amount || 0
     else

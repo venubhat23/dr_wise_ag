@@ -1,5 +1,21 @@
 // Fallback location data for client-side use
 window.LocationData = {
+  // Helper method to get states in select format
+  states_for_select: [
+    ['Andhra Pradesh', 'andhra_pradesh'],
+    ['Bihar', 'bihar'],
+    ['Delhi', 'delhi'],
+    ['Gujarat', 'gujarat'],
+    ['Karnataka', 'karnataka'],
+    ['Kerala', 'kerala'],
+    ['Madhya Pradesh', 'madhya_pradesh'],
+    ['Maharashtra', 'maharashtra'],
+    ['Rajasthan', 'rajasthan'],
+    ['Tamil Nadu', 'tamil_nadu'],
+    ['Uttar Pradesh', 'uttar_pradesh'],
+    ['West Bengal', 'west_bengal']
+  ],
+
   states: {
     'andhra_pradesh': {
       name: 'Andhra Pradesh',

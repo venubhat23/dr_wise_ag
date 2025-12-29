@@ -175,7 +175,10 @@ class Admin::LeadsController < Admin::ApplicationController
       Rails.logger.info "  - Height: #{customer.height} / #{customer.height_feet}"
       Rails.logger.info "  - Weight: #{customer.weight} / #{customer.weight_kg}"
       Rails.logger.info "  - Birth place: #{customer.birth_place}"
-      Rails.logger.info "  - City: #{customer.city}, Lead ID: #{customer.lead_id}"
+      Rails.logger.info "  - Address: #{customer.address}"
+      Rails.logger.info "  - City: #{customer.city}"
+      Rails.logger.info "  - State: #{customer.state}"
+      Rails.logger.info "  - Lead ID: #{customer.lead_id}"
 
       # Update lead with customer reference
       @lead.update!(

@@ -148,7 +148,7 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
         {
           affiliate: {
             id: affiliate_data[:affiliate].id,
-            name: affiliate_data[:affiliate].display_name,
+            name: "#{affiliate_data[:affiliate].first_name} #{affiliate_data[:affiliate].last_name}",
             email: affiliate_data[:affiliate].email
           },
           leads: affiliate_data[:leads].reject { |l| l[:paid] }.map do |lead_data|
@@ -229,7 +229,7 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     end
 
     # Convert to array and sort by affiliate name
-    affiliate_groups.values.sort_by { |group| group[:affiliate].display_name }
+    affiliate_groups.values.sort_by { |group| "#{group[:affiliate].first_name} #{group[:affiliate].last_name}" }
   end
 
   def get_all_paid_policies

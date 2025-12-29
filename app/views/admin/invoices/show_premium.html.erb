@@ -30,6 +30,40 @@
         position: relative;
       }
 
+      /* PAID Watermark - Attractive Design */
+      .paid-watermark {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-25deg);
+        font-size: 150px;
+        font-weight: 900;
+        font-family: 'Arial Black', Arial, sans-serif;
+        z-index: 10;
+        pointer-events: none;
+
+        /* Gradient text effect */
+        background: linear-gradient(45deg, #28a745, #20c997);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+
+        /* Fallback for browsers that don't support gradient text */
+        color: rgba(40, 167, 69, 0.3);
+
+        /* Multiple text shadows for depth */
+        text-shadow:
+          2px 2px 4px rgba(40, 167, 69, 0.2),
+          4px 4px 8px rgba(40, 167, 69, 0.15),
+          6px 6px 12px rgba(40, 167, 69, 0.1);
+
+        /* Border effect */
+        -webkit-text-stroke: 2px rgba(40, 167, 69, 0.1);
+
+        letter-spacing: 15px;
+        text-transform: uppercase;
+      }
+
       /* Decorative elements */
       .invoice-container::before {
         content: '';
@@ -622,13 +656,15 @@
   </head>
   <body>
     <div class="invoice-container">
+      <!-- PAID Watermark (only show when invoice is paid) -->
+      <% if @invoice.status == 'paid' %>
+        <div class="paid-watermark">PAID</div>
+      <% end %>
+
       <div class="invoice-content">
         <!-- Header Section -->
         <header class="invoice-header">
           <div class="company-info">
-            <div class="company-logo">
-              <i class="fas fa-shield-alt"></i>
-            </div>
             <div class="company-details">
               <h1>Drwise Insurance Services</h1>
               <div class="company-address">
@@ -733,37 +769,7 @@
         <!-- Summary Section -->
         <div class="summary-section">
           <div class="payment-info">
-            <h3><i class="fas fa-university"></i> Payment Information</h3>
-            <div class="bank-details">
-              <div class="bank-detail">
-                <span class="label">Account Name:</span>
-                <span class="value">Drwise Insurance Services</span>
-              </div>
-              <div class="bank-detail">
-                <span class="label">Bank Name:</span>
-                <span class="value">Canara Bank</span>
-              </div>
-              <div class="bank-detail">
-                <span class="label">Account Number:</span>
-                <span class="value">3194201000718</span>
-              </div>
-              <div class="bank-detail">
-                <span class="label">IFSC Code:</span>
-                <span class="value">CNRB0003194</span>
-              </div>
-            </div>
-
-            <div class="qr-section">
-              <h4 style="margin-bottom: 12px; color: #1e293b;">Quick Payment</h4>
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=upi://pay?pa=drwise@ybl&pn=Drwise%20Insurance%20Services&am=<%= @invoice.total_amount %>" alt="Payment QR Code" class="qr-code" />
-              <div style="font-size: 12px; color: #64748b; margin-bottom: 8px;">UPI ID: drwise@ybl</div>
-              <div class="upi-badges">
-                <span class="upi-badge phonepe">PhonePe</span>
-                <span class="upi-badge gpay">Google Pay</span>
-                <span class="upi-badge paytm">Paytm</span>
-                <span class="upi-badge upi">UPI</span>
-              </div>
-            </div>
+            <!-- Payment information removed as requested -->
           </div>
 
           <div class="total-summary">

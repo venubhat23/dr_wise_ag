@@ -18,34 +18,46 @@
         background-color: white;
         padding: 15px;
         border: 1px solid #ddd;
+        position: relative;
+      }
+
+      /* PAID Watermark - Attractive Design */
+      .paid-watermark {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-25deg);
+        font-size: 150px;
+        font-weight: 900;
+        font-family: 'Arial Black', Arial, sans-serif;
+        z-index: 10;
+        pointer-events: none;
+
+        /* Gradient text effect */
+        background: linear-gradient(45deg, #28a745, #20c997);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+
+        /* Fallback for browsers that don't support gradient text */
+        color: rgba(40, 167, 69, 0.3);
+
+        /* Multiple text shadows for depth */
+        text-shadow:
+          2px 2px 4px rgba(40, 167, 69, 0.2),
+          4px 4px 8px rgba(40, 167, 69, 0.15),
+          6px 6px 12px rgba(40, 167, 69, 0.1);
+
+        /* Border effect */
+        -webkit-text-stroke: 2px rgba(40, 167, 69, 0.1);
+
+        letter-spacing: 15px;
+        text-transform: uppercase;
       }
 
       /* Header section */
-      .invoice-header-table {
-        width: 100%;
-        border-collapse: collapse;
+      .company-header {
         margin-bottom: 8px;
-      }
-
-      .invoice-header-table td {
-        vertical-align: top;
-        padding: 0;
-      }
-
-      .logo-cell {
-        width: 150px;
-        padding-right: 12px;
-      }
-
-      .logo {
-        width: 100px;
-        height: auto;
-        border-radius: 50%;
-        border: 3px solid #5a4ec9;
-      }
-
-      .company-info-cell {
-        width: auto;
       }
 
       .tax-label-container {
@@ -119,7 +131,7 @@
         text-align: center;
         font-size: 12px;
         font-weight: bold;
-        width: 33.33%;
+        width: 50%;
         border-right: 1px solid #ddd;
       }
 
@@ -450,34 +462,32 @@
   </head>
   <body>
     <div class="invoice-container">
+      <!-- PAID Watermark (only show when invoice is paid) -->
+      <% if @invoice.status == 'paid' %>
+        <div class="paid-watermark">PAID</div>
+      <% end %>
+
       <!-- Tax label and original recipient -->
       <div class="tax-label-container">
         <span class="tax-label">PAYMENT INVOICE</span>
         <span class="original-recipient">ORIGINAL FOR RECIPIENT</span>
       </div>
 
-      <!-- Header section using table layout -->
-      <table class="invoice-header-table">
-        <tr>
-          <td class="logo-cell">
-            <img class="logo" src="https://marketincer-assets.s3.us-east-1.amazonaws.com/WhatsApp+Image+2025-06-25+at+8.04.23+AM.jpeg" alt="Drwise Logo" />
-          </td>
-          <td class="company-info-cell">
-            <div class="company-name">Drwise Insurance Services</div>
-            <div class="address">
-              Business Address Line 1,
-              Business Address Line 2,
-              City, State, PIN Code
-            </div>
-            <div class="contact">
-              <span class="highlight">Mobile:</span> +91-9999999999 &nbsp;&nbsp;
-              <span class="highlight">GSTIN:</span> 29AOIPT8113K1ZC &nbsp;&nbsp;
-              <span class="highlight">PAN Number:</span> AOIPT8113K<br />
-              <span class="highlight">Email:</span> admin@drwise.com
-            </div>
-          </td>
-        </tr>
-      </table>
+      <!-- Header section without logo -->
+      <div class="company-header">
+        <div class="company-name">Drwise Insurance Services</div>
+        <div class="address">
+          Business Address Line 1,
+          Business Address Line 2,
+          City, State, PIN Code
+        </div>
+        <div class="contact">
+          <span class="highlight">Mobile:</span> +91-9999999999 &nbsp;&nbsp;
+          <span class="highlight">GSTIN:</span> 29AOIPT8113K1ZC &nbsp;&nbsp;
+          <span class="highlight">PAN Number:</span> AOIPT8113K<br />
+          <span class="highlight">Email:</span> admin@drwise.com
+        </div>
+      </div>
 
       <!-- Top bar -->
       <div class="top-bar"></div>
@@ -487,7 +497,6 @@
         <tr>
           <td>Invoice No.: <span><%= @invoice.invoice_number %></span></td>
           <td>Invoice Date: <span><%= @invoice.invoice_date.strftime('%d/%m/%Y') %></span></td>
-          <td>Due Date: <span><%= @invoice.due_date.strftime('%d/%m/%Y') %></span></td>
         </tr>
       </table>
 
@@ -499,10 +508,23 @@
         <tr>
           <td>
             <div class="bill-title">BILL TO</div>
-            <div class="client-name"><%= @invoice.recipient_name || @invoice.payout_recipient %></div>
-            <div><%= @invoice.recipient_address || 'Address not provided' %></div>
-            <% if @invoice.recipient_email.present? %>
-              <div class="mobile">Email: <%= @invoice.recipient_email %></div>
+            <%
+              # Get recipient info based on payout type
+              if @invoice.payout_type == 'affiliate' && @invoice.payout_id.present?
+                affiliate = SubAgent.find_by(id: @invoice.payout_id)
+                recipient_name = affiliate ? "#{affiliate.first_name} #{affiliate.last_name}" : 'Unknown Affiliate'
+                recipient_address = affiliate&.address || 'Address not provided'
+                recipient_email = affiliate&.email
+              else
+                recipient_name = @invoice.respond_to?(:recipient_name) ? @invoice.recipient_name : 'Unknown'
+                recipient_address = @invoice.respond_to?(:recipient_address) ? (@invoice.recipient_address || 'Address not provided') : 'Address not provided'
+                recipient_email = @invoice.respond_to?(:recipient_email) ? @invoice.recipient_email : nil
+              end
+            %>
+            <div class="client-name"><%= recipient_name %></div>
+            <div><%= recipient_address %></div>
+            <% if recipient_email.present? %>
+              <div class="mobile">Email: <%= recipient_email %></div>
             <% end %>
           </td>
           <td>
@@ -510,8 +532,8 @@
             <div class="client-name">Commission Payout - <%= @invoice.payout_type.humanize %></div>
             <div>Payment Type: <%= @invoice.payout_type.humanize %> Commission</div>
             <div>Status: <%= @invoice.status.humanize %></div>
-            <% if @invoice.paid_at.present? %>
-              <div>Paid Date: <%= @invoice.paid_at.strftime('%d/%m/%Y at %I:%M %p') %></div>
+            <% if @invoice.status == 'paid' %>
+              <div>Paid Date: <%= @invoice.updated_at.strftime('%d/%m/%Y at %I:%M %p') %></div>
             <% end %>
           </td>
         </tr>
@@ -564,45 +586,7 @@
       <table class="details-main-table">
         <tr>
           <td class="bank-details-cell">
-            <div class="bank-details">
-              <h3>BANK DETAILS</h3>
-              <table class="bank-details-table">
-                <tr>
-                  <td>Name:</td>
-                  <td>Drwise Insurance Services</td>
-                </tr>
-                <tr>
-                  <td>IFSC Code:</td>
-                  <td>CNRB0003194</td>
-                </tr>
-                <tr>
-                  <td>Account No:</td>
-                  <td>3194201000718</td>
-                </tr>
-                <tr>
-                  <td>Bank:</td>
-                  <td>Canara Bank</td>
-                </tr>
-              </table>
-
-              <h4>PAYMENT QR CODE</h4>
-              <table class="payment-qr-table">
-                <tr>
-                  <td>
-                    <p class="upi-id">UPI ID: drwise@ybl</p>
-                    <div class="upi-icons">
-                      <span class="phonepe">PhonePe</span>
-                      <span class="gpay">Google Pay</span>
-                      <span class="paytm">Paytm</span>
-                      <span class="upi">UPI</span>
-                    </div>
-                  </td>
-                  <td style="text-align: center;">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=drwise@ybl&pn=Drwise%20Insurance%20Services" alt="QR Code" class="qr-image" />
-                  </td>
-                </tr>
-              </table>
-            </div>
+            <!-- Bank details removed as requested -->
           </td>
           <td class="tax-summary-cell">
             <div class="summary-section">
@@ -681,7 +665,7 @@
           <td class="terms-cell">
             <div class="terms">
               <h3>TERMS AND CONDITIONS</h3>
-              <% if @invoice.notes.present? %>
+              <% if @invoice.respond_to?(:notes) && @invoice.notes.present? %>
                 <div style="padding-left: 15px; font-size: 9px;"><%= simple_format(@invoice.notes) %></div>
               <% else %>
                 <ol>

@@ -1,4 +1,7 @@
 class Invoice < ApplicationRecord
+  # Associations - these are conditional associations
+  # Note: We'll keep the polymorphic method approach since the associations depend on payout_type
+
   validates :invoice_number, presence: true, uniqueness: true
   validates :payout_type, presence: true, inclusion: { in: %w[affiliate distributor commission] }
   validates :payout_id, presence: true
@@ -15,7 +18,7 @@ class Invoice < ApplicationRecord
   def payout_record
     case payout_type
     when 'affiliate'
-      AffiliatePayout.find_by(id: payout_id)
+      CommissionPayout.find_by(id: payout_id, payout_to: 'affiliate')
     when 'distributor'
       DistributorPayout.find_by(id: payout_id)
     when 'commission'
@@ -29,9 +32,9 @@ class Invoice < ApplicationRecord
 
     case payout_type
     when 'affiliate'
-      payout.sub_agent&.name || 'Unknown Affiliate'
+      payout.recipient_name || 'Unknown Affiliate'
     when 'distributor'
-      payout.distributor&.name || 'Unknown Ambassador'
+      payout.recipient&.display_name || 'Unknown Ambassador'
     when 'commission'
       'Main Agent Commission'
     end
