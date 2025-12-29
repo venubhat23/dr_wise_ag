@@ -15,7 +15,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
           name: agent.full_name,
           email: agent.email,
           mobile: agent.mobile,
-          role: agent.role
+          role: agent.role&.name || 'sub_agent'
         },
         statistics: stats,
         recent_activities: get_recent_activities(agent)

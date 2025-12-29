@@ -5,6 +5,7 @@ class SubAgent < ApplicationRecord
   has_secure_password
 
   # Associations
+  belongs_to :role
   has_many :sub_agent_documents, dependent: :destroy
   has_one :distributor_assignment, dependent: :destroy
   has_one :assigned_distributor, through: :distributor_assignment, source: :distributor

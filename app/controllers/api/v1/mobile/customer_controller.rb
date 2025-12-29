@@ -85,9 +85,14 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     health_policies = HealthInsurance.where(customer_id: customer_id).active
     health_policies.each do |policy|
       # Calculate next installment date based on payment mode and policy start date
-      autopay_start = policy.installment_autopay_start_date || policy.policy_start_date
+      autopay_start = if policy.respond_to?(:installment_autopay_start_date) && policy.installment_autopay_start_date.present?
+                        policy.installment_autopay_start_date
+                      else
+                        policy.policy_start_date
+                      end
 
-      if autopay_start.present? && policy.payment_mode.present? && policy.payment_mode.downcase != 'single'
+      if autopay_start.present? && policy.payment_mode.present? &&
+         !['single', 'one time', 'lump sum'].include?(policy.payment_mode.downcase)
         next_installment = calculate_next_installment_date(autopay_start, policy.payment_mode)
 
         # If next_installment is in the past, keep adding payment cycle until we get a future date
@@ -95,7 +100,16 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
           next_installment = calculate_next_installment_date(next_installment, policy.payment_mode)
         end
 
-        if next_installment && next_installment <= 60.days.from_now
+        # Show installments within appropriate time frame based on payment mode
+        max_days_ahead = case policy.payment_mode.downcase
+                        when 'monthly' then 45.days
+                        when 'quarterly' then 120.days
+                        when 'half-yearly', 'half yearly' then 210.days
+                        when 'yearly' then 400.days
+                        else 60.days
+                        end
+
+        if next_installment && next_installment <= max_days_ahead.from_now
           installments << {
             id: policy.id,
             insurance_name: policy.plan_name || "Health Insurance",
@@ -120,9 +134,14 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     life_policies = LifeInsurance.where(customer_id: customer_id).active
     life_policies.each do |policy|
       # Calculate next installment date based on payment mode and policy start date
-      autopay_start = policy.installment_autopay_start_date || policy.policy_start_date
+      autopay_start = if policy.respond_to?(:installment_autopay_start_date) && policy.installment_autopay_start_date.present?
+                        policy.installment_autopay_start_date
+                      else
+                        policy.policy_start_date
+                      end
 
-      if autopay_start.present? && policy.payment_mode.present? && policy.payment_mode.downcase != 'single'
+      if autopay_start.present? && policy.payment_mode.present? &&
+         !['single', 'one time', 'lump sum'].include?(policy.payment_mode.downcase)
         next_installment = calculate_next_installment_date(autopay_start, policy.payment_mode)
 
         # If next_installment is in the past, keep adding payment cycle until we get a future date
@@ -130,7 +149,16 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
           next_installment = calculate_next_installment_date(next_installment, policy.payment_mode)
         end
 
-        if next_installment && next_installment <= 60.days.from_now
+        # Show installments within appropriate time frame based on payment mode
+        max_days_ahead = case policy.payment_mode.downcase
+                        when 'monthly' then 45.days
+                        when 'quarterly' then 120.days
+                        when 'half-yearly', 'half yearly' then 210.days
+                        when 'yearly' then 400.days
+                        else 60.days
+                        end
+
+        if next_installment && next_installment <= max_days_ahead.from_now
           installments << {
             id: policy.id,
             insurance_name: policy.plan_name || "Life Insurance",
