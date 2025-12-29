@@ -142,8 +142,11 @@ class Admin::LeadsController < Admin::ApplicationController
           gender: @lead.gender.presence,
           marital_status: @lead.marital_status.presence,
           pan_no: @lead.pan_no.presence,
+          pan_number: @lead.pan_no.presence, # Map to both PAN fields
           height: @lead.height.presence,
+          height_feet: @lead.height.presence, # Map to both height fields
           weight: @lead.weight.presence,
+          weight_kg: @lead.weight.presence, # Map to both weight fields
           birth_place: @lead.birth_place.presence
         )
       elsif @lead.corporate?
@@ -162,8 +165,17 @@ class Admin::LeadsController < Admin::ApplicationController
       # Create customer from lead data
       customer = Customer.create!(customer_attrs)
 
-      # Debug: Log the created customer attributes
-      Rails.logger.info "Created customer #{customer.id} with attributes: city=#{customer.city}, middle_name=#{customer.middle_name}, birth_date=#{customer.birth_date}, lead_id=#{customer.lead_id}"
+      # Debug: Log the created customer attributes with all individual fields
+      Rails.logger.info "Created customer #{customer.id} with attributes:"
+      Rails.logger.info "  - Name: #{customer.first_name} #{customer.middle_name} #{customer.last_name}"
+      Rails.logger.info "  - Birth date: #{customer.birth_date}"
+      Rails.logger.info "  - Gender: #{customer.gender}"
+      Rails.logger.info "  - Marital status: #{customer.marital_status}"
+      Rails.logger.info "  - PAN: #{customer.pan_no} / #{customer.pan_number}"
+      Rails.logger.info "  - Height: #{customer.height} / #{customer.height_feet}"
+      Rails.logger.info "  - Weight: #{customer.weight} / #{customer.weight_kg}"
+      Rails.logger.info "  - Birth place: #{customer.birth_place}"
+      Rails.logger.info "  - City: #{customer.city}, Lead ID: #{customer.lead_id}"
 
       # Update lead with customer reference
       @lead.update!(
@@ -171,7 +183,7 @@ class Admin::LeadsController < Admin::ApplicationController
         converted_customer_id: customer.id
       )
 
-      redirect_to admin_customer_path(customer), notice: 'Lead successfully converted to customer.'
+      redirect_to edit_admin_customer_path(customer), notice: 'Lead successfully converted to customer. You can now review and edit the customer details.'
     end
   rescue ActiveRecord::RecordInvalid => e
     Rails.logger.error "Lead conversion failed for lead #{@lead.id}: #{e.message}"

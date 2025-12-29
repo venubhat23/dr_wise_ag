@@ -558,14 +558,10 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       total_amount: total_commission,
       status: 'paid', # Mark as paid since payouts are already processed
       invoice_date: Date.current,
-      due_date: Date.current,
-      paid_at: Time.current,
-      recipient_name: affiliate.display_name,
-      recipient_email: affiliate.email,
-      recipient_address: affiliate.address
+      due_date: Date.current
     )
 
-    Rails.logger.info "Generated invoice #{invoice.invoice_number} for affiliate #{affiliate.display_name} (#{affiliate.id})"
+    Rails.logger.info "Generated invoice #{invoice.invoice_number} for affiliate #{affiliate.first_name} #{affiliate.last_name} (#{affiliate.id})"
   end
 
   def generate_invoices_for_leads(lead_ids)

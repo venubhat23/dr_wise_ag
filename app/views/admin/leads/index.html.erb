@@ -226,8 +226,8 @@
                       <i class="bi bi-eye"></i>
                     <% end %>
 
-                    <%= link_to new_admin_customer_path(lead_id: lead.id), class: "btn btn-sm btn-outline-success", title: "Convert to Customer" do %>
-                      <i class="bi bi-person-plus"></i>
+                    <%= link_to new_admin_customer_path(lead_id: lead.id), class: "btn btn-sm btn-success convert-btn", title: "Convert to Customer" do %>
+                      <i class="bi bi-person-plus-fill"></i>
                     <% end %>
 
                     <div class="dropdown">
@@ -377,6 +377,53 @@
 
 .card:hover {
   transform: translateY(-2px);
+}
+
+/* Convert to Customer Button Styling */
+.convert-btn {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+  border: none !important;
+  color: white !important;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3) !important;
+}
+
+.convert-btn:hover {
+  background: linear-gradient(135deg, #218838 0%, #1a9f7f 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4) !important;
+  color: white !important;
+}
+
+.convert-btn:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3) !important;
+}
+
+.convert-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.convert-btn:hover::before {
+  left: 100%;
+}
+
+/* Icon animation */
+.convert-btn i {
+  transition: transform 0.3s ease;
+}
+
+.convert-btn:hover i {
+  transform: scale(1.1) rotate(5deg);
 }
 </style>
 

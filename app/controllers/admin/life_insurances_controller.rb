@@ -50,7 +50,8 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
   # POST /admin/insurance/life
   def create
-    @life_insurance = LifeInsurance.new(life_insurance_params)
+    processed_params = process_broker_params(life_insurance_params)
+    @life_insurance = LifeInsurance.new(processed_params)
     set_distributor_from_affiliate(@life_insurance)
 
     begin
@@ -74,7 +75,8 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
   # PATCH/PUT /admin/insurance/life/1
   def update
-    @life_insurance.assign_attributes(life_insurance_params)
+    processed_params = process_broker_params(life_insurance_params)
+    @life_insurance.assign_attributes(processed_params)
     set_distributor_from_affiliate(@life_insurance)
 
     begin
@@ -236,6 +238,22 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     @relationships = LifeInsurance::RELATIONSHIPS
     @account_types = LifeInsurance::ACCOUNT_TYPES
     @document_types = LifeInsurance::DOCUMENT_TYPES
+  end
+
+  def process_broker_params(params)
+    # Handle agency_code_id when it contains broker_X format
+    if params[:agency_code_id].present? && params[:agency_code_id].start_with?('broker_')
+      # Extract broker ID from broker_X format
+      broker_id = params[:agency_code_id].gsub('broker_', '').to_i
+
+      # Set broker_id and clear agency_code_id for broking type
+      if broker_id > 0
+        params[:broker_id] = broker_id
+        params[:agency_code_id] = nil
+      end
+    end
+
+    params
   end
 
   def life_insurance_params
