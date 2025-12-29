@@ -78,26 +78,50 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
   def upcoming_installments
     customer_id = current_customer.id
 
-    # Get policies with upcoming installments (based on payment mode and autopay dates)
+    # Get policies with upcoming installments (include active and recently expired policies)
     installments = []
 
-    # Health Insurance installments
-    health_policies = HealthInsurance.where(customer_id: customer_id).active
+    # Health Insurance installments - include active and expired policies that might need renewal payments
+    health_policies = HealthInsurance.where(customer_id: customer_id)
+                                    .where('policy_end_date >= ? OR policy_start_date >= ?', 18.months.ago, Date.current)
+
     health_policies.each do |policy|
-      # Calculate next installment date based on payment mode and policy start date
-      autopay_start = if policy.respond_to?(:installment_autopay_start_date) && policy.installment_autopay_start_date.present?
-                        policy.installment_autopay_start_date
-                      else
-                        policy.policy_start_date
-                      end
+      # Skip policies with missing critical data
+      next unless policy.policy_end_date.present? && policy.policy_start_date.present?
+      next unless policy.total_premium.present? && policy.total_premium > 0
+
+      # For expired policies, calculate installments based on renewal dates
+      if policy.policy_end_date < Date.current
+        # Policy is expired - calculate renewal installments if within renewal period
+        days_since_expiry = (Date.current - policy.policy_end_date).to_i
+
+        # Only show renewal installments if policy expired recently (within 18 months)
+        next if days_since_expiry > 540 # 18 months
+
+        # Use renewal date (day after policy end) as the base for installment calculations
+        renewal_date = policy.policy_end_date + 1.day
+        installment_type = 'renewal'
+        autopay_start = renewal_date
+      else
+        # Policy is active - use normal installment logic
+        autopay_start = if policy.respond_to?(:installment_autopay_start_date) && policy.installment_autopay_start_date.present?
+                          policy.installment_autopay_start_date
+                        else
+                          policy.policy_start_date
+                        end
+        installment_type = 'regular'
+      end
 
       if autopay_start.present? && policy.payment_mode.present? &&
          !['single', 'one time', 'lump sum'].include?(policy.payment_mode.downcase)
+
         next_installment = calculate_next_installment_date(autopay_start, policy.payment_mode)
 
         # If next_installment is in the past, keep adding payment cycle until we get a future date
-        while next_installment && next_installment < Date.current
+        safety_counter = 0
+        while next_installment && next_installment < Date.current && safety_counter < 10
           next_installment = calculate_next_installment_date(next_installment, policy.payment_mode)
+          safety_counter += 1
         end
 
         # Show installments within appropriate time frame based on payment mode
@@ -110,43 +134,72 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
                         end
 
         if next_installment && next_installment <= max_days_ahead.from_now
+          days_until_installment = (next_installment - Date.current).to_i
+
           installments << {
             id: policy.id,
             insurance_name: policy.plan_name || "Health Insurance",
             insurance_type: "Health",
-            policy_number: policy.policy_number,
-            policy_holder: policy.policy_holder,
-            insurance_company: policy.insurance_company_name,
+            policy_number: policy.policy_number || "N/A",
+            policy_holder: policy.policy_holder || "N/A",
+            insurance_company: policy.insurance_company_name || "N/A",
             start_date: policy.policy_start_date,
             end_date: policy.policy_end_date,
-            total_premium: policy.total_premium,
+            total_premium: policy.total_premium.to_f,
             payment_mode: policy.payment_mode,
             next_installment_date: next_installment,
             installment_amount: calculate_installment_amount(policy.total_premium, policy.payment_mode),
-            days_until_installment: (next_installment - Date.current).to_i,
+            days_until_installment: days_until_installment,
+            installment_type: installment_type, # 'regular' or 'renewal'
+            is_expired: policy.policy_end_date < Date.current,
+            is_overdue: installment_type == 'renewal' && days_until_installment < 0,
             attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
           }
         end
       end
     end
 
-    # Life Insurance installments
-    life_policies = LifeInsurance.where(customer_id: customer_id).active
+    # Life Insurance installments - include active and expired policies that might need renewal payments
+    life_policies = LifeInsurance.where(customer_id: customer_id)
+                                .where('policy_end_date >= ? OR policy_start_date >= ?', 18.months.ago, Date.current)
+
     life_policies.each do |policy|
-      # Calculate next installment date based on payment mode and policy start date
-      autopay_start = if policy.respond_to?(:installment_autopay_start_date) && policy.installment_autopay_start_date.present?
-                        policy.installment_autopay_start_date
-                      else
-                        policy.policy_start_date
-                      end
+      # Skip policies with missing critical data
+      next unless policy.policy_end_date.present? && policy.policy_start_date.present?
+      next unless policy.total_premium.present? && policy.total_premium > 0
+
+      # For expired policies, calculate installments based on renewal dates
+      if policy.policy_end_date < Date.current
+        # Policy is expired - calculate renewal installments if within renewal period
+        days_since_expiry = (Date.current - policy.policy_end_date).to_i
+
+        # Only show renewal installments if policy expired recently (within 18 months)
+        next if days_since_expiry > 540 # 18 months
+
+        # Use renewal date (day after policy end) as the base for installment calculations
+        renewal_date = policy.policy_end_date + 1.day
+        installment_type = 'renewal'
+        autopay_start = renewal_date
+      else
+        # Policy is active - use normal installment logic
+        autopay_start = if policy.respond_to?(:installment_autopay_start_date) && policy.installment_autopay_start_date.present?
+                          policy.installment_autopay_start_date
+                        else
+                          policy.policy_start_date
+                        end
+        installment_type = 'regular'
+      end
 
       if autopay_start.present? && policy.payment_mode.present? &&
          !['single', 'one time', 'lump sum'].include?(policy.payment_mode.downcase)
+
         next_installment = calculate_next_installment_date(autopay_start, policy.payment_mode)
 
         # If next_installment is in the past, keep adding payment cycle until we get a future date
-        while next_installment && next_installment < Date.current
+        safety_counter = 0
+        while next_installment && next_installment < Date.current && safety_counter < 10
           next_installment = calculate_next_installment_date(next_installment, policy.payment_mode)
+          safety_counter += 1
         end
 
         # Show installments within appropriate time frame based on payment mode
@@ -159,20 +212,25 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
                         end
 
         if next_installment && next_installment <= max_days_ahead.from_now
+          days_until_installment = (next_installment - Date.current).to_i
+
           installments << {
             id: policy.id,
             insurance_name: policy.plan_name || "Life Insurance",
             insurance_type: "Life",
-            policy_number: policy.policy_number,
-            policy_holder: policy.policy_holder,
-            insurance_company: policy.insurance_company_name,
+            policy_number: policy.policy_number || "N/A",
+            policy_holder: policy.policy_holder || "N/A",
+            insurance_company: policy.insurance_company_name || "N/A",
             start_date: policy.policy_start_date,
             end_date: policy.policy_end_date,
-            total_premium: policy.total_premium,
+            total_premium: policy.total_premium.to_f,
             payment_mode: policy.payment_mode,
             next_installment_date: next_installment,
             installment_amount: calculate_installment_amount(policy.total_premium, policy.payment_mode),
-            days_until_installment: (next_installment - Date.current).to_i,
+            days_until_installment: days_until_installment,
+            installment_type: installment_type, # 'regular' or 'renewal'
+            is_expired: policy.policy_end_date < Date.current,
+            is_overdue: installment_type == 'renewal' && days_until_installment < 0,
             attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
           }
         end
@@ -187,9 +245,21 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       data: {
         upcoming_installments: installments,
         total_installments: installments.count,
-        total_amount: installments.sum { |i| i[:installment_amount].to_f }.round(2),
-        next_7_days: installments.count { |i| i[:days_until_installment] <= 7 },
-        next_30_days: installments.count { |i| i[:days_until_installment] <= 30 }
+        total_amount: installments.sum { |i| (i[:installment_amount] || 0).to_f }.round(2),
+        # Regular time-based groupings
+        next_7_days: installments.count { |i| (i[:days_until_installment] || 0) <= 7 && (i[:days_until_installment] || 0) > 0 },
+        next_30_days: installments.count { |i| (i[:days_until_installment] || 0) <= 30 && (i[:days_until_installment] || 0) > 0 },
+        next_60_days: installments.count { |i| (i[:days_until_installment] || 0) <= 60 && (i[:days_until_installment] || 0) > 0 },
+        next_90_days: installments.count { |i| (i[:days_until_installment] || 0) <= 90 && (i[:days_until_installment] || 0) > 0 },
+        # Installment type groupings
+        regular_installments: installments.count { |i| i[:installment_type] == 'regular' },
+        renewal_installments: installments.count { |i| i[:installment_type] == 'renewal' },
+        # Status groupings
+        overdue_installments: installments.count { |i| i[:is_overdue] == true },
+        expired_policies: installments.count { |i| i[:is_expired] == true },
+        active_policies: installments.count { |i| i[:is_expired] != true },
+        # Most urgent
+        next_installment: installments.first # Sorted by date, so first is most urgent
       }
     }
   end
@@ -200,24 +270,40 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
 
     renewals = []
 
-    # Health Insurance renewals - check policies expiring in next 12 months
+    # Health Insurance renewals - include both upcoming and expired policies that need renewal
+    # Show policies that expire in next 12 months OR expired within last 18 months
     health_policies = HealthInsurance.where(customer_id: customer_id)
-                                    .where('policy_end_date BETWEEN ? AND ?', Date.current, 12.months.from_now)
+                                    .where('policy_end_date BETWEEN ? AND ?', 18.months.ago, 12.months.from_now)
                                     .where.not(policy_end_date: nil)
 
     health_policies.each do |policy|
-      # Skip if already expired
-      next if policy.policy_end_date < Date.current
+      days_since_end = (Date.current - policy.policy_end_date).to_i
 
-      renewal_status = if policy.policy_end_date <= 7.days.from_now
-                        'urgent'
-                      elsif policy.policy_end_date <= 30.days.from_now
-                        'due_soon'
-                      elsif policy.policy_end_date <= 60.days.from_now
-                        'approaching'
+      # Determine renewal status based on whether policy is expired or expiring
+      renewal_status = if policy.policy_end_date < Date.current
+                        # Policy is expired
+                        if days_since_end <= 30
+                          'overdue' # Recently expired (within 30 days)
+                        elsif days_since_end <= 90
+                          'renewal_required' # Expired but still renewable (30-90 days)
+                        else
+                          'renewal_recommended' # Long expired but still show for renewal
+                        end
                       else
-                        'upcoming'
+                        # Policy is still active
+                        if policy.policy_end_date <= 7.days.from_now
+                          'urgent'
+                        elsif policy.policy_end_date <= 30.days.from_now
+                          'due_soon'
+                        elsif policy.policy_end_date <= 60.days.from_now
+                          'approaching'
+                        else
+                          'upcoming'
+                        end
                       end
+
+      # Calculate days until renewal (negative for overdue)
+      days_until_renewal = (policy.policy_end_date - Date.current).to_i
 
       renewals << {
         id: policy.id,
@@ -231,31 +317,49 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         total_premium: policy.total_premium,
         sum_insured: policy.sum_insured,
         payment_mode: policy.payment_mode,
-        days_until_renewal: (policy.policy_end_date - Date.current).to_i,
+        days_until_renewal: days_until_renewal,
         renewal_status: renewal_status,
+        is_expired: policy.policy_end_date < Date.current,
+        days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
         insurance_company: policy.insurance_company_name,
         attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
       }
     end
 
-    # Life Insurance renewals - check policies expiring in next 12 months
+    # Life Insurance renewals - include both upcoming and expired policies that need renewal
+    # Show policies that expire in next 12 months OR expired within last 18 months
     life_policies = LifeInsurance.where(customer_id: customer_id)
-                                .where('policy_end_date BETWEEN ? AND ?', Date.current, 12.months.from_now)
+                                .where('policy_end_date BETWEEN ? AND ?', 18.months.ago, 12.months.from_now)
                                 .where.not(policy_end_date: nil)
 
     life_policies.each do |policy|
-      # Skip if already expired
-      next if policy.policy_end_date < Date.current
+      days_since_end = (Date.current - policy.policy_end_date).to_i
 
-      renewal_status = if policy.policy_end_date <= 7.days.from_now
-                        'urgent'
-                      elsif policy.policy_end_date <= 30.days.from_now
-                        'due_soon'
-                      elsif policy.policy_end_date <= 60.days.from_now
-                        'approaching'
+      # Determine renewal status based on whether policy is expired or expiring
+      renewal_status = if policy.policy_end_date < Date.current
+                        # Policy is expired
+                        if days_since_end <= 30
+                          'overdue' # Recently expired (within 30 days)
+                        elsif days_since_end <= 90
+                          'renewal_required' # Expired but still renewable (30-90 days)
+                        else
+                          'renewal_recommended' # Long expired but still show for renewal
+                        end
                       else
-                        'upcoming'
+                        # Policy is still active
+                        if policy.policy_end_date <= 7.days.from_now
+                          'urgent'
+                        elsif policy.policy_end_date <= 30.days.from_now
+                          'due_soon'
+                        elsif policy.policy_end_date <= 60.days.from_now
+                          'approaching'
+                        else
+                          'upcoming'
+                        end
                       end
+
+      # Calculate days until renewal (negative for overdue)
+      days_until_renewal = (policy.policy_end_date - Date.current).to_i
 
       renewals << {
         id: policy.id,
@@ -271,8 +375,10 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         payment_mode: policy.payment_mode,
         policy_term: policy.policy_term,
         premium_payment_term: policy.premium_payment_term,
-        days_until_renewal: (policy.policy_end_date - Date.current).to_i,
+        days_until_renewal: days_until_renewal,
         renewal_status: renewal_status,
+        is_expired: policy.policy_end_date < Date.current,
+        days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
         insurance_company: policy.insurance_company_name,
         attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
       }
@@ -282,21 +388,37 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     begin
       if defined?(MotorInsurance)
         motor_policies = MotorInsurance.where(customer_id: customer_id)
-                                      .where('policy_end_date BETWEEN ? AND ?', Date.current, 12.months.from_now)
+                                      .where('policy_end_date BETWEEN ? AND ?', 18.months.ago, 12.months.from_now)
                                       .where.not(policy_end_date: nil)
 
         motor_policies.each do |policy|
-          next if policy.policy_end_date < Date.current
+          days_since_end = (Date.current - policy.policy_end_date).to_i
 
-          renewal_status = if policy.policy_end_date <= 7.days.from_now
-                            'urgent'
-                          elsif policy.policy_end_date <= 30.days.from_now
-                            'due_soon'
-                          elsif policy.policy_end_date <= 60.days.from_now
-                            'approaching'
+          # Determine renewal status based on whether policy is expired or expiring
+          renewal_status = if policy.policy_end_date < Date.current
+                            # Policy is expired
+                            if days_since_end <= 30
+                              'overdue' # Recently expired (within 30 days)
+                            elsif days_since_end <= 90
+                              'renewal_required' # Expired but still renewable (30-90 days)
+                            else
+                              'renewal_recommended' # Long expired but still show for renewal
+                            end
                           else
-                            'upcoming'
+                            # Policy is still active
+                            if policy.policy_end_date <= 7.days.from_now
+                              'urgent'
+                            elsif policy.policy_end_date <= 30.days.from_now
+                              'due_soon'
+                            elsif policy.policy_end_date <= 60.days.from_now
+                              'approaching'
+                            else
+                              'upcoming'
+                            end
                           end
+
+          # Calculate days until renewal (negative for overdue)
+          days_until_renewal = (policy.policy_end_date - Date.current).to_i
 
           renewals << {
             id: policy.id,
@@ -309,8 +431,10 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             renewal_date: policy.policy_end_date + 1.day,
             total_premium: policy.total_premium,
             payment_mode: policy.payment_mode,
-            days_until_renewal: (policy.policy_end_date - Date.current).to_i,
+            days_until_renewal: days_until_renewal,
             renewal_status: renewal_status,
+            is_expired: policy.policy_end_date < Date.current,
+            days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
             insurance_company: policy.insurance_company_name,
             attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
           }
@@ -329,14 +453,25 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       data: {
         upcoming_renewals: renewals,
         total_renewals: renewals.count,
+        # Active renewal statuses
         urgent_renewals: renewals.count { |r| r[:renewal_status] == 'urgent' },
         due_soon: renewals.count { |r| r[:renewal_status] == 'due_soon' },
         approaching: renewals.count { |r| r[:renewal_status] == 'approaching' },
+        upcoming: renewals.count { |r| r[:renewal_status] == 'upcoming' },
+        # Expired renewal statuses
+        overdue: renewals.count { |r| r[:renewal_status] == 'overdue' },
+        renewal_required: renewals.count { |r| r[:renewal_status] == 'renewal_required' },
+        renewal_recommended: renewals.count { |r| r[:renewal_status] == 'renewal_recommended' },
+        # Status groupings
+        active_policies: renewals.count { |r| !r[:is_expired] },
+        expired_policies: renewals.count { |r| r[:is_expired] },
         summary: {
-          next_7_days: renewals.count { |r| r[:days_until_renewal] <= 7 },
-          next_30_days: renewals.count { |r| r[:days_until_renewal] <= 30 },
-          next_60_days: renewals.count { |r| r[:days_until_renewal] <= 60 },
-          total_premium_due: renewals.sum { |r| r[:total_premium].to_f }.round(2)
+          next_7_days: renewals.count { |r| r[:days_until_renewal] <= 7 && r[:days_until_renewal] > 0 },
+          next_30_days: renewals.count { |r| r[:days_until_renewal] <= 30 && r[:days_until_renewal] > 0 },
+          next_60_days: renewals.count { |r| r[:days_until_renewal] <= 60 && r[:days_until_renewal] > 0 },
+          overdue_count: renewals.count { |r| r[:days_until_renewal] < 0 },
+          total_premium_due: renewals.sum { |r| r[:total_premium].to_f }.round(2),
+          most_urgent: renewals.first # Most urgent renewal (sorted by days_until_renewal)
         }
       }
     }
@@ -520,19 +655,22 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
   end
 
   def calculate_installment_amount(total_premium, payment_mode)
-    return total_premium unless total_premium && payment_mode
+    return 0.0 unless total_premium.present? && payment_mode.present?
+
+    premium_amount = total_premium.to_f
+    return 0.0 if premium_amount <= 0
 
     amount = case payment_mode.downcase
     when 'monthly'
-      total_premium / 12.0
+      premium_amount / 12.0
     when 'quarterly'
-      total_premium / 4.0
+      premium_amount / 4.0
     when 'half-yearly', 'half yearly'
-      total_premium / 2.0
+      premium_amount / 2.0
     when 'yearly'
-      total_premium
+      premium_amount
     else
-      total_premium
+      premium_amount
     end
 
     # Round to 2 decimal places

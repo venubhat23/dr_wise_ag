@@ -95,6 +95,14 @@
           0 20px 40px rgba(255, 215, 0, 0.3),
           inset 0 1px 0 rgba(255, 255, 255, 0.2);
         position: relative;
+        overflow: hidden;
+      }
+
+      .luxury-logo-img {
+        width: 90px;
+        height: 90px;
+        object-fit: contain;
+        border-radius: 15px;
       }
 
       .luxury-logo::before {
@@ -691,7 +699,7 @@
         <!-- Luxury Header -->
         <header class="luxury-header">
           <div class="luxury-logo">
-            <i class="fas fa-crown"></i>
+            <img src="/logo.jpeg" alt="Drwise Insurance Services" class="luxury-logo-img" />
           </div>
           <div class="company-details">
             <h1 class="company-name">Drwise Insurance Services</h1>

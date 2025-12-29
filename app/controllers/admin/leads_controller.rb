@@ -147,7 +147,15 @@ class Admin::LeadsController < Admin::ApplicationController
           height_feet: @lead.height.presence, # Map to both height fields
           weight: @lead.weight.presence,
           weight_kg: @lead.weight.presence, # Map to both weight fields
-          birth_place: @lead.birth_place.presence
+          birth_place: @lead.birth_place.presence,
+          education: @lead.education.presence,
+          business_job: @lead.business_job.presence,
+          business_name: @lead.business_name.presence,
+          job_name: @lead.job_name.presence,
+          occupation: @lead.occupation.presence,
+          type_of_duty: @lead.type_of_duty.presence,
+          annual_income: @lead.annual_income,
+          additional_information: @lead.additional_information.presence
         )
       elsif @lead.corporate?
         # Corporate customer attributes
@@ -178,6 +186,14 @@ class Admin::LeadsController < Admin::ApplicationController
       Rails.logger.info "  - Address: #{customer.address}"
       Rails.logger.info "  - City: #{customer.city}"
       Rails.logger.info "  - State: #{customer.state}"
+      Rails.logger.info "  - Education: #{customer.education}"
+      Rails.logger.info "  - Business/Job: #{customer.business_job}"
+      Rails.logger.info "  - Business Name: #{customer.business_name}"
+      Rails.logger.info "  - Job Name: #{customer.job_name}"
+      Rails.logger.info "  - Occupation: #{customer.occupation}"
+      Rails.logger.info "  - Type of Duty: #{customer.type_of_duty}"
+      Rails.logger.info "  - Annual Income: #{customer.annual_income}"
+      Rails.logger.info "  - Additional Info: #{customer.additional_information}"
       Rails.logger.info "  - Lead ID: #{customer.lead_id}"
 
       # Update lead with customer reference
@@ -381,7 +397,9 @@ class Admin::LeadsController < Admin::ApplicationController
       :call_disposition, :referral_amount, :notes, :created_date,
       :note, :is_direct, :affiliate_id,
       :first_name, :middle_name, :last_name, :birth_date, :gender, :pan_no, :gst_no,
-      :company_name, :marital_status, :height, :weight, :birth_place
+      :company_name, :marital_status, :height, :weight, :birth_place,
+      :education, :business_job, :business_name, :job_name, :occupation,
+      :type_of_duty, :annual_income, :additional_information
     )
   end
 

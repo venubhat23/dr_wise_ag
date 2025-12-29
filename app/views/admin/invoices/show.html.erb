@@ -58,6 +58,24 @@
       /* Header section */
       .company-header {
         margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .logo-section {
+        flex-shrink: 0;
+      }
+
+      .company-logo {
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
+        border-radius: 4px;
+      }
+
+      .company-info {
+        flex: 1;
       }
 
       .tax-label-container {
@@ -473,19 +491,24 @@
         <span class="original-recipient">ORIGINAL FOR RECIPIENT</span>
       </div>
 
-      <!-- Header section without logo -->
+      <!-- Header section with logo -->
       <div class="company-header">
-        <div class="company-name">Drwise Insurance Services</div>
-        <div class="address">
-          Business Address Line 1,
-          Business Address Line 2,
-          City, State, PIN Code
+        <div class="logo-section">
+          <img src="/logo.jpeg" alt="Drwise Insurance Services" class="company-logo" />
         </div>
-        <div class="contact">
-          <span class="highlight">Mobile:</span> +91-9999999999 &nbsp;&nbsp;
-          <span class="highlight">GSTIN:</span> 29AOIPT8113K1ZC &nbsp;&nbsp;
-          <span class="highlight">PAN Number:</span> AOIPT8113K<br />
-          <span class="highlight">Email:</span> admin@drwise.com
+        <div class="company-info">
+          <div class="company-name">Drwise Insurance Services</div>
+          <div class="address">
+            Business Address Line 1,
+            Business Address Line 2,
+            City, State, PIN Code
+          </div>
+          <div class="contact">
+            <span class="highlight">Mobile:</span> +91-9999999999 &nbsp;&nbsp;
+            <span class="highlight">GSTIN:</span> 29AOIPT8113K1ZC &nbsp;&nbsp;
+            <span class="highlight">PAN Number:</span> AOIPT8113K<br />
+            <span class="highlight">Email:</span> admin@drwise.com
+          </div>
         </div>
       </div>
 

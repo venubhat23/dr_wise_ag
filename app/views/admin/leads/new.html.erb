@@ -143,6 +143,58 @@
         </div>
       </div>
     </div>
+
+    <!-- Individual Customer Advanced Details -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center">
+        <i class="bi bi-gear me-2 text-info"></i>
+        <h5 class="mb-0">Advance Details</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <%= form.label :education, "Education", class: "form-label" %>
+            <%= form.text_field :education, class: "form-control", placeholder: "Enter education" %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :business_job, "Business/Job", class: "form-label" %>
+            <%= form.select :business_job, options_for_select([
+              ['Select Business/Job', ''],
+              ['Business', 'business'],
+              ['Job', 'job'],
+              ['Self Employed', 'self_employed'],
+              ['Student', 'student'],
+              ['Retired', 'retired'],
+              ['Unemployed', 'unemployed']
+            ]), {}, { class: "form-select" } %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :business_name, "Name of Business/Job", class: "form-label" %>
+            <%= form.text_field :business_name, class: "form-control", placeholder: "Enter business/job name" %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :job_name, "Job Name", class: "form-label" %>
+            <%= form.text_field :job_name, class: "form-control", placeholder: "Enter job name" %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :occupation, "Occupation", class: "form-label" %>
+            <%= form.text_field :occupation, class: "form-control", placeholder: "Enter occupation" %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :type_of_duty, "Type of Duty", class: "form-label" %>
+            <%= form.text_field :type_of_duty, class: "form-control", placeholder: "Enter type of duty" %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :annual_income, "Annual Income", class: "form-label" %>
+            <%= form.number_field :annual_income, class: "form-control", placeholder: "Enter annual income", step: 0.01, min: 0 %>
+          </div>
+          <div class="col-md-12 mb-3">
+            <%= form.label :additional_information, "Additional Information", class: "form-label" %>
+            <%= form.text_area :additional_information, class: "form-control", rows: 3, placeholder: "Enter additional notes" %>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 4. Corporate Customer Details -->
