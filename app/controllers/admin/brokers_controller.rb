@@ -66,8 +66,57 @@ class Admin::BrokersController < Admin::ApplicationController
   end
 
   def destroy
-    @broker.destroy
-    redirect_to admin_brokers_path, notice: 'Broker was successfully deleted.'
+    # Check if broker has dependent records across all insurance types
+    dependent_records = []
+
+    life_count = @broker.life_insurances.count
+    dependent_records << "#{life_count} life insurance #{'policy'.pluralize(life_count)}" if life_count > 0
+
+    health_count = @broker.health_insurances.count
+    dependent_records << "#{health_count} health insurance #{'policy'.pluralize(health_count)}" if health_count > 0
+
+    motor_count = @broker.motor_insurances.count
+    dependent_records << "#{motor_count} motor insurance #{'policy'.pluralize(motor_count)}" if motor_count > 0
+
+    if dependent_records.any?
+      policy_list = dependent_records.join(', ')
+
+      # Get specific policy details for the user
+      policy_details = []
+
+      if life_count > 0
+        life_policies = @broker.life_insurances.limit(3).pluck(:policy_number, :id)
+        life_policies.each { |policy_number, id| policy_details << "Life Policy ##{policy_number} (ID: #{id})" }
+        policy_details << "...and #{life_count - 3} more life policies" if life_count > 3
+      end
+
+      if health_count > 0
+        health_policies = @broker.health_insurances.limit(3).pluck(:policy_number, :id)
+        health_policies.each { |policy_number, id| policy_details << "Health Policy ##{policy_number} (ID: #{id})" }
+        policy_details << "...and #{health_count - 3} more health policies" if health_count > 3
+      end
+
+      if motor_count > 0
+        motor_policies = @broker.motor_insurances.limit(3).pluck(:policy_number, :id)
+        motor_policies.each { |policy_number, id| policy_details << "Motor Policy ##{policy_number} (ID: #{id})" }
+        policy_details << "...and #{motor_count - 3} more motor policies" if motor_count > 3
+      end
+
+      details = policy_details.any? ? " Affected policies: #{policy_details.join(', ')}" : ""
+
+      redirect_to admin_brokers_path,
+                  alert: "Cannot delete broker '#{@broker.name}' because it is referenced by #{policy_list}.#{details} Please reassign or remove these policies first."
+      return
+    end
+
+    if @broker.destroy
+      redirect_to admin_brokers_path, notice: 'Broker was successfully deleted.'
+    else
+      redirect_to admin_brokers_path, alert: 'Failed to delete broker.'
+    end
+  rescue ActiveRecord::InvalidForeignKey => e
+    redirect_to admin_brokers_path,
+                alert: "Cannot delete broker '#{@broker.name}' because it is still referenced by other records. Please remove dependencies first."
   end
 
   def toggle_status
