@@ -360,6 +360,281 @@
     </div>
   </div>
 
+  <!-- Broker & Agency Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-building me-2 text-primary"></i>
+        Broker & Agency Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :broker_id, "Broker Code", class: "form-label" %>
+          <%= form.select :broker_id,
+              options_for_select(@brokers&.map { |b| [b.name, b.id] } || [], @motor_insurance.broker_id),
+              { prompt: 'Select Broker Code' },
+              { class: "form-control" } %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
+          <%= form.select :agency_code_id,
+              options_for_select(@agency_codes&.map { |a| [a.code, a.id] } || [], @motor_insurance.agency_code_id),
+              { prompt: 'Select Agency Code' },
+              { class: "form-control" } %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12 mb-3">
+          <%= form.label :insurance_company_name, "Insurance Company Name*", class: "form-label" %>
+          <%= form.select :insurance_company_name,
+              options_for_select(@insurance_companies&.map { |c| [c, c] } || [], @motor_insurance.insurance_company_name),
+              { prompt: 'Select Insurance Company' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:insurance_company_name].any?}", required: true } %>
+          <% if @motor_insurance.errors[:insurance_company_name].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:insurance_company_name].first %></div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Commission Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-calculator me-2 text-primary"></i>
+        Commission Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <!-- Main Agent Commission -->
+      <div class="row">
+        <div class="col-12 mb-3">
+          <h6 class="text-primary mb-3">Main Agent Commission</h6>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :main_agent_commission_percentage, "1st year (%)", class: "form-label" %>
+          <%= form.number_field :main_agent_commission_percentage,
+              class: "form-control commission-input",
+              placeholder: "0.0", step: 0.01, value: 0.0,
+              data: { field: 'main_agent' } %>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :commission_amount, "Commission Amount", class: "form-label" %>
+          <%= form.number_field :commission_amount,
+              class: "form-control commission-amount",
+              placeholder: "0.00", step: 0.01, readonly: true,
+              data: { field: 'main_agent' } %>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :tds_percentage, "TDS %", class: "form-label" %>
+          <%= form.number_field :tds_percentage,
+              class: "form-control tds-percentage",
+              placeholder: "0.0", step: 0.01, value: 0.0,
+              data: { field: 'main_agent' } %>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :tds_amount, "TDS Amount", class: "form-label" %>
+          <%= form.number_field :tds_amount,
+              class: "form-control tds-amount",
+              placeholder: "0.00", step: 0.01, readonly: true,
+              data: { field: 'main_agent' } %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= form.label :after_tds_value, "After TDS Value", class: "form-label" %>
+          <%= form.number_field :after_tds_value,
+              class: "form-control after-tds-value",
+              placeholder: "0.00", step: 0.01, readonly: true,
+              data: { field: 'main_agent' } %>
+        </div>
+      </div>
+
+      <!-- Affiliate Commission -->
+      <div class="row">
+        <div class="col-12 mb-3">
+          <h6 class="text-primary mb-3">Affiliate Commission</h6>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :distributor_commission_percentage, "1st year (%)", class: "form-label" %>
+          <%= form.number_field :distributor_commission_percentage,
+              class: "form-control commission-input",
+              placeholder: "2.0", step: 0.01, value: 2.0,
+              data: { field: 'distributor' } %>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :distributor_commission_amount, "Commission Amount", class: "form-label" %>
+          <%= form.number_field :distributor_commission_amount,
+              class: "form-control commission-amount",
+              placeholder: "0.00", step: 0.01, readonly: true,
+              data: { field: 'distributor' } %>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :distributor_tds_percentage, "TDS %", class: "form-label" %>
+          <%= form.number_field :distributor_tds_percentage,
+              class: "form-control tds-percentage",
+              placeholder: "0.0", step: 0.01, value: 0.0,
+              data: { field: 'distributor' } %>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :distributor_tds_amount, "TDS Amount", class: "form-label" %>
+          <%= form.number_field :distributor_tds_amount,
+              class: "form-control tds-amount",
+              placeholder: "0.00", step: 0.01, readonly: true,
+              data: { field: 'distributor' } %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= form.label :distributor_after_tds_value, "After TDS Value", class: "form-label" %>
+          <%= form.number_field :distributor_after_tds_value,
+              class: "form-control after-tds-value",
+              placeholder: "0.00", step: 0.01, readonly: true,
+              data: { field: 'distributor' } %>
+        </div>
+      </div>
+
+      <!-- Ambassador Commission -->
+      <div class="row">
+        <div class="col-12 mb-3">
+          <h6 class="text-primary mb-3">Ambassador Commission</h6>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :ambassador_commission_percentage, "1st year (%)", class: "form-label" %>
+          <%= form.number_field :ambassador_commission_percentage,
+              class: "form-control commission-input",
+              placeholder: "2.0", step: 0.01, value: 2.0,
+              data: { field: 'ambassador' } %>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :ambassador_commission_amount, "Commission Amount", class: "form-label" %>
+          <%= form.number_field :ambassador_commission_amount,
+              class: "form-control commission-amount",
+              placeholder: "0.00", step: 0.01, readonly: true,
+              data: { field: 'ambassador' } %>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :ambassador_tds_percentage, "TDS %", class: "form-label" %>
+          <%= form.number_field :ambassador_tds_percentage,
+              class: "form-control tds-percentage",
+              placeholder: "0", step: 0.01, value: 0.0,
+              data: { field: 'ambassador' } %>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :ambassador_tds_amount, "TDS Amount", class: "form-label" %>
+          <%= form.number_field :ambassador_tds_amount,
+              class: "form-control tds-amount",
+              placeholder: "0.00", step: 0.01, readonly: true,
+              data: { field: 'ambassador' } %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= form.label :ambassador_after_tds_value, "After TDS Value", class: "form-label" %>
+          <%= form.number_field :ambassador_after_tds_value,
+              class: "form-control after-tds-value",
+              placeholder: "0.00", step: 0.01, readonly: true,
+              data: { field: 'ambassador' } %>
+        </div>
+      </div>
+
+      <!-- Investor Portion -->
+      <div class="row">
+        <div class="col-12 mb-3">
+          <h6 class="text-primary mb-3">Investor Portion</h6>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :investor_commission_percentage, "1st year (%)", class: "form-label" %>
+          <%= form.number_field :investor_commission_percentage,
+              class: "form-control commission-input",
+              placeholder: "2.0", step: 0.01, value: 2.0,
+              data: { field: 'investor' } %>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :investor_commission_amount, "Amount", class: "form-label" %>
+          <%= form.number_field :investor_commission_amount,
+              class: "form-control commission-amount",
+              placeholder: "0.00", step: 0.01, readonly: true,
+              data: { field: 'investor' } %>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :investor_tds_percentage, "TDS %", class: "form-label" %>
+          <%= form.number_field :investor_tds_percentage,
+              class: "form-control tds-percentage",
+              placeholder: "0.0", step: 0.01, value: 0.0,
+              data: { field: 'investor' } %>
+        </div>
+        <div class="col-md-2 mb-3">
+          <%= form.label :investor_tds_amount, "TDS Amount", class: "form-label" %>
+          <%= form.number_field :investor_tds_amount,
+              class: "form-control tds-amount",
+              placeholder: "0.00", step: 0.01, readonly: true,
+              data: { field: 'investor' } %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= form.label :investor_after_tds_value, "After TDS Value", class: "form-label" %>
+          <%= form.number_field :investor_after_tds_value,
+              class: "form-control after-tds-value",
+              placeholder: "0.00", step: 0.01, readonly: true,
+              data: { field: 'investor' } %>
+        </div>
+      </div>
+
+      <!-- Company Expenses & Profit Calculation -->
+      <div class="row">
+        <div class="col-12 mb-3">
+          <h6 class="text-primary mb-3">Company Expenses & Profit Calculation</h6>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= form.label :company_expenses_percentage, "Company Expenses (%)", class: "form-label" %>
+          <%= form.number_field :company_expenses_percentage,
+              class: "form-control",
+              placeholder: "2.0", step: 0.01, value: 2.0, id: "company_expenses_percentage" %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= form.label :total_distribution_percentage, "Total Distribution (%)", class: "form-label" %>
+          <%= form.number_field :total_distribution_percentage,
+              class: "form-control",
+              placeholder: "6.00", step: 0.01, readonly: true, id: "total_distribution_percentage" %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= form.label :profit_percentage, "Profit (%)", class: "form-label" %>
+          <%= form.number_field :profit_percentage,
+              class: "form-control",
+              placeholder: "-8.00", step: 0.01, readonly: true, id: "profit_percentage" %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= form.label :profit_amount, "Profit Amount (₹)", class: "form-label" %>
+          <%= form.number_field :profit_amount,
+              class: "form-control",
+              placeholder: "0.00", step: 0.01, readonly: true, id: "profit_amount" %>
+        </div>
+      </div>
+
+      <!-- Commission Calculation Summary -->
+      <div class="row">
+        <div class="col-12 mb-3">
+          <div class="card bg-light">
+            <div class="card-body">
+              <h6 class="card-title">Commission Calculation Summary:</h6>
+              <p class="card-text mb-1">
+                <strong>Main Agent Commission:</strong> <span id="main_agent_summary">0.0% of Net Premium</span>
+              </p>
+              <p class="card-text mb-1">
+                <strong>Total Distribution:</strong> <span id="total_distribution_summary">6.0% (Affiliate + Ambassador + Investor)</span>
+              </p>
+              <p class="card-text mb-1">
+                <strong>Company Expenses:</strong> <span id="company_expenses_summary">2.0% of Net Premium</span>
+              </p>
+              <p class="card-text mb-0">
+                <strong>Profit:</strong> <span id="profit_summary">Main Agent Commission - Total Distribution - Company Expenses</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Policy Upload Section -->
   <div class="card mb-4">
     <div class="card-header">
@@ -485,8 +760,68 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // Commission calculations
+  function calculateCommissions() {
+    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+
+    // Calculate all commission types
+    const fields = ['main_agent', 'distributor', 'ambassador', 'investor'];
+    let totalDistributionPercentage = 0;
+
+    fields.forEach(field => {
+      const percentageInput = document.querySelector(`[data-field='${field}'].commission-input`);
+      const amountOutput = document.querySelector(`[data-field='${field}'].commission-amount`);
+      const tdsPercentageInput = document.querySelector(`[data-field='${field}'].tds-percentage`);
+      const tdsAmountOutput = document.querySelector(`[data-field='${field}'].tds-amount`);
+      const afterTdsOutput = document.querySelector(`[data-field='${field}'].after-tds-value`);
+
+      if (percentageInput && amountOutput) {
+        const percentage = parseFloat(percentageInput.value) || 0;
+        const amount = (netPremium * percentage) / 100;
+        const tdsPercentage = parseFloat(tdsPercentageInput?.value) || 0;
+        const tdsAmount = (amount * tdsPercentage) / 100;
+        const afterTds = amount - tdsAmount;
+
+        amountOutput.value = amount.toFixed(2);
+        if (tdsAmountOutput) tdsAmountOutput.value = tdsAmount.toFixed(2);
+        if (afterTdsOutput) afterTdsOutput.value = afterTds.toFixed(2);
+
+        // Add to total distribution (exclude main_agent)
+        if (field !== 'main_agent') {
+          totalDistributionPercentage += percentage;
+        }
+      }
+    });
+
+    // Update total distribution and profit calculations
+    const mainAgentPercentage = parseFloat(document.getElementById('motor_insurance_main_agent_commission_percentage').value) || 0;
+    const companyExpensesPercentage = parseFloat(document.getElementById('company_expenses_percentage').value) || 0;
+
+    document.getElementById('total_distribution_percentage').value = totalDistributionPercentage.toFixed(2);
+
+    const profitPercentage = mainAgentPercentage - totalDistributionPercentage - companyExpensesPercentage;
+    const profitAmount = (netPremium * profitPercentage) / 100;
+
+    document.getElementById('profit_percentage').value = profitPercentage.toFixed(2);
+    document.getElementById('profit_amount').value = profitAmount.toFixed(2);
+
+    // Update summary
+    document.getElementById('main_agent_summary').textContent = `${mainAgentPercentage}% of Net Premium`;
+    document.getElementById('total_distribution_summary').textContent = `${totalDistributionPercentage.toFixed(1)}% (Affiliate + Ambassador + Investor)`;
+    document.getElementById('company_expenses_summary').textContent = `${companyExpensesPercentage}% of Net Premium`;
+  }
+
+  // Add event listeners for commission calculations
+  document.querySelectorAll('.commission-input, .tds-percentage').forEach(input => {
+    input.addEventListener('input', calculateCommissions);
+  });
+
+  document.getElementById('net_premium').addEventListener('input', calculateCommissions);
+  document.getElementById('company_expenses_percentage').addEventListener('input', calculateCommissions);
+
   // Initial calculations
   calculateTotalPremium();
   calculateTotalIDV();
+  calculateCommissions();
 });
 </script>

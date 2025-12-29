@@ -135,6 +135,7 @@ class MotorInsurance < ApplicationRecord
       self.total_premium = net_premium + gst_amount
     end
 
+    # Calculate main agent commission (legacy fields)
     if net_premium.present? && main_agent_commission_percent.present?
       self.main_agent_commission_amount = net_premium * (main_agent_commission_percent / 100.0)
     end
@@ -142,6 +143,79 @@ class MotorInsurance < ApplicationRecord
     if main_agent_commission_amount.present? && main_agent_tds_percent.present?
       self.main_agent_tds_amount = main_agent_commission_amount * (main_agent_tds_percent / 100.0)
       self.after_tds_value = main_agent_commission_amount - main_agent_tds_amount
+    end
+
+    # Calculate enhanced commission structure
+    calculate_enhanced_commissions
+  end
+
+  def calculate_enhanced_commissions
+    return unless net_premium.present?
+
+    # Main Agent Commission (new structure)
+    if main_agent_commission_percentage.present?
+      self.commission_amount = (net_premium * main_agent_commission_percentage / 100.0).round(2)
+
+      if tds_percentage.present?
+        self.tds_amount = (commission_amount * tds_percentage / 100.0).round(2)
+        # Note: after_tds_value is already calculated above for legacy compatibility
+      end
+    end
+
+    # Sub Agent Commission
+    if sub_agent_commission_percentage.present?
+      self.sub_agent_commission_amount = (net_premium * sub_agent_commission_percentage / 100.0).round(2)
+
+      if sub_agent_tds_percentage.present?
+        self.sub_agent_tds_amount = (sub_agent_commission_amount * sub_agent_tds_percentage / 100.0).round(2)
+        self.sub_agent_after_tds_value = sub_agent_commission_amount - sub_agent_tds_amount
+      end
+    end
+
+    # Distributor Commission (Affiliate)
+    if distributor_commission_percentage.present?
+      self.distributor_commission_amount = (net_premium * distributor_commission_percentage / 100.0).round(2)
+
+      if distributor_tds_percentage.present?
+        self.distributor_tds_amount = (distributor_commission_amount * distributor_tds_percentage / 100.0).round(2)
+        self.distributor_after_tds_value = distributor_commission_amount - distributor_tds_amount
+      end
+    end
+
+    # Ambassador Commission
+    if ambassador_commission_percentage.present?
+      self.ambassador_commission_amount = (net_premium * ambassador_commission_percentage / 100.0).round(2)
+
+      if ambassador_tds_percentage.present?
+        self.ambassador_tds_amount = (ambassador_commission_amount * ambassador_tds_percentage / 100.0).round(2)
+        self.ambassador_after_tds_value = ambassador_commission_amount - ambassador_tds_amount
+      end
+    end
+
+    # Investor Commission
+    if investor_commission_percentage.present?
+      self.investor_commission_amount = (net_premium * investor_commission_percentage / 100.0).round(2)
+
+      if investor_tds_percentage.present?
+        self.investor_tds_amount = (investor_commission_amount * investor_tds_percentage / 100.0).round(2)
+        self.investor_after_tds_value = investor_commission_amount - investor_tds_amount
+      end
+    end
+
+    # Calculate total distribution percentage
+    distribution_percentages = [
+      sub_agent_commission_percentage,
+      distributor_commission_percentage,
+      ambassador_commission_percentage,
+      investor_commission_percentage
+    ].compact.sum
+
+    self.total_distribution_percentage = distribution_percentages.round(2)
+
+    # Calculate profit
+    if main_agent_commission_percentage.present? && company_expenses_percentage.present?
+      self.profit_percentage = (main_agent_commission_percentage - total_distribution_percentage - company_expenses_percentage).round(2)
+      self.profit_amount = (net_premium * profit_percentage / 100.0).round(2)
     end
   end
 

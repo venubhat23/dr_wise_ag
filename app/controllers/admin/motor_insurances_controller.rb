@@ -137,6 +137,18 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       :main_agent_commission_amount, :main_agent_tds_percent, :main_agent_tds_amount,
       :after_tds_value,
 
+      # Enhanced Commission Structure
+      :main_agent_commission_percentage, :commission_amount, :tds_percentage, :tds_amount,
+      :sub_agent_commission_percentage, :sub_agent_commission_amount, :sub_agent_tds_percentage,
+      :sub_agent_tds_amount, :sub_agent_after_tds_value,
+      :distributor_commission_percentage, :distributor_commission_amount, :distributor_tds_percentage,
+      :distributor_tds_amount, :distributor_after_tds_value,
+      :investor_commission_percentage, :investor_commission_amount, :investor_tds_percentage,
+      :investor_tds_amount, :investor_after_tds_value,
+      :ambassador_commission_percentage, :ambassador_commission_amount, :ambassador_tds_percentage,
+      :ambassador_tds_amount, :ambassador_after_tds_value,
+      :total_distribution_percentage, :company_expenses_percentage, :profit_percentage, :profit_amount,
+
       # Legal Liability & Optional Covers
       :legal_liability, :electrical_accessories, :non_electrical_accessories,
       :zero_depreciation, :roadside_assistance, :engine_protector, :key_replacement,
