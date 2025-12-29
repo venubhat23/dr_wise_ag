@@ -5,18 +5,35 @@ class Admin::BrokersController < Admin::ApplicationController
     @brokers = Broker.includes(:insurance_company)
     @brokers = @brokers.where("name ILIKE ?", "%#{params[:search]}%") if params[:search].present?
 
-    # Get total count before pagination for display purposes
-    @total_filtered_count = @brokers.count
+    respond_to do |format|
+      format.html do
+        # Get total count before pagination for display purposes
+        @total_filtered_count = @brokers.count
 
-    # Apply pagination (10 records per page)
-    @brokers = @brokers.order(:name).page(params[:page]).per(10)
+        # Apply pagination (10 records per page)
+        @brokers = @brokers.order(:name).page(params[:page]).per(10)
 
-    @broker = Broker.new
+        @broker = Broker.new
 
-    # Statistics for dashboard cards (use unfiltered counts)
-    @total_brokers = Broker.count
-    @active_brokers = Broker.active.count
-    @inactive_brokers = Broker.inactive.count
+        # Statistics for dashboard cards (use unfiltered counts)
+        @total_brokers = Broker.count
+        @active_brokers = Broker.active.count
+        @inactive_brokers = Broker.inactive.count
+      end
+
+      format.json do
+        # For JSON requests, return all matching records without pagination
+        @brokers = @brokers.order(:name)
+        render json: @brokers.map do |broker|
+          {
+            id: broker.id,
+            name: broker.name,
+            status: broker.status,
+            insurance_company_id: broker.insurance_company_id
+          }
+        end
+      end
+    end
   end
 
   def show

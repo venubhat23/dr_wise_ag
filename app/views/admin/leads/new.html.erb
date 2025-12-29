@@ -68,7 +68,7 @@
       <div class="row">
         <div class="col-md-6 mb-3">
           <%= form.label :contact_number, "Contact Number *", class: "form-label" %>
-          <%= form.text_field :contact_number, class: "form-control", placeholder: "+91 98765 43210", required: true %>
+          <%= form.telephone_field :contact_number, class: "form-control", placeholder: "+91 98765 43210", required: true %>
         </div>
         <div class="col-md-6 mb-3">
           <%= form.label :email, "Email Address", class: "form-label" %>
@@ -125,6 +125,20 @@
           <div class="col-md-6 mb-3">
             <%= form.label :pan_no, "PAN Number", class: "form-label" %>
             <%= form.text_field :pan_no, class: "form-control", placeholder: "ABCDE1234F", pattern: "[A-Z]{5}[0-9]{4}[A-Z]{1}" %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :birth_place, "Birth Place", class: "form-label" %>
+            <%= form.text_field :birth_place, class: "form-control", placeholder: "Enter birth place" %>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :height, "Height (Feet)", class: "form-label" %>
+            <%= form.number_field :height, class: "form-control", placeholder: "7.9", step: 0.1, min: 3.5, max: 8.0 %>
+            <div class="form-text">Range: 3.5 - 8.0 feet</div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <%= form.label :weight, "Weight (Kg)", class: "form-label" %>
+            <%= form.number_field :weight, class: "form-control", placeholder: "70", step: 0.1, min: 10, max: 300 %>
+            <div class="form-text">Range: 10 - 300 kg</div>
           </div>
         </div>
       </div>
@@ -494,9 +508,12 @@
 }
 </style>
 
-<!-- Include Location Data -->
+<!-- Include Location Data and Form Enhancements -->
 <script>
 <%= File.read(Rails.root.join('app/assets/javascripts/location_data.js')).html_safe %>
+</script>
+<script>
+<%= File.read(Rails.root.join('app/assets/javascripts/form_enhancements.js')).html_safe %>
 </script>
 
 <!-- Form Validation Script -->
@@ -547,16 +564,9 @@ document.addEventListener('DOMContentLoaded', function() {
     ]
   };
 
-  // Phone number formatting and customer checking
+  // Customer checking
   phoneField.addEventListener('blur', function() {
-    let value = this.value.replace(/\D/g, '');
-
-    // Format only on blur (when user finishes editing) and has 10 digits
-    if (value.length === 10) {
-      this.value = '+91 ' + value.substring(0, 5) + ' ' + value.substring(5);
-    }
-
-    // Check for existing customer
+    // Check for existing customer (mobile formatting is now handled by FormEnhancements)
     checkExistingCustomer();
   });
 
@@ -895,12 +905,7 @@ document.addEventListener('DOMContentLoaded', function() {
       isValid = false;
     }
 
-    // Validate phone - allow spaces, hyphens, brackets
-    const cleanPhone = phoneField.value.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      errors.push('Please enter a valid contact number (minimum 10 digits)');
-      isValid = false;
-    }
+    // Phone validation is now handled by FormEnhancements
 
     // Validate product category selection
     if (!productCategoryField.value) {

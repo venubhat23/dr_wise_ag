@@ -718,6 +718,11 @@ input[type="radio"]:checked + .customer-type-label {
 }
 </style>
 
+<!-- Include Form Enhancements -->
+<script>
+<%= File.read(Rails.root.join('app/assets/javascripts/form_enhancements.js')).html_safe %>
+</script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   // Customer type selection

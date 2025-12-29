@@ -288,18 +288,24 @@ body.modal-open {
                 <td>
                   <div>
                     <h6 class="mb-1"><%= policy.customer&.display_name || 'N/A' %></h6>
-                    <small class="text-muted">
+                    <small class="text-muted d-block">
                       <%= policy&.insurance_company_name || 'N/A' %>
                     </small>
+                    <% if policy&.lead_id.present? %>
+                      <small class="text-primary d-block">
+                        <i class="bi bi-person-plus me-1"></i>Lead: <%= policy.lead_id %>
+                      </small>
+                    <% else %>
+                      <small class="text-muted d-block">
+                        <i class="bi bi-dash-circle me-1"></i>No Lead ID
+                      </small>
+                    <% end %>
                   </div>
                 </td>
 
                 <td>
                   <div>
                     <strong>₹<%= number_with_delimiter(policy.total_premium.to_i) %></strong>
-                    <% if policy&.lead_id.present? %>
-                      <small class="text-muted d-block">Lead: <%= policy.lead_id %></small>
-                    <% end %>
                   </div>
                 </td>
 

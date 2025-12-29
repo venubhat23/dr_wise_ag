@@ -101,24 +101,18 @@
 
       <div class="row mt-3">
         <div class="col-md-4">
-          <%= form.label :state_id, "State", class: "form-label" %>
-          <%= form.select :state_id,
-              options_for_select([
-                ['Karnataka', 1], ['Tamil Nadu', 2], ['Maharashtra', 3],
-                ['Gujarat', 4], ['Delhi', 5], ['West Bengal', 6]
-              ], @sub_agent.state_id),
+          <%= form.label :state, "State", class: "form-label" %>
+          <%= form.select :state,
+              options_for_select(LocationData.states_for_select, @sub_agent.state),
               { prompt: 'Select State' },
-              { class: "form-select" } %>
+              { class: "form-select", id: "sub_agent_state" } %>
         </div>
         <div class="col-md-4">
-          <%= form.label :city_id, "City", class: "form-label" %>
-          <%= form.select :city_id,
-              options_for_select([
-                ['Bangalore', 1], ['Mumbai', 2], ['Chennai', 3],
-                ['Delhi', 4], ['Kolkata', 5], ['Pune', 6]
-              ], @sub_agent.city_id),
-              { prompt: 'Select City' },
-              { class: "form-select" } %>
+          <%= form.label :city, "City", class: "form-label" %>
+          <%= form.select :city,
+              options_for_select([], @sub_agent.city),
+              { prompt: 'Select State First' },
+              { class: "form-select", id: "sub_agent_city", disabled: true } %>
         </div>
         <div class="col-md-4">
           <%= form.label :gender, "Gender", class: "form-label" %>
@@ -264,6 +258,14 @@
   right: 10px;
 }
 </style>
+
+<!-- Include Location Data and Form Enhancements -->
+<script>
+<%= File.read(Rails.root.join('app/assets/javascripts/location_data.js')).html_safe %>
+</script>
+<script>
+<%= File.read(Rails.root.join('app/assets/javascripts/form_enhancements.js')).html_safe %>
+</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

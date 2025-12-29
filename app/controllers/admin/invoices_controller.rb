@@ -1,5 +1,5 @@
 class Admin::InvoicesController < ApplicationController
-  before_action :set_invoice, only: [:show, :download_pdf, :mark_as_paid]
+  before_action :set_invoice, only: [:show, :show_premium, :download_pdf, :download_premium_pdf, :mark_as_paid]
 
   def index
     @invoices = Invoice.includes(:payout_record)
@@ -20,6 +20,11 @@ class Admin::InvoicesController < ApplicationController
 
   def show
     @payout_record = @invoice.payout_record
+  end
+
+  def show_premium
+    @payout_record = @invoice.payout_record
+    render layout: false
   end
 
   def generate_invoice
@@ -101,6 +106,22 @@ class Admin::InvoicesController < ApplicationController
     end
   rescue => e
     redirect_to admin_invoices_path, alert: "Error generating PDF: #{e.message}"
+  end
+
+  def download_premium_pdf
+    respond_to do |format|
+      format.pdf do
+        render pdf: "premium_invoice_#{@invoice.invoice_number}",
+               template: 'admin/invoices/show_premium',
+               layout: false,
+               page_size: 'A4',
+               margin: { top: 10, bottom: 10, left: 10, right: 10 },
+               encoding: 'UTF-8',
+               javascript_delay: 1000
+      end
+    end
+  rescue => e
+    redirect_to admin_invoices_path, alert: "Error generating premium PDF: #{e.message}"
   end
 
   private

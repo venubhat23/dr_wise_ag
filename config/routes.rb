@@ -86,6 +86,8 @@ Rails.application.routes.draw do
       member do
         patch :mark_as_paid
         get :download_pdf
+        get :show_premium
+        get :download_premium_pdf
       end
       collection do
         post :generate_invoice
@@ -212,6 +214,15 @@ Rails.application.routes.draw do
     resources :agency_codes do
       collection do
         get :search
+        get :brokers_for_direct
+        get :agents_for_broker
+        get :all_agents
+        get :companies_for_agent
+        get :all_brokers
+        get :companies_for_broker
+        get :all_companies
+        get :all_codes
+        get :agents_for_code
       end
     end
 

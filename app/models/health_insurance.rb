@@ -60,6 +60,7 @@ class HealthInsurance < ApplicationRecord
   before_save :calculate_commission_structure
   before_validation :set_policy_term
   after_save :set_notification_dates
+  before_create :inherit_customer_lead_id
   after_create :create_commission_payouts
   after_create :create_lead_record
 
@@ -224,6 +225,13 @@ class HealthInsurance < ApplicationRecord
     LeadGeneratorService.create_lead_for_insurance(self)
   rescue StandardError => e
     Rails.logger.error "Failed to create lead for health insurance #{id}: #{e.message}"
+  end
+
+  # Inherit lead_id from customer if not already set
+  def inherit_customer_lead_id
+    return if lead_id.present? || customer.nil?
+
+    self.lead_id = customer.lead_id if customer.lead_id.present?
   end
 
   private

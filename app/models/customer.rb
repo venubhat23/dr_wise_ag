@@ -45,6 +45,7 @@ class Customer < ApplicationRecord
 
   # Set default values
   after_initialize :set_defaults
+  before_create :generate_lead_id_if_missing
 
   def set_defaults
     self.status = true if status.nil?
@@ -179,6 +180,16 @@ class Customer < ApplicationRecord
     self.email = nil if email.blank?
     self.pan_no = nil if pan_no.blank?
     self.gst_no = nil if gst_no.blank?
+  end
+
+  # Generate lead_id if not already present (for direct customer creation)
+  def generate_lead_id_if_missing
+    return if lead_id.present?
+
+    loop do
+      self.lead_id = "CUST-#{Date.current.strftime('%Y%m%d')}-#{rand(1000..9999)}"
+      break unless Customer.exists?(lead_id: self.lead_id) || Lead.exists?(lead_id: self.lead_id)
+    end
   end
 
 end

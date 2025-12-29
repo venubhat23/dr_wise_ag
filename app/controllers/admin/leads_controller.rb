@@ -87,7 +87,7 @@ class Admin::LeadsController < Admin::ApplicationController
     @lead.created_date = Date.current if @lead.created_date.blank?
 
     if @lead.save
-      redirect_to admin_lead_path(@lead), notice: 'Lead was successfully created.'
+      redirect_to admin_leads_path, notice: 'Lead was successfully created.'
     else
       Rails.logger.error "Lead creation failed: #{@lead.errors.full_messages.join(', ')}"
       flash.now[:alert] = "Failed to create lead: #{@lead.errors.full_messages.join(', ')}"
@@ -124,9 +124,10 @@ class Admin::LeadsController < Admin::ApplicationController
       customer_attrs = {
         customer_type: @lead.customer_type || 'individual',
         mobile: @lead.contact_number,
-        address: @lead.address,
-        state: @lead.state,
-        city: @lead.city,
+        address: @lead.address.presence,
+        state: @lead.state.presence,
+        city: @lead.city.presence, # Ensure city is properly transferred
+        lead_id: @lead.lead_id, # Map lead ID to customer
         status: true
       }
 
@@ -134,26 +135,35 @@ class Admin::LeadsController < Admin::ApplicationController
         # Individual customer attributes
         customer_attrs.merge!(
           first_name: @lead.first_name || extract_first_name(@lead.name),
-          middle_name: @lead.middle_name,
+          middle_name: @lead.middle_name.presence, # Use presence to convert empty strings to nil
           last_name: @lead.last_name || extract_last_name(@lead.name),
-          email: @lead.email,
+          email: @lead.email.presence,
           birth_date: @lead.birth_date,
-          gender: @lead.gender,
-          marital_status: @lead.marital_status,
-          pan_no: @lead.pan_no
+          gender: @lead.gender.presence,
+          marital_status: @lead.marital_status.presence,
+          pan_no: @lead.pan_no.presence,
+          height: @lead.height.presence,
+          weight: @lead.weight.presence,
+          birth_place: @lead.birth_place.presence
         )
       elsif @lead.corporate?
         # Corporate customer attributes
         customer_attrs.merge!(
           company_name: @lead.company_name || @lead.name,
-          email: @lead.email, # Required for corporate
-          pan_no: @lead.pan_no,
-          gst_no: @lead.gst_no
+          email: @lead.email.presence, # Required for corporate
+          pan_no: @lead.pan_no.presence,
+          gst_no: @lead.gst_no.presence
         )
       end
 
+      # Debug: Log the attributes being passed
+      Rails.logger.info "Converting lead #{@lead.id} to customer with attributes: #{customer_attrs.inspect}"
+
       # Create customer from lead data
       customer = Customer.create!(customer_attrs)
+
+      # Debug: Log the created customer attributes
+      Rails.logger.info "Created customer #{customer.id} with attributes: city=#{customer.city}, middle_name=#{customer.middle_name}, birth_date=#{customer.birth_date}, lead_id=#{customer.lead_id}"
 
       # Update lead with customer reference
       @lead.update!(
@@ -164,7 +174,9 @@ class Admin::LeadsController < Admin::ApplicationController
       redirect_to admin_customer_path(customer), notice: 'Lead successfully converted to customer.'
     end
   rescue ActiveRecord::RecordInvalid => e
-    redirect_to admin_lead_path(@lead), alert: "Failed to convert lead: #{e.message}"
+    Rails.logger.error "Lead conversion failed for lead #{@lead.id}: #{e.message}"
+    Rails.logger.error "Validation errors: #{e.record.errors.full_messages.join(', ')}"
+    redirect_to admin_lead_path(@lead), alert: "Failed to convert lead: #{e.message} - Errors: #{e.record.errors.full_messages.join(', ')}"
   end
 
   # PATCH /admin/leads/1/create_policy
@@ -354,7 +366,7 @@ class Admin::LeadsController < Admin::ApplicationController
       :call_disposition, :referral_amount, :notes, :created_date,
       :note, :is_direct, :affiliate_id,
       :first_name, :middle_name, :last_name, :birth_date, :gender, :pan_no, :gst_no,
-      :company_name, :marital_status
+      :company_name, :marital_status, :height, :weight, :birth_place
     )
   end
 

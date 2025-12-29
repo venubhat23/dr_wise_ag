@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_28_053428) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_28_154545) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -220,11 +220,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_28_053428) do
     t.string "gst_no"
     t.integer "policies_count", default: 0, null: false
     t.integer "sub_agent_id"
+    t.string "lead_id"
     t.index ["created_at"], name: "index_customers_on_created_at"
     t.index ["customer_type", "created_at"], name: "index_customers_on_customer_type_and_created_at"
     t.index ["customer_type", "status"], name: "index_customers_on_customer_type_and_status"
     t.index ["customer_type"], name: "index_customers_on_customer_type"
     t.index ["email"], name: "index_customers_on_email"
+    t.index ["lead_id"], name: "index_customers_on_lead_id", unique: true
     t.index ["mobile"], name: "index_customers_on_mobile"
     t.index ["pan_number"], name: "index_customers_on_pan_number"
     t.index ["status", "created_at"], name: "index_customers_on_status_and_created_at"
@@ -549,6 +551,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_28_053428) do
     t.string "gst_no"
     t.string "company_name"
     t.string "marital_status"
+    t.string "height"
+    t.string "weight"
+    t.string "birth_place"
     t.index ["affiliate_id"], name: "index_leads_on_affiliate_id"
     t.index ["converted_customer_id"], name: "index_leads_on_converted_customer_id"
     t.index ["current_stage"], name: "index_leads_on_current_stage"

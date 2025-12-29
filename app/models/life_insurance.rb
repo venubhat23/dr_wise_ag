@@ -76,6 +76,7 @@ class LifeInsurance < ApplicationRecord
   before_validation :set_policy_term_from_dates
   before_validation :normalize_numeric_fields
   after_save :set_notification_dates
+  before_create :inherit_customer_lead_id
   after_create :create_commission_payouts
   after_create :create_lead_record
 
@@ -349,6 +350,13 @@ class LifeInsurance < ApplicationRecord
     LeadGeneratorService.create_lead_for_insurance(self)
   rescue StandardError => e
     Rails.logger.error "Failed to create lead for life insurance #{id}: #{e.message}"
+  end
+
+  # Inherit lead_id from customer if not already set
+  def inherit_customer_lead_id
+    return if lead_id.present? || customer.nil?
+
+    self.lead_id = customer.lead_id if customer.lead_id.present?
   end
 
   def create_structured_payout

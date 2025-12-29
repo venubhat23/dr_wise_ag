@@ -395,6 +395,7 @@ class Admin::CustomersController < Admin::ApplicationController
     # Extract password params separately before creating customer
     password = params[:customer][:password]
     password_confirmation = params[:customer][:password_confirmation]
+    user_enter_password = params[:customer][:user_enter_password]
 
     @customer = Customer.new(customer_params)
 
@@ -402,7 +403,7 @@ class Admin::CustomersController < Admin::ApplicationController
       ActiveRecord::Base.transaction do
         if @customer.save
           # Create User account - auto-generate password if not provided
-          should_create_user = params[:customer][:user_enter_password] == '1' ||
+          should_create_user = user_enter_password == '1' ||
                              (@customer.email.present? && password.blank?)
 
           if should_create_user
@@ -582,7 +583,7 @@ class Admin::CustomersController < Admin::ApplicationController
       :gender, :occupation, :annual_income, :nominee_name, :nominee_relation,
       :nominee_date_of_birth, :status, :birth_place, :height_feet, :weight_kg, :education,
       :marital_status, :business_job, :business_name, :type_of_duty, :additional_information,
-      :added_by, :sub_agent_id, :age, :user_enter_password,
+      :added_by, :sub_agent_id, :age,
       profile_image: [],
       documents_attributes: [:id, :document_type, :file, :_destroy],
       family_members_attributes: [

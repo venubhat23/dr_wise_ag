@@ -84,49 +84,70 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     # Health Insurance installments
     health_policies = HealthInsurance.where(customer_id: customer_id).active
     health_policies.each do |policy|
-      next unless policy.installment_autopay_start_date.present?
+      # Calculate next installment date based on payment mode and policy start date
+      autopay_start = policy.installment_autopay_start_date || policy.policy_start_date
 
-      # Calculate next installment date based on payment mode
-      next_installment = calculate_next_installment_date(policy.installment_autopay_start_date, policy.payment_mode)
+      if autopay_start.present? && policy.payment_mode.present? && policy.payment_mode.downcase != 'single'
+        next_installment = calculate_next_installment_date(autopay_start, policy.payment_mode)
 
-      if next_installment && next_installment <= 30.days.from_now
-        installments << {
-          id: policy.id,
-          insurance_name: policy.plan_name || "Health Insurance",
-          insurance_type: "Health",
-          policy_number: policy.policy_number,
-          policy_holder: policy.policy_holder,
-          start_date: policy.policy_start_date,
-          end_date: policy.policy_end_date,
-          total_premium: policy.total_premium,
-          next_installment_date: next_installment,
-          installment_amount: calculate_installment_amount(policy.total_premium, policy.payment_mode),
-          attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
-        }
+        # If next_installment is in the past, keep adding payment cycle until we get a future date
+        while next_installment && next_installment < Date.current
+          next_installment = calculate_next_installment_date(next_installment, policy.payment_mode)
+        end
+
+        if next_installment && next_installment <= 60.days.from_now
+          installments << {
+            id: policy.id,
+            insurance_name: policy.plan_name || "Health Insurance",
+            insurance_type: "Health",
+            policy_number: policy.policy_number,
+            policy_holder: policy.policy_holder,
+            insurance_company: policy.insurance_company_name,
+            start_date: policy.policy_start_date,
+            end_date: policy.policy_end_date,
+            total_premium: policy.total_premium,
+            payment_mode: policy.payment_mode,
+            next_installment_date: next_installment,
+            installment_amount: calculate_installment_amount(policy.total_premium, policy.payment_mode),
+            days_until_installment: (next_installment - Date.current).to_i,
+            attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
+          }
+        end
       end
     end
 
     # Life Insurance installments
     life_policies = LifeInsurance.where(customer_id: customer_id).active
     life_policies.each do |policy|
-      next unless policy.installment_autopay_start_date.present?
+      # Calculate next installment date based on payment mode and policy start date
+      autopay_start = policy.installment_autopay_start_date || policy.policy_start_date
 
-      next_installment = calculate_next_installment_date(policy.installment_autopay_start_date, policy.payment_mode)
+      if autopay_start.present? && policy.payment_mode.present? && policy.payment_mode.downcase != 'single'
+        next_installment = calculate_next_installment_date(autopay_start, policy.payment_mode)
 
-      if next_installment && next_installment <= 30.days.from_now
-        installments << {
-          id: policy.id,
-          insurance_name: policy.plan_name || "Life Insurance",
-          insurance_type: "Life",
-          policy_number: policy.policy_number,
-          policy_holder: policy.policy_holder,
-          start_date: policy.policy_start_date,
-          end_date: policy.policy_end_date,
-          total_premium: policy.total_premium,
-          next_installment_date: next_installment,
-          installment_amount: calculate_installment_amount(policy.total_premium, policy.payment_mode),
-          attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
-        }
+        # If next_installment is in the past, keep adding payment cycle until we get a future date
+        while next_installment && next_installment < Date.current
+          next_installment = calculate_next_installment_date(next_installment, policy.payment_mode)
+        end
+
+        if next_installment && next_installment <= 60.days.from_now
+          installments << {
+            id: policy.id,
+            insurance_name: policy.plan_name || "Life Insurance",
+            insurance_type: "Life",
+            policy_number: policy.policy_number,
+            policy_holder: policy.policy_holder,
+            insurance_company: policy.insurance_company_name,
+            start_date: policy.policy_start_date,
+            end_date: policy.policy_end_date,
+            total_premium: policy.total_premium,
+            payment_mode: policy.payment_mode,
+            next_installment_date: next_installment,
+            installment_amount: calculate_installment_amount(policy.total_premium, policy.payment_mode),
+            days_until_installment: (next_installment - Date.current).to_i,
+            attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
+          }
+        end
       end
     end
 
@@ -138,7 +159,9 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       data: {
         upcoming_installments: installments,
         total_installments: installments.count,
-        total_amount: installments.sum { |i| i[:installment_amount].to_f }.round(2)
+        total_amount: installments.sum { |i| i[:installment_amount].to_f }.round(2),
+        next_7_days: installments.count { |i| i[:days_until_installment] <= 7 },
+        next_30_days: installments.count { |i| i[:days_until_installment] <= 30 }
       }
     }
   end
@@ -149,11 +172,25 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
 
     renewals = []
 
-    # Health Insurance renewals (expiring in next 60 days)
+    # Health Insurance renewals - check policies expiring in next 12 months
     health_policies = HealthInsurance.where(customer_id: customer_id)
-                                    .where('policy_end_date BETWEEN ? AND ?', Date.current, 60.days.from_now)
+                                    .where('policy_end_date BETWEEN ? AND ?', Date.current, 12.months.from_now)
+                                    .where.not(policy_end_date: nil)
 
     health_policies.each do |policy|
+      # Skip if already expired
+      next if policy.policy_end_date < Date.current
+
+      renewal_status = if policy.policy_end_date <= 7.days.from_now
+                        'urgent'
+                      elsif policy.policy_end_date <= 30.days.from_now
+                        'due_soon'
+                      elsif policy.policy_end_date <= 60.days.from_now
+                        'approaching'
+                      else
+                        'upcoming'
+                      end
+
       renewals << {
         id: policy.id,
         insurance_name: policy.plan_name || "Health Insurance",
@@ -164,17 +201,34 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         end_date: policy.policy_end_date,
         renewal_date: policy.policy_end_date + 1.day,
         total_premium: policy.total_premium,
+        sum_insured: policy.sum_insured,
+        payment_mode: policy.payment_mode,
         days_until_renewal: (policy.policy_end_date - Date.current).to_i,
+        renewal_status: renewal_status,
         insurance_company: policy.insurance_company_name,
         attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
       }
     end
 
-    # Life Insurance renewals (expiring in next 60 days)
+    # Life Insurance renewals - check policies expiring in next 12 months
     life_policies = LifeInsurance.where(customer_id: customer_id)
-                                .where('policy_end_date BETWEEN ? AND ?', Date.current, 60.days.from_now)
+                                .where('policy_end_date BETWEEN ? AND ?', Date.current, 12.months.from_now)
+                                .where.not(policy_end_date: nil)
 
     life_policies.each do |policy|
+      # Skip if already expired
+      next if policy.policy_end_date < Date.current
+
+      renewal_status = if policy.policy_end_date <= 7.days.from_now
+                        'urgent'
+                      elsif policy.policy_end_date <= 30.days.from_now
+                        'due_soon'
+                      elsif policy.policy_end_date <= 60.days.from_now
+                        'approaching'
+                      else
+                        'upcoming'
+                      end
+
       renewals << {
         id: policy.id,
         insurance_name: policy.plan_name || "Life Insurance",
@@ -185,21 +239,77 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         end_date: policy.policy_end_date,
         renewal_date: policy.policy_end_date + 1.day,
         total_premium: policy.total_premium,
+        sum_insured: policy.sum_insured,
+        payment_mode: policy.payment_mode,
+        policy_term: policy.policy_term,
+        premium_payment_term: policy.premium_payment_term,
         days_until_renewal: (policy.policy_end_date - Date.current).to_i,
+        renewal_status: renewal_status,
         insurance_company: policy.insurance_company_name,
         attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
       }
     end
 
-    # Sort by renewal date
-    renewals = renewals.sort_by { |r| r[:renewal_date] }
+    # Motor Insurance renewals if exists
+    begin
+      if defined?(MotorInsurance)
+        motor_policies = MotorInsurance.where(customer_id: customer_id)
+                                      .where('policy_end_date BETWEEN ? AND ?', Date.current, 12.months.from_now)
+                                      .where.not(policy_end_date: nil)
+
+        motor_policies.each do |policy|
+          next if policy.policy_end_date < Date.current
+
+          renewal_status = if policy.policy_end_date <= 7.days.from_now
+                            'urgent'
+                          elsif policy.policy_end_date <= 30.days.from_now
+                            'due_soon'
+                          elsif policy.policy_end_date <= 60.days.from_now
+                            'approaching'
+                          else
+                            'upcoming'
+                          end
+
+          renewals << {
+            id: policy.id,
+            insurance_name: "Motor Insurance",
+            insurance_type: "Motor",
+            policy_number: policy.policy_number,
+            policy_holder: policy.policy_holder,
+            start_date: policy.policy_start_date,
+            end_date: policy.policy_end_date,
+            renewal_date: policy.policy_end_date + 1.day,
+            total_premium: policy.total_premium,
+            payment_mode: policy.payment_mode,
+            days_until_renewal: (policy.policy_end_date - Date.current).to_i,
+            renewal_status: renewal_status,
+            insurance_company: policy.insurance_company_name,
+            attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
+          }
+        end
+      end
+    rescue => e
+      # Skip motor insurance if table doesn't exist or has issues
+      Rails.logger.warn "Motor insurance table issue: #{e.message}"
+    end
+
+    # Sort by renewal date (most urgent first)
+    renewals = renewals.sort_by { |r| r[:days_until_renewal] }
 
     render json: {
       success: true,
       data: {
         upcoming_renewals: renewals,
         total_renewals: renewals.count,
-        urgent_renewals: renewals.count { |r| r[:days_until_renewal] <= 7 }
+        urgent_renewals: renewals.count { |r| r[:renewal_status] == 'urgent' },
+        due_soon: renewals.count { |r| r[:renewal_status] == 'due_soon' },
+        approaching: renewals.count { |r| r[:renewal_status] == 'approaching' },
+        summary: {
+          next_7_days: renewals.count { |r| r[:days_until_renewal] <= 7 },
+          next_30_days: renewals.count { |r| r[:days_until_renewal] <= 30 },
+          next_60_days: renewals.count { |r| r[:days_until_renewal] <= 60 },
+          total_premium_due: renewals.sum { |r| r[:total_premium].to_f }.round(2)
+        }
       }
     }
   end

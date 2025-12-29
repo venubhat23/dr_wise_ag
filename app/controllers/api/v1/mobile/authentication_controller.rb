@@ -166,36 +166,101 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
 
   # POST /api/v1/mobile/auth/register
   def register
-    role = params[:role]&.downcase || 'customer'
+    # Handle both 'role' and 'user_type' parameters for backward compatibility
+    role = params[:role]&.downcase || params[:user_type]&.downcase || 'customer'
 
-    if role == 'customer'
+    # Ensure valid role values
+    case role
+    when 'customer', 'user'
       register_customer
-    elsif role == 'agent'
+    when 'agent', 'sub_agent'
       register_agent
     else
       render json: {
         success: false,
-        message: 'Invalid role. Only customer and agent registration are allowed.'
+        message: 'Invalid role. Only customer and agent registration are allowed.',
+        valid_roles: ['customer', 'agent']
       }, status: :unprocessable_entity
     end
   end
 
   def register_customer
-    customer_params = params.permit(:first_name, :last_name, :email, :mobile, :password)
+    customer_params = params.permit(:first_name, :last_name, :email, :mobile, :password, :password_confirmation, :user_type, :role)
 
-    if customer_params[:email].blank? || customer_params[:mobile].blank? || customer_params[:password].blank?
+    # Validate required fields
+    if customer_params[:first_name].blank? || customer_params[:last_name].blank? ||
+       customer_params[:email].blank? || customer_params[:mobile].blank? || customer_params[:password].blank?
       return render json: {
         success: false,
-        message: 'Email, mobile number, and password are required'
+        message: 'First name, last name, email, mobile number, and password are required'
+      }, status: :unprocessable_entity
+    end
+
+    # Validate password confirmation if provided
+    if customer_params[:password_confirmation].present? && customer_params[:password] != customer_params[:password_confirmation]
+      return render json: {
+        success: false,
+        message: 'Password confirmation does not match'
+      }, status: :unprocessable_entity
+    end
+
+    # Validate email format
+    unless customer_params[:email].match?(/\A[\w+\-.]+@[a-z\d\-]+(\.[a-z\d\-]+)*\.[a-z]+\z/i)
+      return render json: {
+        success: false,
+        message: 'Please enter a valid email address'
+      }, status: :unprocessable_entity
+    end
+
+    # Validate and format mobile number
+    mobile_number = format_mobile_number(customer_params[:mobile])
+    unless mobile_number
+      return render json: {
+        success: false,
+        message: 'Please enter a valid Indian mobile number (10 digits starting with 6-9)'
+      }, status: :unprocessable_entity
+    end
+
+    # Validate name fields
+    unless validate_name_fields(customer_params[:first_name])
+      return render json: {
+        success: false,
+        message: 'First name should contain only alphabetic characters and be 2-50 characters long'
+      }, status: :unprocessable_entity
+    end
+
+    unless validate_name_fields(customer_params[:last_name])
+      return render json: {
+        success: false,
+        message: 'Last name should contain only alphabetic characters and be 2-50 characters long'
+      }, status: :unprocessable_entity
+    end
+
+    # Validate password strength
+    if customer_params[:password].length < 6
+      return render json: {
+        success: false,
+        message: 'Password must be at least 6 characters long'
       }, status: :unprocessable_entity
     end
 
     # Check if customer or user already exists
-    if Customer.exists?(email: customer_params[:email]) || Customer.exists?(mobile: customer_params[:mobile]) ||
-       User.exists?(email: customer_params[:email]) || User.exists?(mobile: customer_params[:mobile])
+    existing_customer_email = Customer.exists?(email: customer_params[:email])
+    existing_customer_mobile = Customer.exists?(mobile: mobile_number)
+    existing_user_email = User.exists?(email: customer_params[:email])
+    existing_user_mobile = User.exists?(mobile: mobile_number)
+
+    if existing_customer_email || existing_user_email
       return render json: {
         success: false,
-        message: 'Customer with this email or mobile number already exists'
+        message: 'An account with this email address already exists. Please use a different email or try logging in.'
+      }, status: :conflict
+    end
+
+    if existing_customer_mobile || existing_user_mobile
+      return render json: {
+        success: false,
+        message: 'An account with this mobile number already exists. Please use a different mobile number or try logging in.'
       }, status: :conflict
     end
 
@@ -208,7 +273,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
           first_name: customer_params[:first_name],
           last_name: customer_params[:last_name],
           email: customer_params[:email],
-          mobile: customer_params[:mobile],
+          mobile: mobile_number, # Use formatted mobile number
           status: true,
           added_by: 'self_registration'
         )
@@ -218,9 +283,9 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
           first_name: customer_params[:first_name],
           last_name: customer_params[:last_name],
           email: customer_params[:email],
-          mobile: customer_params[:mobile],
+          mobile: mobile_number, # Use formatted mobile number
           password: customer_params[:password],
-          password_confirmation: customer_params[:password],
+          password_confirmation: customer_params[:password_confirmation].present? ? customer_params[:password_confirmation] : customer_params[:password],
           user_type: 'customer',
           status: true
         )
@@ -256,25 +321,78 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
     agent_params = params.permit(:first_name, :last_name, :email, :mobile, :password, :password_confirmation,
                                 :pan_no, :address, :city, :state, :gender, :occupation, :annual_income)
 
-    if agent_params[:email].blank? || agent_params[:mobile].blank? || agent_params[:password].blank?
+    # Validate required fields
+    if agent_params[:first_name].blank? || agent_params[:last_name].blank? ||
+       agent_params[:email].blank? || agent_params[:mobile].blank? || agent_params[:password].blank?
       return render json: {
         success: false,
-        message: 'Email, mobile number, and password are required'
+        message: 'First name, last name, email, mobile number, and password are required'
       }, status: :unprocessable_entity
     end
 
-    if agent_params[:password] != agent_params[:password_confirmation]
+    # Validate password confirmation
+    if agent_params[:password_confirmation].present? && agent_params[:password] != agent_params[:password_confirmation]
       return render json: {
         success: false,
         message: 'Password confirmation does not match'
       }, status: :unprocessable_entity
     end
 
-    # Check if user already exists
-    if User.exists?(email: agent_params[:email]) || User.exists?(mobile: agent_params[:mobile])
+    # Validate email format
+    unless agent_params[:email].match?(/\A[\w+\-.]+@[a-z\d\-]+(\.[a-z\d\-]+)*\.[a-z]+\z/i)
       return render json: {
         success: false,
-        message: 'Agent with this email or mobile number already exists'
+        message: 'Please enter a valid email address'
+      }, status: :unprocessable_entity
+    end
+
+    # Validate and format mobile number
+    mobile_number = format_mobile_number(agent_params[:mobile])
+    unless mobile_number
+      return render json: {
+        success: false,
+        message: 'Please enter a valid Indian mobile number (10 digits starting with 6-9)'
+      }, status: :unprocessable_entity
+    end
+
+    # Validate name fields
+    unless validate_name_fields(agent_params[:first_name])
+      return render json: {
+        success: false,
+        message: 'First name should contain only alphabetic characters and be 2-50 characters long'
+      }, status: :unprocessable_entity
+    end
+
+    unless validate_name_fields(agent_params[:last_name])
+      return render json: {
+        success: false,
+        message: 'Last name should contain only alphabetic characters and be 2-50 characters long'
+      }, status: :unprocessable_entity
+    end
+
+    # Validate password strength
+    if agent_params[:password].length < 6
+      return render json: {
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      }, status: :unprocessable_entity
+    end
+
+    # Check if user already exists
+    existing_user_email = User.exists?(email: agent_params[:email])
+    existing_user_mobile = User.exists?(mobile: mobile_number)
+
+    if existing_user_email
+      return render json: {
+        success: false,
+        message: 'An account with this email address already exists. Please use a different email or try logging in.'
+      }, status: :conflict
+    end
+
+    if existing_user_mobile
+      return render json: {
+        success: false,
+        message: 'An account with this mobile number already exists. Please use a different mobile number or try logging in.'
       }, status: :conflict
     end
 
@@ -282,9 +400,9 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
       first_name: agent_params[:first_name],
       last_name: agent_params[:last_name],
       email: agent_params[:email],
-      mobile: agent_params[:mobile],
+      mobile: mobile_number, # Use formatted mobile number
       password: agent_params[:password],
-      password_confirmation: agent_params[:password_confirmation],
+      password_confirmation: agent_params[:password_confirmation].present? ? agent_params[:password_confirmation] : agent_params[:password],
       user_type: 'agent',
       role: 'agent_role',
       status: false,  # Pending approval
@@ -326,6 +444,29 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
       exp: 30.days.from_now.to_i
     }
     JWT.encode(payload, Rails.application.secret_key_base)
+  end
+
+  def validate_name_fields(name)
+    return false if name.blank?
+    # Allow only alphabetic characters and spaces, min 2 characters
+    name.match?(/\A[a-zA-Z\s]{2,50}\z/)
+  end
+
+  def format_mobile_number(mobile)
+    return nil if mobile.blank?
+    # Remove all non-digit characters
+    clean_mobile = mobile.to_s.gsub(/\D/, '')
+
+    # Handle different mobile number formats
+    if clean_mobile.length == 10 && clean_mobile.match?(/\A[6-9]/)
+      return clean_mobile
+    elsif clean_mobile.length == 12 && clean_mobile.start_with?('91')
+      return clean_mobile[2..-1]
+    elsif clean_mobile.length == 13 && clean_mobile.start_with?('+91')
+      return clean_mobile[3..-1]
+    else
+      return nil
+    end
   end
 
   def get_agent_statistics(user)

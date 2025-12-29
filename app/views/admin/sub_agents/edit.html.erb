@@ -187,11 +187,11 @@
     </div>
   </div>
 
-  <!-- 3. Distributor Assignment -->
+  <!-- 3. Ambassador Assignment -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-transparent border-0 d-flex align-items-center">
       <i class="bi bi-person-badge me-2 text-info"></i>
-      <h5 class="mb-0">Distributor Assignment</h5>
+      <h5 class="mb-0">Ambassador Assignment</h5>
     </div>
     <div class="card-body">
       <!-- Current Assignment Display -->
@@ -212,8 +212,8 @@
           <div class="d-flex align-items-center">
             <i class="bi bi-exclamation-triangle me-2"></i>
             <div>
-              <strong>No Distributor Assigned</strong><br>
-              <small>This sub agent is not currently assigned to any distributor.</small>
+              <strong>No Ambassador Assigned</strong><br>
+              <small>This sub agent is not currently assigned to any ambassador.</small>
             </div>
           </div>
         </div>
@@ -224,11 +224,11 @@
         <div class="col-md-12">
           <label class="form-label">
             <i class="bi bi-person-plus me-1"></i>
-            Assign to Distributor
+            Assign to Ambassador
           </label>
           <%= select_tag 'assigned_distributor_id',
               options_for_select([
-                ['-- No Distributor (Remove Assignment) --', '']
+                ['-- No Ambassador (Remove Assignment) --', '']
               ] +
               @available_distributors.map { |distributor|
                 [
@@ -246,18 +246,18 @@
                 id: "distributor_select"
               } %>
           <small class="form-text text-muted">
-            Select a distributor to assign this sub agent to. Choose "No Distributor" to remove current assignment.
+            Select an ambassador to assign this sub agent to. Choose "No Ambassador" to remove current assignment.
           </small>
         </div>
       </div>
 
-      <!-- Distributor Preview -->
+      <!-- Ambassador Preview -->
       <div id="distributor_preview" class="mt-3" style="<%= @assigned_distributor.present? ? '' : 'display: none;' %>">
         <div class="card bg-light">
           <div class="card-body">
             <h6 class="card-title mb-2">
               <i class="bi bi-person-circle me-1"></i>
-              Selected Distributor Details
+              Selected Ambassador Details
             </h6>
             <div class="row">
               <div class="col-md-4">
@@ -389,7 +389,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Distributor assignment management
+  // Ambassador assignment management
   const distributorSelect = document.getElementById('distributor_select');
   const distributorPreview = document.getElementById('distributor_preview');
   const previewName = document.getElementById('preview_name');
@@ -400,13 +400,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedOption = this.options[this.selectedIndex];
 
     if (this.value === '' || this.value === null) {
-      // No distributor selected
+      // No ambassador selected
       distributorPreview.style.display = 'none';
       previewName.textContent = '';
       previewEmail.textContent = '';
       previewMobile.textContent = '';
     } else {
-      // Distributor selected
+      // Ambassador selected
       const name = selectedOption.textContent.split(' - ')[0];
       const email = selectedOption.getAttribute('data-email') || '';
       const mobile = selectedOption.getAttribute('data-mobile') || '';
