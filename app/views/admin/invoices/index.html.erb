@@ -115,101 +115,139 @@
             <% @invoices.each do |invoice| %>
               <tr>
                 <td>
-                  <strong class="text-primary"><%= invoice.invoice_number %></strong>
+                  <div class="fw-bold text-primary fs-6">
+                    <%= invoice.invoice_number %>
+                  </div>
                 </td>
-                <td>
+                <td class="py-3">
+                  <div>
+                    <div class="fw-semibold text-dark">
+                      <%= invoice.payout_recipient %>
+                    </div>
+                    <small class="text-muted">
+                      <%= invoice.payout_type.humanize %> Payment
+                    </small>
+                  </div>
+                </td>
+                <td class="py-3">
+                  <div class="text-dark">
+                    <% case invoice.payout_type %>
+                    <% when 'affiliate' %>
+                      Affiliate
+                    <% when 'distributor' %>
+                      Ambassador
+                    <% when 'commission' %>
+                      Commission
+                    <% else %>
+                      <%= invoice.payout_type.humanize %>
+                    <% end %>
+                  </div>
+                </td>
+                <td class="py-3">
                   <div class="d-flex align-items-center">
-                    <div class="me-3">
-                      <div class="avatar bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                        <i class="bi bi-person"></i>
+                    <div class="bg-success bg-opacity-10 rounded-3 px-3 py-2">
+                      <div class="fs-6 fw-bold text-success mb-0">
+                        ₹<%= number_with_delimiter(invoice.formatted_amount) %>
                       </div>
+                      <small class="text-success opacity-75">Amount</small>
                     </div>
-                    <div>
-                      <div class="fw-semibold"><%= invoice.payout_recipient %></div>
-                      <div class="text-muted small">
-                        <% case invoice.payout_type %>
-                        <% when 'affiliate' %>
-                          <span class="badge badge-sm bg-purple-subtle text-purple">Affiliate Payment</span>
-                        <% when 'distributor' %>
-                          <span class="badge badge-sm bg-success-subtle text-success">Ambassador Payment</span>
-                        <% when 'commission' %>
-                          <span class="badge badge-sm bg-primary-subtle text-primary">Commission Payment</span>
+                  </div>
+                </td>
+                <td class="py-3">
+                  <div class="d-flex align-items-center">
+                    <div class="bg-info bg-opacity-10 rounded-2 px-3 py-2">
+                      <div class="d-flex align-items-center mb-1">
+                        <i class="bi bi-calendar-event text-info me-2"></i>
+                        <span class="fw-medium text-dark">
+                          <%= invoice.invoice_date.strftime('%d %b %Y') %>
+                        </span>
+                      </div>
+                      <small class="text-info">Invoice Date</small>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-3">
+                  <div class="d-flex align-items-center">
+                    <div class="<%= invoice.overdue? ? 'bg-danger' : 'bg-warning' %> bg-opacity-10 rounded-2 px-3 py-2">
+                      <div class="d-flex align-items-center mb-1">
+                        <i class="bi bi-calendar-check <%= invoice.overdue? ? 'text-danger' : 'text-warning' %> me-2"></i>
+                        <span class="fw-medium text-dark">
+                          <%= invoice.due_date.strftime('%d %b %Y') %>
+                        </span>
+                      </div>
+                      <small class="<%= invoice.overdue? ? 'text-danger' : 'text-warning' %>">
+                        <% if invoice.overdue? %>
+                          <i class="bi bi-exclamation-triangle me-1"></i>
+                          Overdue by <%= invoice.days_overdue %> days
                         <% else %>
-                          <span class="badge badge-sm bg-secondary-subtle text-secondary"><%= invoice.payout_type.humanize %> Payment</span>
+                          Due Date
                         <% end %>
-                      </div>
+                      </small>
                     </div>
                   </div>
                 </td>
-                <td>
-                  <% case invoice.payout_type %>
-                  <% when 'affiliate' %>
-                    <span class="badge bg-purple-subtle text-purple">Affiliate</span>
-                  <% when 'distributor' %>
-                    <span class="badge bg-success-subtle text-success">Ambassador</span>
-                  <% when 'commission' %>
-                    <span class="badge bg-primary-subtle text-primary">Commission</span>
-                  <% else %>
-                    <span class="badge bg-secondary-subtle text-secondary"><%= invoice.payout_type.humanize %></span>
-                  <% end %>
-                </td>
-                <td>
-                  <strong class="text-success">₹<%= number_with_delimiter(invoice.formatted_amount) %></strong>
-                </td>
-                <td>
-                  <div class="text-muted">
-                    <i class="bi bi-calendar me-1"></i>
-                    <%= invoice.invoice_date.strftime('%d %b %Y') %>
+                <td class="py-3">
+                  <div class="text-dark">
+                    <% case invoice.status %>
+                    <% when 'pending' %>
+                      Pending
+                    <% when 'paid' %>
+                      Paid
+                    <% else %>
+                      Cancelled
+                    <% end %>
                   </div>
                 </td>
-                <td>
-                  <div class="text-muted">
-                    <i class="bi bi-calendar-event me-1"></i>
-                    <%= invoice.due_date.strftime('%d %b %Y') %>
-                  </div>
-                  <% if invoice.overdue? %>
-                    <div class="text-danger small">
-                      <i class="bi bi-exclamation-triangle me-1"></i>
-                      Overdue by <%= invoice.days_overdue %> days
+                <td class="py-3">
+                  <div class="d-flex gap-2 align-items-center">
+                    <!-- View Details -->
+                    <%= link_to admin_invoice_path(invoice),
+                        class: "btn btn-outline-primary btn-sm rounded-pill px-3",
+                        title: "View Details",
+                        data: { bs_toggle: "tooltip" } do %>
+                      <i class="bi bi-eye me-1"></i>View
+                    <% end %>
+
+                    <!-- Download Actions Dropdown -->
+                    <div class="dropdown">
+                      <button class="btn btn-outline-secondary btn-sm rounded-pill dropdown-toggle px-3"
+                              type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-download me-1"></i>Download
+                      </button>
+                      <ul class="dropdown-menu shadow-sm">
+                        <li>
+                          <%= link_to admin_invoice_path(invoice, format: :pdf),
+                              class: "dropdown-item",
+                              target: "_blank" do %>
+                            <i class="bi bi-file-pdf me-2"></i>Standard PDF
+                          <% end %>
+                        </li>
+                        <li>
+                          <%= link_to show_premium_admin_invoice_path(invoice),
+                              class: "dropdown-item",
+                              target: "_blank" do %>
+                            <i class="bi bi-star me-2"></i>Premium View
+                          <% end %>
+                        </li>
+                        <li>
+                          <%= link_to download_premium_pdf_admin_invoice_path(invoice, format: :pdf),
+                              class: "dropdown-item",
+                              target: "_blank" do %>
+                            <i class="bi bi-file-pdf-fill me-2"></i>Premium PDF
+                          <% end %>
+                        </li>
+                      </ul>
                     </div>
-                  <% end %>
-                </td>
-                <td>
-                  <% case invoice.status %>
-                  <% when 'pending' %>
-                    <span class="badge bg-warning-subtle text-warning">
-                      <i class="bi bi-clock me-1"></i>Pending
-                    </span>
-                  <% when 'paid' %>
-                    <span class="badge bg-success-subtle text-success">
-                      <i class="bi bi-check-circle me-1"></i>Paid
-                    </span>
-                  <% else %>
-                    <span class="badge bg-danger-subtle text-danger">
-                      <i class="bi bi-x-circle me-1"></i>Cancelled
-                    </span>
-                  <% end %>
-                </td>
-                <td>
-                  <div class="btn-group btn-group-sm" role="group">
-                    <%= link_to admin_invoice_path(invoice), class: "btn btn-outline-primary btn-sm", title: "View Details" do %>
-                      <i class="bi bi-eye"></i>
-                    <% end %>
-                    <%= link_to admin_invoice_path(invoice, format: :pdf), class: "btn btn-outline-secondary btn-sm", target: "_blank", title: "Download PDF" do %>
-                      <i class="bi bi-download"></i>
-                    <% end %>
-                    <%= link_to show_premium_admin_invoice_path(invoice), class: "btn btn-outline-info btn-sm", target: "_blank", title: "Premium View" do %>
-                      <i class="bi bi-star"></i>
-                    <% end %>
-                    <%= link_to download_premium_pdf_admin_invoice_path(invoice, format: :pdf), class: "btn btn-outline-success btn-sm", target: "_blank", title: "Premium PDF" do %>
-                      <i class="bi bi-file-pdf"></i>
-                    <% end %>
+
+                    <!-- Mark as Paid (if pending) -->
                     <% if invoice.status == 'pending' %>
-                      <%= link_to mark_as_paid_admin_invoice_path(invoice), method: :patch,
-                                  class: "btn btn-outline-success btn-sm",
-                                  confirm: "Mark this invoice as paid?",
-                                  title: "Mark as Paid" do %>
-                        <i class="bi bi-check"></i>
+                      <%= link_to mark_as_paid_admin_invoice_path(invoice),
+                          method: :patch,
+                          class: "btn btn-success btn-sm rounded-pill px-3",
+                          confirm: "Mark this invoice as paid?",
+                          title: "Mark as Paid",
+                          data: { bs_toggle: "tooltip" } do %>
+                        <i class="bi bi-check-circle me-1"></i>Mark Paid
                       <% end %>
                     <% end %>
                   </div>
@@ -251,3 +289,102 @@
     <% end %>
   </div>
 </div>
+
+<style>
+  /* Custom styling for invoice index page */
+  .table th {
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    padding: 1rem 0.75rem;
+  }
+
+  .table td {
+    vertical-align: middle;
+    border-color: #f1f5f9;
+  }
+
+  .table tbody tr:hover {
+    background-color: #f8fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+  }
+
+  .avatar {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+  }
+
+  .avatar:hover {
+    transform: scale(1.05);
+  }
+
+  .badge {
+    font-size: 12px;
+    letter-spacing: 0.25px;
+  }
+
+  .rounded-pill {
+    border-radius: 50px !important;
+  }
+
+  .btn-sm.rounded-pill {
+    padding: 0.375rem 1rem;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .spinner-border-sm {
+    animation: spinner-border 0.75s linear infinite;
+  }
+
+  /* Hover effects for action buttons */
+  .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+  }
+
+  /* Dropdown menu styling */
+  .dropdown-menu {
+    border: none;
+    border-radius: 12px;
+    padding: 0.5rem 0;
+  }
+
+  .dropdown-item {
+    padding: 0.5rem 1rem;
+    font-size: 13px;
+    transition: all 0.2s ease;
+  }
+
+  .dropdown-item:hover {
+    background-color: #f1f5f9;
+    color: #334155;
+  }
+
+  /* Custom background colors */
+  .bg-purple {
+    --bs-purple: #8b5cf6;
+    background-color: var(--bs-purple) !important;
+  }
+
+  .text-purple {
+    color: #8b5cf6 !important;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .table-responsive {
+      font-size: 14px;
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.75rem;
+      font-size: 12px;
+    }
+  }
+</style>
