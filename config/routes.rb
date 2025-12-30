@@ -10,6 +10,10 @@ Rails.application.routes.draw do
   # Root route
   root "dashboard#index"
 
+  # Public pages
+  get 'adhika/privacy-policy', to: 'public_pages#adhika_privacy_policy'
+  get 'adhika/account-deletion-policy', to: 'public_pages#adhika_account_deletion_policy'
+
   # Dashboard
   get 'dashboard', to: 'dashboard#index'
   get 'dashboard/stats', to: 'dashboard#stats'
