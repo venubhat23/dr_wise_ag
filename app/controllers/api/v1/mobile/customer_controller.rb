@@ -11,6 +11,16 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     # Get all life insurance policies
     life_policies = LifeInsurance.where(customer_id: customer_id)
 
+    # Get all motor insurance policies
+    motor_policies = []
+    begin
+      if defined?(MotorInsurance)
+        motor_policies = MotorInsurance.where(customer_id: customer_id)
+      end
+    rescue => e
+      Rails.logger.warn "Motor insurance table issue: #{e.message}"
+    end
+
     portfolio = []
 
     # Add health insurance policies
@@ -58,8 +68,40 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       }
     end
 
+    # Add motor insurance policies
+    motor_policies.each do |policy|
+      portfolio << {
+        id: policy.id,
+        insurance_name: "Motor Insurance",
+        insurance_type: "Motor",
+        policy_number: policy.policy_number,
+        policy_holder: policy.policy_holder,
+        start_date: policy.policy_start_date,
+        end_date: policy.policy_end_date,
+        total_premium: policy.total_premium,
+        sum_insured: policy.respond_to?(:vehicle_idv) ? policy.vehicle_idv : nil,
+        insurance_company: policy.insurance_company_name,
+        payment_mode: policy.respond_to?(:payment_mode) ? policy.payment_mode : 'Yearly',
+        status: begin
+          if policy.policy_end_date.present?
+            policy.policy_end_date > Date.current ? 'Active' : (policy.policy_end_date < Date.current ? 'Expired' : 'Expiring Soon')
+          else
+            'Active'
+          end
+        end,
+        days_until_expiry: begin
+          if policy.policy_end_date.present?
+            (policy.policy_end_date - Date.current).to_i
+          else
+            nil
+          end
+        end,
+        attachment: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
+      }
+    end
+
     # Sort by start date (newest first)
-    portfolio = portfolio.sort_by { |p| p[:start_date] }.reverse
+    portfolio = portfolio.sort_by { |p| p[:start_date] || Date.current }.reverse
 
     render json: {
       success: true,
@@ -232,6 +274,93 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
             attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
+          }
+        end
+      end
+    end
+
+    # Motor Insurance installments - include active and expired policies that might need renewal payments
+    motor_policies = []
+    begin
+      if defined?(MotorInsurance)
+        motor_policies = MotorInsurance.where(customer_id: customer_id)
+                                     .where('policy_end_date >= ? OR policy_start_date >= ?', 18.months.ago, Date.current)
+      end
+    rescue => e
+      Rails.logger.warn "Motor insurance table issue: #{e.message}"
+    end
+
+    motor_policies.each do |policy|
+      # Skip policies with missing critical data
+      next unless policy.policy_end_date.present? && policy.policy_start_date.present?
+      next unless policy.total_premium.present? && policy.total_premium > 0
+
+      # For expired policies, calculate installments based on renewal dates
+      if policy.policy_end_date < Date.current
+        # Policy is expired - calculate renewal installments if within renewal period
+        days_since_expiry = (Date.current - policy.policy_end_date).to_i
+
+        # Only show renewal installments if policy expired recently (within 18 months)
+        next if days_since_expiry > 540 # 18 months
+
+        # Use renewal date (day after policy end) as the base for installment calculations
+        renewal_date = policy.policy_end_date + 1.day
+        installment_type = 'renewal'
+        autopay_start = renewal_date
+      else
+        # Policy is active - use normal installment logic
+        autopay_start = if policy.respond_to?(:installment_autopay_start_date) && policy.installment_autopay_start_date.present?
+                          policy.installment_autopay_start_date
+                        else
+                          policy.policy_start_date
+                        end
+        installment_type = 'regular'
+      end
+
+      payment_mode = policy.respond_to?(:payment_mode) ? policy.payment_mode : 'Yearly'
+
+      if autopay_start.present? && payment_mode.present? &&
+         !['single', 'one time', 'lump sum'].include?(payment_mode.downcase)
+
+        next_installment = calculate_next_installment_date(autopay_start, payment_mode)
+
+        # If next_installment is in the past, keep adding payment cycle until we get a future date
+        safety_counter = 0
+        while next_installment && next_installment < Date.current && safety_counter < 10
+          next_installment = calculate_next_installment_date(next_installment, payment_mode)
+          safety_counter += 1
+        end
+
+        # Show installments within appropriate time frame based on payment mode
+        max_days_ahead = case payment_mode.downcase
+                        when 'monthly' then 45.days
+                        when 'quarterly' then 120.days
+                        when 'half-yearly', 'half yearly' then 210.days
+                        when 'yearly' then 400.days
+                        else 60.days
+                        end
+
+        if next_installment && next_installment <= max_days_ahead.from_now
+          days_until_installment = (next_installment - Date.current).to_i
+
+          installments << {
+            id: policy.id,
+            insurance_name: "Motor Insurance",
+            insurance_type: "Motor",
+            policy_number: policy.policy_number || "N/A",
+            policy_holder: policy.policy_holder || "N/A",
+            insurance_company: policy.insurance_company_name || "N/A",
+            start_date: policy.policy_start_date,
+            end_date: policy.policy_end_date,
+            total_premium: policy.total_premium.to_f,
+            payment_mode: payment_mode,
+            next_installment_date: next_installment,
+            installment_amount: calculate_installment_amount(policy.total_premium, payment_mode),
+            days_until_installment: days_until_installment,
+            installment_type: installment_type, # 'regular' or 'renewal'
+            is_expired: policy.policy_end_date < Date.current,
+            is_overdue: installment_type == 'renewal' && days_until_installment < 0,
+            attachment: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
           }
         end
       end
@@ -430,13 +559,13 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             end_date: policy.policy_end_date,
             renewal_date: policy.policy_end_date + 1.day,
             total_premium: policy.total_premium,
-            payment_mode: policy.payment_mode,
+            payment_mode: 'Yearly', # Motor insurance typically yearly
             days_until_renewal: days_until_renewal,
             renewal_status: renewal_status,
             is_expired: policy.policy_end_date < Date.current,
             days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
             insurance_company: policy.insurance_company_name,
-            attachment: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
+            attachment: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
           }
         end
       end

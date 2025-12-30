@@ -15,12 +15,42 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
 
     # Check if it's a user login (including customers, agents, admin)
     # Support login with both email and mobile number
-    user = User.find_by(email: login_field) || User.find_by(mobile: login_field)
+    user = User.find_by(email: login_field)
+
+    # If not found by email and login_field looks like a mobile number, try mobile search with formatting
+    unless user
+      formatted_mobile = format_mobile_number(login_field)
+      if formatted_mobile
+        # Try to find user with multiple mobile format variations
+        user = User.find_by(mobile: formatted_mobile) ||
+               User.find_by(mobile: "+91#{formatted_mobile}") ||
+               User.find_by(mobile: "+91 #{formatted_mobile}") ||
+               User.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+               User.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+               User.where("REPLACE(REPLACE(mobile, ' ', ''), '+91', '') = ?", formatted_mobile).first
+      else
+        # If format_mobile_number returns nil, try direct mobile search as fallback
+        user = User.find_by(mobile: login_field)
+      end
+    end
     if user && user.valid_password?(password) && user.status
 
       if user.customer?
         # Customer login - find associated customer record
-        customer = Customer.find_by(email: user.email) || Customer.find_by(mobile: user.mobile)
+        customer = Customer.find_by(email: user.email)
+        unless customer
+          formatted_mobile = format_mobile_number(user.mobile)
+          if formatted_mobile
+            customer = Customer.find_by(mobile: formatted_mobile) ||
+                      Customer.find_by(mobile: "+91#{formatted_mobile}") ||
+                      Customer.find_by(mobile: "+91 #{formatted_mobile}") ||
+                      Customer.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+                      Customer.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+                      Customer.where("REPLACE(REPLACE(mobile, ' ', ''), '+91', '') = ?", formatted_mobile).first
+          else
+            customer = Customer.find_by(mobile: user.mobile)
+          end
+        end
         if customer
           token = generate_token(user, 'customer')
           portfolio_stats = get_customer_portfolio_stats(customer)
@@ -77,7 +107,20 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
     end
 
     # Check sub-agent login
-    sub_agent = SubAgent.find_by(email: login_field) || SubAgent.find_by(mobile: login_field)
+    sub_agent = SubAgent.find_by(email: login_field)
+    unless sub_agent
+      formatted_mobile = format_mobile_number(login_field)
+      if formatted_mobile
+        sub_agent = SubAgent.find_by(mobile: formatted_mobile) ||
+                   SubAgent.find_by(mobile: "+91#{formatted_mobile}") ||
+                   SubAgent.find_by(mobile: "+91 #{formatted_mobile}") ||
+                   SubAgent.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+                   SubAgent.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+                   SubAgent.where("REPLACE(REPLACE(mobile, ' ', ''), '+91', '') = ?", formatted_mobile).first
+      else
+        sub_agent = SubAgent.find_by(mobile: login_field)
+      end
+    end
     if sub_agent && sub_agent.status == 'active'
       # For sub-agents, we also don't have password in current model
       token = generate_token(sub_agent, 'sub_agent')
@@ -140,9 +183,36 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
     end
 
     # Check in all user types
-    user = User.find_by(email: login_field) || User.find_by(mobile: login_field) ||
-           Customer.find_by(email: login_field) || Customer.find_by(mobile: login_field) ||
-           SubAgent.find_by(email: login_field) || SubAgent.find_by(mobile: login_field)
+    user = User.find_by(email: login_field) || Customer.find_by(email: login_field) || SubAgent.find_by(email: login_field)
+
+    # If not found by email, try mobile search with formatting
+    unless user
+      formatted_mobile = format_mobile_number(login_field)
+      if formatted_mobile
+        user = User.find_by(mobile: formatted_mobile) ||
+               User.find_by(mobile: "+91#{formatted_mobile}") ||
+               User.find_by(mobile: "+91 #{formatted_mobile}") ||
+               User.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+               User.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+               User.where("REPLACE(REPLACE(mobile, ' ', ''), '+91', '') = ?", formatted_mobile).first ||
+               Customer.find_by(mobile: formatted_mobile) ||
+               Customer.find_by(mobile: "+91#{formatted_mobile}") ||
+               Customer.find_by(mobile: "+91 #{formatted_mobile}") ||
+               Customer.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+               Customer.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+               Customer.where("REPLACE(REPLACE(mobile, ' ', ''), '+91', '') = ?", formatted_mobile).first ||
+               SubAgent.find_by(mobile: formatted_mobile) ||
+               SubAgent.find_by(mobile: "+91#{formatted_mobile}") ||
+               SubAgent.find_by(mobile: "+91 #{formatted_mobile}") ||
+               SubAgent.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+               SubAgent.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+               SubAgent.where("REPLACE(REPLACE(mobile, ' ', ''), '+91', '') = ?", formatted_mobile).first
+      else
+        user = User.find_by(mobile: login_field) ||
+               Customer.find_by(mobile: login_field) ||
+               SubAgent.find_by(mobile: login_field)
+      end
+    end
 
     if user
       # Generate reset token (simplified - you might want to use a proper token system)
