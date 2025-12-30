@@ -81,6 +81,10 @@
               <div class="invalid-feedback">Please provide a first name.</div>
             </div>
             <div class="col-md-6">
+              <%= form.label :middle_name, class: "form-label" %>
+              <%= form.text_field :middle_name, class: "form-control", placeholder: "Enter middle name" %>
+            </div>
+            <div class="col-md-6">
               <%= form.label :last_name, class: "form-label" do %>
                 Last Name <span class="text-danger">*</span>
               <% end %>
@@ -124,12 +128,14 @@
               <%= form.text_field :birth_place, class: "form-control", placeholder: "Enter birth place" %>
             </div>
             <div class="col-md-6">
-              <%= form.label :height, class: "form-label" %>
-              <%= form.text_field :height, class: "form-control", placeholder: "e.g., 5'8\"" %>
+              <%= form.label :height_feet, "Height (Feet)", class: "form-label" %>
+              <%= form.number_field :height_feet, class: "form-control", placeholder: "e.g., 5.8", step: 0.1, min: 3.5, max: 8.0 %>
+              <small class="form-text text-muted">Range: 3.5 - 8.0 feet</small>
             </div>
             <div class="col-md-6">
-              <%= form.label :weight, class: "form-label" %>
-              <%= form.text_field :weight, class: "form-control", placeholder: "e.g., 70 kg" %>
+              <%= form.label :weight_kg, "Weight (Kg)", class: "form-label" %>
+              <%= form.number_field :weight_kg, class: "form-control", placeholder: "e.g., 70", step: 0.1 %>
+              <small class="form-text text-muted">Enter weight in kg</small>
             </div>
             <div class="col-md-6">
               <%= form.label :education, class: "form-label" %>
@@ -148,6 +154,27 @@
                   { class: "form-select" } %>
             </div>
             <div class="col-md-6">
+              <%= form.label :business_job, "Business/Job", class: "form-label" %>
+              <%= form.select :business_job,
+                  options_for_select([
+                    ['Private Employee', 'private_employee'],
+                    ['Government Employee', 'government_employee'],
+                    ['Self Employed', 'self_employed'],
+                    ['Business Owner', 'business_owner'],
+                    ['Professional', 'professional'],
+                    ['Student', 'student'],
+                    ['Homemaker', 'homemaker'],
+                    ['Retired', 'retired'],
+                    ['Unemployed', 'unemployed']
+                  ], @customer.business_job),
+                  { prompt: 'Select Business/Job' },
+                  { class: "form-select" } %>
+            </div>
+            <div class="col-md-6">
+              <%= form.label :business_name, "Name of Business/Job", class: "form-label" %>
+              <%= form.text_field :business_name, class: "form-control", placeholder: "Enter business/job name" %>
+            </div>
+            <div class="col-md-6">
               <%= form.label :occupation, class: "form-label" %>
               <%= form.text_field :occupation, class: "form-control", placeholder: "Enter occupation" %>
             </div>
@@ -164,12 +191,16 @@
               <%= form.number_field :annual_income, class: "form-control", placeholder: "Enter annual income", step: 0.01 %>
             </div>
             <div class="col-md-6">
-              <%= form.label :pan_number, class: "form-label" %>
+              <%= form.label :pan_number, "PAN No", class: "form-label" %>
               <%= form.text_field :pan_number, class: "form-control", placeholder: "Enter PAN number", pattern: "[A-Z]{5}[0-9]{4}[A-Z]" %>
             </div>
             <div class="col-md-6">
               <%= form.label :gst_number, class: "form-label" %>
               <%= form.text_field :gst_number, class: "form-control", placeholder: "Enter GST number" %>
+            </div>
+            <div class="col-12">
+              <%= form.label :additional_information, "Additional Information", class: "form-label" %>
+              <%= form.text_area :additional_information, class: "form-control", rows: 3, placeholder: "Enter additional notes" %>
             </div>
           </div>
         </div>

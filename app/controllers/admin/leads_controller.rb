@@ -119,6 +119,75 @@ class Admin::LeadsController < Admin::ApplicationController
       return
     end
 
+    # Check if customer already exists with same mobile or email
+    existing_customer = nil
+    if @lead.contact_number.present?
+      existing_customer = Customer.find_by(mobile: @lead.contact_number)
+    end
+
+    if !existing_customer && @lead.email.present?
+      existing_customer = Customer.find_by(email: @lead.email)
+    end
+
+    if existing_customer
+      # Update existing customer with lead data and redirect to edit
+      Rails.logger.info "Found existing customer #{existing_customer.id} for lead #{@lead.id}. Updating with latest lead data."
+
+      # Prepare update attributes from lead
+      update_attrs = {}
+
+      if @lead.individual?
+        # Update individual customer fields with non-blank lead data
+        update_attrs[:first_name] = @lead.first_name if @lead.first_name.present?
+        update_attrs[:middle_name] = @lead.middle_name if @lead.middle_name.present?
+        update_attrs[:last_name] = @lead.last_name if @lead.last_name.present?
+        update_attrs[:email] = @lead.email if @lead.email.present?
+        update_attrs[:birth_date] = @lead.birth_date if @lead.birth_date.present?
+        update_attrs[:gender] = @lead.gender if @lead.gender.present?
+        update_attrs[:marital_status] = @lead.marital_status if @lead.marital_status.present?
+        update_attrs[:pan_no] = @lead.pan_no if @lead.pan_no.present?
+        update_attrs[:pan_number] = @lead.pan_no if @lead.pan_no.present?
+        update_attrs[:height_feet] = @lead.height if @lead.height.present?
+        update_attrs[:weight_kg] = @lead.weight if @lead.weight.present?
+        update_attrs[:birth_place] = @lead.birth_place if @lead.birth_place.present?
+        update_attrs[:education] = @lead.education if @lead.education.present?
+        update_attrs[:business_job] = @lead.business_job if @lead.business_job.present?
+        update_attrs[:business_name] = @lead.business_name if @lead.business_name.present?
+        update_attrs[:job_name] = @lead.job_name if @lead.job_name.present?
+        update_attrs[:occupation] = @lead.occupation if @lead.occupation.present?
+        update_attrs[:type_of_duty] = @lead.type_of_duty if @lead.type_of_duty.present?
+        update_attrs[:annual_income] = @lead.annual_income if @lead.annual_income.present?
+        update_attrs[:additional_information] = @lead.additional_information if @lead.additional_information.present?
+      elsif @lead.corporate?
+        update_attrs[:company_name] = @lead.company_name if @lead.company_name.present?
+        update_attrs[:email] = @lead.email if @lead.email.present?
+        update_attrs[:pan_no] = @lead.pan_no if @lead.pan_no.present?
+        update_attrs[:gst_no] = @lead.gst_no if @lead.gst_no.present?
+      end
+
+      # Always update address fields if present
+      update_attrs[:address] = @lead.address if @lead.address.present?
+      update_attrs[:state] = @lead.state if @lead.state.present?
+      update_attrs[:city] = @lead.city if @lead.city.present?
+      update_attrs[:lead_id] = @lead.lead_id if @lead.lead_id.present?
+
+      # Update customer with lead data
+      if update_attrs.any?
+        existing_customer.update!(update_attrs)
+        Rails.logger.info "Updated customer #{existing_customer.id} with lead data: #{update_attrs.keys.join(', ')}"
+      end
+
+      # Update lead to mark as converted
+      @lead.update!(
+        current_stage: 'converted',
+        converted_customer_id: existing_customer.id
+      )
+
+      redirect_to edit_admin_customer_path(existing_customer),
+                  notice: "Found existing customer and updated with latest lead information. Please review and save the changes."
+      return
+    end
+
     ActiveRecord::Base.transaction do
       # Prepare customer attributes based on customer type
       customer_attrs = {
@@ -143,10 +212,8 @@ class Admin::LeadsController < Admin::ApplicationController
           marital_status: @lead.marital_status.presence,
           pan_no: @lead.pan_no.presence,
           pan_number: @lead.pan_no.presence, # Map to both PAN fields
-          height: @lead.height.presence,
-          height_feet: @lead.height.presence, # Map to both height fields
-          weight: @lead.weight.presence,
-          weight_kg: @lead.weight.presence, # Map to both weight fields
+          height_feet: @lead.height.presence,
+          weight_kg: @lead.weight.presence,
           birth_place: @lead.birth_place.presence,
           education: @lead.education.presence,
           business_job: @lead.business_job.presence,
@@ -180,8 +247,8 @@ class Admin::LeadsController < Admin::ApplicationController
       Rails.logger.info "  - Gender: #{customer.gender}"
       Rails.logger.info "  - Marital status: #{customer.marital_status}"
       Rails.logger.info "  - PAN: #{customer.pan_no} / #{customer.pan_number}"
-      Rails.logger.info "  - Height: #{customer.height} / #{customer.height_feet}"
-      Rails.logger.info "  - Weight: #{customer.weight} / #{customer.weight_kg}"
+      Rails.logger.info "  - Height: #{customer.height_feet}"
+      Rails.logger.info "  - Weight: #{customer.weight_kg}"
       Rails.logger.info "  - Birth place: #{customer.birth_place}"
       Rails.logger.info "  - Address: #{customer.address}"
       Rails.logger.info "  - City: #{customer.city}"
