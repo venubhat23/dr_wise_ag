@@ -1,6 +1,23 @@
 <% content_for :title, "Privacy Policy - ADHIKA by Drwise Insurance" %>
 <% content_for :description, "Privacy Policy for ADHIKA application by Drwise Insurance. Learn how we collect, use, and protect your personal information." %>
 
+<!-- JSON-LD Schema for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Drwise Insurance",
+  "url": "<%= request.base_url %>",
+  "logo": "<%= request.base_url %>/logo.jpeg",
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "email": "drwisedev@gmail.com",
+    "contactType": "Customer Support"
+  },
+  "description": "ADHIKA by Drwise Insurance - Your trusted insurance partner"
+}
+</script>
+
 <!-- Hero Section -->
 <section class="hero-section">
   <div class="container">
