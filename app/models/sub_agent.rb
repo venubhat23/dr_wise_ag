@@ -4,6 +4,10 @@ class SubAgent < ApplicationRecord
   # Password authentication
   has_secure_password
 
+  # Store plain password for display purposes
+  attr_accessor :store_plain_password
+  before_save :store_password_if_changed
+
   # Associations
   belongs_to :role
   has_many :sub_agent_documents, dependent: :destroy
@@ -59,6 +63,15 @@ class SubAgent < ApplicationRecord
       age
     else
       nil
+    end
+  end
+
+  private
+
+  def store_password_if_changed
+    if password.present? && (password_digest_changed? || new_record?)
+      self.plain_password = password
+      self.original_password = password if new_record?
     end
   end
 end

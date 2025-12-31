@@ -106,7 +106,7 @@
             <tr>
               <th>Name</th>
               <th>Mobile</th>
-              <th>Email</th>
+              <th>Email & Login</th>
               <th>Role</th>
               <th>Assigned Distributor</th>
               <th>Status</th>
@@ -135,10 +135,34 @@
                   </span>
                 </td>
                 <td>
-                  <span class="badge bg-light text-dark border">
-                    <i class="bi bi-envelope me-1"></i>
-                    <%= sub_agent.formatted_email %>
-                  </span>
+                  <div>
+                    <span class="badge bg-light text-dark border mb-1 d-block">
+                      <i class="bi bi-envelope me-1"></i>
+                      <%= sub_agent.formatted_email %>
+                    </span>
+                    <% if sub_agent.email.present? %>
+                      <small class="text-success d-block">
+                        <i class="bi bi-person-check me-1"></i>Username: <%= sub_agent.email %>
+                      </small>
+                      <% if sub_agent.plain_password.present? %>
+                        <small class="text-info d-block">
+                          <i class="bi bi-key me-1"></i>Password: <%= sub_agent.plain_password %>
+                        </small>
+                      <% elsif sub_agent.original_password.present? %>
+                        <small class="text-info d-block">
+                          <i class="bi bi-key me-1"></i>Password: <%= sub_agent.original_password %>
+                        </small>
+                      <% else %>
+                        <small class="text-muted d-block">
+                          <i class="bi bi-lock me-1"></i>Password: Not available
+                        </small>
+                      <% end %>
+                    <% else %>
+                      <small class="text-muted d-block">
+                        <i class="bi bi-person-dash me-1"></i>No login credentials
+                      </small>
+                    <% end %>
+                  </div>
                 </td>
                 <td>
                   <span class="badge bg-info">Role <%= sub_agent.role_id %></span>
