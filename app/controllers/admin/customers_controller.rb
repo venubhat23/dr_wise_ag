@@ -586,6 +586,7 @@ class Admin::CustomersController < Admin::ApplicationController
       :added_by, :sub_agent_id, :age,
       profile_image: [],
       documents_attributes: [:id, :document_type, :file, :_destroy],
+      uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy],
       family_members_attributes: [
         :id, :first_name, :middle_name, :last_name, :birth_date, :age, :height_feet, :weight_kg,
         :gender, :relationship, :pan_no, :mobile, :additional_information, :_destroy,

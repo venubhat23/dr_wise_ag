@@ -132,6 +132,7 @@
               <th class="border-0">User</th>
               <th class="border-0">Type & Role</th>
               <th class="border-0">Contact</th>
+              <th class="border-0">Email & Login</th>
               <th class="border-0">Location</th>
               <th class="border-0">PAN/GST</th>
               <th class="border-0">Status</th>
@@ -147,7 +148,7 @@
                     <h6 class="mb-1">
                       <%= [user.first_name, user.last_name].compact.join(' ') %>
                     </h6>
-                    <small class="text-muted"><%= user.email %></small>
+                    <small class="text-muted">+91 <%= user.mobile %></small>
                   </div>
                 </td>
                 <td>
@@ -169,10 +170,25 @@
                 </td>
                 <td>
                   <div>
-                    <div class="mb-1"><%= user.mobile %></div>
                     <% if user.respond_to?(:company_name) && user.company_name.present? %>
-                      <small class="text-muted"><%= user.company_name %></small>
+                      <div class="mb-1"><%= user.company_name %></div>
                     <% end %>
+                  </div>
+                </td>
+                <td>
+                  <div>
+                    <div class="mb-1"><strong>Username:</strong> <%= user.email %></div>
+                    <div class="small text-success">
+                      <strong>Password:</strong>
+                      <%= case user.user_type
+                          when 'customer'
+                            'Ganesha@123'
+                          when 'admin', 'agent', 'sub_agent'
+                            'password123'
+                          else
+                            'Contact Admin'
+                          end %>
+                    </div>
                   </div>
                 </td>
                 <td>

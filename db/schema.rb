@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_30_132803) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_01_043849) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -128,6 +128,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_30_132803) do
     t.string "processed_by"
     t.datetime "processed_at"
     t.bigint "payout_id"
+    t.string "lead_id"
+    t.index ["lead_id"], name: "index_commission_payouts_on_lead_id"
     t.index ["payout_date"], name: "index_commission_payouts_on_payout_date"
     t.index ["payout_id"], name: "index_commission_payouts_on_payout_id"
     t.index ["payout_to", "status"], name: "idx_commission_payouts_payout_to_status"
@@ -174,6 +176,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_30_132803) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["customer_id"], name: "index_corporate_members_on_customer_id"
+  end
+
+  create_table "customer_documents", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.string "document_type"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_customer_documents_on_customer_id"
   end
 
   create_table "customers", force: :cascade do |t|
@@ -310,6 +320,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_30_132803) do
     t.bigint "documentable_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "title"
+    t.text "description"
+    t.string "uploaded_by"
     t.index ["documentable_type", "documentable_id"], name: "index_documents_on_documentable"
   end
 
@@ -461,4 +474,255 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_30_132803) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["customer_id"], name: "index_investments_on_customer_id"
+  end
+
+  create_table "investor_documents", force: :cascade do |t|
+    t.bigint "investor_id", null: false
+    t.string "document_type"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["investor_id"], name: "index_investor_documents_on_investor_id"
+  end
+
+  create_table "investors", force: :cascade do |t|
+    t.string "first_name", null: false
+    t.string "middle_name"
+    t.string "last_name", null: false
+    t.string "mobile", null: false
+    t.string "email", null: false
+    t.integer "role_id", null: false
+    t.integer "state_id"
+    t.integer "city_id"
+    t.date "birth_date"
+    t.string "gender"
+    t.string "pan_no"
+    t.string "gst_no"
+    t.string "company_name"
+    t.text "address"
+    t.string "bank_name"
+    t.string "account_no"
+    t.string "ifsc_code"
+    t.string "account_holder_name"
+    t.string "account_type"
+    t.string "upi_id"
+    t.integer "status", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_investors_on_email", unique: true
+    t.index ["mobile"], name: "index_investors_on_mobile", unique: true
+    t.index ["role_id"], name: "index_investors_on_role_id"
+    t.index ["status"], name: "index_investors_on_status"
+  end
+
+  create_table "invoices", force: :cascade do |t|
+    t.string "invoice_number"
+    t.string "payout_type"
+    t.integer "payout_id"
+    t.decimal "total_amount"
+    t.string "status"
+    t.date "invoice_date"
+    t.date "due_date"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "leads", force: :cascade do |t|
+    t.string "name"
+    t.string "contact_number"
+    t.string "email"
+    t.string "referred_by"
+    t.string "product_interest"
+    t.string "current_stage"
+    t.date "created_date"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "lead_id"
+    t.text "address"
+    t.string "city"
+    t.string "state"
+    t.string "lead_source"
+    t.string "call_disposition"
+    t.decimal "referral_amount", precision: 10, scale: 2, default: "0.0"
+    t.boolean "transferred_amount", default: false
+    t.text "notes"
+    t.text "attachments"
+    t.datetime "stage_updated_at"
+    t.integer "converted_customer_id"
+    t.integer "policy_created_id"
+    t.string "product_category"
+    t.string "product_subcategory"
+    t.boolean "is_direct", default: true
+    t.integer "affiliate_id"
+    t.string "customer_type"
+    t.string "first_name"
+    t.string "middle_name"
+    t.string "last_name"
+    t.date "birth_date"
+    t.string "gender"
+    t.string "pan_no"
+    t.string "gst_no"
+    t.string "company_name"
+    t.string "marital_status"
+    t.string "height"
+    t.string "weight"
+    t.string "birth_place"
+    t.string "education"
+    t.string "business_job"
+    t.string "business_name"
+    t.string "job_name"
+    t.string "occupation"
+    t.string "type_of_duty"
+    t.decimal "annual_income"
+    t.text "additional_information"
+    t.index ["affiliate_id"], name: "index_leads_on_affiliate_id"
+    t.index ["converted_customer_id"], name: "index_leads_on_converted_customer_id"
+    t.index ["current_stage"], name: "index_leads_on_current_stage"
+    t.index ["lead_id"], name: "index_leads_on_lead_id", unique: true
+    t.index ["lead_source"], name: "index_leads_on_lead_source"
+    t.index ["policy_created_id"], name: "index_leads_on_policy_created_id"
+  end
+
+  create_table "life_insurance_bank_details", force: :cascade do |t|
+    t.bigint "life_insurance_id", null: false
+    t.string "bank_name"
+    t.string "account_type"
+    t.string "account_number"
+    t.string "ifsc_code"
+    t.string "account_holder_name"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["life_insurance_id"], name: "index_life_insurance_bank_details_on_life_insurance_id"
+  end
+
+  create_table "life_insurance_documents", force: :cascade do |t|
+    t.bigint "life_insurance_id", null: false
+    t.string "document_type"
+    t.string "document_name"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["life_insurance_id"], name: "index_life_insurance_documents_on_life_insurance_id"
+  end
+
+  create_table "life_insurance_nominees", force: :cascade do |t|
+    t.bigint "life_insurance_id", null: false
+    t.string "nominee_name"
+    t.string "relationship"
+    t.integer "age"
+    t.decimal "share_percentage"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["life_insurance_id"], name: "index_life_insurance_nominees_on_life_insurance_id"
+  end
+
+  create_table "life_insurances", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.bigint "sub_agent_id"
+    t.string "policy_holder", null: false
+    t.string "insured_name"
+    t.string "insurance_company_name", null: false
+    t.bigint "agency_code_id"
+    t.bigint "broker_id"
+    t.string "policy_type", null: false
+    t.string "payment_mode", null: false
+    t.string "policy_number", null: false
+    t.date "policy_booking_date"
+    t.date "policy_start_date", null: false
+    t.date "policy_end_date", null: false
+    t.date "risk_start_date"
+    t.integer "policy_term", null: false
+    t.integer "premium_payment_term", null: false
+    t.string "plan_name"
+    t.decimal "sum_insured", precision: 15, scale: 2, null: false
+    t.decimal "net_premium", precision: 15, scale: 2, null: false
+    t.decimal "first_year_gst_percentage", precision: 5, scale: 2, default: "18.0"
+    t.decimal "second_year_gst_percentage", precision: 5, scale: 2, default: "0.0"
+    t.decimal "third_year_gst_percentage", precision: 5, scale: 2, default: "0.0"
+    t.decimal "total_premium", precision: 15, scale: 2, null: false
+    t.decimal "term_rider_amount", precision: 15, scale: 2, default: "0.0"
+    t.text "term_rider_note"
+    t.decimal "critical_illness_rider_amount", precision: 15, scale: 2, default: "0.0"
+    t.text "critical_illness_rider_note"
+    t.decimal "accident_rider_amount", precision: 15, scale: 2, default: "0.0"
+    t.text "accident_rider_note"
+    t.decimal "pwb_rider_amount", precision: 15, scale: 2, default: "0.0"
+    t.text "pwb_rider_note"
+    t.decimal "other_rider_amount", precision: 15, scale: 2, default: "0.0"
+    t.text "other_rider_note"
+    t.string "nominee_name"
+    t.string "nominee_relationship"
+    t.integer "nominee_age"
+    t.string "bank_name"
+    t.string "account_type"
+    t.string "account_number"
+    t.string "ifsc_code"
+    t.string "account_holder_name"
+    t.string "reference_by_name"
+    t.string "broker_name"
+    t.decimal "bonus", precision: 15, scale: 2, default: "0.0"
+    t.decimal "fund", precision: 15, scale: 2, default: "0.0"
+    t.text "extra_note"
+    t.decimal "main_agent_commission_percentage", precision: 5, scale: 2, default: "0.0"
+    t.decimal "commission_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "tds_percentage", precision: 5, scale: 2, default: "0.0"
+    t.decimal "tds_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "after_tds_value", precision: 15, scale: 2, default: "0.0"
+    t.date "installment_autopay_start_date"
+    t.date "installment_autopay_end_date"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.text "notification_dates"
+    t.boolean "is_customer_added", default: false
+    t.boolean "is_agent_added", default: false
+    t.boolean "is_admin_added", default: false
+    t.bigint "distributor_id"
+    t.bigint "investor_id"
+    t.decimal "sub_agent_commission_percentage", precision: 5, scale: 2, default: "2.0"
+    t.decimal "sub_agent_commission_amount", precision: 10, scale: 2
+    t.decimal "distributor_commission_percentage", precision: 5, scale: 2, default: "1.0"
+    t.decimal "distributor_commission_amount", precision: 10, scale: 2
+    t.decimal "investor_commission_percentage", precision: 5, scale: 2, default: "2.0"
+    t.decimal "investor_commission_amount", precision: 10, scale: 2
+    t.decimal "main_income_percentage", precision: 5, scale: 2, default: "10.0"
+    t.decimal "main_income_amount", precision: 10, scale: 2
+    t.decimal "total_distribution_percentage", precision: 5, scale: 2
+    t.decimal "company_expenses_percentage", precision: 5, scale: 2
+    t.decimal "profit_percentage", precision: 5, scale: 2
+    t.decimal "profit_amount", precision: 10, scale: 2
+    t.decimal "sub_agent_tds_percentage", precision: 5, scale: 2, default: "0.0"
+    t.decimal "sub_agent_tds_amount", precision: 10, scale: 2
+    t.decimal "sub_agent_after_tds_value", precision: 10, scale: 2
+    t.decimal "distributor_tds_percentage", precision: 5, scale: 2, default: "0.0"
+    t.decimal "distributor_tds_amount", precision: 10, scale: 2
+    t.decimal "distributor_after_tds_value", precision: 10, scale: 2
+    t.decimal "investor_tds_percentage", precision: 5, scale: 2, default: "0.0"
+    t.decimal "investor_tds_amount", precision: 10, scale: 2
+    t.decimal "investor_after_tds_value", precision: 10, scale: 2
+    t.boolean "product_through_dr", default: false
+    t.boolean "main_agent_commission_received", default: false
+    t.string "main_agent_commission_transaction_id"
+    t.date "main_agent_commission_paid_date"
+    t.text "main_agent_commission_notes"
+    t.string "lead_id"
+    t.decimal "ambassador_commission_percentage"
+    t.decimal "ambassador_commission_amount"
+    t.decimal "ambassador_tds_percentage"
+    t.decimal "ambassador_tds_amount"
+    t.decimal "ambassador_after_tds_value"
+    t.string "broker_code_type"
+    t.index ["agency_code_id"], name: "index_life_insurances_on_agency_code_id"
+    t.index ["broker_id"], name: "index_life_insurances_on_broker_id"
+    t.index ["created_at"], name: "idx_life_insurances_created_at"
+    t.index ["customer_id"], name: "index_life_insurances_on_customer_id"
+    t.index ["distributor_id"], name: "index_life_insurances_on_distributor_id"
+    t.index ["insurance_company_name"], name: "index_life_insurances_on_insurance_company_name"
+    t.index ["investor_id"], name: "index_life_insurances_on_investor_id"
+    t.index ["lead_id"], name: "index_life_insurances_on_lead_id", unique: true
+    t.index ["policy_end_date"], name: "index_life_insurances_on_policy_end_date"
+    t.index ["policy_number"], name: "index_life_insurances_on_policy_number", unique: true
+    t.index ["policy_start_date", "policy_end_date"], name: "index_life_insurances_on_policy_start_date_and_policy_end_date"
+    t.index ["policy_start_date"], name: "index_life_insurances_on_policy_start_date"
+    t.index ["policy_type"], name: "index_life_insurances_on_policy_type"
+    t.index ["sub_agent_id"], name: "index_life_insurances_on_sub_agent_id"
   end

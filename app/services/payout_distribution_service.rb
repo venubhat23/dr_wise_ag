@@ -199,7 +199,7 @@ class PayoutDistributionService
         distributions_count: distributions.count,
         distribution_details: distributions
       },
-      "Auto-distributed ₹#{@commission_receipt.total_commission_received} commission across #{distributions.count} recipients",
+      "Auto-distributed ₹#{@commission_receipt.total_commission_received} commission Dr WISE #{distributions.count} recipients",
       'system'
     )
   rescue StandardError => e

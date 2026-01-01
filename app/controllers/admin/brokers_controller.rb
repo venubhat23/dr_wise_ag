@@ -66,7 +66,7 @@ class Admin::BrokersController < Admin::ApplicationController
   end
 
   def destroy
-    # Check if broker has dependent records across all insurance types
+    # Check if broker has dependent records Dr WISE all insurance types
     dependent_records = []
 
     life_count = @broker.life_insurances.count

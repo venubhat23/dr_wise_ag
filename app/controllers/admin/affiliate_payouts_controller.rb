@@ -1,3 +1,5 @@
+require 'ostruct'
+
 class Admin::AffiliatePayoutsController < Admin::ApplicationController
   before_action :authenticate_user!
 
@@ -173,33 +175,52 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
   def calculate_affiliate_payouts
     payouts = []
 
-    # Get all policies where main agent commission is received
-    paid_policies = get_all_paid_policies
+    # Get all commission payouts for affiliates directly
+    affiliate_commission_payouts = CommissionPayout.where(payout_to: 'affiliate').includes(:payout)
 
     # Group by affiliate
     affiliate_groups = {}
 
-    paid_policies.each do |policy|
-      next unless policy.lead_id.present?
+    affiliate_commission_payouts.each do |commission_payout|
+      # Get policy from commission payout
+      policy = get_policy_from_commission_payout(commission_payout)
+      next unless policy
 
-      lead = Lead.find_by(lead_id: policy.lead_id)
-      next unless lead
+      # Skip if main agent commission not received
+      next unless policy.respond_to?(:main_agent_commission_received) && policy.main_agent_commission_received
 
       # Get affiliate from the policy's sub_agent_id
       affiliate = SubAgent.find_by(id: policy.sub_agent_id) if policy.respond_to?(:sub_agent_id) && policy.sub_agent_id.present?
       next unless affiliate
 
-      # Get the actual saved affiliate commission amount
-      payout = Payout.find_by(policy_type: get_policy_type(policy), policy_id: policy.id)
-      affiliate_commission = payout&.affiliate_commission_amount || (policy.net_premium * 0.02)
+      # Get or create lead if needed
+      lead = nil
+      if commission_payout.lead_id.present?
+        lead = Lead.find_by(lead_id: commission_payout.lead_id)
+      end
+
+      # Fallback: try to find lead by policy lead_id
+      if lead.nil? && policy.respond_to?(:lead_id) && policy.lead_id.present?
+        lead = Lead.find_by(lead_id: policy.lead_id)
+      end
+
+      # If no lead found, create a virtual lead object for display purposes
+      if lead.nil?
+        lead = OpenStruct.new(
+          id: "virtual_#{policy.id}",
+          lead_id: policy.try(:lead_id) || "POLICY-#{policy.id}",
+          first_name: policy.try(:customer)&.first_name || 'Unknown',
+          last_name: policy.try(:customer)&.last_name || 'Customer',
+          email: policy.try(:customer)&.email || '',
+          mobile: policy.try(:customer)&.mobile || '',
+          created_at: policy.created_at
+        )
+      end
+
+      affiliate_commission = commission_payout.payout_amount.to_f
 
       # Check if already paid
-      already_paid = CommissionPayout.exists?(
-        policy_type: get_policy_type(policy),
-        policy_id: policy.id,
-        payout_to: 'affiliate',
-        status: 'paid'
-      )
+      already_paid = commission_payout.status == 'paid'
 
       affiliate_key = affiliate.id
 
@@ -253,7 +274,7 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
   end
 
   def find_policy_by_lead_id(lead_id)
-    # Search across all insurance types
+    # Search Dr WISE all insurance types
     policy = HealthInsurance.find_by(lead_id: lead_id)
     policy ||= LifeInsurance.find_by(lead_id: lead_id)
     policy ||= MotorInsurance.find_by(lead_id: lead_id)
@@ -391,6 +412,19 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       MotorInsurance.find_by(id: payout.policy_id)
     when 'other'
       OtherInsurance.find_by(id: payout.policy_id)
+    end
+  end
+
+  def get_policy_from_commission_payout(commission_payout)
+    case commission_payout.policy_type
+    when 'health'
+      HealthInsurance.find_by(id: commission_payout.policy_id)
+    when 'life'
+      LifeInsurance.find_by(id: commission_payout.policy_id)
+    when 'motor'
+      MotorInsurance.find_by(id: commission_payout.policy_id)
+    when 'other'
+      OtherInsurance.find_by(id: commission_payout.policy_id)
     end
   end
 

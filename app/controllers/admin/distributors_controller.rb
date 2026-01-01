@@ -88,8 +88,58 @@ class Admin::DistributorsController < Admin::ApplicationController
 
   # DELETE /admin/distributors/1
   def destroy
-    @distributor.destroy
-    redirect_to admin_distributors_path, notice: 'Distributor was successfully deleted.'
+    # Check for relationships that would prevent deletion
+    has_assigned_affiliates = @distributor.assigned_sub_agents.exists?
+    has_direct_affiliates = @distributor.sub_agents.exists?
+
+    # Check for insurance policies directly linked to this distributor
+    has_health_policies = HealthInsurance.where(distributor_id: @distributor.id).exists? rescue false
+    has_life_policies = LifeInsurance.where(distributor_id: @distributor.id).exists? rescue false
+    has_motor_policies = MotorInsurance.where(distributor_id: @distributor.id).exists? rescue false
+    has_other_policies = defined?(OtherInsurance) && OtherInsurance.where(distributor_id: @distributor.id).exists? rescue false
+
+    # Check for distributor payouts
+    has_payouts = defined?(DistributorPayout) && DistributorPayout.where(distributor_id: @distributor.id).exists? rescue false
+
+    if has_assigned_affiliates || has_direct_affiliates || has_health_policies || has_life_policies || has_motor_policies || has_other_policies || has_payouts
+      error_messages = []
+
+      if has_assigned_affiliates || has_direct_affiliates
+        affiliate_count = @distributor.assigned_sub_agents.count + @distributor.sub_agents.count
+        error_messages << "#{affiliate_count} assigned affiliate(s)"
+      end
+
+      policy_count = 0
+      policy_count += HealthInsurance.where(distributor_id: @distributor.id).count rescue 0
+      policy_count += LifeInsurance.where(distributor_id: @distributor.id).count rescue 0
+      policy_count += MotorInsurance.where(distributor_id: @distributor.id).count rescue 0
+      policy_count += OtherInsurance.where(distributor_id: @distributor.id).count rescue 0 if defined?(OtherInsurance)
+
+      if policy_count > 0
+        error_messages << "#{policy_count} insurance policy(ies)"
+      end
+
+      if has_payouts
+        payout_count = DistributorPayout.where(distributor_id: @distributor.id).count rescue 0
+        error_messages << "#{payout_count} payout record(s)" if payout_count > 0
+      end
+
+      message = "Cannot delete ambassador with #{error_messages.join(', ')}. Please reassign or remove these records first."
+      redirect_to admin_distributors_path, alert: message
+    else
+      begin
+        # Delete associated records that don't have proper cascade setup
+        @distributor.distributor_documents.destroy_all
+        @distributor.distributor_assignments.destroy_all
+
+        # Now destroy the distributor
+        @distributor.destroy!
+        redirect_to admin_distributors_path, notice: 'Ambassador was successfully deleted.'
+      rescue => e
+        redirect_to admin_distributors_path,
+                    alert: "Failed to delete ambassador: #{e.message}"
+      end
+    end
   end
 
   # PATCH /admin/distributors/1/toggle_status
@@ -116,7 +166,8 @@ class Admin::DistributorsController < Admin::ApplicationController
       :state_id, :city_id, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
       :account_holder_name, :account_type, :upi_id, :status, :upload_main_document,
-      distributor_documents_attributes: [:id, :document_type, :document_file, :_destroy]
+      distributor_documents_attributes: [:id, :document_type, :document_file, :_destroy],
+      uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
     )
   end
 

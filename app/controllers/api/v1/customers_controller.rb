@@ -109,6 +109,7 @@ class Api::V1::CustomersController < Api::V1::ApplicationController
       :marital_status, :business_job, :business_name, :type_of_duty, :additional_information,
       :added_by, :sub_agent, :age,
       documents_attributes: [:id, :document_type, :file, :_destroy],
+      uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy],
       family_members_attributes: [
         :id, :first_name, :middle_name, :last_name, :birth_date, :age, :height_feet, :weight_kg,
         :gender, :relationship, :pan_no, :mobile, :additional_information, :_destroy,
@@ -179,6 +180,7 @@ class Api::V1::CustomersController < Api::V1::ApplicationController
           additional_information: customer.additional_information
         },
         documents: customer.documents.map { |doc| document_info(doc) },
+        uploaded_documents: customer.uploaded_documents.map { |doc| uploaded_document_info(doc) },
         family_members: customer.family_members.map { |member| family_member_info(member) },
         corporate_members: customer.corporate_members.map { |member| corporate_member_info(member) }
       })
@@ -202,6 +204,22 @@ class Api::V1::CustomersController < Api::V1::ApplicationController
       id: document.id,
       document_type: document.document_type,
       file_url: document.file.attached? ? url_for(document.file) : nil
+    }
+  end
+
+  def uploaded_document_info(document)
+    {
+      id: document.id,
+      title: document.title,
+      description: document.description,
+      document_type: document.document_type,
+      file_name: document.file_name,
+      file_size: document.file_size,
+      file_type: document.human_file_type,
+      file_url: document.file.attached? ? url_for(document.file) : nil,
+      uploaded_by: document.uploaded_by,
+      created_at: document.created_at,
+      updated_at: document.updated_at
     }
   end
 

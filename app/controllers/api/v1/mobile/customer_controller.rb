@@ -177,6 +177,22 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
 
         if next_installment && next_installment <= max_days_ahead.from_now
           days_until_installment = (next_installment - Date.current).to_i
+          days_left_from_today = days_until_installment
+
+          # Generate label based on days left
+          label = if days_left_from_today <= 0
+                    "Expired"
+                  elsif days_left_from_today <= 7
+                    if days_left_from_today == 1
+                      "Expiring in 1 day"
+                    else
+                      "Expiring in #{days_left_from_today} days"
+                    end
+                  elsif days_left_from_today < 30
+                    "Coming soon"
+                  else
+                    "Upcoming"
+                  end
 
           installments << {
             id: policy.id,
@@ -192,6 +208,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             next_installment_date: next_installment,
             installment_amount: calculate_installment_amount(policy.total_premium, policy.payment_mode),
             days_until_installment: days_until_installment,
+            days_left_from_today: days_left_from_today,
+            label: label,
             installment_type: installment_type, # 'regular' or 'renewal'
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
@@ -255,6 +273,22 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
 
         if next_installment && next_installment <= max_days_ahead.from_now
           days_until_installment = (next_installment - Date.current).to_i
+          days_left_from_today = days_until_installment
+
+          # Generate label based on days left
+          label = if days_left_from_today <= 0
+                    "Expired"
+                  elsif days_left_from_today <= 7
+                    if days_left_from_today == 1
+                      "Expiring in 1 day"
+                    else
+                      "Expiring in #{days_left_from_today} days"
+                    end
+                  elsif days_left_from_today < 30
+                    "Coming soon"
+                  else
+                    "Upcoming"
+                  end
 
           installments << {
             id: policy.id,
@@ -270,6 +304,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             next_installment_date: next_installment,
             installment_amount: calculate_installment_amount(policy.total_premium, policy.payment_mode),
             days_until_installment: days_until_installment,
+            days_left_from_today: days_left_from_today,
+            label: label,
             installment_type: installment_type, # 'regular' or 'renewal'
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
@@ -342,6 +378,22 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
 
         if next_installment && next_installment <= max_days_ahead.from_now
           days_until_installment = (next_installment - Date.current).to_i
+          days_left_from_today = days_until_installment
+
+          # Generate label based on days left
+          label = if days_left_from_today <= 0
+                    "Expired"
+                  elsif days_left_from_today <= 7
+                    if days_left_from_today == 1
+                      "Expiring in 1 day"
+                    else
+                      "Expiring in #{days_left_from_today} days"
+                    end
+                  elsif days_left_from_today < 30
+                    "Coming soon"
+                  else
+                    "Upcoming"
+                  end
 
           installments << {
             id: policy.id,
@@ -357,6 +409,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             next_installment_date: next_installment,
             installment_amount: calculate_installment_amount(policy.total_premium, payment_mode),
             days_until_installment: days_until_installment,
+            days_left_from_today: days_left_from_today,
+            label: label,
             installment_type: installment_type, # 'regular' or 'renewal'
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
@@ -400,9 +454,9 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     renewals = []
 
     # Health Insurance renewals - include both upcoming and expired policies that need renewal
-    # Show policies that expire in next 12 months OR expired within last 18 months
+    # Show policies that expire in next 2 years OR expired within last 18 months
     health_policies = HealthInsurance.where(customer_id: customer_id)
-                                    .where('policy_end_date BETWEEN ? AND ?', 18.months.ago, 12.months.from_now)
+                                    .where('policy_end_date BETWEEN ? AND ?', 18.months.ago, 2.years.from_now)
                                     .where.not(policy_end_date: nil)
 
     health_policies.each do |policy|
@@ -410,21 +464,16 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
 
       # Determine renewal status based on whether policy is expired or expiring
       renewal_status = if policy.policy_end_date < Date.current
-                        # Policy is expired
-                        if days_since_end <= 30
-                          'overdue' # Recently expired (within 30 days)
-                        elsif days_since_end <= 90
-                          'renewal_required' # Expired but still renewable (30-90 days)
-                        else
-                          'renewal_recommended' # Long expired but still show for renewal
-                        end
+                        # Policy is expired - need to renew soon
+                        'overdue'
                       else
-                        # Policy is still active
-                        if policy.policy_end_date <= 7.days.from_now
-                          'urgent'
-                        elsif policy.policy_end_date <= 30.days.from_now
-                          'due_soon'
-                        elsif policy.policy_end_date <= 60.days.from_now
+                        # Policy is still active - categorize by time until expiry
+                        days_until_expiry = (policy.policy_end_date - Date.current).to_i
+                        if days_until_expiry <= 7
+                          'urgent' # Renewal in 7 days
+                        elsif days_until_expiry <= 30
+                          'due_soon' # Renewal in 30 days
+                        elsif days_until_expiry <= 60
                           'approaching'
                         else
                           'upcoming'
@@ -456,9 +505,9 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     end
 
     # Life Insurance renewals - include both upcoming and expired policies that need renewal
-    # Show policies that expire in next 12 months OR expired within last 18 months
+    # Show policies that expire in next 2 years OR expired within last 18 months
     life_policies = LifeInsurance.where(customer_id: customer_id)
-                                .where('policy_end_date BETWEEN ? AND ?', 18.months.ago, 12.months.from_now)
+                                .where('policy_end_date BETWEEN ? AND ?', 18.months.ago, 2.years.from_now)
                                 .where.not(policy_end_date: nil)
 
     life_policies.each do |policy|
@@ -466,21 +515,16 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
 
       # Determine renewal status based on whether policy is expired or expiring
       renewal_status = if policy.policy_end_date < Date.current
-                        # Policy is expired
-                        if days_since_end <= 30
-                          'overdue' # Recently expired (within 30 days)
-                        elsif days_since_end <= 90
-                          'renewal_required' # Expired but still renewable (30-90 days)
-                        else
-                          'renewal_recommended' # Long expired but still show for renewal
-                        end
+                        # Policy is expired - need to renew soon
+                        'overdue'
                       else
-                        # Policy is still active
-                        if policy.policy_end_date <= 7.days.from_now
-                          'urgent'
-                        elsif policy.policy_end_date <= 30.days.from_now
-                          'due_soon'
-                        elsif policy.policy_end_date <= 60.days.from_now
+                        # Policy is still active - categorize by time until expiry
+                        days_until_expiry = (policy.policy_end_date - Date.current).to_i
+                        if days_until_expiry <= 7
+                          'urgent' # Renewal in 7 days
+                        elsif days_until_expiry <= 30
+                          'due_soon' # Renewal in 30 days
+                        elsif days_until_expiry <= 60
                           'approaching'
                         else
                           'upcoming'
@@ -517,7 +561,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     begin
       if defined?(MotorInsurance)
         motor_policies = MotorInsurance.where(customer_id: customer_id)
-                                      .where('policy_end_date BETWEEN ? AND ?', 18.months.ago, 12.months.from_now)
+                                      .where('policy_end_date BETWEEN ? AND ?', 18.months.ago, 2.years.from_now)
                                       .where.not(policy_end_date: nil)
 
         motor_policies.each do |policy|

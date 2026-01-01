@@ -11,6 +11,7 @@ class SubAgent < ApplicationRecord
   # Associations
   belongs_to :role
   has_many :sub_agent_documents, dependent: :destroy
+  has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
   has_one :distributor_assignment, dependent: :destroy
   has_one :assigned_distributor, through: :distributor_assignment, source: :distributor
   belongs_to :distributor, optional: true
@@ -19,6 +20,7 @@ class SubAgent < ApplicationRecord
 
   # Nested attributes for documents
   accepts_nested_attributes_for :sub_agent_documents, allow_destroy: true, reject_if: :all_blank
+  accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations
   validates :first_name, presence: true

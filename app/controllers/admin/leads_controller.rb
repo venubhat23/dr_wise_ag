@@ -106,10 +106,68 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # DELETE /admin/leads/1
   def destroy
-    @lead.destroy!
-    redirect_to admin_leads_path, notice: 'Lead was successfully deleted.'
-  rescue ActiveRecord::RecordNotDestroyed => e
-    redirect_to admin_leads_path, alert: "Failed to delete lead: #{e.message}"
+    # Check for relationships that would prevent deletion
+    has_converted_customer = @lead.converted_customer_id.present?
+    has_created_policy = @lead.created_policy.present?
+
+    # Check if the converted customer has policies or other data
+    customer_has_policies = false
+    if has_converted_customer
+      customer = Customer.find_by(id: @lead.converted_customer_id)
+      if customer
+        health_policies = HealthInsurance.where(customer_id: customer.id).exists? rescue false
+        life_policies = LifeInsurance.where(customer_id: customer.id).exists? rescue false
+        motor_policies = MotorInsurance.where(customer_id: customer.id).exists? rescue false
+        other_policies = defined?(OtherInsurance) && OtherInsurance.where(customer_id: customer.id).exists? rescue false
+        customer_has_policies = health_policies || life_policies || motor_policies || other_policies
+      end
+    end
+
+    # Check for insurance policies directly linked to this lead
+    has_lead_policies = false
+    lead_policy_count = 0
+    begin
+      lead_policy_count += HealthInsurance.where(lead_id: @lead.lead_id).count rescue 0
+      lead_policy_count += LifeInsurance.where(lead_id: @lead.lead_id).count rescue 0
+      lead_policy_count += MotorInsurance.where(lead_id: @lead.lead_id).count rescue 0
+      lead_policy_count += OtherInsurance.where(lead_id: @lead.lead_id).count rescue 0 if defined?(OtherInsurance)
+      has_lead_policies = lead_policy_count > 0
+    rescue
+      has_lead_policies = false
+      lead_policy_count = 0
+    end
+
+    if has_converted_customer || has_created_policy || customer_has_policies || has_lead_policies
+      error_messages = []
+
+      if has_converted_customer
+        error_messages << "converted customer record"
+      end
+
+      if has_created_policy
+        error_messages << "created policy"
+      end
+
+      if customer_has_policies
+        error_messages << "customer with existing policies"
+      end
+
+      if has_lead_policies
+        error_messages << "#{lead_policy_count} linked insurance policy(ies)"
+      end
+
+      message = "Cannot delete lead with #{error_messages.join(', ')}. This would cause data integrity issues."
+      redirect_to admin_leads_path, alert: message
+    else
+      begin
+        @lead.destroy!
+        redirect_to admin_leads_path, notice: 'Lead was successfully deleted.'
+      rescue ActiveRecord::RecordNotDestroyed => e
+        redirect_to admin_leads_path, alert: "Failed to delete lead: #{e.message}"
+      rescue => e
+        redirect_to admin_leads_path, alert: "Failed to delete lead: #{e.message}"
+      end
+    end
   end
 
   # PATCH /admin/leads/1/convert_to_customer
@@ -452,6 +510,11 @@ class Admin::LeadsController < Admin::ApplicationController
   end
 
   private
+
+  # JSON response helper method
+  def json_response(object, status = :ok)
+    render json: object, status: status
+  end
 
   def set_lead
     @lead = Lead.find(params[:id])

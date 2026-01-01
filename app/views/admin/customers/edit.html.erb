@@ -313,7 +313,7 @@
       </div>
 
       <!-- Current Files -->
-      <% if @customer.profile_image.attached? || @customer.documents.any? %>
+      <% if @customer.profile_image.attached? || @customer.documents.any? || @customer.uploaded_documents.any? %>
         <div class="card border-0 shadow-sm mb-4">
           <div class="card-header bg-transparent border-0">
             <h5 class="mb-0">Current Files</h5>
@@ -330,14 +330,64 @@
             <% end %>
 
             <% if @customer.documents.any? %>
-              <h6>Documents</h6>
-              <div class="list-group">
+              <h6>Legacy Documents</h6>
+              <div class="list-group mb-3">
                 <% @customer.documents.each do |document| %>
                   <div class="list-group-item d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-file-earmark me-2"></i><%= document.filename %></span>
-                    <%= link_to document, class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
+                    <%= link_to url_for(document.file), class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
                       <i class="bi bi-download"></i> Download
                     <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <!-- New Document System -->
+            <% if @customer.uploaded_documents.any? %>
+              <h6>Documents</h6>
+              <div class="row">
+                <% @customer.uploaded_documents.each do |document| %>
+                  <div class="col-md-6 mb-3">
+                    <div class="card border-0 shadow-sm">
+                      <div class="card-body">
+                        <div class="d-flex align-items-center">
+                          <div class="flex-shrink-0">
+                            <i class="bi bi-<%= document.file_icon %> text-primary fs-4"></i>
+                          </div>
+                          <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-1"><%= document.title %></h6>
+                            <small class="text-muted">
+                              <%= document.human_document_type %> •
+                              <%= document.human_file_type %>
+                              <% if document.file_size %>
+                                • <%= number_to_human_size(document.file_size) %>
+                              <% end %>
+                            </small>
+                            <% if document.description.present? %>
+                              <p class="text-muted mt-1 mb-0 small"><%= document.description %></p>
+                            <% end %>
+                          </div>
+                          <div class="flex-shrink-0">
+                            <div class="btn-group">
+                              <%= link_to admin_document_path(document), class: "btn btn-sm btn-outline-info", target: "_blank", title: "View" do %>
+                                <i class="bi bi-eye"></i>
+                              <% end %>
+                              <%= link_to download_admin_document_path(document), class: "btn btn-sm btn-outline-primary", target: "_blank", title: "Download" do %>
+                                <i class="bi bi-download"></i>
+                              <% end %>
+                              <%= link_to admin_document_path(document), method: :delete,
+                                  class: "btn btn-sm btn-outline-danger",
+                                  title: "Delete",
+                                  confirm: "Are you sure you want to delete this document?",
+                                  data: { turbo_method: :delete } do %>
+                                <i class="bi bi-trash"></i>
+                              <% end %>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 <% end %>
               </div>
@@ -364,6 +414,25 @@
               <div class="form-text">Upload additional documents</div>
             </div>
           </div>
+        </div>
+
+        <!-- New Document System -->
+        <div class="border-top pt-4 mt-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Document Management System</h6>
+            <button type="button" class="btn btn-sm btn-primary" id="add_customer_document">
+              <i class="bi bi-plus-lg me-1"></i>
+              Add Document
+            </button>
+          </div>
+
+          <div id="customer_documents_container">
+            <!-- New document system will be added here -->
+          </div>
+
+          <p class="text-muted mb-0 mt-2">
+            <small>Use this system to add organized documents with titles and types</small>
+          </p>
         </div>
       </div>
 
@@ -563,6 +632,56 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }, 5000);
   }
+
+  // Customer Document Management System
+  let customerDocumentIndex = 0;
+  const addCustomerDocumentBtn = document.getElementById('add_customer_document');
+  const customerDocumentsContainer = document.getElementById('customer_documents_container');
+
+  addCustomerDocumentBtn?.addEventListener('click', function() {
+    const documentHtml = `
+      <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${customerDocumentIndex}" style="background: #f8f9fa;">
+        <button type="button" class="btn btn-sm btn-outline-danger position-absolute" style="top: 10px; right: 10px;" onclick="this.closest('.document-entry').remove()">
+          <i class="bi bi-trash"></i>
+        </button>
+        <div class="row">
+          <div class="col-md-4">
+            <label class="form-label">Document Title <span class="text-danger">*</span></label>
+            <input type="text" name="customer[uploaded_documents_attributes][${customerDocumentIndex}][title]" class="form-control" placeholder="Enter document title" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Document Type <span class="text-danger">*</span></label>
+            <select name="customer[uploaded_documents_attributes][${customerDocumentIndex}][document_type]" class="form-select" required>
+              <option value="">Select Document Type</option>
+              <option value="aadhar">Aadhar</option>
+              <option value="pan_card">PAN Card</option>
+              <option value="driving_license">Driving License</option>
+              <option value="passport">Passport</option>
+              <option value="voter_id">Voter ID</option>
+              <option value="birth_certificate">Birth Certificate</option>
+              <option value="income_certificate">Income Certificate</option>
+              <option value="salary_slip">Salary Slip</option>
+              <option value="bank_statement">Bank Statement</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Document File <span class="text-danger">*</span></label>
+            <input type="file" name="customer[uploaded_documents_attributes][${customerDocumentIndex}][file]" class="form-control" accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
+          </div>
+        </div>
+        <div class="row mt-2">
+          <div class="col-md-12">
+            <label class="form-label">Description (Optional)</label>
+            <textarea name="customer[uploaded_documents_attributes][${customerDocumentIndex}][description]" class="form-control" rows="2" placeholder="Optional description"></textarea>
+          </div>
+        </div>
+        <input type="hidden" name="customer[uploaded_documents_attributes][${customerDocumentIndex}][uploaded_by]" value="Admin User">
+      </div>
+    `;
+    customerDocumentsContainer.insertAdjacentHTML('beforeend', documentHtml);
+    customerDocumentIndex++;
+  });
 
   // Form validation
   const forms = document.querySelectorAll('.needs-validation');

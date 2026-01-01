@@ -174,33 +174,42 @@ class Admin::DistributorPayoutsController < ApplicationController
   def calculate_distributor_payouts
     payouts = []
 
-    # Get all policies where main agent commission is received
-    paid_policies = get_all_paid_policies
+    # Get all commission payouts for ambassadors (distributors) directly
+    ambassador_commission_payouts = CommissionPayout.where(payout_to: 'ambassador').includes(:payout)
 
     # Group by distributor
     distributor_groups = {}
 
-    paid_policies.each do |policy|
-      next unless policy.lead_id.present?
+    ambassador_commission_payouts.each do |commission_payout|
+      # Get policy from commission payout
+      policy = get_policy_from_commission_payout(commission_payout)
+      next unless policy
 
-      lead = Lead.find_by(lead_id: policy.lead_id)
-      next unless lead
+      # Skip if main agent commission not received
+      next unless policy.respond_to?(:main_agent_commission_received) && policy.main_agent_commission_received
 
       # Get distributor from the policy's distributor_id field
       distributor = Distributor.find_by(id: policy.distributor_id) if policy.respond_to?(:distributor_id) && policy.distributor_id.present?
       next unless distributor
 
-      # Get the actual saved ambassador commission amount (distributors = ambassadors)
-      payout = Payout.find_by(policy_type: get_policy_type(policy), policy_id: policy.id)
-      distributor_commission = payout&.ambassador_commission_amount || (policy.net_premium * 0.03)
+      # Get or create lead if needed
+      lead = nil
+      if commission_payout.lead_id.present?
+        lead = Lead.find_by(lead_id: commission_payout.lead_id)
+      end
+
+      # Fallback: try to find lead by policy lead_id
+      if lead.nil? && policy.respond_to?(:lead_id) && policy.lead_id.present?
+        lead = Lead.find_by(lead_id: policy.lead_id)
+      end
+
+      # Skip if no lead found (this was the original problem)
+      next unless lead
+
+      distributor_commission = commission_payout.payout_amount.to_f
 
       # Check if already paid
-      already_paid = DistributorPayout.exists?(
-        policy_type: get_policy_type(policy),
-        policy_id: policy.id,
-        distributor_id: distributor.id,
-        status: 'paid'
-      )
+      already_paid = commission_payout.status == 'paid'
 
       distributor_key = distributor.id
 
@@ -254,7 +263,7 @@ class Admin::DistributorPayoutsController < ApplicationController
   end
 
   def find_policy_by_lead_id(lead_id)
-    # Search across all insurance types
+    # Search Dr WISE all insurance types
     policy = HealthInsurance.find_by(lead_id: lead_id)
     policy ||= LifeInsurance.find_by(lead_id: lead_id)
     policy ||= MotorInsurance.find_by(lead_id: lead_id)
@@ -454,6 +463,19 @@ class Admin::DistributorPayoutsController < ApplicationController
       'other'
     else
       'health' # fallback
+    end
+  end
+
+  def get_policy_from_commission_payout(commission_payout)
+    case commission_payout.policy_type
+    when 'health'
+      HealthInsurance.find_by(id: commission_payout.policy_id)
+    when 'life'
+      LifeInsurance.find_by(id: commission_payout.policy_id)
+    when 'motor'
+      MotorInsurance.find_by(id: commission_payout.policy_id)
+    when 'other'
+      OtherInsurance.find_by(id: commission_payout.policy_id)
     end
   end
 

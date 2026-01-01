@@ -282,7 +282,8 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       # Company expenses and profit fields
       :company_expenses_percentage, :total_distribution_percentage,
       :profit_percentage, :profit_amount,
-      policy_documents: [], documents: []
+      policy_documents: [], documents: [],
+      uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
     )
   end
 

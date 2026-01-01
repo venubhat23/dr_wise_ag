@@ -26,8 +26,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
                User.find_by(mobile: "+91#{formatted_mobile}") ||
                User.find_by(mobile: "+91 #{formatted_mobile}") ||
                User.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-               User.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-               User.where("REPLACE(REPLACE(mobile, ' ', ''), '+91', '') = ?", formatted_mobile).first
+               User.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}")
       else
         # If format_mobile_number returns nil, try direct mobile search as fallback
         user = User.find_by(mobile: login_field)
@@ -45,8 +44,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
                       Customer.find_by(mobile: "+91#{formatted_mobile}") ||
                       Customer.find_by(mobile: "+91 #{formatted_mobile}") ||
                       Customer.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-                      Customer.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-                      Customer.where("REPLACE(REPLACE(mobile, ' ', ''), '+91', '') = ?", formatted_mobile).first
+                      Customer.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}")
           else
             customer = Customer.find_by(mobile: user.mobile)
           end
@@ -115,8 +113,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
                    SubAgent.find_by(mobile: "+91#{formatted_mobile}") ||
                    SubAgent.find_by(mobile: "+91 #{formatted_mobile}") ||
                    SubAgent.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-                   SubAgent.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-                   SubAgent.where("REPLACE(REPLACE(mobile, ' ', ''), '+91', '') = ?", formatted_mobile).first
+                   SubAgent.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}")
       else
         sub_agent = SubAgent.find_by(mobile: login_field)
       end
@@ -194,19 +191,16 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
                User.find_by(mobile: "+91 #{formatted_mobile}") ||
                User.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
                User.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-               User.where("REPLACE(REPLACE(mobile, ' ', ''), '+91', '') = ?", formatted_mobile).first ||
                Customer.find_by(mobile: formatted_mobile) ||
                Customer.find_by(mobile: "+91#{formatted_mobile}") ||
                Customer.find_by(mobile: "+91 #{formatted_mobile}") ||
                Customer.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
                Customer.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-               Customer.where("REPLACE(REPLACE(mobile, ' ', ''), '+91', '') = ?", formatted_mobile).first ||
                SubAgent.find_by(mobile: formatted_mobile) ||
                SubAgent.find_by(mobile: "+91#{formatted_mobile}") ||
                SubAgent.find_by(mobile: "+91 #{formatted_mobile}") ||
                SubAgent.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-               SubAgent.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-               SubAgent.where("REPLACE(REPLACE(mobile, ' ', ''), '+91', '') = ?", formatted_mobile).first
+               SubAgent.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}")
       else
         user = User.find_by(mobile: login_field) ||
                Customer.find_by(mobile: login_field) ||
@@ -528,11 +522,14 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
     clean_mobile = mobile.to_s.gsub(/\D/, '')
 
     # Handle different mobile number formats
-    if clean_mobile.length == 10 && clean_mobile.match?(/\A[6-9]/)
+    if clean_mobile.length == 10
+      # Standard 10-digit format, accept all (for testing purposes)
       return clean_mobile
     elsif clean_mobile.length == 12 && clean_mobile.start_with?('91')
+      # 12 digits starting with 91
       return clean_mobile[2..-1]
     elsif clean_mobile.length == 13 && clean_mobile.start_with?('+91')
+      # +91 prefix with spaces removed
       return clean_mobile[3..-1]
     else
       return nil

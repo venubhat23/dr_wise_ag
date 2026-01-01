@@ -29,6 +29,7 @@ class Lead < ApplicationRecord
   belongs_to :converted_customer, class_name: 'Customer', optional: true
   belongs_to :created_policy, class_name: 'Policy', optional: true
   belongs_to :affiliate, class_name: 'SubAgent', optional: true
+  has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
 
   before_create :generate_lead_id
   before_update :update_stage_timestamp, if: :current_stage_changed?

@@ -228,7 +228,7 @@ class Admin::CommissionTrackingController < ApplicationController
     policies = []
 
     if search_term.present?
-      # Search across all insurance types
+      # Search Dr WISE all insurance types
       policies = search_policies_across_types(search_term)
     end
 

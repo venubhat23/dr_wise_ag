@@ -3,6 +3,46 @@ class User < ApplicationRecord
   # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :validatable
+
+  # Override Devise's authentication to support mobile number login
+  attr_writer :login
+
+  def login
+    @login || self.email
+  end
+
+  def self.find_for_database_authentication(warden_conditions)
+    conditions = warden_conditions.dup
+    if login = conditions.delete(:login)
+      # Try email first
+      user = where(conditions.to_hash).where(["lower(email) = :value", { :value => login.downcase }]).first
+
+      # If not found by email, try mobile number with flexible formatting
+      unless user
+        formatted_mobile = format_mobile_number(login)
+        if formatted_mobile
+          # Try multiple mobile format variations
+          user = where(conditions.to_hash).where(mobile: formatted_mobile).first ||
+                 where(conditions.to_hash).where(mobile: "+91#{formatted_mobile}").first ||
+                 where(conditions.to_hash).where(mobile: "+91 #{formatted_mobile}").first ||
+                 where(conditions.to_hash).where(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}").first ||
+                 where(conditions.to_hash).where(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}").first ||
+                 where(conditions.to_hash).where("REPLACE(REPLACE(mobile, ' ', ''), '+91', '') = ?", formatted_mobile).first
+        else
+          # If format_mobile_number returns nil, try direct mobile search as fallback
+          user = where(conditions.to_hash).where(mobile: login).first
+        end
+      end
+
+      user
+    else
+      if conditions.has_key?(:email)
+        where(conditions.to_hash).first
+      else
+        where(conditions.to_hash).first
+      end
+    end
+  end
   include PgSearch::Model
 
   # Associations
@@ -11,6 +51,7 @@ class User < ApplicationRecord
   has_many :policies, dependent: :destroy
   has_many_attached :profile_images
   has_many_attached :documents
+  has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
 
   # Validations
   validates :first_name, presence: true
@@ -110,5 +151,26 @@ class User < ApplicationRecord
   # Clear cache when role changes
   def role_changed_callback
     clear_abilities_cache if role_id_changed?
+  end
+
+  # Mobile number formatting helper (flexible for various formats)
+  def self.format_mobile_number(mobile)
+    return nil if mobile.blank?
+    # Remove all non-digit characters
+    clean_mobile = mobile.to_s.gsub(/\D/, '')
+
+    # Handle different mobile number formats
+    if clean_mobile.length == 10
+      # Standard 10-digit format, accept all (for testing purposes)
+      return clean_mobile
+    elsif clean_mobile.length == 12 && clean_mobile.start_with?('91')
+      # 12 digits starting with 91
+      return clean_mobile[2..-1]
+    elsif clean_mobile.length == 13 && clean_mobile.start_with?('+91')
+      # +91 prefix with spaces removed
+      return clean_mobile[3..-1]
+    else
+      return nil
+    end
   end
 end

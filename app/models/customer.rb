@@ -5,7 +5,8 @@ class Customer < ApplicationRecord
   has_many :family_members, dependent: :destroy
   has_many :policies, dependent: :destroy
   has_many :corporate_members, dependent: :destroy
-  has_many :documents, as: :documentable, dependent: :destroy
+  has_many :documents, class_name: 'CustomerDocument', dependent: :destroy
+  has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
   has_one_attached :profile_image
   belongs_to :affiliate, class_name: 'SubAgent', foreign_key: 'sub_agent_id', optional: true
 
@@ -24,6 +25,7 @@ class Customer < ApplicationRecord
   accepts_nested_attributes_for :family_members, allow_destroy: true, reject_if: :all_blank
   accepts_nested_attributes_for :corporate_members, allow_destroy: true, reject_if: :all_blank
   accepts_nested_attributes_for :documents, allow_destroy: true, reject_if: :all_blank
+  accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations
   validates :customer_type, presence: true, inclusion: { in: ['individual', 'corporate'] }

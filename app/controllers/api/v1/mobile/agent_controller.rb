@@ -34,10 +34,10 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     customers = if is_admin?(agent)
                   Customer.all
                 else
-                  # For agents and sub-agents, show customers from their policies and customers they added
-                  policy_customer_ids = (HealthInsurance.pluck(:customer_id) + LifeInsurance.pluck(:customer_id)).uniq
+                  # For agents and sub-agents, show only customers from their specific policies and customers they added
+                  _, _, agent_customer_ids = get_agent_policies(agent)
                   agent_added_customers = Customer.where("added_by LIKE ?", "%agent_mobile_api_#{agent.id}%")
-                  Customer.where(id: policy_customer_ids).or(agent_added_customers)
+                  Customer.where(id: agent_customer_ids).or(agent_added_customers)
                 end
 
     # Apply filter
@@ -1212,17 +1212,18 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         this_month_premium: get_this_month_premium
       }
     else
-      # Regular agents see limited statistics
-      customer_ids = (HealthInsurance.pluck(:customer_id) + LifeInsurance.pluck(:customer_id)).uniq
+      # Regular agents see only their statistics
+      agent_health_policies, agent_life_policies, agent_customer_ids = get_agent_policies(agent)
+
       {
-        customers_count: customer_ids.count,
-        policies_count: HealthInsurance.count + LifeInsurance.count,
-        health_policies_count: HealthInsurance.count,
-        life_policies_count: LifeInsurance.count,
-        total_premium: (HealthInsurance.sum(:total_premium) + LifeInsurance.sum(:total_premium)),
-        commission_earned: (HealthInsurance.sum(:commission_amount) + LifeInsurance.sum(:commission_amount)),
-        this_month_policies: get_this_month_policies_count,
-        this_month_premium: get_this_month_premium
+        customers_count: agent_customer_ids.count,
+        policies_count: agent_health_policies.count + agent_life_policies.count,
+        health_policies_count: agent_health_policies.count,
+        life_policies_count: agent_life_policies.count,
+        total_premium: (agent_health_policies.sum(:total_premium) + agent_life_policies.sum(:total_premium)),
+        commission_earned: (agent_health_policies.sum(:sub_agent_after_tds_value) + agent_life_policies.sum(:sub_agent_after_tds_value)),
+        this_month_policies: get_this_month_policies_count_for_agent(agent),
+        this_month_premium: get_this_month_premium_for_agent(agent)
       }
     end
   end
@@ -1230,9 +1231,16 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   def get_recent_activities(agent)
     activities = []
 
-    # Recent policies (last 10)
-    recent_health = HealthInsurance.order(created_at: :desc).limit(5)
-    recent_life = LifeInsurance.order(created_at: :desc).limit(5)
+    if is_admin?(agent)
+      # Admin can see all recent policies
+      recent_health = HealthInsurance.order(created_at: :desc).limit(5)
+      recent_life = LifeInsurance.order(created_at: :desc).limit(5)
+    else
+      # For agents, use the cross-reference helper to get their policies
+      agent_health_policies, agent_life_policies, _ = get_agent_policies(agent)
+      recent_health = agent_health_policies.order(created_at: :desc).limit(5)
+      recent_life = agent_life_policies.order(created_at: :desc).limit(5)
+    end
 
     recent_health.each do |policy|
       activities << {
@@ -1390,6 +1398,55 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     LifeInsurance.where(created_at: start_date..end_date).sum(:total_premium)
   end
 
+  def get_this_month_policies_count_for_agent(agent)
+    start_date = Date.current.beginning_of_month
+    end_date = Date.current.end_of_month
+
+    agent_health_policies, agent_life_policies, _ = get_agent_policies(agent)
+
+    agent_health_policies.where(created_at: start_date..end_date).count +
+    agent_life_policies.where(created_at: start_date..end_date).count
+  end
+
+  def get_this_month_premium_for_agent(agent)
+    start_date = Date.current.beginning_of_month
+    end_date = Date.current.end_of_month
+
+    agent_health_policies, agent_life_policies, _ = get_agent_policies(agent)
+
+    agent_health_policies.where(created_at: start_date..end_date).sum(:total_premium) +
+    agent_life_policies.where(created_at: start_date..end_date).sum(:total_premium)
+  end
+
+  def get_agent_policies(agent)
+    # This method handles the cross-reference between User and SubAgent models
+    if agent.is_a?(User)
+      # For User model agents, check if there's a corresponding SubAgent with same email
+      sub_agent = SubAgent.find_by(email: agent.email)
+      if sub_agent
+        # If there's a matching SubAgent, use that for policy lookup
+        agent_health_policies = HealthInsurance.where(sub_agent_id: sub_agent.id)
+        agent_life_policies = LifeInsurance.where(sub_agent_id: sub_agent.id)
+      else
+        # If no matching SubAgent, use the User ID directly
+        agent_health_policies = HealthInsurance.where(sub_agent_id: agent.id)
+        agent_life_policies = LifeInsurance.where(sub_agent_id: agent.id)
+      end
+    elsif agent.is_a?(SubAgent)
+      # For SubAgent model, use ID directly
+      agent_health_policies = HealthInsurance.where(sub_agent_id: agent.id)
+      agent_life_policies = LifeInsurance.where(sub_agent_id: agent.id)
+    else
+      # Fallback: empty relations
+      agent_health_policies = HealthInsurance.none
+      agent_life_policies = LifeInsurance.none
+    end
+
+    agent_customer_ids = (agent_health_policies.pluck(:customer_id) + agent_life_policies.pluck(:customer_id)).uniq
+
+    [agent_health_policies, agent_life_policies, agent_customer_ids]
+  end
+
   def generate_demo_password(customer)
     # Generate a consistent demo password based on customer data
     # Format: first_name + last 4 digits of mobile + "123"
@@ -1409,9 +1466,9 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     base_customers = if is_admin?(agent)
                       Customer.all
                     else
-                      policy_customer_ids = (HealthInsurance.pluck(:customer_id) + LifeInsurance.pluck(:customer_id)).uniq
+                      _, _, agent_customer_ids = get_agent_policies(agent)
                       agent_added_customers = Customer.where("added_by LIKE ?", "%agent_mobile_api_#{agent.id}%")
-                      Customer.where(id: policy_customer_ids).or(agent_added_customers)
+                      Customer.where(id: agent_customer_ids).or(agent_added_customers)
                     end
 
     {
@@ -1840,7 +1897,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     }
   end
 
-  # Helper method to safely check user type across User and SubAgent models
+  # Helper method to safely check user type Dr WISE User and SubAgent models
   def get_user_type(user)
     if user.is_a?(User)
       user.user_type

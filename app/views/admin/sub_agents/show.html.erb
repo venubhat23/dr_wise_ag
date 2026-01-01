@@ -258,9 +258,16 @@
 
 <!-- Documents -->
 <div class="card border-0 shadow-sm mb-4">
-  <div class="card-header bg-transparent border-0 d-flex align-items-center">
-    <i class="bi bi-file-earmark-text me-2 text-warning"></i>
-    <h5 class="mb-0">Documents</h5>
+  <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center">
+      <i class="bi bi-file-earmark-text me-2 text-warning"></i>
+      <h5 class="mb-0">Documents</h5>
+    </div>
+    <div>
+      <%= link_to documents_admin_sub_agent_path(@sub_agent), class: "btn btn-sm btn-outline-primary" do %>
+        <i class="bi bi-eye me-1"></i>View All Documents
+      <% end %>
+    </div>
   </div>
   <div class="card-body">
     <!-- Main Document -->
@@ -343,6 +350,235 @@
         <%= link_to edit_admin_sub_agent_path(@sub_agent), class: "btn btn-outline-primary" do %>
           <i class="bi bi-plus-lg me-1"></i>Add Documents
         <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Policy Summary -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <i class="bi bi-shield-check me-2 text-success"></i>
+    <h5 class="mb-0">Policy Summary</h5>
+  </div>
+  <div class="card-body">
+    <div class="row text-center mb-4">
+      <div class="col-md-3">
+        <div class="border rounded p-3">
+          <h4 class="text-primary mb-1"><%= @total_policies %></h4>
+          <small class="text-muted">Total Policies</small>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded p-3">
+          <h4 class="text-success mb-1"><%= @active_policies %></h4>
+          <small class="text-muted">Active Policies</small>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded p-3">
+          <h4 class="text-warning mb-1"><%= @expired_policies %></h4>
+          <small class="text-muted">Expired Policies</small>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded p-3">
+          <h4 class="text-info mb-1">₹<%= number_to_currency(@total_premium_handled, unit: '', precision: 0) %></h4>
+          <small class="text-muted">Total Premium</small>
+        </div>
+      </div>
+    </div>
+
+    <% if @all_policies.any? %>
+      <h6 class="mb-3">Recent Policies (<%= @all_policies.count %>)</h6>
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Policy Number</th>
+              <th>Type</th>
+              <th>Customer</th>
+              <th>Company</th>
+              <th>Premium</th>
+              <th>Status</th>
+              <th>End Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @all_policies.first(10).each do |policy_data| %>
+              <tr>
+                <td>
+                  <strong><%= policy_data[:policy_number] %></strong>
+                </td>
+                <td>
+                  <span class="badge bg-<%=
+                    case policy_data[:type]
+                    when 'Health Insurance' then 'info'
+                    when 'Life Insurance' then 'primary'
+                    when 'Motor Insurance' then 'warning'
+                    else 'secondary'
+                    end
+                  %>">
+                    <%= policy_data[:type] %>
+                  </span>
+                </td>
+                <td><%= policy_data[:customer_name] %></td>
+                <td><%= policy_data[:company_name] %></td>
+                <td>₹<%= number_to_currency(policy_data[:premium], unit: '', precision: 0) %></td>
+                <td>
+                  <span class="badge bg-<%= policy_data[:status] == 'Active' ? 'success' : 'secondary' %>">
+                    <%= policy_data[:status] %>
+                  </span>
+                </td>
+                <td>
+                  <% if policy_data[:end_date] %>
+                    <%= policy_data[:end_date].strftime("%d %b, %Y") %>
+                  <% else %>
+                    <span class="text-muted">-</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% case policy_data[:type] %>
+                  <% when 'Health Insurance' %>
+                    <%= link_to admin_health_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+                  <% when 'Life Insurance' %>
+                    <%= link_to admin_life_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+                  <% when 'Motor Insurance' %>
+                    <%= link_to admin_motor_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <% if @all_policies.count > 10 %>
+        <div class="text-center mt-3">
+          <p class="text-muted">Showing 10 of <%= @all_policies.count %> policies</p>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="text-center py-4">
+        <i class="bi bi-shield display-6 text-muted mb-3 d-block"></i>
+        <h6 class="text-muted">No policies found</h6>
+        <p class="text-muted mb-0">This sub agent has not handled any policies yet.</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Commission Summary -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <i class="bi bi-cash-coin me-2 text-warning"></i>
+    <h5 class="mb-0">Commission Earned</h5>
+  </div>
+  <div class="card-body">
+    <div class="row text-center mb-4">
+      <div class="col-md-3">
+        <div class="border rounded p-3 bg-light">
+          <h4 class="text-success mb-1">₹<%= number_to_currency(@total_commission_earned, unit: '', precision: 0) %></h4>
+          <small class="text-muted">Total Earned</small>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded p-3">
+          <h4 class="text-primary mb-1">₹<%= number_to_currency(@paid_commission, unit: '', precision: 0) %></h4>
+          <small class="text-muted">Paid</small>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded p-3">
+          <h4 class="text-info mb-1">₹<%= number_to_currency(@processing_commission, unit: '', precision: 0) %></h4>
+          <small class="text-muted">Processing</small>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded p-3">
+          <h4 class="text-warning mb-1">₹<%= number_to_currency(@pending_commission, unit: '', precision: 0) %></h4>
+          <small class="text-muted">Pending</small>
+        </div>
+      </div>
+    </div>
+
+    <% if @commission_payouts.any? %>
+      <h6 class="mb-3">Recent Commission Payouts (<%= @commission_payouts.count %>)</h6>
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Policy Number</th>
+              <th>Policy Type</th>
+              <th>Customer</th>
+              <th>Commission Amount</th>
+              <th>Status</th>
+              <th>Payout Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @commission_payouts.first(10).each do |payout| %>
+              <tr>
+                <td>
+                  <strong><%= payout.policy_number %></strong>
+                </td>
+                <td>
+                  <span class="badge bg-<%=
+                    case payout.policy_type
+                    when 'health' then 'info'
+                    when 'life' then 'primary'
+                    when 'motor' then 'warning'
+                    else 'secondary'
+                    end
+                  %>">
+                    <%= payout.policy_type.humanize %> Insurance
+                  </span>
+                </td>
+                <td><%= payout.customer_name %></td>
+                <td>₹<%= number_to_currency(payout.payout_amount, unit: '', precision: 0) %></td>
+                <td>
+                  <span class="badge bg-<%=
+                    case payout.status
+                    when 'paid' then 'success'
+                    when 'processing' then 'info'
+                    when 'pending' then 'warning'
+                    when 'cancelled' then 'danger'
+                    else 'secondary'
+                    end
+                  %>">
+                    <%= payout.status.humanize %>
+                  </span>
+                </td>
+                <td>
+                  <% if payout.payout_date %>
+                    <%= payout.payout_date.strftime("%d %b, %Y") %>
+                  <% else %>
+                    <span class="text-muted">-</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <% if @commission_payouts.count > 10 %>
+        <div class="text-center mt-3">
+          <p class="text-muted">Showing 10 of <%= @commission_payouts.count %> commission payouts</p>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="text-center py-4">
+        <i class="bi bi-cash display-6 text-muted mb-3 d-block"></i>
+        <h6 class="text-muted">No commission records found</h6>
+        <p class="text-muted mb-0">No commission payouts have been recorded for this sub agent yet.</p>
       </div>
     <% end %>
   </div>

@@ -25,6 +25,22 @@ Rails.application.routes.draw do
 
   # Admin routes
   namespace :admin do
+    # Document management
+    resources :documents do
+      member do
+        get :download
+      end
+    end
+
+    # Nested document routes for different models
+    resources :users do
+      resources :documents, except: [:edit, :update]
+    end
+
+
+    resources :customers do
+      resources :documents, except: [:edit, :update]
+    end
     resources :payouts do
       member do
         patch :mark_as_paid
@@ -128,6 +144,7 @@ Rails.application.routes.draw do
       member do
         patch :toggle_status
         get :distributor
+        get :documents
       end
       resources :sub_agent_documents, except: [:show, :index]
     end
@@ -264,6 +281,7 @@ Rails.application.routes.draw do
 
     # Leads management
     resources :leads do
+      resources :documents, except: [:edit, :update]
       member do
         patch :convert_to_customer
         patch :create_policy
@@ -416,6 +434,7 @@ Rails.application.routes.draw do
         end
       end
     end
+
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

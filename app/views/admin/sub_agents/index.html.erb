@@ -1,13 +1,12 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-1">Sub Agents</h2>
-    <p class="text-muted mb-0">Manage your sub agent network and view agent details</p>
+    <h2 class="mb-1">Affiliate Management</h2>
   </div>
   <div class="d-flex gap-2">
     <%= link_to new_admin_sub_agent_path, class: "btn btn-primary" do %>
       <i class="bi bi-plus-lg me-1"></i>
-      Create Sub Agent
+      Create Affiliate
     <% end %>
   </div>
 </div>
@@ -19,7 +18,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Total Sub Agents</h6>
+            <h6 class="text-muted mb-2">Total Affiliate</h6>
             <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_sub_agents) %></h3>
           </div>
           <div class="bg-primary bg-opacity-10 rounded p-3">
@@ -35,7 +34,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Active Sub Agents</h6>
+            <h6 class="text-muted mb-2">Active Affiliate</h6>
             <h3 class="mb-0 text-success"><%= number_with_delimiter(@active_sub_agents) %></h3>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
@@ -51,7 +50,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Inactive Sub Agents</h6>
+            <h6 class="text-muted mb-2">Inactive Affiliate</h6>
             <h3 class="mb-0 text-warning"><%= number_with_delimiter(@inactive_sub_agents) %></h3>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
@@ -212,11 +211,12 @@
                       <li><%= link_to "Edit", edit_admin_sub_agent_path(sub_agent), class: "dropdown-item" %></li>
                       <li><hr class="dropdown-divider"></li>
                       <li>
-                        <%= link_to admin_sub_agent_path(sub_agent),
-                                   class: "dropdown-item text-danger",
+                        <%= link_to "#",
+                                   class: "dropdown-item text-danger delete-sub-agent-btn",
                                    data: {
-                                     "turbo-method": :delete,
-                                     "turbo-confirm": "Are you sure you want to delete this sub agent? This action cannot be undone."
+                                     "sub-agent-id": sub_agent.id,
+                                     "sub-agent-name": sub_agent.display_name,
+                                     "delete-url": admin_sub_agent_path(sub_agent)
                                    } do %>
                           <i class="bi bi-trash text-danger me-2"></i>Delete
                         <% end %>
@@ -343,6 +343,108 @@ document.addEventListener('DOMContentLoaded', function() {
   statusFilter.addEventListener('change', function() {
     searchForm.submit();
   });
+
+  // Delete confirmation functionality
+  const deleteButtons = document.querySelectorAll('.delete-sub-agent-btn');
+  deleteButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+
+      const subAgentId = this.dataset.subAgentId;
+      const subAgentName = this.dataset.subAgentName;
+      const deleteUrl = this.dataset.deleteUrl;
+
+      showDeleteConfirmation(subAgentName, deleteUrl);
+    });
+  });
+
+  function showDeleteConfirmation(subAgentName, deleteUrl) {
+    // Create modal HTML
+    const modalHtml = `
+      <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header border-bottom-0">
+              <h5 class="modal-title text-danger" id="deleteConfirmationModalLabel">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Delete Affiliate
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+              <div class="mb-4">
+                <i class="bi bi-trash text-danger" style="font-size: 3rem;"></i>
+              </div>
+              <h6 class="mb-3">Are you sure you want to delete this affiliate?</h6>
+              <p class="text-muted mb-0">
+                <strong>${subAgentName}</strong> will be permanently removed from the system.
+              </p>
+              <p class="text-danger small mt-2 mb-0">
+                <i class="bi bi-exclamation-circle me-1"></i>
+                This action cannot be undone.
+              </p>
+            </div>
+            <div class="modal-footer border-top-0 justify-content-center">
+              <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">
+                <i class="bi bi-x-lg me-1"></i>Cancel
+              </button>
+              <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                <i class="bi bi-trash me-1"></i>Delete Affiliate
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Remove any existing modal
+    const existingModal = document.getElementById('deleteConfirmationModal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmationModal'));
+    modal.show();
+
+    // Handle confirmation
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+      // Create and submit delete form
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = deleteUrl;
+
+      // Add CSRF token
+      const csrfToken = document.querySelector('meta[name="csrf-token"]');
+      if (csrfToken) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'authenticity_token';
+        csrfInput.value = csrfToken.getAttribute('content');
+        form.appendChild(csrfInput);
+      }
+
+      // Add method override for DELETE
+      const methodInput = document.createElement('input');
+      methodInput.type = 'hidden';
+      methodInput.name = '_method';
+      methodInput.value = 'DELETE';
+      form.appendChild(methodInput);
+
+      document.body.appendChild(form);
+      form.submit();
+
+      modal.hide();
+    });
+
+    // Clean up modal when hidden
+    document.getElementById('deleteConfirmationModal').addEventListener('hidden.bs.modal', function () {
+      this.remove();
+    });
+  }
 
   // Fix dropdown positioning for table responsive containers
   const dropdownButtons = document.querySelectorAll('.table .dropdown-toggle');

@@ -48,13 +48,14 @@
       <!-- Simple Login Form -->
       <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
         <div class="mb-3">
-          <%= f.label :email, "Email Address", class: "form-label" %>
+          <%= f.label :login, "Email Address or Mobile Number", class: "form-label" %>
           <div class="input-group">
             <span class="input-group-text">
               <i class="fas fa-user"></i>
             </span>
-            <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "form-control", placeholder: "pramodbha8@gmail.com" %>
+            <%= f.text_field :login, autofocus: true, autocomplete: "username", class: "form-control", placeholder: "pramodbha8@gmail.com or 44444 44444" %>
           </div>
+          <small class="text-muted">You can login with email or mobile number (with or without +91)</small>
         </div>
 
         <div class="mb-3">

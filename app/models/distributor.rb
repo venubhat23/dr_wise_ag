@@ -3,12 +3,15 @@ class Distributor < ApplicationRecord
 
   # Associations
   has_many :distributor_documents, dependent: :destroy
+  has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
   has_many :distributor_assignments, dependent: :destroy
   has_many :assigned_sub_agents, through: :distributor_assignments, source: :sub_agent
+  has_many :sub_agents, dependent: :nullify
   has_one_attached :upload_main_document
 
   # Nested attributes for documents
   accepts_nested_attributes_for :distributor_documents, allow_destroy: true, reject_if: :all_blank
+  accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations
   validates :first_name, presence: true

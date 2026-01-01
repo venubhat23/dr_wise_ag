@@ -11,6 +11,7 @@ class LifeInsurance < ApplicationRecord
   belongs_to :broker, optional: true
   has_many_attached :documents
   has_many_attached :policy_documents
+  has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
 
   # New relationships for API structure
   has_many :life_insurance_nominees, dependent: :destroy
@@ -21,6 +22,7 @@ class LifeInsurance < ApplicationRecord
   accepts_nested_attributes_for :life_insurance_nominees, allow_destroy: true
   accepts_nested_attributes_for :life_insurance_bank_detail, allow_destroy: true
   accepts_nested_attributes_for :life_insurance_documents, allow_destroy: true
+  accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations
   validates :policy_holder, presence: true
@@ -267,7 +269,9 @@ class LifeInsurance < ApplicationRecord
   end
 
   def set_policy_term_from_dates
-    if policy_start_date.present? && policy_end_date.present? && policy_term.blank?
+    # Only auto-calculate policy term if it's completely blank/nil
+    # Don't override if user has manually selected a value
+    if policy_start_date.present? && policy_end_date.present? && policy_term.nil?
       years = (policy_end_date - policy_start_date) / 365.25
       self.policy_term = years.round
     end
@@ -354,9 +358,27 @@ class LifeInsurance < ApplicationRecord
 
   # Inherit lead_id from customer if not already set
   def inherit_customer_lead_id
-    return if lead_id.present? || customer.nil?
+    return if lead_id.present? || customer.nil? || customer.lead_id.blank?
 
-    self.lead_id = customer.lead_id if customer.lead_id.present?
+    # Check if customer's lead_id is already used by another life insurance policy
+    if LifeInsurance.exists?(lead_id: customer.lead_id)
+      # Generate a unique lead_id for this policy
+      base_lead_id = customer.lead_id
+      counter = 1
+
+      loop do
+        new_lead_id = "#{base_lead_id}-#{counter}"
+        unless LifeInsurance.exists?(lead_id: new_lead_id)
+          self.lead_id = new_lead_id
+          break
+        end
+        counter += 1
+        # Safety check to prevent infinite loop
+        break if counter > 1000
+      end
+    else
+      self.lead_id = customer.lead_id
+    end
   end
 
   def create_structured_payout
