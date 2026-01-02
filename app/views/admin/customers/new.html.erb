@@ -102,7 +102,7 @@
             <%= form.select :sub_agent_id,
                 options_for_select(@sub_agents.map { |sa| ["#{sa.first_name} #{sa.last_name}", sa.id] }, @customer.sub_agent_id),
                 { prompt: 'Search and select affiliate...' },
-                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent_id].any?}", required: true, id: "corporate_affiliate_select", data: { placeholder: "Type to search affiliates..." } } %>
+                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent_id].any?} searchable-select", required: true, id: "corporate_affiliate_select", data: { placeholder: "Type to search affiliates...", search_url: "/admin/customers/search_affiliates" } } %>
             <% if @customer.errors[:sub_agent_id].any? %>
               <div class="invalid-feedback"><%= @customer.errors[:sub_agent_id].first %></div>
             <% end %>
@@ -203,8 +203,8 @@
             <%= form.label :state, "State", class: "form-label" %>
             <%= form.select :state,
                 options_for_select(LocationData.states_for_select, @customer.state),
-                { prompt: 'Select State' },
-                { class: "form-select", id: "customer_state_individual" } %>
+                { prompt: 'Search and select state...' },
+                { class: "form-select searchable-select", id: "customer_state_individual", data: { placeholder: "Type to search states..." } } %>
           </div>
           <div class="col-md-4">
             <%= form.label :city, "City", class: "form-label" %>
@@ -332,7 +332,7 @@
             <%= form.select :sub_agent_id,
                 options_for_select(@sub_agents.map { |sa| ["#{sa.first_name} #{sa.last_name}", sa.id] }, @customer.sub_agent_id),
                 { prompt: 'Search and select affiliate...' },
-                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent_id].any?}", required: true, id: "individual_affiliate_select", data: { placeholder: "Type to search affiliates..." } } %>
+                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent_id].any?} searchable-select", required: true, id: "individual_affiliate_select", data: { placeholder: "Type to search affiliates...", search_url: "/admin/customers/search_affiliates" } } %>
             <% if @customer.errors[:sub_agent_id].any? %>
               <div class="invalid-feedback"><%= @customer.errors[:sub_agent_id].first %></div>
             <% end %>
@@ -454,8 +454,8 @@
             <%= form.label :state, "State", class: "form-label" %>
             <%= form.select :state,
                 options_for_select(LocationData.states_for_select, @customer.state),
-                { prompt: 'Select State' },
-                { class: "form-select", id: "customer_state_corporate" } %>
+                { prompt: 'Search and select state...' },
+                { class: "form-select searchable-select", id: "customer_state_corporate", data: { placeholder: "Type to search states..." } } %>
           </div>
           <div class="col-md-4">
             <%= form.label :city, "City", class: "form-label" %>
@@ -527,9 +527,14 @@
             <%= form.label :business_job, "Business/Job", class: "form-label" %>
             <%= form.select :business_job,
                 options_for_select([
-                  ['Private Job', 'private_job'], ['Government Job', 'government_job'],
-                  ['Business', 'business'], ['Self Employed', 'self_employed'],
-                  ['Student', 'student'], ['Retired', 'retired']
+                  ['Salaried', 'salaried'],
+                  ['Self Employed', 'self_employed'],
+                  ['Business', 'business'],
+                  ['Professional', 'professional'],
+                  ['Student', 'student'],
+                  ['Retired', 'retired'],
+                  ['Unemployed', 'unemployed'],
+                  ['Other', 'other']
                 ], @customer.business_job),
                 { prompt: 'Select Business/Job' },
                 { class: "form-select" } %>
@@ -1652,8 +1657,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Use API for city data
   let citiesData = {};
 
-  function loadCitiesForState(stateValue, cityDropdown) {
-    console.log('Loading cities for:', stateValue);
+  function loadCitiesForState(stateValue, cityDropdown, selectedCity = null) {
+    console.log('Loading cities for:', stateValue, 'Selected city:', selectedCity);
 
     // Clear and disable if no state
     if (!stateValue) {
@@ -1662,12 +1667,15 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
+    // Store the currently selected city or use the passed selectedCity
+    const currentSelectedCity = selectedCity || cityDropdown.value;
+
     // Use API call to get cities
     fetch(`/api/cities?state=${stateValue}`)
       .then(response => response.json())
       .then(data => {
         const cities = data.cities || [];
-        populateCityDropdown(cities, cityDropdown);
+        populateCityDropdown(cities, cityDropdown, currentSelectedCity);
       })
       .catch(error => {
         console.error('Error loading cities:', error);
@@ -1676,7 +1684,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
   }
 
-  function populateCityDropdown(cities, cityDropdown) {
+  function populateCityDropdown(cities, cityDropdown, selectedCity = null) {
     // Clear dropdown and add cities
     cityDropdown.innerHTML = '<option value="">Select City</option>';
 
@@ -1684,11 +1692,17 @@ document.addEventListener('DOMContentLoaded', function() {
       const option = document.createElement('option');
       option.value = city;
       option.textContent = city;
+
+      // Select the city if it matches the selectedCity
+      if (selectedCity && city === selectedCity) {
+        option.selected = true;
+      }
+
       cityDropdown.appendChild(option);
     });
 
     cityDropdown.disabled = false;
-    console.log(`Loaded ${cities.length} cities`);
+    console.log(`Loaded ${cities.length} cities`, selectedCity ? `with selected: ${selectedCity}` : '');
   }
 
   // Setup for Individual customer
@@ -1696,12 +1710,22 @@ document.addEventListener('DOMContentLoaded', function() {
   const individualCity = document.getElementById('customer_city_individual');
 
   if (individualState && individualCity) {
+    const initialCityValue = individualCity.value; // Store initial city value from server
+
+    // Handle both regular change and Select2 change events
     individualState.addEventListener('change', function() {
       loadCitiesForState(this.value, individualCity);
     });
-    // Load cities if state already selected
+
+    // Handle Select2 change event specifically
+    $('#customer_state_individual').on('select2:select', function (e) {
+      const selectedValue = e.params.data.id;
+      loadCitiesForState(selectedValue, individualCity);
+    });
+
+    // Load cities if state already selected and preserve the initial city selection
     if (individualState.value) {
-      loadCitiesForState(individualState.value, individualCity);
+      loadCitiesForState(individualState.value, individualCity, initialCityValue);
     }
   }
 
@@ -1710,12 +1734,22 @@ document.addEventListener('DOMContentLoaded', function() {
   const corporateCity = document.getElementById('customer_city_corporate');
 
   if (corporateState && corporateCity) {
+    const initialCorporateCityValue = corporateCity.value; // Store initial city value from server
+
+    // Handle both regular change and Select2 change events
     corporateState.addEventListener('change', function() {
       loadCitiesForState(this.value, corporateCity);
     });
-    // Load cities if state already selected
+
+    // Handle Select2 change event specifically
+    $('#customer_state_corporate').on('select2:select', function (e) {
+      const selectedValue = e.params.data.id;
+      loadCitiesForState(selectedValue, corporateCity);
+    });
+
+    // Load cities if state already selected and preserve the initial city selection
     if (corporateState.value) {
-      loadCitiesForState(corporateState.value, corporateCity);
+      loadCitiesForState(corporateState.value, corporateCity, initialCorporateCityValue);
     }
   }
 
@@ -1723,7 +1757,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initialize Select2 for searchable dropdowns
   function initializeSelect2Dropdowns() {
-    // Initialize Affiliate dropdowns
+    // Initialize State dropdowns with search
+    $('#customer_state_individual, #customer_state_corporate').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search and select state...',
+      allowClear: true,
+      width: '100%',
+      dropdownParent: $('body'),
+      minimumResultsForSearch: 0,
+      closeOnSelect: true
+    });
+
+    // Initialize Affiliate dropdowns with AJAX search
     $('#corporate_affiliate_select, #individual_affiliate_select').select2({
       theme: 'bootstrap-5',
       placeholder: 'Search and select affiliate...',
@@ -1731,10 +1776,27 @@ document.addEventListener('DOMContentLoaded', function() {
       width: '100%',
       dropdownParent: $('body'),
       dropdownCssClass: 'select2-dropdown-large',
-      minimumResultsForSearch: 0,
-      closeOnSelect: true,
+      minimumInputLength: 0, // Allow opening without typing
+      ajax: {
+        url: '/admin/customers/search_affiliates',
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          return {
+            q: params.term || '', // Send empty query to get default results
+            limit: params.term ? 20 : 10 // Show fewer results when no search term
+          };
+        },
+        processResults: function (data) {
+          return {
+            results: data.results || []
+          };
+        },
+        cache: true
+      },
       templateResult: function(option) {
-        if (!option.id || option.element.value === '') {
+        if (option.loading) return option.text;
+        if (!option.id || option.id === '') {
           return option.text;
         }
 
@@ -1866,7 +1928,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Override the existing populateCityDropdown function to include Select2 reinitialization
   const originalPopulateCityDropdown = window.populateCityDropdown || populateCityDropdown;
 
-  function populateCityDropdown(cities, cityDropdown) {
+  function populateCityDropdown(cities, cityDropdown, selectedCity = null) {
     // First destroy Select2 if it exists
     const $cityDropdown = $(cityDropdown);
     if ($cityDropdown.hasClass('select2-hidden-accessible')) {
@@ -1880,15 +1942,66 @@ document.addEventListener('DOMContentLoaded', function() {
       const option = document.createElement('option');
       option.value = city;
       option.textContent = city;
+
+      // Select the city if it matches the selectedCity
+      if (selectedCity && city === selectedCity) {
+        option.selected = true;
+      }
+
       cityDropdown.appendChild(option);
     });
 
     cityDropdown.disabled = false;
-    console.log(`Loaded ${cities.length} cities`);
+    console.log(`Loaded ${cities.length} cities`, selectedCity ? `with selected: ${selectedCity}` : '');
 
-    // Reinitialize Select2
+    // Reinitialize Select2 and set the selected value
     setTimeout(() => {
-      reinitializeCitySelect2($cityDropdown);
+      $cityDropdown.select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select city...',
+        allowClear: true,
+        width: '100%',
+        dropdownParent: $('body'),
+        dropdownCssClass: 'select2-dropdown-large',
+        minimumResultsForSearch: 0,
+        closeOnSelect: true,
+        templateResult: function(option) {
+          if (!option.id || option.element.value === '') {
+            return option.text;
+          }
+
+          // Generate city initials
+          var initials = option.text.split(' ').map(function(word) {
+            return word.charAt(0).toUpperCase();
+          }).join('').substring(0, 3);
+
+          // Get the state from the state dropdown in the same section
+          var stateDropdown = $(option.element).closest('.card-body').find('select[name*="[state]"]');
+          var stateName = stateDropdown.find('option:selected').text() || 'State';
+
+          // Custom template for city options with purple square avatar
+          var $option = $(
+            '<div class="city-option">' +
+              '<div class="city-option-avatar">' + initials + '</div>' +
+              '<div class="city-option-details">' +
+                '<div class="city-option-name">' + option.text + '</div>' +
+                '<div class="city-option-state">' + stateName + '</div>' +
+              '</div>' +
+            '</div>'
+          );
+          return $option;
+        },
+        templateSelection: function(option) {
+          return option.text || 'Search and select city...';
+        },
+        escapeMarkup: function(markup) {
+          return markup;
+        }
+      });
+
+      if (selectedCity) {
+        $cityDropdown.val(selectedCity).trigger('change');
+      }
     }, 50);
   }
 

@@ -174,8 +174,10 @@ class Admin::DistributorPayoutsController < ApplicationController
   def calculate_distributor_payouts
     payouts = []
 
-    # Get all commission payouts for ambassadors (distributors) directly
-    ambassador_commission_payouts = CommissionPayout.where(payout_to: 'ambassador').includes(:payout)
+    # Get all commission payouts for ambassadors (distributors) where main agent is paid
+    ambassador_commission_payouts = CommissionPayout.dependent_payouts_where_main_agent_paid
+                                                   .where(payout_to: 'ambassador')
+                                                   .includes(:payout)
 
     # Group by distributor
     distributor_groups = {}
@@ -184,9 +186,6 @@ class Admin::DistributorPayoutsController < ApplicationController
       # Get policy from commission payout
       policy = get_policy_from_commission_payout(commission_payout)
       next unless policy
-
-      # Skip if main agent commission not received
-      next unless policy.respond_to?(:main_agent_commission_received) && policy.main_agent_commission_received
 
       # Get distributor from the policy's distributor_id field
       distributor = Distributor.find_by(id: policy.distributor_id) if policy.respond_to?(:distributor_id) && policy.distributor_id.present?
@@ -377,6 +376,9 @@ class Admin::DistributorPayoutsController < ApplicationController
             processed_at: Time.current
           )
           Rails.logger.info "Updated CommissionPayout #{commission_payout.id} status to paid for ambassador (existing payout case)"
+
+          # Create ambassador commission display record for tracking
+          create_ambassador_commission_record(policy, commission_payout, transaction_id, payment_date, notes)
         else
           Rails.logger.warn "No CommissionPayout found for policy #{policy.id} (#{policy_type}) ambassador (existing payout case)"
         end
@@ -415,6 +417,9 @@ class Admin::DistributorPayoutsController < ApplicationController
             processed_at: Time.current
           )
           Rails.logger.info "Updated CommissionPayout #{commission_payout.id} status to paid for ambassador"
+
+          # Create ambassador commission display record for tracking
+          create_ambassador_commission_record(policy, commission_payout, transaction_id, payment_date, notes)
         else
           Rails.logger.warn "No CommissionPayout found for policy #{policy.id} (#{policy_type}) ambassador"
         end
@@ -588,6 +593,46 @@ class Admin::DistributorPayoutsController < ApplicationController
 
   def generate_distributor_invoice_number
     "INV-DIST-#{Date.current.strftime('%Y%m%d')}-#{rand(10000..99999)}"
+  end
+
+  def create_ambassador_commission_record(policy, commission_payout, transaction_id, payment_date, notes)
+    # Find the distributor for this policy
+    distributor = Distributor.find_by(id: policy.distributor_id) if policy.respond_to?(:distributor_id) && policy.distributor_id.present?
+    return unless distributor
+
+    # Create a commission tracking record specifically for ambassador payouts
+    # This helps show the commission flow: main agent -> distributor (ambassador)
+    begin
+      # Check if record already exists
+      existing_record = CommissionPayout.find_by(
+        policy_type: commission_payout.policy_type,
+        policy_id: policy.id,
+        payout_to: 'ambassador_display',
+        lead_id: commission_payout.lead_id
+      )
+
+      unless existing_record
+        CommissionPayout.create!(
+          policy_type: commission_payout.policy_type,
+          policy_id: policy.id,
+          customer_id: policy.customer_id,
+          total_commission_amount: commission_payout.total_commission_amount,
+          status: 'paid',
+          payout_date: payment_date || Date.current,
+          processed_by: current_user&.email || 'system',
+          processed_at: Time.current,
+          payout_to: 'ambassador_display', # Special type to track ambassador commission flow
+          payout_amount: commission_payout.payout_amount,
+          lead_id: commission_payout.lead_id,
+          transaction_id: transaction_id,
+          notes: "#{notes} | Ambassador commission paid to distributor: #{distributor.display_name}",
+          reference_number: "AMB_#{commission_payout.lead_id}_#{Time.current.to_i}"
+        )
+        Rails.logger.info "Created ambassador commission display record for policy #{policy.id}"
+      end
+    rescue => e
+      Rails.logger.error "Failed to create ambassador commission record: #{e.message}"
+    end
   end
 
   def authorize_admin_access

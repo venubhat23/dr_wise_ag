@@ -136,6 +136,48 @@ class CommissionPayout < ApplicationRecord
     end
   end
 
+  # Get related commission payouts for the same policy where main agent is paid
+  def related_payouts_when_main_agent_paid
+    return [] unless policy_type.present? && policy_id.present?
+
+    # Find the main agent commission payout for this policy
+    main_agent_payout = CommissionPayout.find_by(
+      policy_type: policy_type,
+      policy_id: policy_id,
+      payout_to: 'main_agent',
+      status: 'paid'
+    )
+
+    return [] unless main_agent_payout
+
+    # If main agent is paid, return all other commission payouts for the same policy
+    CommissionPayout.where(
+      policy_type: policy_type,
+      policy_id: policy_id
+    ).where.not(payout_to: 'main_agent')
+     .includes(:payout)
+     .order(:created_at)
+  end
+
+  # Check if main agent payout is paid for this policy
+  def main_agent_paid?
+    CommissionPayout.exists?(
+      policy_type: policy_type,
+      policy_id: policy_id,
+      payout_to: 'main_agent',
+      status: 'paid'
+    )
+  end
+
+  # Get main agent payout details for this policy
+  def main_agent_payout
+    CommissionPayout.find_by(
+      policy_type: policy_type,
+      policy_id: policy_id,
+      payout_to: 'main_agent'
+    )
+  end
+
   # Class methods
   def self.total_pending_amount
     pending.sum(:payout_amount)
@@ -154,6 +196,29 @@ class CommissionPayout < ApplicationRecord
     end_date = start_date.end_of_month
 
     where(payout_date: start_date..end_date).group(:payout_to).sum(:payout_amount)
+  end
+
+  # Get all dependent payouts where main agent is paid (class method)
+  def self.where_main_agent_paid
+    # Get all policy combinations where main agent is paid
+    paid_main_agent_policies = where(payout_to: 'main_agent', status: 'paid')
+                               .pluck(:policy_type, :policy_id)
+                               .uniq
+
+    return none if paid_main_agent_policies.empty?
+
+    # Build conditions for all policies where main agent is paid
+    conditions = paid_main_agent_policies.map do |policy_type, policy_id|
+      "(policy_type = '#{policy_type}' AND policy_id = #{policy_id})"
+    end.join(' OR ')
+
+    # Return all payouts (including main agent) for these policies
+    where(conditions).includes(:payout)
+  end
+
+  # Get only dependent payouts (excluding main agent) where main agent is paid
+  def self.dependent_payouts_where_main_agent_paid
+    where_main_agent_paid.where.not(payout_to: 'main_agent')
   end
 
   private

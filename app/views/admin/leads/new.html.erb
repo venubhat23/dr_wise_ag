@@ -2,7 +2,6 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h2 class="mb-1">Add New Lead</h2>
-    <p class="text-muted mb-0">Create a new lead record for potential insurance customers</p>
   </div>
   <div>
     <%= link_to admin_leads_path, class: "btn btn-outline-secondary" do %>
@@ -14,44 +13,48 @@
 
 <%= form_with model: [:admin, @lead || Lead.new], local: true, class: "needs-validation", novalidate: true do |form| %>
 
-  <!-- 1. Customer Type Selection -->
+  <!-- 1. Customer Type Selection - Compact Design -->
   <div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-transparent border-0 d-flex align-items-center">
-      <i class="bi bi-person-gear me-2 text-primary"></i>
-      <h5 class="mb-0">Customer Type</h5>
-    </div>
-    <div class="card-body">
-      <div class="customer-type-selection">
-        <div class="row">
-          <div class="col-md-6">
-            <div class="customer-type-card" data-type="individual">
-              <%= form.radio_button :customer_type, 'individual',
-                  class: "form-check-input d-none",
-                  id: "customer_type_individual",
-                  required: true %>
-              <label for="customer_type_individual" class="customer-type-label">
-                <div class="text-center p-4">
-                  <i class="bi bi-person-circle fs-1 d-block mb-3 text-primary"></i>
-                  <h6 class="fw-bold">Individual</h6>
-                  <p class="text-muted small mb-0">Personal Customer</p>
-                </div>
-              </label>
-            </div>
+    <div class="card-body py-3">
+      <div class="customer-type-compact">
+        <!-- Hidden radio buttons for form submission -->
+        <%= form.radio_button :customer_type, 'individual',
+            class: "d-none",
+            id: "customer_type_individual",
+            required: true,
+            checked: @lead&.customer_type == 'individual' || @lead&.customer_type.nil? %>
+        <%= form.radio_button :customer_type, 'corporate',
+            class: "d-none",
+            id: "customer_type_corporate",
+            required: true,
+            checked: @lead&.customer_type == 'corporate' %>
+
+        <!-- Compact Pill Toggle -->
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-person-badge fs-5 text-primary me-2"></i>
+            <span class="fw-semibold">Customer Type:</span>
           </div>
-          <div class="col-md-6">
-            <div class="customer-type-card" data-type="corporate">
-              <%= form.radio_button :customer_type, 'corporate',
-                  class: "form-check-input d-none",
-                  id: "customer_type_corporate",
-                  required: true %>
-              <label for="customer_type_corporate" class="customer-type-label">
-                <div class="text-center p-4">
-                  <i class="bi bi-building fs-1 d-block mb-3 text-success"></i>
-                  <h6 class="fw-bold">Corporate</h6>
-                  <p class="text-muted small mb-0">Business Customer</p>
-                </div>
-              </label>
-            </div>
+
+          <div class="pill-toggle">
+            <div class="pill-slider <%= @lead&.customer_type == 'corporate' ? 'corporate' : '' %>"></div>
+            <button type="button" class="pill-option individual <%= @lead&.customer_type != 'corporate' ? 'active' : '' %>" data-type="individual">
+              <i class="bi bi-person me-1"></i>
+              Individual
+            </button>
+            <button type="button" class="pill-option corporate <%= @lead&.customer_type == 'corporate' ? 'active' : '' %>" data-type="corporate">
+              <i class="bi bi-building me-1"></i>
+              Corporate
+            </button>
+          </div>
+
+          <div class="selected-type-info">
+            <span class="badge-type individual-badge <%= @lead&.customer_type != 'corporate' ? 'show' : '' %>">
+              <i class="bi bi-person-check"></i> Personal Account
+            </span>
+            <span class="badge-type corporate-badge <%= @lead&.customer_type == 'corporate' ? 'show' : '' %>">
+              <i class="bi bi-briefcase"></i> Business Account
+            </span>
           </div>
         </div>
       </div>
@@ -79,7 +82,7 @@
   </div>
 
   <!-- 3. Individual Customer Details -->
-  <div id="individual_sections" style="display: none;">
+  <div id="individual_sections" style="display: <%= @lead&.customer_type == 'individual' ? 'block' : 'none' %>;">
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0 d-flex align-items-center">
         <i class="bi bi-person-circle me-2 text-primary"></i>
@@ -89,7 +92,7 @@
         <div class="row">
           <div class="col-md-4 mb-3">
             <%= form.label :first_name, "First Name *", class: "form-label" %>
-            <%= form.text_field :first_name, class: "form-control", placeholder: "Enter first name", required: true %>
+            <%= form.text_field :first_name, class: "form-control", placeholder: "Enter first name" %>
           </div>
           <div class="col-md-4 mb-3">
             <%= form.label :middle_name, "Middle Name", class: "form-label" %>
@@ -97,7 +100,7 @@
           </div>
           <div class="col-md-4 mb-3">
             <%= form.label :last_name, "Last Name *", class: "form-label" %>
-            <%= form.text_field :last_name, class: "form-control", placeholder: "Enter last name", required: true %>
+            <%= form.text_field :last_name, class: "form-control", placeholder: "Enter last name" %>
           </div>
           <div class="col-md-6 mb-3">
             <%= form.label :birth_date, "Date of Birth", class: "form-label" %>
@@ -110,7 +113,7 @@
               ['Male', 'male'],
               ['Female', 'female'],
               ['Other', 'other']
-            ]), {}, { class: "form-select" } %>
+            ], @lead&.gender), {}, { class: "form-select" } %>
           </div>
           <div class="col-md-6 mb-3">
             <%= form.label :marital_status, "Marital Status", class: "form-label" %>
@@ -120,7 +123,7 @@
               ['Married', 'married'],
               ['Divorced', 'divorced'],
               ['Widowed', 'widowed']
-            ]), {}, { class: "form-select" } %>
+            ], @lead&.marital_status), {}, { class: "form-select" } %>
           </div>
           <div class="col-md-6 mb-3">
             <%= form.label :pan_no, "PAN Number", class: "form-label" %>
@@ -160,13 +163,15 @@
             <%= form.label :business_job, "Business/Job", class: "form-label" %>
             <%= form.select :business_job, options_for_select([
               ['Select Business/Job', ''],
-              ['Business', 'business'],
-              ['Job', 'job'],
+              ['Salaried', 'salaried'],
               ['Self Employed', 'self_employed'],
+              ['Business', 'business'],
+              ['Professional', 'professional'],
               ['Student', 'student'],
               ['Retired', 'retired'],
-              ['Unemployed', 'unemployed']
-            ]), {}, { class: "form-select" } %>
+              ['Unemployed', 'unemployed'],
+              ['Other', 'other']
+            ], @lead&.business_job), {}, { class: "form-select" } %>
           </div>
           <div class="col-md-6 mb-3">
             <%= form.label :business_name, "Name of Business/Job", class: "form-label" %>
@@ -198,7 +203,7 @@
   </div>
 
   <!-- 4. Corporate Customer Details -->
-  <div id="corporate_sections" style="display: none;">
+  <div id="corporate_sections" style="display: <%= @lead&.customer_type == 'corporate' ? 'block' : 'none' %>;">
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0 d-flex align-items-center">
         <i class="bi bi-building me-2 text-success"></i>
@@ -208,7 +213,7 @@
         <div class="row">
           <div class="col-md-6 mb-3">
             <%= form.label :company_name, "Company Name *", class: "form-label" %>
-            <%= form.text_field :company_name, class: "form-control", placeholder: "Enter company name", required: true %>
+            <%= form.text_field :company_name, class: "form-control", placeholder: "Enter company name" %>
           </div>
           <div class="col-md-6 mb-3">
             <%= form.label :pan_no, "PAN Number", class: "form-label" %>
@@ -224,7 +229,7 @@
   </div>
 
   <!-- 5. Product Information (shown after customer type selected) -->
-  <div id="product_section" style="display: none;">
+  <div id="product_section" style="display: <%= @lead&.customer_type.present? ? 'block' : 'none' %>;">
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0 d-flex align-items-center">
         <i class="bi bi-briefcase me-2 text-primary"></i>
@@ -240,12 +245,12 @@
               ['Investments', 'investments'],
               ['Loans', 'loans'],
               ['Taxation', 'taxation']
-            ]), {}, { class: "form-select", required: true, id: "product_category" } %>
+            ], @lead&.product_category), {}, { class: "form-select", required: true, id: "product_category" } %>
           </div>
           <div class="col-md-6 mb-3">
             <%= form.label :product_subcategory, "Product Type *", class: "form-label" %>
             <%= form.select :product_subcategory, options_for_select([
-              ['Select Category First', '']
+              ['Select Product Type', '']
             ]), {}, { class: "form-select", required: true, id: "product_subcategory", disabled: true } %>
           </div>
         </div>
@@ -272,15 +277,15 @@
           <%= form.label :state, "State", class: "form-label" %>
           <%= form.select :state,
               options_for_select(LocationData.states_for_select, @lead&.state),
-              { prompt: 'Select State' },
-              { class: "form-select", id: "lead_state" } %>
+              { prompt: 'Search and select state...' },
+              { class: "form-select searchable-select", id: "lead_state", data: { placeholder: "Type to search states..." } } %>
         </div>
         <div class="col-md-6 mb-3">
           <%= form.label :city, "City", class: "form-label" %>
           <%= form.select :city,
               options_for_select([], @lead&.city),
-              { prompt: 'Select State First' },
-              { class: "form-select", id: "lead_city", disabled: true } %>
+              { prompt: 'Search and select city...' },
+              { class: "form-select searchable-select", id: "lead_city", disabled: true, data: { placeholder: "Type to search cities..." } } %>
         </div>
       </div>
     </div>
@@ -297,23 +302,23 @@
         <!-- Direct/Referred Selection -->
         <div class="col-md-6 mb-3">
           <div class="form-check mt-2">
-            <%= form.check_box :is_direct, { class: "form-check-input", checked: true, id: "is_direct_checkbox" } %>
+            <%= form.check_box :is_direct, { class: "form-check-input", checked: @lead&.is_direct.nil? ? true : @lead.is_direct, id: "is_direct_checkbox" } %>
             <%= form.label :is_direct, "Direct Lead", class: "form-check-label fw-bold" %>
             <small class="form-text text-muted d-block">Check if this is a direct lead, uncheck if referred</small>
           </div>
         </div>
 
         <!-- Affiliate Selection (hidden by default) -->
-        <div class="col-md-6 mb-3" id="affiliate_selection" style="display: none;">
+        <div class="col-md-6 mb-3" id="affiliate_selection" style="display: <%= @lead&.is_direct == false ? 'block' : 'none' %>;">
           <%= form.label :affiliate_id, "Select Affiliate *", class: "form-label" %>
           <%= form.select :affiliate_id, options_for_select([
             ['Select Affiliate', '']
-          ] + SubAgent.active.collect { |agent| [agent.display_name, agent.id] }),
+          ] + SubAgent.active.collect { |agent| [agent.display_name, agent.id] }, @lead&.affiliate_id),
           { include_blank: false },
-          { class: "form-select", id: "affiliate_dropdown" } %>
+          { class: "form-select searchable-select", id: "affiliate_dropdown", data: { placeholder: "Search and select affiliate...", search_url: "/admin/leads/search_affiliates" } } %>
         </div>
 
-        <div class="col-md-6 mb-3" id="referred_by_field" style="display: none;">
+        <div class="col-md-6 mb-3" id="referred_by_field" style="display: <%= @lead&.is_direct == false ? 'block' : 'none' %>;">
           <%= form.label :referred_by, "Referred By", class: "form-label" %>
           <%= form.text_field :referred_by, class: "form-control", placeholder: "Agent name or source" %>
         </div>
@@ -326,7 +331,7 @@
             ['Converted', 'converted'],
             ['Policy Created', 'policy_created'],
             ['Referral Settled', 'referral_settled']
-          ], 'consultation'), {}, { class: "form-select", required: true } %>
+          ], @lead&.current_stage || 'consultation'), {}, { class: "form-select", required: true } %>
         </div>
 
         <div class="col-md-6 mb-3">
@@ -344,12 +349,31 @@
             ['Walk In', 'walk_in'],
             ['Tele Calling', 'tele_calling'],
             ['Campaign', 'campaign']
-          ]), {}, { class: "form-select", required: true } %>
+          ], @lead&.lead_source), {}, { class: "form-select", required: true } %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :call_disposition, "Call Disposition", class: "form-label" %>
+          <%= form.select :call_disposition, options_for_select([
+            ['Select Disposition', ''],
+            ['Interested', 'interested'],
+            ['Not Interested', 'not_interested'],
+            ['Call Back Later', 'call_back'],
+            ['Follow Up Required', 'follow_up'],
+            ['Number Not Reachable', 'not_reachable'],
+            ['Wrong Number', 'wrong_number'],
+            ['Do Not Call', 'do_not_call']
+          ], @lead&.call_disposition), {}, { class: "form-select" } %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :referral_amount, "Referral Amount", class: "form-label" %>
+          <%= form.number_field :referral_amount, class: "form-control", step: 0.01, placeholder: "0.00" %>
         </div>
 
         <div class="col-md-12 mb-3">
-          <%= form.label :note, "Notes", class: "form-label" %>
-          <%= form.text_area :note, class: "form-control", rows: 4, placeholder: "Additional notes about the lead..." %>
+          <%= form.label :notes, "Notes", class: "form-label" %>
+          <%= form.text_area :notes, class: "form-control", rows: 4, placeholder: "Additional notes about the lead..." %>
         </div>
       </div>
     </div>
@@ -378,46 +402,130 @@
 
 <!-- Customer Form Style -->
 <style>
-/* Customer Type Selection Cards */
-.customer-type-selection {
-  margin-bottom: 1.5rem;
+/* Compact Pill Toggle Design */
+.customer-type-compact {
+  padding: 0.5rem 0;
 }
 
-.customer-type-card {
-  height: 100%;
-  cursor: pointer;
+.pill-toggle {
+  position: relative;
+  display: inline-flex;
+  background: #f0f4f8;
+  border-radius: 50px;
+  padding: 4px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.pill-slider {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 50px;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  z-index: 1;
+}
+
+.pill-slider.corporate {
+  left: calc(50%);
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.pill-option {
+  position: relative;
+  z-index: 2;
+  padding: 8px 24px;
+  border: none;
+  background: none;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 50px;
   transition: all 0.3s ease;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.customer-type-label {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  background: #ffffff;
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin: 0;
+  min-width: 120px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.customer-type-label:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-  transform: translateY(-2px);
+.pill-option:hover {
+  color: #475569;
 }
 
-.customer-type-card input[type="radio"]:checked + .customer-type-label {
-  border-color: #667eea;
-  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.25);
-  transform: translateY(-2px);
+.pill-option.active {
+  color: white;
 }
 
-.customer-type-card input[type="radio"]:checked + .customer-type-label i {
-  color: #667eea !important;
+.pill-option i {
+  font-size: 14px;
+}
+
+/* Selected Type Badge */
+.selected-type-info {
+  display: flex;
+  align-items: center;
+}
+
+.badge-type {
+  display: none;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-type.show {
+  display: inline-flex;
+  animation: slideIn 0.3s ease;
+}
+
+.individual-badge {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
+.corporate-badge {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .customer-type-compact .d-flex {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 1rem !important;
+  }
+
+  .pill-toggle {
+    width: 100%;
+  }
+
+  .pill-option {
+    flex: 1;
+  }
+
+  .selected-type-info {
+    justify-content: center;
+  }
 }
 
 /* Form Cards */
@@ -560,6 +668,54 @@
 }
 </style>
 
+<!-- jQuery and Select2 for searchable dropdowns -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- Custom Select2 styling -->
+<style>
+  .select2-container--bootstrap-5 .select2-selection--single {
+    height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+  .select2-container--bootstrap-5 .select2-selection--single:focus-within {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+  .select2-container--bootstrap-5 .select2-selection__rendered {
+    color: #495057;
+    padding-left: 12px;
+    padding-right: 20px;
+    line-height: 36px;
+  }
+  .select2-container--bootstrap-5 .select2-results__option {
+    padding: 8px 12px;
+  }
+  .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: #0d6efd;
+    color: white;
+  }
+  .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  }
+  .select2-results__options {
+    max-height: 400px !important;
+    min-height: 200px;
+    overflow-y: auto;
+  }
+  .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 6px 12px;
+  }
+</style>
+
 <!-- Include Location Data and Form Enhancements -->
 <script>
 <%= File.read(Rails.root.join('app/assets/javascripts/location_data.js')).html_safe %>
@@ -582,10 +738,87 @@ document.addEventListener('DOMContentLoaded', function() {
   const affiliateDropdown = document.getElementById('affiliate_dropdown');
   const referredByField = document.getElementById('referred_by_field');
 
+  // Debug: Check if radio buttons are found
+  console.log('Customer type radio buttons found:', customerTypeRadios.length);
+
+  // Initialize Select2 for searchable affiliate dropdown
+  function initializeAffiliateSelect2() {
+    if (affiliateDropdown && typeof $ !== 'undefined' && $.fn.select2) {
+      $(affiliateDropdown).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select affiliate...',
+        allowClear: true,
+        width: '100%',
+        dropdownParent: $('body'),
+        minimumInputLength: 0, // Allow opening without typing
+        ajax: {
+          url: '/admin/leads/search_affiliates',
+          dataType: 'json',
+          delay: 250,
+          data: function (params) {
+            return {
+              q: params.term || '', // Send empty query to get default results
+              limit: params.term ? 20 : 10 // Show fewer results when no search term
+            };
+          },
+          processResults: function (data) {
+            return {
+              results: data.results || []
+            };
+          },
+          cache: true
+        },
+        templateResult: function(option) {
+          if (option.loading) return option.text;
+          if (!option.id || option.id === '') {
+            return option.text;
+          }
+
+          // Enhanced template with avatar
+          var initials = option.text.split(' ').map(function(name) {
+            return name.charAt(0).toUpperCase();
+          }).join('').substring(0, 2);
+
+          var $option = $(
+            '<div class="affiliate-option d-flex align-items-center">' +
+              '<div class="affiliate-avatar bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 12px; font-weight: bold;">' +
+                initials +
+              '</div>' +
+              '<div class="affiliate-details">' +
+                '<div class="affiliate-name" style="font-weight: 500;">' + option.text + '</div>' +
+                '<small class="text-muted">ID: #' + option.id + '</small>' +
+              '</div>' +
+            '</div>'
+          );
+          return $option;
+        },
+        templateSelection: function(option) {
+          return option.text || 'Search and select affiliate...';
+        },
+        escapeMarkup: function(markup) {
+          return markup;
+        }
+      });
+    }
+  }
+
+  // Initialize Select2 when affiliate dropdown becomes visible
+  function handleAffiliateDropdownVisibility() {
+    if (affiliateSelection && affiliateSelection.style.display !== 'none') {
+      setTimeout(() => {
+        initializeAffiliateSelect2();
+      }, 100);
+    }
+  }
+
   // Customer type conditional sections
   const individualSections = document.getElementById('individual_sections');
   const corporateSections = document.getElementById('corporate_sections');
   const productSection = document.getElementById('product_section');
+
+  // Debug: Check if elements are found
+  console.log('Individual sections element:', individualSections);
+  console.log('Corporate sections element:', corporateSections);
 
   // Product subcategory options
   const subcategoryOptions = {
@@ -743,44 +976,292 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Native HTML5 date picker is now used - no additional formatting needed
 
-  // Handle customer type change with radio buttons
+  // Initialize form state on page load (for validation errors)
+  function initializeFormState() {
+    const selectedCustomerType = document.querySelector('input[name="lead[customer_type]"]:checked');
+
+    // Disable all section inputs initially
+    const individualInputs = form.querySelectorAll('#individual_sections input, #individual_sections select, #individual_sections textarea');
+    const corporateInputs = form.querySelectorAll('#corporate_sections input, #corporate_sections select, #corporate_sections textarea');
+
+    if (selectedCustomerType) {
+      const selectedType = selectedCustomerType.value;
+
+      // Show appropriate sections
+      if (selectedType === 'individual') {
+        individualSections.style.display = 'block';
+        corporateSections.style.display = 'none';
+        productSection.style.display = 'block';
+
+        // Enable individual inputs and disable corporate inputs
+        individualInputs.forEach(input => input.disabled = false);
+        corporateInputs.forEach(input => {
+          input.disabled = true;
+          input.removeAttribute('required');
+        });
+
+        // Set required fields for individual
+        const firstNameField = form.querySelector('[name="lead[first_name]"]');
+        const lastNameField = form.querySelector('[name="lead[last_name]"]');
+        const companyNameField = form.querySelector('[name="lead[company_name]"]');
+
+        if (firstNameField) firstNameField.setAttribute('required', 'required');
+        if (lastNameField) lastNameField.setAttribute('required', 'required');
+        if (companyNameField) companyNameField.removeAttribute('required');
+      } else if (selectedType === 'corporate') {
+        individualSections.style.display = 'none';
+        corporateSections.style.display = 'block';
+        productSection.style.display = 'block';
+
+        // Enable corporate inputs and disable individual inputs
+        corporateInputs.forEach(input => input.disabled = false);
+        individualInputs.forEach(input => {
+          input.disabled = true;
+          input.removeAttribute('required');
+        });
+
+        // Set required fields for corporate
+        const companyNameField = form.querySelector('[name="lead[company_name]"]');
+        const firstNameField = form.querySelector('[name="lead[first_name]"]');
+        const lastNameField = form.querySelector('[name="lead[last_name]"]');
+
+        if (companyNameField) companyNameField.setAttribute('required', 'required');
+        if (firstNameField) firstNameField.removeAttribute('required');
+        if (lastNameField) lastNameField.removeAttribute('required');
+      }
+    } else {
+      // Default to individual if nothing selected
+      individualSections.style.display = 'block';
+      corporateSections.style.display = 'none';
+      productSection.style.display = 'block';
+
+      // Enable individual inputs and disable corporate inputs
+      individualInputs.forEach(input => input.disabled = false);
+      corporateInputs.forEach(input => {
+        input.disabled = true;
+        input.removeAttribute('required');
+      });
+
+      // Set default required fields
+      const firstNameField = form.querySelector('[name="lead[first_name]"]');
+      const lastNameField = form.querySelector('[name="lead[last_name]"]');
+      const companyNameField = form.querySelector('[name="lead[company_name]"]');
+
+      if (firstNameField) firstNameField.setAttribute('required', 'required');
+      if (lastNameField) lastNameField.setAttribute('required', 'required');
+      if (companyNameField) companyNameField.removeAttribute('required');
+    }
+
+    // Store initial values of important fields to prevent accidental clearing
+    preserveImportantFieldValues();
+
+    // Initialize product subcategory dropdown
+    initializeProductSubcategory();
+
+    // Handle affiliate selection visibility on page load
+    if (!directCheckbox.checked) {
+      affiliateSelection.style.display = 'block';
+      affiliateDropdown.setAttribute('required', 'required');
+      handleAffiliateDropdownVisibility();
+    }
+  }
+
+  // Function to preserve important field values
+  function preserveImportantFieldValues() {
+    const importantFields = ['pan_no', 'gst_no', 'email', 'contact_number'];
+    window.preservedFieldValues = window.preservedFieldValues || {};
+
+    importantFields.forEach(fieldName => {
+      const field = form.querySelector(`[name="lead[${fieldName}]"]`);
+      if (field && field.value.trim()) {
+        window.preservedFieldValues[fieldName] = field.value.trim();
+      }
+    });
+  }
+
+  // Function to restore preserved field values
+  function restoreImportantFieldValues() {
+    if (window.preservedFieldValues) {
+      Object.entries(window.preservedFieldValues).forEach(([fieldName, value]) => {
+        const field = form.querySelector(`[name="lead[${fieldName}]"]`);
+        if (field && !field.value.trim() && value) {
+          field.value = value;
+        }
+      });
+    }
+  }
+
+  // Handle product subcategory on page load
+  function initializeProductSubcategory() {
+    const currentCategory = productCategoryField.value;
+    if (currentCategory && subcategoryOptions[currentCategory]) {
+      // Enable and populate subcategory dropdown
+      productSubcategoryField.disabled = false;
+
+      // Keep existing options but ensure current value is preserved
+      const currentSubcategory = productSubcategoryField.value;
+      productSubcategoryField.innerHTML = '<option value="">Select Product Type</option>';
+
+      subcategoryOptions[currentCategory].forEach(function(option) {
+        const optionElement = document.createElement('option');
+        optionElement.value = option[1];
+        optionElement.textContent = option[0];
+        if (option[1] === currentSubcategory) {
+          optionElement.selected = true;
+        }
+        productSubcategoryField.appendChild(optionElement);
+      });
+    }
+  }
+
+  // Initialize form state on page load
+  initializeFormState();
+
+  // Set Individual as default if no customer type is selected
+  const selectedRadio = document.querySelector('input[name="lead[customer_type]"]:checked');
+  if (!selectedRadio) {
+    const individualRadio = document.getElementById('customer_type_individual');
+    if (individualRadio) {
+      individualRadio.checked = true;
+      const changeEvent = new Event('change', { bubbles: true });
+      individualRadio.dispatchEvent(changeEvent);
+    }
+  }
+
+  // Debug: Check if elements exist
+  console.log('productCategoryField:', productCategoryField);
+  console.log('productSubcategoryField:', productSubcategoryField);
+  console.log('Current category value:', productCategoryField ? productCategoryField.value : 'not found');
+  console.log('subcategoryOptions:', subcategoryOptions);
+
+  // Handle customer type pill toggle click
+  const pillOptions = document.querySelectorAll('.pill-option');
+  const pillSlider = document.querySelector('.pill-slider');
+  const individualBadge = document.querySelector('.individual-badge');
+  const corporateBadge = document.querySelector('.corporate-badge');
+
+  pillOptions.forEach(option => {
+    option.addEventListener('click', function(e) {
+      e.preventDefault();
+      const selectedType = this.dataset.type;
+      console.log('Pill toggle clicked, switching to:', selectedType);
+
+      // Update visual state
+      pillOptions.forEach(opt => opt.classList.remove('active'));
+      this.classList.add('active');
+
+      // Update slider position
+      if (pillSlider) {
+        if (selectedType === 'corporate') {
+          pillSlider.classList.add('corporate');
+        } else {
+          pillSlider.classList.remove('corporate');
+        }
+      }
+
+      // Update badges
+      if (individualBadge && corporateBadge) {
+        if (selectedType === 'individual') {
+          individualBadge.classList.add('show');
+          corporateBadge.classList.remove('show');
+        } else {
+          corporateBadge.classList.add('show');
+          individualBadge.classList.remove('show');
+        }
+      }
+
+      // Check the corresponding radio button
+      const radioButton = document.getElementById('customer_type_' + selectedType);
+      if (radioButton) {
+        radioButton.checked = true;
+        // Trigger change event to handle form sections
+        const changeEvent = new Event('change', { bubbles: true });
+        radioButton.dispatchEvent(changeEvent);
+      }
+    });
+  });
+
+  // Handle customer type change with radio buttons (for form submission)
   customerTypeRadios.forEach(radio => {
     radio.addEventListener('change', function() {
+      console.log('Customer type changed to:', this.value);
       if (this.checked) {
         const selectedType = this.value;
+        console.log('Showing section for:', selectedType);
+
+        // Preserve important field values before making changes
+        preserveImportantFieldValues();
 
         // Hide all customer type specific sections
         individualSections.style.display = 'none';
         corporateSections.style.display = 'none';
         productSection.style.display = 'block'; // Always show product section after type selection
 
-        // Clear required attributes and values from all fields
-        const allInputs = form.querySelectorAll('#individual_sections input, #individual_sections select, #corporate_sections input, #corporate_sections select');
-        allInputs.forEach(input => {
+        // Disable all fields in hidden sections to prevent them from being submitted
+        const individualInputs = form.querySelectorAll('#individual_sections input, #individual_sections select, #individual_sections textarea');
+        const corporateInputs = form.querySelectorAll('#corporate_sections input, #corporate_sections select, #corporate_sections textarea');
+
+        // First disable all section-specific inputs
+        individualInputs.forEach(input => {
+          input.disabled = true;
+        });
+
+        corporateInputs.forEach(input => {
+          input.disabled = true;
           input.removeAttribute('required');
-          if (input.type !== 'hidden' && input.type !== 'radio' && input.type !== 'checkbox') {
-            input.value = '';
-          }
         });
 
         if (selectedType === 'individual') {
-          individualSections.style.display = 'block';
+          if (individualSections) {
+            individualSections.style.display = 'block';
+            console.log('Individual sections displayed');
 
-          // Set required fields for individual
-          form.querySelector('[name="lead[first_name]"]').setAttribute('required', 'required');
-          form.querySelector('[name="lead[last_name]"]').setAttribute('required', 'required');
+            // Enable all inputs in the individual section
+            individualInputs.forEach(input => {
+              input.disabled = false;
+            });
+
+            // Set required fields for individual
+            const firstNameField = form.querySelector('[name="lead[first_name]"]');
+            const lastNameField = form.querySelector('[name="lead[last_name]"]');
+            if (firstNameField) firstNameField.setAttribute('required', 'required');
+            if (lastNameField) lastNameField.setAttribute('required', 'required');
+
+            // Remove required from corporate fields
+            const companyNameField = form.querySelector('[name="lead[company_name]"]');
+            if (companyNameField) companyNameField.removeAttribute('required');
+          } else {
+            console.error('Individual sections element not found!');
+          }
 
           // Update the hidden name field with a default value
           nameField.value = 'Individual Customer';
         } else if (selectedType === 'corporate') {
           corporateSections.style.display = 'block';
 
-          // Set required fields for corporate
-          form.querySelector('[name="lead[company_name]"]').setAttribute('required', 'required');
+          // Enable all inputs in the corporate section
+          corporateInputs.forEach(input => {
+            input.disabled = false;
+          });
+
+          // Set required field for corporate
+          const companyNameField = form.querySelector('[name="lead[company_name]"]');
+          if (companyNameField) companyNameField.setAttribute('required', 'required');
+
+          // Remove required from individual fields
+          const firstNameField = form.querySelector('[name="lead[first_name]"]');
+          const lastNameField = form.querySelector('[name="lead[last_name]"]');
+          if (firstNameField) firstNameField.removeAttribute('required');
+          if (lastNameField) lastNameField.removeAttribute('required');
 
           // Update the hidden name field with a default value
           nameField.value = 'Corporate Customer';
         }
+
+        // Restore preserved important field values after clearing
+        setTimeout(() => {
+          restoreImportantFieldValues();
+        }, 10);
       }
     });
   });
@@ -809,6 +1290,16 @@ document.addEventListener('DOMContentLoaded', function() {
   if (lastNameField) lastNameField.addEventListener('input', updateNameField);
   if (companyNameField) companyNameField.addEventListener('input', updateNameField);
 
+  // Add listeners to preserve important field values when they change
+  const importantFieldSelectors = ['[name="lead[pan_no]"]', '[name="lead[gst_no]"]', '[name="lead[email]"]', '[name="lead[contact_number]"]'];
+  importantFieldSelectors.forEach(selector => {
+    const field = form.querySelector(selector);
+    if (field) {
+      field.addEventListener('input', preserveImportantFieldValues);
+      field.addEventListener('blur', preserveImportantFieldValues);
+    }
+  });
+
   // Progress tracking
   function updateProgress() {
     const allInputs = form.querySelectorAll('input[required], select[required]');
@@ -832,14 +1323,16 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Handle product category change
-  productCategoryField.addEventListener('change', function() {
-    const selectedCategory = this.value;
+  function handleProductCategoryChange(selectedCategory) {
+    console.log('Product category changed to:', selectedCategory);
     const subcategorySelect = productSubcategoryField;
 
     // Clear existing options
     subcategorySelect.innerHTML = '<option value="">Select Product Type</option>';
 
     if (selectedCategory && subcategoryOptions[selectedCategory]) {
+      console.log('Found subcategory options for:', selectedCategory, subcategoryOptions[selectedCategory]);
+
       // Enable the subcategory dropdown
       subcategorySelect.disabled = false;
 
@@ -850,11 +1343,48 @@ document.addEventListener('DOMContentLoaded', function() {
         optionElement.textContent = option[0];
         subcategorySelect.appendChild(optionElement);
       });
+
+      console.log('Added', subcategoryOptions[selectedCategory].length, 'subcategory options');
     } else {
+      console.log('No subcategory options found for:', selectedCategory);
       // Disable the subcategory dropdown
       subcategorySelect.disabled = true;
     }
+  }
+
+  // Attach event listener
+  productCategoryField.addEventListener('change', function() {
+    handleProductCategoryChange(this.value);
   });
+
+  // Force initialization of product subcategory dropdown
+  function forceInitializeProductDropdown() {
+    console.log('Force initializing product subcategory...');
+
+    // Check if Insurance is selected and populate accordingly
+    if (productCategoryField && productSubcategoryField) {
+      const currentCategory = productCategoryField.value;
+      console.log('Current category:', currentCategory);
+
+      if (currentCategory) {
+        handleProductCategoryChange(currentCategory);
+      } else {
+        // If nothing is selected, try to detect if Insurance is pre-selected
+        const insuranceOption = productCategoryField.querySelector('option[value="insurance"][selected]');
+        if (insuranceOption || productCategoryField.value === 'insurance') {
+          console.log('Insurance appears to be selected, forcing subcategory load...');
+          handleProductCategoryChange('insurance');
+        }
+      }
+    }
+  }
+
+  // Initialize immediately
+  forceInitializeProductDropdown();
+
+  // Also initialize with delay in case DOM isn't ready
+  setTimeout(forceInitializeProductDropdown, 100);
+  setTimeout(forceInitializeProductDropdown, 500);
 
   // Handle direct/referred toggle
   directCheckbox.addEventListener('change', function() {
@@ -862,15 +1392,22 @@ document.addEventListener('DOMContentLoaded', function() {
       // Direct lead - hide affiliate selection and referred by field, clear values
       affiliateSelection.style.display = 'none';
       referredByField.style.display = 'none';
+
+      // Destroy Select2 before clearing value
+      if (typeof $ !== 'undefined' && $.fn.select2 && $(affiliateDropdown).hasClass('select2-hidden-accessible')) {
+        $(affiliateDropdown).select2('destroy');
+      }
       affiliateDropdown.value = '';
       affiliateDropdown.removeAttribute('required');
       form.querySelector('[name="lead[referred_by]"]').value = '';
     } else {
-      // Referred lead - show only affiliate selection, keep referred by field hidden
+      // Referred lead - show both affiliate selection and referred by field
       affiliateSelection.style.display = 'block';
-      referredByField.style.display = 'none';
+      referredByField.style.display = 'block';
       affiliateDropdown.setAttribute('required', 'required');
-      form.querySelector('[name="lead[referred_by]"]').value = '';
+
+      // Initialize Select2 when dropdown becomes visible
+      handleAffiliateDropdownVisibility();
     }
   });
 
@@ -920,6 +1457,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function populateCityDropdown(cities) {
+    // First destroy Select2 if it exists
+    const $leadCitySelect = $(leadCitySelect);
+    if ($leadCitySelect.hasClass('select2-hidden-accessible')) {
+      $leadCitySelect.select2('destroy');
+    }
+
     // Clear dropdown and add cities
     leadCitySelect.innerHTML = '<option value="">Select City</option>';
 
@@ -932,12 +1475,48 @@ document.addEventListener('DOMContentLoaded', function() {
 
     leadCitySelect.disabled = false;
     console.log(`Loaded ${cities.length} cities for leads form`);
+
+    // Reinitialize Select2
+    setTimeout(() => {
+      $leadCitySelect.select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select city...',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0
+      });
+    }, 50);
   }
 
   // Setup lead form state-city functionality
   if (leadStateSelect && leadCitySelect) {
+    // Initialize state dropdown with Select2
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+      $(leadStateSelect).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select state...',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0
+      });
+
+      $(leadCitySelect).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select city...',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0
+      });
+    }
+
     leadStateSelect.addEventListener('change', function() {
       loadLeadCitiesForState(this.value);
+    });
+
+    // Handle Select2 change event specifically
+    $('#lead_state').on('select2:select', function (e) {
+      const selectedValue = e.params.data.id;
+      loadLeadCitiesForState(selectedValue);
     });
 
     // Load cities if state is pre-selected
@@ -948,6 +1527,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Form validation
   form.addEventListener('submit', function(e) {
+    // Restore important field values before validation and submission
+    restoreImportantFieldValues();
+
     let isValid = true;
     const errors = [];
 
@@ -996,5 +1578,22 @@ document.addEventListener('DOMContentLoaded', function() {
       alert('Please fix the following errors:\n' + errors.join('\n'));
     }
   });
+
+  // Final attempt to initialize product dropdown after everything is loaded
+  setTimeout(() => {
+    console.log('Final initialization attempt after full page load...');
+    const productCategory = document.getElementById('product_category');
+    const productSubcategory = document.getElementById('product_subcategory');
+
+    if (productCategory && productSubcategory && productCategory.value) {
+      console.log('Found category:', productCategory.value);
+      console.log('Current subcategory options count:', productSubcategory.options.length);
+
+      if (productCategory.value === 'insurance' && productSubcategory.options.length <= 1) {
+        console.log('Insurance detected but subcategory empty, forcing population...');
+        handleProductCategoryChange('insurance');
+      }
+    }
+  }, 1000);
 });
 </script>

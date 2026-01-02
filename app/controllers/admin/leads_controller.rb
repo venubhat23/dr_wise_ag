@@ -1,5 +1,6 @@
 class Admin::LeadsController < Admin::ApplicationController
   include LocationData
+  include ConfigurablePagination
   before_action :set_lead, only: [:show, :edit, :update, :destroy, :convert_to_customer, :create_policy, :transfer_referral, :advance_stage, :go_back_stage, :update_stage]
 
   # GET /admin/leads
@@ -36,7 +37,7 @@ class Admin::LeadsController < Admin::ApplicationController
       @leads = @leads.where("referred_by ILIKE ?", "%#{params[:referred_by]}%")
     end
 
-    @leads = @leads.order(created_at: :desc).includes(:converted_customer, :created_policy)
+    @leads = paginate_records(@leads.order(created_at: :desc).includes(:converted_customer, :created_policy))
 
     # Statistics for dashboard
     @total_leads = Lead.count
@@ -205,22 +206,26 @@ class Admin::LeadsController < Admin::ApplicationController
         update_attrs[:marital_status] = @lead.marital_status if @lead.marital_status.present?
         update_attrs[:pan_no] = @lead.pan_no if @lead.pan_no.present?
         update_attrs[:pan_number] = @lead.pan_no if @lead.pan_no.present?
-        update_attrs[:height_feet] = @lead.height if @lead.height.present?
-        update_attrs[:weight_kg] = @lead.weight if @lead.weight.present?
+        update_attrs[:height_feet] = @lead.height_feet.presence || @lead.height if (@lead.height_feet.present? || @lead.height.present?)
+        update_attrs[:weight_kg] = @lead.weight_kg.presence || @lead.weight if (@lead.weight_kg.present? || @lead.weight.present?)
         update_attrs[:birth_place] = @lead.birth_place if @lead.birth_place.present?
         update_attrs[:education] = @lead.education if @lead.education.present?
         update_attrs[:business_job] = @lead.business_job if @lead.business_job.present?
-        update_attrs[:business_name] = @lead.business_name if @lead.business_name.present?
-        update_attrs[:job_name] = @lead.job_name if @lead.job_name.present?
+        update_attrs[:business_name] = @lead.business_name.presence || @lead.business_job_name if (@lead.business_name.present? || @lead.business_job_name.present?)
+        update_attrs[:job_name] = @lead.job_name.presence || @lead.business_job_name if (@lead.job_name.present? || @lead.business_job_name.present?)
         update_attrs[:occupation] = @lead.occupation if @lead.occupation.present?
-        update_attrs[:type_of_duty] = @lead.type_of_duty if @lead.type_of_duty.present?
+        update_attrs[:type_of_duty] = @lead.type_of_duty.presence || @lead.duty_type if (@lead.type_of_duty.present? || @lead.duty_type.present?)
         update_attrs[:annual_income] = @lead.annual_income if @lead.annual_income.present?
         update_attrs[:additional_information] = @lead.additional_information if @lead.additional_information.present?
       elsif @lead.corporate?
         update_attrs[:company_name] = @lead.company_name if @lead.company_name.present?
         update_attrs[:email] = @lead.email if @lead.email.present?
         update_attrs[:pan_no] = @lead.pan_no if @lead.pan_no.present?
+        update_attrs[:pan_number] = @lead.pan_no if @lead.pan_no.present?
         update_attrs[:gst_no] = @lead.gst_no if @lead.gst_no.present?
+        update_attrs[:gst_number] = @lead.gst_no if @lead.gst_no.present?
+        update_attrs[:annual_income] = @lead.annual_income if @lead.annual_income.present?
+        update_attrs[:additional_information] = @lead.additional_information if @lead.additional_information.present?
       end
 
       # Always update address fields if present
@@ -270,15 +275,15 @@ class Admin::LeadsController < Admin::ApplicationController
           marital_status: @lead.marital_status.presence,
           pan_no: @lead.pan_no.presence,
           pan_number: @lead.pan_no.presence, # Map to both PAN fields
-          height_feet: @lead.height.presence,
-          weight_kg: @lead.weight.presence,
+          height_feet: @lead.height_feet.presence || @lead.height.presence,
+          weight_kg: @lead.weight_kg.presence || @lead.weight.presence,
           birth_place: @lead.birth_place.presence,
           education: @lead.education.presence,
           business_job: @lead.business_job.presence,
-          business_name: @lead.business_name.presence,
-          job_name: @lead.job_name.presence,
+          business_name: @lead.business_name.presence || @lead.business_job_name.presence,
+          job_name: @lead.job_name.presence || @lead.business_job_name.presence,
           occupation: @lead.occupation.presence,
-          type_of_duty: @lead.type_of_duty.presence,
+          type_of_duty: @lead.type_of_duty.presence || @lead.duty_type.presence,
           annual_income: @lead.annual_income,
           additional_information: @lead.additional_information.presence
         )
@@ -288,7 +293,11 @@ class Admin::LeadsController < Admin::ApplicationController
           company_name: @lead.company_name || @lead.name,
           email: @lead.email.presence, # Required for corporate
           pan_no: @lead.pan_no.presence,
-          gst_no: @lead.gst_no.presence
+          pan_number: @lead.pan_no.presence, # Map to both PAN fields
+          gst_no: @lead.gst_no.presence,
+          gst_number: @lead.gst_no.presence, # Map to both GST fields
+          annual_income: @lead.annual_income,
+          additional_information: @lead.additional_information.presence
         )
       end
 
@@ -507,6 +516,29 @@ class Admin::LeadsController < Admin::ApplicationController
     else
       redirect_to admin_leads_path, alert: "No leads could be updated. Please check stage transition rules."
     end
+  end
+
+  # API endpoint for searching affiliates
+  def search_affiliates
+    query = params[:q] || params[:query]
+    limit = params[:limit]&.to_i || 20
+    affiliates = []
+
+    if query.present? && query.strip.length >= 2
+      # Search with query
+      affiliates = SubAgent.active
+                          .where("LOWER(first_name || ' ' || last_name) ILIKE ?", "%#{query.downcase}%")
+                          .limit(limit)
+                          .map { |agent| { id: agent.id, text: agent.display_name } }
+    elsif query.blank? || query.strip.empty?
+      # Return default affiliates when no search query (show recently active or all)
+      affiliates = SubAgent.active
+                          .order(:first_name, :last_name)
+                          .limit([limit, 10].min) # Show max 10 when no search
+                          .map { |agent| { id: agent.id, text: agent.display_name } }
+    end
+
+    render json: { results: affiliates }
   end
 
   private

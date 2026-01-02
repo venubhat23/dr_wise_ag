@@ -1,4 +1,5 @@
 class Admin::SubAgentsController < Admin::ApplicationController
+  include ConfigurablePagination
   before_action :set_sub_agent, only: [:show, :edit, :update, :destroy, :documents]
 
   # GET /admin/sub_agents
@@ -21,8 +22,8 @@ class Admin::SubAgentsController < Admin::ApplicationController
     # Get total count before pagination for display purposes
     @total_filtered_count = @sub_agents.count
 
-    # Order and paginate (10 records per page)
-    @sub_agents = @sub_agents.order(created_at: :desc).page(params[:page]).per(10)
+    # Order and paginate using configurable pagination
+    @sub_agents = paginate_records(@sub_agents.order(created_at: :desc))
 
     # Statistics
     @total_sub_agents = SubAgent.count

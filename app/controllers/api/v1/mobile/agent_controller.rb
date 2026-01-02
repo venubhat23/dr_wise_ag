@@ -221,12 +221,15 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # Preload commission data to avoid N+1 queries
     commission_payouts = CommissionPayout.where(payout_to: payout_to_value).index_by { |cp| "#{cp.policy_type}:#{cp.policy_id}" }
 
+    # Get agent's policies using the helper method
+    agent_health_policies, agent_life_policies, _ = get_agent_policies(agent)
+
     # Get health insurance policies
     if policy_type.blank? || policy_type == 'health' || policy_type == 'all'
       health_policies = if is_admin?(agent)
                          HealthInsurance.all
                        else
-                         HealthInsurance.joins(:customer)
+                         agent_health_policies
                        end
 
       health_policies.includes(:customer).each do |policy|
@@ -239,7 +242,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       life_policies = if is_admin?(agent)
                        LifeInsurance.all
                      else
-                       LifeInsurance.joins(:customer)
+                       agent_life_policies
                      end
 
       life_policies.includes(:customer).each do |policy|
@@ -698,15 +701,94 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     lead_params = params.permit(
       :name, :contact_number, :email, :product_interest, :address, :city, :state,
       :referred_by, :current_stage, :created_date, :note, :call_disposition,
-      :lead_source, :referral_amount, :transferred_amount
+      :lead_source, :referral_amount, :transferred_amount, :priority
     )
 
-    # Create lead with default values
+    # Validation: Check required fields
+    validation_errors = []
+    validation_errors << 'Name is required' if lead_params[:name].blank?
+    validation_errors << 'Contact number is required' if lead_params[:contact_number].blank?
+
+    # Validate phone number format
+    if lead_params[:contact_number].present?
+      clean_phone = lead_params[:contact_number].gsub(/\D/, '')
+      unless clean_phone.match?(/^[6-9]\d{9}$/) || lead_params[:contact_number].match?(/^\+91[6-9]\d{9}$/)
+        validation_errors << 'Invalid phone number format. Must be a valid Indian mobile number'
+      end
+    end
+
+    # Validate email format if provided
+    if lead_params[:email].present? && !lead_params[:email].match?(URI::MailTo::EMAIL_REGEXP)
+      validation_errors << 'Invalid email format'
+    end
+
+    # Check for existing leads with same contact number or email
+    if lead_params[:contact_number].present?
+      existing_lead = Lead.find_by(contact_number: lead_params[:contact_number])
+      if existing_lead
+        validation_errors << "A lead with contact number #{lead_params[:contact_number]} already exists (Lead ID: #{existing_lead.lead_id})"
+      end
+    end
+
+    if lead_params[:email].present?
+      existing_lead = Lead.find_by(email: lead_params[:email])
+      if existing_lead
+        validation_errors << "A lead with email #{lead_params[:email]} already exists (Lead ID: #{existing_lead.lead_id})"
+      end
+    end
+
+    if validation_errors.any?
+      return render json: {
+        status: false,
+        message: 'Validation failed',
+        errors: validation_errors
+      }, status: :unprocessable_entity
+    end
+
+    # Map product interest to category and subcategory
+    product_interest = lead_params[:product_interest] || 'health'
+    product_category = 'insurance'
+    product_subcategory = case product_interest.downcase
+                         when 'health' then 'health'
+                         when 'life' then 'life'
+                         when 'motor' then 'motor'
+                         when 'home' then 'general'
+                         when 'travel' then 'travel'
+                         else 'other'
+                         end
+
+    # Split name into first_name and last_name for individual customers
+    name_parts = lead_params[:name].to_s.strip.split(' ')
+    first_name = name_parts.first || 'Customer'
+    last_name = name_parts.length > 1 ? name_parts[1..-1].join(' ') : 'Name'
+
+    # Determine if lead should be direct or affiliate-based
+    is_direct_lead = true
+    affiliate_id = nil
+
+    # If the logged-in user is a SubAgent, set them as the affiliate
+    if current_user.is_a?(SubAgent)
+      is_direct_lead = false
+      affiliate_id = current_user.id
+    elsif current_user.is_a?(User) && current_user.user_type == 'agent'
+      # For User agents, try to find matching SubAgent
+      matching_sub_agent = SubAgent.find_by(email: current_user.email)
+      if matching_sub_agent
+        is_direct_lead = false
+        affiliate_id = matching_sub_agent.id
+      end
+    end
+
+    # Create lead with required fields and agent tracking
     lead = Lead.new(
       name: lead_params[:name],
+      first_name: first_name,
+      last_name: last_name,
       contact_number: lead_params[:contact_number],
       email: lead_params[:email],
-      product_interest: lead_params[:product_interest] || 'health',
+      customer_type: 'individual', # Default to individual
+      product_category: product_category,
+      product_subcategory: product_subcategory,
       address: lead_params[:address],
       city: lead_params[:city],
       state: lead_params[:state],
@@ -718,6 +800,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       lead_source: lead_params[:lead_source] || 'agent_referral',
       referral_amount: lead_params[:referral_amount] || 0.0,
       transferred_amount: lead_params[:transferred_amount] || false,
+      is_direct: is_direct_lead,
+      affiliate_id: affiliate_id,
       stage_updated_at: Time.current
     )
 
@@ -728,16 +812,34 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         data: {
           lead_id: lead.lead_id,
           id: lead.id,
-          name: lead.name,
+          name: lead.display_name,
           contact_number: lead.contact_number,
           email: lead.email,
-          product_interest: lead.product_interest,
+          product_interest: product_interest,
+          product_category: lead.product_category,
+          product_subcategory: lead.product_subcategory,
+          customer_type: lead.customer_type,
           current_stage: lead.current_stage,
           lead_source: lead.lead_source,
           created_at: lead.created_at.strftime('%Y-%m-%d %H:%M:%S'),
           stage_progress: lead.stage_progress_percentage,
           can_advance: lead.can_advance?,
-          next_stage: lead.next_stage
+          next_stage: lead.next_stage,
+          full_address: lead.full_address,
+          referral_type: lead.referral_type,
+          affiliate_info: affiliate_id ? {
+            affiliate_id: affiliate_id,
+            affiliate_name: lead.affiliate&.display_name,
+            is_direct: lead.is_direct
+          } : {
+            is_direct: lead.is_direct,
+            affiliate_id: nil
+          },
+          created_by: {
+            agent_id: current_user.id,
+            agent_name: current_user.respond_to?(:display_name) ? current_user.display_name : current_user.full_name,
+            agent_type: current_user.class.name
+          }
         }
       }, status: :created
     else

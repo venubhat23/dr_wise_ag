@@ -34,4 +34,64 @@ class SystemSetting < ApplicationRecord
       setting_type: 'percentage'
     )
   end
+
+  # Get default pagination per page as integer
+  def self.default_pagination_per_page
+    value = get_value('default_pagination_per_page')
+    value ? value.to_i : 10
+  end
+
+  # Set default pagination per page
+  def self.set_default_pagination_per_page(per_page)
+    set_value(
+      'default_pagination_per_page',
+      per_page.to_s,
+      description: 'Default number of records per page for all index pages',
+      setting_type: 'integer'
+    )
+  end
+
+  # Commission methods for new columns
+
+  # Get default main agent commission as float
+  def self.default_main_agent_commission
+    setting = find_by(key: 'system_config')
+    setting&.default_main_agent_commission || 0.0
+  end
+
+  # Get default affiliate commission as float
+  def self.default_affiliate_commission
+    setting = find_by(key: 'system_config')
+    setting&.default_affiliate_commission || 0.0
+  end
+
+  # Get default ambassador commission as float
+  def self.default_ambassador_commission
+    setting = find_by(key: 'system_config')
+    setting&.default_ambassador_commission || 0.0
+  end
+
+  # Get default company expenses as float
+  def self.default_company_expenses
+    setting = find_by(key: 'system_config')
+    setting&.default_company_expenses || 0.0
+  end
+
+  # Update commission values
+  def self.update_commission_settings(params)
+    # Create a default setting if none exists
+    setting = find_by(key: 'system_config') || create!(
+      key: 'system_config',
+      value: 'system configuration',
+      setting_type: 'configuration',
+      description: 'System configuration settings'
+    )
+
+    setting.update!(
+      default_main_agent_commission: params[:default_main_agent_commission],
+      default_affiliate_commission: params[:default_affiliate_commission],
+      default_ambassador_commission: params[:default_ambassador_commission],
+      default_company_expenses: params[:default_company_expenses]
+    )
+  end
 end

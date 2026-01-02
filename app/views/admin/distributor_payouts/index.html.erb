@@ -171,6 +171,113 @@
   </div>
 </div>
 
+<!-- Ambassador Commission Records -->
+<%
+  # Get ambassador commission records that were paid
+  ambassador_commission_records = CommissionPayout.where(payout_to: 'ambassador_display', status: 'paid')
+                                                 .includes(:payout)
+                                                 .order(processed_at: :desc)
+                                                 .limit(50)
+%>
+
+<% if ambassador_commission_records.any? %>
+<div class="card mt-4">
+  <div class="card-header bg-light">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5 class="card-title mb-0">
+        <i class="bi bi-trophy me-2 text-warning"></i>
+        Ambassador Commission Records (Recent Payouts)
+      </h5>
+      <small class="text-muted">Showing last 50 paid commissions</small>
+    </div>
+    <small class="text-muted">These records show ambassador commissions that were paid after main agent commission was received</small>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead class="table-light">
+          <tr>
+            <th>Lead ID</th>
+            <th>Policy Details</th>
+            <th>Ambassador</th>
+            <th>Commission Amount</th>
+            <th>Transaction ID</th>
+            <th>Payment Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% ambassador_commission_records.each do |record| %>
+            <%
+              policy = case record.policy_type
+                      when 'health' then HealthInsurance.find_by(id: record.policy_id)
+                      when 'life' then LifeInsurance.find_by(id: record.policy_id)
+                      when 'motor' then MotorInsurance.find_by(id: record.policy_id)
+                      when 'other' then OtherInsurance.find_by(id: record.policy_id) if defined?(OtherInsurance)
+                      end
+
+              distributor = policy&.respond_to?(:distributor_id) && policy.distributor_id.present? ?
+                           Distributor.find_by(id: policy.distributor_id) : nil
+            %>
+            <% if policy && distributor %>
+              <tr>
+                <td>
+                  <span class="badge bg-primary">
+                    <%= record.lead_id %>
+                  </span>
+                </td>
+                <td>
+                  <div>
+                    <small class="fw-medium"><%= policy.policy_number || 'N/A' %></small>
+                    <br>
+                    <small class="text-muted">
+                      <%= record.policy_type.humanize %> |
+                      <%= policy.customer&.display_name || 'Unknown' %>
+                    </small>
+                  </div>
+                </td>
+                <td>
+                  <div>
+                    <small class="fw-medium"><%= distributor.display_name %></small>
+                    <br>
+                    <small class="text-muted"><%= distributor.email %></small>
+                  </div>
+                </td>
+                <td>
+                  <span class="fw-bold text-success">
+                    ₹<%= number_with_delimiter(record.payout_amount.to_i) %>
+                  </span>
+                </td>
+                <td>
+                  <small class="text-monospace"><%= record.transaction_id || 'N/A' %></small>
+                </td>
+                <td>
+                  <small>
+                    <%= record.payout_date&.strftime('%d %b %Y') || 'N/A' %>
+                  </small>
+                </td>
+                <td>
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle me-1"></i>Paid
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+    <div class="text-muted mt-3">
+      <small>
+        <i class="bi bi-info-circle me-1"></i>
+        Ambassador commission records are automatically created when distributor payouts are marked as paid.
+        These show the commission flow from main agent to distributors (ambassadors).
+      </small>
+    </div>
+  </div>
+</div>
+<% end %>
+
 <!-- Help Information -->
 <div class="card mt-4 border-info">
   <div class="card-body">

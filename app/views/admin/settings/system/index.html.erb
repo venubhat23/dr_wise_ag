@@ -49,6 +49,108 @@
           </div>
         <% end %>
 
+        <!-- Default Pagination Per Page Setting -->
+        <%= form_with url: admin_settings_system_path, method: :patch, local: true, class: "mb-4" do |form| %>
+          <div class="row align-items-end">
+            <div class="col-md-4">
+              <label for="default_pagination_per_page" class="form-label">
+                <i class="bi bi-list-ol me-1"></i>
+                Default Pagination Per Page
+              </label>
+              <%= form.number_field :default_pagination_per_page,
+                    value: @default_pagination_per_page,
+                    min: 5,
+                    max: 100,
+                    class: "form-control",
+                    placeholder: "Enter number (e.g., 10)" %>
+              <div class="form-text">Enter number between 5 and 100 (default for all index pages)</div>
+            </div>
+            <div class="col-md-3">
+              <%= form.submit "Update", class: "btn btn-success" %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Default Commission Settings -->
+        <%= form_with url: admin_settings_system_path, method: :patch, local: true, class: "mb-4" do |form| %>
+          <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+              <h6 class="card-title mb-0">
+                <i class="bi bi-percent me-2"></i>
+                Default Commission Settings
+              </h6>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="default_main_agent_commission" class="form-label">
+                    <i class="bi bi-person-badge me-1"></i>
+                    Main Agent Commission (%)
+                  </label>
+                  <%= form.number_field :default_main_agent_commission,
+                        value: @default_main_agent_commission,
+                        step: 0.01,
+                        min: 0,
+                        max: 100,
+                        class: "form-control",
+                        placeholder: "e.g., 5.00" %>
+                  <div class="form-text">Default commission percentage for main agents</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="default_affiliate_commission" class="form-label">
+                    <i class="bi bi-people me-1"></i>
+                    Affiliate Commission (%)
+                  </label>
+                  <%= form.number_field :default_affiliate_commission,
+                        value: @default_affiliate_commission,
+                        step: 0.01,
+                        min: 0,
+                        max: 100,
+                        class: "form-control",
+                        placeholder: "e.g., 2.00" %>
+                  <div class="form-text">Default commission percentage for affiliates</div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="default_ambassador_commission" class="form-label">
+                    <i class="bi bi-star me-1"></i>
+                    Ambassador Commission (%)
+                  </label>
+                  <%= form.number_field :default_ambassador_commission,
+                        value: @default_ambassador_commission,
+                        step: 0.01,
+                        min: 0,
+                        max: 100,
+                        class: "form-control",
+                        placeholder: "e.g., 3.00" %>
+                  <div class="form-text">Default commission percentage for ambassadors</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="default_company_expenses" class="form-label">
+                    <i class="bi bi-building me-1"></i>
+                    Company Expenses (%)
+                  </label>
+                  <%= form.number_field :default_company_expenses,
+                        value: @default_company_expenses,
+                        step: 0.01,
+                        min: 0,
+                        max: 100,
+                        class: "form-control",
+                        placeholder: "e.g., 2.00" %>
+                  <div class="form-text">Default company expenses percentage</div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-12">
+                  <%= form.hidden_field :commission_settings_update, value: "true" %>
+                  <%= form.submit "Update Commission Settings", class: "btn btn-primary" %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
         <hr class="my-4">
 
         <div class="alert alert-info">

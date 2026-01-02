@@ -128,6 +128,76 @@
               <%= form.label :pan_no, "PAN Number", class: "form-label" %>
               <%= form.text_field :pan_no, class: "form-control", placeholder: "ABCDE1234F", pattern: "[A-Z]{5}[0-9]{4}[A-Z]{1}" %>
             </div>
+
+            <div class="col-md-6">
+              <%= form.label :birth_place, "Birth Place", class: "form-label" %>
+              <%= form.text_field :birth_place, class: "form-control", placeholder: "Enter birth place" %>
+            </div>
+
+            <div class="col-md-6">
+              <%= form.label :height, "Height (Feet)", class: "form-label" %>
+              <%= form.number_field :height, class: "form-control", step: 0.1, min: 3.5, max: 8.0, placeholder: "7.9" %>
+              <div class="form-text">Range: 3.5 - 8.0 feet</div>
+            </div>
+
+            <div class="col-md-6">
+              <%= form.label :weight, "Weight (Kg)", class: "form-label" %>
+              <%= form.number_field :weight, class: "form-control", min: 10, max: 300, placeholder: "70" %>
+              <div class="form-text">Range: 10 - 300 kg</div>
+            </div>
+
+            <div class="col-md-12">
+              <h6 class="text-secondary mt-4 mb-3">Advance Details</h6>
+            </div>
+
+            <div class="col-md-6">
+              <%= form.label :education, "Education", class: "form-label" %>
+              <%= form.text_field :education, class: "form-control", placeholder: "Enter education" %>
+            </div>
+
+            <div class="col-md-6">
+              <%= form.label :business_job, "Business/Job", class: "form-label" %>
+              <%= form.select :business_job, options_for_select([
+                ['Salaried', 'salaried'],
+                ['Self Employed', 'self_employed'],
+                ['Business', 'business'],
+                ['Professional', 'professional'],
+                ['Student', 'student'],
+                ['Retired', 'retired'],
+                ['Unemployed', 'unemployed'],
+                ['Other', 'other']
+              ], @lead.business_job), { prompt: 'Select Business/Job' }, { class: "form-select" } %>
+            </div>
+
+            <div class="col-md-6">
+              <%= form.label :business_name, "Name of Business/Job", class: "form-label" %>
+              <%= form.text_field :business_name, class: "form-control", placeholder: "Enter business/job name" %>
+            </div>
+
+            <div class="col-md-6">
+              <%= form.label :job_name, "Job Name", class: "form-label" %>
+              <%= form.text_field :job_name, class: "form-control", placeholder: "Enter job name" %>
+            </div>
+
+            <div class="col-md-6">
+              <%= form.label :occupation, "Occupation", class: "form-label" %>
+              <%= form.text_field :occupation, class: "form-control", placeholder: "Enter occupation" %>
+            </div>
+
+            <div class="col-md-6">
+              <%= form.label :type_of_duty, "Type of Duty", class: "form-label" %>
+              <%= form.text_field :type_of_duty, class: "form-control", placeholder: "Enter type of duty" %>
+            </div>
+
+            <div class="col-md-6">
+              <%= form.label :annual_income, "Annual Income", class: "form-label" %>
+              <%= form.number_field :annual_income, class: "form-control", step: 0.01, placeholder: "Enter annual income" %>
+            </div>
+
+            <div class="col-md-12">
+              <%= form.label :additional_information, "Additional Information", class: "form-label" %>
+              <%= form.text_area :additional_information, class: "form-control", rows: 3, placeholder: "Enter additional notes" %>
+            </div>
           </div>
         </div>
       </div>
@@ -229,16 +299,16 @@
               <%= form.label :state, "State", class: "form-label" %>
               <%= form.select :state,
                   options_for_select(LocationData.states_for_select, @lead&.state),
-                  { prompt: 'Select State' },
-                  { class: "form-select", id: "lead_state" } %>
+                  { prompt: 'Search and select state...' },
+                  { class: "form-select searchable-select", id: "lead_state", data: { placeholder: "Type to search states..." } } %>
             </div>
 
             <div class="col-md-6">
               <%= form.label :city, "City", class: "form-label" %>
               <%= form.select :city,
                   options_for_select([], @lead&.city),
-                  { prompt: 'Select State First' },
-                  { class: "form-select", id: "lead_city", disabled: true } %>
+                  { prompt: 'Search and select city...' },
+                  { class: "form-select searchable-select", id: "lead_city", disabled: true, data: { placeholder: "Type to search cities..." } } %>
             </div>
           </div>
         </div>
@@ -255,7 +325,24 @@
         <div class="card-body">
           <div class="row g-3">
 
-            <div class="col-md-6">
+            <div class="col-md-12">
+              <div class="form-check">
+                <%= form.check_box :is_direct, { checked: @lead.is_direct }, { class: "form-check-input", id: "direct_lead_checkbox" } %>
+                <%= form.label :is_direct, "Direct Lead", class: "form-check-label" %>
+                <small class="form-text text-muted d-block">Check if this is a direct lead, uncheck if referred</small>
+              </div>
+            </div>
+
+            <div class="col-md-6" id="affiliate_selection" style="display: <%= @lead.is_direct ? 'none' : 'block' %>;">
+              <%= form.label :affiliate_id, "Select Affiliate", class: "form-label" %>
+              <%= form.select :affiliate_id, options_for_select([
+                ['Select Affiliate', '']
+              ] + SubAgent.active.collect { |agent| [agent.display_name, agent.id] }, @lead.affiliate_id),
+              { include_blank: false },
+              { class: "form-select searchable-select", id: "affiliate_dropdown_edit", data: { placeholder: "Search and select affiliate...", search_url: "/admin/leads/search_affiliates" } } %>
+            </div>
+
+            <div class="col-md-6" id="referred_by_field" style="display: <%= @lead.is_direct ? 'none' : 'block' %>;">
               <%= form.label :referred_by, "Referred By", class: "form-label" %>
               <%= form.text_field :referred_by, class: "form-control", placeholder: "Agent name or source" %>
             </div>
@@ -275,17 +362,18 @@
             </div>
 
             <div class="col-md-6">
-              <%= form.label :lead_source, "Lead Source", class: "form-label" %>
+              <%= form.label :lead_source, class: "form-label" do %>
+                Lead Source <span class="text-danger">*</span>
+              <% end %>
               <%= form.select :lead_source, options_for_select([
-                ['Website', 'website'],
-                ['Social Media', 'social_media'],
-                ['Referral', 'referral'],
-                ['Cold Call', 'cold_call'],
-                ['Email Campaign', 'email_campaign'],
-                ['Advertisement', 'advertisement'],
+                ['Online', 'online'],
+                ['Offline', 'offline'],
+                ['Agent Referral', 'agent_referral'],
                 ['Walk-in', 'walk_in'],
-                ['Other', 'other']
-              ], @lead.lead_source), { prompt: 'Select Source' }, { class: "form-select" } %>
+                ['Tele Calling', 'tele_calling'],
+                ['Campaign', 'campaign']
+              ], @lead.lead_source), { prompt: 'Select Source' }, { class: "form-select", required: true } %>
+              <div class="invalid-feedback">Please select a lead source.</div>
             </div>
 
             <div class="col-md-6">
@@ -308,10 +396,8 @@
 
             <div class="col-md-6">
               <%= form.label :created_date, "Lead Date", class: "form-label" %>
-              <%= form.text_field :created_date, class: "form-control date-picker",
-                  value: @lead.formatted_created_date,
-                  placeholder: "dd/mm/yyyy",
-                  pattern: "\d{2}/\d{2}/\d{4}" %>
+              <%= form.date_field :created_date, class: "form-control",
+                  value: @lead.created_date&.strftime("%Y-%m-%d") %>
             </div>
 
             <div class="col-md-12">
@@ -326,9 +412,6 @@
       <div class="d-flex gap-2">
         <%= form.submit "Update Lead", class: "btn btn-primary" %>
         <%= link_to "Cancel", admin_lead_path(@lead), class: "btn btn-outline-secondary" %>
-        <%= link_to "Delete Lead", admin_lead_path(@lead), method: :delete,
-            class: "btn btn-outline-danger",
-            confirm: "Are you sure you want to delete this lead?" %>
       </div>
     <% end %>
   </div>
@@ -381,37 +464,6 @@
       </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0">
-        <h6 class="mb-0">
-          <i class="bi bi-lightning me-2 text-warning"></i>
-          Quick Actions
-        </h6>
-      </div>
-      <div class="card-body">
-        <div class="d-grid gap-2">
-          <% if @lead.current_stage == 'consultation' %>
-            <%= link_to "Advance to One-on-One", admin_lead_path(@lead, stage: 'one_on_one'),
-                method: :patch, class: "btn btn-sm btn-warning" %>
-          <% elsif @lead.current_stage == 'one_on_one' %>
-            <%= link_to "Mark as Converted", admin_lead_path(@lead, stage: 'converted'),
-                method: :patch, class: "btn btn-sm btn-success" %>
-          <% elsif @lead.current_stage == 'converted' && @lead.converted_customer_id %>
-            <%= link_to "Create Policy", create_policy_admin_lead_path(@lead),
-                method: :patch, class: "btn btn-sm btn-primary" %>
-          <% elsif @lead.current_stage == 'policy_created' %>
-            <%= link_to "Settle Referral", transfer_referral_admin_lead_path(@lead),
-                method: :patch, class: "btn btn-sm btn-dark" %>
-          <% end %>
-
-          <% if @lead.can_go_back? %>
-            <%= link_to "Go Back Stage", go_back_stage_admin_lead_path(@lead),
-                method: :patch, class: "btn btn-sm btn-outline-secondary" %>
-          <% end %>
-        </div>
-      </div>
-    </div>
 
     <!-- Lead Guide -->
     <div class="card border-0 shadow-sm">
@@ -467,6 +519,42 @@
 </div>
 
 
+<!-- jQuery and Select2 for searchable dropdowns -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- Custom styling for date field -->
+<style>
+  .form-control[type="date"] {
+    border: 1.5px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    background-color: #ffffff;
+  }
+
+  .form-control[type="date"]:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    background-color: #ffffff;
+  }
+
+  .form-control[type="date"]::-webkit-calendar-picker-indicator {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 16px 16px;
+    cursor: pointer;
+  }
+
+  .form-control[type="date"]::-webkit-calendar-picker-indicator:hover {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%235a67d8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>');
+  }
+</style>
+
 <!-- Include Location Data -->
 <script>
 <%= File.read(Rails.root.join('app/assets/javascripts/location_data.js')).html_safe %>
@@ -478,7 +566,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const form = document.querySelector('form');
   const nameField = form.querySelector('[name="lead[name]"]');
   const phoneField = form.querySelector('[name="lead[contact_number]"]');
-  const productField = form.querySelector('[name="lead[product_interest]"]');
   const customerTypeField = document.getElementById('customer_type');
   const productCategoryField = document.getElementById('product_category');
   const productSubcategoryField = document.getElementById('product_subcategory');
@@ -495,6 +582,31 @@ document.addEventListener('DOMContentLoaded', function() {
       this.value = '+91 ' + value.substring(0, 5) + ' ' + value.substring(5);
     }
   });
+
+  // Handle direct lead checkbox
+  const directLeadCheckbox = document.getElementById('direct_lead_checkbox');
+  const referredByField = document.getElementById('referred_by_field');
+  const affiliateSelection = document.getElementById('affiliate_selection');
+
+  if (directLeadCheckbox && referredByField && affiliateSelection) {
+    directLeadCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        // Direct lead - hide both affiliate and referred by fields
+        affiliateSelection.style.display = 'none';
+        referredByField.style.display = 'none';
+
+        // Clear values
+        const affiliateDropdown = document.getElementById('affiliate_dropdown_edit');
+        const referredByInput = referredByField.querySelector('input');
+        if (affiliateDropdown) affiliateDropdown.value = '';
+        if (referredByInput) referredByInput.value = '';
+      } else {
+        // Referred lead - show both affiliate and referred by fields
+        affiliateSelection.style.display = 'block';
+        referredByField.style.display = 'block';
+      }
+    });
+  }
 
   // Handle customer type change
   if (customerTypeField) {
@@ -598,41 +710,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Date picker formatting (DD/MM/YYYY)
-  const dateField = form.querySelector('.date-picker');
-  if (dateField) {
-    dateField.addEventListener('input', function() {
-      let value = this.value.replace(/\D/g, ''); // Remove non-digits
-
-      if (value.length >= 2) {
-        value = value.substring(0, 2) + '/' + value.substring(2);
-      }
-      if (value.length >= 5) {
-        value = value.substring(0, 5) + '/' + value.substring(5);
-      }
-
-      // Limit to 10 characters (DD/MM/YYYY)
-      this.value = value.substring(0, 10);
-    });
-
-    // Validate date on blur
-    dateField.addEventListener('blur', function() {
-      const dateValue = this.value;
-      if (dateValue && dateValue.length === 10) {
-        const parts = dateValue.split('/');
-        const day = parseInt(parts[0]);
-        const month = parseInt(parts[1]);
-        const year = parseInt(parts[2]);
-
-        const date = new Date(year, month - 1, day);
-
-        if (date.getDate() !== day || date.getMonth() !== (month - 1) || date.getFullYear() !== year) {
-          alert('Please enter a valid date in DD/MM/YYYY format');
-          this.focus();
-        }
-      }
-    });
-  }
+  // Native HTML5 date picker is now used - no additional formatting needed
 
   // Form validation
   form.addEventListener('submit', function(e) {
@@ -653,33 +731,18 @@ document.addEventListener('DOMContentLoaded', function() {
       isValid = false;
     }
 
-    // Validate product selection
-    if (!productField.value) {
-      errors.push('Please select a product interest');
+    // Validate product category and subcategory selection
+    if (!productCategoryField || !productCategoryField.value) {
+      errors.push('Please select a product category');
       isValid = false;
     }
 
-    // Validate date format
-    const dateField = form.querySelector('.date-picker');
-    if (dateField && dateField.value) {
-      const dateValue = dateField.value;
-      if (dateValue.length !== 10 || !dateValue.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-        errors.push('Please enter a valid date in DD/MM/YYYY format');
-        isValid = false;
-      } else {
-        const parts = dateValue.split('/');
-        const day = parseInt(parts[0]);
-        const month = parseInt(parts[1]);
-        const year = parseInt(parts[2]);
-
-        const date = new Date(year, month - 1, day);
-
-        if (date.getDate() !== day || date.getMonth() !== (month - 1) || date.getFullYear() !== year) {
-          errors.push('Please enter a valid date');
-          isValid = false;
-        }
-      }
+    if (!productSubcategoryField || !productSubcategoryField.value) {
+      errors.push('Please select a product type');
+      isValid = false;
     }
+
+    // HTML5 date field handles date validation automatically
 
     if (!isValid) {
       e.preventDefault();
@@ -733,6 +796,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function populateCityDropdown(cities) {
+    // First destroy Select2 if it exists
+    const $leadCitySelect = $(leadCitySelect);
+    if ($leadCitySelect.hasClass('select2-hidden-accessible')) {
+      $leadCitySelect.select2('destroy');
+    }
+
     // Clear dropdown and add cities
     leadCitySelect.innerHTML = '<option value="">Select City</option>';
 
@@ -745,12 +814,48 @@ document.addEventListener('DOMContentLoaded', function() {
 
     leadCitySelect.disabled = false;
     console.log(`Loaded ${cities.length} cities for leads edit form`);
+
+    // Reinitialize Select2
+    setTimeout(() => {
+      $leadCitySelect.select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select city...',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0
+      });
+    }, 50);
   }
 
   // Setup lead edit form state-city functionality
   if (leadStateSelect && leadCitySelect) {
+    // Initialize state dropdown with Select2
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+      $(leadStateSelect).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select state...',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0
+      });
+
+      $(leadCitySelect).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select city...',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0
+      });
+    }
+
     leadStateSelect.addEventListener('change', function() {
       loadLeadCitiesForState(this.value);
+    });
+
+    // Handle Select2 change event specifically
+    $('#lead_state').on('select2:select', function (e) {
+      const selectedValue = e.params.data.id;
+      loadLeadCitiesForState(selectedValue);
     });
 
     // Load cities if state is pre-selected
@@ -760,9 +865,73 @@ document.addEventListener('DOMContentLoaded', function() {
       if ('<%= @lead&.city %>') {
         setTimeout(() => {
           leadCitySelect.value = '<%= @lead&.city %>';
+          // Update Select2 display if initialized
+          if (typeof $ !== 'undefined' && $.fn.select2) {
+            $(leadCitySelect).trigger('change');
+          }
         }, 100);
       }
     }
+  }
+
+  // Initialize affiliate dropdown with Select2 for edit form
+  const affiliateDropdownEdit = document.getElementById('affiliate_dropdown_edit');
+  if (affiliateDropdownEdit && typeof $ !== 'undefined' && $.fn.select2) {
+    $(affiliateDropdownEdit).select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search and select affiliate...',
+      allowClear: true,
+      width: '100%',
+      dropdownParent: $('body'),
+      minimumInputLength: 0, // Allow opening without typing
+      ajax: {
+        url: '/admin/leads/search_affiliates',
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          return {
+            q: params.term || '', // Send empty query to get default results
+            limit: params.term ? 20 : 10 // Show fewer results when no search term
+          };
+        },
+        processResults: function (data) {
+          return {
+            results: data.results || []
+          };
+        },
+        cache: true
+      },
+      templateResult: function(option) {
+        if (option.loading) return option.text;
+        if (!option.id || option.id === '') {
+          return option.text;
+        }
+
+        // Enhanced template with avatar
+        var initials = option.text.split(' ').map(function(name) {
+          return name.charAt(0).toUpperCase();
+        }).join('').substring(0, 2);
+
+        var $option = $(
+          '<div class="affiliate-option d-flex align-items-center">' +
+            '<div class="affiliate-avatar bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 12px; font-weight: bold;">' +
+              initials +
+            '</div>' +
+            '<div class="affiliate-details">' +
+              '<div class="affiliate-name" style="font-weight: 500;">' + option.text + '</div>' +
+              '<small class="text-muted">ID: #' + option.id + '</small>' +
+            '</div>' +
+          '</div>'
+        );
+        return $option;
+      },
+      templateSelection: function(option) {
+        return option.text || 'Search and select affiliate...';
+      },
+      escapeMarkup: function(markup) {
+        return markup;
+      }
+    });
   }
 });
 </script>

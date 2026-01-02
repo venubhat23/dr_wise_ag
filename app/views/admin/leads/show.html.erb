@@ -3,26 +3,39 @@
   <div>
     <div class="d-flex align-items-center gap-2 mb-2">
       <h2 class="mb-0">Lead Details</h2>
-      <span class="badge bg-primary fs-6">LEAD-001</span>
+      <span class="badge bg-primary fs-6"><%= @lead.lead_id %></span>
     </div>
-    <p class="text-muted mb-0">Complete lead information and management actions</p>
+    <p class="text-muted mb-0"><%= @lead.name %> - Complete lead information and management actions</p>
   </div>
   <div class="d-flex gap-2">
     <%= link_to admin_leads_path, class: "btn btn-outline-secondary" do %>
       <i class="bi bi-arrow-left me-1"></i>
       Back to Leads
     <% end %>
+
+    <!-- Conversion Action Button -->
+    <% if @lead.can_convert_to_customer? %>
+      <%= link_to new_admin_customer_path(lead_id: @lead.id), class: "btn btn-success", title: "Convert this lead to customer" do %>
+        <i class="bi bi-person-plus-fill me-1"></i>Convert to Customer
+      <% end %>
+    <% elsif @lead.converted_customer.present? %>
+      <%= link_to admin_customer_path(@lead.converted_customer), class: "btn btn-info customer-link",
+          title: "View Customer: #{@lead.converted_customer.display_name}" do %>
+        <i class="bi bi-person-check-fill me-1"></i>View Customer
+      <% end %>
+    <% end %>
+
     <div class="dropdown">
-      <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+      <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
         <i class="bi bi-gear me-1"></i>
         Actions
       </button>
       <ul class="dropdown-menu">
-        <li><a href="#" class="dropdown-item">Edit Lead</a></li>
+        <li><%= link_to "Edit Lead", edit_admin_lead_path(@lead), class: "dropdown-item" %></li>
         <li><a href="#" class="dropdown-item">Add Notes</a></li>
         <li><a href="#" class="dropdown-item">Send Email</a></li>
         <li><hr class="dropdown-divider"></li>
-        <li><a href="#" class="dropdown-item text-danger">Delete Lead</a></li>
+        <li><%= link_to "Delete Lead", admin_lead_path(@lead), method: :delete, class: "dropdown-item text-danger", data: { confirm: "Are you sure?" } %></li>
       </ul>
     </div>
   </div>
@@ -108,48 +121,104 @@
         <div class="row">
           <div class="col-md-6 mb-3">
             <label class="form-label text-muted">Lead ID</label>
-            <div class="fw-bold">LEAD-001</div>
+            <div class="fw-bold"><%= @lead.lead_id %></div>
           </div>
           <div class="col-md-6 mb-3">
             <label class="form-label text-muted">Lead Name</label>
-            <div class="fw-bold">Rajesh Kumar</div>
+            <div class="fw-bold"><%= @lead.name %></div>
           </div>
           <div class="col-md-6 mb-3">
             <label class="form-label text-muted">Email Address</label>
             <div>
-              <a href="mailto:rajesh.kumar@email.com" class="text-decoration-none">
-                rajesh.kumar@email.com
-              </a>
+              <% if @lead.email.present? %>
+                <a href="mailto:<%= @lead.email %>" class="text-decoration-none">
+                  <%= @lead.email %>
+                </a>
+              <% else %>
+                <span class="text-muted">Not provided</span>
+              <% end %>
             </div>
           </div>
           <div class="col-md-6 mb-3">
             <label class="form-label text-muted">Contact Number</label>
             <div>
-              <a href="tel:+919876543210" class="text-decoration-none">
-                +91 98765 43210
-              </a>
+              <% if @lead.contact_number.present? %>
+                <a href="tel:<%= @lead.contact_number %>" class="text-decoration-none">
+                  <%= @lead.contact_number %>
+                </a>
+              <% else %>
+                <span class="text-muted">Not provided</span>
+              <% end %>
             </div>
           </div>
           <div class="col-md-12 mb-3">
             <label class="form-label text-muted">Address</label>
-            <div>A-204, Sunrise Apartments, Andheri West, Mumbai, Maharashtra - 400058</div>
+            <div>
+              <% if [@lead.address, @lead.city, @lead.state].any?(&:present?) %>
+                <%= [@lead.address, @lead.city, @lead.state].compact.join(', ') %>
+              <% else %>
+                <span class="text-muted">Not provided</span>
+              <% end %>
+            </div>
           </div>
           <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Referred By</label>
-            <div><span class="badge bg-success">Agent - Amit Shah</span></div>
+            <label class="form-label text-muted">Affiliate/Referrer</label>
+            <div>
+              <% if @lead.is_direct %>
+                <span class="badge bg-primary">Direct Lead</span>
+              <% elsif @lead.affiliate.present? %>
+                <span class="badge bg-success">Agent - <%= @lead.affiliate.display_name %></span>
+              <% elsif @lead.referred_by.present? %>
+                <span class="badge bg-info">Ref - <%= @lead.referred_by %></span>
+              <% else %>
+                <span class="text-muted">Not specified</span>
+              <% end %>
+            </div>
           </div>
           <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Product Interest</label>
-            <div><span class="badge bg-info">Health Insurance</span></div>
+            <label class="form-label text-muted">Product Category</label>
+            <div>
+              <% if @lead.product_category.present? %>
+                <span class="badge bg-info"><%= @lead.product_category.humanize %></span>
+                <% if @lead.product_subcategory.present? %>
+                  <span class="badge bg-secondary ms-1"><%= @lead.product_subcategory.humanize %></span>
+                <% end %>
+              <% else %>
+                <span class="text-muted">Not specified</span>
+              <% end %>
+            </div>
           </div>
           <div class="col-md-6 mb-3">
             <label class="form-label text-muted">Lead Source</label>
-            <div><span class="badge bg-secondary">Agent Referral</span></div>
+            <div>
+              <% if @lead.lead_source.present? %>
+                <span class="badge bg-secondary"><%= @lead.lead_source.humanize %></span>
+              <% else %>
+                <span class="text-muted">Not specified</span>
+              <% end %>
+            </div>
           </div>
           <div class="col-md-6 mb-3">
             <label class="form-label text-muted">Created Date</label>
-            <div>Dec 08, 2024 <small class="text-muted">(2 days ago)</small></div>
+            <div>
+              <%= @lead.created_date&.strftime('%b %d, %Y') || @lead.created_at&.strftime('%b %d, %Y') %>
+              <small class="text-muted">(<%= time_ago_in_words(@lead.created_at) %> ago)</small>
+            </div>
           </div>
+
+          <!-- Show Customer Information if Converted -->
+          <% if @lead.converted_customer.present? %>
+            <div class="col-md-12 mb-3">
+              <label class="form-label text-muted">Converted Customer</label>
+              <div class="alert alert-success d-flex align-items-center">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <div class="flex-grow-1">
+                  <strong>Successfully converted to customer:</strong>
+                  <%= link_to @lead.converted_customer.display_name, admin_customer_path(@lead.converted_customer), class: "ms-2 btn btn-sm btn-outline-success" %>
+                </div>
+              </div>
+            </div>
+          <% end %>
         </div>
       </div>
     </div>
@@ -226,5 +295,29 @@
 </style>
 
 <script>
-
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
+});
 </script>
+
+<!-- Custom CSS for customer link button -->
+<style>
+.customer-link {
+  background: linear-gradient(45deg, #0dcaf0, #17a2b8);
+  border: none;
+  color: white;
+  font-weight: 500;
+}
+
+.customer-link:hover {
+  background: linear-gradient(45deg, #17a2b8, #0dcaf0);
+  color: white;
+  box-shadow: 0 4px 12px rgba(13, 202, 240, 0.3);
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
+}
+</style>

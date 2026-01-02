@@ -1,4 +1,5 @@
 class Admin::DistributorsController < Admin::ApplicationController
+  include ConfigurablePagination
   before_action :set_distributor, only: [:show, :edit, :update, :destroy]
 
   # GET /admin/distributors
@@ -21,8 +22,8 @@ class Admin::DistributorsController < Admin::ApplicationController
     # Get total count before pagination for display purposes
     @total_filtered_count = @distributors.count
 
-    # Order and paginate (10 records per page)
-    @distributors = @distributors.order(created_at: :desc).page(params[:page]).per(10)
+    # Order and paginate using configurable pagination
+    @distributors = paginate_records(@distributors.order(created_at: :desc))
 
     # Statistics
     @total_distributors = Distributor.count

@@ -1,4 +1,5 @@
 class Admin::HealthInsurancesController < Admin::ApplicationController
+  include ConfigurablePagination
   before_action :set_health_insurance, only: [:show, :edit, :update, :destroy]
   before_action :load_form_data, only: [:new, :edit, :create, :update]
 
@@ -10,7 +11,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       @health_insurances = @health_insurances.search_health_policies(params[:search])
     end
 
-    @health_insurances = @health_insurances.order(created_at: :desc).page(params[:page]).per(10)
+    @health_insurances = paginate_records(@health_insurances.order(created_at: :desc))
   end
 
   def show

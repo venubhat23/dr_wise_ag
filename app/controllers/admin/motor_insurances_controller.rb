@@ -1,4 +1,5 @@
 class Admin::MotorInsurancesController < Admin::ApplicationController
+  include ConfigurablePagination
   before_action :set_motor_insurance, only: [:show, :edit, :update, :destroy]
   before_action :load_form_data, only: [:new, :edit, :create, :update]
 
@@ -35,7 +36,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       @motor_insurances = @motor_insurances.where(insurance_company_name: params[:company])
     end
 
-    @motor_insurances = @motor_insurances.order(created_at: :desc).page(params[:page])
+    @motor_insurances = paginate_records(@motor_insurances.order(created_at: :desc))
   end
 
   def show

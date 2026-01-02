@@ -1,4 +1,5 @@
 class Admin::LifeInsurancesController < Admin::ApplicationController
+  include ConfigurablePagination
   before_action :set_life_insurance, only: [:show, :edit, :update, :destroy, :remove_rider, :commission_details]
 
   # GET /admin/insurance/life
@@ -30,7 +31,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       @life_insurances = @life_insurances.where(insurance_company_name: params[:company])
     end
 
-    @life_insurances = @life_insurances.order(created_at: :desc).page(params[:page])
+    @life_insurances = paginate_records(@life_insurances.order(created_at: :desc))
   end
 
   # GET /admin/insurance/life/1

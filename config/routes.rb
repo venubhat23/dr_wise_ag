@@ -175,6 +175,7 @@ Rails.application.routes.draw do
       collection do
         get :export
         get :cities
+        get :search_affiliates
       end
       resources :family_members
     end
@@ -295,6 +296,7 @@ Rails.application.routes.draw do
         get :statistics
         patch :bulk_update_stage
         get :check_existing_customer
+        get :search_affiliates
       end
     end
 

@@ -3,7 +3,6 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h2 class="mb-1">Leads Management</h2>
-    <p class="text-muted mb-0">Track, manage, and convert leads into customers and policies</p>
   </div>
   <div>
     <%= link_to new_admin_lead_path, class: "btn btn-primary" do %>
@@ -226,8 +225,20 @@
                       <i class="bi bi-eye"></i>
                     <% end %>
 
-                    <%= link_to new_admin_customer_path(lead_id: lead.id), class: "btn btn-sm btn-success convert-btn", title: "Convert to Customer" do %>
-                      <i class="bi bi-person-plus-fill"></i>
+                    <% if lead.can_convert_to_customer? %>
+                      <%= link_to new_admin_customer_path(lead_id: lead.id), class: "btn btn-sm btn-success convert-btn", title: "Convert to Customer", data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                        <i class="bi bi-person-plus-fill me-1"></i>Convert
+                      <% end %>
+                    <% elsif lead.converted_customer.present? %>
+                      <%= link_to admin_customer_path(lead.converted_customer), class: "btn btn-sm btn-info customer-link",
+                          title: "View Customer: #{lead.converted_customer.display_name}",
+                          data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                        <i class="bi bi-person-check-fill me-1"></i>Customer
+                      <% end %>
+                    <% else %>
+                      <span class="btn btn-sm btn-outline-secondary disabled" title="Conversion not available for this stage">
+                        <i class="bi bi-person-dash"></i>
+                      </span>
                     <% end %>
 
                     <div class="dropdown">
@@ -844,4 +855,87 @@ function showLeadModal(leadId) {
     console.error('Error showing lead modal:', error);
   }
 }
+
+// Initialize tooltips for convert/customer buttons
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize Bootstrap tooltips
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
+
+  // Add custom styling for customer links
+  const customerLinks = document.querySelectorAll('.customer-link');
+  customerLinks.forEach(link => {
+    link.addEventListener('mouseenter', function() {
+      this.style.transform = 'scale(1.05)';
+      this.style.transition = 'all 0.2s ease';
+    });
+
+    link.addEventListener('mouseleave', function() {
+      this.style.transform = 'scale(1)';
+    });
+  });
+
+  // Add hover effect for convert buttons
+  const convertButtons = document.querySelectorAll('.convert-btn');
+  convertButtons.forEach(button => {
+    button.addEventListener('mouseenter', function() {
+      this.style.transform = 'scale(1.05)';
+      this.style.transition = 'all 0.2s ease';
+    });
+
+    button.addEventListener('mouseleave', function() {
+      this.style.transform = 'scale(1)';
+    });
+  });
+});
 </script>
+
+<!-- Custom CSS for improved action buttons -->
+<style>
+.convert-btn {
+  animation: subtle-pulse 3s infinite;
+}
+
+@keyframes subtle-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(25, 135, 84, 0.1);
+  }
+}
+
+.customer-link {
+  background: linear-gradient(45deg, #0dcaf0, #17a2b8);
+  border: none;
+  color: white;
+  font-weight: 500;
+}
+
+.customer-link:hover {
+  background: linear-gradient(45deg, #17a2b8, #0dcaf0);
+  color: white;
+  box-shadow: 0 4px 12px rgba(13, 202, 240, 0.3);
+}
+
+.btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Tooltip styling */
+.tooltip .tooltip-inner {
+  background-color: #212529;
+  color: #fff;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  max-width: 250px;
+}
+
+.tooltip.bs-tooltip-top .tooltip-arrow::before {
+  border-top-color: #212529;
+}
+</style>

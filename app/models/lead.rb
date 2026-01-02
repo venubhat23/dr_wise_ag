@@ -25,6 +25,10 @@ class Lead < ApplicationRecord
   validates :marital_status, inclusion: { in: ['single', 'married', 'divorced', 'widowed'] }, allow_blank: true
   validates :pan_no, uniqueness: { message: "PAN number already exists" }, format: { with: /\A[A-Z]{5}\d{4}[A-Z]\z/ }, allow_blank: true
   validates :gst_no, format: { with: /\A\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z\d][A-Z\d]\z/ }, allow_blank: true
+  validates :height, numericality: { greater_than: 3.5, less_than_or_equal_to: 8.0 }, allow_blank: true
+  validates :weight, numericality: { greater_than: 10, less_than_or_equal_to: 300 }, allow_blank: true
+  validates :annual_income, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
+  validates :business_job, inclusion: { in: ['salaried', 'self_employed', 'business', 'professional', 'student', 'retired', 'unemployed', 'other'] }, allow_blank: true
 
   belongs_to :converted_customer, class_name: 'Customer', optional: true
   belongs_to :created_policy, class_name: 'Policy', optional: true
@@ -95,7 +99,7 @@ class Lead < ApplicationRecord
   end
 
   def can_convert_to_customer?
-    current_stage == 'one_on_one' && converted_customer_id.nil?
+    ['consultation', 'one_on_one'].include?(current_stage) && converted_customer_id.nil?
   end
 
   def can_create_policy?
@@ -263,9 +267,75 @@ class Lead < ApplicationRecord
   private
 
   def generate_lead_id
-    loop do
+    return if lead_id.present? # Don't regenerate if already set
+
+    # Try to generate based on customer information if available
+    if can_generate_custom_lead_id?
+      self.lead_id = generate_custom_lead_id
+    else
+      # Fallback to legacy format for incomplete data
+      generate_fallback_lead_id
+    end
+
+    # Ensure uniqueness
+    ensure_lead_id_uniqueness
+  end
+
+  def can_generate_custom_lead_id?
+    contact_number.present? && (
+      (individual? && first_name.present?) ||
+      (corporate? && company_name.present?)
+    )
+  end
+
+  def generate_custom_lead_id
+    # Extract first 5 characters of customer name
+    customer_name_part = if individual? && first_name.present?
+      first_name.to_s.strip.upcase[0, 5].ljust(5, 'X')
+    elsif corporate? && company_name.present?
+      company_name.to_s.strip.upcase[0, 5].ljust(5, 'X')
+    else
+      'CUSXX'
+    end
+
+    # Use first 5 characters of PAN number if available, otherwise use 5 random numbers
+    pan_or_random_part = if pan_no.present?
+      pan_no.to_s.strip.upcase[0, 5].ljust(5, 'X')
+    else
+      rand(10000..99999).to_s
+    end
+
+    "CUSLEAD-#{customer_name_part}-#{pan_or_random_part}"
+  end
+
+  def generate_fallback_lead_id
+    # Use PAN number if present, otherwise use mobile number without +91 and spaces
+    if pan_no.present?
+      self.lead_id = pan_no
+    elsif contact_number.present?
+      # Clean mobile number: remove +91, spaces, and other formatting
+      clean_mobile = contact_number.to_s.gsub(/[\s\-\(\)\+]/, '').gsub(/^91/, '')
+      self.lead_id = clean_mobile
+    else
+      # Random ID if neither PAN nor mobile is available
       self.lead_id = "LEAD-#{Date.current.strftime('%Y%m%d')}-#{rand(1000..9999)}"
-      break unless Lead.exists?(lead_id: self.lead_id)
+    end
+  end
+
+  def ensure_lead_id_uniqueness
+    return unless lead_id.present?
+
+    if Lead.where(lead_id: lead_id).where.not(id: id).exists?
+      # If duplicate exists, append suffix
+      original_id = lead_id
+      counter = 1
+      loop do
+        self.lead_id = "#{original_id}-#{counter.to_s.rjust(2, '0')}"
+        break unless Lead.where(lead_id: lead_id).where.not(id: id).exists?
+        counter += 1
+        # Safety check
+        break if counter > 999
+      end
     end
   end
 

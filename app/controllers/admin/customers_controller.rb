@@ -1,5 +1,6 @@
 class Admin::CustomersController < Admin::ApplicationController
   include LocationData
+  include ConfigurablePagination
   before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart, :trace_commission, :product_selection]
 
   # GET /admin/customers
@@ -45,8 +46,8 @@ class Admin::CustomersController < Admin::ApplicationController
     # Get total count before pagination for display purposes
     @total_filtered_count = @customers.count
 
-    # Order and paginate (10 records per page)
-    @customers = @customers.order(created_at: :desc).page(params[:page]).per(10)
+    # Order and paginate using configurable pagination
+    @customers = paginate_records(@customers.order(created_at: :desc))
 
     # Calculate statistics
     # Create a separate scope for statistics to avoid pg_search GROUP BY issues
@@ -369,19 +370,77 @@ class Admin::CustomersController < Admin::ApplicationController
     # If lead_id is provided, populate customer with lead data
     if params[:lead_id].present?
       @lead = Lead.find(params[:lead_id])
+
+      # Basic information mapping
       @customer.customer_type = @lead.customer_type
-      @customer.first_name = extract_first_name(@lead.name)
-      @customer.last_name = extract_last_name(@lead.name)
       @customer.email = @lead.email
       @customer.mobile = @lead.contact_number
       @customer.address = @lead.address
       @customer.city = @lead.city
       @customer.state = @lead.state
 
+      # Individual customer mapping
+      if @lead.individual?
+        @customer.first_name = @lead.first_name
+        @customer.middle_name = @lead.middle_name
+        @customer.last_name = @lead.last_name
+        @customer.birth_date = @lead.birth_date
+        @customer.birth_place = @lead.birth_place
+        @customer.gender = @lead.gender
+
+        # Map height and weight with correct field names
+        @customer.height_feet = @lead.height_feet.presence || @lead.height
+        @customer.weight_kg = @lead.weight_kg.presence || @lead.weight
+
+        @customer.education = @lead.education
+        @customer.marital_status = @lead.marital_status
+        @customer.business_job = @lead.business_job
+
+        # Map business/job name with fallbacks
+        @customer.business_name = @lead.business_name.presence || @lead.business_job_name
+        @customer.job_name = @lead.job_name.presence || @lead.business_job_name
+        @customer.occupation = @lead.occupation
+
+        @customer.type_of_duty = @lead.type_of_duty.presence || @lead.duty_type
+        @customer.annual_income = @lead.annual_income
+
+        # Map PAN to both fields for compatibility
+        @customer.pan_no = @lead.pan_no
+        @customer.pan_number = @lead.pan_no
+
+        @customer.additional_information = @lead.additional_information
+      # Corporate customer mapping
+      elsif @lead.corporate?
+        @customer.company_name = @lead.company_name
+
+        # Map PAN to both fields for compatibility
+        @customer.pan_no = @lead.pan_no
+        @customer.pan_number = @lead.pan_no
+
+        # Map GST to both fields for compatibility
+        @customer.gst_no = @lead.gst_no
+        @customer.gst_number = @lead.gst_no
+
+        @customer.annual_income = @lead.annual_income
+        @customer.additional_information = @lead.additional_information
+      else
+        # Fallback for legacy data
+        @customer.first_name = extract_first_name(@lead.name)
+        @customer.last_name = extract_last_name(@lead.name)
+      end
+
       # Auto-populate affiliate from lead
       if @lead.affiliate_id.present?
         @customer.sub_agent_id = @lead.affiliate_id
       end
+
+      # Calculate age if birth_date is present
+      if @customer.birth_date.present?
+        @customer.age = calculate_age(@customer.birth_date)
+      end
+
+      # Store lead reference for future conversion
+      @customer.lead_id = @lead.lead_id
     end
   end
 
@@ -402,6 +461,18 @@ class Admin::CustomersController < Admin::ApplicationController
     begin
       ActiveRecord::Base.transaction do
         if @customer.save
+          # Update lead if customer was created from a lead
+          if @customer.lead_id.present?
+            lead = Lead.find_by(lead_id: @customer.lead_id)
+            if lead
+              lead.update!(
+                current_stage: 'converted',
+                converted_customer_id: @customer.id,
+                stage_updated_at: Time.current
+              )
+            end
+          end
+
           # Create User account - auto-generate password if not provided
           should_create_user = user_enter_password == '1' ||
                              (@customer.email.present? && password.blank?)
@@ -546,6 +617,29 @@ class Admin::CustomersController < Admin::ApplicationController
     cities = LocationData.cities_for_state(state)
 
     render json: { cities: cities }
+  end
+
+  # API endpoint for searching affiliates
+  def search_affiliates
+    query = params[:q] || params[:query]
+    limit = params[:limit]&.to_i || 20
+    affiliates = []
+
+    if query.present? && query.strip.length >= 2
+      # Search with query
+      affiliates = SubAgent.active
+                          .where("LOWER(first_name || ' ' || last_name) ILIKE ?", "%#{query.downcase}%")
+                          .limit(limit)
+                          .map { |agent| { id: agent.id, text: agent.display_name } }
+    elsif query.blank? || query.strip.empty?
+      # Return default affiliates when no search query (show recently active or all)
+      affiliates = SubAgent.active
+                          .order(:first_name, :last_name)
+                          .limit([limit, 10].min) # Show max 10 when no search
+                          .map { |agent| { id: agent.id, text: agent.display_name } }
+    end
+
+    render json: { results: affiliates }
   end
 
   private
@@ -721,5 +815,40 @@ class Admin::CustomersController < Admin::ApplicationController
   def extract_last_name(full_name)
     names = full_name.to_s.split(' ')
     names.length > 1 ? names[1..-1].join(' ') : 'Unknown'
+  end
+
+  # Calculate age from birth date with detailed format (years and days)
+  def calculate_age(birth_date)
+    return '' unless birth_date
+
+    today = Date.current
+
+    # Calculate years
+    years = today.year - birth_date.year
+
+    # Calculate if birthday hasn't occurred this year yet
+    if today.month < birth_date.month || (today.month == birth_date.month && today.day < birth_date.day)
+      years -= 1
+    end
+
+    if years == 0
+      # If less than a year old, calculate days from birth
+      days = (today - birth_date).to_i
+      "#{days} days"
+    else
+      # Calculate days since last birthday
+      last_birthday = Date.new(today.year, birth_date.month, birth_date.day)
+      if last_birthday > today
+        last_birthday = Date.new(today.year - 1, birth_date.month, birth_date.day)
+      end
+
+      days = (today - last_birthday).to_i
+
+      if days == 0
+        "#{years} years"
+      else
+        "#{years} years, #{days} days"
+      end
+    end
   end
 end
