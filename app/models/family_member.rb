@@ -17,6 +17,10 @@ class FamilyMember < ApplicationRecord
     "#{first_name} #{middle_name} #{last_name}".strip.squeeze(' ')
   end
 
+  def name
+    full_name
+  end
+
   private
 
   def calculate_age

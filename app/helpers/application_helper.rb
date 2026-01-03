@@ -7,13 +7,15 @@ module ApplicationHelper
   end
 
   def show_sidebar_item?(module_name, action = 'read')
-    # First check if the user has traditional role-based permissions
-    return true if current_user_can?(module_name, action)
+    return false unless current_user
 
-    # Then check if the user has specific sidebar permissions
-    return current_user.has_sidebar_permission?(module_name) if current_user
+    # Only admin@insurebook.com gets full access, all other users are restricted to their sidebar permissions
+    if current_user.email == 'admin@insurebook.com'
+      return true
+    end
 
-    false
+    # For all other users (including other admins), check only specific sidebar permissions
+    current_user.has_sidebar_permission?(module_name)
   end
 
   def sidebar_item_class(current_path, module_paths = [])
@@ -355,6 +357,19 @@ module ApplicationHelper
     when 'cancelled' then 'danger'
     when 'deleted' then 'danger'
     else 'secondary'
+    end
+  end
+
+  # Pagination helper methods
+  def should_show_pagination?(records = nil)
+    return @show_pagination if @show_pagination.present?
+
+    if records
+      total = records.respond_to?(:total_count) ? records.total_count : records.count
+      per_page = @items_per_page || SystemSetting.default_pagination_per_page
+      total > per_page
+    else
+      false
     end
   end
 

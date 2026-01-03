@@ -294,6 +294,7 @@ Rails.application.routes.draw do
         patch :advance_stage
         patch :go_back_stage
         patch :update_stage
+        patch :convert_stage
         patch :mark_not_interested
         patch :close_lead
       end

@@ -18,6 +18,68 @@
 
 <div class="row">
   <div class="col-lg-8">
+    <!-- Login Credentials (if recently created) -->
+    <% if flash[:user_created] && @user.original_password.present? %>
+      <div class="card border-primary shadow-sm mb-4">
+        <div class="card-header bg-primary bg-opacity-10 border-0">
+          <h5 class="mb-0 text-primary">
+            <i class="bi bi-key me-2"></i>
+            Login Credentials
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info mb-3">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>User created successfully!</strong> Please share these login credentials with the user.
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label text-muted">Username/Email</label>
+              <div class="input-group">
+                <input type="text" class="form-control fw-bold" value="<%= @user.email %>" readonly>
+                <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('<%= @user.email %>')">
+                  <i class="bi bi-copy"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label text-muted">Password</label>
+              <div class="input-group">
+                <input type="password" id="passwordField" class="form-control fw-bold" value="<%= @user.original_password %>" readonly>
+                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                  <i class="bi bi-eye" id="passwordToggleIcon"></i>
+                </button>
+                <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('<%= @user.original_password %>')">
+                  <i class="bi bi-copy"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-12">
+              <div class="p-3 bg-light rounded">
+                <h6 class="mb-2">Share these credentials with the user:</h6>
+                <div class="small">
+                  <strong>Login URL:</strong> <%= request.base_url %>/users/sign_in<br>
+                  <strong>Username:</strong> <%= @user.email %><br>
+                  <strong>Password:</strong> <span class="text-primary"><%= @user.original_password %></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <div class="alert alert-warning small mb-0">
+              <i class="bi bi-exclamation-triangle me-2"></i>
+              <strong>Important:</strong> This information will not be shown again. Make sure to securely share these credentials with the user.
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
     <!-- Basic Information -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0">
@@ -248,3 +310,77 @@
     </div>
   </div>
 </div>
+
+<script>
+function togglePassword() {
+  const passwordField = document.getElementById('passwordField');
+  const passwordToggleIcon = document.getElementById('passwordToggleIcon');
+
+  if (passwordField.type === 'password') {
+    passwordField.type = 'text';
+    passwordToggleIcon.classList.remove('bi-eye');
+    passwordToggleIcon.classList.add('bi-eye-slash');
+  } else {
+    passwordField.type = 'password';
+    passwordToggleIcon.classList.remove('bi-eye-slash');
+    passwordToggleIcon.classList.add('bi-eye');
+  }
+}
+
+function copyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(function() {
+      showToast('Copied to clipboard!', 'success');
+    }, function(err) {
+      console.error('Could not copy text: ', err);
+      showToast('Failed to copy to clipboard', 'error');
+    });
+  } else {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      const successful = document.execCommand('copy');
+      showToast(successful ? 'Copied to clipboard!' : 'Failed to copy to clipboard', successful ? 'success' : 'error');
+    } catch (err) {
+      console.error('Fallback: Oops, unable to copy', err);
+      showToast('Failed to copy to clipboard', 'error');
+    }
+
+    document.body.removeChild(textArea);
+  }
+}
+
+function showToast(message, type = 'success') {
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+  toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; opacity: 0; transition: opacity 0.3s ease;';
+  toast.innerHTML = `
+    <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+    ${message}
+  `;
+
+  document.body.appendChild(toast);
+
+  // Fade in
+  setTimeout(() => { toast.style.opacity = '1'; }, 10);
+
+  // Auto remove after 3 seconds
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => {
+      if (toast.parentNode) {
+        document.body.removeChild(toast);
+      }
+    }, 300);
+  }, 3000);
+}
+</script>

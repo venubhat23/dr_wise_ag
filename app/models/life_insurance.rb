@@ -350,6 +350,7 @@ class LifeInsurance < ApplicationRecord
 
   def create_lead_record
     return if lead_id.present? # Skip if lead already exists
+    return if is_customer_added? # Skip auto-creation for customer-added policies
 
     LeadGeneratorService.create_lead_for_insurance(self)
   rescue StandardError => e

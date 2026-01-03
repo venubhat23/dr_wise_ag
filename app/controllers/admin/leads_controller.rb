@@ -1,7 +1,7 @@
 class Admin::LeadsController < Admin::ApplicationController
   include LocationData
   include ConfigurablePagination
-  before_action :set_lead, only: [:show, :edit, :update, :destroy, :convert_to_customer, :create_policy, :transfer_referral, :advance_stage, :go_back_stage, :update_stage, :mark_not_interested, :close_lead]
+  before_action :set_lead, only: [:show, :edit, :update, :destroy, :convert_to_customer, :create_policy, :transfer_referral, :advance_stage, :go_back_stage, :update_stage, :convert_stage, :mark_not_interested, :close_lead]
 
   # GET /admin/leads
   def index
@@ -479,6 +479,81 @@ class Admin::LeadsController < Admin::ApplicationController
       redirect_to admin_lead_path(@lead), notice: "✅ Lead successfully moved to: #{stage_display}"
     else
       redirect_to admin_lead_path(@lead), alert: "❌ Failed to update lead stage to #{new_stage.humanize}"
+    end
+  end
+
+  # PATCH /admin/leads/1/convert_stage
+  def convert_stage
+    new_stage = params[:new_stage]
+
+    # Validate that the stage exists in our enum
+    unless Lead.current_stages.key?(new_stage)
+      respond_to do |format|
+        format.html { redirect_to admin_leads_path, alert: 'Invalid stage.' }
+        format.json { render json: { success: false, message: 'Invalid stage.' } }
+      end
+      return
+    end
+
+    # Prevent changes if lead is already converted or closed
+    if @lead.cannot_change_stage?
+      respond_to do |format|
+        format.html { redirect_to admin_leads_path, alert: 'Lead stage cannot be changed after conversion or closure.' }
+        format.json { render json: { success: false, message: 'Lead stage cannot be changed after conversion or closure.' } }
+      end
+      return
+    end
+
+    # Use the appropriate transition method based on the new stage
+    success = case new_stage
+    when 'lead_generated'
+      @lead.update!(current_stage: 'lead_generated', stage_updated_at: Time.current)
+      true
+    when 'consultation_scheduled'
+      @lead.move_to_consultation_scheduled!
+    when 'one_on_one'
+      @lead.move_to_one_on_one!
+    when 'follow_up'
+      @lead.move_to_follow_up!
+    when 'follow_up_successful'
+      @lead.mark_follow_up_successful!
+    when 'follow_up_unsuccessful'
+      @lead.mark_follow_up_unsuccessful!
+    when 'not_interested'
+      @lead.mark_not_interested!
+    when 're_follow_up'
+      @lead.move_to_re_follow_up!
+    when 'converted'
+      @lead.update!(current_stage: 'converted', stage_updated_at: Time.current)
+      true
+    when 'policy_created'
+      @lead.mark_policy_created!
+    when 'referral_settled'
+      @lead.update!(current_stage: 'referral_settled', stage_updated_at: Time.current, transferred_amount: true)
+      true
+    when 'lead_closed'
+      @lead.close_lead!
+    else
+      false
+    end
+
+    if success
+      stage_display = @lead.stage_display_name
+      respond_to do |format|
+        format.html { redirect_to admin_leads_path, notice: "✅ Lead ##{@lead.lead_id} successfully converted to: #{stage_display}" }
+        format.json { render json: { success: true, message: "Lead successfully converted to: #{stage_display}", new_stage: new_stage } }
+      end
+    else
+      respond_to do |format|
+        format.html { redirect_to admin_leads_path, alert: "❌ Failed to convert lead stage to #{new_stage.humanize}" }
+        format.json { render json: { success: false, message: "Failed to convert lead stage to #{new_stage.humanize}" } }
+      end
+    end
+  rescue => e
+    Rails.logger.error "Lead stage conversion failed for lead #{@lead.id}: #{e.message}"
+    respond_to do |format|
+      format.html { redirect_to admin_leads_path, alert: "❌ Error converting lead stage: #{e.message}" }
+      format.json { render json: { success: false, message: "Error converting lead stage: #{e.message}" } }
     end
   end
 

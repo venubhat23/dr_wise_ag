@@ -6,6 +6,23 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
   def index
     @life_insurances = LifeInsurance.includes(:customer, :sub_agent, :agency_code, :broker)
 
+    # Tab-based filtering by policy source with exact boolean matching
+    # Default to admin_added if no tab specified
+    params[:tab] = 'admin_added' if params[:tab].blank?
+
+    case params[:tab]
+    when 'admin_added'
+      @life_insurances = @life_insurances.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
+    when 'customer_added'
+      @life_insurances = @life_insurances.where(is_customer_added: true, is_admin_added: false, is_agent_added: false)
+    when 'agent_added'
+      @life_insurances = @life_insurances.where(is_agent_added: true, is_customer_added: false, is_admin_added: false)
+    else
+      # Default to admin_added for any invalid tab
+      params[:tab] = 'admin_added'
+      @life_insurances = @life_insurances.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
+    end
+
     # Search functionality
     if params[:search].present?
       @life_insurances = @life_insurances.search_life_policies(params[:search])
@@ -31,7 +48,47 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       @life_insurances = @life_insurances.where(insurance_company_name: params[:company])
     end
 
+    # Calculate statistics for each tab with exact boolean matching
+    @tab_counts = {
+      admin_added: LifeInsurance.where(is_admin_added: true, is_customer_added: false, is_agent_added: false).count,
+      customer_added: LifeInsurance.where(is_customer_added: true, is_admin_added: false, is_agent_added: false).count,
+      agent_added: LifeInsurance.where(is_agent_added: true, is_customer_added: false, is_admin_added: false).count
+    }
+
     @life_insurances = paginate_records(@life_insurances.order(created_at: :desc))
+
+    # Handle JSON requests for dynamic updates
+    respond_to do |format|
+      format.html # Regular HTML response
+      format.json do
+        # Calculate filtered statistics
+        statistics = {
+          total_policies: @life_insurances.count,
+          total_premium: @life_insurances.sum(&:total_premium).to_i,
+          total_coverage: @life_insurances.sum(&:sum_insured).to_i,
+          covered_lives: @life_insurances.joins(:customer).distinct.count(:customer_id)
+        }
+
+        # Render table rows HTML for dynamic replacement
+        table_html = render_to_string(
+          partial: 'life_insurance_rows',
+          locals: { life_insurances: @life_insurances },
+          formats: [:html]
+        )
+
+        # Render pagination HTML if pagination exists
+        pagination_html = nil
+        if respond_to?(:paginate) && @life_insurances.respond_to?(:current_page)
+          pagination_html = view_context.paginate(@life_insurances).to_s
+        end
+
+        render json: {
+          statistics: statistics,
+          html: table_html,
+          pagination_html: pagination_html
+        }
+      end
+    end
   end
 
   # GET /admin/insurance/life/1

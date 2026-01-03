@@ -57,6 +57,7 @@ class OtherInsurance < ApplicationRecord
   def create_lead_record
     return if lead_id.present? # Skip if lead already exists
     return unless policy&.customer # Skip if no customer
+    return if respond_to?(:is_customer_added?) && is_customer_added? # Skip auto-creation for customer-added policies
 
     LeadGeneratorService.create_lead_for_insurance(self)
   rescue StandardError => e

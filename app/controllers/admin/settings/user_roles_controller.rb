@@ -1,9 +1,11 @@
 class Admin::Settings::UserRolesController < Admin::Settings::BaseController
+  include ConfigurablePagination
   before_action :set_user, only: [:show, :edit, :update, :destroy, :toggle_status]
 
   def index
     @users = User.where(user_type: ['admin', 'agent']).order(:created_at)
     @users = @users.where("first_name ILIKE ? OR last_name ILIKE ? OR email ILIKE ?", "%#{params[:search]}%", "%#{params[:search]}%", "%#{params[:search]}%") if params[:search].present?
+    @users = paginate_records(@users)
   end
 
   def show
@@ -23,7 +25,15 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
     @user.user_type = 'admin'
     @user.status = true
 
+    # Store the plain password temporarily for display (before it gets encrypted)
+    plain_password = @user.password
+
     if @user.save
+      # Store the original password for showing on the user details page
+      @user.update_column(:original_password, plain_password) if plain_password.present?
+
+      # Set special flash to indicate user was just created
+      flash[:user_created] = true
       redirect_to admin_settings_user_role_path(@user), notice: 'User was successfully created.'
     else
       @sidebar_options = get_sidebar_options
