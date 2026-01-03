@@ -1,88 +1,121 @@
 class Admin::Settings::UserRolesController < Admin::Settings::BaseController
-  before_action :set_user_role, only: [:show, :edit, :update, :destroy, :toggle_status]
+  before_action :set_user, only: [:show, :edit, :update, :destroy, :toggle_status]
 
   def index
-    @user_roles = UserRole.includes(:users).ordered
-    @user_roles = @user_roles.where("name ILIKE ?", "%#{params[:search]}%") if params[:search].present?
-
-    respond_to do |format|
-      format.html
-      format.json { render json: @user_roles }
-    end
+    @users = User.where(user_type: ['admin', 'agent']).order(:created_at)
+    @users = @users.where("first_name ILIKE ? OR last_name ILIKE ? OR email ILIKE ?", "%#{params[:search]}%", "%#{params[:search]}%", "%#{params[:search]}%") if params[:search].present?
   end
 
   def show
-    respond_to do |format|
-      format.html
-      format.json { render json: @user_role }
-    end
   end
 
   def new
-    @user_role = UserRole.new
-    @user_role.display_order = UserRole.maximum(:display_order).to_i + 1
+    @user = User.new
+    @sidebar_options = get_sidebar_options
   end
 
   def edit
+    @sidebar_options = get_sidebar_options
   end
 
   def create
-    @user_role = UserRole.new(user_role_params)
+    @user = User.new(user_params)
+    @user.user_type = 'admin'
+    @user.status = true
 
-    respond_to do |format|
-      if @user_role.save
-        format.html { redirect_to admin_settings_user_role_path(@user_role), notice: 'User role was successfully created.' }
-        format.json { render json: @user_role, status: :created }
-      else
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: @user_role.errors, status: :unprocessable_entity }
-      end
+    if @user.save
+      redirect_to admin_settings_user_role_path(@user), notice: 'User was successfully created.'
+    else
+      @sidebar_options = get_sidebar_options
+      render :new, status: :unprocessable_entity
     end
   end
 
   def update
-    respond_to do |format|
-      if @user_role.update(user_role_params)
-        format.html { redirect_to admin_settings_user_role_path(@user_role), notice: 'User role was successfully updated.' }
-        format.json { render json: @user_role }
-      else
-        format.html { render :edit, status: :unprocessable_entity }
-        format.json { render json: @user_role.errors, status: :unprocessable_entity }
-      end
+    if @user.update(user_params)
+      redirect_to admin_settings_user_role_path(@user), notice: 'User was successfully updated.'
+    else
+      @sidebar_options = get_sidebar_options
+      render :edit, status: :unprocessable_entity
     end
   end
 
   def destroy
-    begin
-      @user_role.destroy
-      respond_to do |format|
-        format.html { redirect_to admin_settings_user_roles_path, notice: 'User role was successfully deleted.' }
-        format.json { render json: { status: 'success', message: 'User role deleted successfully' } }
-      end
-    rescue ActiveRecord::InvalidForeignKey
-      respond_to do |format|
-        format.html { redirect_to admin_settings_user_roles_path, alert: 'Cannot delete role that is assigned to users.' }
-        format.json { render json: { status: 'error', message: 'Cannot delete role that is assigned to users' }, status: :unprocessable_entity }
-      end
-    end
+    @user.destroy
+    redirect_to admin_settings_user_roles_path, notice: 'User was successfully deleted.'
   end
 
   def toggle_status
-    @user_role.update(status: !@user_role.status)
-
-    respond_to do |format|
-      format.html { redirect_to admin_settings_user_roles_path, notice: "Role #{@user_role.status? ? 'activated' : 'deactivated'} successfully." }
-      format.json { render json: { status: 'success', active: @user_role.status? } }
-    end
+    @user.update(status: !@user.status)
+    redirect_to admin_settings_user_roles_path, notice: "User #{@user.status? ? 'activated' : 'deactivated'} successfully."
   end
 
   private
 
-  def set_user_role
-    @user_role = UserRole.find(params[:id])
+  def set_user
+    @user = User.find(params[:id])
   end
 
-  def user_role_params
-    params.require(:user_role).permit(:name, :description, :status, :display_order)
+  def user_params
+    permitted_params = params.require(:user).permit(:first_name, :last_name, :email, :mobile, :password, :password_confirmation, :role_name, sidebar_permissions: [])
+
+    # Convert sidebar_permissions array to JSON string for storage
+    if permitted_params[:sidebar_permissions].present?
+      permitted_params[:sidebar_permissions] = permitted_params[:sidebar_permissions].compact_blank.to_json
+    end
+
+    permitted_params
+  end
+
+  def get_sidebar_options
+    {
+      'Main Menu' => [
+        { key: 'dashboard', name: 'Dashboard' },
+        { key: 'customers', name: 'Customers' },
+        { key: 'sub_agents', name: 'Affiliate' },
+        { key: 'distributors', name: 'Ambassadors' },
+        { key: 'investors', name: 'Investors' }
+      ],
+      'Payouts & Commission' => [
+        { key: 'affiliate_payouts', name: 'Affiliate Payouts' },
+        { key: 'distributor_payouts', name: 'Ambassador Payouts' },
+        { key: 'payouts', name: 'Payout' }
+      ],
+      'Business Partners' => [
+        { key: 'brokers', name: 'Brokers' },
+        { key: 'agency_codes', name: 'Agency Code' },
+        { key: 'leads', name: 'Leads' }
+      ],
+      'Insurance Products' => [
+        { key: 'life_insurance', name: 'Life Insurance' },
+        { key: 'health_insurance', name: 'Health Insurance' },
+        { key: 'motor_insurance', name: 'Motor Insurance' },
+        { key: 'other_insurance', name: 'Other Insurance' }
+      ],
+      'Reports & Analytics' => [
+        { key: 'commission_report', name: 'Commission Report' },
+        { key: 'expired_insurance', name: 'Expired Insurance' },
+        { key: 'payment_due', name: 'Payment Due' },
+        { key: 'upcoming_renewal', name: 'Upcoming Renewal' },
+        { key: 'upcoming_payment', name: 'Upcoming Payment' },
+        { key: 'leads_report', name: 'Leads Report' },
+        { key: 'session_report', name: 'Session Report' }
+      ],
+      'Management' => [
+        { key: 'client_requests', name: 'Client Requests' },
+        { key: 'insurance_companies', name: 'Companies' },
+        { key: 'agency_brokers', name: 'Agency/Broker' },
+        { key: 'banners', name: 'Banner Management' },
+        { key: 'imports', name: 'Imports' },
+        { key: 'roles_permissions', name: 'Roles & Permissions' }
+      ],
+      'Invoice' => [
+        { key: 'invoices', name: 'Invoices' }
+      ],
+      'Settings' => [
+        { key: 'user_roles', name: 'User Roles' },
+        { key: 'system_settings', name: 'System Settings' }
+      ]
+    }
   end
 end

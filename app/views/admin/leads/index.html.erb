@@ -130,7 +130,7 @@
 <!-- Leads Table -->
 <div class="card border-0 shadow-sm">
   <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-    <h5 class="mb-0">Leads Database</h5>
+    <h5 class="mb-0">Leads</h5>
     <div class="d-flex gap-2">
       <button class="btn btn-sm btn-outline-secondary" onclick="selectAll()">
         <i class="bi bi-check-square me-1"></i>Select All
@@ -209,9 +209,7 @@
                   </span>
                 </td>
                 <td>
-                  <span class="badge <%= lead.stage_badge_class %>">
-                    <%= lead.current_stage&.humanize || 'Unknown' %>
-                  </span>
+                  <%= lead.current_stage&.humanize || 'Unknown' %>
                 </td>
                 <td>
                   <div>

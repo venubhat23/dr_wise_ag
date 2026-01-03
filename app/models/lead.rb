@@ -4,7 +4,7 @@ class Lead < ApplicationRecord
   validates :name, presence: true
   validates :contact_number, presence: true, uniqueness: { message: "Contact number already exists" }, format: { with: /\A[\+]?[0-9\s\-\(\)]+\z/, message: "Invalid phone number format" }
   validates :email, uniqueness: { message: "Email already exists" }, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
-  validates :current_stage, presence: true, inclusion: { in: ['consultation', 'one_on_one', 'converted', 'policy_created', 'referral_settled'] }
+  validates :current_stage, presence: true, inclusion: { in: ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_successful', 'follow_up_unsuccessful', 'not_interested', 'converted', 're_follow_up', 'policy_created', 'lead_closed'] }
   validates :lead_source, presence: true, inclusion: { in: ['online', 'offline', 'agent_referral', 'walk_in', 'tele_calling', 'campaign'] }
   validates :product_category, presence: true, inclusion: { in: ['insurance', 'investments', 'loans', 'taxation'] }
   validates :product_subcategory, presence: true
@@ -38,13 +38,20 @@ class Lead < ApplicationRecord
   before_create :generate_lead_id
   before_update :update_stage_timestamp, if: :current_stage_changed?
   before_validation :set_name_from_customer_details
+  before_validation :set_initial_stage
 
   enum :current_stage, {
-    consultation: 'consultation',
+    lead_generated: 'lead_generated',
+    consultation_scheduled: 'consultation_scheduled',
     one_on_one: 'one_on_one',
+    follow_up: 'follow_up',
+    follow_up_successful: 'follow_up_successful',
+    follow_up_unsuccessful: 'follow_up_unsuccessful',
+    not_interested: 'not_interested',
     converted: 'converted',
+    re_follow_up: 're_follow_up',
     policy_created: 'policy_created',
-    referral_settled: 'referral_settled'
+    lead_closed: 'lead_closed'
   }
 
   enum :lead_source, {
@@ -81,8 +88,9 @@ class Lead < ApplicationRecord
   scope :by_product_category, ->(category) { where(product_category: category) }
   scope :by_product_subcategory, ->(subcategory) { where(product_subcategory: subcategory) }
   scope :recent, -> { order(created_date: :desc) }
-  scope :pending_conversion, -> { where(current_stage: ['consultation', 'one_on_one']) }
-  scope :converted_leads, -> { where(current_stage: ['converted', 'policy_created', 'referral_settled']) }
+  scope :pending_conversion, -> { where(current_stage: ['consultation_scheduled', 'one_on_one', 'follow_up', 're_follow_up']) }
+  scope :converted_leads, -> { where(current_stage: 'converted') }
+  scope :active_follow_up, -> { where(current_stage: ['follow_up', 're_follow_up']) }
   scope :direct_leads, -> { where(is_direct: true) }
   scope :referred_leads, -> { where(is_direct: false) }
   scope :by_affiliate, ->(affiliate_id) { where(affiliate_id: affiliate_id) }
@@ -94,16 +102,109 @@ class Lead < ApplicationRecord
       tsearch: { prefix: true, any_word: true }
     }
 
-  def converted?
-    ['converted', 'policy_created', 'referral_settled'].include?(current_stage)
+  # Stage transition methods
+  def can_move_to_consultation?
+    lead_generated?
+  end
+
+  def can_move_to_one_on_one?
+    consultation_scheduled?
+  end
+
+  def can_move_to_follow_up?
+    one_on_one?
+  end
+
+  def can_mark_follow_up_successful?
+    follow_up? || re_follow_up?
+  end
+
+  def can_mark_follow_up_unsuccessful?
+    follow_up? || re_follow_up?
+  end
+
+  def can_mark_not_interested?
+    follow_up? || re_follow_up?
+  end
+
+  def can_re_follow_up?
+    follow_up_unsuccessful?
   end
 
   def can_convert_to_customer?
-    ['consultation', 'one_on_one'].include?(current_stage) && converted_customer_id.nil?
+    follow_up_successful? && converted_customer_id.nil?
   end
 
   def can_create_policy?
-    current_stage == 'converted' && converted_customer_id.present?
+    converted? && converted_customer_id.present?
+  end
+
+  def can_close_lead?
+    not_interested? || (converted? && policy_created?)
+  end
+
+  def cannot_change_stage?
+    converted? || policy_created? || lead_closed?
+  end
+
+  # Stage transition methods with validation
+  def move_to_consultation_scheduled!
+    return false unless can_move_to_consultation?
+    update!(current_stage: 'consultation_scheduled')
+  end
+
+  def move_to_one_on_one!
+    return false unless can_move_to_one_on_one?
+    update!(current_stage: 'one_on_one')
+  end
+
+  def move_to_follow_up!
+    return false unless can_move_to_follow_up?
+    update!(current_stage: 'follow_up')
+  end
+
+  def mark_follow_up_successful!
+    return false unless can_mark_follow_up_successful?
+    update!(current_stage: 'follow_up_successful')
+  end
+
+  def mark_follow_up_unsuccessful!
+    return false unless can_mark_follow_up_unsuccessful?
+    update!(current_stage: 'follow_up_unsuccessful')
+  end
+
+  def mark_not_interested!
+    return false unless can_mark_not_interested?
+    update!(current_stage: 'not_interested')
+  end
+
+  def move_to_re_follow_up!
+    return false unless can_re_follow_up?
+    update!(current_stage: 're_follow_up')
+  end
+
+  def convert_to_customer!(customer_id)
+    return false unless can_convert_to_customer?
+    update!(current_stage: 'converted', converted_customer_id: customer_id)
+  end
+
+  def mark_policy_created!(policy_id = nil)
+    return false unless can_create_policy?
+    update!(current_stage: 'policy_created', policy_created_id: policy_id)
+  end
+
+  def close_lead!
+    return false unless can_close_lead?
+    update!(current_stage: 'lead_closed')
+  end
+
+  # Helper methods
+  def converted?
+    current_stage == 'converted'
+  end
+
+  def in_follow_up_cycle?
+    ['follow_up', 'follow_up_successful', 'follow_up_unsuccessful', 're_follow_up'].include?(current_stage)
   end
 
   def can_settle_referral?
@@ -116,11 +217,17 @@ class Lead < ApplicationRecord
 
   def stage_badge_class
     case current_stage
-    when 'consultation' then 'bg-info'
+    when 'lead_generated' then 'bg-secondary'
+    when 'consultation_scheduled' then 'bg-info'
     when 'one_on_one' then 'bg-warning'
+    when 'follow_up' then 'bg-primary'
+    when 'follow_up_successful' then 'bg-success'
+    when 'follow_up_unsuccessful' then 'bg-danger'
+    when 'not_interested' then 'bg-dark'
+    when 're_follow_up' then 'bg-warning'
     when 'converted' then 'bg-success'
     when 'policy_created' then 'bg-primary'
-    when 'referral_settled' then 'bg-dark'
+    when 'lead_closed' then 'bg-secondary'
     else 'bg-secondary'
     end
   end
@@ -146,47 +253,99 @@ class Lead < ApplicationRecord
     end
   end
 
-  def next_stage
+  def next_stage_options
     case current_stage
-    when 'consultation' then 'one_on_one'
-    when 'one_on_one' then 'converted'
-    when 'converted' then 'policy_created'
-    when 'policy_created' then 'referral_settled'
-    else nil
+    when 'lead_generated' then ['consultation_scheduled']
+    when 'consultation_scheduled' then ['one_on_one']
+    when 'one_on_one' then ['follow_up']
+    when 'follow_up' then ['follow_up_successful', 'follow_up_unsuccessful', 'not_interested']
+    when 're_follow_up' then ['follow_up_successful', 'follow_up_unsuccessful', 'not_interested']
+    when 'follow_up_successful' then ['converted']
+    when 'follow_up_unsuccessful' then ['re_follow_up']
+    when 'converted' then ['policy_created']
+    when 'not_interested' then ['lead_closed']
+    when 'policy_created' then ['lead_closed']
+    else []
     end
   end
 
-  def previous_stage
+  def stage_display_name
     case current_stage
-    when 'one_on_one' then 'consultation'
-    when 'converted' then 'one_on_one'
-    when 'policy_created' then 'converted'
-    when 'referral_settled' then 'policy_created'
-    else nil
+    when 'lead_generated' then '🟢 Lead Generated'
+    when 'consultation_scheduled' then '📅 Consultation Scheduled'
+    when 'one_on_one' then '🤝 One-on-One Discussion'
+    when 'follow_up' then '🔁 Follow-Up'
+    when 'follow_up_successful' then '✅ Successful'
+    when 'follow_up_unsuccessful' then '❌ Not Successful'
+    when 'not_interested' then '🚫 Not Interested'
+    when 're_follow_up' then '🔄 Re-Follow Up'
+    when 'converted' then '👤 Convert to Customer'
+    when 'policy_created' then '📄 Policy Created'
+    when 'lead_closed' then '📁 Lead Closed'
+    else current_stage.humanize
     end
   end
 
   def can_advance?
-    next_stage.present?
+    next_stage_options.any?
   end
 
   def can_go_back?
-    previous_stage.present? && !locked_stage?
+    return false if locked_stage?
+
+    # Define which stages can go back and to where
+    case current_stage
+    when 'consultation_scheduled'
+      true # can go back to lead_generated
+    when 'one_on_one'
+      true # can go back to consultation_scheduled
+    when 'follow_up'
+      true # can go back to one_on_one
+    when 'follow_up_successful', 'follow_up_unsuccessful', 'not_interested'
+      true # can go back to follow_up
+    when 're_follow_up'
+      true # can go back to follow_up_unsuccessful
+    else
+      false # converted, policy_created, lead_closed cannot go back
+    end
+  end
+
+  def next_stage
+    # Get the first available next stage option
+    next_stage_options.first
+  end
+
+  def previous_stage
+    # Define reverse stage mapping for going back
+    case current_stage
+    when 'consultation_scheduled'
+      'lead_generated'
+    when 'one_on_one'
+      'consultation_scheduled'
+    when 'follow_up'
+      'one_on_one'
+    when 'follow_up_successful', 'follow_up_unsuccessful', 'not_interested'
+      'follow_up'
+    when 're_follow_up'
+      'follow_up_unsuccessful'
+    else
+      nil
+    end
   end
 
   def locked_stage?
-    # Once policy is created, don't allow going back to prevent data inconsistency
-    ['policy_created', 'referral_settled'].include?(current_stage)
+    # Once policy is created or lead is closed, don't allow going back to prevent data inconsistency
+    ['policy_created', 'lead_closed', 'converted'].include?(current_stage)
   end
 
   def stage_progress_percentage
-    stages = ['consultation', 'one_on_one', 'converted', 'policy_created', 'referral_settled']
+    stages = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'converted', 'policy_created', 'lead_closed']
     current_index = stages.index(current_stage) || 0
     ((current_index + 1).to_f / stages.length * 100).round
   end
 
   def available_stages_for_transition
-    all_stages = ['consultation', 'one_on_one', 'converted', 'policy_created', 'referral_settled']
+    all_stages = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'converted', 'policy_created', 'lead_closed']
 
     # If stage is locked, only allow forward movement or stay in current stage
     if locked_stage?
@@ -199,11 +358,17 @@ class Lead < ApplicationRecord
 
   def stage_description
     case current_stage
-    when 'consultation' then 'Initial consultation and needs assessment'
+    when 'lead_generated' then 'Initial lead entry into system'
+    when 'consultation_scheduled' then 'Initial consultation scheduled'
     when 'one_on_one' then 'Detailed discussion on premium and policy benefits'
+    when 'follow_up' then 'Following up with customer for interest confirmation'
+    when 'follow_up_successful' then 'Customer confirmed interest'
+    when 'follow_up_unsuccessful' then 'Customer not interested at this time'
+    when 'not_interested' then 'Customer explicitly not interested'
+    when 're_follow_up' then 'Additional follow-up attempt'
     when 'converted' then 'Lead converted to customer'
     when 'policy_created' then 'Policy created and linked to customer'
-    when 'referral_settled' then 'Referral payment processed'
+    when 'lead_closed' then 'Lead process completed'
     else 'Unknown stage'
     end
   end
@@ -265,6 +430,10 @@ class Lead < ApplicationRecord
   end
 
   private
+
+  def set_initial_stage
+    self.current_stage = 'lead_generated' if current_stage.blank?
+  end
 
   def generate_lead_id
     return if lead_id.present? # Don't regenerate if already set

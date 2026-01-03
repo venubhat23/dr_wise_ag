@@ -124,6 +124,30 @@ class User < ApplicationRecord
     role.permissions.where(module_name: module_name.to_s).pluck(:action_type)
   end
 
+  # Sidebar permissions methods
+  def sidebar_permissions_array
+    return [] if sidebar_permissions.blank?
+
+    if sidebar_permissions.is_a?(String)
+      JSON.parse(sidebar_permissions)
+    elsif sidebar_permissions.is_a?(Array)
+      sidebar_permissions
+    else
+      []
+    end
+  rescue JSON::ParserError
+    []
+  end
+
+  def has_sidebar_permission?(permission_key)
+    return true if admin? && user_type == 'admin' # Super admin has all permissions
+    sidebar_permissions_array.include?(permission_key.to_s)
+  end
+
+  def update_sidebar_permissions(permissions)
+    self.update(sidebar_permissions: permissions.to_json)
+  end
+
   # Legacy support for existing code that checks user_type
   def admin?
     user_type == 'admin'

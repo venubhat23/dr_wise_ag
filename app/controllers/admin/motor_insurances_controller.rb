@@ -58,6 +58,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   def create
     @motor_insurance = MotorInsurance.new(motor_insurance_params)
     @motor_insurance.is_admin_added = true
+    @motor_insurance.policy_added_by_admin = true # Web admin = true
     set_distributor_from_affiliate(@motor_insurance)
 
     if @motor_insurance.save

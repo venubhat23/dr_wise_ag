@@ -27,6 +27,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
 
   def create
     @health_insurance = HealthInsurance.new(health_insurance_params)
+    @health_insurance.policy_added_by_admin = true # Web admin = true
     set_distributor_from_affiliate(@health_insurance)
 
     if @health_insurance.save

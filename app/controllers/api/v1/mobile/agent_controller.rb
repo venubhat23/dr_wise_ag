@@ -128,7 +128,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       :customer_type, :first_name, :last_name, :company_name, :email,
       :mobile, :gender, :birth_date, :address, :city, :state, :pincode,
       :pan_no, :gst_no, :occupation, :annual_income, :marital_status,
-      :image_url, :file1, :file2, documents: [:document_type, :document_file]
+      :image_url, :password, :password_confirmation, :file1, :file2,
+      documents: [:document_type, :document_file]
     )
 
     # Validation: Check required fields
@@ -136,6 +137,26 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     validation_errors << 'First name is required' if customer_params[:first_name].blank?
     validation_errors << 'Mobile number is required' if customer_params[:mobile].blank?
     validation_errors << 'Email is required' if customer_params[:email].blank?
+    validation_errors << 'Password is required' if customer_params[:password].blank?
+    validation_errors << 'Password confirmation is required' if customer_params[:password_confirmation].blank?
+
+    # Validate password match
+    if customer_params[:password].present? && customer_params[:password_confirmation].present?
+      if customer_params[:password] != customer_params[:password_confirmation]
+        validation_errors << 'Password and password confirmation do not match'
+      end
+    end
+
+    # Validate password strength
+    if customer_params[:password].present?
+      password = customer_params[:password]
+      if password.length < 8
+        validation_errors << 'Password must be at least 8 characters long'
+      end
+      unless password.match?(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+        validation_errors << 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+      end
+    end
 
     # Validate phone number format
     if customer_params[:mobile].present?
@@ -157,6 +178,15 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     end
     if existing_customer.nil? && customer_params[:mobile].present?
       existing_customer = Customer.find_by(mobile: customer_params[:mobile])
+    end
+
+    # Check for existing user with same email
+    existing_user = nil
+    if customer_params[:email].present?
+      existing_user = User.find_by(email: customer_params[:email])
+    end
+    if existing_user
+      validation_errors << 'A user with this email already exists'
     end
 
     # If customer already exists, return their information instead of an error
@@ -218,6 +248,9 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     ))
 
     if customer.save
+      # Create user account for customer
+      user_creation_info = create_user_for_customer(customer, customer_params[:password])
+
       # Handle file uploads (optional, don't fail if they don't work)
       file_info = begin
         handle_customer_file_uploads(customer, params[:file1], params[:file2])
@@ -260,6 +293,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
           annual_income: customer.annual_income,
           marital_status: customer.marital_status,
           files: file_info,
+          user_account: user_creation_info,
           added_by: customer.added_by,
           added_by_agent: {
             id: current_user.id,
@@ -451,7 +485,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       net_premium: policy_params[:net_premium],
       gst_percentage: policy_params[:gst_percentage] || 18.0,
       total_premium: calculated_total_premium,
-      is_agent_added: true
+      is_agent_added: true,
+      policy_added_by_admin: false # Mobile API = false
     )
 
     if policy.save
@@ -590,7 +625,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       installment_autopay_end_date: parse_date(policy_params[:installment_autopay_end_date]),
       is_agent_added: true,
       is_customer_added: false,
-      is_admin_added: false
+      is_admin_added: false,
+      policy_added_by_admin: false # Mobile API = false
     )
 
     if policy.save
@@ -697,7 +733,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         vehicle_year: policy_params[:vehicle_year],
         engine_number: policy_params[:engine_number],
         chassis_number: policy_params[:chassis_number],
-        vehicle_type: policy_params[:vehicle_type]
+        vehicle_type: policy_params[:vehicle_type],
+        policy_added_by_admin: false # Mobile API = false
       )
 
       render json: {
@@ -2173,5 +2210,53 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
   def is_sub_agent?(user)
     user.is_a?(SubAgent) || (user.is_a?(User) && user.user_type == 'sub_agent')
+  end
+
+  def create_user_for_customer(customer, password)
+    begin
+      # Get customer role
+      customer_role = Role.find_by(name: 'customer')
+
+      # Create user account for customer
+      user = User.new(
+        first_name: customer.first_name || 'Customer',
+        last_name: customer.last_name || 'User',
+        email: customer.email,
+        password: password,
+        password_confirmation: password,
+        mobile: customer.mobile,
+        user_type: 'customer',
+        role: customer_role,
+        role_id: customer_role&.id || 2,
+        role_name: 'customer',
+        status: true
+      )
+
+      if user.save(validate: false)
+        Rails.logger.info "User account created successfully for customer #{customer.id}"
+        {
+          created: true,
+          user_id: user.id,
+          email: user.email,
+          message: 'User account created successfully. Customer can now login with email and password.'
+        }
+      else
+        Rails.logger.error "Failed to create user account for customer #{customer.id}: #{user.errors.full_messages}"
+        {
+          created: false,
+          error: 'Failed to create user account',
+          details: user.errors.full_messages,
+          message: 'Customer created but user account creation failed. Customer cannot login yet.'
+        }
+      end
+    rescue => e
+      Rails.logger.error "Error creating user account for customer #{customer.id}: #{e.message}"
+      {
+        created: false,
+        error: 'User account creation error',
+        details: e.message,
+        message: 'Customer created but user account creation failed. Customer cannot login yet.'
+      }
+    end
   end
 end

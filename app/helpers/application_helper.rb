@@ -7,7 +7,13 @@ module ApplicationHelper
   end
 
   def show_sidebar_item?(module_name, action = 'read')
-    current_user_can?(module_name, action)
+    # First check if the user has traditional role-based permissions
+    return true if current_user_can?(module_name, action)
+
+    # Then check if the user has specific sidebar permissions
+    return current_user.has_sidebar_permission?(module_name) if current_user
+
+    false
   end
 
   def sidebar_item_class(current_path, module_paths = [])
