@@ -85,6 +85,34 @@
             }
 
             current_stage_index = stage_mapping[@lead.current_stage] || 0
+
+            # Define helper functions for stage logic
+            stage_order = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_successful', 'converted']
+            alt_order = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_unsuccessful', 're_follow_up']
+
+            # Helper function to check if stage came before current stage
+            stage_came_before_proc = lambda do |stage_key, current_stage|
+              if alt_order.include?(current_stage)
+                current_index = alt_order.index(current_stage)
+                stage_index = alt_order.index(stage_key)
+              else
+                current_index = stage_order.index(current_stage)
+                stage_index = stage_order.index(stage_key)
+              end
+              stage_index && current_index && stage_index < current_index
+            end
+
+            # Helper function to determine completion date
+            determine_completion_date_proc = lambda do |stage_key|
+              case stage_key
+              when 'lead_generated'
+                @lead.created_date || @lead.created_at
+              when 'consultation_scheduled', 'one_on_one'
+                @lead.created_at # Assume same day progression initially
+              else
+                @lead.stage_updated_at || @lead.created_at
+              end
+            end
           %>
 
           <% timeline_stages.each_with_index do |stage, index| %>
@@ -169,35 +197,6 @@
             <% end %>
           <% end %>
 
-          <%
-            # Define stage order arrays for logic
-            stage_order = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_successful', 'converted']
-            alt_order = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_unsuccessful', 're_follow_up']
-
-            # Helper method to check if stage came before current stage
-            stage_came_before_proc = lambda do |stage_key, current_stage|
-              if alt_order.include?(current_stage)
-                current_index = alt_order.index(current_stage)
-                stage_index = alt_order.index(stage_key)
-              else
-                current_index = stage_order.index(current_stage)
-                stage_index = stage_order.index(stage_key)
-              end
-              stage_index && current_index && stage_index < current_index
-            end
-
-            # Helper method to determine completion date
-            determine_completion_date_proc = lambda do |stage_key|
-              case stage_key
-              when 'lead_generated'
-                @lead.created_date || @lead.created_at
-              when 'consultation_scheduled', 'one_on_one'
-                @lead.created_at # Assume same day progression initially
-              else
-                @lead.stage_updated_at || @lead.created_at
-              end
-            end
-          %>
         </div>
       </div>
     </div>

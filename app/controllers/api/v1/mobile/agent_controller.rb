@@ -33,11 +33,18 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # Check if current user is admin
     customers = if is_admin?(agent)
                   Customer.all
+                elsif agent.is_a?(SubAgent)
+                  # For SubAgents, show only customers from their policies (matching dashboard logic)
+                  sub_agent_health_policies = HealthInsurance.where(sub_agent_id: agent.id)
+                  sub_agent_life_policies = LifeInsurance.where(sub_agent_id: agent.id)
+                  policy_customer_ids = (sub_agent_health_policies.pluck(:customer_id) + sub_agent_life_policies.pluck(:customer_id)).uniq
+
+                  # Only show customers with policies to match dashboard statistics
+                  Customer.where(id: policy_customer_ids)
                 else
-                  # For agents and sub-agents, show only customers from their specific policies and customers they added
+                  # For regular User agents, show only customers from their policies (matching dashboard logic)
                   _, _, agent_customer_ids = get_agent_policies(agent)
-                  agent_added_customers = Customer.where("added_by LIKE ?", "%agent_mobile_api_#{agent.id}%")
-                  Customer.where(id: agent_customer_ids).or(agent_added_customers)
+                  Customer.where(id: agent_customer_ids)
                 end
 
     # Apply filter
@@ -137,14 +144,26 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     validation_errors << 'First name is required' if customer_params[:first_name].blank?
     validation_errors << 'Mobile number is required' if customer_params[:mobile].blank?
     validation_errors << 'Email is required' if customer_params[:email].blank?
-    validation_errors << 'Password is required' if customer_params[:password].blank?
-    validation_errors << 'Password confirmation is required' if customer_params[:password_confirmation].blank?
 
-    # Validate password match
+    # Auto-generate password if not provided
+    auto_generated_password = false
+    if customer_params[:password].blank? && customer_params[:password_confirmation].blank?
+      # Auto-generate a secure password
+      generated_password = generate_secure_password
+      customer_params[:password] = generated_password
+      customer_params[:password_confirmation] = generated_password
+      auto_generated_password = true
+    end
+
+    # Validate password match only if both are provided
     if customer_params[:password].present? && customer_params[:password_confirmation].present?
       if customer_params[:password] != customer_params[:password_confirmation]
         validation_errors << 'Password and password confirmation do not match'
       end
+    elsif customer_params[:password].present? && customer_params[:password_confirmation].blank?
+      validation_errors << 'Password confirmation is required when password is provided'
+    elsif customer_params[:password].blank? && customer_params[:password_confirmation].present?
+      validation_errors << 'Password is required when password confirmation is provided'
     end
 
     # Validate password strength
@@ -225,8 +244,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       }, status: :unprocessable_entity
     end
 
-    # Convert certain fields to lowercase
-    normalized_params = customer_params.except(:file1, :file2, :documents, :image_url)
+    # Convert certain fields to lowercase and exclude password fields (they're for User creation only)
+    normalized_params = customer_params.except(:file1, :file2, :documents, :image_url, :password, :password_confirmation)
     normalized_params[:gender] = normalized_params[:gender]&.downcase
     normalized_params[:marital_status] = normalized_params[:marital_status]&.downcase
 
@@ -273,35 +292,51 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         end
       end
 
+      response_data = {
+        customer_id: customer.id,
+        name: customer.display_name,
+        email: customer.email,
+        mobile: customer.mobile,
+        customer_type: customer.customer_type,
+        gender: customer.gender,
+        birth_date: customer.birth_date&.strftime('%Y-%m-%d'),
+        address: customer.address,
+        city: customer.city,
+        state: customer.state,
+        pincode: customer.pincode,
+        pan_no: customer.pan_no,
+        occupation: customer.occupation,
+        annual_income: customer.annual_income,
+        marital_status: customer.marital_status,
+        files: file_info,
+        user_account: user_creation_info,
+        added_by: customer.added_by,
+        added_by_agent: {
+          id: current_user.id,
+          name: current_user.full_name,
+          email: current_user.email
+        },
+        created_at: customer.created_at.strftime('%Y-%m-%d %H:%M:%S')
+      }
+
+      # Add password info if auto-generated
+      if auto_generated_password
+        response_data[:password_info] = {
+          auto_generated: true,
+          password: customer_params[:password],
+          message: 'Password was auto-generated since none was provided'
+        }
+      else
+        response_data[:password_info] = {
+          auto_generated: false,
+          message: 'Password provided by user'
+        }
+      end
+
       render json: {
         status: true,
         message: 'Customer created successfully',
-        data: {
-          customer_id: customer.id,
-          name: customer.display_name,
-          email: customer.email,
-          mobile: customer.mobile,
-          customer_type: customer.customer_type,
-          gender: customer.gender,
-          birth_date: customer.birth_date&.strftime('%Y-%m-%d'),
-          address: customer.address,
-          city: customer.city,
-          state: customer.state,
-          pincode: customer.pincode,
-          pan_no: customer.pan_no,
-          occupation: customer.occupation,
-          annual_income: customer.annual_income,
-          marital_status: customer.marital_status,
-          files: file_info,
-          user_account: user_creation_info,
-          added_by: customer.added_by,
-          added_by_agent: {
-            id: current_user.id,
-            name: current_user.full_name,
-            email: current_user.email
-          },
-          created_at: customer.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        }
+        data: response_data
       }, status: :created
     else
       render json: {
@@ -486,7 +521,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       gst_percentage: policy_params[:gst_percentage] || 18.0,
       total_premium: calculated_total_premium,
       is_agent_added: true,
-      policy_added_by_admin: false # Mobile API = false
+      is_admin_added: false
     )
 
     if policy.save
@@ -625,8 +660,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       installment_autopay_end_date: parse_date(policy_params[:installment_autopay_end_date]),
       is_agent_added: true,
       is_customer_added: false,
-      is_admin_added: false,
-      policy_added_by_admin: false # Mobile API = false
+      is_admin_added: false
     )
 
     if policy.save
@@ -734,7 +768,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         engine_number: policy_params[:engine_number],
         chassis_number: policy_params[:chassis_number],
         vehicle_type: policy_params[:vehicle_type],
-        policy_added_by_admin: false # Mobile API = false
+        is_admin_added: false
       )
 
       render json: {
@@ -1437,6 +1471,24 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         this_month_policies: get_this_month_policies_count,
         this_month_premium: get_this_month_premium
       }
+    elsif agent.is_a?(SubAgent)
+      # SubAgent statistics - use the same logic as login
+      sub_agent_health_policies = HealthInsurance.where(sub_agent_id: agent.id)
+      sub_agent_life_policies = LifeInsurance.where(sub_agent_id: agent.id)
+
+      # Get unique customer IDs from policies
+      customer_ids = (sub_agent_health_policies.pluck(:customer_id) + sub_agent_life_policies.pluck(:customer_id)).uniq
+
+      {
+        customers_count: customer_ids.count,
+        policies_count: sub_agent_health_policies.count + sub_agent_life_policies.count,
+        health_policies_count: sub_agent_health_policies.count,
+        life_policies_count: sub_agent_life_policies.count,
+        total_premium: (sub_agent_health_policies.sum(:total_premium) + sub_agent_life_policies.sum(:total_premium)),
+        commission_earned: (sub_agent_health_policies.sum(:sub_agent_after_tds_value) + sub_agent_life_policies.sum(:sub_agent_after_tds_value)),
+        this_month_policies: get_this_month_policies_count_for_sub_agent(agent),
+        this_month_premium: get_this_month_premium_for_sub_agent(agent)
+      }
     else
       # Regular agents see only their statistics
       agent_health_policies, agent_life_policies, agent_customer_ids = get_agent_policies(agent)
@@ -1465,8 +1517,12 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       # Admin can see all recent policies
       recent_health = HealthInsurance.order(created_at: :desc).limit(5)
       recent_life = LifeInsurance.order(created_at: :desc).limit(5)
+    elsif agent.is_a?(SubAgent)
+      # For SubAgents, get their policies directly
+      recent_health = HealthInsurance.where(sub_agent_id: agent.id).order(created_at: :desc).limit(5)
+      recent_life = LifeInsurance.where(sub_agent_id: agent.id).order(created_at: :desc).limit(5)
     else
-      # For agents, use the cross-reference helper to get their policies
+      # For User agents, use the cross-reference helper to get their policies
       agent_health_policies, agent_life_policies, _ = get_agent_policies(agent)
       recent_health = agent_health_policies.order(created_at: :desc).limit(5)
       recent_life = agent_life_policies.order(created_at: :desc).limit(5)
@@ -1710,6 +1766,28 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     agent_life_policies.where(created_at: start_date..end_date).sum(:total_premium)
   end
 
+  def get_this_month_policies_count_for_sub_agent(sub_agent)
+    start_date = Date.current.beginning_of_month
+    end_date = Date.current.end_of_month
+
+    sub_agent_health_policies = HealthInsurance.where(sub_agent_id: sub_agent.id)
+    sub_agent_life_policies = LifeInsurance.where(sub_agent_id: sub_agent.id)
+
+    sub_agent_health_policies.where(created_at: start_date..end_date).count +
+    sub_agent_life_policies.where(created_at: start_date..end_date).count
+  end
+
+  def get_this_month_premium_for_sub_agent(sub_agent)
+    start_date = Date.current.beginning_of_month
+    end_date = Date.current.end_of_month
+
+    sub_agent_health_policies = HealthInsurance.where(sub_agent_id: sub_agent.id)
+    sub_agent_life_policies = LifeInsurance.where(sub_agent_id: sub_agent.id)
+
+    sub_agent_health_policies.where(created_at: start_date..end_date).sum(:total_premium) +
+    sub_agent_life_policies.where(created_at: start_date..end_date).sum(:total_premium)
+  end
+
   def get_agent_policies(agent)
     # This method handles the cross-reference between User and SubAgent models
     if agent.is_a?(User)
@@ -1757,10 +1835,16 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   def get_customer_statistics(agent)
     base_customers = if is_admin?(agent)
                       Customer.all
+                    elsif agent.is_a?(SubAgent)
+                      # For SubAgents, only count customers from their policies
+                      sub_agent_health_policies = HealthInsurance.where(sub_agent_id: agent.id)
+                      sub_agent_life_policies = LifeInsurance.where(sub_agent_id: agent.id)
+                      policy_customer_ids = (sub_agent_health_policies.pluck(:customer_id) + sub_agent_life_policies.pluck(:customer_id)).uniq
+                      Customer.where(id: policy_customer_ids)
                     else
+                      # For regular User agents, only count customers from their policies
                       _, _, agent_customer_ids = get_agent_policies(agent)
-                      agent_added_customers = Customer.where("added_by LIKE ?", "%agent_mobile_api_#{agent.id}%")
-                      Customer.where(id: agent_customer_ids).or(agent_added_customers)
+                      Customer.where(id: agent_customer_ids)
                     end
 
     {
@@ -2258,5 +2342,24 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         message: 'Customer created but user account creation failed. Customer cannot login yet.'
       }
     end
+  end
+
+  def generate_secure_password
+    # Generate a secure password with uppercase, lowercase, numbers, and special characters
+    charset = ('A'..'Z').to_a + ('a'..'z').to_a + (0..9).to_a + ['@', '$', '!', '%', '*', '?', '&']
+
+    # Ensure at least one of each required character type
+    password = []
+    password << ('A'..'Z').to_a.sample  # Uppercase
+    password << ('a'..'z').to_a.sample  # Lowercase
+    password << (0..9).to_a.sample.to_s # Number
+    password << ['@', '$', '!', '%', '*', '?', '&'].sample # Special char
+
+    # Fill remaining characters randomly
+    (8..12).to_a.sample.times do
+      password << charset.sample.to_s
+    end
+
+    password.shuffle.join
   end
 end

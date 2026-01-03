@@ -132,7 +132,8 @@ class Lead < ApplicationRecord
   end
 
   def can_convert_to_customer?
-    follow_up_successful? && converted_customer_id.nil?
+    # Allow conversion from any stage except already converted, policy created, or closed
+    !['converted', 'policy_created', 'lead_closed'].include?(current_stage) && converted_customer_id.nil?
   end
 
   def can_create_policy?
@@ -254,7 +255,8 @@ class Lead < ApplicationRecord
   end
 
   def next_stage_options
-    case current_stage
+    # Define base next stage options
+    base_options = case current_stage
     when 'lead_generated' then ['consultation_scheduled']
     when 'consultation_scheduled' then ['one_on_one']
     when 'one_on_one' then ['follow_up']
@@ -266,6 +268,13 @@ class Lead < ApplicationRecord
     when 'not_interested' then ['lead_closed']
     when 'policy_created' then ['lead_closed']
     else []
+    end
+
+    # Add 'converted' option to all stages that can convert (except final stages)
+    if can_convert_to_customer? && !base_options.include?('converted')
+      base_options + ['converted']
+    else
+      base_options
     end
   end
 
@@ -345,15 +354,8 @@ class Lead < ApplicationRecord
   end
 
   def available_stages_for_transition
-    all_stages = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'converted', 'policy_created', 'lead_closed']
-
-    # If stage is locked, only allow forward movement or stay in current stage
-    if locked_stage?
-      current_index = all_stages.index(current_stage) || 0
-      return all_stages[current_index..-1]
-    end
-
-    all_stages
+    # Return only valid next stage transitions, not all possible stages
+    next_stage_options
   end
 
   def stage_description

@@ -116,6 +116,7 @@ class Admin::CustomersController < Admin::ApplicationController
   # GET /admin/customers/1
   def show
     @family_members = @customer.family_members.order(:created_at)
+    @uploaded_documents = @customer.uploaded_documents.includes(file_attachment: :blob).order(:created_at)
 
     # Gather all policies from different insurance types
     @all_policies = []
