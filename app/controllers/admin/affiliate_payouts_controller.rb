@@ -389,7 +389,7 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     {
       id: affiliate_id,
       name: "Affiliate #{affiliate_id}",
-      email: "affiliate#{affiliate_id}@insurebook.com"
+      email: "affiliate#{affiliate_id}@drwise.com"
     }
   end
 
@@ -398,7 +398,7 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     {
       id: affiliate_id.to_i,
       name: "Affiliate #{affiliate_id}",
-      email: "affiliate#{affiliate_id}@insurebook.com"
+      email: "affiliate#{affiliate_id}@drwise.com"
     }
   end
 

@@ -49,9 +49,43 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # 'all' or nil shows all customers
     end
 
-    customers = customers.active.page(page).per(per_page)
+    customers = customers.includes(:documents, profile_image_attachment: :blob).active.page(page).per(per_page)
 
     customers_data = customers.map do |customer|
+      # Format document data
+      attached_documents = customer.documents.map do |doc|
+        download_url = if doc.file.attached?
+                        begin
+                          Rails.application.routes.url_helpers.rails_blob_url(doc.file, host: 'dr-wise-ag.onrender.com', protocol: 'https')
+                        rescue
+                          nil
+                        end
+                      else
+                        nil
+                      end
+
+        {
+          id: doc.id,
+          document_type: doc.document_type,
+          filename: doc.filename,
+          file_size: doc.file_size,
+          file_type: doc.file_type,
+          uploaded_at: doc.created_at,
+          download_url: download_url
+        }
+      end
+
+      # Include profile image if attached
+      profile_image_url = if customer.profile_image.attached?
+                           begin
+                             Rails.application.routes.url_helpers.rails_blob_url(customer.profile_image, host: 'dr-wise-ag.onrender.com', protocol: 'https')
+                           rescue
+                             nil
+                           end
+                         else
+                           nil
+                         end
+
       {
         id: customer.id,
         name: customer.display_name,
@@ -64,7 +98,9 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         total_premium: get_customer_total_premium(customer),
         added_by: customer.added_by || 'system',
         added_via: determine_add_source(customer.added_by),
-        created_at: customer.created_at
+        created_at: customer.created_at,
+        profile_image: profile_image_url,
+        attached_documents: attached_documents
       }
     end
 
@@ -115,12 +151,40 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     end
 
     # Check for existing customer with same email or mobile
-    if customer_params[:email].present? && Customer.exists?(email: customer_params[:email])
-      validation_errors << 'Customer with this email already exists'
+    existing_customer = nil
+    if customer_params[:email].present?
+      existing_customer = Customer.find_by(email: customer_params[:email])
+    end
+    if existing_customer.nil? && customer_params[:mobile].present?
+      existing_customer = Customer.find_by(mobile: customer_params[:mobile])
     end
 
-    if customer_params[:mobile].present? && Customer.exists?(mobile: customer_params[:mobile])
-      validation_errors << 'Customer with this mobile number already exists'
+    # If customer already exists, return their information instead of an error
+    if existing_customer
+      return render json: {
+        status: true,
+        message: 'Customer already exists',
+        existing: true,
+        data: {
+          customer_id: existing_customer.id,
+          name: existing_customer.display_name,
+          email: existing_customer.email,
+          mobile: existing_customer.mobile,
+          customer_type: existing_customer.customer_type,
+          gender: existing_customer.gender,
+          birth_date: existing_customer.birth_date&.strftime('%Y-%m-%d'),
+          address: existing_customer.address,
+          city: existing_customer.city,
+          state: existing_customer.state,
+          pincode: existing_customer.pincode,
+          pan_no: existing_customer.pan_no,
+          occupation: existing_customer.occupation,
+          annual_income: existing_customer.annual_income,
+          marital_status: existing_customer.marital_status,
+          added_by: existing_customer.added_by,
+          created_at: existing_customer.created_at&.strftime('%Y-%m-%d %H:%M:%S')
+        }
+      }
     end
 
     if validation_errors.any?
@@ -136,9 +200,21 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     normalized_params[:gender] = normalized_params[:gender]&.downcase
     normalized_params[:marital_status] = normalized_params[:marital_status]&.downcase
 
+    # Determine the affiliate/sub_agent_id based on current user
+    affiliate_id = nil
+    if current_user.is_a?(SubAgent)
+      # If current user is a SubAgent, use their ID directly
+      affiliate_id = current_user.id
+    elsif current_user.is_a?(User)
+      # If current user is a User (agent), try to find matching SubAgent by email
+      matching_sub_agent = SubAgent.find_by(email: current_user.email)
+      affiliate_id = matching_sub_agent&.id
+    end
+
     customer = Customer.new(normalized_params.merge(
       status: true,
-      added_by: "agent_mobile_api_#{current_user.id}" # Track agent who added customer
+      added_by: "agent_mobile_api_#{current_user.id}", # Track agent who added customer
+      sub_agent_id: affiliate_id # Set affiliate relationship
     ))
 
     if customer.save
@@ -232,7 +308,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                          agent_health_policies
                        end
 
-      health_policies.includes(:customer).each do |policy|
+      health_policies.includes(:customer, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Health', commission_payouts)
       end
     end
@@ -245,7 +321,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                        agent_life_policies
                      end
 
-      life_policies.includes(:customer).each do |policy|
+      life_policies.includes(:customer, :life_insurance_documents, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Life', commission_payouts)
       end
     end
@@ -258,7 +334,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                          Policy.where(insurance_type: 'motor', user: agent)
                        end
 
-      motor_policies.includes(:customer).each do |policy|
+      motor_policies.includes(:customer, documents_attachments: :blob).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Motor', commission_payouts)
       end
     end
@@ -271,7 +347,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                          Policy.where(insurance_type: 'other', user: agent)
                        end
 
-      other_policies.includes(:customer).each do |policy|
+      other_policies.includes(:customer, documents_attachments: :blob).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Other', commission_payouts)
       end
     end
@@ -360,6 +436,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # Create health insurance policy
     policy = HealthInsurance.new(
       customer_id: policy_params[:client_id],
+      sub_agent_id: current_user.id, # Associate with the current agent
       policy_holder: policy_params[:policy_holder],
       insurance_company_name: policy_params[:insurance_company_name],
       policy_type: policy_params[:policy_type],
@@ -486,6 +563,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # Create life insurance policy with the correct field mappings
     policy = LifeInsurance.new(
       customer_id: policy_params[:client_id],
+      sub_agent_id: current_user.id, # Associate with the current agent
       policy_holder: policy_params[:policy_holder],
       insured_name: policy_params[:insured_name],
       insurance_company_name: get_company_name_by_id(policy_params[:insurance_company_id]),
@@ -519,13 +597,22 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       # Handle nominees
       if params[:nominees].present?
         params[:nominees].each do |nominee_data|
+          # Validate nominee age (should be reasonable)
+          if nominee_data[:age].present? && (nominee_data[:age].to_i < 0 || nominee_data[:age].to_i > 120)
+            Rails.logger.warn "Invalid nominee age: #{nominee_data[:age]}, setting to nil"
+            nominee_data[:age] = nil
+          end
           create_life_insurance_nominee(policy, nominee_data)
         end
       end
 
-      # Handle bank details
+      # Handle bank details (only if they have actual data)
       if params[:bank_details].present?
-        create_life_insurance_bank_details(policy, params[:bank_details])
+        bank_data = params[:bank_details]
+        # Only create bank details if at least one field has actual data
+        if bank_data[:bank_name].present? || bank_data[:account_number].present? || bank_data[:ifsc_code].present?
+          create_life_insurance_bank_details(policy, bank_data)
+        end
       end
 
       # Handle document uploads
@@ -1317,8 +1404,12 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       # Regular agents see only their statistics
       agent_health_policies, agent_life_policies, agent_customer_ids = get_agent_policies(agent)
 
+      # Also include customers added by the agent through mobile API
+      agent_added_customers = Customer.where("added_by LIKE ?", "%agent_mobile_api_#{agent.id}%")
+      all_agent_customers = Customer.where(id: agent_customer_ids).or(agent_added_customers)
+
       {
-        customers_count: agent_customer_ids.count,
+        customers_count: all_agent_customers.active.count,
         policies_count: agent_health_policies.count + agent_life_policies.count,
         health_policies_count: agent_health_policies.count,
         life_policies_count: agent_life_policies.count,
@@ -1403,6 +1494,66 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       end
     end
 
+    # Get attached documents
+    documents = []
+
+    # Check for Active Storage documents attachments
+    if policy.respond_to?(:documents) && policy.documents.attached?
+      documents += policy.documents.map do |doc|
+        {
+          id: doc.id,
+          filename: doc.filename.to_s,
+          content_type: doc.content_type || 'application/pdf',
+          byte_size: doc.byte_size,
+          created_at: doc.created_at&.strftime('%Y-%m-%d %H:%M:%S'),
+          url: begin
+                  Rails.application.routes.url_helpers.rails_blob_url(doc, host: 'dr-wise-ag.onrender.com', protocol: 'https')
+                rescue
+                  nil
+                end
+        }
+      end
+    end
+
+    # Check for policy_documents (some policies have separate policy_documents)
+    if policy.respond_to?(:policy_documents) && policy.policy_documents.attached?
+      documents += policy.policy_documents.map do |doc|
+        {
+          id: doc.id,
+          filename: doc.filename.to_s,
+          content_type: doc.content_type || 'application/pdf',
+          byte_size: doc.byte_size,
+          created_at: doc.created_at&.strftime('%Y-%m-%d %H:%M:%S'),
+          url: begin
+                  Rails.application.routes.url_helpers.rails_blob_url(doc, host: 'dr-wise-ag.onrender.com', protocol: 'https')
+                rescue
+                  nil
+                end
+        }
+      end
+    end
+
+    # For Life Insurance, check for life_insurance_documents association
+    if type.downcase == 'life' && policy.respond_to?(:life_insurance_documents)
+      policy.life_insurance_documents.includes(:document_attachment).each do |doc_record|
+        if doc_record.document.attached?
+          documents << {
+            id: doc_record.id,
+            filename: doc_record.document.filename.to_s,
+            content_type: doc_record.document.content_type || 'application/pdf',
+            byte_size: doc_record.document.byte_size,
+            document_type: doc_record.document_type,
+            created_at: doc_record.created_at&.strftime('%Y-%m-%d %H:%M:%S'),
+            url: begin
+                    Rails.application.routes.url_helpers.rails_blob_url(doc_record.document, host: 'dr-wise-ag.onrender.com', protocol: 'https')
+                  rescue
+                    nil
+                  end
+          }
+        end
+      end
+    end
+
     {
       id: policy.id,
       insurance_name: policy.plan_name || "#{type} Insurance",
@@ -1422,6 +1573,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       agent_percentage: agent_percentage,
       agent_commission: agent_commission,
       status: policy.respond_to?(:active?) ? (policy.active? ? 'Active' : 'Inactive') : 'Active',
+      documents: documents,
+      documents_count: documents.count,
       created_at: policy.created_at
     }
   end
@@ -1584,7 +1737,11 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   # Helper methods for health policy creation
   def parse_date(date_string)
     return nil if date_string.blank?
-    Date.parse(date_string) rescue nil
+    begin
+      Date.parse(date_string)
+    rescue
+      nil
+    end
   end
 
   def get_company_name_by_id(company_id)

@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-# Mock Data Creation Script for Insurance Book Admin
+# Mock Data Creation Script for Drwise Admin
 # This script creates comprehensive test data including sub-agents, customers, policies, etc.
 
 puts "🚀 Starting Mock Data Creation Script..."
@@ -24,7 +24,7 @@ puts "✅ Role records found - UserRoles: #{UserRole.count}, Roles: #{Role.count
 puts "👥 Creating Users..."
 
 # Create Admin User
-admin_user = User.find_or_create_by(email: 'admin@insurebook.com') do |user|
+admin_user = User.find_or_create_by(email: 'admin@drwise.com') do |user|
   user.first_name = 'Admin'
   user.last_name = 'User'
   user.password = 'admin123456'
@@ -35,7 +35,7 @@ admin_user = User.find_or_create_by(email: 'admin@insurebook.com') do |user|
 end
 
 # Create Sub-Agent User with Password
-subagent_user = User.find_or_create_by(email: 'subagent@insurebook.com') do |user|
+subagent_user = User.find_or_create_by(email: 'subagent@drwise.com') do |user|
   user.first_name = 'Rajesh'
   user.last_name = 'Kumar'
   user.password = 'subagent123456'
@@ -70,7 +70,7 @@ puts "✅ Users created: #{User.count}"
 
 # Create Sub-Agent
 puts "🤵 Creating Sub-Agents..."
-subagent = SubAgent.find_or_create_by(email: 'subagent@insurebook.com') do |agent|
+subagent = SubAgent.find_or_create_by(email: 'subagent@drwise.com') do |agent|
   agent.first_name = 'Rajesh'
   agent.last_name = 'Kumar'
   agent.mobile = '9876543210'
@@ -91,7 +91,7 @@ puts "✅ Sub-Agents created: #{SubAgent.count}"
 
 # Create Distributors
 puts "🏢 Creating Distributors..."
-distributor1 = Distributor.find_or_create_by(email: 'distributor1@insurebook.com') do |dist|
+distributor1 = Distributor.find_or_create_by(email: 'distributor1@drwise.com') do |dist|
   dist.first_name = 'Suresh'
   dist.last_name = 'Agarwal'
   dist.mobile = '9876543213'
@@ -108,7 +108,7 @@ distributor1 = Distributor.find_or_create_by(email: 'distributor1@insurebook.com
   dist.status = :active
 end
 
-distributor2 = Distributor.find_or_create_by(email: 'distributor2@insurebook.com') do |dist|
+distributor2 = Distributor.find_or_create_by(email: 'distributor2@drwise.com') do |dist|
   dist.first_name = 'Meena'
   dist.last_name = 'Shah'
   dist.mobile = '9876543214'
@@ -129,7 +129,7 @@ puts "✅ Distributors created: #{Distributor.count}"
 
 # Create Investors
 puts "💰 Creating Investors..."
-investor1 = Investor.find_or_create_by(email: 'investor1@insurebook.com') do |inv|
+investor1 = Investor.find_or_create_by(email: 'investor1@drwise.com') do |inv|
   inv.first_name = 'Vikram'
   inv.last_name = 'Reddy'
   inv.mobile = '9876543215'
@@ -146,7 +146,7 @@ investor1 = Investor.find_or_create_by(email: 'investor1@insurebook.com') do |in
   inv.status = :active
 end
 
-investor2 = Investor.find_or_create_by(email: 'investor2@insurebook.com') do |inv|
+investor2 = Investor.find_or_create_by(email: 'investor2@drwise.com') do |inv|
   inv.first_name = 'Kavya'
   inv.last_name = 'Menon'
   inv.mobile = '9876543216'
@@ -430,8 +430,8 @@ puts "=" * 50
 puts "\n📊 DATA SUMMARY:"
 puts "-" * 30
 puts "👥 Users: #{User.count}"
-puts "   📧 Admin: admin@insurebook.com / admin123456"
-puts "   👨‍💼 Sub-Agent: subagent@insurebook.com / subagent123456"
+puts "   📧 Admin: admin@drwise.com / admin123456"
+puts "   👨‍💼 Sub-Agent: subagent@drwise.com / subagent123456"
 puts "   👤 Customer 1: customer1@example.com / customer123456"
 puts "   👤 Customer 2: customer2@example.com / customer123456"
 puts ""
@@ -449,8 +449,8 @@ puts "⚙️ System Settings: Company Expenses = #{SystemSetting.company_expense
 
 puts "\n🔑 KEY CREDENTIALS:"
 puts "-" * 30
-puts "Admin Login: admin@insurebook.com / admin123456"
-puts "Sub-Agent Login: subagent@insurebook.com / subagent123456"
+puts "Admin Login: admin@drwise.com / admin123456"
+puts "Sub-Agent Login: subagent@drwise.com / subagent123456"
 puts "Customer Login: customer1@example.com / customer123456"
 
 puts "\n🚀 API TESTING READY!"

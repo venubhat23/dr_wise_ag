@@ -37,6 +37,7 @@ class ClientRequest < ApplicationRecord
 
   # Callbacks
   before_validation :set_submitted_at, on: :create
+  before_validation :generate_ticket_number, on: :create
   before_update :set_resolved_at
 
   # Instance methods
@@ -82,6 +83,26 @@ class ClientRequest < ApplicationRecord
 
   def set_submitted_at
     self.submitted_at ||= Time.current
+  end
+
+  def generate_ticket_number
+    return if ticket_number.present?
+
+    # Generate ticket number in format: TKT-YYYYMMDD-XXXX
+    date_part = Date.current.strftime('%Y%m%d')
+
+    # Find the last ticket number for today
+    last_ticket = ClientRequest.where("ticket_number LIKE ?", "TKT-#{date_part}-%")
+                              .order(:ticket_number)
+                              .last
+
+    if last_ticket && last_ticket.ticket_number.match(/TKT-#{date_part}-(\d{4})/)
+      sequence = $1.to_i + 1
+    else
+      sequence = 1
+    end
+
+    self.ticket_number = "TKT-#{date_part}-#{sequence.to_s.rjust(4, '0')}"
   end
 
   def set_resolved_at

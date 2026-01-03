@@ -3,8 +3,8 @@ import "@hotwired/turbo-rails"
 import "controllers"
 import * as bootstrap from "bootstrap"
 
-// Premium InsureBook Admin JavaScript
-window.InsureBookAdmin = {
+// Premium Drwise Admin JavaScript
+window.DrwiseAdmin = {
 
   // Initialize the application
   init() {
@@ -184,7 +184,7 @@ function toggleSidebar() {
 
   if (sidebar.classList.contains('show')) {
     sidebar.classList.remove('show');
-    InsureBookAdmin.removeBackdrop();
+    DrwiseAdmin.removeBackdrop();
   } else {
     sidebar.classList.add('show');
 
@@ -218,7 +218,7 @@ window.toggleSidebar = toggleSidebar;
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  InsureBookAdmin.init();
+  DrwiseAdmin.init();
 });
 
 // Enhanced dropdown functionality

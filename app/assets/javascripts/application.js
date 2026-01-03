@@ -1,7 +1,7 @@
-// Modern InsureBook Admin JavaScript
+// Modern Drwise Admin JavaScript
 
 // Global app object
-window.InsureBookAdmin = {
+window.DrwiseAdmin = {
 
   // Initialize the application
   init() {
@@ -140,7 +140,7 @@ function toggleSidebar() {
 
   if (sidebar.classList.contains('show')) {
     sidebar.classList.remove('show');
-    InsureBookAdmin.removeBackdrop();
+    DrwiseAdmin.removeBackdrop();
   } else {
     sidebar.classList.add('show');
 
@@ -171,7 +171,7 @@ function toggleSidebar() {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  InsureBookAdmin.init();
+  DrwiseAdmin.init();
 });
 
 // Enhanced dropdown functionality

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: insurebook-admin
+    name: drwise-admin
     runtime: ruby
     buildCommand: ./bin/render-build.sh
     startCommand: bundle exec rails server -p $PORT -e production

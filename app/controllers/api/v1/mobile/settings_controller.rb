@@ -102,11 +102,11 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
         agent_email: agent_info[:email],
         agent_address: agent_info[:address],
         company_info: {
-          name: "InsureBook Admin",
+          name: "Drwise Admin",
           mobile: "+91 9876543210",
-          email: "support@insurebook.com",
+          email: "support@drwise.com",
           address: "123 Insurance Street, Mumbai, Maharashtra, India",
-          website: "www.insurebook.com"
+          website: "www.drwise.com"
         },
         support_hours: "Monday to Friday: 9:00 AM - 6:00 PM",
         emergency_contact: "+91 9876543210"
@@ -141,6 +141,7 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
         message: 'Your request has been submitted successfully. Our team will contact you soon.',
         data: {
           request_id: client_request.id,
+          ticket_number: client_request.ticket_number,
           status: client_request.status,
           estimated_response_time: '24-48 hours'
         }
@@ -217,10 +218,10 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
   def get_terms_content
     # You can store this in database or return static content
     <<~TERMS
-      Terms and Conditions for InsureBook Admin
+      Terms and Conditions for Drwise Admin
 
       1. General Terms
-      These terms and conditions govern your use of InsureBook Admin mobile application.
+      These terms and conditions govern your use of Drwise Admin mobile application.
 
       2. Privacy Policy
       We are committed to protecting your privacy and personal information.
@@ -252,9 +253,9 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
     else
       # Default company agent
       {
-        name: "InsureBook Support Team",
+        name: "Drwise Support Team",
         mobile: "+91 9876543210",
-        email: "support@insurebook.com",
+        email: "support@drwise.com",
         address: "123 Insurance Street, Mumbai, Maharashtra, India"
       }
     end
