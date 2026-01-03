@@ -2,6 +2,9 @@ class Admin::CustomersController < Admin::ApplicationController
   include LocationData
   include ConfigurablePagination
   before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart, :trace_commission, :product_selection]
+  skip_before_action :ensure_admin, only: [:search_affiliates]
+  skip_before_action :authenticate_user!, only: [:search_affiliates]
+  skip_load_and_authorize_resource only: [:search_affiliates]
 
   # GET /admin/customers
   def index

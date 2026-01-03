@@ -1009,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Initialize Select2 for Affiliate dropdown
+  // Initialize Select2 for Affiliate dropdown with AJAX search
   $('#affiliate_select').select2({
     theme: 'bootstrap-5',
     placeholder: 'Search and select affiliate...',
@@ -1017,10 +1017,34 @@ document.addEventListener('DOMContentLoaded', function() {
     width: '100%',
     dropdownParent: $('body'),
     dropdownCssClass: 'select2-dropdown-large',
-    minimumResultsForSearch: 0,
-    closeOnSelect: true,
+    minimumInputLength: 0, // Allow opening without typing
+    ajax: {
+      url: '/api/v1/public/search_affiliates',
+      dataType: 'json',
+      delay: 250,
+      data: function (params) {
+        return {
+          q: params.term || '', // Send empty query to get default results
+          limit: params.term ? 20 : 10 // Show fewer results when no search term
+        };
+      },
+      processResults: function (data) {
+        console.log('Search affiliates response:', data);
+        return {
+          results: data.results || []
+        };
+      },
+      error: function(xhr, status, error) {
+        console.error('Search affiliates AJAX error:', status, error);
+        return {
+          results: [{id: '', text: 'Error loading affiliates - please try again'}]
+        };
+      },
+      cache: true
+    },
     templateResult: function(option) {
-      if (!option.id || option.element.value === '') {
+      if (option.loading) return option.text;
+      if (!option.id || option.id === '') {
         return option.text;
       }
 

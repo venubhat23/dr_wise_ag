@@ -1778,7 +1778,7 @@ document.addEventListener('DOMContentLoaded', function() {
       dropdownCssClass: 'select2-dropdown-large',
       minimumInputLength: 0, // Allow opening without typing
       ajax: {
-        url: '/admin/customers/search_affiliates',
+        url: '/api/v1/public/search_affiliates',
         dataType: 'json',
         delay: 250,
         data: function (params) {
@@ -1788,8 +1788,15 @@ document.addEventListener('DOMContentLoaded', function() {
           };
         },
         processResults: function (data) {
+          console.log('Search affiliates response:', data);
           return {
             results: data.results || []
+          };
+        },
+        error: function(xhr, status, error) {
+          console.error('Search affiliates AJAX error:', status, error);
+          return {
+            results: [{id: '', text: 'Error loading affiliates - please try again'}]
           };
         },
         cache: true

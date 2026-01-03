@@ -21,6 +21,10 @@ Rails.application.routes.draw do
   # API routes
   namespace :api do
     resources :cities, only: [:index]
+    namespace :v1 do
+      # Public API endpoints (no authentication required)
+      get 'public/search_affiliates', to: 'public#search_affiliates'
+    end
   end
 
   # Admin routes
@@ -166,16 +170,16 @@ Rails.application.routes.draw do
 
     # Customer management
     resources :customers do
+      collection do
+        get :export
+        get :cities
+        get :search_affiliates
+      end
       member do
         patch :toggle_status
         get :policy_chart
         get :trace_commission
         get :product_selection
-      end
-      collection do
-        get :export
-        get :cities
-        get :search_affiliates
       end
       resources :family_members
     end
