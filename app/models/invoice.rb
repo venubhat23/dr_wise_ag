@@ -27,16 +27,22 @@ class Invoice < ApplicationRecord
   end
 
   def payout_recipient
-    payout = payout_record
-    return 'Unknown' unless payout
-
     case payout_type
     when 'affiliate'
-      payout.recipient_name || 'Unknown Affiliate'
+      # For affiliate type, payout_id refers to SubAgent ID
+      sub_agent = SubAgent.find_by(id: payout_id)
+      if sub_agent
+        "#{sub_agent.first_name} #{sub_agent.last_name}".strip
+      else
+        'Unknown Affiliate'
+      end
     when 'distributor'
-      payout.recipient&.display_name || 'Unknown Ambassador'
+      payout = payout_record
+      payout&.recipient&.display_name || 'Unknown Ambassador'
     when 'commission'
       'Main Agent Commission'
+    else
+      'Unknown'
     end
   end
 

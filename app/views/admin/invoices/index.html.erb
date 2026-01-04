@@ -208,36 +208,6 @@
                       <i class="bi bi-eye me-1"></i>View
                     <% end %>
 
-                    <!-- Download Actions Dropdown -->
-                    <div class="dropdown">
-                      <button class="btn btn-outline-secondary btn-sm rounded-pill dropdown-toggle px-3"
-                              type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-download me-1"></i>Download
-                      </button>
-                      <ul class="dropdown-menu shadow-sm">
-                        <li>
-                          <%= link_to admin_invoice_path(invoice, format: :pdf),
-                              class: "dropdown-item",
-                              target: "_blank" do %>
-                            <i class="bi bi-file-pdf me-2"></i>Standard PDF
-                          <% end %>
-                        </li>
-                        <li>
-                          <%= link_to show_premium_admin_invoice_path(invoice),
-                              class: "dropdown-item",
-                              target: "_blank" do %>
-                            <i class="bi bi-star me-2"></i>Premium View
-                          <% end %>
-                        </li>
-                        <li>
-                          <%= link_to download_premium_pdf_admin_invoice_path(invoice, format: :pdf),
-                              class: "dropdown-item",
-                              target: "_blank" do %>
-                            <i class="bi bi-file-pdf-fill me-2"></i>Premium PDF
-                          <% end %>
-                        </li>
-                      </ul>
-                    </div>
 
                     <!-- Mark as Paid (if pending) -->
                     <% if invoice.status == 'pending' %>

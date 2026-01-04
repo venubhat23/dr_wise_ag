@@ -1,3 +1,5 @@
+require 'ostruct'
+
 class Admin::DistributorPayoutsController < ApplicationController
   before_action :authenticate_user!
   before_action :authorize_admin_access
@@ -174,10 +176,8 @@ class Admin::DistributorPayoutsController < ApplicationController
   def calculate_distributor_payouts
     payouts = []
 
-    # Get all commission payouts for ambassadors (distributors) where main agent is paid
-    ambassador_commission_payouts = CommissionPayout.dependent_payouts_where_main_agent_paid
-                                                   .where(payout_to: 'ambassador')
-                                                   .includes(:payout)
+    # Get all commission payouts for ambassadors (distributors) directly - similar to affiliate logic
+    ambassador_commission_payouts = CommissionPayout.where(payout_to: 'ambassador').includes(:payout)
 
     # Group by distributor
     distributor_groups = {}
@@ -186,6 +186,9 @@ class Admin::DistributorPayoutsController < ApplicationController
       # Get policy from commission payout
       policy = get_policy_from_commission_payout(commission_payout)
       next unless policy
+
+      # Skip if main agent commission not received - same logic as affiliates
+      next unless policy.respond_to?(:main_agent_commission_received) && policy.main_agent_commission_received
 
       # Get distributor from the policy's distributor_id field
       distributor = Distributor.find_by(id: policy.distributor_id) if policy.respond_to?(:distributor_id) && policy.distributor_id.present?
@@ -202,8 +205,18 @@ class Admin::DistributorPayoutsController < ApplicationController
         lead = Lead.find_by(lead_id: policy.lead_id)
       end
 
-      # Skip if no lead found (this was the original problem)
-      next unless lead
+      # If no lead found, create a virtual lead object for display purposes (same as affiliates)
+      if lead.nil?
+        lead = OpenStruct.new(
+          id: "virtual_#{policy.id}",
+          lead_id: policy.try(:lead_id) || "POLICY-#{policy.id}",
+          first_name: policy.try(:customer)&.first_name || 'Unknown',
+          last_name: policy.try(:customer)&.last_name || 'Customer',
+          email: policy.try(:customer)&.email || '',
+          mobile: policy.try(:customer)&.mobile || '',
+          created_at: policy.created_at
+        )
+      end
 
       distributor_commission = commission_payout.payout_amount.to_f
 
