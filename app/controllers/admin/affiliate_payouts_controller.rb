@@ -189,9 +189,9 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       # Skip if main agent commission not received
       next unless policy.respond_to?(:main_agent_commission_received) && policy.main_agent_commission_received
 
-      # Get affiliate from the policy's sub_agent_id
-      affiliate = SubAgent.find_by(id: policy.sub_agent_id) if policy.respond_to?(:sub_agent_id) && policy.sub_agent_id.present?
-      next unless affiliate
+      # Get sub_agent from the policy's sub_agent_id
+      sub_agent = SubAgent.find_by(id: policy.sub_agent_id) if policy.respond_to?(:sub_agent_id) && policy.sub_agent_id.present?
+      next unless sub_agent
 
       # Get or create lead if needed
       lead = nil
@@ -222,10 +222,10 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       # Check if already paid
       already_paid = commission_payout.status == 'paid'
 
-      affiliate_key = affiliate.id
+      affiliate_key = sub_agent.id
 
       affiliate_groups[affiliate_key] ||= {
-        affiliate: affiliate,
+        affiliate: sub_agent,
         leads: [],
         total_amount: 0,
         paid_amount: 0,
@@ -249,7 +249,7 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       end
     end
 
-    # Convert to array and sort by affiliate name
+    # Convert to array and sort by sub_agent name
     affiliate_groups.values.sort_by { |group| "#{group[:affiliate].first_name} #{group[:affiliate].last_name}" }
   end
 
@@ -495,8 +495,8 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
   end
 
   def mark_all_affiliate_payouts(affiliate_id)
-    affiliate = SubAgent.find_by(id: affiliate_id)
-    return unless affiliate
+    sub_agent = SubAgent.find_by(id: affiliate_id)
+    return unless sub_agent
 
     # Find all pending affiliate payouts
     paid_policies = get_all_paid_policies
@@ -568,8 +568,8 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
   end
 
   def generate_single_affiliate_invoice(affiliate_id)
-    affiliate = SubAgent.find_by(id: affiliate_id)
-    return unless affiliate
+    sub_agent = SubAgent.find_by(id: affiliate_id)
+    return unless sub_agent
 
     # Calculate total commission for this affiliate
     total_commission = calculate_affiliate_total_commission(affiliate_id)
@@ -595,7 +595,7 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       due_date: Date.current
     )
 
-    Rails.logger.info "Generated invoice #{invoice.invoice_number} for affiliate #{affiliate.first_name} #{affiliate.last_name} (#{affiliate.id})"
+    Rails.logger.info "Generated invoice #{invoice.invoice_number} for sub_agent #{sub_agent.first_name} #{sub_agent.last_name} (#{sub_agent.id})"
   end
 
   def generate_invoices_for_leads(lead_ids)
