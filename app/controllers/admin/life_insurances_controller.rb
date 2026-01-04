@@ -61,7 +61,13 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
   def create
     processed_params = process_broker_params(life_insurance_params)
     @life_insurance = LifeInsurance.new(processed_params)
-    @life_insurance.policy_added_by_admin = true # Web admin = true
+
+    # Set admin tracking fields for policies created from admin panel
+    @life_insurance.policy_added_by_admin = true
+    @life_insurance.is_admin_added = true
+    @life_insurance.is_customer_added = false
+    @life_insurance.is_agent_added = false
+
     set_distributor_from_affiliate(@life_insurance)
 
     begin

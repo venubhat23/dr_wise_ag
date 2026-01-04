@@ -88,7 +88,12 @@
         <div class="col-md-4">
           <%= form.label :state_id, "State", class: "form-label" %>
           <%= form.select :state_id,
-              options_for_select(LocationData.states_for_select, @sub_agent.state_id),
+              options_for_select([
+                ['Karnataka', 1], ['Tamil Nadu', 2], ['Maharashtra', 3],
+                ['Gujarat', 4], ['Delhi', 5], ['West Bengal', 6],
+                ['Andhra Pradesh', 7], ['Bihar', 8], ['Kerala', 9],
+                ['Madhya Pradesh', 10], ['Rajasthan', 11], ['Uttar Pradesh', 12]
+              ], @sub_agent.state_id),
               { prompt: 'Select State' },
               { class: "form-select", id: "sub_agent_state" } %>
         </div>
@@ -440,24 +445,68 @@
 }
 </style>
 
-<!-- Include Location Data and Form Enhancements -->
+<!-- State-City Dependency Script -->
 <script>
-<%= File.read(Rails.root.join('app/assets/javascripts/location_data.js')).html_safe %>
-</script>
-<script>
-<%= File.read(Rails.root.join('app/assets/javascripts/form_enhancements.js')).html_safe %>
-</script>
+// State-City mapping for edit page
+const stateCityMapping = {
+  1: [ // Karnataka
+    {id: 1, name: 'Bangalore'}, {id: 13, name: 'Mysore'}, {id: 25, name: 'Mangalore'},
+    {id: 37, name: 'Hubli'}, {id: 49, name: 'Belgaum'}, {id: 61, name: 'Gulbarga'}
+  ],
+  2: [ // Tamil Nadu
+    {id: 2, name: 'Chennai'}, {id: 14, name: 'Coimbatore'}, {id: 26, name: 'Madurai'},
+    {id: 38, name: 'Trichy'}, {id: 50, name: 'Salem'}, {id: 62, name: 'Tirunelveli'}
+  ],
+  3: [ // Maharashtra
+    {id: 3, name: 'Mumbai'}, {id: 15, name: 'Pune'}, {id: 27, name: 'Nagpur'},
+    {id: 39, name: 'Nashik'}, {id: 51, name: 'Aurangabad'}, {id: 63, name: 'Solapur'}
+  ],
+  4: [ // Gujarat
+    {id: 4, name: 'Ahmedabad'}, {id: 16, name: 'Surat'}, {id: 28, name: 'Vadodara'},
+    {id: 40, name: 'Rajkot'}, {id: 52, name: 'Bhavnagar'}, {id: 64, name: 'Jamnagar'}
+  ],
+  5: [ // Delhi
+    {id: 5, name: 'New Delhi'}, {id: 17, name: 'Central Delhi'}, {id: 29, name: 'South Delhi'},
+    {id: 41, name: 'North Delhi'}, {id: 53, name: 'East Delhi'}, {id: 65, name: 'West Delhi'}
+  ],
+  6: [ // West Bengal
+    {id: 6, name: 'Kolkata'}, {id: 18, name: 'Howrah'}, {id: 30, name: 'Durgapur'},
+    {id: 42, name: 'Siliguri'}, {id: 54, name: 'Asansol'}, {id: 66, name: 'Malda'}
+  ],
+  7: [ // Andhra Pradesh
+    {id: 7, name: 'Visakhapatnam'}, {id: 19, name: 'Vijayawada'}, {id: 31, name: 'Guntur'},
+    {id: 43, name: 'Nellore'}, {id: 55, name: 'Kurnool'}, {id: 67, name: 'Tirupati'}
+  ],
+  8: [ // Bihar
+    {id: 8, name: 'Patna'}, {id: 20, name: 'Gaya'}, {id: 32, name: 'Bhagalpur'},
+    {id: 44, name: 'Muzaffarpur'}, {id: 56, name: 'Darbhanga'}, {id: 68, name: 'Arrah'}
+  ],
+  9: [ // Kerala
+    {id: 9, name: 'Thiruvananthapuram'}, {id: 21, name: 'Kochi'}, {id: 33, name: 'Kozhikode'},
+    {id: 45, name: 'Thrissur'}, {id: 57, name: 'Kollam'}, {id: 69, name: 'Palakkad'}
+  ],
+  10: [ // Madhya Pradesh
+    {id: 10, name: 'Bhopal'}, {id: 22, name: 'Indore'}, {id: 34, name: 'Jabalpur'},
+    {id: 46, name: 'Gwalior'}, {id: 58, name: 'Ujjain'}, {id: 70, name: 'Sagar'}
+  ],
+  11: [ // Rajasthan
+    {id: 11, name: 'Jaipur'}, {id: 23, name: 'Jodhpur'}, {id: 35, name: 'Udaipur'},
+    {id: 47, name: 'Kota'}, {id: 59, name: 'Ajmer'}, {id: 71, name: 'Bikaner'}
+  ],
+  12: [ // Uttar Pradesh
+    {id: 12, name: 'Lucknow'}, {id: 24, name: 'Kanpur'}, {id: 36, name: 'Agra'},
+    {id: 48, name: 'Varanasi'}, {id: 60, name: 'Meerut'}, {id: 72, name: 'Allahabad'}
+  ]
+};
 
-<script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Load existing cities for the selected state on page load
   const stateSelect = document.getElementById('sub_agent_state');
   const citySelect = document.getElementById('sub_agent_city');
   const currentCityId = '<%= @sub_agent.city_id %>';
 
-  if (stateSelect && stateSelect.value && LocationData) {
-    const selectedStateId = stateSelect.value;
-    const cities = LocationData.getCitiesByStateId(selectedStateId);
+  // Function to populate cities based on state
+  function populateCities(stateId, selectedCityId = null) {
+    const cities = stateCityMapping[stateId] || [];
 
     // Clear existing options
     citySelect.innerHTML = '<option value="">Select City</option>';
@@ -467,14 +516,31 @@ document.addEventListener('DOMContentLoaded', function() {
       const option = document.createElement('option');
       option.value = city.id;
       option.textContent = city.name;
-      if (city.id == currentCityId) {
+      if (city.id == selectedCityId) {
         option.selected = true;
       }
       citySelect.appendChild(option);
     });
 
-    citySelect.disabled = false;
+    citySelect.disabled = cities.length === 0;
   }
+
+  // Load existing cities for the selected state on page load
+  if (stateSelect && stateSelect.value) {
+    const selectedStateId = parseInt(stateSelect.value);
+    populateCities(selectedStateId, currentCityId);
+  }
+
+  // Handle state change
+  stateSelect.addEventListener('change', function() {
+    const selectedStateId = parseInt(this.value);
+    if (selectedStateId) {
+      populateCities(selectedStateId);
+    } else {
+      citySelect.innerHTML = '<option value="">Select State First</option>';
+      citySelect.disabled = true;
+    }
+  });
   // Ambassador assignment management
   const distributorSelect = document.getElementById('distributor_select');
   const distributorPreview = document.getElementById('distributor_preview');

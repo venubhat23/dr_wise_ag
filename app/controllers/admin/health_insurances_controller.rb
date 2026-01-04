@@ -27,7 +27,13 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
 
   def create
     @health_insurance = HealthInsurance.new(health_insurance_params)
-    @health_insurance.policy_added_by_admin = true # Web admin = true
+
+    # Set admin tracking fields for policies created from admin panel
+    @health_insurance.policy_added_by_admin = true
+    @health_insurance.is_admin_added = true
+    @health_insurance.is_customer_added = false
+    @health_insurance.is_agent_added = false
+
     set_distributor_from_affiliate(@health_insurance)
 
     if @health_insurance.save
