@@ -779,6 +779,7 @@
             <div class="nav-indicator"></div>
           <% end %>
         </li>
+        <% end %>
         </ul>
       </div>
     <% end %>
@@ -807,35 +808,37 @@
     <% end %>
 
     <!-- Settings Section -->
-    <% if show_sidebar_item?('settings') %>
+    <% if show_sidebar_section?(['settings']) %>
       <div class="nav-section">
         <div class="nav-section-title">Settings</div>
       <ul class="nav-menu">
-        <!-- User Roles Configuration -->
-        <li class="nav-item">
-          <%= link_to admin_settings_user_roles_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/settings/user_roles')}" do %>
-            <div class="nav-icon-modern">
-              <div class="icon-bg gradient-teal">
-                <i class="bi bi-person-gear"></i>
+        <% if show_sidebar_item?('settings') %>
+          <!-- User Roles Configuration -->
+          <li class="nav-item">
+            <%= link_to admin_settings_user_roles_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/settings/user_roles')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-teal">
+                  <i class="bi bi-person-gear"></i>
+                </div>
               </div>
-            </div>
-            <span class="nav-text">User Roles</span>
-            <div class="nav-indicator"></div>
-          <% end %>
-        </li>
+              <span class="nav-text">User Roles</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
 
-        <!-- System Settings -->
-        <li class="nav-item">
-          <%= link_to admin_settings_system_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/settings/system')}" do %>
-            <div class="nav-icon-modern">
-              <div class="icon-bg gradient-gray">
-                <i class="bi bi-gear-fill"></i>
+          <!-- System Settings -->
+          <li class="nav-item">
+            <%= link_to admin_settings_system_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/settings/system')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-gray">
+                  <i class="bi bi-gear-fill"></i>
+                </div>
               </div>
-            </div>
-            <span class="nav-text">System Settings</span>
-            <div class="nav-indicator"></div>
-          <% end %>
-        </li>
+              <span class="nav-text">System Settings</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
         </ul>
       </div>
     <% end %>
