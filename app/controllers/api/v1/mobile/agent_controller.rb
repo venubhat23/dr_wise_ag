@@ -357,8 +357,9 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     policies = []
 
     # Determine what payout_to value to look for based on user type
-    payout_to_value = if is_sub_agent?(current_user)
-                        'sub_agent'
+    # Sub-agents should see affiliate commission, not sub_agent commission
+    payout_to_value = if is_sub_agent?(current_user) || is_affiliate?(current_user)
+                        'affiliate'
                       else
                         'agent'
                       end
@@ -1412,6 +1413,12 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
   private
 
+  def determine_drwise_policy(policy)
+    # DR wise policy: Only admin added (not customer or agent added)
+    # is_customer_added: false && is_agent_added: false && is_admin_added: true
+    !policy.is_customer_added && !policy.is_agent_added && policy.is_admin_added
+  end
+
   def authenticate_agent!
     token = request.headers['Authorization']&.split(' ')&.last
 
@@ -1662,10 +1669,11 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       sum_insured: policy.sum_insured,
       insurance_company: policy.insurance_company_name,
       payment_mode: policy.payment_mode,
-      commission_amount: policy.commission_amount || 0,
+      commission_amount: agent_commission,
       agent_percentage: agent_percentage,
       agent_commission: agent_commission,
       status: policy.respond_to?(:active?) ? (policy.active? ? 'Active' : 'Inactive') : 'Active',
+      is_drwise_policy: determine_drwise_policy(policy),
       documents: documents,
       documents_count: documents.count,
       created_at: policy.created_at
@@ -2300,7 +2308,28 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   end
 
   def is_sub_agent?(user)
-    user.is_a?(SubAgent) || (user.is_a?(User) && user.user_type == 'sub_agent')
+    # Check if user is a SubAgent or if there's a matching SubAgent by email/mobile
+    return true if user.is_a?(SubAgent)
+    return true if user.is_a?(User) && user.user_type == 'sub_agent'
+
+    # Check if there's a SubAgent with matching email or mobile
+    if user.is_a?(User)
+      SubAgent.exists?(email: user.email) ||
+      SubAgent.exists?(mobile: user.mobile) ||
+      SubAgent.where('mobile LIKE ?', "%#{user.mobile.gsub(/[^\d]/, '')}%").exists?
+    else
+      false
+    end
+  end
+
+  def is_affiliate?(user)
+    # Additional check for users who should be treated as affiliates
+    return false unless user.is_a?(User)
+
+    # Check if user's role indicates affiliate or if they match SubAgent records
+    user.user_type == 'affiliate' ||
+    (user.user_type == 'customer' && SubAgent.exists?(email: user.email)) ||
+    (user.user_type == 'customer' && SubAgent.exists?(mobile: user.mobile))
   end
 
   def create_user_for_customer(customer, password)

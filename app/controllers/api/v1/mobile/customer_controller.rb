@@ -440,11 +440,6 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
                                     .where('policy_end_date BETWEEN ? AND ?', Date.current, 2.months.from_now)
                                     .where.not(policy_end_date: nil)
 
-    # If no policies in date range, show ALL policies for this customer (for testing)
-    if health_policies.empty?
-      health_policies = HealthInsurance.where(customer_id: customer_id).where.not(policy_end_date: nil)
-    end
-
     health_policies.each do |policy|
       days_since_end = (Date.current - policy.policy_end_date).to_i
 
@@ -494,11 +489,6 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     life_policies = LifeInsurance.where(customer_id: customer_id)
                                 .where('policy_end_date BETWEEN ? AND ?', Date.current, 2.months.from_now)
                                 .where.not(policy_end_date: nil)
-
-    # If no policies in date range, show ALL policies for this customer (for testing)
-    if life_policies.empty?
-      life_policies = LifeInsurance.where(customer_id: customer_id).where.not(policy_end_date: nil)
-    end
 
     life_policies.each do |policy|
       days_since_end = (Date.current - policy.policy_end_date).to_i
@@ -571,11 +561,6 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
           policies = model_class.where(customer_id: customer_id)
                                .where('policy_end_date BETWEEN ? AND ?', Date.current, 2.months.from_now)
                                .where.not(policy_end_date: nil)
-
-          # If no policies in date range, show ALL policies for this customer (for testing)
-          if policies.empty?
-            policies = model_class.where(customer_id: customer_id).where.not(policy_end_date: nil)
-          end
 
           Rails.logger.info "Processing #{policies.count} #{insurance_config[:type]} insurance policies"
 
@@ -655,91 +640,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       end
     end
 
-    # If no renewals found at all, include ALL customer policies as potential renewals
-    if renewals.empty?
-      Rails.logger.info "No renewals found in date range, using fallback logic for customer #{customer_id}"
-
-      # Get ALL policies for this customer regardless of date from all insurance types
-      all_insurance_types = [
-        { model: HealthInsurance, type: 'Health' },
-        { model: LifeInsurance, type: 'Life' },
-        { model: MotorInsurance, type: 'Motor' } # Add motor to fallback
-      ]
-
-      # Check for other insurance models dynamically
-      ['TravelInsurance', 'GeneralInsurance', 'OtherInsurance'].each do |model_name|
-        if Object.const_defined?(model_name)
-          model_class = model_name.constantize
-          if model_class.column_names.include?('customer_id') && model_class.column_names.include?('policy_end_date')
-            type = model_name.gsub('Insurance', '')
-            all_insurance_types << { model: model_class, type: type }
-          end
-        end
-      end
-
-      all_insurance_types.each do |insurance_info|
-        begin
-          policies = insurance_info[:model].where(customer_id: customer_id).where.not(policy_end_date: nil).limit(5)
-
-          policies.each do |policy|
-            days_until_renewal = policy.policy_end_date ? (policy.policy_end_date - Date.current).to_i : 0
-
-            renewal_status = if !policy.policy_end_date
-                              'no_end_date'
-                            elsif policy.policy_end_date < Date.current
-                              'overdue'
-                            elsif days_until_renewal <= 30
-                              'due_soon'
-                            elsif days_until_renewal <= 90
-                              'approaching'
-                            else
-                              'upcoming'
-                            end
-
-            # Determine insurance name based on type
-            insurance_name = case insurance_info[:type]
-                           when 'Health'
-                             policy.plan_name || "Health Insurance"
-                           when 'Life'
-                             policy.plan_name || "Life Insurance"
-                           when 'Motor'
-                             "Motor Insurance"
-                           when 'Other'
-                             policy.respond_to?(:other_policy_type) && policy.other_policy_type.present? ? policy.other_policy_type : "Other Insurance"
-                           else
-                             "#{insurance_info[:type]} Insurance"
-                           end
-
-            renewals << {
-              id: policy.id,
-              insurance_name: insurance_name,
-              insurance_type: insurance_info[:type],
-              policy_number: policy.respond_to?(:policy_number) ? policy.policy_number : "N/A",
-              policy_holder: policy.respond_to?(:policy_holder) ? policy.policy_holder : current_customer.display_name,
-              start_date: policy.respond_to?(:policy_start_date) ? policy.policy_start_date : nil,
-              end_date: policy.policy_end_date,
-              renewal_date: policy.policy_end_date ? policy.policy_end_date + 1.day : nil,
-              total_premium: policy.respond_to?(:total_premium) ? policy.total_premium : 0,
-              sum_insured: policy.respond_to?(:sum_insured) ? policy.sum_insured : nil,
-              payment_mode: policy.respond_to?(:payment_mode) ? policy.payment_mode : 'Yearly',
-              days_until_renewal: days_until_renewal,
-              renewal_status: renewal_status,
-              is_expired: policy.policy_end_date ? policy.policy_end_date < Date.current : false,
-              days_since_expiry: policy.policy_end_date && policy.policy_end_date < Date.current ? (Date.current - policy.policy_end_date).to_i : nil,
-              insurance_company: policy.respond_to?(:insurance_company_name) ? policy.insurance_company_name : "Unknown",
-              attachment: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
-              # Additional motor insurance fields
-              vehicle_number: insurance_info[:type] == 'Motor' && policy.respond_to?(:vehicle_number) ? policy.vehicle_number : nil,
-              vehicle_make: insurance_info[:type] == 'Motor' && policy.respond_to?(:vehicle_make) ? policy.vehicle_make : nil,
-              vehicle_model: insurance_info[:type] == 'Motor' && policy.respond_to?(:vehicle_model) ? policy.vehicle_model : nil
-            }
-          end
-        rescue => e
-          Rails.logger.warn "Error in fallback for #{insurance_info[:model]}: #{e.message}"
-          next
-        end
-      end
-    end
+    # Log that we are only showing renewals within next 2 months
+    Rails.logger.info "Found #{renewals.count} renewals within next 2 months for customer #{customer_id}"
 
     # Sort by renewal date (most urgent first, then by days until renewal)
     renewals = renewals.sort_by { |r| [r[:renewal_status] == 'overdue' ? 0 : 1, r[:days_until_renewal]] }
