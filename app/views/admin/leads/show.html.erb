@@ -207,12 +207,12 @@
 <div class="row">
   <!-- Lead Information -->
   <div class="col-md-8">
-    <!-- Basic Information -->
+    <!-- Customer Type Information -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-light border-0">
         <h5 class="mb-0">
-          <i class="bi bi-person-lines-fill me-2 text-primary"></i>
-          Lead Information
+          <i class="bi bi-person-check me-2 text-primary"></i>
+          Customer Type & Basic Information
         </h5>
       </div>
       <div class="card-body">
@@ -222,18 +222,12 @@
             <div class="fw-bold"><%= @lead.lead_id %></div>
           </div>
           <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Lead Name</label>
-            <div class="fw-bold"><%= @lead.name %></div>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Email Address</label>
+            <label class="form-label text-muted">Customer Type</label>
             <div>
-              <% if @lead.email.present? %>
-                <a href="mailto:<%= @lead.email %>" class="text-decoration-none">
-                  <%= @lead.email %>
-                </a>
+              <% if @lead.customer_type.present? %>
+                <span class="badge bg-info"><%= @lead.customer_type.humanize %></span>
               <% else %>
-                <span class="text-muted">Not provided</span>
+                <span class="text-muted">Not specified</span>
               <% end %>
             </div>
           </div>
@@ -249,48 +243,325 @@
               <% end %>
             </div>
           </div>
-          <div class="col-md-12 mb-3">
-            <label class="form-label text-muted">Address</label>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Email Address</label>
             <div>
-              <% if [@lead.address, @lead.city, @lead.state].any?(&:present?) %>
-                <%= [@lead.address, @lead.city, @lead.state].compact.join(', ') %>
+              <% if @lead.email.present? %>
+                <a href="mailto:<%= @lead.email %>" class="text-decoration-none">
+                  <%= @lead.email %>
+                </a>
+              <% else %>
+                <span class="text-muted">Not provided</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Individual Customer Details -->
+    <% if @lead.individual? %>
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-person me-2 text-primary"></i>
+          Individual Customer Details
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label text-muted">First Name</label>
+            <div class="fw-bold"><%= @lead.first_name.presence || 'Not provided' %></div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label text-muted">Middle Name</label>
+            <div><%= @lead.middle_name.presence || 'Not provided' %></div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label text-muted">Last Name</label>
+            <div class="fw-bold"><%= @lead.last_name.presence || 'Not provided' %></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Date of Birth</label>
+            <div>
+              <% if @lead.birth_date.present? %>
+                <%= @lead.birth_date.strftime('%B %d, %Y') %>
+                <small class="text-muted">(<%= ((Date.current - @lead.birth_date) / 365).to_i %> years old)</small>
               <% else %>
                 <span class="text-muted">Not provided</span>
               <% end %>
             </div>
           </div>
           <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Affiliate/Referrer</label>
+            <label class="form-label text-muted">Gender</label>
+            <div>
+              <% if @lead.gender.present? %>
+                <span class="badge bg-secondary"><%= @lead.gender.humanize %></span>
+              <% else %>
+                <span class="text-muted">Not specified</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Marital Status</label>
+            <div>
+              <% if @lead.marital_status.present? %>
+                <span class="badge bg-info"><%= @lead.marital_status.humanize %></span>
+              <% else %>
+                <span class="text-muted">Not specified</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">PAN Number</label>
+            <div><%= @lead.pan_no.presence || 'Not provided' %></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Birth Place</label>
+            <div><%= @lead.birth_place.presence || 'Not provided' %></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Physical Details</label>
+            <div>
+              <% if @lead.height.present? || @lead.weight.present? %>
+                <% if @lead.height.present? %>
+                  Height: <strong><%= @lead.height %> ft</strong>
+                <% end %>
+                <% if @lead.weight.present? %>
+                  <%= ', ' if @lead.height.present? %>Weight: <strong><%= @lead.weight %> kg</strong>
+                <% end %>
+              <% else %>
+                <span class="text-muted">Not provided</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Professional Details -->
+        <% if [@lead.education, @lead.business_job, @lead.business_name, @lead.job_name, @lead.occupation, @lead.type_of_duty, @lead.annual_income].any?(&:present?) %>
+        <hr class="my-4">
+        <h6 class="text-secondary mb-3">Professional Details</h6>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Education</label>
+            <div><%= @lead.education.presence || 'Not provided' %></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Business/Job Type</label>
+            <div>
+              <% if @lead.business_job.present? %>
+                <span class="badge bg-primary"><%= @lead.business_job.humanize %></span>
+              <% else %>
+                <span class="text-muted">Not specified</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Business Name</label>
+            <div><%= @lead.business_name.presence || 'Not provided' %></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Job Name</label>
+            <div><%= @lead.job_name.presence || 'Not provided' %></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Occupation</label>
+            <div><%= @lead.occupation.presence || 'Not provided' %></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Type of Duty</label>
+            <div><%= @lead.type_of_duty.presence || 'Not provided' %></div>
+          </div>
+          <div class="col-md-12 mb-3">
+            <label class="form-label text-muted">Annual Income</label>
+            <div>
+              <% if @lead.annual_income.present? %>
+                <span class="fw-bold text-success">₹<%= number_with_delimiter(@lead.annual_income) %></span>
+              <% else %>
+                <span class="text-muted">Not provided</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+        <% end %>
+      </div>
+    </div>
+    <% end %>
+
+    <!-- Corporate Customer Details -->
+    <% if @lead.corporate? %>
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-building me-2 text-primary"></i>
+          Corporate Customer Details
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Company Name</label>
+            <div class="fw-bold"><%= @lead.company_name.presence || 'Not provided' %></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Company Email</label>
+            <div>
+              <% if @lead.email.present? %>
+                <a href="mailto:<%= @lead.email %>" class="text-decoration-none">
+                  <%= @lead.email %>
+                </a>
+              <% else %>
+                <span class="text-muted">Not provided</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">PAN Number</label>
+            <div><%= @lead.pan_no.presence || 'Not provided' %></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">GST Number</label>
+            <div><%= @lead.gst_no.presence || 'Not provided' %></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% end %>
+
+    <!-- Product Information -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-briefcase me-2 text-primary"></i>
+          Product Information
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Product Category</label>
+            <div>
+              <% if @lead.product_category.present? %>
+                <span class="badge bg-info"><%= @lead.product_category.humanize %></span>
+              <% else %>
+                <span class="text-muted">Not specified</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Product Type</label>
+            <div>
+              <% if @lead.product_subcategory.present? %>
+                <span class="badge bg-secondary"><%= @lead.product_subcategory.humanize %></span>
+              <% else %>
+                <span class="text-muted">Not specified</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Address Information -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-geo-alt me-2 text-primary"></i>
+          Address Information
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label class="form-label text-muted">Complete Address</label>
+            <div>
+              <% if @lead.address.present? %>
+                <%= @lead.address %>
+              <% else %>
+                <span class="text-muted">Not provided</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">State</label>
+            <div>
+              <% if @lead.state.present? %>
+                <span class="badge bg-primary"><%= @lead.state %></span>
+              <% else %>
+                <span class="text-muted">Not specified</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">City</label>
+            <div>
+              <% if @lead.city.present? %>
+                <span class="badge bg-secondary"><%= @lead.city %></span>
+              <% else %>
+                <span class="text-muted">Not specified</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lead Management Details -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-info-circle me-2 text-primary"></i>
+          Lead Management Details
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Lead Source</label>
+            <div>
+              <% if @lead.lead_source.present? %>
+                <span class="badge bg-secondary"><%= @lead.lead_source.humanize %></span>
+              <% else %>
+                <span class="text-muted">Not specified</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Current Stage</label>
+            <div>
+              <span class="badge <%= @lead.stage_badge_class %>"><%= @lead.stage_display_name %></span>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Call Disposition</label>
+            <div>
+              <% if @lead.call_disposition.present? %>
+                <span class="badge bg-info"><%= @lead.call_disposition.humanize %></span>
+              <% else %>
+                <span class="text-muted">Not specified</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Referral Amount</label>
+            <div>
+              <% if @lead.referral_amount.present? && @lead.referral_amount > 0 %>
+                <span class="fw-bold text-success">₹<%= number_with_delimiter(@lead.referral_amount) %></span>
+              <% else %>
+                <span class="text-muted">No referral amount</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="col-md-12 mb-3">
+            <label class="form-label text-muted">Affiliate/Referrer Information</label>
             <div>
               <% if @lead.is_direct %>
                 <span class="badge bg-primary">Direct Lead</span>
               <% elsif @lead.affiliate.present? %>
                 <span class="badge bg-success">Agent - <%= @lead.affiliate.display_name %></span>
               <% elsif @lead.referred_by.present? %>
-                <span class="badge bg-info">Ref - <%= @lead.referred_by %></span>
-              <% else %>
-                <span class="text-muted">Not specified</span>
-              <% end %>
-            </div>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Product Category</label>
-            <div>
-              <% if @lead.product_category.present? %>
-                <span class="badge bg-info"><%= @lead.product_category.humanize %></span>
-                <% if @lead.product_subcategory.present? %>
-                  <span class="badge bg-secondary ms-1"><%= @lead.product_subcategory.humanize %></span>
-                <% end %>
-              <% else %>
-                <span class="text-muted">Not specified</span>
-              <% end %>
-            </div>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Lead Source</label>
-            <div>
-              <% if @lead.lead_source.present? %>
-                <span class="badge bg-secondary"><%= @lead.lead_source.humanize %></span>
+                <span class="badge bg-info">Referred by - <%= @lead.referred_by %></span>
               <% else %>
                 <span class="text-muted">Not specified</span>
               <% end %>
@@ -303,23 +574,68 @@
               <small class="text-muted">(<%= time_ago_in_words(@lead.created_at) %> ago)</small>
             </div>
           </div>
-
-          <!-- Show Customer Information if Converted -->
-          <% if @lead.converted_customer.present? %>
-            <div class="col-md-12 mb-3">
-              <label class="form-label text-muted">Converted Customer</label>
-              <div class="alert alert-success d-flex align-items-center">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                <div class="flex-grow-1">
-                  <strong>Successfully converted to customer:</strong>
-                  <%= link_to @lead.converted_customer.display_name, admin_customer_path(@lead.converted_customer), class: "ms-2 btn btn-sm btn-outline-success" %>
-                </div>
-              </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Last Updated</label>
+            <div>
+              <%= @lead.updated_at.strftime('%b %d, %Y at %I:%M %p') %>
+              <small class="text-muted">(<%= time_ago_in_words(@lead.updated_at) %> ago)</small>
             </div>
-          <% end %>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- Additional Information -->
+    <% if [@lead.additional_information, @lead.notes].any?(&:present?) %>
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-journal-text me-2 text-primary"></i>
+          Additional Information & Notes
+        </h5>
+      </div>
+      <div class="card-body">
+        <% if @lead.additional_information.present? %>
+        <div class="mb-3">
+          <label class="form-label text-muted">Additional Information</label>
+          <div class="p-3 bg-light rounded">
+            <%= simple_format(@lead.additional_information) %>
+          </div>
+        </div>
+        <% end %>
+        <% if @lead.notes.present? %>
+        <div class="mb-3">
+          <label class="form-label text-muted">Notes</label>
+          <div class="p-3 bg-light rounded">
+            <%= simple_format(@lead.notes) %>
+          </div>
+        </div>
+        <% end %>
+      </div>
+    </div>
+    <% end %>
+
+    <!-- Conversion Status -->
+    <% if @lead.converted_customer.present? %>
+    <div class="card border-0 shadow-sm mb-4 border-success">
+      <div class="card-header bg-success text-white border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-check-circle-fill me-2"></i>
+          Conversion Status
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-success d-flex align-items-center mb-0">
+          <i class="bi bi-check-circle-fill me-2 fs-4"></i>
+          <div class="flex-grow-1">
+            <h6 class="mb-1">Successfully Converted to Customer</h6>
+            <p class="mb-2">This lead has been converted to a customer account.</p>
+            <%= link_to @lead.converted_customer.display_name, admin_customer_path(@lead.converted_customer), class: "btn btn-outline-success btn-sm" %>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% end %>
 
 
   </div>
