@@ -111,9 +111,10 @@
           <thead class="bg-light">
             <tr>
               <th class="border-0">User Details</th>
-              <th class="border-0">Contact</th>
+              <th class="border-0">Login Credentials</th>
               <th class="border-0">Role</th>
               <th class="border-0">User Type</th>
+              <th class="border-0">Sidebar Permissions</th>
               <th class="border-0">Status</th>
               <th class="border-0">Created</th>
               <th class="border-0">Actions</th>
@@ -135,8 +136,37 @@
                 </td>
                 <td>
                   <div>
-                    <div><%= user.email %></div>
-                    <small class="text-muted"><%= user.mobile %></small>
+                    <div class="mb-2">
+                      <span class="badge bg-light text-dark border">
+                        <i class="bi bi-envelope me-1"></i>
+                        <%= user.email %>
+                      </span>
+                    </div>
+                    <div class="mb-1">
+                      <small class="text-success">
+                        <i class="bi bi-person-check me-1"></i>Username: <%= user.email %>
+                      </small>
+                    </div>
+                    <div class="mb-1">
+                      <% if user.original_password.present? %>
+                        <small class="text-info">
+                          <i class="bi bi-key me-1"></i>Password: <%= user.original_password %>
+                        </small>
+                      <% elsif user.plain_password.present? %>
+                        <small class="text-info">
+                          <i class="bi bi-key me-1"></i>Password: <%= user.plain_password %>
+                        </small>
+                      <% else %>
+                        <small class="text-muted">
+                          <i class="bi bi-lock me-1"></i>Password: Not available
+                        </small>
+                      <% end %>
+                    </div>
+                    <div>
+                      <small class="text-muted">
+                        <i class="bi bi-telephone me-1"></i><%= user.mobile %>
+                      </small>
+                    </div>
                   </div>
                 </td>
                 <td>
@@ -149,6 +179,22 @@
                     <i class="bi bi-<%= user.user_type == 'admin' ? 'shield-check' : 'person' %> me-1"></i>
                     <%= user.user_type.humanize %>
                   </span>
+                </td>
+                <td>
+                  <% if user.email == 'admin@insurebook.com' %>
+                    <span class="badge bg-success-subtle text-success">
+                      <i class="bi bi-infinity me-1"></i>
+                      Full Access
+                    </span>
+                  <% else %>
+                    <% permissions_count = user.sidebar_permissions_array.count %>
+                    <span class="badge bg-primary-subtle text-primary"
+                          data-bs-toggle="tooltip"
+                          title="<%= user.sidebar_permissions_array.join(', ') %>">
+                      <i class="bi bi-list-check me-1"></i>
+                      <%= permissions_count %> <%= permissions_count == 1 ? 'section' : 'sections' %>
+                    </span>
+                  <% end %>
                 </td>
                 <td>
                   <span class="badge bg-<%= user.status? ? 'success' : 'secondary' %>-subtle text-<%= user.status? ? 'success' : 'secondary' %>">
@@ -246,5 +292,11 @@ document.addEventListener('DOMContentLoaded', function() {
       }, 500);
     });
   }
+
+  // Initialize tooltips for sidebar permissions
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
 });
 </script>

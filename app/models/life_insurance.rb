@@ -142,6 +142,39 @@ class LifeInsurance < ApplicationRecord
     notification_list.select { |notification| notification['date'] == today }
   end
 
+  # DrWise vs Non-DrWise classification
+  def drwise_policy?
+    # DrWise: Admin Added policies (is_admin_added: true AND others false)
+    is_admin_added? && !is_customer_added? && !is_agent_added?
+  end
+
+  def non_drwise_policy?
+    # Non-DrWise: Customer Added OR Agent Added policies
+    (is_customer_added? && !is_admin_added? && !is_agent_added?) ||
+    (is_agent_added? && !is_customer_added? && !is_admin_added?)
+  end
+
+  def policy_classification
+    if drwise_policy?
+      'DrWise'
+    elsif non_drwise_policy?
+      'Non-DrWise'
+    else
+      'Unknown'
+    end
+  end
+
+  def policy_classification_badge_class
+    case policy_classification
+    when 'DrWise'
+      'bg-success text-white'  # Green for DrWise
+    when 'Non-DrWise'
+      'bg-warning text-dark'   # Orange/Yellow for Non-DrWise
+    else
+      'bg-secondary text-white' # Gray for Unknown
+    end
+  end
+
   def self.all_notifications_due_today
     notifications = []
 

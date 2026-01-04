@@ -102,33 +102,40 @@ class Lead < ApplicationRecord
       tsearch: { prefix: true, any_word: true }
     }
 
-  # Stage transition methods
+  # Stage transition methods - Made more flexible to allow stage jumps
   def can_move_to_consultation?
-    lead_generated?
+    # Allow from lead_generated or any early stage
+    lead_generated? || !cannot_change_stage?
   end
 
   def can_move_to_one_on_one?
-    consultation_scheduled?
+    # Allow from consultation_scheduled or any non-final stage
+    consultation_scheduled? || (!cannot_change_stage? && !in_follow_up_cycle?)
   end
 
   def can_move_to_follow_up?
-    one_on_one?
+    # Allow from one_on_one, consultation_scheduled, or any non-final stage
+    one_on_one? || consultation_scheduled? || (!cannot_change_stage? && !in_follow_up_cycle?)
   end
 
   def can_mark_follow_up_successful?
-    follow_up? || re_follow_up?
+    # Allow from follow_up, re_follow_up, or any stage that makes sense
+    follow_up? || re_follow_up? || consultation_scheduled? || one_on_one? || (!cannot_change_stage?)
   end
 
   def can_mark_follow_up_unsuccessful?
-    follow_up? || re_follow_up?
+    # Allow from follow_up, re_follow_up, or any stage that makes sense
+    follow_up? || re_follow_up? || consultation_scheduled? || one_on_one? || (!cannot_change_stage?)
   end
 
   def can_mark_not_interested?
-    follow_up? || re_follow_up?
+    # Allow from any stage except final stages
+    !cannot_change_stage?
   end
 
   def can_re_follow_up?
-    follow_up_unsuccessful?
+    # Allow from follow_up_unsuccessful or any follow-up stage
+    follow_up_unsuccessful? || follow_up? || (!cannot_change_stage?)
   end
 
   def can_convert_to_customer?
@@ -141,11 +148,12 @@ class Lead < ApplicationRecord
   end
 
   def can_close_lead?
-    not_interested? || (converted? && policy_created?)
+    not_interested? || (converted? && policy_created?) || (!cannot_change_stage?)
   end
 
   def cannot_change_stage?
-    converted? || policy_created? || lead_closed?
+    # Only prevent changes if lead is in truly final states
+    policy_created? || lead_closed?
   end
 
   # Stage transition methods with validation

@@ -241,51 +241,76 @@
 
                     <!-- Lead Stage Conversion Dropdown -->
                     <div class="dropdown">
-                      <button class="btn btn-sm btn-outline-warning dropdown-toggle stage-convert-btn" data-bs-toggle="dropdown" title="Lead Stage Progression">
-                        <i class="bi bi-arrow-repeat me-1"></i>Convert
+                      <button class="btn btn-sm btn-outline-warning dropdown-toggle stage-convert-btn" data-bs-toggle="dropdown" title="Convert to Stage">
+                        <i class="bi bi-arrow-repeat me-1"></i>Convert Stage
                       </button>
-                      <ul class="dropdown-menu stage-conversion-menu">
+                      <ul class="dropdown-menu stage-conversion-menu" style="max-height: 450px; overflow-y: auto;">
                         <li class="dropdown-header">
-                          <i class="bi bi-funnel me-1"></i>Lead Schedule Stages
+                          <i class="bi bi-funnel me-1"></i>Lead Stage Conversion
                         </li>
                         <li><hr class="dropdown-divider"></li>
 
                         <!-- Current Stage Display -->
-                        <li class="dropdown-item-text current-stage-display">
-                          <small class="text-muted">Current Stage:</small><br>
-                          <span class="badge bg-primary"><%= lead.current_stage&.humanize || 'Unknown' %></span>
+                        <li class="dropdown-item-text current-stage-display bg-light px-3 py-2">
+                          <small class="text-muted d-block">Current Stage:</small>
+                          <span class="badge bg-primary mt-1"><%= lead.current_stage&.humanize || 'Unknown' %></span>
                         </li>
                         <li><hr class="dropdown-divider"></li>
+                        <li class="dropdown-header">Convert to:</li>
 
-                        <!-- Available Stage Transitions -->
-                        <% available_stages = [
-                             { key: 'lead_generated', name: '🟢 Lead Generated', color: 'success' },
-                             { key: 'consultation_scheduled', name: '📅 Consultation Scheduled', color: 'info' },
-                             { key: 'one_on_one', name: '🤝 One-on-One Discussion', color: 'warning' },
-                             { key: 'follow_up', name: '🔁 Follow-Up', color: 'secondary' },
-                             { key: 'follow_up_successful', name: '✅ Follow-Up Successful', color: 'success' },
-                             { key: 'follow_up_unsuccessful', name: '❌ Follow-Up Unsuccessful', color: 'danger' },
-                             { key: 're_follow_up', name: '🔄 Re-Follow Up', color: 'warning' },
-                             { key: 'not_interested', name: '🚫 Not Interested', color: 'dark' },
-                             { key: 'converted', name: '👤 Converted', color: 'success' },
-                             { key: 'policy_created', name: '📄 Policy Created', color: 'primary' },
-                             { key: 'lead_closed', name: '📁 Lead Closed', color: 'secondary' }
+                        <!-- All Available Stages -->
+                        <% all_stages = [
+                             { key: 'lead_generated', name: 'Lead Generated', icon: '🟢', color: 'secondary', desc: 'Initial stage' },
+                             { key: 'consultation_scheduled', name: 'Consultation Scheduled', icon: '📅', color: 'info', desc: 'Meeting scheduled' },
+                             { key: 'one_on_one', name: 'One-on-One', icon: '🤝', color: 'warning', desc: 'Personal meeting' },
+                             { key: 'follow_up', name: 'Follow-Up', icon: '🔁', color: 'primary', desc: 'Following up' },
+                             { key: 'follow_up_successful', name: 'Follow-Up Successful', icon: '✅', color: 'success', desc: 'Successful follow-up' },
+                             { key: 'follow_up_unsuccessful', name: 'Follow-Up Unsuccessful', icon: '❌', color: 'danger', desc: 'Unsuccessful follow-up' },
+                             { key: 'not_interested', name: 'Not Interested', icon: '🚫', color: 'dark', desc: 'Lead not interested' },
+                             { key: 'converted', name: 'Converted', icon: '👤', color: 'success', desc: 'Converted to customer' },
+                             { key: 're_follow_up', name: 'Re-Follow Up', icon: '🔄', color: 'warning', desc: 'Re-attempting follow-up' },
+                             { key: 'policy_created', name: 'Policy Created', icon: '📄', color: 'primary', desc: 'Policy created' },
+                             { key: 'lead_closed', name: 'Lead Closed', icon: '📁', color: 'secondary', desc: 'Lead closed' }
                            ] %>
 
-                        <% available_stages.each do |stage| %>
-                          <% unless stage[:key] == lead.current_stage %>
+                        <% all_stages.each_with_index do |stage, index| %>
+                          <% if stage[:key] == lead.current_stage %>
+                            <!-- Current stage - disabled -->
+                            <li>
+                              <button class="dropdown-item disabled" style="opacity: 0.6;">
+                                <div class="d-flex align-items-center">
+                                  <span style="font-size: 1.2rem; width: 30px;"><%= stage[:icon] %></span>
+                                  <div class="ms-2">
+                                    <div class="fw-medium" style="font-size: 0.9rem;"><%= stage[:name] %> <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">CURRENT</span></div>
+                                    <small class="text-muted d-block" style="font-size: 0.75rem;"><%= stage[:desc] %></small>
+                                  </div>
+                                </div>
+                              </button>
+                            </li>
+                          <% else %>
+                            <!-- Other stages - clickable -->
                             <li>
                               <%= form_with url: convert_stage_admin_lead_path(lead, stage: stage[:key]), method: :patch, local: true,
                                   style: "margin: 0; padding: 0; display: contents;",
-                                  onsubmit: "return confirm('Convert lead to #{stage[:name]} stage?')" do |f| %>
+                                  onsubmit: "return confirm('Convert lead to \"#{stage[:name]}\" stage?')" do |f| %>
                                 <button type="submit" class="dropdown-item border-0 bg-transparent w-100 text-start stage-option"
-                                        style="cursor: pointer; padding: 0.375rem 1rem;"
+                                        style="cursor: pointer;"
                                         data-stage="<%= stage[:key] %>">
-                                  <span class="badge bg-<%= stage[:color] %> me-2" style="min-width: 8px; font-size: 0.7rem;"></span>
-                                  <span style="font-size: 0.85rem;"><%= stage[:name] %></span>
+                                  <div class="d-flex align-items-center">
+                                    <span style="font-size: 1.2rem; width: 30px;"><%= stage[:icon] %></span>
+                                    <div class="ms-2">
+                                      <div class="fw-medium" style="font-size: 0.9rem;">
+                                        <%= "#{index + 1}. #{stage[:name]}" %>
+                                      </div>
+                                      <small class="text-muted d-block" style="font-size: 0.75rem;"><%= stage[:desc] %></small>
+                                    </div>
+                                  </div>
                                 </button>
                               <% end %>
                             </li>
+                          <% end %>
+                          <% if index < all_stages.length - 1 && [2, 6, 8].include?(index) %>
+                            <li><hr class="dropdown-divider my-1"></li>
                           <% end %>
                         <% end %>
 
@@ -397,6 +422,36 @@
   background: linear-gradient(135deg, #218838 0%, #1a9f7f 100%) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4) !important;
+  color: white !important;
+}
+
+/* Stage Conversion Dropdown Styling */
+.stage-conversion-menu {
+  width: 280px !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+.stage-option:hover {
+  background-color: rgba(13, 110, 253, 0.05) !important;
+  border-left: 3px solid #0d6efd;
+  transform: translateX(2px);
+  transition: all 0.2s ease;
+}
+
+.stage-option:active {
+  background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+.stage-convert-btn {
+  border-color: #ffc107 !important;
+  color: #856404 !important;
+  font-weight: 500;
+}
+
+.stage-convert-btn:hover {
+  background-color: #ffc107 !important;
+  border-color: #ffc107 !important;
   color: white !important;
 }
 

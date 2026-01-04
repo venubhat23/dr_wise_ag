@@ -230,29 +230,9 @@
         </table>
       </div>
 
-      <!-- Pagination -->
+      <!-- Conditional Pagination -->
       <div class="card-footer bg-transparent border-0">
-        <div class="d-flex justify-content-between align-items-center flex-wrap">
-          <small class="text-muted mb-2 mb-md-0">
-            <% if defined?(@total_filtered_count) && @total_filtered_count.present? %>
-              Showing <%= @sub_agents.current_page == 1 ? 1 : ((@sub_agents.current_page - 1) * @sub_agents.limit_value + 1) %>
-              to <%= [@sub_agents.current_page * @sub_agents.limit_value, @total_filtered_count].min %>
-              of <%= number_with_delimiter(@total_filtered_count) %> sub agents
-            <% elsif @sub_agents.respond_to?(:total_count) %>
-              Showing <%= @sub_agents.current_page == 1 ? 1 : ((@sub_agents.current_page - 1) * @sub_agents.limit_value + 1) %>
-              to <%= [@sub_agents.current_page * @sub_agents.limit_value, @sub_agents.total_count].min %>
-              of <%= number_with_delimiter(@sub_agents.total_count) %> sub agents
-            <% else %>
-              Showing <%= @sub_agents.count %> sub agents
-            <% end %>
-          </small>
-
-          <% if @sub_agents.respond_to?(:total_pages) && @sub_agents.total_pages > 1 %>
-            <div class="pagination-wrapper">
-              <%= paginate @sub_agents %>
-            </div>
-          <% end %>
-        </div>
+        <%= render 'shared/pagination', records: @sub_agents %>
       </div>
     <% else %>
       <!-- Empty State -->

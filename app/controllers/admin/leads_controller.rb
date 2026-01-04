@@ -484,10 +484,14 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # PATCH /admin/leads/1/convert_stage
   def convert_stage
-    new_stage = params[:new_stage]
+    new_stage = params[:stage] || params[:new_stage]
+
+    Rails.logger.info "convert_stage called with params: #{params.inspect}"
+    Rails.logger.info "new_stage: #{new_stage}, current_stage: #{@lead.current_stage}"
 
     # Validate that the stage exists in our enum
     unless Lead.current_stages.key?(new_stage)
+      Rails.logger.error "Invalid stage: #{new_stage}. Valid stages: #{Lead.current_stages.keys}"
       respond_to do |format|
         format.html { redirect_to admin_leads_path, alert: 'Invalid stage.' }
         format.json { render json: { success: false, message: 'Invalid stage.' } }
@@ -505,12 +509,15 @@ class Admin::LeadsController < Admin::ApplicationController
     end
 
     # Use the appropriate transition method based on the new stage
+    old_stage = @lead.current_stage
     success = case new_stage
     when 'lead_generated'
       @lead.update!(current_stage: 'lead_generated', stage_updated_at: Time.current)
       true
     when 'consultation_scheduled'
-      @lead.move_to_consultation_scheduled!
+      result = @lead.move_to_consultation_scheduled!
+      Rails.logger.info "Move to consultation_scheduled result: #{result}, new current_stage: #{@lead.reload.current_stage}"
+      result
     when 'one_on_one'
       @lead.move_to_one_on_one!
     when 'follow_up'
@@ -534,8 +541,11 @@ class Admin::LeadsController < Admin::ApplicationController
     when 'lead_closed'
       @lead.close_lead!
     else
+      Rails.logger.error "Unknown stage: #{new_stage}"
       false
     end
+
+    Rails.logger.info "Stage transition: #{old_stage} → #{new_stage}, success: #{success}"
 
     if success
       stage_display = @lead.stage_display_name

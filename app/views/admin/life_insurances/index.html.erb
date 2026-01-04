@@ -2,22 +2,8 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h2 class="mb-1">Life Insurance Policies</h2>
-    <p class="text-muted mb-0">Manage life insurance policies and view policy details</p>
   </div>
   <div class="d-flex gap-2">
-    <button id="toggleSourceColumn" class="btn btn-outline-info" type="button" title="Toggle Source Column">
-      <i class="bi bi-eye-slash me-1"></i>
-      <span id="toggleText">Hide Source</span>
-    </button>
-    <div class="dropdown">
-      <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-        <i class="bi bi-download me-1"></i>
-        Export
-      </button>
-      <ul class="dropdown-menu">
-        <li><%= link_to "Export as CSV", admin_life_insurances_path(format: :csv), class: "dropdown-item" %></li>
-      </ul>
-    </div>
     <%= link_to new_admin_life_insurance_path, class: "btn btn-primary" do %>
       <i class="bi bi-plus-lg me-1"></i>
       Add New Life Policy
@@ -33,7 +19,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Life Policies</h6>
-            <h3 class="mb-0 text-primary" data-stat="total-policies"><%= @life_insurances.count %></h3>
+            <h3 class="mb-0 text-primary" data-stat="total-policies"><%= number_with_delimiter(@total_policies_count) %></h3>
           </div>
           <div class="bg-primary bg-opacity-10 rounded p-3">
             <i class="bi bi-heart text-primary fs-4"></i>
@@ -49,7 +35,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Premium</h6>
-            <h3 class="mb-0 text-success" data-stat="total-premium">₹<%= @life_insurances.sum(&:total_premium).to_i %></h3>
+            <h3 class="mb-0 text-success" data-stat="total-premium">₹<%= number_with_delimiter(@total_premium_amount.to_i) %></h3>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
             <i class="bi bi-currency-rupee text-success fs-4"></i>
@@ -65,7 +51,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Coverage</h6>
-            <h3 class="mb-0 text-info" data-stat="total-coverage">₹<%= @life_insurances.sum(&:sum_insured).to_i %></h3>
+            <h3 class="mb-0 text-info" data-stat="total-coverage">₹<%= number_with_delimiter(@total_coverage_amount.to_i) %></h3>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">
             <i class="bi bi-shield-check text-info fs-4"></i>
@@ -81,7 +67,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Covered Lives</h6>
-            <h3 class="mb-0 text-warning" data-stat="covered-lives"><%= @life_insurances.joins(:customer).distinct.count(:customer_id) %></h3>
+            <h3 class="mb-0 text-warning" data-stat="covered-lives"><%= number_with_delimiter(@covered_lives_count) %></h3>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
             <i class="bi bi-people text-warning fs-4"></i>
@@ -92,33 +78,7 @@
   </div>
 </div>
 
-<!-- Policy Source Tabs -->
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-body p-0">
-    <nav class="nav nav-tabs border-0" id="policyTabs" role="tablist">
-      <a href="#" class="nav-link #{'active' if params[:tab] == 'admin_added' || params[:tab].blank?}"
-         data-tab="admin_added">
-        <i class="bi bi-shield-check me-2"></i>
-        Admin Added
-        <span class="badge bg-primary ms-2" data-count="admin_added"><%= @tab_counts[:admin_added] %></span>
-      </a>
-
-      <a href="#" class="nav-link #{'active' if params[:tab] == 'customer_added'}"
-         data-tab="customer_added">
-        <i class="bi bi-person-check me-2"></i>
-        Customer Added
-        <span class="badge bg-info ms-2" data-count="customer_added"><%= @tab_counts[:customer_added] %></span>
-      </a>
-
-      <a href="#" class="nav-link #{'active' if params[:tab] == 'agent_added'}"
-         data-tab="agent_added">
-        <i class="bi bi-person-badge me-2"></i>
-        Agent Added
-        <span class="badge bg-success ms-2" data-count="agent_added"><%= @tab_counts[:agent_added] %></span>
-      </a>
-    </nav>
-  </div>
-</div>
+<!-- Removed tabs - showing all policies -->
 
 <!-- Search and Filters -->
 <div class="card border-0 shadow-sm mb-4">
@@ -165,7 +125,7 @@
               <th class="border-0">Policy</th>
               <th class="border-0">Customer</th>
               <th class="border-0">Company</th>
-              <th class="border-0 source-column">Source</th>
+              <th class="border-0">Source & Type</th>
               <th class="border-0">Coverage</th>
               <th class="border-0">Premium</th>
               <th class="border-0">Status</th>
@@ -174,7 +134,7 @@
           </thead>
           <tbody>
             <% @life_insurances.each do |policy| %>
-              <tr>
+              <tr class="<%= 'table-warning bg-warning-subtle' if policy.non_drwise_policy? %>">
                 <td>
                   <div>
                     <h6 class="mb-1"><%= policy.policy_number %></h6>
@@ -193,24 +153,42 @@
                     <small class="text-muted">Life Insurance</small>
                   </div>
                 </td>
-                <td class="source-column">
-                  <% if policy.is_customer_added? %>
-                    <span class="badge bg-info-subtle text-info">
-                      <i class="bi bi-person-check me-1"></i>Customer
-                    </span>
-                  <% elsif policy.is_agent_added? %>
-                    <span class="badge bg-success-subtle text-success">
-                      <i class="bi bi-person-badge me-1"></i>Agent
-                    </span>
-                  <% elsif policy.is_admin_added? %>
-                    <span class="badge bg-primary-subtle text-primary">
-                      <i class="bi bi-shield-check me-1"></i>Admin
-                    </span>
-                  <% else %>
-                    <span class="badge bg-secondary-subtle text-secondary">
-                      <i class="bi bi-question-circle me-1"></i>Unknown
-                    </span>
-                  <% end %>
+                <td>
+                  <div class="d-flex flex-column gap-1">
+                    <!-- Source Badge -->
+                    <div>
+                      <% if policy.is_customer_added? %>
+                        <span class="badge bg-info-subtle text-info">
+                          <i class="bi bi-person-check me-1"></i>Customer
+                        </span>
+                      <% elsif policy.is_agent_added? %>
+                        <span class="badge bg-success-subtle text-success">
+                          <i class="bi bi-person-badge me-1"></i>Agent
+                        </span>
+                      <% elsif policy.is_admin_added? %>
+                        <span class="badge bg-primary-subtle text-primary">
+                          <i class="bi bi-shield-check me-1"></i>Admin
+                        </span>
+                      <% else %>
+                        <span class="badge bg-secondary-subtle text-secondary">
+                          <i class="bi bi-question-circle me-1"></i>Unknown
+                        </span>
+                      <% end %>
+                    </div>
+                    <!-- Type Badge -->
+                    <div>
+                      <span class="badge <%= policy.policy_classification_badge_class %>">
+                        <% if policy.drwise_policy? %>
+                          <i class="bi bi-check-circle me-1"></i>
+                        <% elsif policy.non_drwise_policy? %>
+                          <i class="bi bi-x-circle me-1"></i>
+                        <% else %>
+                          <i class="bi bi-question-circle me-1"></i>
+                        <% end %>
+                        <%= policy.policy_classification %>
+                      </span>
+                    </div>
+                  </div>
                 </td>
                 <td>
                   <div>
@@ -327,128 +305,29 @@
   padding: 0.4rem 0.6rem;
 }
 
-.source-column {
-  transition: all 0.3s ease;
+/* Source and Type columns merged - no individual column styling needed */
+
+/* Row highlighting for Non-DrWise policies only */
+.table-warning.bg-warning-subtle {
+  background-color: #fff4e6 !important;
+  border-left: 4px solid #fd7e14;
+  transition: all 0.2s ease;
 }
 
-.source-column.d-none {
-  display: none !important;
+.table-warning.bg-warning-subtle:hover {
+  background-color: #fff0d9 !important;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(253, 126, 20, 0.15);
+}
+
+/* Enhanced badge visibility on colored rows */
+.table-warning.bg-warning-subtle .badge {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Toggle Source Column functionality
-  const toggleButton = document.getElementById('toggleSourceColumn');
-  const toggleText = document.getElementById('toggleText');
-  const sourceColumns = document.querySelectorAll('.source-column');
-  let isSourceVisible = true;
-
-  toggleButton.addEventListener('click', function() {
-    isSourceVisible = !isSourceVisible;
-
-    sourceColumns.forEach(column => {
-      if (isSourceVisible) {
-        column.classList.remove('d-none');
-      } else {
-        column.classList.add('d-none');
-      }
-    });
-
-    // Update button text and icon
-    const icon = toggleButton.querySelector('i');
-    if (isSourceVisible) {
-      toggleText.textContent = 'Hide Source';
-      icon.className = 'bi bi-eye-slash me-1';
-      toggleButton.classList.remove('btn-outline-success');
-      toggleButton.classList.add('btn-outline-info');
-    } else {
-      toggleText.textContent = 'Show Source';
-      icon.className = 'bi bi-eye me-1';
-      toggleButton.classList.remove('btn-outline-info');
-      toggleButton.classList.add('btn-outline-success');
-    }
-  });
-
-  // Dynamic Tab Filtering functionality
-  const tabLinks = document.querySelectorAll('[data-tab]');
-
-  tabLinks.forEach(link => {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-
-      const selectedTab = this.getAttribute('data-tab');
-
-      // Update active tab
-      tabLinks.forEach(tab => tab.classList.remove('active'));
-      this.classList.add('active');
-
-      // Fetch and update data
-      updateTableData(selectedTab);
-    });
-  });
-
-  function updateTableData(tab) {
-    // Show loading state
-    const tableBody = document.querySelector('tbody');
-    const statsElements = {
-      policies: document.querySelector('[data-stat="total-policies"]'),
-      premium: document.querySelector('[data-stat="total-premium"]'),
-      coverage: document.querySelector('[data-stat="total-coverage"]'),
-      lives: document.querySelector('[data-stat="covered-lives"]')
-    };
-
-    // Add loading indicators
-    if (tableBody) {
-      tableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4"><i class="bi bi-spinner-border"></i> Loading...</td></tr>';
-    }
-
-    // Construct URL with current search parameters, reset page to 1 for new tab
-    const url = new URL(window.location);
-    url.searchParams.set('tab', tab);
-    url.searchParams.set('page', '1'); // Reset to first page when changing tabs
-    url.searchParams.set('format', 'json');
-
-    fetch(url.toString(), {
-      headers: {
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      // Update statistics with proper formatting
-      if (statsElements.policies) statsElements.policies.textContent = data.statistics.total_policies;
-      if (statsElements.premium) statsElements.premium.innerHTML = '₹' + data.statistics.total_premium.toLocaleString();
-      if (statsElements.coverage) statsElements.coverage.innerHTML = '₹' + data.statistics.total_coverage.toLocaleString();
-      if (statsElements.lives) statsElements.lives.textContent = data.statistics.covered_lives;
-
-      // Update table content
-      if (tableBody && data.html) {
-        tableBody.innerHTML = data.html;
-      }
-
-      // Update pagination if provided
-      if (data.pagination_html) {
-        const paginationContainer = document.querySelector('.card-footer');
-        if (paginationContainer) {
-          paginationContainer.innerHTML = data.pagination_html;
-        }
-      }
-
-      // Update URL without page reload
-      const newUrl = new URL(window.location);
-      newUrl.searchParams.set('tab', tab);
-      newUrl.searchParams.set('page', '1');
-      newUrl.searchParams.delete('format');
-      window.history.pushState({}, '', newUrl.toString());
-    })
-    .catch(error => {
-      console.error('Error updating data:', error);
-      // Fallback to regular page reload
-      const fallbackUrl = url.toString().replace('&format=json', '').replace('format=json&', '').replace('format=json', '');
-      window.location.href = fallbackUrl;
-    });
-  }
+  // Source and Type columns merged - no toggle functionality needed
 });
 </script>
