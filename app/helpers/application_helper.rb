@@ -18,6 +18,14 @@ module ApplicationHelper
     current_user.has_sidebar_permission?(module_name)
   end
 
+  # Helper method to check if any items in a section are visible
+  def show_sidebar_section?(section_items)
+    return false unless current_user
+    return true if current_user.email == 'admin@insurebook.com'
+
+    section_items.any? { |item| current_user.has_sidebar_permission?(item) }
+  end
+
   def sidebar_item_class(current_path, module_paths = [])
     paths_to_check = [current_path] + module_paths
     paths_to_check.any? { |path| request.path.include?(path) } ? 'active' : ''

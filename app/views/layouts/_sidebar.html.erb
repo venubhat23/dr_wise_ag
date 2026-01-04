@@ -333,6 +333,8 @@
 
   <!-- Navigation Menu -->
   <nav class="sidebar-nav">
+    <!-- Main Menu Section -->
+    <% if show_sidebar_section?(['dashboard', 'customers', 'sub_agents', 'distributors', 'investors']) %>
     <div class="nav-section">
       <div class="nav-section-title">Main Menu</div>
       <ul class="nav-menu">
@@ -365,9 +367,6 @@
             <% end %>
           </li>
         <% end %>
-
-
-        <!-- Agents -->
 
         <!-- Affiliate -->
         <% if show_sidebar_item?('sub_agents') %>
@@ -416,8 +415,10 @@
 
       </ul>
     </div>
+    <% end %>
 
     <!-- Payouts & Commission Section -->
+    <% if show_sidebar_section?(['payouts']) %>
     <div class="nav-section">
       <div class="nav-section-title">Payouts & Commission</div>
       <ul class="nav-menu">
@@ -469,7 +470,10 @@
 
       </ul>
     </div>
+    <% end %>
 
+    <!-- Business Partners Section -->
+    <% if show_sidebar_section?(['brokers', 'agency_codes', 'leads']) %>
     <div class="nav-section">
       <div class="nav-section-title">Business Partners</div>
       <ul class="nav-menu">
@@ -519,7 +523,10 @@
         <% end %>
       </ul>
     </div>
+    <% end %>
 
+    <!-- Insurance Products Section -->
+    <% if show_sidebar_section?(['life_insurance', 'health_insurance', 'motor_insurance', 'other_insurance']) %>
     <div class="nav-section">
       <div class="nav-section-title">Insurance Products</div>
       <ul class="nav-menu">
@@ -584,12 +591,15 @@
         <% end %>
       </ul>
     </div>
+    <% end %>
 
-    <% if show_sidebar_item?('reports') %>
+    <!-- Reports & Analytics Section -->
+    <% if show_sidebar_section?(['reports']) %>
       <div class="nav-section">
         <div class="nav-section-title">Reports & Analytics</div>
         <ul class="nav-menu">
         <!-- Commission Report -->
+        <% if show_sidebar_item?('reports') %>
         <li class="nav-item">
           <%= link_to admin_reports_commission_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/commission')}" do %>
             <div class="nav-icon-modern">
@@ -679,14 +689,17 @@
             <div class="nav-indicator"></div>
           <% end %>
         </li>
+        <% end %>
         </ul>
       </div>
     <% end %>
 
-    <% if show_sidebar_item?('management') %>
+    <!-- Management Section -->
+    <% if show_sidebar_section?(['management']) %>
       <div class="nav-section">
         <div class="nav-section-title">Management</div>
       <ul class="nav-menu">
+        <% if show_sidebar_item?('management') %>
         <!-- Client Requests -->
         <li class="nav-item">
           <%= link_to admin_client_requests_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/client_requests')}" do %>
@@ -771,23 +784,27 @@
     <% end %>
 
     <!-- Invoice Section -->
+    <% if show_sidebar_section?(['invoices']) %>
     <div class="nav-section">
       <div class="nav-section-title">Invoice</div>
       <ul class="nav-menu">
         <!-- Invoices -->
-        <li class="nav-item">
-          <%= link_to admin_invoices_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/invoices')}" do %>
-            <div class="nav-icon-modern">
-              <div class="icon-bg gradient-orange">
-                <i class="bi bi-receipt"></i>
+        <% if show_sidebar_item?('invoices') %>
+          <li class="nav-item">
+            <%= link_to admin_invoices_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/invoices')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-orange">
+                  <i class="bi bi-receipt"></i>
+                </div>
               </div>
-            </div>
-            <span class="nav-text">Invoices</span>
-            <div class="nav-indicator"></div>
-          <% end %>
-        </li>
+              <span class="nav-text">Invoices</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
       </ul>
     </div>
+    <% end %>
 
     <!-- Settings Section -->
     <% if show_sidebar_item?('settings') %>
