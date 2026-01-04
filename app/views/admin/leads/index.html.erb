@@ -141,8 +141,7 @@
           <tr>
             <th class="border-0">Lead Details</th>
             <th class="border-0">Contact Information</th>
-            <th class="border-0">Referred By</th>
-            <th class="border-0">Product Interest</th>
+            <th class="border-0">Referred By / Product Interest</th>
             <th class="border-0">Current Stage</th>
             <th class="border-0">Created Date</th>
             <th class="border-0">Actions</th>
@@ -166,14 +165,15 @@
                   </div>
                 </td>
                 <td>
-                  <span class="badge <%= lead.source_badge_class %>">
-                    <%= lead.referred_by.presence || lead.lead_source&.humanize || 'Unknown' %>
-                  </span>
-                </td>
-                <td>
-                  <span class="badge <%= lead.product_badge_class %>">
-                    <%= lead.product_display_name || 'Not specified' %>
-                  </span>
+                  <div>
+                    <span class="badge <%= lead.source_badge_class %> me-1">
+                      <%= lead.referred_by.presence || lead.lead_source&.humanize || 'Unknown' %>
+                    </span>
+                    <br>
+                    <span class="badge <%= lead.product_badge_class %> mt-1">
+                      <%= lead.product_display_name || 'Not specified' %>
+                    </span>
+                  </div>
                 </td>
                 <td>
                   <%= lead.current_stage&.humanize || 'Unknown' %>
@@ -234,7 +234,6 @@
                              { key: 'follow_up_successful', name: 'Follow-Up Successful', icon: '✅', color: 'success', desc: 'Successful follow-up' },
                              { key: 'follow_up_unsuccessful', name: 'Follow-Up Unsuccessful', icon: '❌', color: 'danger', desc: 'Unsuccessful follow-up' },
                              { key: 'not_interested', name: 'Not Interested', icon: '🚫', color: 'dark', desc: 'Lead not interested' },
-                             { key: 'converted', name: 'Converted', icon: '👤', color: 'success', desc: 'Converted to customer' },
                              { key: 're_follow_up', name: 'Re-Follow Up', icon: '🔄', color: 'warning', desc: 'Re-attempting follow-up' },
                              { key: 'policy_created', name: 'Policy Created', icon: '📄', color: 'primary', desc: 'Policy created' },
                              { key: 'lead_closed', name: 'Lead Closed', icon: '📁', color: 'secondary', desc: 'Lead closed' }
@@ -283,16 +282,6 @@
 
                         <li><hr class="dropdown-divider"></li>
                         <li class="dropdown-header">Quick Actions</li>
-                        <li>
-                          <a href="#" class="dropdown-item" onclick="openEditModal('<%= lead.id %>', '<%= j lead.name %>', '<%= j lead.contact_number %>', '<%= j lead.email %>', '<%= j lead.address %>', '<%= j lead.city %>', '<%= j lead.state %>')">
-                            <i class="bi bi-pencil me-2"></i>Edit Lead Details
-                          </a>
-                        </li>
-                        <li>
-                          <a href="#" class="dropdown-item" onclick="showLeadModal(<%= lead.id %>)">
-                            <i class="bi bi-info-circle me-2"></i>View Full Details
-                          </a>
-                        </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
                           <%= link_to "#",
@@ -313,7 +302,7 @@
             <% end %>
           <% else %>
             <tr>
-              <td colspan="8" class="text-center py-5">
+              <td colspan="7" class="text-center py-5">
                 <div class="text-muted">
                   <i class="bi bi-funnel fs-1 mb-3 d-block"></i>
                   <h5>No leads found</h5>

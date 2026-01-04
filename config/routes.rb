@@ -143,7 +143,7 @@ Rails.application.routes.draw do
       end
     end
 
-    # Sub Agent management
+    # Sub Agent management (legacy)
     resources :sub_agents do
       member do
         patch :toggle_status
@@ -153,8 +153,25 @@ Rails.application.routes.draw do
       resources :sub_agent_documents, except: [:show, :index]
     end
 
-    # Distributor management
+    # Affiliate management (new naming)
+    resources :affiliates, controller: 'affiliates' do
+      member do
+        patch :toggle_status
+        get :ambassador
+        get :documents
+      end
+      resources :affiliate_documents, except: [:show, :index]
+    end
+
+    # Distributor management (legacy)
     resources :distributors do
+      member do
+        patch :toggle_status
+      end
+    end
+
+    # Ambassador management (new naming)
+    resources :ambassadors, controller: 'ambassadors' do
       member do
         patch :toggle_status
       end

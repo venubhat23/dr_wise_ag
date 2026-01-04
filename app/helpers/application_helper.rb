@@ -414,4 +414,31 @@ module ApplicationHelper
     else 'btn-outline-secondary'
     end
   end
+
+  # Terminology mapping helpers for new naming convention
+  def display_term(old_term)
+    terminology_map = {
+      'Sub Agent' => 'Affiliate',
+      'sub_agent' => 'affiliate',
+      'SubAgent' => 'Affiliate',
+      'sub_agents' => 'affiliates',
+      'Sub Agents' => 'Affiliates',
+      'Distributor' => 'Ambassador',
+      'distributor' => 'ambassador',
+      'distributors' => 'ambassadors',
+      'Distributors' => 'Ambassadors'
+    }
+    terminology_map[old_term] || old_term
+  end
+
+  def human_readable_model_name(model_name)
+    case model_name.to_s.downcase
+    when 'subagent', 'sub_agent'
+      'Affiliate'
+    when 'distributor'
+      'Ambassador'
+    else
+      model_name.to_s.humanize
+    end
+  end
 end

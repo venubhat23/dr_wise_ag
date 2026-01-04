@@ -1,34 +1,19 @@
-class SubAgent < ApplicationRecord
+class Ambassador < ApplicationRecord
   include PgSearch::Model
 
-  # Password authentication
-  has_secure_password
-
-  # Create alias for backward compatibility - use Affiliate instead
-  def self.inherited(subclass)
-    super
-    if subclass.name == 'Affiliate'
-      # Don't create circular inheritance
-      return
-    end
-  end
-
-  # Store plain password for display purposes
-  attr_accessor :store_plain_password
-  before_save :store_password_if_changed
+  # Map to the distributors table
+  self.table_name = 'distributors'
 
   # Associations
-  belongs_to :role
-  has_many :sub_agent_documents, dependent: :destroy
+  has_many :ambassador_documents, class_name: 'DistributorDocument', foreign_key: 'distributor_id', dependent: :destroy
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
-  has_one :distributor_assignment, dependent: :destroy
-  has_one :assigned_distributor, through: :distributor_assignment, source: :distributor
-  belongs_to :distributor, optional: true
+  has_many :ambassador_assignments, class_name: 'DistributorAssignment', foreign_key: 'distributor_id', dependent: :destroy
+  has_many :assigned_affiliates, through: :ambassador_assignments, source: :sub_agent, class_name: 'Affiliate'
+  has_many :affiliates, class_name: 'Affiliate', foreign_key: 'distributor_id', dependent: :nullify
   has_one_attached :upload_main_document
-  has_many :customers, foreign_key: 'sub_agent_id'
 
   # Nested attributes for documents
-  accepts_nested_attributes_for :sub_agent_documents, allow_destroy: true, reject_if: :all_blank
+  accepts_nested_attributes_for :ambassador_documents, allow_destroy: true, reject_if: :all_blank
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations
@@ -39,6 +24,9 @@ class SubAgent < ApplicationRecord
   validates :role_id, presence: true
   validates :gender, inclusion: { in: ['Male', 'Female', 'Other'] }, allow_blank: true
   validates :account_type, inclusion: { in: ['Savings', 'Current', 'Salary'] }, allow_blank: true
+
+  # Default values
+  before_validation :set_default_role_id, on: :create
 
   # Enums
   enum :status, { active: 0, inactive: 1 }
@@ -67,22 +55,9 @@ class SubAgent < ApplicationRecord
     email.presence || "N/A"
   end
 
-  def age
-    if birth_date.present?
-      age = Date.current.year - birth_date.year
-      age -= 1 if Date.current < birth_date + age.years
-      age
-    else
-      nil
-    end
-  end
-
   private
 
-  def store_password_if_changed
-    if password.present? && (password_digest_changed? || new_record?)
-      self.plain_password = password
-      self.original_password = password if new_record?
-    end
+  def set_default_role_id
+    self.role_id ||= 'ambassador'
   end
 end

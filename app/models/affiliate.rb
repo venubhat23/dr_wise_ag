@@ -1,17 +1,11 @@
-class SubAgent < ApplicationRecord
+class Affiliate < ApplicationRecord
   include PgSearch::Model
+
+  # Map to the sub_agents table
+  self.table_name = 'sub_agents'
 
   # Password authentication
   has_secure_password
-
-  # Create alias for backward compatibility - use Affiliate instead
-  def self.inherited(subclass)
-    super
-    if subclass.name == 'Affiliate'
-      # Don't create circular inheritance
-      return
-    end
-  end
 
   # Store plain password for display purposes
   attr_accessor :store_plain_password
@@ -19,16 +13,16 @@ class SubAgent < ApplicationRecord
 
   # Associations
   belongs_to :role
-  has_many :sub_agent_documents, dependent: :destroy
+  has_many :affiliate_documents, class_name: 'SubAgentDocument', foreign_key: 'sub_agent_id', dependent: :destroy
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
-  has_one :distributor_assignment, dependent: :destroy
-  has_one :assigned_distributor, through: :distributor_assignment, source: :distributor
-  belongs_to :distributor, optional: true
+  has_one :ambassador_assignment, class_name: 'DistributorAssignment', foreign_key: 'sub_agent_id', dependent: :destroy
+  has_one :assigned_ambassador, through: :ambassador_assignment, source: :distributor, class_name: 'Ambassador'
+  belongs_to :ambassador, class_name: 'Ambassador', foreign_key: 'distributor_id', optional: true
   has_one_attached :upload_main_document
   has_many :customers, foreign_key: 'sub_agent_id'
 
   # Nested attributes for documents
-  accepts_nested_attributes_for :sub_agent_documents, allow_destroy: true, reject_if: :all_blank
+  accepts_nested_attributes_for :affiliate_documents, allow_destroy: true, reject_if: :all_blank
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations

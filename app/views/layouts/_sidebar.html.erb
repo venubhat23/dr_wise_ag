@@ -376,7 +376,7 @@
         <!-- Affiliate -->
         <% if show_sidebar_item?('sub_agents') %>
           <li class="nav-item">
-            <%= link_to admin_sub_agents_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/sub_agents')}" do %>
+            <%= link_to admin_affiliates_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/affiliates') || request.path.include?('/admin/sub_agents')}" do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-violet">
                   <i class="bi bi-people"></i>
@@ -388,10 +388,10 @@
           </li>
         <% end %>
 
-        <!-- Distributors -->
+        <!-- Ambassadors -->
         <% if show_sidebar_item?('distributors') %>
           <li class="nav-item">
-            <%= link_to admin_distributors_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/distributors')}" do %>
+            <%= link_to admin_ambassadors_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/ambassadors') || request.path.include?('/admin/distributors')}" do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-indigo">
                   <i class="bi bi-diagram-3"></i>
@@ -443,7 +443,7 @@
           </li>
         <% end %>
 
-        <!-- Distributor/Ambassador Payout -->
+        <!-- Ambassador Payout -->
         <% if show_sidebar_item?('payouts') %>
           <li class="nav-item">
             <%= link_to admin_distributor_payouts_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/distributor_payouts')}" do %>

@@ -1866,7 +1866,13 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   end
 
   def get_company_name_by_id(company_id)
-    # Map company IDs to names - using valid insurance company names
+    # Try to get company name from InsuranceCompany model first
+    if defined?(InsuranceCompany)
+      company = InsuranceCompany.find_by(id: company_id)
+      return company.name if company
+    end
+
+    # Fallback to hardcoded mapping with more companies
     companies = {
       1 => 'ICICI Prudential Life Insurance Co Ltd',
       2 => 'Bajaj Allianz General Insurance Company Limited',
@@ -1875,7 +1881,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       5 => 'Star Health Allied Insurance Co Ltd',
       6 => 'Aditya Birla Health Insurance Co Ltd',
       7 => 'Niva Bupa Health Insurance Co Ltd',
-      8 => 'Tata AIG General Insurance Co Ltd'
+      8 => 'Tata AIG General Insurance Co Ltd',
+      37 => 'Bajaj Allianz General Insurance Company Limited'
     }
     companies[company_id.to_i] || 'ICICI Prudential Life Insurance Co Ltd'
   end
