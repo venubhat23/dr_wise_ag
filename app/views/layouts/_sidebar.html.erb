@@ -8,8 +8,7 @@
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%) !important;
   border-right: 2px solid #e2e8f0 !important;
   z-index: 1040 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
+  overflow: hidden !important;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
   display: flex !important;
   flex-direction: column !important;
@@ -227,6 +226,9 @@
 
 .sidebar-nav {
   padding: 1rem 0 !important;
+  flex: 1 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
 .nav-section {
@@ -276,8 +278,11 @@
 .sidebar-footer {
   margin-top: auto !important;
   padding: 1rem !important;
-  border-top: 1px solid #475569 !important;
+  border-top: 1px solid #e2e8f0 !important;
   position: relative !important;
+  flex-shrink: 0 !important;
+  background: rgba(248, 250, 252, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
 }
 
 .sidebar-footer::before {
@@ -842,17 +847,17 @@
         </ul>
       </div>
     <% end %>
-
-    <!-- Logout Section -->
-    <div class="sidebar-footer">
-      <%= link_to destroy_user_session_path, method: :delete, class: "logout-btn-modern" do %>
-        <div class="nav-icon-modern">
-          <div class="icon-bg gradient-gray">
-            <i class="bi bi-box-arrow-right"></i>
-          </div>
-        </div>
-        <span class="nav-text">Logout</span>
-      <% end %>
-    </div>
   </nav>
+
+  <!-- Logout Section - Moved outside nav to be fixed at bottom -->
+  <div class="sidebar-footer">
+    <%= link_to destroy_user_session_path, method: :delete, class: "logout-btn-modern" do %>
+      <div class="nav-icon-modern">
+        <div class="icon-bg gradient-gray">
+          <i class="bi bi-box-arrow-right"></i>
+        </div>
+      </div>
+      <span class="nav-text">Logout</span>
+    <% end %>
+  </div>
 </div>

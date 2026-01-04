@@ -302,9 +302,39 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
       # Add nominee details for customers
       base_data[:nominees] = get_nominee_details(user)
     when SubAgent
+      # Get city and state names from IDs using the mapped data
+      city_name = nil
+      state_name = nil
+
+      # Simple state mapping (you can expand this based on your state_id mapping)
+      state_mapping = {
+        1 => 'Karnataka',
+        2 => 'Tamil Nadu',
+        3 => 'Maharashtra',
+        4 => 'Gujarat',
+        5 => 'Delhi',
+        6 => 'West Bengal'
+      }
+
+      # Simple city mapping (you can expand this based on your city_id mapping)
+      city_mapping = {
+        1 => 'Bangalore',
+        2 => 'Mumbai',
+        3 => 'Chennai',
+        4 => 'Delhi',
+        5 => 'Kolkata',
+        6 => 'Pune'
+      }
+
+      city_name = city_mapping[user.city_id] if user.city_id.present?
+      state_name = state_mapping[user.state_id] if user.state_id.present?
+
       base_data.merge!({
         role_id: user.role_id,
         pan: user.pan_no,
+        gst: user.gst_no,
+        city: city_name,
+        state: state_name,
         account_type: user.account_type,
         account_holder_name: user.account_holder_name,
         account_number: user.account_no, # Note: it's account_no not account_number in the model
@@ -395,7 +425,7 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
     when Customer
       params.permit(base_params + [:pincode, :occupation, :annual_income, :marital_status, :education])
     when SubAgent
-      params.permit(base_params + [:account_type, :account_holder_name, :account_no, :ifsc_code, :bank_name, :upi_id, :company_name])
+      params.permit(base_params + [:gst_no, :account_type, :account_holder_name, :account_no, :ifsc_code, :bank_name, :upi_id, :company_name])
     when User
       params.permit(base_params + [:occupation, :annual_income])
     else

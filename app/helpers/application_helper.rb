@@ -21,8 +21,11 @@ module ApplicationHelper
   # Helper method to check if any items in a section are visible
   def show_sidebar_section?(section_items)
     return false unless current_user
+
+    # Special case: admin@insurebook.com gets full access
     return true if current_user.email == 'admin@insurebook.com'
 
+    # For other users, check if they have any permission for items in this section
     section_items.any? { |item| current_user.has_sidebar_permission?(item) }
   end
 

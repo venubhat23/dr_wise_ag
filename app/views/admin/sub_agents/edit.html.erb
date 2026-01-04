@@ -88,22 +88,16 @@
         <div class="col-md-4">
           <%= form.label :state_id, "State", class: "form-label" %>
           <%= form.select :state_id,
-              options_for_select([
-                ['Karnataka', 1], ['Tamil Nadu', 2], ['Maharashtra', 3],
-                ['Gujarat', 4], ['Delhi', 5], ['West Bengal', 6]
-              ], @sub_agent.state_id),
+              options_for_select(LocationData.states_for_select, @sub_agent.state_id),
               { prompt: 'Select State' },
-              { class: "form-select" } %>
+              { class: "form-select", id: "sub_agent_state" } %>
         </div>
         <div class="col-md-4">
           <%= form.label :city_id, "City", class: "form-label" %>
           <%= form.select :city_id,
-              options_for_select([
-                ['Bangalore', 1], ['Mumbai', 2], ['Chennai', 3],
-                ['Delhi', 4], ['Kolkata', 5], ['Pune', 6]
-              ], @sub_agent.city_id),
-              { prompt: 'Select City' },
-              { class: "form-select" } %>
+              options_for_select([], @sub_agent.city_id),
+              { prompt: 'Select State First' },
+              { class: "form-select", id: "sub_agent_city" } %>
         </div>
         <div class="col-md-4">
           <%= form.label :gender, "Gender", class: "form-label" %>
@@ -446,8 +440,41 @@
 }
 </style>
 
+<!-- Include Location Data and Form Enhancements -->
+<script>
+<%= File.read(Rails.root.join('app/assets/javascripts/location_data.js')).html_safe %>
+</script>
+<script>
+<%= File.read(Rails.root.join('app/assets/javascripts/form_enhancements.js')).html_safe %>
+</script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Load existing cities for the selected state on page load
+  const stateSelect = document.getElementById('sub_agent_state');
+  const citySelect = document.getElementById('sub_agent_city');
+  const currentCityId = '<%= @sub_agent.city_id %>';
+
+  if (stateSelect && stateSelect.value && LocationData) {
+    const selectedStateId = stateSelect.value;
+    const cities = LocationData.getCitiesByStateId(selectedStateId);
+
+    // Clear existing options
+    citySelect.innerHTML = '<option value="">Select City</option>';
+
+    // Add city options
+    cities.forEach(function(city) {
+      const option = document.createElement('option');
+      option.value = city.id;
+      option.textContent = city.name;
+      if (city.id == currentCityId) {
+        option.selected = true;
+      }
+      citySelect.appendChild(option);
+    });
+
+    citySelect.disabled = false;
+  }
   // Ambassador assignment management
   const distributorSelect = document.getElementById('distributor_select');
   const distributorPreview = document.getElementById('distributor_preview');
