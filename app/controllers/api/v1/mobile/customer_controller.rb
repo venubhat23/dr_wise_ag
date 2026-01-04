@@ -167,15 +167,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         end
 
         # Show installments within appropriate time frame based on payment mode
-        max_days_ahead = case policy.payment_mode.downcase
-                        when 'monthly' then 45.days
-                        when 'quarterly' then 120.days
-                        when 'half-yearly', 'half yearly' then 210.days
-                        when 'yearly' then 400.days
-                        else 60.days
-                        end
-
-        if next_installment && next_installment <= max_days_ahead.from_now
+        # Show installments only within next 2 months (60 days)
+        if next_installment && next_installment <= 60.days.from_now
           days_until_installment = (next_installment - Date.current).to_i
           days_left_from_today = days_until_installment
 
@@ -263,15 +256,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         end
 
         # Show installments within appropriate time frame based on payment mode
-        max_days_ahead = case policy.payment_mode.downcase
-                        when 'monthly' then 45.days
-                        when 'quarterly' then 120.days
-                        when 'half-yearly', 'half yearly' then 210.days
-                        when 'yearly' then 400.days
-                        else 60.days
-                        end
-
-        if next_installment && next_installment <= max_days_ahead.from_now
+        # Show installments only within next 2 months (60 days)
+        if next_installment && next_installment <= 60.days.from_now
           days_until_installment = (next_installment - Date.current).to_i
           days_left_from_today = days_until_installment
 
@@ -368,15 +354,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         end
 
         # Show installments within appropriate time frame based on payment mode
-        max_days_ahead = case payment_mode.downcase
-                        when 'monthly' then 45.days
-                        when 'quarterly' then 120.days
-                        when 'half-yearly', 'half yearly' then 210.days
-                        when 'yearly' then 400.days
-                        else 60.days
-                        end
-
-        if next_installment && next_installment <= max_days_ahead.from_now
+        # Show installments only within next 2 months (60 days)
+        if next_installment && next_installment <= 60.days.from_now
           days_until_installment = (next_installment - Date.current).to_i
           days_left_from_today = days_until_installment
 
@@ -456,10 +435,9 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     # Debug info
     Rails.logger.info "Upcoming renewals for customer ID: #{customer_id}"
 
-    # Health Insurance renewals - show all policies that might need renewal
-    # Include expired policies (up to 6 months ago) and future renewals (up to 3 years)
+    # Health Insurance renewals - show only policies with renewals within next 2 months
     health_policies = HealthInsurance.where(customer_id: customer_id)
-                                    .where('policy_end_date BETWEEN ? AND ?', 6.months.ago, 3.years.from_now)
+                                    .where('policy_end_date BETWEEN ? AND ?', Date.current, 2.months.from_now)
                                     .where.not(policy_end_date: nil)
 
     # If no policies in date range, show ALL policies for this customer (for testing)
@@ -512,10 +490,9 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       }
     end
 
-    # Life Insurance renewals - show all policies that might need renewal
-    # Include expired policies (up to 6 months ago) and future renewals (up to 5 years for life insurance)
+    # Life Insurance renewals - show only policies with renewals within next 2 months
     life_policies = LifeInsurance.where(customer_id: customer_id)
-                                .where('policy_end_date BETWEEN ? AND ?', 6.months.ago, 5.years.from_now)
+                                .where('policy_end_date BETWEEN ? AND ?', Date.current, 2.months.from_now)
                                 .where.not(policy_end_date: nil)
 
     # If no policies in date range, show ALL policies for this customer (for testing)
@@ -592,7 +569,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
           end
 
           policies = model_class.where(customer_id: customer_id)
-                               .where('policy_end_date BETWEEN ? AND ?', 6.months.ago, insurance_config[:date_range].from_now)
+                               .where('policy_end_date BETWEEN ? AND ?', Date.current, 2.months.from_now)
                                .where.not(policy_end_date: nil)
 
           # If no policies in date range, show ALL policies for this customer (for testing)
@@ -812,14 +789,26 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
 
   # POST /api/v1/mobile/customer/add_policy
   def add_policy
+    # Log incoming parameters for debugging
+    Rails.logger.info "=== ADD POLICY API CALL ==="
+    Rails.logger.info "Raw params: #{params.inspect}"
+    Rails.logger.info "Current customer: #{current_customer&.id} - #{current_customer&.display_name}"
+
     policy_params = params.permit(:insurance_type, :plan_name, :sum_insured, :premium_amount,
                                   :"premium amount", :"Renewal date",
                                   :renewal_date, :policy_number, :insurance_company, :remarks,
-                                  :product_through_dr, family_members: [])
+                                  :product_through_dr, :product_through_dr_wise, family_members: [])
+
+    Rails.logger.info "Permitted params: #{policy_params.inspect}"
 
     # Handle the premium amount field with space
     premium_amount = policy_params[:premium_amount] || policy_params[:"premium amount"]
     renewal_date = policy_params[:renewal_date] || policy_params[:"Renewal date"]
+
+    # Handle product_through_dr field variations
+    product_through_dr = policy_params[:product_through_dr] || policy_params[:product_through_dr_wise]
+
+    Rails.logger.info "Processed values - Premium: #{premium_amount}, Renewal: #{renewal_date}, Through DR: #{product_through_dr}"
 
     # Validate required fields
     if policy_params[:insurance_type].blank?
@@ -865,13 +854,13 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         policy_number: policy_params[:policy_number] || "REQ-#{Time.current.to_i}",
         policy_booking_date: Date.current,
         policy_start_date: Date.current,
-        policy_end_date: renewal_date&.to_date || 1.year.from_now,
+        policy_end_date: renewal_date.present? ? Date.parse(renewal_date.to_s) + 1.day : 1.year.from_now,  # Ensure end date is after start date
         payment_mode: 'Yearly',
         sum_insured: policy_params[:sum_insured].to_f,
         net_premium: premium_amount&.to_f || 0,
         total_premium: premium_amount&.to_f || 0,
         gst_percentage: 18,
-        product_through_dr: policy_params[:product_through_dr] || false,
+        product_through_dr: product_through_dr || false,
         is_customer_added: true,
         is_agent_added: false,
         is_admin_added: false
@@ -905,7 +894,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         policy_number: policy_params[:policy_number] || "REQ-#{Time.current.to_i}",
         policy_booking_date: Date.current,
         policy_start_date: Date.current,
-        policy_end_date: renewal_date&.to_date || 20.years.from_now,
+        policy_end_date: 20.years.from_now,  # Life insurance typically has 20+ year terms
         payment_mode: 'Yearly',
         policy_term: 20,
         premium_payment_term: 10,
@@ -913,7 +902,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         net_premium: premium_amount&.to_f || 0,
         total_premium: premium_amount&.to_f || 0,
         first_year_gst_percentage: 18,
-        product_through_dr: policy_params[:product_through_dr] || false,
+        product_through_dr: product_through_dr || false,
         distributor_id: default_distributor&.id,
         investor_id: default_investor&.id,
         is_customer_added: true,
@@ -940,7 +929,15 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       }, status: :unprocessable_entity
     end
 
+    # Log the policy creation attempt for debugging
+    Rails.logger.info "=== POLICY CREATION ATTEMPT ==="
+    Rails.logger.info "Customer ID: #{current_customer&.id}"
+    Rails.logger.info "Customer Name: #{current_customer&.display_name}"
+    Rails.logger.info "Policy Type: #{policy_params[:insurance_type]}"
+    Rails.logger.info "Policy attributes: #{policy.attributes.inspect}"
+
     if policy&.save
+      Rails.logger.info "✅ Policy created successfully with ID: #{policy.id}"
       render json: {
         success: true,
         message: 'Policy request submitted successfully! Our team will review your request and contact you within 24 hours.',
@@ -952,7 +949,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
           sum_insured: policy_params[:sum_insured].to_f,
           premium_amount: premium_amount&.to_f || 0,
           renewal_date: renewal_date,
-          product_through_dr: policy_params[:product_through_dr] || false,
+          product_through_dr: product_through_dr || false,
           status: 'pending_approval',
           family_members: policy_params[:family_members] || [],
           remarks: policy_params[:remarks],
@@ -960,10 +957,21 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         }
       }
     else
+      Rails.logger.error "❌ Policy creation failed"
+      Rails.logger.error "Validation errors: #{policy.errors.full_messages}"
+      Rails.logger.error "Detailed errors: #{policy.errors.as_json}"
       render json: {
         success: false,
         message: 'Failed to submit policy request',
-        errors: policy&.errors&.full_messages || ['Unable to create policy request']
+        errors: policy&.errors&.full_messages || ['Unable to create policy request'],
+        debug_info: Rails.env.development? ? {
+          validation_errors: policy&.errors&.as_json,
+          customer_info: {
+            current_customer_present: current_customer.present?,
+            current_customer_id: current_customer&.id,
+            current_customer_name: current_customer&.display_name
+          }
+        } : nil
       }, status: :unprocessable_entity
     end
   end

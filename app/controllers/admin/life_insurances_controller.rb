@@ -6,11 +6,33 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
   def index
     @life_insurances = LifeInsurance.includes(:customer, :sub_agent, :agency_code, :broker)
 
-    # Show all life insurance policies without tab filtering
+    # Tab-based filtering for DrWise vs Non-DrWise policies
+    @current_tab = params[:tab] || 'drwise'
 
-    # Search functionality
+    case @current_tab
+    when 'drwise'
+      # DrWise policies: Admin added policies (is_admin_added: true AND others false)
+      @life_insurances = @life_insurances.where(
+        is_admin_added: true,
+        is_customer_added: false,
+        is_agent_added: false
+      )
+    when 'non_drwise'
+      # Non-DrWise policies: Customer or Agent added policies
+      @life_insurances = @life_insurances.where(
+        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+        true, false, false, true, false, false
+      )
+    end
+
+    # Search functionality (within current tab)
     if params[:search].present?
       @life_insurances = @life_insurances.search_life_policies(params[:search])
+    end
+
+    # Filter by payment mode
+    if params[:payment_mode].present?
+      @life_insurances = @life_insurances.where(payment_mode: params[:payment_mode])
     end
 
     # Filter by status
@@ -33,11 +55,8 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       @life_insurances = @life_insurances.where(insurance_company_name: params[:company])
     end
 
-    # Calculate real-time statistics for dashboard (before pagination)
-    @total_policies_count = LifeInsurance.count
-    @total_premium_amount = LifeInsurance.sum(:total_premium) || 0
-    @total_coverage_amount = LifeInsurance.sum(:sum_insured) || 0
-    @covered_lives_count = LifeInsurance.joins(:customer).distinct.count('customers.id')
+    # Calculate statistics for current tab (before pagination)
+    calculate_tab_statistics
 
     @life_insurances = paginate_records(@life_insurances.order(created_at: :desc))
   end
@@ -316,5 +335,41 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
   rescue StandardError => e
     # Log error but don't fail the form submission
     Rails.logger.error "Failed to set distributor from affiliate: #{e.message}"
+  end
+
+  def calculate_tab_statistics
+    # Calculate statistics for all DrWise policies
+    drwise_policies = LifeInsurance.where(
+      is_admin_added: true,
+      is_customer_added: false,
+      is_agent_added: false
+    )
+
+    @drwise_count = drwise_policies.count
+    @drwise_premium = drwise_policies.sum(:total_premium) || 0
+    @drwise_coverage = drwise_policies.sum(:sum_insured) || 0
+
+    # Calculate statistics for all Non-DrWise policies
+    non_drwise_policies = LifeInsurance.where(
+      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+      true, false, false, true, false, false
+    )
+
+    @non_drwise_count = non_drwise_policies.count
+    @non_drwise_premium = non_drwise_policies.sum(:total_premium) || 0
+    @non_drwise_coverage = non_drwise_policies.sum(:sum_insured) || 0
+
+    # Set current tab statistics
+    if @current_tab == 'drwise'
+      @total_policies_count = @drwise_count
+      @total_premium_amount = @drwise_premium
+      @total_coverage_amount = @drwise_coverage
+      @covered_lives_count = drwise_policies.joins(:customer).distinct.count('customers.id')
+    else
+      @total_policies_count = @non_drwise_count
+      @total_premium_amount = @non_drwise_premium
+      @total_coverage_amount = @non_drwise_coverage
+      @covered_lives_count = non_drwise_policies.joins(:customer).distinct.count('customers.id')
+    end
   end
 end

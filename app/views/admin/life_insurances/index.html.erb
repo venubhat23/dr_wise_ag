@@ -78,7 +78,31 @@
   </div>
 </div>
 
-<!-- Removed tabs - showing all policies -->
+<!-- Tabs for DrWise vs Non-DrWise -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body p-0">
+    <ul class="nav nav-tabs border-0" role="tablist">
+      <li class="nav-item" role="presentation">
+        <%= link_to admin_life_insurances_path(tab: 'drwise', search: params[:search], status: params[:status], payment_mode: params[:payment_mode]),
+            class: "nav-link #{'active' if @current_tab == 'drwise'}",
+            role: "tab" do %>
+          <i class="bi bi-check-circle me-2"></i>
+          DrWise Policies
+          <span class="badge bg-success ms-2"><%= @drwise_count %></span>
+        <% end %>
+      </li>
+      <li class="nav-item" role="presentation">
+        <%= link_to admin_life_insurances_path(tab: 'non_drwise', search: params[:search], status: params[:status], payment_mode: params[:payment_mode]),
+            class: "nav-link #{'active' if @current_tab == 'non_drwise'}",
+            role: "tab" do %>
+          <i class="bi bi-x-circle me-2"></i>
+          Non-DrWise Policies
+          <span class="badge bg-warning ms-2"><%= @non_drwise_count %></span>
+        <% end %>
+      </li>
+    </ul>
+  </div>
+</div>
 
 <!-- Search and Filters -->
 <div class="card border-0 shadow-sm mb-4">
@@ -114,7 +138,13 @@
 <!-- Life Insurance Policies List -->
 <div class="card border-0 shadow-sm">
   <div class="card-header bg-transparent border-0">
-    <h5 class="mb-0">Life Insurance Policies</h5>
+    <h5 class="mb-0">
+      <% if @current_tab == 'drwise' %>
+        <i class="bi bi-check-circle text-success me-2"></i>DrWise Life Insurance Policies
+      <% else %>
+        <i class="bi bi-x-circle text-warning me-2"></i>Non-DrWise Life Insurance Policies
+      <% end %>
+    </h5>
   </div>
   <div class="card-body p-0">
     <% if @life_insurances.any? %>
@@ -134,7 +164,7 @@
           </thead>
           <tbody>
             <% @life_insurances.each do |policy| %>
-              <tr class="<%= 'table-warning bg-warning-subtle' if policy.non_drwise_policy? %>">
+              <tr>
                 <td>
                   <div>
                     <h6 class="mb-1"><%= policy.policy_number %></h6>
@@ -247,19 +277,34 @@
       <% end %>
     <% else %>
       <div class="text-center py-5">
-        <i class="bi bi-heart fs-1 text-muted d-block mb-3"></i>
-        <h5 class="text-muted">No life insurance policies found</h5>
+        <% if @current_tab == 'drwise' %>
+          <i class="bi bi-check-circle fs-1 text-success d-block mb-3"></i>
+          <h5 class="text-muted">No DrWise life insurance policies found</h5>
+        <% else %>
+          <i class="bi bi-x-circle fs-1 text-warning d-block mb-3"></i>
+          <h5 class="text-muted">No Non-DrWise life insurance policies found</h5>
+        <% end %>
         <p class="text-muted mb-3">
           <% if params[:search].present? || params[:status].present? || params[:payment_mode].present? %>
             Try adjusting your search criteria or
-            <%= link_to "view all policies", admin_life_insurances_path, class: "text-decoration-none" %>.
+            <%= link_to "view all #{@current_tab} policies", admin_life_insurances_path(tab: @current_tab), class: "text-decoration-none" %>.
           <% else %>
-            Start by adding your first life insurance policy to the system.
+            <% if @current_tab == 'drwise' %>
+              DrWise policies are created from the admin panel.
+            <% else %>
+              Non-DrWise policies are added by customers or agents.
+            <% end %>
           <% end %>
         </p>
-        <%= link_to new_admin_life_insurance_path, class: "btn btn-primary" do %>
-          <i class="bi bi-plus-lg me-1"></i>
-          Add First Life Policy
+        <% if @current_tab == 'drwise' %>
+          <%= link_to new_admin_life_insurance_path, class: "btn btn-primary" do %>
+            <i class="bi bi-plus-lg me-1"></i>
+            Add DrWise Life Policy
+          <% end %>
+        <% else %>
+          <div class="text-muted small">
+            Non-DrWise policies are typically added through customer or agent portals.
+          </div>
         <% end %>
       </div>
     <% end %>
@@ -307,23 +352,7 @@
 
 /* Source and Type columns merged - no individual column styling needed */
 
-/* Row highlighting for Non-DrWise policies only */
-.table-warning.bg-warning-subtle {
-  background-color: #fff4e6 !important;
-  border-left: 4px solid #fd7e14;
-  transition: all 0.2s ease;
-}
-
-.table-warning.bg-warning-subtle:hover {
-  background-color: #fff0d9 !important;
-  transform: translateX(2px);
-  box-shadow: 0 2px 8px rgba(253, 126, 20, 0.15);
-}
-
-/* Enhanced badge visibility on colored rows */
-.table-warning.bg-warning-subtle .badge {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
+/* Remove row highlighting - all policies use same styling */
 </style>
 
 <script>

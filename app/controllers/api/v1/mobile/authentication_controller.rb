@@ -712,9 +712,11 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
 
       total_policies = health_count + life_count
 
-      # Simple calculations - will enhance later after migrations are fixed
-      upcoming_installments = 2 # Mock value for testing
-      renewal_policies = 1 # Mock value for testing
+      # Calculate upcoming installments within next 2 months
+      upcoming_installments = count_upcoming_installments(customer)
+
+      # Calculate renewal policies within next 2 months
+      renewal_policies = count_upcoming_renewals(customer)
 
       {
         total_policies: total_policies,
@@ -1070,5 +1072,89 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
     else
       nil
     end
+  end
+
+  def count_upcoming_installments(customer)
+    count = 0
+
+    # Health insurance installments within 2 months
+    health_policies = HealthInsurance.where(customer_id: customer.id)
+    health_policies.each do |policy|
+      next unless policy.policy_end_date.present? && policy.policy_start_date.present?
+      next unless policy.total_premium.present? && policy.total_premium > 0
+      next if ['single', 'one time', 'lump sum'].include?(policy.payment_mode&.downcase)
+
+      autopay_start = policy.respond_to?(:installment_autopay_start_date) && policy.installment_autopay_start_date.present? ?
+                      policy.installment_autopay_start_date : policy.policy_start_date
+
+      if autopay_start.present? && policy.payment_mode.present?
+        next_installment = calculate_next_installment_date(autopay_start, policy.payment_mode)
+        # Find next future installment
+        safety_counter = 0
+        while next_installment && next_installment < Date.current && safety_counter < 10
+          next_installment = calculate_next_installment_date(next_installment, policy.payment_mode)
+          safety_counter += 1
+        end
+
+        if next_installment && next_installment <= 60.days.from_now
+          count += 1
+        end
+      end
+    end
+
+    # Life insurance installments within 2 months
+    life_policies = LifeInsurance.where(customer_id: customer.id)
+    life_policies.each do |policy|
+      next unless policy.policy_end_date.present? && policy.policy_start_date.present?
+      next unless policy.total_premium.present? && policy.total_premium > 0
+      next if ['single', 'one time', 'lump sum'].include?(policy.payment_mode&.downcase)
+
+      autopay_start = policy.respond_to?(:installment_autopay_start_date) && policy.installment_autopay_start_date.present? ?
+                      policy.installment_autopay_start_date : policy.policy_start_date
+
+      if autopay_start.present? && policy.payment_mode.present?
+        next_installment = calculate_next_installment_date(autopay_start, policy.payment_mode)
+        # Find next future installment
+        safety_counter = 0
+        while next_installment && next_installment < Date.current && safety_counter < 10
+          next_installment = calculate_next_installment_date(next_installment, policy.payment_mode)
+          safety_counter += 1
+        end
+
+        if next_installment && next_installment <= 60.days.from_now
+          count += 1
+        end
+      end
+    end
+
+    count
+  end
+
+  def count_upcoming_renewals(customer)
+    count = 0
+
+    # Health insurance renewals within 2 months
+    health_policies = HealthInsurance.where(customer_id: customer.id)
+                                    .where('policy_end_date BETWEEN ? AND ?', Date.current, 2.months.from_now)
+                                    .where.not(policy_end_date: nil)
+    count += health_policies.count
+
+    # Life insurance renewals within 2 months
+    life_policies = LifeInsurance.where(customer_id: customer.id)
+                                .where('policy_end_date BETWEEN ? AND ?', Date.current, 2.months.from_now)
+                                .where.not(policy_end_date: nil)
+    count += life_policies.count
+
+    # Motor insurance renewals within 2 months
+    begin
+      motor_policies = MotorInsurance.where(customer_id: customer.id)
+                                    .where('policy_end_date BETWEEN ? AND ?', Date.current, 2.months.from_now)
+                                    .where.not(policy_end_date: nil)
+      count += motor_policies.count
+    rescue
+      # Skip motor if table doesn't exist
+    end
+
+    count
   end
 end

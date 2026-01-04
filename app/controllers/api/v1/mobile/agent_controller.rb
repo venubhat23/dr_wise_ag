@@ -208,12 +208,12 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       validation_errors << 'A user with this email already exists'
     end
 
-    # If customer already exists, return their information instead of an error
+    # If customer already exists, return error
     if existing_customer
       return render json: {
-        status: true,
-        message: 'Customer already exists',
-        existing: true,
+        status: false,
+        message: 'Customer with this email or mobile already exists',
+        error: 'duplicate_customer',
         data: {
           customer_id: existing_customer.id,
           name: existing_customer.display_name,
@@ -233,7 +233,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
           added_by: existing_customer.added_by,
           created_at: existing_customer.created_at&.strftime('%Y-%m-%d %H:%M:%S')
         }
-      }
+      }, status: :conflict
     end
 
     if validation_errors.any?

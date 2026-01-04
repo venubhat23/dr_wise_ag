@@ -132,29 +132,6 @@
   <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
     <h5 class="mb-0">Leads</h5>
     <div class="d-flex gap-2">
-      <button class="btn btn-sm btn-outline-secondary" onclick="selectAll()">
-        <i class="bi bi-check-square me-1"></i>Select All
-      </button>
-      <div class="dropdown">
-        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" id="bulkActionsBtn" disabled>
-          <i class="bi bi-gear me-1"></i>
-          Bulk Actions (<span id="selectedCount">0</span>)
-        </button>
-        <ul class="dropdown-menu">
-          <li class="dropdown-header">Stage Transitions</li>
-          <li><a href="#" class="dropdown-item" onclick="bulkUpdateStage('consultation')">Move to Consultation</a></li>
-          <li><a href="#" class="dropdown-item" onclick="bulkUpdateStage('one_on_one')">Move to One-on-One</a></li>
-          <li><a href="#" class="dropdown-item" onclick="bulkUpdateStage('converted')">Move to Converted</a></li>
-          <li><a href="#" class="dropdown-item" onclick="bulkUpdateStage('policy_created')">Move to Policy Created</a></li>
-          <li><a href="#" class="dropdown-item" onclick="bulkUpdateStage('referral_settled')">Move to Referral Settled</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><a href="#" class="dropdown-item" onclick="bulkAdvanceStage()">Advance All Selected</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li class="dropdown-header">Other Actions</li>
-          <li><a href="#" class="dropdown-item" onclick="bulkExport()">Export Selected</a></li>
-          <li><a href="#" class="dropdown-item text-danger" onclick="bulkDelete()">Delete Selected</a></li>
-        </ul>
-      </div>
     </div>
   </div>
   <div class="card-body p-0">
@@ -162,11 +139,6 @@
       <table class="table table-hover mb-0">
         <thead class="bg-light">
           <tr>
-            <th class="border-0 ps-3" width="50">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
-              </div>
-            </th>
             <th class="border-0">Lead Details</th>
             <th class="border-0">Contact Information</th>
             <th class="border-0">Referred By</th>
@@ -180,11 +152,6 @@
           <% if @leads.any? %>
             <% @leads.each do |lead| %>
               <tr class="lead-row" data-id="<%= lead.id %>">
-                <td class="ps-3">
-                  <div class="form-check">
-                    <input class="form-check-input lead-checkbox" type="checkbox" value="<%= lead.id %>">
-                  </div>
-                </td>
                 <td>
                   <div>
                     <span class="badge bg-primary mb-1 d-block"><%= lead.lead_id.presence || "LEAD-#{lead.id}" %></span>
