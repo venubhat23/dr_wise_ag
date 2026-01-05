@@ -102,7 +102,7 @@
             <%= form.select :sub_agent_id,
                 options_for_select(@sub_agents.map { |sa| ["#{sa.first_name} #{sa.last_name}", sa.id] }, @customer.sub_agent_id),
                 { prompt: 'Search and select affiliate...' },
-                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent_id].any?} searchable-select", required: true, id: "corporate_affiliate_select", data: { placeholder: "Type to search affiliates...", search_url: "/admin/customers/search_affiliates" } } %>
+                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent_id].any?} searchable-select", required: true, id: "corporate_affiliate_select", data: { placeholder: "Type to search affiliates...", search_url: "/admin/customers/search_sub_agents" } } %>
             <% if @customer.errors[:sub_agent_id].any? %>
               <div class="invalid-feedback"><%= @customer.errors[:sub_agent_id].first %></div>
             <% end %>
@@ -332,7 +332,7 @@
             <%= form.select :sub_agent_id,
                 options_for_select(@sub_agents.map { |sa| ["#{sa.first_name} #{sa.last_name}", sa.id] }, @customer.sub_agent_id),
                 { prompt: 'Search and select affiliate...' },
-                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent_id].any?} searchable-select", required: true, id: "individual_affiliate_select", data: { placeholder: "Type to search affiliates...", search_url: "/admin/customers/search_affiliates" } } %>
+                { class: "form-control #{'is-invalid' if @customer.errors[:sub_agent_id].any?} searchable-select", required: true, id: "individual_affiliate_select", data: { placeholder: "Type to search affiliates...", search_url: "/admin/customers/search_sub_agents" } } %>
             <% if @customer.errors[:sub_agent_id].any? %>
               <div class="invalid-feedback"><%= @customer.errors[:sub_agent_id].first %></div>
             <% end %>
@@ -1782,7 +1782,7 @@ document.addEventListener('DOMContentLoaded', function() {
       dropdownCssClass: 'select2-dropdown-large',
       minimumInputLength: 0, // Allow opening without typing
       ajax: {
-        url: '/api/v1/public/search_affiliates',
+        url: '/api/v1/public/search_sub_agents',
         dataType: 'json',
         delay: 250,
         data: function (params) {

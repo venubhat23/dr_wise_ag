@@ -2,9 +2,9 @@ class Admin::CustomersController < Admin::ApplicationController
   include LocationData
   include ConfigurablePagination
   before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart, :trace_commission, :product_selection]
-  skip_before_action :ensure_admin, only: [:search_affiliates]
-  skip_before_action :authenticate_user!, only: [:search_affiliates]
-  skip_load_and_authorize_resource only: [:search_affiliates]
+  skip_before_action :ensure_admin, only: [:search_sub_agents]
+  skip_before_action :authenticate_user!, only: [:search_sub_agents]
+  skip_load_and_authorize_resource only: [:search_sub_agents]
 
   # GET /admin/customers
   def index
@@ -623,8 +623,8 @@ class Admin::CustomersController < Admin::ApplicationController
     render json: { cities: cities }
   end
 
-  # API endpoint for searching affiliates
-  def search_affiliates
+  # API endpoint for searching sub agents (affiliates)
+  def search_sub_agents
     query = params[:q] || params[:query]
     limit = params[:limit]&.to_i || 20
     affiliates = []

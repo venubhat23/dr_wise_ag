@@ -672,8 +672,8 @@ class Admin::LeadsController < Admin::ApplicationController
     end
   end
 
-  # API endpoint for searching affiliates
-  def search_affiliates
+  # API endpoint for searching sub agents (affiliates)
+  def search_sub_agents
     query = params[:q] || params[:query]
     limit = params[:limit]&.to_i || 20
     affiliates = []

@@ -339,7 +339,7 @@
                 ['Select Affiliate', '']
               ] + SubAgent.active.collect { |agent| [agent.display_name, agent.id] }, @lead.affiliate_id),
               { include_blank: false },
-              { class: "form-select searchable-select", id: "affiliate_dropdown_edit", data: { placeholder: "Search and select affiliate...", search_url: "/admin/leads/search_affiliates" } } %>
+              { class: "form-select searchable-select", id: "affiliate_dropdown_edit", data: { placeholder: "Search and select affiliate...", search_url: "/admin/leads/search_sub_agents" } } %>
             </div>
 
             <div class="col-md-6" id="referred_by_field" style="display: <%= @lead.is_direct ? 'none' : 'block' %>;">
@@ -885,7 +885,7 @@ document.addEventListener('DOMContentLoaded', function() {
       dropdownParent: $('body'),
       minimumInputLength: 0, // Allow opening without typing
       ajax: {
-        url: '/admin/leads/search_affiliates',
+        url: '/admin/leads/search_sub_agents',
         dataType: 'json',
         delay: 250,
         data: function (params) {
