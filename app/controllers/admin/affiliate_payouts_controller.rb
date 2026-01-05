@@ -571,31 +571,50 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     sub_agent = SubAgent.find_by(id: affiliate_id)
     return unless sub_agent
 
-    # Calculate total commission for this affiliate
-    total_commission = calculate_affiliate_total_commission(affiliate_id)
+    # Get all paid commission payouts for this affiliate
+    paid_payouts = CommissionPayout.where(payout_to: 'affiliate', status: 'paid')
+                                   .select do |payout|
+      policy = get_policy_from_commission_payout(payout)
+      policy && policy.respond_to?(:sub_agent_id) && policy.sub_agent_id == affiliate_id.to_i
+    end
+
+    return if paid_payouts.empty?
+
+    # Calculate total commission from paid payouts
+    total_commission = paid_payouts.sum(&:payout_amount)
     return if total_commission <= 0
 
-    # Check if invoice already exists for this affiliate this month
-    existing_invoice = Invoice.find_by(
-      payout_type: 'affiliate',
-      payout_id: affiliate_id,
-      invoice_date: Date.current.beginning_of_month..Date.current.end_of_month
-    )
+    # Generate unique invoice number
+    invoice_number = generate_invoice_number
 
-    return if existing_invoice
+    # Check if invoice already exists with this invoice number
+    existing_invoice = Invoice.find_by(invoice_number: invoice_number)
+
+    # If exists, generate a new unique number
+    while existing_invoice
+      invoice_number = generate_invoice_number
+      existing_invoice = Invoice.find_by(invoice_number: invoice_number)
+    end
 
     # Create invoice
-    invoice = Invoice.create!(
-      invoice_number: generate_invoice_number,
-      payout_type: 'affiliate',
-      payout_id: affiliate_id,
-      total_amount: total_commission,
-      status: 'paid', # Mark as paid since payouts are already processed
-      invoice_date: Date.current,
-      due_date: Date.current
-    )
+    begin
+      invoice = Invoice.create!(
+        invoice_number: invoice_number,
+        payout_type: 'affiliate',
+        payout_id: affiliate_id,
+        total_amount: total_commission,
+        status: 'paid', # Mark as paid since payouts are already processed
+        invoice_date: Date.current,
+        due_date: Date.current,
+        paid_at: Time.current # Set paid_at since it's already paid
+      )
 
-    Rails.logger.info "Generated invoice #{invoice.invoice_number} for sub_agent #{sub_agent.first_name} #{sub_agent.last_name} (#{sub_agent.id})"
+      Rails.logger.info "Generated invoice #{invoice.invoice_number} for sub_agent #{sub_agent.first_name} #{sub_agent.last_name} (#{sub_agent.id})"
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error "Failed to create invoice for affiliate #{affiliate_id}: #{e.message}"
+    rescue => e
+      Rails.logger.error "Unexpected error creating invoice for affiliate #{affiliate_id}: #{e.message}"
+    end
   end
 
   def generate_invoices_for_leads(lead_ids)
@@ -621,16 +640,16 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
   def calculate_affiliate_total_commission(affiliate_id)
     total_commission = 0
 
-    # Get all policies for this affiliate where main agent commission is received
-    paid_policies = get_all_paid_policies.select do |policy|
-      policy.respond_to?(:sub_agent_id) && policy.sub_agent_id == affiliate_id.to_i
+    # Get all paid commission payouts for this affiliate
+    paid_payouts = CommissionPayout.where(payout_to: 'affiliate', status: 'paid')
+                                   .select do |payout|
+      policy = get_policy_from_commission_payout(payout)
+      policy && policy.respond_to?(:sub_agent_id) && policy.sub_agent_id == affiliate_id.to_i
     end
 
-    paid_policies.each do |policy|
-      # Get commission amount
-      payout = Payout.find_by(policy_type: get_policy_type(policy), policy_id: policy.id)
-      commission = payout&.affiliate_commission_amount || (policy.net_premium * 0.02)
-      total_commission += commission
+    # Sum up the commission amounts from paid payouts
+    paid_payouts.each do |payout|
+      total_commission += payout.payout_amount.to_f
     end
 
     total_commission

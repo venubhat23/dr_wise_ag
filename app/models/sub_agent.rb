@@ -83,6 +83,8 @@ class SubAgent < ApplicationRecord
     if password.present? && (password_digest_changed? || new_record?)
       self.plain_password = password
       self.original_password = password if new_record?
+      # Also update original_password on password change if it's blank
+      self.original_password = password if self.original_password.blank?
     end
   end
 end

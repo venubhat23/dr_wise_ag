@@ -952,7 +952,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       city: lead_params[:city],
       state: lead_params[:state],
       referred_by: lead_params[:referred_by],
-      current_stage: lead_params[:current_stage] || 'consultation',
+      current_stage: lead_params[:current_stage] || 'lead_generated',
       created_date: parse_date(lead_params[:created_date]) || Date.current,
       notes: lead_params[:note],
       call_disposition: lead_params[:call_disposition],

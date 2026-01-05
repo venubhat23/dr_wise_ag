@@ -47,6 +47,12 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
   # POST /api/v1/mobile/settings/change_password
   def change_password
     new_password = params[:new_password]
+    old_password = params[:old_password] || params[:current_password]
+
+    Rails.logger.info "=== PASSWORD CHANGE REQUEST ==="
+    Rails.logger.info "User type: #{current_user.class.name}"
+    Rails.logger.info "User ID: #{current_user.id}"
+    Rails.logger.info "User email: #{current_user.email}" if current_user.respond_to?(:email)
 
     if new_password.blank?
       return render json: {
@@ -62,14 +68,97 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
       }, status: :unprocessable_entity
     end
 
-    # Note: Since customers don't have passwords in current model,
-    # this would need to be implemented when you add password authentication
-    # For now, returning success response
+    # Get current user - could be Customer, User, or SubAgent
+    user = current_user
 
-    render json: {
-      success: true,
-      message: 'Password changed successfully'
-    }
+    if user.nil?
+      Rails.logger.error "User not found in change_password"
+      return render json: {
+        success: false,
+        message: 'User not found'
+      }, status: :not_found
+    end
+
+    Rails.logger.info "Processing password change for: #{user.class.name} ID: #{user.id}"
+
+    # For users with has_secure_password (User and SubAgent models)
+    if user.respond_to?(:authenticate) && user.respond_to?(:password=)
+      # Verify old password if provided
+      if old_password.present? && !user.authenticate(old_password)
+        Rails.logger.warn "Old password verification failed"
+        return render json: {
+          success: false,
+          message: 'Current password is incorrect'
+        }, status: :unprocessable_entity
+      end
+
+      # Update password and plain_password field for SubAgent
+      user.password = new_password
+      user.password_confirmation = new_password
+
+      # Update plain_password field for SubAgent model
+      if user.is_a?(SubAgent)
+        user.plain_password = new_password
+        Rails.logger.info "Setting plain_password for SubAgent to: #{new_password}"
+        # Force the callback to run
+        user.store_plain_password = true
+      end
+
+      if user.save
+        Rails.logger.info "Password saved successfully for #{user.class.name} ID: #{user.id}"
+        Rails.logger.info "New plain_password: #{user.plain_password}" if user.respond_to?(:plain_password)
+
+        # Also update corresponding User model if it's a SubAgent
+        if user.is_a?(SubAgent)
+          corresponding_user = User.find_by(email: user.email)
+          if corresponding_user
+            corresponding_user.password = new_password
+            corresponding_user.password_confirmation = new_password
+            if corresponding_user.save
+              Rails.logger.info "Also updated User account for email: #{user.email}"
+            end
+          end
+        end
+
+        render json: {
+          success: true,
+          message: 'Password changed successfully'
+        }
+      else
+        Rails.logger.error "Failed to save password: #{user.errors.full_messages.join(', ')}"
+        render json: {
+          success: false,
+          message: user.errors.full_messages.join(', ')
+        }, status: :unprocessable_entity
+      end
+    elsif user.is_a?(Customer)
+      # For Customer model, update password field directly
+      user.password = new_password
+      if user.save
+        # Also check if there's a corresponding User account
+        corresponding_user = User.find_by(email: user.email)
+        if corresponding_user
+          corresponding_user.password = new_password
+          corresponding_user.password_confirmation = new_password
+          corresponding_user.save
+        end
+
+        render json: {
+          success: true,
+          message: 'Password changed successfully'
+        }
+      else
+        render json: {
+          success: false,
+          message: user.errors.full_messages.join(', ')
+        }, status: :unprocessable_entity
+      end
+    else
+      render json: {
+        success: false,
+        message: 'Password change not supported for this user type'
+      }, status: :unprocessable_entity
+    end
   end
 
   # GET /api/v1/mobile/settings/terms
