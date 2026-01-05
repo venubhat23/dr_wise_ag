@@ -1023,8 +1023,12 @@ document.addEventListener('DOMContentLoaded', function() {
       dataType: 'json',
       delay: 250,
       data: function (params) {
+        // Get the selected customer ID to filter affiliates
+        var selectedCustomerId = $('#customer_select').val();
+
         return {
           q: params.term || '', // Send empty query to get default results
+          customer_id: selectedCustomerId, // Pass customer ID for filtering
           limit: params.term ? 20 : 10 // Show fewer results when no search term
         };
       },
@@ -1040,7 +1044,7 @@ document.addEventListener('DOMContentLoaded', function() {
           results: [{id: '', text: 'Error loading affiliates - please try again'}]
         };
       },
-      cache: true
+      cache: false // Disable cache so customer changes refresh the affiliate list
     },
     templateResult: function(option) {
       if (option.loading) return option.text;
@@ -1424,6 +1428,22 @@ document.addEventListener('DOMContentLoaded', function() {
   // Use Select2 event listener instead of native event
   $('#customer_select').on('select2:select', function(e) {
     loadPolicyHolderOptions();
+
+    // Clear and refresh affiliate dropdown when customer changes
+    $('#affiliate_select').val(null).trigger('change');
+
+    // Show a message to indicate that affiliates are being filtered
+    var selectedCustomerId = this.value;
+    if (selectedCustomerId) {
+      console.log('Customer selected, filtering affiliates for customer ID:', selectedCustomerId);
+    }
+  });
+
+  // Handle customer clearing
+  $('#customer_select').on('select2:clear', function(e) {
+    // Clear affiliate dropdown when customer is cleared
+    $('#affiliate_select').val(null).trigger('change');
+    console.log('Customer cleared, showing all affiliates');
   });
 
   // Cascading dropdown event listeners - Use Select2 events
