@@ -1,3 +1,5 @@
+require 'bcrypt'
+
 class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
   before_action :authenticate_customer!
 
@@ -120,18 +122,36 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
         Rails.logger.info "Setting plain_password for User to: #{new_password}"
       end
 
-      if user.save(validate: false)
-        Rails.logger.info "Password saved successfully for #{user.class.name} ID: #{user.id}"
-        Rails.logger.info "New plain_password: #{user.plain_password}" if user.respond_to?(:plain_password)
+      # Use update_columns to bypass all validations and callbacks for password fields
+      begin
+        ActiveRecord::Base.transaction do
+          if user.respond_to?(:password_digest)
+            # For SubAgent with has_secure_password
+            user.password_digest = BCrypt::Password.create(new_password)
+            user.update_columns(password_digest: user.password_digest)
 
-        # Also update corresponding User model if it's a SubAgent
-        if user.is_a?(SubAgent)
-          corresponding_user = User.find_by(email: user.email)
-          if corresponding_user
-            corresponding_user.password = new_password
-            corresponding_user.password_confirmation = new_password
-            corresponding_user.plain_password = new_password
-            if corresponding_user.save(validate: false)
+            # Update plain_password if the field exists
+            if user.respond_to?(:plain_password) && user.class.column_names.include?('plain_password')
+              user.update_columns(plain_password: new_password)
+            end
+          else
+            # For User with Devise
+            user.password = new_password
+            user.password_confirmation = new_password
+            user.save(validate: false)
+          end
+
+          Rails.logger.info "Password updated successfully for #{user.class.name} ID: #{user.id}"
+          Rails.logger.info "[PasswordSync] Updated plain_password for #{user.class.name} #{user.id}"
+
+          # Also update corresponding User model if it's a SubAgent
+          if user.is_a?(SubAgent)
+            corresponding_user = User.find_by(email: user.email)
+            if corresponding_user
+              corresponding_user.password = new_password
+              corresponding_user.password_confirmation = new_password
+              corresponding_user.plain_password = new_password if corresponding_user.respond_to?(:plain_password)
+              corresponding_user.save(validate: false)
               Rails.logger.info "Also updated User account for email: #{user.email}"
             end
           end
@@ -141,11 +161,11 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
           success: true,
           message: 'Password changed successfully'
         }
-      else
-        Rails.logger.error "Failed to save password: #{user.errors.full_messages.join(', ')}"
+      rescue => e
+        Rails.logger.error "Failed to update password: #{e.message}"
         render json: {
           success: false,
-          message: user.errors.full_messages.join(', ')
+          message: "Failed to update password: #{e.message}"
         }, status: :unprocessable_entity
       end
     elsif user.is_a?(Customer)
