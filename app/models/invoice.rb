@@ -3,7 +3,7 @@ class Invoice < ApplicationRecord
   # Note: We'll keep the polymorphic method approach since the associations depend on payout_type
 
   validates :invoice_number, presence: true, uniqueness: true
-  validates :payout_type, presence: true, inclusion: { in: %w[affiliate distributor commission] }
+  validates :payout_type, presence: true, inclusion: { in: %w[affiliate distributor ambassador commission] }
   validates :payout_id, presence: true
   validates :total_amount, presence: true, numericality: { greater_than: 0 }
   validates :status, presence: true, inclusion: { in: %w[pending paid cancelled] }
@@ -21,6 +21,8 @@ class Invoice < ApplicationRecord
       CommissionPayout.find_by(id: payout_id, payout_to: 'affiliate')
     when 'distributor'
       DistributorPayout.find_by(id: payout_id)
+    when 'ambassador'
+      CommissionPayout.find_by(id: payout_id, payout_to: 'ambassador')
     when 'commission'
       Payout.find_by(id: payout_id)
     end
@@ -38,11 +40,37 @@ class Invoice < ApplicationRecord
       end
     when 'distributor'
       payout = payout_record
-      payout&.recipient&.display_name || 'Unknown Ambassador'
+      distributor = payout&.distributor
+      distributor&.display_name || 'Unknown Distributor'
+    when 'ambassador'
+      payout = payout_record
+      # For ambassador, get distributor info from policy
+      if payout
+        policy = get_policy_from_commission_payout(payout)
+        distributor = Distributor.find_by(id: policy&.distributor_id) if policy&.respond_to?(:distributor_id)
+        distributor&.display_name || 'Unknown Ambassador'
+      else
+        'Unknown Ambassador'
+      end
     when 'commission'
       'Main Agent Commission'
     else
       'Unknown'
+    end
+  end
+
+  private
+
+  def get_policy_from_commission_payout(commission_payout)
+    case commission_payout.policy_type
+    when 'health'
+      HealthInsurance.find_by(id: commission_payout.policy_id)
+    when 'life'
+      LifeInsurance.find_by(id: commission_payout.policy_id)
+    when 'motor'
+      MotorInsurance.find_by(id: commission_payout.policy_id)
+    when 'other'
+      OtherInsurance.find_by(id: commission_payout.policy_id)
     end
   end
 

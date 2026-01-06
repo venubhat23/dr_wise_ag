@@ -120,6 +120,7 @@ class Admin::DistributorPayoutsController < ApplicationController
       else
         # Generate invoices after successful payouts
         generate_distributor_invoices(distributor_id, lead_ids, payout_type)
+        generate_ambassador_invoices(distributor_id, lead_ids, payout_type)
         redirect_to admin_distributor_payouts_path, notice: "#{success_count} distributor payout(s) marked as paid successfully! Invoices have been generated."
       end
 
@@ -563,6 +564,14 @@ class Admin::DistributorPayoutsController < ApplicationController
       recipient_address: distributor.address
     )
 
+    # Mark related distributor payouts as invoiced
+    distributor_payouts = DistributorPayout.where(distributor_id: distributor_id, status: 'paid')
+    distributor_payouts.each do |payout|
+      if payout.respond_to?(:invoiced=)
+        payout.update!(invoiced: true) unless payout.invoiced
+      end
+    end
+
     Rails.logger.info "Generated invoice #{invoice.invoice_number} for distributor #{distributor.name} (#{distributor.id})"
   end
 
@@ -646,6 +655,125 @@ class Admin::DistributorPayoutsController < ApplicationController
     rescue => e
       Rails.logger.error "Failed to create ambassador commission record: #{e.message}"
     end
+  end
+
+  def generate_ambassador_invoices(distributor_id, lead_ids, payout_type)
+    begin
+      case payout_type
+      when 'distributor_all', 'bulk_selection'
+        # Generate ambassador invoice for specific distributor
+        if distributor_id.present?
+          generate_single_ambassador_invoice(distributor_id)
+        end
+
+        # Generate invoices for distributor_ids if it's bulk selection
+        if payout_type == 'bulk_selection' && params[:distributor_ids].present?
+          params[:distributor_ids].each do |dist_id|
+            generate_single_ambassador_invoice(dist_id)
+          end
+        end
+
+      when 'lead_single', 'lead_multiple', 'bulk_modal_selection'
+        # Generate ambassador invoices by grouping leads by distributor
+        generate_ambassador_invoices_for_leads(lead_ids)
+
+      when 'quick_all_pending'
+        # Generate ambassador invoices for all distributors with pending payouts
+        pending_payouts = calculate_distributor_payouts.select { |d| d[:pending_amount] > 0 }
+        pending_payouts.each do |distributor_data|
+          generate_single_ambassador_invoice(distributor_data[:distributor].id)
+        end
+      end
+
+    rescue => e
+      Rails.logger.error "Ambassador invoice generation failed: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+    end
+  end
+
+  def generate_single_ambassador_invoice(distributor_id)
+    distributor = Distributor.find_by(id: distributor_id)
+    return unless distributor
+
+    # Get all ambassador commission payouts for this distributor that are paid but not invoiced
+    # Using simpler approach - get by checking each payout manually
+    ambassador_payouts = CommissionPayout.where(payout_to: 'ambassador', status: 'paid')
+                                        .select do |payout|
+                                          # Skip if already invoiced (if field exists)
+                                          if payout.respond_to?(:invoiced) && payout.invoiced
+                                            next false
+                                          end
+
+                                          policy = get_policy_from_commission_payout(payout)
+                                          policy&.respond_to?(:distributor_id) && policy.distributor_id == distributor_id.to_i
+                                        end
+
+    return if ambassador_payouts.empty?
+
+    total_amount = ambassador_payouts.sum(&:payout_amount)
+    return if total_amount <= 0
+
+    # Generate one invoice for all ambassador payouts for this distributor this month
+    existing_invoice = Invoice.find_by(
+      payout_type: 'ambassador',
+      payout_id: distributor_id,
+      invoice_date: Date.current.beginning_of_month..Date.current.end_of_month
+    )
+
+    return if existing_invoice
+
+    # Create invoice
+    invoice = Invoice.create!(
+      invoice_number: generate_ambassador_invoice_number,
+      payout_type: 'ambassador',
+      payout_id: distributor_id, # Use distributor_id as reference
+      total_amount: total_amount,
+      status: 'paid',
+      invoice_date: Date.current,
+      due_date: Date.current,
+      paid_at: Time.current,
+      recipient_name: distributor.name,
+      recipient_email: distributor.email,
+      recipient_address: distributor.address
+    )
+
+    # Mark all ambassador payouts as invoiced (if field exists)
+    ambassador_payouts.each do |payout|
+      if payout.respond_to?(:invoiced=)
+        payout.update!(invoiced: true)
+      else
+        # Add a note to indicate it's been invoiced
+        current_notes = payout.notes || ""
+        new_notes = [current_notes, "Invoice #{invoice.invoice_number} generated"].compact.join(" | ")
+        payout.update!(notes: new_notes)
+      end
+    end
+
+    Rails.logger.info "Generated ambassador invoice #{invoice.invoice_number} for distributor #{distributor.name} (#{distributor.id})"
+  end
+
+  def generate_ambassador_invoices_for_leads(lead_ids)
+    # Group leads by distributor
+    distributor_groups = {}
+
+    lead_ids.each do |lead_id|
+      policy = find_policy_by_lead_id(lead_id)
+      next unless policy
+      next unless policy.respond_to?(:distributor_id) && policy.distributor_id.present?
+
+      distributor_id = policy.distributor_id
+      distributor_groups[distributor_id] ||= []
+      distributor_groups[distributor_id] << lead_id
+    end
+
+    # Generate ambassador invoice for each distributor group
+    distributor_groups.each do |distributor_id, group_lead_ids|
+      generate_single_ambassador_invoice(distributor_id)
+    end
+  end
+
+  def generate_ambassador_invoice_number
+    "INV-AMB-#{Date.current.strftime('%Y%m%d')}-#{rand(10000..99999)}"
   end
 
   def authorize_admin_access

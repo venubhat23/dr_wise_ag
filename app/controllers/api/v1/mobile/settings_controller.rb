@@ -177,30 +177,59 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
 
   # GET /api/v1/mobile/settings/contact
   def contact_us
-    customer = current_user
+    user = current_user
 
-    # Get the assigned agent/sub-agent for this customer
-    # This could be based on policies or customer assignment
-    agent_info = get_customer_agent(customer)
+    # Check user role from token and respond accordingly
+    if user.is_a?(Customer)
+      # Customer role - Show assigned agent details
+      agent_info = get_customer_agent(user)
 
-    render json: {
-      success: true,
-      data: {
-        agent_name: agent_info[:name],
-        agent_mobile: agent_info[:mobile],
-        agent_email: agent_info[:email],
-        agent_address: agent_info[:address],
-        company_info: {
-          name: "Drwise Admin",
-          mobile: "+91 9876543210",
-          email: "support@drwise.com",
-          address: "123 Insurance Street, Mumbai, Maharashtra, India",
-          website: "www.drwise.com"
-        },
-        support_hours: "Monday to Friday: 9:00 AM - 6:00 PM",
-        emergency_contact: "+91 9876543210"
+      render json: {
+        success: true,
+        data: {
+          agent_name: agent_info[:name],
+          agent_mobile: agent_info[:mobile],
+          agent_email: agent_info[:email],
+          agent_address: agent_info[:address],
+          company_info: {
+            name: "Drwise Admin",
+            mobile: "+91 9876543210",
+            email: "support@drwise.com",
+            address: "123 Insurance Street, Mumbai, Maharashtra, India",
+            website: "www.drwise.com"
+          },
+          support_hours: "Monday to Friday: 9:00 AM - 6:00 PM",
+          emergency_contact: "+91 9876543210"
+        }
       }
-    }
+    elsif user.is_a?(User) || user.is_a?(SubAgent)
+      # Agent role - Show company support details
+      render json: {
+        success: true,
+        data: {
+          company_name: "Drwise Admin",
+          support_mobile: "+91 9876543210",
+          support_email: "support@drwise.com",
+          support_address: "123 Insurance Street, Mumbai, Maharashtra, India",
+          website: "www.drwise.com",
+          support_hours: "Monday to Friday: 9:00 AM - 6:00 PM",
+          emergency_contact: "+91 9876543210",
+          technical_support: {
+            mobile: "+91 8765432109",
+            email: "tech@drwise.com"
+          },
+          sales_support: {
+            mobile: "+91 7654321098",
+            email: "sales@drwise.com"
+          }
+        }
+      }
+    else
+      render json: {
+        success: false,
+        message: "Invalid user role"
+      }, status: :unauthorized
+    end
   end
 
   # POST /api/v1/mobile/settings/helpdesk

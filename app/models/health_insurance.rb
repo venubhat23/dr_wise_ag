@@ -232,7 +232,13 @@ class HealthInsurance < ApplicationRecord
   def inherit_customer_lead_id
     return if lead_id.present? || customer.nil?
 
-    self.lead_id = customer.lead_id if customer.lead_id.present?
+    # Check if customer's lead_id is already used in health insurance
+    if customer.lead_id.present? && !HealthInsurance.exists?(lead_id: customer.lead_id)
+      self.lead_id = customer.lead_id
+    else
+      # Generate a unique lead_id for this policy using the service
+      self.lead_id = LeadIdGeneratorService.generate_for_policy(customer, 'health')
+    end
   end
 
   private

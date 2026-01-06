@@ -200,7 +200,7 @@
             </li>
           <% end %>
 
-          <!-- Other Insurance -->
+          <!-- General Insurance -->
           <% if show_sidebar_item?('other_insurance') %>
             <li class="nav-item">
               <%= link_to admin_other_insurances_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/other_insurances')}" do %>
@@ -209,7 +209,7 @@
                     <i class="bi bi-shield-fill-check"></i>
                   </div>
                 </div>
-                <span class="nav-text">Other Insurance</span>
+                <span class="nav-text">General</span>
                 <div class="nav-indicator"></div>
               <% end %>
             </li>

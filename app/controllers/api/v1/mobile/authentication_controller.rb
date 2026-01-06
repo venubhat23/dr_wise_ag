@@ -705,12 +705,20 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
   end
 
   def get_customer_portfolio_stats(customer)
-    # Simplified version for testing - Get basic policy counts without complex calculations
+    # Get actual policy counts from database
     begin
       health_count = HealthInsurance.where(customer_id: customer.id).count
       life_count = LifeInsurance.where(customer_id: customer.id).count
+      motor_count = MotorInsurance.where(customer_id: customer.id).count
+      # Other insurance is linked through policy table
+      other_count = begin
+        OtherInsurance.joins(:policy).where(policies: { customer_id: customer.id }).count
+      rescue => e
+        Rails.logger.warn "Error counting other insurance: #{e.message}"
+        0
+      end
 
-      total_policies = health_count + life_count
+      total_policies = health_count + life_count + motor_count + other_count
 
       # Calculate upcoming installments within next 2 months
       upcoming_installments = count_upcoming_installments(customer)
@@ -727,8 +735,8 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
         policy_breakdown: {
           health_policies: health_count,
           life_policies: life_count,
-          motor_policies: 0,
-          other_policies: 0
+          motor_policies: motor_count,
+          other_policies: other_count
         }
       }
     rescue => e

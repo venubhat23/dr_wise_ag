@@ -35,6 +35,8 @@ class Admin::InvoicesController < ApplicationController
       payout = CommissionPayout.find_by(id: payout_id, payout_to: 'affiliate')
     when 'distributor'
       payout = DistributorPayout.find(payout_id)
+    when 'ambassador'
+      payout = CommissionPayout.find_by(id: payout_id, payout_to: 'ambassador')
     when 'commission'
       payout = Payout.find(payout_id)
     else
@@ -143,9 +145,9 @@ class Admin::InvoicesController < ApplicationController
     when 'CommissionPayout'
       payout.payout_amount || 0
     when 'DistributorPayout'
-      payout.commission_amount || payout.payout_amount || 0
+      payout.payout_amount || 0
     when 'Payout'
-      payout.total_amount || 0
+      payout.total_commission_amount || payout.total_amount || 0
     else
       0
     end

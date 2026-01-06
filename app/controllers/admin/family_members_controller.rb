@@ -58,8 +58,8 @@ class Admin::FamilyMembersController < Admin::ApplicationController
 
   def family_member_params
     params.require(:family_member).permit(
-      :name, :birth_date, :age, :height, :weight, :gender, :relationship,
-      :pan_number, :mobile, documents: []
+      :first_name, :middle_name, :last_name, :birth_date, :age, :height, :weight, :gender, :relationship,
+      :pan_no, :mobile, documents: []
     )
   end
 end

@@ -34,11 +34,30 @@ class SubAgent < ApplicationRecord
   # Validations
   validates :first_name, presence: true
   validates :last_name, presence: true
-  validates :mobile, presence: true, uniqueness: true
-  validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :mobile, presence: true,
+            uniqueness: {
+              message: "number is already registered with another affiliate",
+              case_sensitive: false
+            },
+            format: {
+              with: /\A[0-9]{10}\z/,
+              message: "must be a 10-digit number"
+            }
+  validates :email, presence: true,
+            uniqueness: {
+              message: "address is already registered with another affiliate",
+              case_sensitive: false
+            },
+            format: {
+              with: URI::MailTo::EMAIL_REGEXP,
+              message: "format is invalid"
+            }
   validates :role_id, presence: true
   validates :gender, inclusion: { in: ['Male', 'Female', 'Other'] }, allow_blank: true
   validates :account_type, inclusion: { in: ['Savings', 'Current', 'Salary'] }, allow_blank: true
+
+  # Custom validations
+  validate :ensure_unique_across_distributors
 
   # Enums
   enum :status, { active: 0, inactive: 1 }
@@ -85,6 +104,26 @@ class SubAgent < ApplicationRecord
       self.original_password = password if new_record?
       # Also update original_password on password change if it's blank
       self.original_password = password if self.original_password.blank?
+    end
+  end
+
+  def ensure_unique_across_distributors
+    # Check if email exists in Distributor table
+    if email.present?
+      existing_distributor = Distributor.where(email: email)
+      existing_distributor = existing_distributor.where.not(id: self.id) if persisted?
+      if existing_distributor.exists?
+        errors.add(:email, "address is already registered with an ambassador")
+      end
+    end
+
+    # Check if mobile exists in Distributor table
+    if mobile.present?
+      existing_distributor = Distributor.where(mobile: mobile)
+      existing_distributor = existing_distributor.where.not(id: self.id) if persisted?
+      if existing_distributor.exists?
+        errors.add(:mobile, "number is already registered with an ambassador")
+      end
     end
   end
 end

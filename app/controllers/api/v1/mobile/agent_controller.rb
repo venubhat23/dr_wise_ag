@@ -1,5 +1,6 @@
 class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   before_action :authenticate_agent!
+  attr_reader :current_user
 
   # GET /api/v1/mobile/agent/dashboard
   def dashboard
