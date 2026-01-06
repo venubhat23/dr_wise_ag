@@ -604,7 +604,8 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
     health_commission = health_policies.sum do |policy|
       commission = 0.0
       # Try multiple commission fields for HealthInsurance
-      commission = policy.commission_amount.to_f if policy.respond_to?(:commission_amount) && policy.commission_amount.present?
+      commission = policy.sub_agent_commission_amount.to_f if policy.respond_to?(:sub_agent_commission_amount) && policy.sub_agent_commission_amount.present?
+      commission = policy.commission_amount.to_f if commission == 0.0 && policy.respond_to?(:commission_amount) && policy.commission_amount.present?
       commission = policy.after_tds_value.to_f if commission == 0.0 && policy.respond_to?(:after_tds_value) && policy.after_tds_value.present?
       commission = policy.main_agent_commission_amount.to_f if commission == 0.0 && policy.respond_to?(:main_agent_commission_amount) && policy.main_agent_commission_amount.present?
       commission = calculate_health_commission(policy) if commission == 0.0
@@ -636,23 +637,20 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
 
     total_commission = health_commission + life_commission + motor_commission
 
-    # Get unique customer IDs from actual policies
+    # Get unique customer IDs from actual policies - this is the real-time customer count
     customer_ids = (health_policies.pluck(:customer_id) + life_policies.pluck(:customer_id))
     customer_ids += motor_policies.pluck(:customer_id) if motor_policies&.any?
 
     total_policies = health_policies.count + life_policies.count
     total_policies += motor_policies.count if motor_policies&.any?
 
-    # Get actual customer count
-    actual_customers_count = Customer.where(sub_agent_id: sub_agent.id).count
-
-    # Use actual data from database, not mock data
-    final_customers_count = [customer_ids.uniq.count, actual_customers_count].max
+    # Use only customers who have active policies for real-time data
+    real_customers_count = customer_ids.uniq.count
     monthly_target = 50000.0
 
     {
       commission_earned: total_commission.round(2),
-      customers_count: final_customers_count,
+      customers_count: real_customers_count,
       policies_count: total_policies,
       commission_breakdown: {
         health_commission: health_commission.round(2),
@@ -868,8 +866,19 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
   end
 
   def get_team_size(sub_agent)
-    # Count customers directly associated with this sub-agent
-    Customer.where(sub_agent_id: sub_agent.id).count
+    # Count customers with active policies from this sub-agent
+    health_customer_ids = HealthInsurance.where(sub_agent_id: sub_agent.id).pluck(:customer_id)
+    life_customer_ids = LifeInsurance.where(sub_agent_id: sub_agent.id).pluck(:customer_id)
+
+    motor_customer_ids = []
+    begin
+      motor_customer_ids = MotorInsurance.where(sub_agent_id: sub_agent.id).pluck(:customer_id) if defined?(MotorInsurance)
+    rescue => e
+      # Skip motor insurance if there's an error
+      motor_customer_ids = []
+    end
+
+    (health_customer_ids + life_customer_ids + motor_customer_ids).uniq.count
   end
 
   def calculate_performance_grade(achievement_percentage)

@@ -81,15 +81,27 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
 
     Rails.logger.info "Processing password change for: #{user.class.name} ID: #{user.id}"
 
-    # For users with has_secure_password (User and SubAgent models)
-    if user.respond_to?(:authenticate) && user.respond_to?(:password=)
+    # For users with has_secure_password (SubAgent) or Devise (User) models
+    if (user.respond_to?(:authenticate) || user.respond_to?(:valid_password?)) && user.respond_to?(:password=)
       # Verify old password if provided
-      if old_password.present? && !user.authenticate(old_password)
-        Rails.logger.warn "Old password verification failed"
-        return render json: {
-          success: false,
-          message: 'Current password is incorrect'
-        }, status: :unprocessable_entity
+      if old_password.present?
+        password_valid = if user.respond_to?(:authenticate)
+          # SubAgent uses has_secure_password
+          user.authenticate(old_password)
+        elsif user.respond_to?(:valid_password?)
+          # User uses Devise
+          user.valid_password?(old_password)
+        else
+          false
+        end
+
+        unless password_valid
+          Rails.logger.warn "Old password verification failed"
+          return render json: {
+            success: false,
+            message: 'Current password is incorrect'
+          }, status: :unprocessable_entity
+        end
       end
 
       # Update password and plain_password field for SubAgent
@@ -102,9 +114,13 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
         Rails.logger.info "Setting plain_password for SubAgent to: #{new_password}"
         # Force the callback to run
         user.store_plain_password = true
+      elsif user.is_a?(User)
+        # Also update plain_password for User (agent) model
+        user.plain_password = new_password
+        Rails.logger.info "Setting plain_password for User to: #{new_password}"
       end
 
-      if user.save
+      if user.save(validate: false)
         Rails.logger.info "Password saved successfully for #{user.class.name} ID: #{user.id}"
         Rails.logger.info "New plain_password: #{user.plain_password}" if user.respond_to?(:plain_password)
 
@@ -114,7 +130,8 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
           if corresponding_user
             corresponding_user.password = new_password
             corresponding_user.password_confirmation = new_password
-            if corresponding_user.save
+            corresponding_user.plain_password = new_password
+            if corresponding_user.save(validate: false)
               Rails.logger.info "Also updated User account for email: #{user.email}"
             end
           end
@@ -132,17 +149,32 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
         }, status: :unprocessable_entity
       end
     elsif user.is_a?(Customer)
-      # For Customer model, update password field directly
-      user.password = new_password
-      if user.save
-        # Also check if there's a corresponding User account
-        corresponding_user = User.find_by(email: user.email)
-        if corresponding_user
-          corresponding_user.password = new_password
-          corresponding_user.password_confirmation = new_password
-          corresponding_user.save
-        end
+      # For Customer model, find and update the corresponding User account
+      corresponding_user = User.find_by(email: user.email)
+      if corresponding_user.nil?
+        return render json: {
+          success: false,
+          message: 'User account not found for this customer'
+        }, status: :not_found
+      end
 
+      # Verify old password if provided (using User model's Devise authentication)
+      if old_password.present? && !corresponding_user.valid_password?(old_password)
+        Rails.logger.warn "Old password verification failed for customer"
+        return render json: {
+          success: false,
+          message: 'Current password is incorrect'
+        }, status: :unprocessable_entity
+      end
+
+      # Update password using Devise
+      corresponding_user.password = new_password
+      corresponding_user.password_confirmation = new_password
+      # Also update plain_password for UI display
+      corresponding_user.plain_password = new_password
+
+      if corresponding_user.save(validate: false)
+        Rails.logger.info "Password updated for customer's User account: #{corresponding_user.email}"
         render json: {
           success: true,
           message: 'Password changed successfully'
@@ -150,7 +182,7 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
       else
         render json: {
           success: false,
-          message: user.errors.full_messages.join(', ')
+          message: corresponding_user.errors.full_messages.join(', ')
         }, status: :unprocessable_entity
       end
     else

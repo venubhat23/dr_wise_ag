@@ -901,7 +901,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
 
     begin
       if defined?(OtherInsurance)
-        other_count = OtherInsurance.where(customer_id: customer.id).count
+        # Other insurance is linked through policy table
+        other_count = OtherInsurance.joins(:policy).where(policies: { customer_id: customer.id }).count
       end
     rescue => e
       Rails.logger.warn "Other insurance count issue: #{e.message}"
