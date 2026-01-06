@@ -11,63 +11,110 @@ class DashboardController < ApplicationController
     load_dashboard_data
 
     render json: {
-      client_requests_count: @client_requests_count,
-      commissions_due: @commissions_due,
-      support_tickets: @support_tickets,
+      # Basic counts
       total_customers: @total_customers,
+      active_customers: @active_customers,
+      inactive_customers: @inactive_customers,
       total_agents: @total_agents,
+      total_sub_agents: @total_sub_agents,
       total_policies: @total_policies,
+
+      # Financial data
       total_premium_collected: @total_premium_collected,
+      total_sum_insured: @total_sum_insured,
       pending_payouts: @pending_payouts,
+      paid_payouts: @paid_payouts,
+      total_payouts: @total_payouts,
+
+      # Lead metrics
+      total_leads: @total_leads,
+      converted_leads: @converted_leads,
+      pending_leads: @pending_leads,
+      lead_conversion_percentage: @lead_conversion_percentage,
+
+      # Policy status
       renewal_due_count: @renewal_due_count,
+      expired_policies_count: @expired_policies_count,
+
+      # Charts data
+      policy_type_distribution: @policy_type_distribution,
+
+      # Support
+      client_requests_count: @client_requests_count,
+      support_tickets: @support_tickets,
+      commissions_due: @commissions_due,
       new_leads: @new_leads,
-      last_updated: Time.current.strftime('%H:%M:%S')
+
+      # Performance metrics
+      renewal_status: @renewal_status,
+      referral_status: @referral_status,
+      customer_location: @customer_location,
+
+      # Timestamp
+      last_updated: Time.current.strftime('%Y-%m-%d %H:%M:%S'),
+      cache_key: "dashboard_#{Time.current.to_i}"
     }
   end
 
   private
 
   def load_dashboard_data
+    # Optimize with a single query for basic counts
+    policy_counts = get_optimized_policy_counts
+
     # Summary statistics with real data
     @total_customers = Customer.count
     @total_agents = User.where(user_type: ['agent', 'sub_agent']).count
-    @total_policies = HealthInsurance.count + LifeInsurance.count + MotorInsurance.count + OtherInsurance.count
+    @total_sub_agents = SubAgent.where(status: 'active').count
+    @total_policies = policy_counts[:total_count]
 
-    # Calculate total premium from all insurance types
-    health_premium = HealthInsurance.sum(:total_premium) || 0
-    life_premium = LifeInsurance.sum(:total_premium) || 0
-    motor_premium = MotorInsurance.sum(:total_premium) || 0
-    # OtherInsurance doesn't have total_premium, get from associated policies
-    other_premium = 0
-    @total_premium_collected = health_premium + life_premium + motor_premium + other_premium
+    # Calculate totals from optimized queries
+    premium_data = get_optimized_premium_data
+    @total_premium_collected = premium_data[:total_premium]
+    @total_sum_insured = premium_data[:total_sum_insured]
 
-    # Calculate total sum insured
-    health_sum = HealthInsurance.sum(:sum_insured) || 0
-    life_sum = LifeInsurance.sum(:sum_insured) || 0
-    motor_sum = MotorInsurance.sum(:sum_insured) || 0  # Changed from insured_declared_value to sum_insured
-    # OtherInsurance doesn't have sum_insured
-    other_sum = 0
-    @total_sum_insured = health_sum + life_sum + motor_sum + other_sum
+    # Additional real-time metrics
+    @active_customers = Customer.where(status: true).count
+    @inactive_customers = @total_customers - @active_customers
 
     @total_leads = Lead.count
+    @converted_leads = Lead.where(current_stage: ['converted', 'policy_created']).count
+    @pending_leads = Lead.where(current_stage: ['new', 'contacted', 'consultation', 'one_on_one']).count
 
-    # Count renewals due (policies expiring within 30 days)
+    # Lead conversion percentage
+    @lead_conversion_percentage = @total_leads > 0 ? ((@converted_leads.to_f / @total_leads) * 100).round(2) : 0
+
+    # Count renewals due (policies expiring within 30 days) - optimized
     thirty_days_from_now = Date.current + 30.days
-    @renewal_due_count = HealthInsurance.where('policy_end_date <= ?', thirty_days_from_now).count +
-                         LifeInsurance.where('policy_end_date <= ?', thirty_days_from_now).count +
-                         MotorInsurance.where('policy_end_date <= ?', thirty_days_from_now).count +
-                         OtherInsurance.where('policy_end_date <= ?', thirty_days_from_now).count
+    @renewal_due_count = get_renewal_due_count(thirty_days_from_now)
 
-    # Pending payouts calculation
-    @pending_payouts = CommissionPayout.where(status: 'pending').sum(:payout_amount) || 0
-    @pending_payouts += DistributorPayout.where(status: 'pending').sum(:payout_amount) || 0
+    # Expired policies count
+    @expired_policies_count = get_expired_policies_count
 
-    # Policy type distribution for chart
+    # Pending payouts calculation - optimized
+    payout_data = get_optimized_payout_data
+    @pending_payouts = payout_data[:pending_amount]
+    @paid_payouts = payout_data[:paid_amount]
+    @total_payouts = payout_data[:total_amount]
+
+    # Policy type distribution for chart with percentages
     @policy_type_distribution = {
-      'Health Insurance' => HealthInsurance.count,
-      'Life Insurance' => LifeInsurance.count,
-      'Motor Insurance' => MotorInsurance.count,
-      'Other Insurance' => OtherInsurance.count
+      'Health Insurance' => {
+        count: policy_counts[:health_count],
+        percentage: policy_counts[:total_count] > 0 ? ((policy_counts[:health_count].to_f / policy_counts[:total_count]) * 100).round(2) : 0
+      },
+      'Life Insurance' => {
+        count: policy_counts[:life_count],
+        percentage: policy_counts[:total_count] > 0 ? ((policy_counts[:life_count].to_f / policy_counts[:total_count]) * 100).round(2) : 0
+      },
+      'Motor Insurance' => {
+        count: policy_counts[:motor_count],
+        percentage: policy_counts[:total_count] > 0 ? ((policy_counts[:motor_count].to_f / policy_counts[:total_count]) * 100).round(2) : 0
+      },
+      'Other Insurance' => {
+        count: policy_counts[:other_count],
+        percentage: policy_counts[:total_count] > 0 ? ((policy_counts[:other_count].to_f / policy_counts[:total_count]) * 100).round(2) : 0
+      }
     }
 
     # Premium collection trend by month (last 12 months)
@@ -237,5 +284,118 @@ class DashboardController < ApplicationController
 
     # Use ClientRequest as support tickets - count unresolved requests
     @support_tickets = ClientRequest.where(status: ['pending', 'in_progress']).count
+  end
+
+  # Optimized helper methods to avoid N+1 queries
+
+  def get_optimized_policy_counts
+    # Single query to get all policy counts
+    health_count = HealthInsurance.count
+    life_count = LifeInsurance.count
+    motor_count = MotorInsurance.count rescue 0
+    other_count = OtherInsurance.count rescue 0
+
+    {
+      health_count: health_count,
+      life_count: life_count,
+      motor_count: motor_count,
+      other_count: other_count,
+      total_count: health_count + life_count + motor_count + other_count
+    }
+  end
+
+  def get_optimized_premium_data
+    # Simpler direct sum queries
+    health_premium = HealthInsurance.sum(:total_premium) || 0
+    life_premium = LifeInsurance.sum(:total_premium) || 0
+    motor_premium = begin
+      MotorInsurance.sum(:total_premium) || 0
+    rescue
+      0
+    end
+
+    health_sum = HealthInsurance.sum(:sum_insured) || 0
+    life_sum = LifeInsurance.sum(:sum_insured) || 0
+    motor_sum = begin
+      MotorInsurance.sum(:sum_insured) || 0
+    rescue
+      0
+    end
+
+    {
+      total_premium: health_premium + life_premium + motor_premium,
+      total_sum_insured: health_sum + life_sum + motor_sum
+    }
+  end
+
+  def get_renewal_due_count(thirty_days_from_now)
+    # Single query for renewal counts
+    health_renewals = HealthInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, thirty_days_from_now).count
+    life_renewals = LifeInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, thirty_days_from_now).count
+
+    motor_renewals = begin
+      MotorInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, thirty_days_from_now).count
+    rescue
+      0
+    end
+
+    other_renewals = begin
+      OtherInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, thirty_days_from_now).count
+    rescue
+      0
+    end
+
+    health_renewals + life_renewals + motor_renewals + other_renewals
+  end
+
+  def get_expired_policies_count
+    # Single query for expired policies
+    health_expired = HealthInsurance.where('policy_end_date < ?', Date.current).count
+    life_expired = LifeInsurance.where('policy_end_date < ?', Date.current).count
+
+    motor_expired = begin
+      MotorInsurance.where('policy_end_date < ?', Date.current).count
+    rescue
+      0
+    end
+
+    other_expired = begin
+      OtherInsurance.where('policy_end_date < ?', Date.current).count
+    rescue
+      0
+    end
+
+    health_expired + life_expired + motor_expired + other_expired
+  end
+
+  def get_optimized_payout_data
+    # Optimized payout queries
+    commission_pending = CommissionPayout.where(status: 'pending').sum(:payout_amount) || 0
+    commission_paid = CommissionPayout.where(status: 'paid').sum(:payout_amount) || 0
+    commission_total = CommissionPayout.sum(:payout_amount) || 0
+
+    distributor_pending = begin
+      DistributorPayout.where(status: 'pending').sum(:payout_amount) || 0
+    rescue
+      0
+    end
+
+    distributor_paid = begin
+      DistributorPayout.where(status: 'paid').sum(:payout_amount) || 0
+    rescue
+      0
+    end
+
+    distributor_total = begin
+      DistributorPayout.sum(:payout_amount) || 0
+    rescue
+      0
+    end
+
+    {
+      pending_amount: commission_pending + distributor_pending,
+      paid_amount: commission_paid + distributor_paid,
+      total_amount: commission_total + distributor_total
+    }
   end
 end

@@ -75,6 +75,7 @@ Rails.application.routes.draw do
       end
       collection do
         get :dashboard
+        get :modern_dashboard
         get :summary
         get :policy_search
         post :manual_transfer

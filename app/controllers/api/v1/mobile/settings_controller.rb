@@ -225,13 +225,13 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
           agent_address: agent_info[:address],
           company_info: {
             name: "Drwise Admin",
-            mobile: "+91 9876543210",
-            email: "support@drwise.com",
+            mobile: "+918431174477",
+            email: "support@dr-wise.in",
             address: "123 Insurance Street, Mumbai, Maharashtra, India",
-            website: "www.drwise.com"
+            website: "www.dr-wise.in"
           },
           support_hours: "Monday to Friday: 9:00 AM - 6:00 PM",
-          emergency_contact: "+91 9876543210"
+          emergency_contact: "+918431174477"
         }
       }
     elsif user.is_a?(User) || user.is_a?(SubAgent)
@@ -240,19 +240,19 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
         success: true,
         data: {
           company_name: "Drwise Admin",
-          support_mobile: "+91 9876543210",
-          support_email: "support@drwise.com",
+          support_mobile: "+918431174477",
+          support_email: "support@dr-wise.in",
           support_address: "123 Insurance Street, Mumbai, Maharashtra, India",
-          website: "www.drwise.com",
+          website: "www.dr-wise.in",
           support_hours: "Monday to Friday: 9:00 AM - 6:00 PM",
-          emergency_contact: "+91 9876543210",
+          emergency_contact: "+918431174477",
           technical_support: {
-            mobile: "+91 8765432109",
-            email: "tech@drwise.com"
+            mobile: "+918431174477",
+            email: "support@dr-wise.in"
           },
           sales_support: {
-            mobile: "+91 7654321098",
-            email: "sales@drwise.com"
+            mobile: "+918431174477",
+            email: "support@dr-wise.in"
           }
         }
       }
@@ -404,8 +404,8 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
       # Default company agent
       {
         name: "Drwise Support Team",
-        mobile: "+91 9876543210",
-        email: "support@drwise.com",
+        mobile: "+918431174477",
+        email: "support@dr-wise.in",
         address: "123 Insurance Street, Mumbai, Maharashtra, India"
       }
     end

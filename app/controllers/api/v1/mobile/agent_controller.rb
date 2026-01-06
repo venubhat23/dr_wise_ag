@@ -1468,52 +1468,75 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
   def get_dashboard_statistics(agent)
     if is_admin?(agent)
-      # Admin can see all statistics
+      # Admin can see all statistics - optimized queries
+      admin_stats = get_optimized_admin_stats
+
       {
-        customers_count: Customer.active.count,
-        policies_count: HealthInsurance.count + LifeInsurance.count,
-        health_policies_count: HealthInsurance.count,
-        life_policies_count: LifeInsurance.count,
-        total_premium: (HealthInsurance.sum(:total_premium) + LifeInsurance.sum(:total_premium)),
-        commission_earned: (HealthInsurance.sum(:commission_amount) + LifeInsurance.sum(:commission_amount)),
-        this_month_policies: get_this_month_policies_count,
-        this_month_premium: get_this_month_premium
+        customers_count: admin_stats[:customers_count],
+        active_customers: admin_stats[:active_customers],
+        inactive_customers: admin_stats[:inactive_customers],
+        policies_count: admin_stats[:total_policies],
+        health_policies_count: admin_stats[:health_count],
+        life_policies_count: admin_stats[:life_count],
+        motor_policies_count: admin_stats[:motor_count],
+        total_premium: admin_stats[:total_premium],
+        total_sum_insured: admin_stats[:total_sum_insured],
+        commission_earned: admin_stats[:total_commission],
+        this_month_policies: admin_stats[:monthly_policies],
+        this_month_premium: admin_stats[:monthly_premium],
+        policy_distribution: {
+          health: { count: admin_stats[:health_count], percentage: admin_stats[:health_percentage] },
+          life: { count: admin_stats[:life_count], percentage: admin_stats[:life_percentage] },
+          motor: { count: admin_stats[:motor_count], percentage: admin_stats[:motor_percentage] }
+        },
+        performance_metrics: {
+          new_customers_this_month: admin_stats[:new_customers_month],
+          renewal_due: admin_stats[:renewal_due],
+          expired_policies: admin_stats[:expired_policies]
+        }
       }
     elsif agent.is_a?(SubAgent)
-      # SubAgent statistics - use the same logic as login
-      sub_agent_health_policies = HealthInsurance.where(sub_agent_id: agent.id)
-      sub_agent_life_policies = LifeInsurance.where(sub_agent_id: agent.id)
-
-      # Get unique customer IDs from policies
-      customer_ids = (sub_agent_health_policies.pluck(:customer_id) + sub_agent_life_policies.pluck(:customer_id)).uniq
+      # SubAgent statistics - optimized for real-time data
+      sub_agent_stats = get_optimized_sub_agent_stats(agent)
 
       {
-        customers_count: customer_ids.count,
-        policies_count: sub_agent_health_policies.count + sub_agent_life_policies.count,
-        health_policies_count: sub_agent_health_policies.count,
-        life_policies_count: sub_agent_life_policies.count,
-        total_premium: (sub_agent_health_policies.sum(:total_premium) + sub_agent_life_policies.sum(:total_premium)),
-        commission_earned: (sub_agent_health_policies.sum(:sub_agent_after_tds_value) + sub_agent_life_policies.sum(:sub_agent_after_tds_value)),
-        this_month_policies: get_this_month_policies_count_for_sub_agent(agent),
-        this_month_premium: get_this_month_premium_for_sub_agent(agent)
+        customers_count: sub_agent_stats[:customers_count],
+        policies_count: sub_agent_stats[:total_policies],
+        health_policies_count: sub_agent_stats[:health_count],
+        life_policies_count: sub_agent_stats[:life_count],
+        total_premium: sub_agent_stats[:total_premium],
+        total_sum_insured: sub_agent_stats[:total_sum_insured],
+        commission_earned: sub_agent_stats[:commission_earned],
+        this_month_policies: sub_agent_stats[:monthly_policies],
+        this_month_premium: sub_agent_stats[:monthly_premium],
+        this_month_customers: sub_agent_stats[:monthly_customers],
+        policy_distribution: {
+          health: { count: sub_agent_stats[:health_count], percentage: sub_agent_stats[:health_percentage] },
+          life: { count: sub_agent_stats[:life_count], percentage: sub_agent_stats[:life_percentage] }
+        },
+        performance_metrics: {
+          conversion_rate: sub_agent_stats[:conversion_rate],
+          commission_this_month: sub_agent_stats[:commission_this_month],
+          target_achievement: sub_agent_stats[:target_achievement]
+        }
       }
     else
-      # Regular agents see only their statistics
-      agent_health_policies, agent_life_policies, agent_customer_ids = get_agent_policies(agent)
-
-      # Also include customers added by the agent through mobile API
-      agent_added_customers = Customer.where("added_by LIKE ?", "%agent_mobile_api_#{agent.id}%")
-      all_agent_customers = Customer.where(id: agent_customer_ids).or(agent_added_customers)
+      # Regular agents - optimized queries
+      agent_stats = get_optimized_agent_stats(agent)
 
       {
-        customers_count: all_agent_customers.active.count,
-        policies_count: agent_health_policies.count + agent_life_policies.count,
-        health_policies_count: agent_health_policies.count,
-        life_policies_count: agent_life_policies.count,
-        total_premium: (agent_health_policies.sum(:total_premium) + agent_life_policies.sum(:total_premium)),
-        commission_earned: (agent_health_policies.sum(:sub_agent_after_tds_value) + agent_life_policies.sum(:sub_agent_after_tds_value)),
-        this_month_policies: get_this_month_policies_count_for_agent(agent),
-        this_month_premium: get_this_month_premium_for_agent(agent)
+        customers_count: agent_stats[:customers_count],
+        policies_count: agent_stats[:total_policies],
+        health_policies_count: agent_stats[:health_count],
+        life_policies_count: agent_stats[:life_count],
+        total_premium: agent_stats[:total_premium],
+        commission_earned: agent_stats[:commission_earned],
+        this_month_policies: agent_stats[:monthly_policies],
+        this_month_premium: agent_stats[:monthly_premium],
+        policy_distribution: {
+          health: { count: agent_stats[:health_count], percentage: agent_stats[:health_percentage] },
+          life: { count: agent_stats[:life_count], percentage: agent_stats[:life_percentage] }
+        }
       }
     end
   end
@@ -2398,5 +2421,175 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     end
 
     password.shuffle.join
+  end
+
+  # Optimized dashboard statistics helper methods
+
+  def get_optimized_admin_stats
+    # Use simple direct queries without complex aggregations
+    current_month_start = Date.current.beginning_of_month
+    current_month_end = Date.current.end_of_month
+
+    # Basic counts
+    health_count = HealthInsurance.count
+    life_count = LifeInsurance.count
+    motor_count = begin
+      MotorInsurance.count
+    rescue
+      0
+    end
+
+    total_policies = health_count + life_count + motor_count
+
+    # Basic sums
+    health_premium = HealthInsurance.sum(:total_premium) || 0
+    life_premium = LifeInsurance.sum(:total_premium) || 0
+    motor_premium = begin
+      MotorInsurance.sum(:total_premium) || 0
+    rescue
+      0
+    end
+
+    health_sum = HealthInsurance.sum(:sum_insured) || 0
+    life_sum = LifeInsurance.sum(:sum_insured) || 0
+    motor_sum = begin
+      MotorInsurance.sum(:sum_insured) || 0
+    rescue
+      0
+    end
+
+    health_commission = HealthInsurance.sum(:commission_amount) || 0
+    life_commission = LifeInsurance.sum(:commission_amount) || 0
+
+    # Monthly counts
+    monthly_health = HealthInsurance.where(created_at: current_month_start..current_month_end).count
+    monthly_life = LifeInsurance.where(created_at: current_month_start..current_month_end).count
+    monthly_health_premium = HealthInsurance.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
+    monthly_life_premium = LifeInsurance.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
+
+    # Customer counts
+    total_customers = Customer.count
+    active_customers = Customer.where(status: true).count
+    monthly_customers = Customer.where(created_at: current_month_start..current_month_end).count
+
+    # Renewal and expiry data
+    thirty_days_from_now = Date.current + 30.days
+    renewal_due = HealthInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, thirty_days_from_now).count +
+                  LifeInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, thirty_days_from_now).count
+
+    expired_policies = HealthInsurance.where('policy_end_date < ?', Date.current).count +
+                      LifeInsurance.where('policy_end_date < ?', Date.current).count
+
+    {
+      customers_count: total_customers,
+      active_customers: active_customers,
+      inactive_customers: total_customers - active_customers,
+      health_count: health_count,
+      life_count: life_count,
+      motor_count: motor_count,
+      total_policies: total_policies,
+      total_premium: health_premium + life_premium + motor_premium,
+      total_sum_insured: health_sum + life_sum + motor_sum,
+      total_commission: health_commission + life_commission,
+      monthly_policies: monthly_health + monthly_life,
+      monthly_premium: monthly_health_premium + monthly_life_premium,
+      new_customers_month: monthly_customers,
+      renewal_due: renewal_due,
+      expired_policies: expired_policies,
+      health_percentage: total_policies > 0 ? ((health_count.to_f / total_policies) * 100).round(2) : 0,
+      life_percentage: total_policies > 0 ? ((life_count.to_f / total_policies) * 100).round(2) : 0,
+      motor_percentage: total_policies > 0 ? ((motor_count.to_f / total_policies) * 100).round(2) : 0
+    }
+  end
+
+  def get_optimized_sub_agent_stats(agent)
+    current_month_start = Date.current.beginning_of_month
+    current_month_end = Date.current.end_of_month
+
+    # Use simple queries like the original method
+    health_policies = HealthInsurance.where(sub_agent_id: agent.id)
+    life_policies = LifeInsurance.where(sub_agent_id: agent.id)
+
+    # Get counts
+    health_count = health_policies.count
+    life_count = life_policies.count
+    total_policies = health_count + life_count
+
+    # Get sums
+    health_premium = health_policies.sum(:total_premium) || 0
+    life_premium = life_policies.sum(:total_premium) || 0
+    health_sum_insured = health_policies.sum(:sum_insured) || 0
+    life_sum_insured = life_policies.sum(:sum_insured) || 0
+
+    # Commission
+    health_commission = health_policies.sum(:sub_agent_commission_amount) || 0
+    life_commission = life_policies.sum(:sub_agent_commission_amount) || 0
+    total_commission = health_commission + life_commission
+
+    # Monthly data
+    monthly_health_count = health_policies.where(created_at: current_month_start..current_month_end).count
+    monthly_life_count = life_policies.where(created_at: current_month_start..current_month_end).count
+    monthly_health_premium = health_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
+    monthly_life_premium = life_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
+    monthly_commission = (health_policies.where(created_at: current_month_start..current_month_end).sum(:sub_agent_commission_amount) || 0) +
+                        (life_policies.where(created_at: current_month_start..current_month_end).sum(:sub_agent_commission_amount) || 0)
+
+    # Get unique customer IDs for real-time count
+    customer_ids = (health_policies.pluck(:customer_id) + life_policies.pluck(:customer_id)).uniq
+    monthly_customer_ids = (health_policies.where(created_at: current_month_start..current_month_end).pluck(:customer_id) +
+                           life_policies.where(created_at: current_month_start..current_month_end).pluck(:customer_id)).uniq
+
+    # Calculate target achievement
+    monthly_target = 50000.0
+    target_achievement = monthly_commission > 0 ? ((monthly_commission / monthly_target) * 100).round(2) : 0
+
+    {
+      customers_count: customer_ids.count,
+      health_count: health_count,
+      life_count: life_count,
+      total_policies: total_policies,
+      total_premium: health_premium + life_premium,
+      total_sum_insured: health_sum_insured + life_sum_insured,
+      commission_earned: total_commission,
+      monthly_policies: monthly_health_count + monthly_life_count,
+      monthly_premium: monthly_health_premium + monthly_life_premium,
+      monthly_customers: monthly_customer_ids.count,
+      commission_this_month: monthly_commission,
+      target_achievement: target_achievement,
+      conversion_rate: customer_ids.count > 0 && total_policies > 0 ? ((total_policies.to_f / customer_ids.count) * 100).round(2) : 0,
+      health_percentage: total_policies > 0 ? ((health_count.to_f / total_policies) * 100).round(2) : 0,
+      life_percentage: total_policies > 0 ? ((life_count.to_f / total_policies) * 100).round(2) : 0
+    }
+  end
+
+  def get_optimized_agent_stats(agent)
+    # Get agent policies using existing method but optimize queries
+    agent_health_policies, agent_life_policies, agent_customer_ids = get_agent_policies(agent)
+
+    # Also include customers added by the agent through mobile API
+    agent_added_customers = Customer.where("added_by LIKE ?", "%agent_mobile_api_#{agent.id}%")
+    all_agent_customers = Customer.where(id: agent_customer_ids).or(agent_added_customers)
+
+    # Current month data
+    current_month_start = Date.current.beginning_of_month
+    current_month_end = Date.current.end_of_month
+
+    monthly_health = agent_health_policies.where(created_at: current_month_start..current_month_end)
+    monthly_life = agent_life_policies.where(created_at: current_month_start..current_month_end)
+
+    total_policies = agent_health_policies.count + agent_life_policies.count
+
+    {
+      customers_count: all_agent_customers.active.count,
+      health_count: agent_health_policies.count,
+      life_count: agent_life_policies.count,
+      total_policies: total_policies,
+      total_premium: agent_health_policies.sum(:total_premium) + agent_life_policies.sum(:total_premium),
+      commission_earned: (agent_health_policies.sum(:sub_agent_after_tds_value) + agent_life_policies.sum(:sub_agent_after_tds_value)),
+      monthly_policies: monthly_health.count + monthly_life.count,
+      monthly_premium: monthly_health.sum(:total_premium) + monthly_life.sum(:total_premium),
+      health_percentage: total_policies > 0 ? ((agent_health_policies.count.to_f / total_policies) * 100).round(2) : 0,
+      life_percentage: total_policies > 0 ? ((agent_life_policies.count.to_f / total_policies) * 100).round(2) : 0
+    }
   end
 end

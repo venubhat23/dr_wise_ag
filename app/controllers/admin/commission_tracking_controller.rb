@@ -313,15 +313,67 @@ class Admin::CommissionTrackingController < ApplicationController
   end
 
   def dashboard
-    @commission_summary = {
-      total_generated: calculate_total_commission,
-      total_transferred: calculate_total_transferred,
-      pending_transfers: calculate_pending_transfers,
-      company_expenses: calculate_company_expenses
-    }
+    begin
+      @commission_summary = {
+        total_generated: calculate_total_commission_generated || 0,
+        total_transferred: calculate_total_transferred || 0,
+        pending_transfers: calculate_pending_transfers || 0,
+        company_expenses: calculate_company_expenses || 0
+      }
 
-    @recent_policies = fetch_recent_policies_with_commission
-    @transfer_summary = fetch_transfer_summary
+      @recent_policies = fetch_recent_policies_with_commission || []
+      @transfer_summary = fetch_transfer_summary || {}
+    rescue => e
+      Rails.logger.error "Dashboard data fetch failed: #{e.message}"
+      # Fallback data
+      @commission_summary = {
+        total_generated: 0,
+        total_transferred: 0,
+        pending_transfers: 0,
+        company_expenses: 0
+      }
+      @recent_policies = []
+      @transfer_summary = {}
+    end
+
+    # Render the new attractive financial dashboard
+    # Now using the default dashboard.html.erb template
+  end
+
+  def modern_dashboard
+    # Initialize with defaults first
+    @commission_summary = {
+      total_generated: 0,
+      total_transferred: 0,
+      pending_transfers: 0,
+      company_expenses: 0
+    }
+    @recent_policies = []
+    @transfer_summary = {}
+
+    begin
+      # Calculate commission summary
+      @commission_summary = {
+        total_generated: calculate_total_commission_generated || 0,
+        total_transferred: calculate_total_transferred || 0,
+        pending_transfers: calculate_pending_transfers || 0,
+        company_expenses: calculate_company_expenses || 0
+      }
+
+      # Fetch related data
+      @recent_policies = fetch_recent_policies_with_commission || []
+      @transfer_summary = fetch_transfer_summary || {}
+
+      Rails.logger.info "Modern dashboard loaded successfully. Commission summary: #{@commission_summary}"
+    rescue => e
+      Rails.logger.error "Modern dashboard data fetch failed: #{e.message}"
+      Rails.logger.error "Backtrace: #{e.backtrace.first(5).join('\n')}"
+
+      # Keep the default values already set above
+      flash[:warning] = "Some dashboard data couldn't be loaded. Showing default values."
+    end
+
+    render 'admin/commission_tracking/modern_dashboard'
   end
 
   private
@@ -560,19 +612,34 @@ class Admin::CommissionTrackingController < ApplicationController
     policies = []
 
     [HealthInsurance, LifeInsurance, MotorInsurance, OtherInsurance].each do |model|
-      model.includes(:customer).order(created_at: :desc).limit(5).each do |policy|
-        commission_data = CommissionCalculatorService.calculate_commission_breakdown(policy)
-        next if commission_data.empty?
+      begin
+        model.includes(:customer).order(created_at: :desc).limit(5).each do |policy|
+          begin
+            commission_data = CommissionCalculatorService.calculate_commission_breakdown(policy)
+            next if commission_data.nil? || commission_data.empty?
 
-        policies << {
-          policy: policy,
-          type: model.name.underscore.gsub('_insurance', ''),
-          commission_data: commission_data
-        }
+            policies << {
+              policy: policy,
+              type: model.name.underscore.gsub('_insurance', ''),
+              commission_data: commission_data
+            }
+          rescue => e
+            Rails.logger.warn "Failed to calculate commission for #{model.name} policy #{policy.id}: #{e.message}"
+            # Skip this policy and continue
+            next
+          end
+        end
+      rescue => e
+        Rails.logger.warn "Failed to fetch recent policies for #{model.name}: #{e.message}"
+        # Skip this model and continue with the next
+        next
       end
     end
 
     policies.sort_by { |p| p[:policy].created_at }.reverse.take(20)
+  rescue => e
+    Rails.logger.error "Failed to fetch recent policies with commission: #{e.message}"
+    []
   end
 
   def fetch_transfer_summary
@@ -581,6 +648,14 @@ class Admin::CommissionTrackingController < ApplicationController
       ambassador: CommissionPayout.where(payout_to: 'ambassador').group(:status).sum(:payout_amount),
       investor: CommissionPayout.where(payout_to: 'investor').group(:status).sum(:payout_amount),
       company_expense: CommissionPayout.where(payout_to: 'company_expense').group(:status).sum(:payout_amount)
+    }
+  rescue => e
+    Rails.logger.error "Failed to fetch transfer summary: #{e.message}"
+    {
+      affiliate: {},
+      ambassador: {},
+      investor: {},
+      company_expense: {}
     }
   end
 
