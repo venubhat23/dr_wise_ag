@@ -499,46 +499,70 @@ class Admin::DistributorPayoutsController < ApplicationController
   end
 
   def generate_distributor_invoices(distributor_id, lead_ids, payout_type)
+    Rails.logger.info "=== GENERATING DISTRIBUTOR INVOICES ==="
+    Rails.logger.info "distributor_id: #{distributor_id}, lead_ids: #{lead_ids.inspect}, payout_type: #{payout_type}"
+
     begin
       case payout_type
       when 'distributor_all', 'bulk_selection'
         # Generate invoice for specific distributor
         if distributor_id.present?
-          generate_single_distributor_invoice(distributor_id)
+          Rails.logger.info "Generating invoice for distributor #{distributor_id}"
+          result = generate_single_distributor_invoice(distributor_id)
+          Rails.logger.info "Distributor invoice result: #{result}"
         end
 
         # Generate invoices for distributor_ids if it's bulk selection
         if payout_type == 'bulk_selection' && params[:distributor_ids].present?
           params[:distributor_ids].each do |dist_id|
+            Rails.logger.info "Generating invoice for distributor #{dist_id} (bulk)"
             generate_single_distributor_invoice(dist_id)
           end
         end
 
       when 'lead_single', 'lead_multiple', 'bulk_modal_selection'
         # Generate invoices by grouping leads by distributor
+        Rails.logger.info "Generating invoices for leads: #{lead_ids.inspect}"
         generate_invoices_for_distributor_leads(lead_ids)
 
       when 'quick_all_pending'
         # Generate invoices for all distributors with pending payouts
         pending_payouts = calculate_distributor_payouts.select { |d| d[:pending_amount] > 0 }
+        Rails.logger.info "Generating invoices for #{pending_payouts.count} distributors with pending payouts"
         pending_payouts.each do |distributor_data|
           generate_single_distributor_invoice(distributor_data[:distributor].id)
         end
+      else
+        Rails.logger.info "Unknown payout_type for distributor invoice: #{payout_type}"
       end
 
     rescue => e
       Rails.logger.error "Distributor invoice generation failed: #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
     end
+    Rails.logger.info "=== DISTRIBUTOR INVOICE GENERATION COMPLETED ==="
   end
 
   def generate_single_distributor_invoice(distributor_id)
+    Rails.logger.info "=== GENERATING SINGLE DISTRIBUTOR INVOICE ==="
+    Rails.logger.info "Looking for distributor with ID: #{distributor_id}"
+
     distributor = Distributor.find_by(id: distributor_id)
-    return unless distributor
+    unless distributor
+      Rails.logger.error "Distributor not found for ID: #{distributor_id}"
+      return false
+    end
+
+    Rails.logger.info "Found distributor: #{distributor.display_name} (#{distributor.id})"
 
     # Calculate total commission for this distributor
     total_commission = calculate_distributor_total_commission(distributor_id)
-    return if total_commission <= 0
+    Rails.logger.info "Calculated total commission: #{total_commission}"
+
+    if total_commission <= 0
+      Rails.logger.info "No commission to invoice for distributor #{distributor_id}"
+      return false
+    end
 
     # Check if invoice already exists for this distributor this month
     existing_invoice = Invoice.find_by(
@@ -547,32 +571,43 @@ class Admin::DistributorPayoutsController < ApplicationController
       invoice_date: Date.current.beginning_of_month..Date.current.end_of_month
     )
 
-    return if existing_invoice
-
-    # Create invoice
-    invoice = Invoice.create!(
-      invoice_number: generate_distributor_invoice_number,
-      payout_type: 'distributor',
-      payout_id: distributor_id,
-      total_amount: total_commission,
-      status: 'paid',
-      invoice_date: Date.current,
-      due_date: Date.current,
-      paid_at: Time.current,
-      recipient_name: distributor.name,
-      recipient_email: distributor.email,
-      recipient_address: distributor.address
-    )
-
-    # Mark related distributor payouts as invoiced
-    distributor_payouts = DistributorPayout.where(distributor_id: distributor_id, status: 'paid')
-    distributor_payouts.each do |payout|
-      if payout.respond_to?(:invoiced=)
-        payout.update!(invoiced: true) unless payout.invoiced
-      end
+    if existing_invoice
+      Rails.logger.info "Invoice already exists for distributor #{distributor_id}: #{existing_invoice.invoice_number}"
+      return false
     end
 
-    Rails.logger.info "Generated invoice #{invoice.invoice_number} for distributor #{distributor.name} (#{distributor.id})"
+    begin
+      # Create invoice
+      invoice = Invoice.create!(
+        invoice_number: generate_distributor_invoice_number,
+        payout_type: 'distributor',
+        payout_id: distributor_id,
+        total_amount: total_commission,
+        status: 'paid',
+        invoice_date: Date.current,
+        due_date: Date.current,
+        paid_at: Time.current
+      )
+
+      Rails.logger.info "Created invoice: #{invoice.invoice_number} (ID: #{invoice.id}) for ₹#{total_commission}"
+
+      # Mark related distributor payouts as invoiced
+      distributor_payouts = DistributorPayout.where(distributor_id: distributor_id, status: 'paid')
+      Rails.logger.info "Found #{distributor_payouts.count} distributor payouts to mark as invoiced"
+
+      distributor_payouts.each do |payout|
+        if payout.respond_to?(:invoiced=)
+          payout.update!(invoiced: true) unless payout.invoiced
+        end
+      end
+
+      Rails.logger.info "Generated invoice #{invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
+      return true
+    rescue => e
+      Rails.logger.error "Failed to create distributor invoice: #{e.message}"
+      Rails.logger.error e.backtrace.first(5).join("\n")
+      return false
+    end
   end
 
   def generate_invoices_for_distributor_leads(lead_ids)
@@ -731,10 +766,7 @@ class Admin::DistributorPayoutsController < ApplicationController
       status: 'paid',
       invoice_date: Date.current,
       due_date: Date.current,
-      paid_at: Time.current,
-      recipient_name: distributor.name,
-      recipient_email: distributor.email,
-      recipient_address: distributor.address
+      paid_at: Time.current
     )
 
     # Mark all ambassador payouts as invoiced (if field exists)
