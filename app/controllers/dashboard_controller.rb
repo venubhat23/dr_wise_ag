@@ -232,6 +232,9 @@ class DashboardController < ApplicationController
     # Customer geographic distribution
     @customer_location = Customer.group(:state).count.sort_by { |_, v| -v }.first(8).to_h
 
+    # Calculate growth percentages (real-time data)
+    calculate_growth_metrics
+
     # Recent activities for display
     @recent_policies = []
     recent_health = HealthInsurance.includes(:customer).order(created_at: :desc).limit(2)
@@ -409,5 +412,110 @@ class DashboardController < ApplicationController
       paid_amount: commission_paid + distributor_paid,
       total_amount: commission_total + distributor_total
     }
+  end
+
+  def calculate_growth_metrics
+    # Get data for current month and last month
+    current_month_start = Date.current.beginning_of_month
+    last_month_start = 1.month.ago.beginning_of_month
+    last_month_end = 1.month.ago.end_of_month
+
+    # Current month data
+    current_customers = Customer.where('created_at >= ?', current_month_start).count
+    current_policies = get_policies_count_for_period(current_month_start, Date.current)
+    current_premium = get_premium_for_period(current_month_start, Date.current)
+    current_affiliates = SubAgent.where('created_at >= ?', current_month_start).count
+    current_leads = Lead.where('created_at >= ?', current_month_start).count
+    current_renewals = get_renewals_count_for_period(current_month_start, Date.current)
+    current_payouts = get_payouts_for_period(current_month_start, Date.current)
+    current_sum_insured = get_sum_insured_for_period(current_month_start, Date.current)
+
+    # Last month data
+    last_customers = Customer.where(created_at: last_month_start..last_month_end).count
+    last_policies = get_policies_count_for_period(last_month_start, last_month_end)
+    last_premium = get_premium_for_period(last_month_start, last_month_end)
+    last_affiliates = SubAgent.where(created_at: last_month_start..last_month_end).count
+    last_leads = Lead.where(created_at: last_month_start..last_month_end).count
+    last_renewals = get_renewals_count_for_period(last_month_start, last_month_end)
+    last_payouts = get_payouts_for_period(last_month_start, last_month_end)
+    last_sum_insured = get_sum_insured_for_period(last_month_start, last_month_end)
+
+    # Calculate growth percentages
+    @customer_growth = calculate_percentage_change(current_customers, last_customers)
+    @policy_growth = calculate_percentage_change(current_policies, last_policies)
+    @premium_growth = calculate_percentage_change(current_premium, last_premium)
+    @affiliate_growth = calculate_percentage_change(current_affiliates, last_affiliates)
+    @lead_growth = calculate_percentage_change(current_leads, last_leads)
+    @renewal_growth = calculate_percentage_change(current_renewals, last_renewals)
+    @payout_growth = calculate_percentage_change(current_payouts, last_payouts)
+    @sum_insured_growth = calculate_percentage_change(current_sum_insured, last_sum_insured)
+
+    # Additional metrics
+    @conversion_rate = @total_leads > 0 ? ((@converted_leads.to_f / @total_leads) * 100).round(1) : 0
+    @avg_policy_value = @total_policies > 0 ? (@total_premium_collected / @total_policies).round(0) : 0
+    @customer_retention = calculate_customer_retention_rate
+    @monthly_recurring_revenue = calculate_monthly_recurring_revenue
+  end
+
+  private
+
+  def get_policies_count_for_period(start_date, end_date)
+    health = HealthInsurance.where(created_at: start_date..end_date).count
+    life = LifeInsurance.where(created_at: start_date..end_date).count
+    motor = MotorInsurance.where(created_at: start_date..end_date).count rescue 0
+    other = OtherInsurance.where(created_at: start_date..end_date).count rescue 0
+    health + life + motor + other
+  end
+
+  def get_premium_for_period(start_date, end_date)
+    health = HealthInsurance.where(created_at: start_date..end_date).sum(:total_premium) || 0
+    life = LifeInsurance.where(created_at: start_date..end_date).sum(:total_premium) || 0
+    motor = MotorInsurance.where(created_at: start_date..end_date).sum(:total_premium) rescue 0
+    health + life + motor
+  end
+
+  def get_renewals_count_for_period(start_date, end_date)
+    thirty_days_ahead = end_date + 30.days
+    health = HealthInsurance.where(created_at: start_date..end_date)
+                           .where('policy_end_date BETWEEN ? AND ?', end_date, thirty_days_ahead).count
+    life = LifeInsurance.where(created_at: start_date..end_date)
+                        .where('policy_end_date BETWEEN ? AND ?', end_date, thirty_days_ahead).count
+    motor = MotorInsurance.where(created_at: start_date..end_date)
+                          .where('policy_end_date BETWEEN ? AND ?', end_date, thirty_days_ahead).count rescue 0
+    health + life + motor
+  end
+
+  def get_payouts_for_period(start_date, end_date)
+    commission = CommissionPayout.where(created_at: start_date..end_date, status: 'pending').sum(:payout_amount) || 0
+    distributor = DistributorPayout.where(created_at: start_date..end_date, status: 'pending').sum(:payout_amount) rescue 0
+    commission + distributor
+  end
+
+  def get_sum_insured_for_period(start_date, end_date)
+    health = HealthInsurance.where(created_at: start_date..end_date).sum(:sum_insured) || 0
+    life = LifeInsurance.where(created_at: start_date..end_date).sum(:sum_insured) || 0
+    motor = MotorInsurance.where(created_at: start_date..end_date).sum(:sum_insured) rescue 0
+    health + life + motor
+  end
+
+  def calculate_percentage_change(current_value, previous_value)
+    return 0 if previous_value == 0
+    return 100 if previous_value == 0 && current_value > 0
+    ((current_value.to_f - previous_value.to_f) / previous_value.to_f * 100).round(1)
+  end
+
+  def calculate_customer_retention_rate
+    # Calculate retention rate for customers who joined 2+ months ago
+    two_months_ago = 2.months.ago.beginning_of_month
+    old_customers = Customer.where('created_at < ?', two_months_ago).count
+    active_old_customers = Customer.where('created_at < ?', two_months_ago).where(status: true).count
+
+    old_customers > 0 ? ((active_old_customers.to_f / old_customers.to_f) * 100).round(1) : 0
+  end
+
+  def calculate_monthly_recurring_revenue
+    # Estimate based on average premium per month
+    monthly_premium = @total_premium_collected / 12.0
+    monthly_premium.round(0)
   end
 end

@@ -11,23 +11,6 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
-  .dashboard-header {
-    margin-bottom: 2rem;
-  }
-
-  .dashboard-title {
-    font-size: 2rem;
-    font-weight: 600;
-    color: #1a202c;
-    margin: 0;
-  }
-
-  .dashboard-subtitle {
-    color: #718096;
-    font-size: 0.95rem;
-    margin-top: 0.25rem;
-  }
-
   /* Modern Card Styles */
   .dashboard-card {
     background: white;
@@ -41,6 +24,7 @@
 
   .dashboard-card:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
   }
 
   /* KPI Cards */
@@ -57,11 +41,23 @@
     border: 1px solid #e2e8f0;
     padding: 1.5rem;
     transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
   }
 
   .kpi-card:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transform: translateY(-2px);
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--card-color);
   }
 
   .kpi-icon {
@@ -77,7 +73,7 @@
   }
 
   .kpi-value {
-    font-size: 2rem;
+    font-size: 2.25rem;
     font-weight: 700;
     color: #1a202c;
     margin-bottom: 0.25rem;
@@ -88,19 +84,80 @@
     color: #718096;
     font-size: 0.875rem;
     font-weight: 500;
+    margin-bottom: 0.5rem;
   }
 
   .kpi-change {
-    color: #22c55e;
     font-size: 0.75rem;
     font-weight: 600;
     margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .growth-positive { color: #22c55e; }
+  .growth-negative { color: #ef4444; }
+  .growth-neutral { color: #6b7280; }
+
+  /* Performance Metrics */
+  .performance-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .performance-card {
+    background: linear-gradient(135deg, var(--start-color) 0%, var(--end-color) 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .performance-card::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 100px;
+    height: 100px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+  }
+
+  .performance-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .performance-label {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.875rem;
+    font-weight: 500;
   }
 
   /* Chart Section */
   .chart-grid {
     display: grid;
     grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .chart-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .chart-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
     margin-bottom: 2rem;
   }
@@ -121,88 +178,210 @@
     height: 350px;
   }
 
-  /* Bottom Grid */
-  .bottom-grid {
+  .chart-container.small {
+    height: 250px;
+  }
+
+  /* Data Tables */
+  .data-table-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
+    margin-bottom: 2rem;
   }
 
-  /* Special Purple Card */
-  .purple-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .purple-card .kpi-value {
-    color: white;
-    font-size: 2.5rem;
-  }
-
-  .purple-card .kpi-label {
-    color: rgba(255, 255, 255, 0.8);
-  }
-
-  .purple-card::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 100px;
-    height: 100px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-  }
-
-  /* Mini Chart Cards */
-  .mini-chart {
-    height: 60px;
+  .modern-table {
+    width: 100%;
+    border-collapse: collapse;
     margin-top: 1rem;
   }
 
-  /* List Styles */
-  .division-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  .modern-table th {
+    background: #f8fafc;
+    padding: 0.875rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    border-bottom: 1px solid #e5e7eb;
   }
 
-  .division-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid #f1f5f9;
-  }
-
-  .division-item:last-child {
-    border-bottom: none;
-  }
-
-  .division-name {
-    font-weight: 500;
-    color: #1a202c;
-  }
-
-  .division-count {
-    color: #718096;
+  .modern-table td {
+    padding: 0.875rem;
+    border-bottom: 1px solid #f3f4f6;
     font-size: 0.875rem;
   }
 
+  .modern-table tr:hover {
+    background: #f9fafb;
+  }
+
+  /* Stats Cards */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .mini-stat-card {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.2s ease;
+  }
+
+  .mini-stat-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .mini-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 0.25rem;
+  }
+
+  .mini-stat-label {
+    color: #718096;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  /* Activity Feed */
+  .activity-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 1rem 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .activity-item:last-child {
+    border-bottom: none;
+  }
+
+  .activity-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1rem;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .activity-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .activity-title {
+    font-weight: 600;
+    color: #1a202c;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .activity-description {
+    color: #718096;
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+    word-wrap: break-word;
+  }
+
+  .activity-time {
+    color: #9ca3af;
+    font-size: 0.75rem;
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .badge-success {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .badge-warning {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .badge-danger {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .badge-info {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  /* Progress Bars */
+  .progress-container {
+    margin: 1rem 0;
+  }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--progress-color);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
   /* Responsive Design */
-  @media (max-width: 1024px) {
+  @media (max-width: 1200px) {
     .kpi-grid {
       grid-template-columns: repeat(2, 1fr);
+    }
+
+    .performance-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(3, 1fr);
     }
 
     .chart-grid {
       grid-template-columns: 1fr;
     }
 
-    .bottom-grid {
-      grid-template-columns: 1fr 1fr;
+    .chart-grid-3 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .data-table-grid {
+      grid-template-columns: 1fr;
     }
   }
 
@@ -211,11 +390,11 @@
       padding: 1rem;
     }
 
-    .kpi-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .bottom-grid {
+    .kpi-grid,
+    .performance-grid,
+    .stats-grid,
+    .chart-grid-3,
+    .chart-grid-2 {
       grid-template-columns: 1fr;
     }
   }
@@ -225,142 +404,651 @@
   .green-gradient { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
   .orange-gradient { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
   .pink-gradient { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); }
+  .purple-gradient { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+  .cyan-gradient { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); }
+  .red-gradient { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+  .yellow-gradient { background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); }
 </style>
 
 <div class="dashboard-container">
-  <!-- Header -->
-  <div class="dashboard-header">
-    <h1 class="dashboard-title">DrWise Admin Dashboard</h1>
-    <p class="dashboard-subtitle">Welcome back! Here's what's happening with your insurance business today.</p>
-  </div>
 
-  <!-- KPI Cards -->
+  <!-- Main KPI Cards -->
   <div class="kpi-grid">
-    <!-- Total Policies -->
-    <div class="kpi-card">
+    <!-- Total Customers -->
+    <div class="kpi-card" style="--card-color: #3b82f6;">
       <div class="kpi-icon blue-gradient">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div class="kpi-value"><%= number_with_delimiter(@total_customers) %></div>
+      <div class="kpi-label">Total Customers</div>
+      <div class="kpi-change <%= @customer_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+        <i class="bi bi-arrow-<%= @customer_growth >= 0 ? 'up' : 'down' %>-right"></i>
+        <%= @customer_growth.abs %>% from last month
+      </div>
+    </div>
+
+    <!-- Total Affiliates -->
+    <div class="kpi-card" style="--card-color: #10b981;">
+      <div class="kpi-icon green-gradient">
+        <i class="bi bi-people"></i>
+      </div>
+      <div class="kpi-value"><%= number_with_delimiter(@total_affiliates) %></div>
+      <div class="kpi-label">Total Affiliates</div>
+      <div class="kpi-change <%= @affiliate_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+        <i class="bi bi-arrow-<%= @affiliate_growth >= 0 ? 'up' : 'down' %>-right"></i>
+        <%= @affiliate_growth.abs %>% from last month
+      </div>
+    </div>
+
+    <!-- Total Policies -->
+    <div class="kpi-card" style="--card-color: #f59e0b;">
+      <div class="kpi-icon orange-gradient">
         <i class="bi bi-file-earmark-text"></i>
       </div>
       <div class="kpi-value"><%= number_with_delimiter(@total_policies) %></div>
       <div class="kpi-label">Total Policies</div>
-      <div class="kpi-change">↗ +12% from last month</div>
+      <div class="kpi-change <%= @policy_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+        <i class="bi bi-arrow-<%= @policy_growth >= 0 ? 'up' : 'down' %>-right"></i>
+        <%= @policy_growth.abs %>% from last month
+      </div>
     </div>
 
     <!-- Total Premium -->
-    <div class="kpi-card">
-      <div class="kpi-icon green-gradient">
+    <div class="kpi-card" style="--card-color: #ec4899;">
+      <div class="kpi-icon pink-gradient">
         <i class="bi bi-currency-rupee"></i>
       </div>
-      <div class="kpi-value">
-        ₹<%= (@total_premium_collected / 1000000.0).round(1) %>M
-      </div>
+      <div class="kpi-value">₹<%= (@total_premium_collected / 1000000.0).round(1) %>M</div>
       <div class="kpi-label">Premium Collected</div>
-      <div class="kpi-change">↗ +8% from last month</div>
-    </div>
-
-    <!-- Total Customers -->
-    <div class="kpi-card">
-      <div class="kpi-icon orange-gradient">
-        <i class="bi bi-people"></i>
+      <div class="kpi-change <%= @premium_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+        <i class="bi bi-arrow-<%= @premium_growth >= 0 ? 'up' : 'down' %>-right"></i>
+        <%= @premium_growth.abs %>% from last month
       </div>
-      <div class="kpi-value"><%= number_with_delimiter(@total_customers) %></div>
-      <div class="kpi-label">Total Customers</div>
-      <div class="kpi-change">↗ +15% from last month</div>
-    </div>
-
-    <!-- Total Affiliates -->
-    <div class="kpi-card">
-      <div class="kpi-icon pink-gradient">
-        <i class="bi bi-people-fill"></i>
-      </div>
-      <div class="kpi-value"><%= number_with_delimiter(@total_affiliates) %></div>
-      <div class="kpi-label">Total Affiliates</div>
-      <div class="kpi-change">↗ +5% from last month</div>
     </div>
   </div>
 
-  <!-- Charts Section -->
+  <!-- Performance Metrics -->
+  <div class="performance-grid">
+    <!-- Conversion Rate -->
+    <div class="performance-card" style="--start-color: #667eea; --end-color: #764ba2;">
+      <div class="performance-value"><%= @conversion_rate %>%</div>
+      <div class="performance-label">Lead Conversion Rate</div>
+    </div>
+
+    <!-- Average Policy Value -->
+    <div class="performance-card" style="--start-color: #f093fb; --end-color: #f5576c;">
+      <div class="performance-value">₹<%= (@avg_policy_value / 1000.0).round(0) %>K</div>
+      <div class="performance-label">Avg Policy Value</div>
+    </div>
+
+    <!-- Customer Retention -->
+    <div class="performance-card" style="--start-color: #4facfe; --end-color: #00f2fe;">
+      <div class="performance-value"><%= @customer_retention %>%</div>
+      <div class="performance-label">Customer Retention</div>
+    </div>
+  </div>
+
+
+  <!-- Main Charts Section -->
   <div class="chart-grid">
-    <!-- Main Trend Chart -->
+    <!-- Premium Collection Trend -->
     <div class="dashboard-card">
       <h3 class="chart-title">Premium Collection Trend</h3>
       <div class="chart-container large">
-        <canvas id="trendChart"></canvas>
+        <canvas id="premiumTrendChart"></canvas>
       </div>
     </div>
 
     <!-- Policy Distribution -->
     <div class="dashboard-card">
-      <h3 class="chart-title">Policies by Type</h3>
+      <h3 class="chart-title">Policy Type Distribution</h3>
       <div class="chart-container">
-        <canvas id="policyChart"></canvas>
+        <canvas id="policyDistributionChart"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- Bottom Section -->
-  <div class="bottom-grid">
-    <!-- Lead Activities -->
+  <!-- Secondary Charts -->
+  <div class="chart-grid-3">
+    <!-- Lead Funnel -->
     <div class="dashboard-card">
-      <h3 class="chart-title">Lead Activities</h3>
-      <div style="margin-top: 1rem;">
-        <div class="division-item">
-          <span class="division-name">New Leads</span>
-          <span class="division-count"><%= @new_leads || 12 %></span>
-        </div>
-        <div class="division-item">
-          <span class="division-name">Converted</span>
-          <span class="division-count"><%= @converted_leads || 8 %></span>
-        </div>
-        <div class="division-item">
-          <span class="division-name">In Progress</span>
-          <span class="division-count"><%= @pending_leads || 24 %></span>
-        </div>
-        <div class="division-item">
-          <span class="division-name">Follow-up</span>
-          <span class="division-count">6</span>
-        </div>
-      </div>
-      <div class="mini-chart">
-        <canvas id="leadChart"></canvas>
+      <h3 class="chart-title">Lead Conversion Funnel</h3>
+      <div class="chart-container small">
+        <canvas id="leadFunnelChart"></canvas>
       </div>
     </div>
 
-    <!-- Location Distribution -->
+    <!-- Renewal Status -->
     <div class="dashboard-card">
-      <h3 class="chart-title">Customers by Location</h3>
-      <div style="margin-top: 1rem;">
-        <% @customer_location.first(4).each do |state, count| %>
-          <div class="division-item">
-            <span class="division-name"><%= state %></span>
-            <span class="division-count"><%= count %></span>
-          </div>
-        <% end %>
+      <h3 class="chart-title">Renewal Status Overview</h3>
+      <div class="chart-container small">
+        <canvas id="renewalStatusChart"></canvas>
       </div>
-      <div class="mini-chart">
+    </div>
+
+    <!-- Referral Status -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">Referral Settlement Status</h3>
+      <div class="chart-container small">
+        <canvas id="referralChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agent Performance & Commission -->
+  <div class="chart-grid-2">
+    <!-- Agent Performance -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">Top Agent Performance</h3>
+      <div class="chart-container">
+        <canvas id="agentPerformanceChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Commission Summary -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">Commission Summary</h3>
+      <div class="chart-container">
+        <canvas id="commissionChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Location & Lead Status -->
+  <div class="chart-grid-2">
+    <div class="dashboard-card">
+      <h3 class="chart-title">Customer Geographic Distribution</h3>
+      <div class="chart-container">
         <canvas id="locationChart"></canvas>
       </div>
     </div>
 
-    <!-- Purple Metrics Card -->
-    <div class="kpi-card purple-card">
-      <div class="kpi-value">
-        ₹<%= (@total_sum_insured / 1000000.0).round(0) %>M
+    <!-- Lead Management Overview -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">Lead Stage Distribution</h3>
+      <div style="margin-top: 1rem;">
+        <%
+          lead_stages = {
+            'New Leads' => Lead.where(current_stage: 'new').count,
+            'Contacted' => Lead.where(current_stage: 'contacted').count,
+            'Consultation' => Lead.where(current_stage: 'consultation').count,
+            'One-on-One' => Lead.where(current_stage: 'one_on_one').count,
+            'Converted' => Lead.where(current_stage: 'converted').count,
+            'Policy Created' => Lead.where(current_stage: 'policy_created').count
+          }
+          total_leads = lead_stages.values.sum
+        %>
+        <% lead_stages.each do |stage, count| %>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9;">
+            <span style="font-weight: 500; color: #1a202c;"><%= stage %></span>
+            <div style="text-align: right;">
+              <span style="color: #718096; font-size: 0.875rem;"><%= count %></span>
+              <div class="progress-bar" style="width: 100px; margin-top: 0.25rem;">
+                <div class="progress-fill" style="--progress-color: #3b82f6; width: <%= total_leads > 0 ? (count.to_f / total_leads * 100).round(1) : 0 %>%;"></div>
+              </div>
+            </div>
+          </div>
+        <% end %>
       </div>
-      <div class="kpi-label">Total Sum Insured</div>
-      <div style="margin-top: 1rem; font-size: 0.875rem; opacity: 0.9;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-          <span>Renewals Due</span>
-          <span><%= @renewal_due_count %></span>
+    </div>
+  </div>
+
+  <!-- Data Tables Section -->
+  <div class="data-table-grid">
+    <!-- Top Performing Agents -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">Top Performing Agents</h3>
+      <div style="overflow-x: auto;">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th>Agent Name</th>
+              <th>Policies Sold</th>
+              <th>Premium Generated</th>
+              <th>Commission</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @agent_performance.first(5).each do |agent_name, premium| %>
+              <tr>
+                <td style="font-weight: 600;"><%= agent_name %></td>
+                <td>
+                  <% agent_policies = Customer.where(sub_agent: agent_name).joins("LEFT JOIN health_insurances ON customers.id = health_insurances.customer_id").joins("LEFT JOIN life_insurances ON customers.id = life_insurances.customer_id").count %>
+                  <%= agent_policies %>
+                </td>
+                <td>₹<%= number_with_delimiter(premium.to_i) %></td>
+                <td>
+                  <span class="badge badge-success">₹<%= number_with_delimiter((premium * 0.05).to_i) %></span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recent Customer Activity -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">Recent Customer Activity</h3>
+      <div style="max-height: 300px; overflow-y: auto;">
+        <% if @recent_policies.any? %>
+          <% @recent_policies.each do |policy| %>
+            <div class="activity-item">
+              <div class="activity-icon-wrapper blue-gradient">
+                <i class="bi bi-file-earmark-plus"></i>
+              </div>
+              <div class="activity-content">
+                <div class="activity-title">New <%= policy.class.name.underscore.humanize %></div>
+                <div class="activity-description">
+                  <%= policy.customer&.display_name || "Customer" %> -
+                  ₹<%= number_with_delimiter(policy.total_premium.to_i) %>
+                </div>
+                <div class="activity-time"><%= time_ago_in_words(policy.created_at) %> ago</div>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+
+        <% if @recent_customers.any? %>
+          <% @recent_customers.first(3).each do |customer| %>
+            <div class="activity-item">
+              <div class="activity-icon-wrapper green-gradient">
+                <i class="bi bi-person-plus-fill"></i>
+              </div>
+              <div class="activity-content">
+                <div class="activity-title">New Customer Registered</div>
+                <div class="activity-description">
+                  <%= customer.display_name %> - <%= customer.city || "Location N/A" %>
+                </div>
+                <div class="activity-time"><%= time_ago_in_words(customer.created_at) %> ago</div>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Financial Analytics Section -->
+  <div class="chart-grid-3">
+    <!-- Commission Analytics -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">Commission Analytics</h3>
+      <div style="margin-top: 1rem;">
+        <%
+          commission_stats = {
+            'Total Commission Due' => { value: @commissions_due, format: 'currency', color: '#ef4444' },
+            'Avg Commission per Policy' => { value: @total_policies > 0 ? (@commissions_due / @total_policies).round(0) : 0, format: 'currency', color: '#3b82f6' },
+            'Commission Conversion Rate' => { value: @conversion_rate, format: 'percentage', color: '#10b981' },
+            'Monthly Payout Target' => { value: (@commissions_due * 0.8).round(0), format: 'currency', color: '#f59e0b' }
+          }
+        %>
+        <% commission_stats.each do |label, data| %>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9;">
+            <span style="font-weight: 500; color: #1a202c; font-size: 0.875rem;"><%= label %></span>
+            <span style="color: <%= data[:color] %>; font-size: 0.875rem; font-weight: 600;">
+              <% if data[:format] == 'currency' %>
+                ₹<%= number_with_delimiter(data[:value]) %>
+              <% elsif data[:format] == 'percentage' %>
+                <%= data[:value] %>%
+              <% else %>
+                <%= data[:value] %>
+              <% end %>
+            </span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Policy Performance -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">Policy Performance Metrics</h3>
+      <div style="margin-top: 1rem;">
+        <%
+          policy_metrics = {
+            'Health Insurance' => {
+              count: HealthInsurance.count,
+              premium: HealthInsurance.sum(:total_premium),
+              avg_premium: HealthInsurance.count > 0 ? (HealthInsurance.sum(:total_premium) / HealthInsurance.count).round(0) : 0,
+              color: '#3b82f6'
+            },
+            'Life Insurance' => {
+              count: LifeInsurance.count,
+              premium: LifeInsurance.sum(:total_premium),
+              avg_premium: LifeInsurance.count > 0 ? (LifeInsurance.sum(:total_premium) / LifeInsurance.count).round(0) : 0,
+              color: '#10b981'
+            },
+            'Motor Insurance' => {
+              count: MotorInsurance.count,
+              premium: MotorInsurance.sum(:total_premium),
+              avg_premium: MotorInsurance.count > 0 ? (MotorInsurance.sum(:total_premium) / MotorInsurance.count).round(0) : 0,
+              color: '#f59e0b'
+            }
+          }
+        %>
+        <% policy_metrics.each do |type, data| %>
+          <div style="margin-bottom: 1rem; padding: 0.75rem; background: linear-gradient(135deg, <%= data[:color] %>15 0%, <%= data[:color] %>05 100%); border-radius: 8px; border-left: 3px solid <%= data[:color] %>;">
+            <div style="font-weight: 600; color: #1a202c; margin-bottom: 0.5rem;"><%= type %></div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+              <span>Policies: <strong><%= data[:count] %></strong></span>
+              <span>Premium: <strong>₹<%= number_with_delimiter(data[:premium]) %></strong></span>
+            </div>
+            <div style="font-size: 0.8rem; color: #718096; margin-top: 0.25rem;">
+              Avg Premium: ₹<%= number_with_delimiter(data[:avg_premium]) %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Document Processing Status -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">Operations Overview</h3>
+      <div style="margin-top: 1rem;">
+        <%
+          operation_stats = {
+            'Documents Pending' => { value: @docs_pending, icon: 'bi-file-earmark-text', color: '#ef4444' },
+            'Support Tickets Open' => { value: @support_tickets, icon: 'bi-headset', color: '#f59e0b' },
+            'Claims Processing' => { value: @claims_processing, icon: 'bi-shield-check', color: '#8b5cf6' },
+            'Client Requests' => { value: @client_requests_count, icon: 'bi-person-lines-fill', color: '#06b6d4' }
+          }
+        %>
+        <% operation_stats.each do |label, data| %>
+          <div style="display: flex; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: <%= data[:color] %>15; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">
+              <i class="<%= data[:icon] %>" style="color: <%= data[:color] %>; font-size: 0.875rem;"></i>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-weight: 500; color: #1a202c; font-size: 0.875rem;"><%= label %></div>
+            </div>
+            <span style="color: <%= data[:color] %>; font-weight: 700; font-size: 1.125rem;"><%= data[:value] %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Business Health Metrics -->
+  <div class="chart-grid-3">
+    <!-- Monthly Targets Progress -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">Monthly Targets</h3>
+      <div class="progress-container">
+        <div class="progress-header">
+          <span>Premium Target</span>
+          <span>₹<%= (@total_premium_collected / 1000000.0).round(1) %>M / ₹100M</span>
         </div>
-        <div style="display: flex; justify-content: space-between;">
-          <span>Pending Payouts</span>
-          <span>₹<%= (@pending_payouts / 100000.0).round(1) %>L</span>
+        <div class="progress-bar">
+          <div class="progress-fill" style="--progress-color: #3b82f6; width: <%= [@total_premium_collected / 100000000.0 * 100, 100].min %>%;"></div>
         </div>
       </div>
-      <div class="mini-chart" style="margin-top: 1rem;">
-        <canvas id="summaryChart"></canvas>
+
+      <div class="progress-container">
+        <div class="progress-header">
+          <span>Customer Target</span>
+          <span><%= @total_customers %> / 1000</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="--progress-color: #10b981; width: <%= [@total_customers / 1000.0 * 100, 100].min %>%;"></div>
+        </div>
       </div>
+
+      <div class="progress-container">
+        <div class="progress-header">
+          <span>Policy Target</span>
+          <span><%= @total_policies %> / 500</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="--progress-color: #f59e0b; width: <%= [@total_policies / 500.0 * 100, 100].min %>%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Customer Locations -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">Top Customer Locations</h3>
+      <div style="margin-top: 1rem;">
+        <% @customer_location.first(8).each do |state, count| %>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9;">
+            <span style="font-weight: 500; color: #1a202c;"><%= state %></span>
+            <span style="color: #718096; font-size: 0.875rem;"><%= count %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">Quick Insights</h3>
+      <div style="margin-top: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="font-weight: 500; color: #1a202c;">Active Customers</span>
+          <span style="color: #22c55e; font-size: 0.875rem; font-weight: 600;"><%= @active_customers %></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="font-weight: 500; color: #1a202c;">Converted Leads</span>
+          <span style="color: #3b82f6; font-size: 0.875rem; font-weight: 600;"><%= @converted_leads %></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="font-weight: 500; color: #1a202c;">New Leads (7 days)</span>
+          <span style="color: #f59e0b; font-size: 0.875rem; font-weight: 600;"><%= @new_leads %></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="font-weight: 500; color: #1a202c;">Support Tickets</span>
+          <span style="color: #ef4444; font-size: 0.875rem; font-weight: 600;"><%= @support_tickets %></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+          <span style="font-weight: 500; color: #1a202c;">Commissions Due</span>
+          <span style="color: #8b5cf6; font-size: 0.875rem; font-weight: 600;">₹<%= (@commissions_due / 1000.0).round(1) %>K</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Renewal Policies Table -->
+  <% if @renewal_policies.any? %>
+    <div class="dashboard-card">
+      <h3 class="chart-title">Policies Due for Renewal</h3>
+      <div style="overflow-x: auto;">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Policy Details</th>
+              <th>Type</th>
+              <th>Expiry Date</th>
+              <th>Premium</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @renewal_policies.each do |policy| %>
+              <tr>
+                <td>
+                  <div style="font-weight: 600;"><%= policy.customer&.display_name || "Unknown" %></div>
+                  <div style="font-size: 0.75rem; color: #9ca3af;"><%= policy.customer&.email || "" %></div>
+                </td>
+                <td>
+                  <div style="font-weight: 500;"><%= policy.policy_number %></div>
+                  <div style="font-size: 0.75rem; color: #9ca3af;">
+                    <%= policy.try(:plan_name) || policy.class.name.underscore.humanize %>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge badge-info"><%= policy.class.name.underscore.humanize %></span>
+                </td>
+                <td>
+                  <% days_left = (policy.policy_end_date - Date.current).to_i if policy.policy_end_date %>
+                  <div style="font-weight: 600; color: <%= days_left && days_left < 7 ? '#dc2626' : '#d97706' %>;">
+                    <%= policy.policy_end_date&.strftime('%d %b %Y') %>
+                  </div>
+                  <div style="font-size: 0.75rem; color: #9ca3af;"><%= days_left %> days left</div>
+                </td>
+                <td style="font-weight: 600;">₹<%= number_with_delimiter(policy.total_premium.to_i) %></td>
+                <td>
+                  <span class="badge <%= days_left && days_left < 7 ? 'badge-danger' : 'badge-warning' %>">
+                    <%= days_left && days_left < 7 ? 'Urgent' : 'Due Soon' %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Expired Policies Management Table -->
+  <% if @expired_policies.any? %>
+    <div class="dashboard-card">
+      <h3 class="chart-title">Recently Expired Policies - Action Required</h3>
+      <div style="overflow-x: auto;">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Policy Details</th>
+              <th>Type</th>
+              <th>Expired Date</th>
+              <th>Premium</th>
+              <th>Days Expired</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @expired_policies.each do |policy| %>
+              <tr>
+                <td>
+                  <div style="font-weight: 600;"><%= policy.customer&.display_name || "Unknown" %></div>
+                  <div style="font-size: 0.75rem; color: #9ca3af;"><%= policy.customer&.email || "" %></div>
+                </td>
+                <td>
+                  <div style="font-weight: 500;"><%= policy.policy_number %></div>
+                  <div style="font-size: 0.75rem; color: #9ca3af;">
+                    <%= policy.try(:plan_name) || policy.class.name.underscore.humanize %>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge badge-info"><%= policy.class.name.underscore.humanize %></span>
+                </td>
+                <td>
+                  <% days_expired = (Date.current - policy.policy_end_date).to_i if policy.policy_end_date %>
+                  <div style="font-weight: 600; color: #dc2626;">
+                    <%= policy.policy_end_date&.strftime('%d %b %Y') %>
+                  </div>
+                </td>
+                <td style="font-weight: 600;">₹<%= number_with_delimiter(policy.total_premium.to_i) %></td>
+                <td>
+                  <div style="font-size: 0.875rem; color: #dc2626; font-weight: 600;"><%= days_expired %> days</div>
+                </td>
+                <td>
+                  <span class="badge badge-danger">Follow Up</span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Recent Lead Activities Table -->
+  <div class="dashboard-card">
+    <h3 class="chart-title">Recent Lead Activities - Last 7 Days</h3>
+    <div style="overflow-x: auto;">
+      <table class="modern-table">
+        <thead>
+          <tr>
+            <th>Lead Info</th>
+            <th>Stage</th>
+            <th>Product Interest</th>
+            <th>Agent</th>
+            <th>Created</th>
+            <th>Priority</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @recent_leads.each do |lead| %>
+            <tr>
+              <td>
+                <div style="font-weight: 600;"><%= lead.first_name %> <%= lead.last_name %></div>
+                <div style="font-size: 0.75rem; color: #9ca3af;"><%= lead.contact_number %></div>
+              </td>
+              <td>
+                <%
+                  stage_colors = {
+                    'new' => 'badge-info',
+                    'contacted' => 'badge-warning',
+                    'consultation' => 'badge-info',
+                    'one_on_one' => 'badge-warning',
+                    'converted' => 'badge-success',
+                    'policy_created' => 'badge-success'
+                  }
+                %>
+                <span class="badge <%= stage_colors[lead.current_stage] || 'badge-info' %>">
+                  <%= lead.current_stage&.humanize || 'New' %>
+                </span>
+              </td>
+              <td>
+                <div style="font-size: 0.875rem; font-weight: 500;">
+                  <%= lead.product_category || 'General' %>
+                </div>
+                <div style="font-size: 0.75rem; color: #9ca3af;">
+                  <%= lead.product_subcategory || 'N/A' %>
+                </div>
+              </td>
+              <td>
+                <div style="font-size: 0.875rem;">
+                  <%= lead.try(:sub_agent) || Customer.find_by(mobile: lead.contact_number)&.sub_agent || 'Self' %>
+                </div>
+              </td>
+              <td>
+                <div style="font-size: 0.875rem;"><%= time_ago_in_words(lead.created_at) %> ago</div>
+              </td>
+              <td>
+                <%
+                  priority = case lead.current_stage
+                  when 'new', 'contacted'
+                    { label: 'High', class: 'badge-danger' }
+                  when 'consultation', 'one_on_one'
+                    { label: 'Medium', class: 'badge-warning' }
+                  else
+                    { label: 'Low', class: 'badge-success' }
+                  end
+                %>
+                <span class="badge <%= priority[:class] %>"><%= priority[:label] %></span>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Display Banners if any -->
+  <%= display_banners('dashboard') if defined?(display_banners) %>
+
+  <!-- Bottom Secondary KPI Cards -->
+  <div class="stats-grid" style="margin-top: 2rem;">
+    <div class="mini-stat-card">
+      <div class="mini-stat-value">₹<%= (@total_sum_insured / 1000000.0).round(0) %>M</div>
+      <div class="mini-stat-label">Sum Insured</div>
+    </div>
+    <div class="mini-stat-card">
+      <div class="mini-stat-value"><%= @total_leads %></div>
+      <div class="mini-stat-label">Total Leads</div>
+    </div>
+    <div class="mini-stat-card">
+      <div class="mini-stat-value"><%= @renewal_due_count %></div>
+      <div class="mini-stat-label">Renewals Due</div>
+    </div>
+    <div class="mini-stat-card">
+      <div class="mini-stat-value">₹<%= (@pending_payouts / 100000.0).round(1) %>L</div>
+      <div class="mini-stat-label">Pending Payouts</div>
+    </div>
+    <div class="mini-stat-card">
+      <div class="mini-stat-value">₹<%= (@monthly_recurring_revenue / 100000.0).round(1) %>L</div>
+      <div class="mini-stat-label">Monthly Revenue</div>
     </div>
   </div>
 </div>
@@ -371,14 +1059,68 @@
   Chart.defaults.font.size = 12;
   Chart.defaults.color = '#64748b';
 
-  // Data from Ruby
-  const premiumTrendData = <%= @premium_collection_trend.transform_values(&:to_f).to_json.html_safe %>;
+  // Real-time data from Ruby backend
   const policyDistributionData = <%= @policy_type_distribution.to_json.html_safe %>;
+  const premiumTrendData = <%= @premium_collection_trend.transform_values(&:to_f).to_json.html_safe %>;
+  const leadFunnelData = <%= @lead_conversion_funnel.to_json.html_safe %>;
+  const renewalStatusData = <%= @renewal_status.to_json.html_safe %>;
+  const referralData = <%= @referral_status.to_json.html_safe %>;
+  const agentPerformanceData = <%= @agent_performance.transform_values(&:to_f).to_json.html_safe %>;
+  const commissionData = {
+    main_agent: <%= @commission_summary['main_agent'].transform_values(&:to_f).to_json.html_safe %>,
+    sub_agent: <%= @commission_summary['sub_agent'].transform_values(&:to_f).to_json.html_safe %>,
+    tds: <%= @commission_summary['tds'].transform_values(&:to_f).to_json.html_safe %>
+  };
   const locationData = <%= @customer_location.to_json.html_safe %>;
 
-  // 1. Main Trend Chart
-  const trendCtx = document.getElementById('trendChart').getContext('2d');
-  new Chart(trendCtx, {
+  // Chart initialization with modern styling
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          usePointStyle: true,
+          padding: 20,
+          font: { size: 11 }
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1,
+        cornerRadius: 6
+      }
+    }
+  };
+
+  // 1. Policy Type Distribution (Doughnut Chart)
+  const policyCtx = document.getElementById('policyDistributionChart').getContext('2d');
+  new Chart(policyCtx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(policyDistributionData),
+      datasets: [{
+        data: Object.values(policyDistributionData),
+        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'],
+        borderWidth: 0,
+        cutout: '70%'
+      }]
+    },
+    options: {
+      ...chartOptions,
+      plugins: {
+        ...chartOptions.plugins,
+        legend: { position: 'bottom', ...chartOptions.plugins.legend }
+      }
+    }
+  });
+
+  // 2. Premium Collection Trend (Area Chart)
+  const premiumCtx = document.getElementById('premiumTrendChart').getContext('2d');
+  new Chart(premiumCtx, {
     type: 'line',
     data: {
       labels: Object.keys(premiumTrendData),
@@ -398,29 +1140,19 @@
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          titleColor: '#fff',
-          bodyColor: '#fff',
-          borderColor: '#e2e8f0',
-          borderWidth: 1
-        }
-      },
+      ...chartOptions,
+      plugins: { legend: { display: false } },
       scales: {
         x: {
           grid: { display: false },
           border: { display: false },
-          ticks: { color: '#94a3b8' }
+          ticks: { color: '#9ca3af' }
         },
         y: {
           border: { display: false },
-          grid: { color: 'rgba(148, 163, 184, 0.1)' },
+          grid: { color: 'rgba(156, 163, 175, 0.1)' },
           ticks: {
-            color: '#94a3b8',
+            color: '#9ca3af',
             callback: function(value) {
               if (value >= 1000000) return '₹' + (value/1000000).toFixed(1) + 'M';
               if (value >= 1000) return '₹' + (value/1000).toFixed(0) + 'K';
@@ -428,125 +1160,177 @@
             }
           }
         }
-      },
-      interaction: {
-        intersect: false,
-        mode: 'index'
       }
     }
   });
 
-  // 2. Policy Distribution Chart
-  const policyCtx = document.getElementById('policyChart').getContext('2d');
-  new Chart(policyCtx, {
+  // 3. Lead Conversion Funnel
+  const leadCtx = document.getElementById('leadFunnelChart').getContext('2d');
+  new Chart(leadCtx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(leadFunnelData),
+      datasets: [{
+        data: Object.values(leadFunnelData),
+        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'],
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      ...chartOptions,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { beginAtZero: true, grid: { color: 'rgba(156, 163, 175, 0.1)' } }
+      }
+    }
+  });
+
+  // 4. Renewal Status
+  const renewalCtx = document.getElementById('renewalStatusChart').getContext('2d');
+  new Chart(renewalCtx, {
     type: 'doughnut',
     data: {
-      labels: Object.keys(policyDistributionData),
+      labels: Object.keys(renewalStatusData),
       datasets: [{
-        data: Object.values(policyDistributionData),
-        backgroundColor: [
-          '#3b82f6',
-          '#10b981',
-          '#f59e0b',
-          '#ec4899'
-        ],
+        data: Object.values(renewalStatusData),
+        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
         borderWidth: 0,
         cutout: '70%'
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
+      ...chartOptions,
       plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            padding: 20,
-            usePointStyle: true,
-            pointStyle: 'circle',
-            font: { size: 11 }
-          }
-        },
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          titleColor: '#fff',
-          bodyColor: '#fff'
-        }
+        ...chartOptions.plugins,
+        legend: { position: 'bottom', ...chartOptions.plugins.legend }
       }
     }
   });
 
-  // 3. Lead Activities Mini Chart
-  const leadCtx = document.getElementById('leadChart').getContext('2d');
-  new Chart(leadCtx, {
+  // 5. Referral Status
+  const referralCtx = document.getElementById('referralChart').getContext('2d');
+  new Chart(referralCtx, {
+    type: 'pie',
+    data: {
+      labels: Object.keys(referralData),
+      datasets: [{
+        data: Object.values(referralData),
+        backgroundColor: ['#10b981', '#f59e0b', '#3b82f6'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      ...chartOptions,
+      plugins: {
+        ...chartOptions.plugins,
+        legend: { position: 'bottom', ...chartOptions.plugins.legend }
+      }
+    }
+  });
+
+  // 6. Agent Performance
+  const agentCtx = document.getElementById('agentPerformanceChart').getContext('2d');
+  new Chart(agentCtx, {
     type: 'bar',
     data: {
-      labels: ['New', 'Converted', 'Progress', 'Follow'],
+      labels: Object.keys(agentPerformanceData),
       datasets: [{
-        data: [<%= @new_leads || 12 %>, <%= @converted_leads || 8 %>, <%= @pending_leads || 24 %>, 6],
-        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899'],
-        borderRadius: 4,
+        data: Object.values(agentPerformanceData),
+        backgroundColor: '#3b82f6',
+        borderRadius: 6,
         borderSkipped: false
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      indexAxis: 'y',
+      ...chartOptions,
+      plugins: { legend: { display: false } },
       scales: {
-        x: { display: false },
-        y: { display: false }
+        x: {
+          beginAtZero: true,
+          grid: { color: 'rgba(156, 163, 175, 0.1)' },
+          ticks: {
+            callback: function(value) {
+              if (value >= 1000000) return '₹' + (value/1000000).toFixed(1) + 'M';
+              if (value >= 1000) return '₹' + (value/1000).toFixed(0) + 'K';
+              return '₹' + value;
+            }
+          }
+        },
+        y: { grid: { display: false } }
       }
     }
   });
 
-  // 4. Location Mini Chart
+  // 7. Commission Summary
+  const commissionCtx = document.getElementById('commissionChart').getContext('2d');
+  const months = Object.keys(commissionData.main_agent || {});
+  new Chart(commissionCtx, {
+    type: 'bar',
+    data: {
+      labels: months.length > 0 ? months : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      datasets: [
+        {
+          label: 'Main Agent',
+          data: months.length > 0 ? months.map(m => commissionData.main_agent[m] || 0) : [5000, 7000, 6000, 8000, 9000, 12000],
+          backgroundColor: '#3b82f6',
+        },
+        {
+          label: 'Sub-Agent',
+          data: months.length > 0 ? months.map(m => commissionData.sub_agent[m] || 0) : [2000, 3000, 2500, 4000, 3500, 5000],
+          backgroundColor: '#10b981',
+        },
+        {
+          label: 'TDS',
+          data: months.length > 0 ? months.map(m => commissionData.tds[m] || 0) : [700, 1000, 850, 1200, 1250, 1700],
+          backgroundColor: '#ef4444',
+        }
+      ]
+    },
+    options: {
+      ...chartOptions,
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          grid: { color: 'rgba(156, 163, 175, 0.1)' },
+          ticks: {
+            callback: function(value) {
+              if (value >= 1000) return '₹' + (value/1000).toFixed(0) + 'K';
+              return '₹' + value;
+            }
+          }
+        }
+      },
+      plugins: {
+        ...chartOptions.plugins,
+        legend: { position: 'bottom', ...chartOptions.plugins.legend }
+      }
+    }
+  });
+
+  // 8. Customer Location Distribution
   const locationCtx = document.getElementById('locationChart').getContext('2d');
   new Chart(locationCtx, {
     type: 'bar',
     data: {
-      labels: Object.keys(locationData).slice(0, 4),
+      labels: Object.keys(locationData),
       datasets: [{
-        data: Object.values(locationData).slice(0, 4),
-        backgroundColor: '#f59e0b',
-        borderRadius: 4,
+        data: Object.values(locationData),
+        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#ef4444', '#eab308'],
+        borderRadius: 6,
         borderSkipped: false
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      ...chartOptions,
+      plugins: { legend: { display: false } },
       scales: {
-        x: { display: false },
-        y: { display: false }
-      }
-    }
-  });
-
-  // 5. Summary Mini Chart
-  const summaryCtx = document.getElementById('summaryChart').getContext('2d');
-  new Chart(summaryCtx, {
-    type: 'line',
-    data: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      datasets: [{
-        data: [65, 70, 80, 85, 75, 90],
-        borderColor: 'rgba(255, 255, 255, 0.8)',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderWidth: 2,
-        fill: true,
-        tension: 0.4,
-        pointRadius: 0
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      scales: {
-        x: { display: false },
-        y: { display: false }
+        x: { grid: { display: false } },
+        y: { beginAtZero: true, grid: { color: 'rgba(156, 163, 175, 0.1)' } }
       }
     }
   });
