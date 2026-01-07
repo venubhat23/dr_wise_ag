@@ -467,27 +467,6 @@
     </div>
   </div>
 
-  <!-- Performance Metrics -->
-  <div class="performance-grid">
-    <!-- Conversion Rate -->
-    <div class="performance-card" style="--start-color: #667eea; --end-color: #764ba2;">
-      <div class="performance-value"><%= @conversion_rate %>%</div>
-      <div class="performance-label">Lead Conversion Rate</div>
-    </div>
-
-    <!-- Average Policy Value -->
-    <div class="performance-card" style="--start-color: #f093fb; --end-color: #f5576c;">
-      <div class="performance-value">₹<%= (@avg_policy_value / 1000.0).round(0) %>K</div>
-      <div class="performance-label">Avg Policy Value</div>
-    </div>
-
-    <!-- Customer Retention -->
-    <div class="performance-card" style="--start-color: #4facfe; --end-color: #00f2fe;">
-      <div class="performance-value"><%= @customer_retention %>%</div>
-      <div class="performance-label">Customer Retention</div>
-    </div>
-  </div>
-
 
   <!-- Main Charts Section -->
   <div class="chart-grid">
@@ -537,9 +516,9 @@
 
   <!-- Agent Performance & Commission -->
   <div class="chart-grid-2">
-    <!-- Agent Performance -->
+    <!-- Affiliate Performance -->
     <div class="dashboard-card">
-      <h3 class="chart-title">Top Agent Performance</h3>
+      <h3 class="chart-title">Top Affiliate Performance</h3>
       <div class="chart-container">
         <canvas id="agentPerformanceChart"></canvas>
       </div>
@@ -595,30 +574,32 @@
 
   <!-- Data Tables Section -->
   <div class="data-table-grid">
-    <!-- Top Performing Agents -->
+    <!-- Top Performing Affiliates -->
     <div class="dashboard-card">
-      <h3 class="chart-title">Top Performing Agents</h3>
+      <h3 class="chart-title">Top Performing Affiliates</h3>
       <div style="overflow-x: auto;">
         <table class="modern-table">
           <thead>
             <tr>
-              <th>Agent Name</th>
-              <th>Policies Sold</th>
+              <th>Affiliate Name</th>
+              <th>Customers Acquired</th>
               <th>Premium Generated</th>
               <th>Commission</th>
             </tr>
           </thead>
           <tbody>
-            <% @agent_performance.first(5).each do |agent_name, premium| %>
+            <% @agent_performance.first(5).each do |affiliate_name, premium| %>
               <tr>
-                <td style="font-weight: 600;"><%= agent_name %></td>
+                <td style="font-weight: 600;"><%= affiliate_name %></td>
                 <td>
-                  <% agent_policies = Customer.where(sub_agent: agent_name).joins("LEFT JOIN health_insurances ON customers.id = health_insurances.customer_id").joins("LEFT JOIN life_insurances ON customers.id = life_insurances.customer_id").count %>
-                  <%= agent_policies %>
+                  <% customer_count = Customer.where(sub_agent: affiliate_name).count %>
+                  <%= customer_count %>
                 </td>
                 <td>₹<%= number_with_delimiter(premium.to_i) %></td>
                 <td>
-                  <span class="badge badge-success">₹<%= number_with_delimiter((premium * 0.05).to_i) %></span>
+                  <span class="badge <%= premium > 0 ? 'badge-success' : 'badge-warning' %>">
+                    ₹<%= number_with_delimiter((premium * 0.05).to_i) %>
+                  </span>
                 </td>
               </tr>
             <% end %>
@@ -770,37 +751,11 @@
 
   <!-- Business Health Metrics -->
   <div class="chart-grid-3">
-    <!-- Monthly Targets Progress -->
+    <!-- Customer Acquisition Trend -->
     <div class="dashboard-card">
-      <h3 class="chart-title">Monthly Targets</h3>
-      <div class="progress-container">
-        <div class="progress-header">
-          <span>Premium Target</span>
-          <span>₹<%= (@total_premium_collected / 1000000.0).round(1) %>M / ₹100M</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="--progress-color: #3b82f6; width: <%= [@total_premium_collected / 100000000.0 * 100, 100].min %>%;"></div>
-        </div>
-      </div>
-
-      <div class="progress-container">
-        <div class="progress-header">
-          <span>Customer Target</span>
-          <span><%= @total_customers %> / 1000</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="--progress-color: #10b981; width: <%= [@total_customers / 1000.0 * 100, 100].min %>%;"></div>
-        </div>
-      </div>
-
-      <div class="progress-container">
-        <div class="progress-header">
-          <span>Policy Target</span>
-          <span><%= @total_policies %> / 500</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="--progress-color: #f59e0b; width: <%= [@total_policies / 500.0 * 100, 100].min %>%;"></div>
-        </div>
+      <h3 class="chart-title">Customer Acquisition Trend</h3>
+      <div class="chart-container small">
+        <canvas id="customerAcquisitionChart"></canvas>
       </div>
     </div>
 
@@ -1028,8 +983,29 @@
   <!-- Display Banners if any -->
   <%= display_banners('dashboard') if defined?(display_banners) %>
 
+  <!-- Bottom Performance & Secondary KPI Cards -->
+  <div class="performance-grid" style="margin-top: 2rem;">
+    <!-- Conversion Rate -->
+    <div class="performance-card" style="--start-color: #667eea; --end-color: #764ba2;">
+      <div class="performance-value"><%= @conversion_rate %>%</div>
+      <div class="performance-label">Lead Conversion Rate</div>
+    </div>
+
+    <!-- Average Policy Value -->
+    <div class="performance-card" style="--start-color: #f093fb; --end-color: #f5576c;">
+      <div class="performance-value">₹<%= (@avg_policy_value / 1000.0).round(0) %>K</div>
+      <div class="performance-label">Avg Policy Value</div>
+    </div>
+
+    <!-- Customer Retention -->
+    <div class="performance-card" style="--start-color: #4facfe; --end-color: #00f2fe;">
+      <div class="performance-value"><%= @customer_retention %>%</div>
+      <div class="performance-label">Customer Retention</div>
+    </div>
+  </div>
+
   <!-- Bottom Secondary KPI Cards -->
-  <div class="stats-grid" style="margin-top: 2rem;">
+  <div class="stats-grid" style="margin-top: 1rem;">
     <div class="mini-stat-card">
       <div class="mini-stat-value">₹<%= (@total_sum_insured / 1000000.0).round(0) %>M</div>
       <div class="mini-stat-label">Sum Insured</div>
@@ -1060,7 +1036,7 @@
   Chart.defaults.color = '#64748b';
 
   // Real-time data from Ruby backend
-  const policyDistributionData = <%= @policy_type_distribution.to_json.html_safe %>;
+  const policyDistributionData = <%= @policy_type_distribution.transform_values { |v| v.is_a?(Hash) ? v[:count] : v }.to_json.html_safe %>;
   const premiumTrendData = <%= @premium_collection_trend.transform_values(&:to_f).to_json.html_safe %>;
   const leadFunnelData = <%= @lead_conversion_funnel.to_json.html_safe %>;
   const renewalStatusData = <%= @renewal_status.to_json.html_safe %>;
@@ -1072,6 +1048,7 @@
     tds: <%= @commission_summary['tds'].transform_values(&:to_f).to_json.html_safe %>
   };
   const locationData = <%= @customer_location.to_json.html_safe %>;
+  const customerAcquisitionData = <%= @customer_acquisition_trend.to_json.html_safe %>;
 
   // Chart initialization with modern styling
   const chartOptions = {
@@ -1331,6 +1308,48 @@
       scales: {
         x: { grid: { display: false } },
         y: { beginAtZero: true, grid: { color: 'rgba(156, 163, 175, 0.1)' } }
+      }
+    }
+  });
+
+  // 9. Customer Acquisition Trend
+  const customerAcquisitionCtx = document.getElementById('customerAcquisitionChart').getContext('2d');
+  new Chart(customerAcquisitionCtx, {
+    type: 'line',
+    data: {
+      labels: Object.keys(customerAcquisitionData),
+      datasets: [{
+        label: 'New Customers',
+        data: Object.values(customerAcquisitionData),
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#10b981',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }]
+    },
+    options: {
+      ...chartOptions,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: { color: '#9ca3af' }
+        },
+        y: {
+          border: { display: false },
+          grid: { color: 'rgba(156, 163, 175, 0.1)' },
+          ticks: {
+            color: '#9ca3af',
+            beginAtZero: true
+          }
+        }
       }
     }
   });

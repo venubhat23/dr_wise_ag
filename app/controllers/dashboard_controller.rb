@@ -153,25 +153,34 @@ class DashboardController < ApplicationController
       'Policy Created' => Lead.where(current_stage: 'policy_created').count
     }
 
-    # Agent performance - top agents by premium
+    # Top Affiliate performance - based on actual SubAgent data
     @agent_performance = {}
 
-    # Get top sub agents by name from customers table
-    agent_names = Customer.where.not(sub_agent: ['Self', nil, '']).group(:sub_agent).count.keys
+    # Get all SubAgents with their data
+    SubAgent.where(status: 'active').find_each do |sub_agent|
+      # Create full name from first_name and last_name
+      affiliate_name = "#{sub_agent.first_name} #{sub_agent.last_name}".strip
+      affiliate_name = "Affiliate #{sub_agent.id}" if affiliate_name.blank?
 
-    agent_names.first(10).each do |agent_name|
-      # Calculate total premium from all insurance types for customers with this agent
-      customer_ids = Customer.where(sub_agent: agent_name).pluck(:id)
+      # Calculate total premium from customers linked to this sub agent
+      customer_ids = Customer.where(sub_agent: affiliate_name).pluck(:id)
 
       if customer_ids.any?
-        total_agent_premium = HealthInsurance.where(customer_id: customer_ids).sum(:total_premium) +
-                             LifeInsurance.where(customer_id: customer_ids).sum(:total_premium) +
-                             MotorInsurance.where(customer_id: customer_ids).sum(:total_premium)
-                             # OtherInsurance doesn't have total_premium column
+        total_premium = HealthInsurance.where(customer_id: customer_ids).sum(:total_premium) +
+                       LifeInsurance.where(customer_id: customer_ids).sum(:total_premium) +
+                       MotorInsurance.where(customer_id: customer_ids).sum(:total_premium)
 
-        @agent_performance[agent_name] = total_agent_premium if total_agent_premium > 0
+        # Add SubAgent name and premium if there's business
+        if total_premium > 0
+          @agent_performance[affiliate_name] = total_premium
+        end
+      else
+        # If no customers linked, show as potential affiliate
+        @agent_performance[affiliate_name] = 0
       end
     end
+
+    # Sort by premium and take top 7
     @agent_performance = @agent_performance.sort_by { |_, v| -v }.first(7).to_h
 
     # Renewal status overview
@@ -231,6 +240,16 @@ class DashboardController < ApplicationController
 
     # Customer geographic distribution
     @customer_location = Customer.group(:state).count.sort_by { |_, v| -v }.first(8).to_h
+
+    # Customer acquisition trend (last 6 months)
+    @customer_acquisition_trend = {}
+    6.times do |i|
+      month_date = (Date.current - i.months).beginning_of_month
+      month_name = month_date.strftime('%b')
+      monthly_customers = Customer.where(created_at: month_date..(month_date.end_of_month)).count
+      @customer_acquisition_trend[month_name] = monthly_customers
+    end
+    @customer_acquisition_trend = @customer_acquisition_trend.to_a.reverse.to_h
 
     # Calculate growth percentages (real-time data)
     calculate_growth_metrics
