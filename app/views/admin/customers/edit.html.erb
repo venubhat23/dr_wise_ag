@@ -44,7 +44,7 @@
               <%= form.select :added_by,
                   options_for_select([
                     ['Self', 'self'],
-                    ['Sub-Agent', 'sub_agent']
+                    ['Affiliate', 'sub_agent']
                   ], @customer.added_by),
                   { prompt: 'Select added by' },
                   { class: "form-select" } %>

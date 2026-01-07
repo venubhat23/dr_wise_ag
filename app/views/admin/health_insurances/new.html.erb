@@ -72,10 +72,10 @@
 
             <div class="row">
               <div class="col-md-6 mb-3" id="distributor_field">
-                <%= form.label :distributor_id, "Distributor*", class: "form-label required" %>
+                <%= form.label :distributor_id, "Ambassador*", class: "form-label required" %>
                 <%= form.select :distributor_id,
-                    options_for_select([['Select Distributor', '']] + @distributors.map { |d| [d.display_name, d.id] }),
-                    { prompt: 'Select Distributor' },
+                    options_for_select([['Select Ambassador', '']] + @distributors.map { |d| [d.display_name, d.id] }),
+                    { prompt: 'Select Ambassador' },
                     { class: "form-select", required: true, id: "distributor_select" } %>
               </div>
 

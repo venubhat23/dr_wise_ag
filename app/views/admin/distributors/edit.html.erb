@@ -5,13 +5,13 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-1">Edit Distributor</h2>
-    <p class="text-muted mb-0">Update distributor details: <%= @distributor.display_name %></p>
+    <h2 class="mb-1">Edit Ambassador</h2>
+    <p class="text-muted mb-0">Update ambassador details: <%= @distributor.display_name %></p>
   </div>
   <div>
     <%= link_to admin_distributors_path, class: "btn btn-outline-secondary" do %>
       <i class="bi bi-arrow-left me-1"></i>
-      Back to Distributors
+      Back to Ambassadors
     <% end %>
   </div>
 </div>
@@ -303,7 +303,7 @@
     <div class="card-body">
       <div class="d-flex justify-content-end gap-2">
         <%= link_to "Cancel", admin_distributors_path, class: "btn btn-outline-secondary" %>
-        <%= form.submit "Update Distributor", class: "btn btn-primary" %>
+        <%= form.submit "Update Ambassador", class: "btn btn-primary" %>
       </div>
     </div>
   </div>

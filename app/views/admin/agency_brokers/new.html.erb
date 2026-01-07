@@ -80,7 +80,7 @@
               <%= form.select :user_type,
                   options_for_select([
                     ['Agent', 'agent'],
-                    ['Sub Agent', 'sub_agent']
+                    ['Affiliate', 'sub_agent']
                   ], @agency_broker.user_type),
                   { prompt: 'Select Partner Type' },
                   { class: "form-select #{'is-invalid' if @agency_broker.errors[:user_type].any?}", required: true } %>
@@ -259,7 +259,7 @@
                 <strong>Agent:</strong> Individual insurance agents who work directly with customers.
               </p>
               <p class="mb-0 text-muted">
-                <strong>Sub Agent:</strong> Regional representatives who manage a specific area or customer segment.
+                <strong>Affiliate:</strong> Regional representatives who manage a specific area or customer segment.
               </p>
             </div>
 

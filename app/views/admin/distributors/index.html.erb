@@ -50,7 +50,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Inactive Distributors</h6>
+            <h6 class="text-muted mb-2">Inactive Ambassadors</h6>
             <h3 class="mb-0 text-warning"><%= number_with_delimiter(@inactive_distributors) %></h3>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
@@ -95,7 +95,7 @@
   </div>
 </div>
 
-<!-- Distributors Table -->
+<!-- Ambassadors Table -->
 <div class="card shadow-sm">
   <div class="card-body">
     <% if @distributors.any? %>
@@ -196,13 +196,13 @@
             <% if defined?(@total_filtered_count) && @total_filtered_count.present? %>
               Showing <%= @distributors.current_page == 1 ? 1 : ((@distributors.current_page - 1) * @distributors.limit_value + 1) %>
               to <%= [@distributors.current_page * @distributors.limit_value, @total_filtered_count].min %>
-              of <%= number_with_delimiter(@total_filtered_count) %> distributors
+              of <%= number_with_delimiter(@total_filtered_count) %> ambassadors
             <% elsif @distributors.respond_to?(:total_count) %>
               Showing <%= @distributors.current_page == 1 ? 1 : ((@distributors.current_page - 1) * @distributors.limit_value + 1) %>
               to <%= [@distributors.current_page * @distributors.limit_value, @distributors.total_count].min %>
-              of <%= number_with_delimiter(@distributors.total_count) %> distributors
+              of <%= number_with_delimiter(@distributors.total_count) %> ambassadors
             <% else %>
-              Showing <%= @distributors.count %> distributors
+              Showing <%= @distributors.count %> ambassadors
             <% end %>
           </small>
 
@@ -219,18 +219,18 @@
         <div class="mb-3">
           <i class="bi bi-people display-1 text-muted"></i>
         </div>
-        <h5 class="mb-3">No Distributors Found</h5>
+        <h5 class="mb-3">No Ambassadors Found</h5>
         <p class="text-muted mb-4">
           <% if params[:search].present? || params[:status].present? %>
-            No distributors match your current filters. Try adjusting your search criteria.
+            No ambassadors match your current filters. Try adjusting your search criteria.
           <% else %>
-            Start building your distributor network by adding your first distributor.
+            Start building your ambassador network by adding your first ambassador.
           <% end %>
         </p>
         <% unless params[:search].present? || params[:status].present? %>
           <%= link_to new_admin_distributor_path, class: "btn btn-primary" do %>
             <i class="bi bi-plus-lg me-1"></i>
-            Create First Distributor
+            Create First Ambassador
           <% end %>
         <% end %>
       </div>

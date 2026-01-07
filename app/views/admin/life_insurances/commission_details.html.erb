@@ -94,11 +94,11 @@
 
         <hr>
 
-        <!-- Sub-Agent Commission -->
+        <!-- Affiliate Commission -->
         <div class="commission-section mb-4">
           <h6 class="commission-title">
             <i class="bi bi-person me-2"></i>
-            Sub-Agent Commission
+            Affiliate Commission
           </h6>
           <div class="row g-3">
             <div class="col-md-3">
@@ -130,11 +130,11 @@
 
         <hr>
 
-        <!-- Distributor Commission -->
+        <!-- Ambassador Commission -->
         <div class="commission-section mb-4">
           <h6 class="commission-title">
             <i class="bi bi-truck me-2"></i>
-            Distributor Commission
+            Ambassador Commission
           </h6>
           <div class="row g-3">
             <div class="col-md-3">
@@ -321,13 +321,13 @@
             Distribution:
           </div>
           <div class="summary-value">
-            Sub-agent + Distributor + Investor portions =
+            Sub-agent + Ambassador + Investor portions =
             <strong class="text-warning">₹<span id="summaryTotalDistribution">0</span></strong>
           </div>
           <div class="summary-breakdown">
             <small class="text-muted">
               Sub-agent: <span id="summarySubAgentPercentage">2.0</span>% (₹<span id="summarySubAgentAmount">0</span>) +
-              Distributor: <span id="summaryDistributorPercentage">1.0</span>% (₹<span id="summaryDistributorAmount">0</span>) +
+              Ambassador: <span id="summaryDistributorPercentage">1.0</span>% (₹<span id="summaryDistributorAmount">0</span>) +
               Investor: <span id="summaryInvestorPercentage">2.0</span>% (₹<span id="summaryInvestorAmount">0</span>)
             </small>
           </div>
@@ -375,14 +375,14 @@
       </div>
       <div class="card-body">
         <div class="team-member mb-3">
-          <div class="team-role">Sub-Agent</div>
+          <div class="team-role">Affiliate</div>
           <div class="team-name">
             <%= @life_insurance.sub_agent ? @life_insurance.sub_agent.display_name : 'Self' %>
           </div>
         </div>
 
         <div class="team-member mb-3">
-          <div class="team-role">Distributor</div>
+          <div class="team-role">Ambassador</div>
           <div class="team-name">
             <%= @life_insurance.distributor ? @life_insurance.distributor.display_name : 'Not Assigned' %>
           </div>

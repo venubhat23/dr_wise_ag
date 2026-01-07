@@ -18,7 +18,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Total Affiliate</h6>
+            <h6 class="text-muted mb-2">Total Affiliates</h6>
             <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_sub_agents) %></h3>
           </div>
           <div class="bg-primary bg-opacity-10 rounded p-3">
@@ -34,7 +34,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Active Affiliate</h6>
+            <h6 class="text-muted mb-2">Active Affiliates</h6>
             <h3 class="mb-0 text-success"><%= number_with_delimiter(@active_sub_agents) %></h3>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
@@ -50,7 +50,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Inactive Affiliate</h6>
+            <h6 class="text-muted mb-2">Inactive Affiliates</h6>
             <h3 class="mb-0 text-warning"><%= number_with_delimiter(@inactive_sub_agents) %></h3>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
@@ -95,7 +95,7 @@
   </div>
 </div>
 
-<!-- Sub Agents Table -->
+<!-- Affiliates Table -->
 <div class="card shadow-sm">
   <div class="card-body" style="overflow: visible;">
     <% if @sub_agents.any? %>
@@ -107,7 +107,7 @@
               <th>Mobile</th>
               <th>Email & Login</th>
               <th>Role</th>
-              <th>Assigned Distributor</th>
+              <th>Assigned Ambassador</th>
               <th>Status</th>
               <th>Created</th>
               <th>Actions</th>
@@ -240,18 +240,18 @@
         <div class="mb-3">
           <i class="bi bi-people display-1 text-muted"></i>
         </div>
-        <h5 class="mb-3">No Sub Agents Found</h5>
+        <h5 class="mb-3">No Affiliates Found</h5>
         <p class="text-muted mb-4">
           <% if params[:search].present? || params[:status].present? %>
-            No sub agents match your current filters. Try adjusting your search criteria.
+            No affiliates match your current filters. Try adjusting your search criteria.
           <% else %>
-            Start building your sub agent network by adding your first sub agent.
+            Start building your affiliate network by adding your first affiliate.
           <% end %>
         </p>
         <% unless params[:search].present? || params[:status].present? %>
           <%= link_to new_admin_sub_agent_path, class: "btn btn-primary" do %>
             <i class="bi bi-plus-lg me-1"></i>
-            Create First Sub Agent
+            Create First Affiliate
           <% end %>
         <% end %>
       </div>

@@ -88,7 +88,7 @@
           </li>
         <% end %>
 
-        <!-- Sub Agents -->
+        <!-- Affiliates -->
         <% if show_sidebar_item?('users') %>
           <li class="nav-item">
             <%= link_to admin_sub_agents_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/sub_agents')}" do %>
@@ -97,7 +97,7 @@
                   <i class="bi bi-people"></i>
                 </div>
               </div>
-              <span class="nav-text">Sub Agents</span>
+              <span class="nav-text">Affiliates</span>
               <div class="nav-indicator"></div>
             <% end %>
           </li>

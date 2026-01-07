@@ -38,10 +38,6 @@ class SubAgent < ApplicationRecord
             uniqueness: {
               message: "number is already registered with another affiliate",
               case_sensitive: false
-            },
-            format: {
-              with: /\A[0-9]{10}\z/,
-              message: "must be a 10-digit number"
             }
   validates :email, presence: true,
             uniqueness: {

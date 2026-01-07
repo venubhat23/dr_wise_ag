@@ -7,31 +7,16 @@
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
   .dashboard-container {
-    padding: 0;
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    min-height: 100vh;
-    position: relative;
-    overflow-x: hidden;
+    min-height: calc(100vh - 60px);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     color: #1e293b;
-  }
-
-  .dashboard-container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 400px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    z-index: 0;
   }
 
   .main-content {
     position: relative;
     z-index: 1;
-    margin-top: -150px;
-    padding: 0 2rem 2rem 2rem;
+    padding: 1.5rem;
   }
 
 
@@ -239,9 +224,9 @@
     box-shadow: 0 5px 15px var(--activity-shadow);
   }
 
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; }
-  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; }
-  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 1.5rem; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 1.5rem; }
 
   @media (max-width: 1400px) {
     .grid-4 { grid-template-columns: repeat(3, 1fr); }
@@ -251,9 +236,35 @@
     .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); }
   }
 
+  /* Responsive adjustments */
+  @media (max-width: 1200px) {
+    .dashboard-container {
+      margin-left: 200px; /* Smaller margin for medium screens */
+    }
+  }
+
+  @media (max-width: 992px) {
+    .dashboard-container {
+      margin-left: 80px; /* Collapsed sidebar width */
+    }
+  }
+
   @media (max-width: 768px) {
-    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
-    .dashboard-container { padding: 1rem; }
+    .grid-4, .grid-3, .grid-2 {
+      grid-template-columns: 1fr;
+    }
+    .dashboard-container {
+      padding: 1rem;
+      margin-left: 0; /* No sidebar on mobile */
+      padding-top: 4rem; /* Extra space for mobile nav */
+    }
+    .main-content {
+      padding: 1rem;
+    }
+    .dashboard-header {
+      margin: -1rem -1rem 1.5rem -1rem;
+      border-radius: 0 0 20px 20px;
+    }
   }
 
   .pulse {
@@ -267,20 +278,20 @@
 
   /* Professional Fintech Color Palette */
   :root {
-    --gradient-blue: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    --gradient-green: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    --gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    --gradient-yellow: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    --gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-    --gradient-orange: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-    --gradient-cyan: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-    --gradient-pink: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+    --gradient-blue: linear-gradient(135deg, #4F46E5 0%, #3730A3 100%);
+    --gradient-green: linear-gradient(135deg, #10B981 0%, #047857 100%);
+    --gradient-red: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%);
+    --gradient-yellow: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+    --gradient-purple: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+    --gradient-orange: linear-gradient(135deg, #FB923C 0%, #EA580C 100%);
+    --gradient-cyan: linear-gradient(135deg, #22D3EE 0%, #0891B2 100%);
+    --gradient-pink: linear-gradient(135deg, #F472B6 0%, #DB2777 100%);
 
-    --card-border-color: #e2e8f0;
-    --primary-blue: #3b82f6;
-    --success-green: #10b981;
-    --warning-orange: #f59e0b;
-    --danger-red: #ef4444;
+    --card-border-color: rgba(148, 163, 184, 0.15);
+    --primary-blue: #4F46E5;
+    --success-green: #10B981;
+    --warning-orange: #F59E0B;
+    --danger-red: #EF4444;
   }
 
   .chart-container {
@@ -519,11 +530,12 @@
 
   /* Dashboard Header */
   .dashboard-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
     color: white;
-    padding: 3rem 2rem 2rem 2rem;
-    position: relative;
-    border-radius: 0 0 24px 24px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(79, 70, 229, 0.2);
   }
 
 
@@ -558,63 +570,66 @@
 
   .header-actions {
     display: flex;
-    align-items: flex-end;
-    gap: 2rem;
+    align-items: center;
+    gap: 3rem;
   }
 
-  .header-stats {
+  .header-metrics {
     display: flex;
-    gap: 2rem;
+    gap: 2.5rem;
+    align-items: center;
   }
 
-  .header-stat {
+  .header-metric {
     text-align: center;
-    padding: 0.5rem 1rem;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    padding: 1rem 2rem;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    transition: all 0.3s ease;
   }
 
-  .stat-number {
+  .header-metric:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  }
+
+  .metric-value {
     display: block;
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: white;
+    margin-bottom: 0.25rem;
   }
 
-  .stat-desc {
+  .metric-label {
     display: block;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.85);
     font-weight: 500;
   }
 
-  .refresh-button {
+  .btn-refresh {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
     padding: 0.75rem 1.5rem;
-    border-radius: 15px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
     cursor: pointer;
     transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-weight: 600;
     backdrop-filter: blur(10px);
   }
 
-  .refresh-button:hover {
-    background: rgba(255, 255, 255, 0.25);
+  .btn-refresh:hover {
+    background: rgba(255, 255, 255, 0.3);
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-  }
-
-  .refresh-button i {
-    font-size: 1.1rem;
-  }
-
-  .refresh-button span {
-    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   }
 
   .header-wave {
@@ -725,16 +740,16 @@
 </style>
 
 <div class="dashboard-container">
-  <!-- Professional Header -->
+  <!-- Professional Fintech Header -->
   <div class="dashboard-header">
     <div class="header-content">
       <div class="header-main">
         <h1 class="dashboard-title">
-          <i class="bi bi-bar-chart-line-fill"></i>
-          Insurance Analytics
+          <i class="bi bi-graph-up-arrow"></i>
+          DrWise Analytics Dashboard
         </h1>
         <p class="dashboard-subtitle">
-          Comprehensive financial insights and performance metrics
+          Real-time insights and performance metrics for insurance management
         </p>
       </div>
       <div class="header-actions">
@@ -755,7 +770,7 @@
         <div class="header-controls">
           <button class="btn-refresh" onclick="updateDashboardStats()">
             <i class="bi bi-arrow-clockwise"></i>
-            <span>Refresh Data</span>
+            <span>Refresh</span>
           </button>
         </div>
       </div>
@@ -766,7 +781,7 @@
 
   <!-- Stats Cards -->
   <div class="grid-4">
-    <!-- Total Customers -->
+    <!-- Total Clients -->
     <div class="stat-card"
          style="--card-gradient: var(--gradient-blue);
                 --icon-gradient: var(--gradient-blue);
@@ -776,20 +791,20 @@
         <i class="bi bi-people-fill"></i>
       </div>
       <div class="stat-value pulse"><%= number_with_delimiter(@total_customers) %></div>
-      <div class="stat-label">Total Customers</div>
+      <div class="stat-label">Total Clients</div>
     </div>
 
-    <!-- Total Agents -->
+    <!-- Total Affiliates -->
     <div class="stat-card"
          style="--card-gradient: var(--gradient-green);
                 --icon-gradient: var(--gradient-green);
                 --icon-shadow: rgba(17, 153, 142, 0.3);
                 --text-gradient: var(--gradient-green);">
       <div class="stat-icon">
-        <i class="bi bi-person-badge-fill"></i>
+        <i class="bi bi-people"></i>
       </div>
-      <div class="stat-value pulse"><%= number_with_delimiter(@total_agents) %></div>
-      <div class="stat-label">Active Agents</div>
+      <div class="stat-value pulse"><%= number_with_delimiter(@total_affiliates) %></div>
+      <div class="stat-label">Total Affiliates</div>
     </div>
 
     <!-- Total Policies -->
@@ -1758,7 +1773,7 @@
           backgroundColor: 'rgba(102, 126, 234, 0.8)',
         },
         {
-          label: 'Sub-Agent Commission',
+          label: 'Affiliate Commission',
           data: hasCommissionData ? months.map(m => commissionData.sub_agent[m] || 0) : [2000, 3000, 2500, 4000, 3500, 5000],
           backgroundColor: 'rgba(17, 153, 142, 0.8)',
         },

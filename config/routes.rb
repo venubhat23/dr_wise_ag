@@ -16,6 +16,8 @@ Rails.application.routes.draw do
 
   # Dashboard
   get 'dashboard', to: 'dashboard#index'
+  get 'dashboard/beautiful', to: 'dashboard#beautiful'
+  get 'dashboard/ultra', to: 'dashboard#ultra'
   get 'dashboard/stats', to: 'dashboard#stats'
 
   # API routes

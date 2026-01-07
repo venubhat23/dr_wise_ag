@@ -64,7 +64,7 @@
       <div class="card-body">
         <div class="d-flex align-items-center">
           <div class="flex-grow-1">
-            <h6 class="text-muted mb-1">Sub Agents</h6>
+            <h6 class="text-muted mb-1">Affiliates</h6>
             <h4 class="mb-0"><%= @agency_brokers.where(user_type: 'sub_agent').count %></h4>
           </div>
           <div class="text-warning">
@@ -87,7 +87,7 @@
         <%= form.select :user_type, options_for_select([
           ['All Types', ''],
           ['Agent', 'agent'],
-          ['Sub Agent', 'sub_agent']
+          ['Affiliate', 'sub_agent']
         ], params[:user_type]), {}, { class: "form-select" } %>
       </div>
       <div class="col-md-3">

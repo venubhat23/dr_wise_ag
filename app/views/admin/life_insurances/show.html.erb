@@ -96,7 +96,7 @@
             <%= @life_insurance.insured_name %>
           </div>
           <div class="col-md-6 mb-3">
-            <strong>Sub Agent:</strong><br>
+            <strong>Affiliate:</strong><br>
             <%= @life_insurance.affiliate_name %>
           </div>
         </div>
@@ -491,7 +491,7 @@
         </div>
         <% if @life_insurance.sub_agent %>
           <div class="mb-3">
-            <strong>Sub Agent:</strong><br>
+            <strong>Affiliate:</strong><br>
             <%= @life_insurance.sub_agent.display_name %><br>
             <small class="text-muted">
               <a href="mailto:<%= @life_insurance.sub_agent.email %>">

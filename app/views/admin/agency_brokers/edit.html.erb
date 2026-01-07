@@ -84,7 +84,7 @@
               <%= form.select :user_type,
                   options_for_select([
                     ['Agent', 'agent'],
-                    ['Sub Agent', 'sub_agent']
+                    ['Affiliate', 'sub_agent']
                   ], @agency_broker.user_type),
                   { prompt: 'Select Partner Type' },
                   { class: "form-select #{'is-invalid' if @agency_broker.errors[:user_type].any?}", required: true } %>

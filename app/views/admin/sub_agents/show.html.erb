@@ -6,13 +6,13 @@
       <span class="badge bg-<%= @sub_agent.active? ? 'success' : 'secondary' %> me-2">
         <%= @sub_agent.status.capitalize %>
       </span>
-      Sub Agent Details
+      Affiliate Details
     </p>
   </div>
   <div class="d-flex gap-2">
     <%= link_to edit_admin_sub_agent_path(@sub_agent), class: "btn btn-primary" do %>
       <i class="bi bi-pencil me-1"></i>
-      Edit Sub Agent
+      Edit Affiliate
     <% end %>
     <%= link_to admin_sub_agents_path, class: "btn btn-outline-secondary" do %>
       <i class="bi bi-arrow-left me-1"></i>
@@ -170,17 +170,17 @@
       <div class="text-center py-4">
         <i class="bi bi-bank display-6 text-muted mb-3 d-block"></i>
         <h6 class="text-muted">No bank details provided</h6>
-        <p class="text-muted mb-0">Bank information can be added when editing the sub agent.</p>
+        <p class="text-muted mb-0">Bank information can be added when editing the affiliate.</p>
       </div>
     <% end %>
   </div>
 </div>
 
-<!-- Distributor Assignment -->
+<!-- Ambassador Assignment -->
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-header bg-transparent border-0 d-flex align-items-center">
     <i class="bi bi-person-badge me-2 text-info"></i>
-    <h5 class="mb-0">Distributor Assignment</h5>
+    <h5 class="mb-0">Ambassador Assignment</h5>
   </div>
   <div class="card-body">
     <% if @assigned_distributor.present? %>
@@ -196,7 +196,7 @@
               </td>
             </tr>
             <tr>
-              <th class="text-muted">Distributor Email:</th>
+              <th class="text-muted">Ambassador Email:</th>
               <td>
                 <a href="mailto:<%= @assigned_distributor.email %>" class="text-decoration-none">
                   <i class="bi bi-envelope me-1"></i>
@@ -205,7 +205,7 @@
               </td>
             </tr>
             <tr>
-              <th class="text-muted">Distributor Mobile:</th>
+              <th class="text-muted">Ambassador Mobile:</th>
               <td>
                 <a href="tel:<%= @assigned_distributor.mobile %>" class="text-decoration-none">
                   <i class="bi bi-telephone me-1"></i>
@@ -229,7 +229,7 @@
               </td>
             </tr>
             <tr>
-              <th class="text-muted">Distributor Status:</th>
+              <th class="text-muted">Ambassador Status:</th>
               <td>
                 <span class="badge bg-<%= @assigned_distributor.active? ? 'success' : 'secondary' %>">
                   <%= @assigned_distributor.status.capitalize %>
@@ -246,10 +246,10 @@
     <% else %>
       <div class="text-center py-4">
         <i class="bi bi-person-badge display-6 text-muted mb-3 d-block"></i>
-        <h6 class="text-muted">No Distributor Assigned</h6>
-        <p class="text-muted mb-3">This sub agent is not currently assigned to any distributor.</p>
+        <h6 class="text-muted">No Ambassador Assigned</h6>
+        <p class="text-muted mb-3">This affiliate is not currently assigned to any ambassador.</p>
         <%= link_to edit_admin_sub_agent_path(@sub_agent), class: "btn btn-outline-primary" do %>
-          <i class="bi bi-plus-lg me-1"></i>Assign Distributor
+          <i class="bi bi-plus-lg me-1"></i>Assign Ambassador
         <% end %>
       </div>
     <% end %>
@@ -346,7 +346,7 @@
       <div class="text-center py-4">
         <i class="bi bi-file-earmark display-6 text-muted mb-3 d-block"></i>
         <h6 class="text-muted">No documents uploaded</h6>
-        <p class="text-muted mb-3">Documents can be added when editing the sub agent.</p>
+        <p class="text-muted mb-3">Documents can be added when editing the affiliate.</p>
         <%= link_to edit_admin_sub_agent_path(@sub_agent), class: "btn btn-outline-primary" do %>
           <i class="bi bi-plus-lg me-1"></i>Add Documents
         <% end %>
@@ -469,7 +469,7 @@
       <div class="text-center py-4">
         <i class="bi bi-shield display-6 text-muted mb-3 d-block"></i>
         <h6 class="text-muted">No policies found</h6>
-        <p class="text-muted mb-0">This sub agent has not handled any policies yet.</p>
+        <p class="text-muted mb-0">This affiliate has not handled any policies yet.</p>
       </div>
     <% end %>
   </div>
@@ -578,7 +578,7 @@
       <div class="text-center py-4">
         <i class="bi bi-cash display-6 text-muted mb-3 d-block"></i>
         <h6 class="text-muted">No commission records found</h6>
-        <p class="text-muted mb-0">No commission payouts have been recorded for this sub agent yet.</p>
+        <p class="text-muted mb-0">No commission payouts have been recorded for this affiliate yet.</p>
       </div>
     <% end %>
   </div>

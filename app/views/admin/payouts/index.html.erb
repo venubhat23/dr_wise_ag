@@ -289,7 +289,7 @@
       <%= f.select :policy_type, options_for_select([['All Insurance Types', ''], ['Health', 'health'], ['Life', 'life'], ['Motor', 'motor'], ['Other', 'other']], params[:policy_type]), {}, { class: "form-select" } %>
     </div>
     <div class="col-md-2">
-      <%= f.select :payout_to, options_for_select([['All Recipients', ''], ['Agent', 'agent'], ['Distributor', 'distributor'], ['Sub Agent', 'sub_agent'], ['Investor', 'investor']], params[:payout_to]), {}, { class: "form-select" } %>
+      <%= f.select :payout_to, options_for_select([['All Recipients', ''], ['Agent', 'agent'], ['Ambassador', 'distributor'], ['Affiliate', 'sub_agent'], ['Investor', 'investor']], params[:payout_to]), {}, { class: "form-select" } %>
     </div>
     <div class="col-md-2">
       <%= f.select :status, options_for_select([['All Statuses', ''], ['Paid ✓', 'paid'], ['Pending ⏳', 'pending'], ['Processing 🔄', 'processing'], ['Failed ❌', 'cancelled']], params[:status]), {}, { class: "form-select" } %>
@@ -311,8 +311,8 @@
         <tr>
           <th class="border-0">Policy Details</th>
           <th class="border-0">Main Agent</th>
-          <th class="border-0">Sub-Agent</th>
-          <th class="border-0">Distributor</th>
+          <th class="border-0">Affiliate</th>
+          <th class="border-0">Ambassador</th>
           <th class="border-0">Investor</th>
           <th class="border-0">Company</th>
           <th class="border-0">Total Flow</th>
@@ -369,7 +369,7 @@
                 <% end %>
               </td>
 
-              <!-- Sub-Agent Commission -->
+              <!-- Affiliate Commission -->
               <td>
                 <% sub_agent_payout = policy_payouts.find { |p| p.payout_to == 'sub_agent' } %>
                 <% if actual_policy&.respond_to?(:sub_agent_after_tds_value) && actual_policy.sub_agent_after_tds_value.to_f > 0 %>
@@ -391,7 +391,7 @@
                 <% end %>
               </td>
 
-              <!-- Distributor Commission -->
+              <!-- Ambassador Commission -->
               <td>
                 <% distributor_payout = policy_payouts.find { |p| p.payout_to == 'distributor' } %>
                 <% if actual_policy&.respond_to?(:distributor_after_tds_value) && actual_policy.distributor_after_tds_value.to_f > 0 %>

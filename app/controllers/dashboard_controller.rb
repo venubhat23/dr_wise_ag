@@ -6,6 +6,18 @@ class DashboardController < ApplicationController
     load_dashboard_data
   end
 
+  def beautiful
+    authorize! :read, :dashboard
+    load_dashboard_data
+    render 'beautiful_dashboard', layout: false
+  end
+
+  def ultra
+    authorize! :read, :dashboard
+    load_dashboard_data
+    render 'ultra_attractive_dashboard', layout: false
+  end
+
   def stats
     authorize! :read, :dashboard
     load_dashboard_data
@@ -15,7 +27,7 @@ class DashboardController < ApplicationController
       total_customers: @total_customers,
       active_customers: @active_customers,
       inactive_customers: @inactive_customers,
-      total_agents: @total_agents,
+      total_affiliates: @total_affiliates,
       total_sub_agents: @total_sub_agents,
       total_policies: @total_policies,
 
@@ -64,7 +76,7 @@ class DashboardController < ApplicationController
 
     # Summary statistics with real data
     @total_customers = Customer.count
-    @total_agents = User.where(user_type: ['agent', 'sub_agent']).count
+    @total_affiliates = SubAgent.count  # Show all SubAgents (not just active ones)
     @total_sub_agents = SubAgent.where(status: 'active').count
     @total_policies = policy_counts[:total_count]
 
