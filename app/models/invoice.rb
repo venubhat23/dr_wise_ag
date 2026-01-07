@@ -59,21 +59,6 @@ class Invoice < ApplicationRecord
     end
   end
 
-  private
-
-  def get_policy_from_commission_payout(commission_payout)
-    case commission_payout.policy_type
-    when 'health'
-      HealthInsurance.find_by(id: commission_payout.policy_id)
-    when 'life'
-      LifeInsurance.find_by(id: commission_payout.policy_id)
-    when 'motor'
-      MotorInsurance.find_by(id: commission_payout.policy_id)
-    when 'other'
-      OtherInsurance.find_by(id: commission_payout.policy_id)
-    end
-  end
-
   def formatted_amount
     "₹#{total_amount.to_f.round(2).to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"
   end
@@ -89,5 +74,20 @@ class Invoice < ApplicationRecord
 
   def mark_as_paid!
     update!(status: 'paid', paid_at: Time.current)
+  end
+
+  private
+
+  def get_policy_from_commission_payout(commission_payout)
+    case commission_payout.policy_type
+    when 'health'
+      HealthInsurance.find_by(id: commission_payout.policy_id)
+    when 'life'
+      LifeInsurance.find_by(id: commission_payout.policy_id)
+    when 'motor'
+      MotorInsurance.find_by(id: commission_payout.policy_id)
+    when 'other'
+      OtherInsurance.find_by(id: commission_payout.policy_id)
+    end
   end
 end
