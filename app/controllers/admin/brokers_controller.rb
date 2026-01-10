@@ -39,6 +39,9 @@ class Admin::BrokersController < Admin::ApplicationController
 
         # Apply pagination for agency codes (10 records per page)
         @agency_codes = @agency_codes.order(created_at: :desc).page(params[:page]).per(10)
+
+        # Determine which tab should be active
+        @active_tab = params[:tab] || 'broker-list'
       end
 
       format.json do

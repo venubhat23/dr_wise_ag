@@ -82,13 +82,13 @@
   <div class="card-header bg-transparent border-0 pt-3">
     <ul class="nav nav-tabs card-header-tabs" id="brokerTabs" role="tablist">
       <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="broker-list-tab" data-bs-toggle="tab" data-bs-target="#broker-list" type="button" role="tab" aria-controls="broker-list" aria-selected="true">
+        <button class="nav-link <%= 'active' if @active_tab == 'broker-list' %>" id="broker-list-tab" data-bs-toggle="tab" data-bs-target="#broker-list" type="button" role="tab" aria-controls="broker-list" aria-selected="<%= @active_tab == 'broker-list' ? 'true' : 'false' %>">
           <i class="bi bi-briefcase me-2"></i>
           Broker List
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="broker-code-tab" data-bs-toggle="tab" data-bs-target="#broker-code" type="button" role="tab" aria-controls="broker-code" aria-selected="false">
+        <button class="nav-link <%= 'active' if @active_tab == 'broker-code' %>" id="broker-code-tab" data-bs-toggle="tab" data-bs-target="#broker-code" type="button" role="tab" aria-controls="broker-code" aria-selected="<%= @active_tab == 'broker-code' ? 'true' : 'false' %>">
           <i class="bi bi-code-square me-2"></i>
           Broker Code
         </button>
@@ -101,7 +101,7 @@
 <!-- Tab Content -->
 <div class="tab-content" id="brokerTabsContent">
   <!-- Broker List Tab -->
-  <div class="tab-pane fade show active" id="broker-list" role="tabpanel" aria-labelledby="broker-list-tab">
+  <div class="tab-pane fade <%= 'show active' if @active_tab == 'broker-list' %>" id="broker-list" role="tabpanel" aria-labelledby="broker-list-tab">
     <!-- Search and Filters for Brokers -->
     <div class="card shadow-sm mb-4">
       <div class="card-body">
@@ -244,7 +244,28 @@
   </div>
 
   <!-- Broker Code Tab -->
-  <div class="tab-pane fade" id="broker-code" role="tabpanel" aria-labelledby="broker-code-tab">
+  <div class="tab-pane fade <%= 'show active' if @active_tab == 'broker-code' %>" id="broker-code" role="tabpanel" aria-labelledby="broker-code-tab">
+    <!-- Search and Filters for Broker Codes -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <%= form_with url: admin_brokers_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end", id: "broker_code_search_form" do |form| %>
+          <!-- Search -->
+          <div class="flex-grow-1 min-width-250">
+            <%= form.text_field :search, placeholder: "Search by broker name, agent name, or broker code... (min 3 characters)",
+                               value: params[:search],
+                               class: "form-control",
+                               id: "broker_code_search_input",
+                               data: { min_length: 3 } %>
+          </div>
+
+          <!-- Actions -->
+          <div class="d-flex gap-2">
+            <%= link_to "Clear", admin_brokers_path + "#broker-code", class: "btn btn-outline-secondary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
     <!-- Broker Codes Table -->
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-transparent border-0">
@@ -339,10 +360,19 @@
           <div class="text-center py-5">
             <i class="bi bi-code-square fs-1 text-muted d-block mb-3"></i>
             <h5 class="text-muted">No broker codes found</h5>
-            <p class="text-muted mb-3">Start by creating your first broker code.</p>
-            <%= link_to new_admin_agency_code_path, class: "btn btn-primary" do %>
-              <i class="bi bi-plus-lg me-1"></i>
-              Add Your First Broker Code
+            <p class="text-muted mb-3">
+              <% if params[:search].present? %>
+                No broker codes match your search criteria.
+                <%= link_to "Clear search", admin_brokers_path + "#broker-code", class: "text-decoration-none" %>
+              <% else %>
+                Start by creating your first broker code.
+              <% end %>
+            </p>
+            <% unless params[:search].present? %>
+              <%= link_to new_admin_agency_code_path, class: "btn btn-primary" do %>
+                <i class="bi bi-plus-lg me-1"></i>
+                Add Your First Broker Code
+              <% end %>
             <% end %>
           </div>
         <% end %>
@@ -438,9 +468,11 @@
 document.addEventListener('DOMContentLoaded', function() {
   const searchInput = document.getElementById('search_input');
   const searchForm = document.getElementById('search_form');
+  const brokerCodeSearchInput = document.getElementById('broker_code_search_input');
+  const brokerCodeSearchForm = document.getElementById('broker_code_search_form');
   let searchTimeout;
 
-  // Auto-search on typing after 3 characters
+  // Auto-search on typing after 3 characters for broker list
   if (searchInput) {
     searchInput.addEventListener('input', function() {
       clearTimeout(searchTimeout);
@@ -449,6 +481,27 @@ document.addEventListener('DOMContentLoaded', function() {
       searchTimeout = setTimeout(() => {
         if (searchValue.length >= 3 || searchValue.length === 0) {
           searchForm.submit();
+        }
+      }, 500); // 500ms delay after typing stops
+    });
+  }
+
+  // Auto-search on typing after 3 characters for broker codes
+  if (brokerCodeSearchInput) {
+    brokerCodeSearchInput.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      const searchValue = this.value;
+
+      searchTimeout = setTimeout(() => {
+        if (searchValue.length >= 3 || searchValue.length === 0) {
+          // Add a hidden field to maintain the broker-code tab active
+          const hiddenField = document.createElement('input');
+          hiddenField.type = 'hidden';
+          hiddenField.name = 'tab';
+          hiddenField.value = 'broker-code';
+          brokerCodeSearchForm.appendChild(hiddenField);
+
+          brokerCodeSearchForm.submit();
         }
       }, 500); // 500ms delay after typing stops
     });
@@ -529,6 +582,36 @@ document.addEventListener('DOMContentLoaded', function() {
         form.submit();
       }
     }
+  });
+
+  // Handle tab switching based on URL hash or active tab
+  function activateTab() {
+    const hash = window.location.hash;
+    const activeTab = '<%= @active_tab %>';
+
+    if (hash === '#broker-code' || activeTab === 'broker-code') {
+      const brokerCodeTab = document.getElementById('broker-code-tab');
+      if (brokerCodeTab) {
+        brokerCodeTab.click();
+      }
+    } else {
+      const brokerListTab = document.getElementById('broker-list-tab');
+      if (brokerListTab) {
+        brokerListTab.click();
+      }
+    }
+  }
+
+  // Activate the correct tab on page load
+  activateTab();
+
+  // Update URL hash when tab is clicked
+  document.getElementById('broker-code-tab').addEventListener('click', function() {
+    window.location.hash = '#broker-code';
+  });
+
+  document.getElementById('broker-list-tab').addEventListener('click', function() {
+    window.location.hash = '#broker-list';
   });
 });
 </script>

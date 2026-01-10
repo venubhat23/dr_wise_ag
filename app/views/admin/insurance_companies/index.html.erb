@@ -15,12 +15,12 @@
 <!-- Stats Cards -->
 <div class="row mb-4">
   <div class="col-md-3">
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm <%= 'border-primary' if @current_tab == 'all' %>">
       <div class="card-body">
         <div class="d-flex align-items-center">
           <div class="flex-grow-1">
             <h6 class="text-muted mb-1">Total Companies</h6>
-            <h4 class="mb-0"><%= @insurance_companies.count %></h4>
+            <h4 class="mb-0"><%= @total_companies %></h4>
           </div>
           <div class="text-primary">
             <i class="bi bi-building fs-2"></i>
@@ -30,45 +30,45 @@
     </div>
   </div>
   <div class="col-md-3">
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm <%= 'border-success' if @current_tab == 'life' %>">
       <div class="card-body">
         <div class="d-flex align-items-center">
           <div class="flex-grow-1">
-            <h6 class="text-muted mb-1">Active Companies</h6>
-            <h4 class="mb-0"><%= @insurance_companies.where(status: true).count %></h4>
+            <h6 class="text-muted mb-1">Life Insurance Companies</h6>
+            <h4 class="mb-0"><%= @life_companies %></h4>
           </div>
           <div class="text-success">
-            <i class="bi bi-check-circle fs-2"></i>
+            <i class="bi bi-heart-pulse fs-2"></i>
           </div>
         </div>
       </div>
     </div>
   </div>
   <div class="col-md-3">
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm <%= 'border-info' if @current_tab == 'health' %>">
       <div class="card-body">
         <div class="d-flex align-items-center">
           <div class="flex-grow-1">
-            <h6 class="text-muted mb-1">Partnership Since</h6>
-            <h4 class="mb-0"><%= Date.current.year %></h4>
+            <h6 class="text-muted mb-1">Health Insurance Companies</h6>
+            <h4 class="mb-0"><%= @health_companies %></h4>
           </div>
           <div class="text-info">
-            <i class="bi bi-calendar fs-2"></i>
+            <i class="bi bi-shield-plus fs-2"></i>
           </div>
         </div>
       </div>
     </div>
   </div>
   <div class="col-md-3">
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm <%= 'border-warning' if @current_tab == 'general' %>">
       <div class="card-body">
         <div class="d-flex align-items-center">
           <div class="flex-grow-1">
-            <h6 class="text-muted mb-1">Partnerships</h6>
-            <h4 class="mb-0"><%= @insurance_companies.where(status: true).count %></h4>
+            <h6 class="text-muted mb-1">General Insurance Companies</h6>
+            <h4 class="mb-0"><%= @general_companies %></h4>
           </div>
           <div class="text-warning">
-            <i class="bi bi-handshake fs-2"></i>
+            <i class="bi bi-shield-check fs-2"></i>
           </div>
         </div>
       </div>
@@ -76,18 +76,57 @@
   </div>
 </div>
 
-<!-- Insurance Companies Table -->
+<!-- Tab Navigation and Table -->
 <div class="card border-0 shadow-sm">
   <div class="card-header bg-transparent border-0">
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex justify-content-between align-items-center mb-3">
       <h5 class="mb-0">Insurance Companies List</h5>
       <div class="d-flex gap-2">
-        <div class="position-relative">
-          <input type="text" class="form-control" placeholder="Search companies..." id="searchInput">
-          <i class="bi bi-search position-absolute top-50 end-0 translate-middle-y me-3"></i>
-        </div>
+        <%= form_with url: admin_insurance_companies_path, method: :get, local: true, class: "d-flex gap-2", data: { turbo: false } do |f| %>
+          <%= f.hidden_field :tab, value: @current_tab %>
+          <div class="position-relative">
+            <%= f.text_field :search, value: @search_query, placeholder: "Search companies...", class: "form-control", id: "searchInput" %>
+            <i class="bi bi-search position-absolute top-50 end-0 translate-middle-y me-3"></i>
+          </div>
+        <% end %>
       </div>
     </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs border-0">
+      <li class="nav-item">
+        <%= link_to admin_insurance_companies_path(tab: 'all', search: @search_query),
+            class: "nav-link #{'active' if @current_tab == 'all'}" do %>
+          <i class="bi bi-grid me-1"></i>
+          All Companies
+          <span class="badge bg-primary-subtle text-primary ms-1"><%= @total_companies %></span>
+        <% end %>
+      </li>
+      <li class="nav-item">
+        <%= link_to admin_insurance_companies_path(tab: 'life', search: @search_query),
+            class: "nav-link #{'active' if @current_tab == 'life'}" do %>
+          <i class="bi bi-heart-pulse me-1"></i>
+          Life Insurance
+          <span class="badge bg-success-subtle text-success ms-1"><%= @life_companies %></span>
+        <% end %>
+      </li>
+      <li class="nav-item">
+        <%= link_to admin_insurance_companies_path(tab: 'health', search: @search_query),
+            class: "nav-link #{'active' if @current_tab == 'health'}" do %>
+          <i class="bi bi-shield-plus me-1"></i>
+          Health Insurance
+          <span class="badge bg-info-subtle text-info ms-1"><%= @health_companies %></span>
+        <% end %>
+      </li>
+      <li class="nav-item">
+        <%= link_to admin_insurance_companies_path(tab: 'general', search: @search_query),
+            class: "nav-link #{'active' if @current_tab == 'general'}" do %>
+          <i class="bi bi-shield-check me-1"></i>
+          General Insurance
+          <span class="badge bg-warning-subtle text-warning ms-1"><%= @general_companies %></span>
+        <% end %>
+      </li>
+    </ul>
   </div>
   <div class="card-body p-0">
     <% if @insurance_companies.any? %>
@@ -96,6 +135,7 @@
           <thead class="table-light">
             <tr>
               <th class="border-0 fw-semibold">Company Name</th>
+              <th class="border-0 fw-semibold">Type</th>
               <th class="border-0 fw-semibold">Code</th>
               <th class="border-0 fw-semibold">Contact Person</th>
               <th class="border-0 fw-semibold">Contact Info</th>
@@ -116,6 +156,27 @@
                       <small class="text-muted">ID: #<%= company.id %></small>
                     </div>
                   </div>
+                </td>
+                <td class="align-middle">
+                  <% case company.insurance_type %>
+                  <% when 'Life' %>
+                    <span class="badge bg-success-subtle text-success">
+                      <i class="bi bi-heart-pulse me-1"></i>
+                      Life
+                    </span>
+                  <% when 'Health' %>
+                    <span class="badge bg-info-subtle text-info">
+                      <i class="bi bi-shield-plus me-1"></i>
+                      Health
+                    </span>
+                  <% when 'General' %>
+                    <span class="badge bg-warning-subtle text-warning">
+                      <i class="bi bi-shield-check me-1"></i>
+                      General
+                    </span>
+                  <% else %>
+                    <span class="badge bg-secondary-subtle text-secondary">N/A</span>
+                  <% end %>
                 </td>
                 <td class="align-middle">
                   <span class="badge bg-secondary-subtle text-secondary"><%= company.code || 'N/A' %></span>
@@ -194,7 +255,7 @@
       <!-- Pagination -->
       <% if respond_to?(:paginate) %>
         <div class="card-footer bg-transparent border-0">
-          <%= paginate @insurance_companies %>
+          <%= paginate @insurance_companies, params: { tab: @current_tab, search: @search_query } %>
         </div>
       <% end %>
     <% else %>
@@ -212,26 +273,31 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Search functionality
+  // Search functionality - submit form on input change
   const searchInput = document.getElementById('searchInput');
-  const tableRows = document.querySelectorAll('tbody tr');
+  const searchForm = searchInput?.closest('form');
 
-  searchInput?.addEventListener('input', function() {
-    const searchTerm = this.value.toLowerCase();
+  if (searchInput && searchForm) {
+    let searchTimeout;
 
-    tableRows.forEach(row => {
-      const companyName = row.cells[0]?.textContent.toLowerCase() || '';
-      const code = row.cells[1]?.textContent.toLowerCase() || '';
-      const contactPerson = row.cells[2]?.textContent.toLowerCase() || '';
+    searchInput.addEventListener('input', function() {
+      // Clear the previous timeout
+      clearTimeout(searchTimeout);
 
-      if (companyName.includes(searchTerm) ||
-          code.includes(searchTerm) ||
-          contactPerson.includes(searchTerm)) {
-        row.style.display = '';
-      } else {
-        row.style.display = 'none';
+      // Set a new timeout to submit the form after user stops typing
+      searchTimeout = setTimeout(() => {
+        searchForm.submit();
+      }, 500); // Wait 500ms after user stops typing
+    });
+
+    // Also submit on Enter key
+    searchInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        clearTimeout(searchTimeout);
+        searchForm.submit();
       }
     });
-  });
+  }
 });
 </script>

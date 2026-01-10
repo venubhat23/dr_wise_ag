@@ -50,13 +50,6 @@
               { class: "form-control", id: "affiliate_select", data: { placeholder: "Type to search affiliates..." } } %>
         </div>
 
-        <div class="col-md-4 mb-3">
-          <%= form.label :distributor_id, "Ambassador", class: "form-label" %>
-          <%= form.select :distributor_id,
-              options_for_select(@distributors.present? ? @distributors.map { |d| [d.display_name, d.id] } : [], @life_insurance.distributor_id),
-              { prompt: 'Search and select ambassador...' },
-              { class: "form-control", id: "distributor_select", data: { placeholder: "Type to search ambassadors..." } } %>
-        </div>
       </div>
 
       <div class="row">
@@ -482,46 +475,6 @@
         </div>
       </div>
 
-      <!-- Ambassador Commission -->
-      <hr class="my-4">
-      <h6>Ambassador Commission</h6>
-      <div class="row">
-        <div class="col-md-2 mb-3">
-          <label class="form-label">1st year (%)</label>
-          <%= form.number_field :ambassador_commission_percentage,
-              class: "form-control ambassador-commission-percentage",
-              value: @life_insurance.ambassador_commission_percentage || 2.0,
-              step: 0.01 %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">Commission Amount</label>
-          <%= form.number_field :ambassador_commission_amount,
-              class: "form-control ambassador-commission-amount",
-              value: @life_insurance.ambassador_commission_amount || 0,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">TDS %</label>
-          <%= form.number_field :ambassador_tds_percentage,
-              class: "form-control ambassador-tds-percentage",
-              value: @life_insurance.ambassador_tds_percentage || 0,
-              step: 0.01 %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">TDS Amount</label>
-          <%= form.number_field :ambassador_tds_amount,
-              class: "form-control ambassador-tds-amount",
-              value: @life_insurance.ambassador_tds_amount || 0,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">After TDS Value</label>
-          <%= form.number_field :ambassador_after_tds_value,
-              class: "form-control ambassador-after-tds-value",
-              value: @life_insurance.ambassador_after_tds_value || 0,
-              step: 0.01, readonly: true %>
-        </div>
-      </div>
 
       <!-- Investor Portion -->
       <hr class="my-4">
@@ -602,7 +555,7 @@
         <h6 class="mb-2">Commission Calculation Summary:</h6>
         <ul class="mb-0">
           <li><strong>Main Agent Commission:</strong> <span id="main-income-display">0%</span> of Net Premium</li>
-          <li><strong>Total Distribution:</strong> <span id="distribution-display">6.0%</span> (Affiliate + Ambassador + Investor)</li>
+          <li><strong>Total Distribution:</strong> <span id="distribution-display">4.0%</span> (Affiliate + Investor)</li>
           <li><strong>Company Expenses:</strong> <span id="expenses-display">2.0%</span> of Net Premium</li>
           <li><strong>Profit:</strong> Main Agent Commission - Total Distribution - Company Expenses</li>
         </ul>
@@ -947,43 +900,6 @@
     color: #6c757d;
   }
 
-  /* Distributor option styling */
-  .distributor-option {
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    min-height: 45px;
-  }
-
-  .distributor-option-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: linear-gradient(45deg, #6f42c1, #e83e8c);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    margin-right: 10px;
-    font-size: 12px;
-    flex-shrink: 0;
-  }
-
-  .distributor-option-details {
-    flex: 1;
-  }
-
-  .distributor-option-name {
-    font-weight: 600;
-    color: #212529;
-    margin-bottom: 2px;
-  }
-
-  .distributor-option-id {
-    font-size: 11px;
-    color: #6c757d;
-  }
 </style>
 
 <script>
@@ -1136,69 +1052,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Initialize Select2 for Distributor/Ambassador dropdown with AJAX search
-  $('#distributor_select').select2({
-    theme: 'bootstrap-5',
-    placeholder: 'Search and select ambassador...',
-    allowClear: true,
-    width: '100%',
-    dropdownParent: $('body'),
-    dropdownCssClass: 'select2-dropdown-large',
-    minimumInputLength: 0,
-    ajax: {
-      url: '/api/v1/public/search_distributors',
-      dataType: 'json',
-      delay: 250,
-      data: function (params) {
-        return {
-          q: params.term || '',
-          limit: params.term ? 20 : 10
-        };
-      },
-      processResults: function (data) {
-        console.log('Search distributors response:', data);
-        return {
-          results: data.results || []
-        };
-      },
-      error: function(xhr, status, error) {
-        console.error('Search distributors AJAX error:', status, error);
-        return {
-          results: [{id: '', text: 'Error loading ambassadors - please try again'}]
-        };
-      },
-      cache: false
-    },
-    templateResult: function(option) {
-      if (option.loading) return option.text;
-      if (!option.id || option.id === '') {
-        return option.text;
-      }
-
-      // Generate avatar with initials
-      var initials = option.text.split(' ').map(function(name) {
-        return name.charAt(0).toUpperCase();
-      }).join('').substring(0, 2);
-
-      // Custom template for distributor options with purple avatar
-      var $option = $(
-        '<div class="distributor-option">' +
-          '<div class="distributor-option-avatar">' + initials + '</div>' +
-          '<div class="distributor-option-details">' +
-            '<div class="distributor-option-name">' + option.text + '</div>' +
-            '<div class="distributor-option-id">Ambassador ID: #' + option.id + '</div>' +
-          '</div>' +
-        '</div>'
-      );
-      return $option;
-    },
-    templateSelection: function(option) {
-      return option.text || 'Search and select ambassador...';
-    },
-    escapeMarkup: function(markup) {
-      return markup;
-    }
-  });
 
   // Auto-calculate total premium
   function calculateTotalPremium() {
@@ -1242,20 +1095,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
 
-  // Auto-calculate ambassador commission
-  function calculateAmbassadorCommission() {
-    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
-    const commissionPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage').value) || 2.0;
-    const tdsPercentage = parseFloat(document.querySelector('.ambassador-tds-percentage').value) || 0;
-
-    const commissionAmount = netPremium * (commissionPercentage / 100);
-    const tdsAmount = commissionAmount * (tdsPercentage / 100);
-    const afterTdsValue = commissionAmount - tdsAmount;
-
-    document.querySelector('.ambassador-commission-amount').value = commissionAmount.toFixed(2);
-    document.querySelector('.ambassador-tds-amount').value = tdsAmount.toFixed(2);
-    document.querySelector('.ambassador-after-tds-value').value = afterTdsValue.toFixed(2);
-  }
 
   // Auto-calculate investor commission
   function calculateInvestorCommission() {
@@ -1277,16 +1116,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
     const mainAgentCommissionPercentage = parseFloat(document.getElementById('commission_percentage').value) || 0;
 
-    // Get commission percentages
+    // Get commission percentages (removed ambassador)
     const subAgentPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage').value) || 2.0;
-    const ambassadorPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage').value) || 2.0;
     const investorPercentage = parseFloat(document.querySelector('.investor-commission-percentage').value) || 2.0;
     const companyExpensesPercentage = parseFloat(document.querySelector('.company-expenses-percentage').value) || 2.0;
 
-    // Calculate total distribution
-    const totalDistributionPercentage = subAgentPercentage + ambassadorPercentage + investorPercentage;
+    // Calculate total distribution (removed ambassador)
+    const totalDistributionPercentage = subAgentPercentage + investorPercentage;
 
-    // Calculate profit: Main Agent Commission - Affiliate Commission - Ambassador Commission - Investor Portion - Company Expenses
+    // Calculate profit: Main Agent Commission - Affiliate Commission - Investor Portion - Company Expenses
     const profitPercentage = mainAgentCommissionPercentage - totalDistributionPercentage - companyExpensesPercentage;
     const profitAmount = netPremium * (profitPercentage / 100);
 
@@ -1315,7 +1153,6 @@ document.addEventListener('DOMContentLoaded', function() {
   function calculateAllCommissions() {
     calculateCommission();
     calculateSubAgentCommission();
-    calculateAmbassadorCommission();
     calculateInvestorCommission();
     calculateProfitAndExpenses();
   }
@@ -1581,12 +1418,6 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   document.querySelector('.sub-agent-tds-percentage').addEventListener('input', calculateSubAgentCommission);
 
-  // Ambassador commission event listeners
-  document.querySelector('.ambassador-commission-percentage').addEventListener('input', function() {
-    calculateAmbassadorCommission();
-    calculateProfitAndExpenses();
-  });
-  document.querySelector('.ambassador-tds-percentage').addEventListener('input', calculateAmbassadorCommission);
 
   // Investor commission event listeners
   document.querySelector('.investor-commission-percentage').addEventListener('input', function() {

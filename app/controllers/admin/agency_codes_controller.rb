@@ -438,10 +438,29 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     insurance_type = params[:insurance_type]
 
     if insurance_type.present?
-      companies = companies_by_type(insurance_type)
+      # Use the helper method from InsuranceCompanyMethods concern
+      companies = case insurance_type.to_s.downcase
+                 when 'health'
+                   health_insurance_companies
+                 when 'life'
+                   life_insurance_companies
+                 when 'motor'
+                   motor_insurance_companies
+                 when 'general'
+                   # For "General" insurance, include both Motor and General companies
+                   motor_insurance_companies + general_insurance_companies
+                 when 'other'
+                   # For "Other", include all types
+                   insurance_companies_list
+                 else
+                   insurance_companies_list
+                 end
     else
       companies = insurance_companies_list
     end
+
+    # Remove duplicates and sort
+    companies = companies.uniq.sort
 
     respond_to do |format|
       format.json do
