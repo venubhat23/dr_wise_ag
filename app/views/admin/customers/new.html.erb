@@ -1692,21 +1692,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Clear dropdown and add cities
     cityDropdown.innerHTML = '<option value="">Select City</option>';
 
+    let cityMatched = false;
+
     cities.forEach(city => {
       const option = document.createElement('option');
       option.value = city;
       option.textContent = city;
 
-      // Select the city if it matches the selectedCity
-      if (selectedCity && city === selectedCity) {
+      // Select the city if it matches the selectedCity (case-insensitive comparison)
+      if (selectedCity && city.toLowerCase() === selectedCity.toLowerCase()) {
         option.selected = true;
+        cityMatched = true;
+        console.log(`City matched: ${city}`);
       }
 
       cityDropdown.appendChild(option);
     });
 
     cityDropdown.disabled = false;
-    console.log(`Loaded ${cities.length} cities`, selectedCity ? `with selected: ${selectedCity}` : '');
+    console.log(`Loaded ${cities.length} cities`, selectedCity ? `Looking for: ${selectedCity}, Found: ${cityMatched}` : '');
   }
 
   // Setup for Individual customer
@@ -1765,13 +1769,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Load cities if state already selected and preserve the initial city selection
-    if (corporateState.value && initialCorporateCityValue) {
-      console.log('Loading cities with initial city selection for corporate customer');
-      loadCitiesForState(corporateState.value, corporateCity, initialCorporateCityValue);
-    } else if (corporateState.value) {
-      console.log('Loading cities without initial city selection for corporate customer');
-      loadCitiesForState(corporateState.value, corporateCity);
-    }
+    // Add a small delay to ensure DOM is ready
+    setTimeout(() => {
+      if (corporateState.value && initialCorporateCityValue) {
+        console.log('Loading cities with initial city selection for corporate customer:', initialCorporateCityValue);
+        loadCitiesForState(corporateState.value, corporateCity, initialCorporateCityValue);
+      } else if (corporateState.value) {
+        console.log('Loading cities without initial city selection for corporate customer');
+        loadCitiesForState(corporateState.value, corporateCity);
+      }
+    }, 200);
   }
 
   console.log('State-city dropdowns ready!');
@@ -1966,21 +1973,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Clear dropdown and add cities (original functionality)
     cityDropdown.innerHTML = '<option value="">Select City</option>';
 
+    let cityMatched = false;
+
     cities.forEach(city => {
       const option = document.createElement('option');
       option.value = city;
       option.textContent = city;
 
-      // Select the city if it matches the selectedCity
-      if (selectedCity && city === selectedCity) {
+      // Select the city if it matches the selectedCity (case-insensitive comparison)
+      if (selectedCity && city.toLowerCase() === selectedCity.toLowerCase()) {
         option.selected = true;
+        cityMatched = true;
+        console.log(`City matched in Select2: ${city}`);
       }
 
       cityDropdown.appendChild(option);
     });
 
     cityDropdown.disabled = false;
-    console.log(`Loaded ${cities.length} cities`, selectedCity ? `with selected: ${selectedCity}` : '');
+    console.log(`Loaded ${cities.length} cities in Select2`, selectedCity ? `Looking for: ${selectedCity}, Found: ${cityMatched}` : '');
 
     // Reinitialize Select2 and set the selected value
     setTimeout(() => {
@@ -2027,10 +2038,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
 
-      if (selectedCity) {
-        $cityDropdown.val(selectedCity).trigger('change');
+      if (selectedCity && cityMatched) {
+        // Ensure the selected city is properly set
+        $cityDropdown.val(selectedCity).trigger('change.select2');
+        console.log(`Set city value to: ${selectedCity}`);
       }
-    }, 50);
+    }, 100);
   }
 
   console.log('Select2 dropdowns initialized!');

@@ -47,19 +47,48 @@
         </div>
         <div class="card-body">
           <div class="row">
-            <div class="col-md-8 mb-3">
+            <div class="col-md-6 mb-3">
+              <%= form.label :insurance_type, class: "form-label" do %>
+                Insurance Type <span class="text-danger">*</span>
+              <% end %>
+              <%= form.select :insurance_type,
+                  options_for_select([
+                    ['Select Insurance Type', ''],
+                    ['Health Insurance', 'health'],
+                    ['Life Insurance', 'life'],
+                    ['Motor Insurance', 'motor'],
+                    ['Travel Insurance', 'travel'],
+                    ['Other Insurance', 'other']
+                  ], @insurance_company.insurance_type),
+                  {},
+                  {
+                    class: "form-select #{'is-invalid' if @insurance_company.errors[:insurance_type].any?}",
+                    required: true,
+                    id: "insurance_type_select"
+                  } %>
+              <% if @insurance_company.errors[:insurance_type].any? %>
+                <div class="invalid-feedback">
+                  <%= @insurance_company.errors[:insurance_type].first %>
+                </div>
+              <% end %>
+              <small class="form-text text-muted">Select the type of insurance this company provides</small>
+            </div>
+
+            <div class="col-md-6 mb-3">
               <%= form.label :name, class: "form-label" do %>
                 Company Name <span class="text-danger">*</span>
               <% end %>
               <%= form.text_field :name,
                   class: "form-control #{'is-invalid' if @insurance_company.errors[:name].any?}",
-                  placeholder: "Enter company name (include type in name, e.g., LIC Life Insurance)",
-                  required: true %>
+                  placeholder: "Enter company name",
+                  required: true,
+                  id: "company_name_field" %>
               <% if @insurance_company.errors[:name].any? %>
                 <div class="invalid-feedback">
                   <%= @insurance_company.errors[:name].first %>
                 </div>
               <% end %>
+              <small class="form-text text-muted" id="name_suggestion">Name will auto-update based on type selection</small>
             </div>
 
             <div class="col-md-4 mb-3">
