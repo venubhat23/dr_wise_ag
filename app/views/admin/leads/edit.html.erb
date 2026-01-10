@@ -270,7 +270,7 @@
               <% end %>
               <%= form.select :product_subcategory, options_for_select([
                 ['Select Category First', '']
-              ], @lead.product_subcategory), {}, { class: "form-select", required: true, id: "product_subcategory" } %>
+              ], @lead.product_subcategory), {}, { class: "form-select searchable-select", required: true, id: "product_subcategory", data: { placeholder: "Search and select product type...", selected: @lead.product_subcategory } } %>
               <div class="invalid-feedback">Please select a product type.</div>
             </div>
           </div>
@@ -352,12 +352,18 @@
                 Current Stage <span class="text-danger">*</span>
               <% end %>
               <%= form.select :current_stage, options_for_select([
-                ['Consultation', 'consultation'],
-                ['One-on-One', 'one_on_one'],
-                ['Converted', 'converted'],
-                ['Policy Created', 'policy_created'],
-                ['Referral Settled', 'referral_settled']
-              ], @lead.current_stage), { prompt: 'Select Stage' }, { class: "form-select", required: true } %>
+                ['🟢 Lead Generated', 'lead_generated'],
+                ['📅 Consultation Scheduled', 'consultation_scheduled'],
+                ['🤝 One-on-One Discussion', 'one_on_one'],
+                ['🔁 Follow-Up', 'follow_up'],
+                ['✅ Follow-Up Successful', 'follow_up_successful'],
+                ['❌ Follow-Up Unsuccessful', 'follow_up_unsuccessful'],
+                ['🚫 Not Interested', 'not_interested'],
+                ['🔄 Re-Follow Up', 're_follow_up'],
+                ['👤 Convert to Customer', 'converted'],
+                ['📄 Policy Created', 'policy_created'],
+                ['📁 Lead Closed', 'lead_closed']
+              ], @lead.current_stage), { prompt: 'Select Stage' }, { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select stage..." } } %>
               <div class="invalid-feedback">Please select a current stage.</div>
             </div>
 
@@ -379,14 +385,14 @@
             <div class="col-md-6">
               <%= form.label :call_disposition, "Call Disposition", class: "form-label" %>
               <%= form.select :call_disposition, options_for_select([
-                ['Interested', 'interested'],
-                ['Not Interested', 'not_interested'],
-                ['Call Back Later', 'call_back'],
-                ['Follow Up Required', 'follow_up'],
-                ['Number Not Reachable', 'not_reachable'],
-                ['Wrong Number', 'wrong_number'],
-                ['Do Not Call', 'do_not_call']
-              ], @lead.call_disposition), { prompt: 'Select Disposition' }, { class: "form-select" } %>
+                ['📞 Interested', 'interested'],
+                ['❌ Not Interested', 'not_interested'],
+                ['📞 Call Back Later', 'call_back'],
+                ['📝 Follow Up Required', 'follow_up'],
+                ['📵 Number Not Reachable', 'not_reachable'],
+                ['☎️ Wrong Number', 'wrong_number'],
+                ['🚫 Do Not Call', 'do_not_call']
+              ], @lead.call_disposition), { prompt: 'Select Disposition' }, { class: "form-select searchable-select", data: { placeholder: "Search and select call disposition..." } } %>
             </div>
 
             <div class="col-md-6">
@@ -430,7 +436,7 @@
         <div class="status-item mb-3">
           <div class="d-flex justify-content-between">
             <span class="text-muted">Current Stage:</span>
-            <span class="badge bg-<%= @lead.current_stage == 'consultation' ? 'info' :
+            <span class="badge bg-<%= @lead.current_stage == 'consultation_scheduled' ? 'info' :
                                        @lead.current_stage == 'one_on_one' ? 'warning' :
                                        @lead.current_stage == 'converted' ? 'success' :
                                        @lead.current_stage == 'policy_created' ? 'primary' : 'dark' %>">
@@ -469,49 +475,97 @@
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-transparent border-0">
         <h6 class="mb-0">
-          <i class="bi bi-bookmark me-2 text-info"></i>
+          <i class="bi bi-map me-2 text-info"></i>
           Lead Stages Guide
         </h6>
       </div>
       <div class="card-body">
         <div class="stage-item mb-2">
           <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'consultation' ? 'bg-info' : 'bg-light text-dark' %> me-2">1</span>
-            <strong>Consultation</strong>
+            <span class="badge <%= @lead.current_stage == 'lead_generated' ? 'bg-secondary' : 'bg-light text-dark' %> me-2">🟢</span>
+            <strong>Lead Generated</strong>
           </div>
-          <p class="small text-muted mb-0">Initial contact and requirement gathering</p>
+          <p class="small text-muted mb-0">Initial stage - Lead entry into system</p>
         </div>
 
         <div class="stage-item mb-2">
           <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'one_on_one' ? 'bg-warning' : 'bg-light text-dark' %> me-2">2</span>
+            <span class="badge <%= @lead.current_stage == 'consultation_scheduled' ? 'bg-info' : 'bg-light text-dark' %> me-2">📅</span>
+            <strong>Consultation Scheduled</strong>
+          </div>
+          <p class="small text-muted mb-0">Meeting scheduled - Initial contact and requirement gathering</p>
+        </div>
+
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge <%= @lead.current_stage == 'one_on_one' ? 'bg-warning' : 'bg-light text-dark' %> me-2">🤝</span>
             <strong>One-on-One</strong>
           </div>
-          <p class="small text-muted mb-0">Detailed discussion and product presentation</p>
+          <p class="small text-muted mb-0">Personal meeting - Detailed discussion and product presentation</p>
         </div>
 
         <div class="stage-item mb-2">
           <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'converted' ? 'bg-success' : 'bg-light text-dark' %> me-2">3</span>
-            <strong>Converted</strong>
+            <span class="badge <%= @lead.current_stage == 'follow_up' ? 'bg-primary' : 'bg-light text-dark' %> me-2">🔁</span>
+            <strong>Follow-Up</strong>
           </div>
-          <p class="small text-muted mb-0">Customer agrees to purchase policy</p>
+          <p class="small text-muted mb-0">Following up - Regular contact to maintain engagement</p>
         </div>
 
         <div class="stage-item mb-2">
           <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'policy_created' ? 'bg-primary' : 'bg-light text-dark' %> me-2">4</span>
+            <span class="badge <%= @lead.current_stage == 'follow_up_successful' ? 'bg-success' : 'bg-light text-dark' %> me-2">✅</span>
+            <strong>Follow-Up Successful</strong>
+          </div>
+          <p class="small text-muted mb-0">Successful follow-up - Positive response received</p>
+        </div>
+
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge <%= @lead.current_stage == 'follow_up_unsuccessful' ? 'bg-danger' : 'bg-light text-dark' %> me-2">❌</span>
+            <strong>Follow-Up Unsuccessful</strong>
+          </div>
+          <p class="small text-muted mb-0">Unsuccessful follow-up - No positive response</p>
+        </div>
+
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge <%= @lead.current_stage == 'not_interested' ? 'bg-secondary' : 'bg-light text-dark' %> me-2">🚫</span>
+            <strong>Not Interested</strong>
+          </div>
+          <p class="small text-muted mb-0">Lead not interested - Customer declined the offer</p>
+        </div>
+
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge <%= @lead.current_stage == 're_follow_up' ? 'bg-info' : 'bg-light text-dark' %> me-2">🔄</span>
+            <strong>Re-Follow Up</strong>
+          </div>
+          <p class="small text-muted mb-0">Re-attempting follow-up - Second attempt to engage</p>
+        </div>
+
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge <%= @lead.current_stage == 'converted' ? 'bg-success' : 'bg-light text-dark' %> me-2">📁</span>
+            <strong>Customer Converted</strong>
+          </div>
+          <p class="small text-muted mb-0">Customer converted - Ready for policy creation</p>
+        </div>
+
+        <div class="stage-item mb-2">
+          <div class="d-flex align-items-center">
+            <span class="badge <%= @lead.current_stage == 'policy_created' ? 'bg-primary' : 'bg-light text-dark' %> me-2">📄</span>
             <strong>Policy Created</strong>
           </div>
-          <p class="small text-muted mb-0">Policy documentation completed</p>
+          <p class="small text-muted mb-0">Policy created - Documentation completed</p>
         </div>
 
         <div class="stage-item mb-0">
           <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'referral_settled' ? 'bg-dark' : 'bg-light text-dark' %> me-2">5</span>
-            <strong>Referral Settled</strong>
+            <span class="badge <%= @lead.current_stage == 'lead_closed' ? 'bg-dark' : 'bg-light text-dark' %> me-2">🔒</span>
+            <strong>Lead Closed</strong>
           </div>
-          <p class="small text-muted mb-0">Commission and referrals processed</p>
+          <p class="small text-muted mb-0">Lead closed - Final stage of the process</p>
         </div>
       </div>
     </div>
@@ -552,6 +606,54 @@
 
   .form-control[type="date"]::-webkit-calendar-picker-indicator:hover {
     background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%235a67d8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>');
+  }
+</style>
+
+<!-- jQuery and Select2 for searchable dropdowns -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- Custom Select2 styling -->
+<style>
+  .select2-container--bootstrap-5 .select2-selection--single {
+    height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+  .select2-container--bootstrap-5 .select2-selection--single:focus-within {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+  .select2-container--bootstrap-5 .select2-selection__rendered {
+    color: #495057;
+    padding-left: 12px;
+    padding-right: 20px;
+    line-height: 36px;
+  }
+  .select2-container--bootstrap-5 .select2-results__option {
+    padding: 8px 12px;
+  }
+  .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: #0d6efd;
+    color: white;
+  }
+  .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  }
+  .select2-results__options {
+    max-height: 400px !important;
+    min-height: 200px;
+    overflow-y: auto;
+  }
+  .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 6px 12px;
   }
 </style>
 
@@ -766,6 +868,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function loadLeadCitiesForState(stateValue) {
     console.log('Loading cities for lead edit form:', stateValue);
+    console.log('Available location data keys:', Object.keys(leadCitiesData));
+    console.log('Saved state value:', '<%= @lead&.state %>');
 
     if (!stateValue) {
       leadCitySelect.innerHTML = '<option value="">Select State First</option>';
@@ -775,6 +879,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Get cities for this state from local data first
     let cities = leadCitiesData[stateValue] || [];
+
+    // If no cities found with direct key match, try to find by display name
+    if (cities.length === 0) {
+      console.log('No cities found for direct key, trying to find by display name mapping...');
+
+      // Create a reverse mapping from display name to key
+      const stateDisplayNameToKey = {};
+      if (window.LocationData && window.LocationData.states) {
+        Object.keys(window.LocationData.states).forEach(key => {
+          const stateName = window.LocationData.states[key].name;
+          stateDisplayNameToKey[stateName] = key;
+        });
+      }
+
+      console.log('Display name to key mapping:', stateDisplayNameToKey);
+
+      // Try to get the correct key from display name
+      const correctKey = stateDisplayNameToKey[stateValue];
+      if (correctKey && leadCitiesData[correctKey]) {
+        cities = leadCitiesData[correctKey];
+        console.log('Found cities using display name mapping:', cities.length);
+      }
+    }
 
     if (cities.length > 0) {
       // Use local data if available
@@ -813,6 +940,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     leadCitySelect.disabled = false;
+
+    // Set the saved city value if it exists
+    const savedCity = '<%= @lead&.city %>';
+    if (savedCity) {
+      leadCitySelect.value = savedCity;
+    }
+
     console.log(`Loaded ${cities.length} cities for leads edit form`);
 
     // Reinitialize Select2
@@ -824,6 +958,11 @@ document.addEventListener('DOMContentLoaded', function() {
         width: '100%',
         minimumResultsForSearch: 0
       });
+
+      // Trigger change event to update Select2 display with the saved value
+      if (savedCity) {
+        $leadCitySelect.trigger('change');
+      }
     }, 50);
   }
 
@@ -860,16 +999,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load cities if state is pre-selected
     if (leadStateSelect.value) {
+      console.log('State dropdown value on page load:', leadStateSelect.value);
+      console.log('State dropdown selected option text:', leadStateSelect.options[leadStateSelect.selectedIndex]?.text);
       loadLeadCitiesForState(leadStateSelect.value);
-      // Set the city value if it exists
-      if ('<%= @lead&.city %>') {
-        setTimeout(() => {
-          leadCitySelect.value = '<%= @lead&.city %>';
-          // Update Select2 display if initialized
-          if (typeof $ !== 'undefined' && $.fn.select2) {
-            $(leadCitySelect).trigger('change');
-          }
-        }, 100);
+    } else {
+      console.log('No state pre-selected, checking if saved state exists...');
+      // Check if there's a saved state value that didn't get selected
+      const savedState = '<%= @lead&.state %>';
+      if (savedState) {
+        console.log('Found saved state but dropdown not selected:', savedState);
+        // Try to set the dropdown value and load cities
+        leadStateSelect.value = savedState;
+        if (leadStateSelect.value === savedState) {
+          loadLeadCitiesForState(savedState);
+        } else {
+          console.log('State value not found in dropdown options');
+        }
       }
     }
   }
@@ -931,6 +1076,64 @@ document.addEventListener('DOMContentLoaded', function() {
       escapeMarkup: function(markup) {
         return markup;
       }
+    });
+  }
+
+  // Initialize all searchable dropdowns with Select2
+  function initializeSearchableDropdowns() {
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+      // Initialize all dropdowns with searchable-select class
+      $('.searchable-select').each(function() {
+        const $element = $(this);
+        const placeholder = $element.data('placeholder') || 'Search and select...';
+
+        // Skip if already initialized
+        if ($element.hasClass('select2-hidden-accessible')) {
+          return;
+        }
+
+        $element.select2({
+          theme: 'bootstrap-5',
+          placeholder: placeholder,
+          allowClear: true,
+          width: '100%',
+          minimumResultsForSearch: 0,
+          dropdownParent: $('body')
+        });
+      });
+    }
+  }
+
+  // Initialize searchable dropdowns after DOM is ready
+  setTimeout(() => {
+    initializeSearchableDropdowns();
+  }, 100);
+
+  // Reinitialize product subcategory when options are updated
+  if (productCategoryField && productSubcategoryField) {
+    const originalProductCategoryHandler = productCategoryField.onchange;
+    productCategoryField.addEventListener('change', function() {
+      // Call original handler first
+      if (originalProductCategoryHandler) {
+        originalProductCategoryHandler.call(this);
+      }
+
+      // Destroy and reinitialize Select2 for product subcategory
+      const $subcategorySelect = $(productSubcategoryField);
+      if ($subcategorySelect.hasClass('select2-hidden-accessible')) {
+        $subcategorySelect.select2('destroy');
+      }
+
+      setTimeout(() => {
+        $subcategorySelect.select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Search and select product type...',
+          allowClear: true,
+          width: '100%',
+          minimumResultsForSearch: 0,
+          dropdownParent: $('body')
+        });
+      }, 50);
     });
   }
 });

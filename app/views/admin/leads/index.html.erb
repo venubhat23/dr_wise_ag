@@ -1,6 +1,6 @@
 
 <!-- Leads Management Header -->
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-2">
   <div>
     <h2 class="mb-1">Leads Management</h2>
   </div>
@@ -13,7 +13,7 @@
 </div>
 
 <!-- Lead Statistics Dashboard -->
-<div class="row mb-4">
+<div class="row mb-3">
   <div class="col-xl-3 col-md-6 mb-3">
     <div class="card h-100 border-0 shadow-sm">
       <div class="card-body">
@@ -79,49 +79,70 @@
   </div>
 </div>
 
-
 <!-- Search and Filters -->
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-body">
-    <%= form_with url: admin_leads_path, method: :get, local: true, class: "row g-3" do |form| %>
-      <div class="col-md-3">
-        <%= form.text_field :search, placeholder: "Search leads...", value: params[:search], class: "form-control" %>
-      </div>
-      <div class="col-md-2">
-        <%= form.select :current_stage, options_for_select([
-          ['All Stages', ''],
-          ['Consultation', 'consultation'],
-          ['One-on-One', 'one_on_one'],
-          ['Converted', 'converted'],
-          ['Policy Created', 'policy_created'],
-          ['Referral Settled', 'referral_settled']
-        ], params[:current_stage]), {}, { class: "form-select" } %>
-      </div>
-      <div class="col-md-2">
-        <%= form.select :product_category, options_for_select([
-          ['All Categories', ''],
-          ['Insurance', 'insurance'],
-          ['Investments', 'investments'],
-          ['Loans', 'loans'],
-          ['Taxation', 'taxation']
-        ], params[:product_category]), {}, { class: "form-select" } %>
-      </div>
-      <div class="col-md-2">
-        <%= form.select :referred_by, options_for_select([
-          ['All Sources', ''],
-          ['Agent Referral', 'agent'],
-          ['Online Campaign', 'online'],
-          ['Walk-in', 'walkin'],
-          ['Tele-calling', 'telecalling']
-        ], params[:referred_by]), {}, { class: "form-select" } %>
-      </div>
-      <div class="col-md-2">
-        <%= form.submit "Filter", class: "btn btn-outline-primary w-100" %>
-      </div>
-      <div class="col-md-1">
-        <%= link_to admin_leads_path, class: "btn btn-outline-secondary w-100", title: "Clear filters" do %>
-          <i class="bi bi-x-lg"></i>
-        <% end %>
+<div class="card border-0 shadow-sm mb-2">
+  <div class="card-header bg-transparent border-0 pb-0 pt-1">
+    <h6 class="text-muted mb-0">
+      <i class="bi bi-funnel me-2"></i>
+      Search and Filter Leads
+    </h6>
+  </div>
+  <div class="card-body pt-1 pb-1">
+    <%= form_with url: admin_leads_path, method: :get, local: true, class: "filter-form" do |form| %>
+      <!-- Single Row: All Filters -->
+      <div class="row g-2 align-items-end">
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label small text-muted mb-1">Search Leads</label>
+          <%= form.text_field :search, placeholder: "Search by name, phone, email...", value: params[:search], class: "form-control" %>
+        </div>
+        <div class="col-lg-2 col-md-6">
+          <label class="form-label small text-muted mb-1">Stage</label>
+          <%= form.select :current_stage, options_for_select([
+            ['All Stages', ''],
+            ['Lead Generated', 'lead_generated'],
+            ['Consultation', 'consultation_scheduled'],
+            ['One-on-One', 'one_on_one'],
+            ['Follow-Up', 'follow_up'],
+            ['Successful', 'follow_up_successful'],
+            ['Unsuccessful', 'follow_up_unsuccessful'],
+            ['Not Interested', 'not_interested'],
+            ['Re-Follow Up', 're_follow_up'],
+            ['Policy Created', 'policy_created'],
+            ['Converted', 'converted'],
+            ['Closed', 'lead_closed']
+          ], params[:current_stage]), {}, { class: "form-select stage-filter-dropdown" } %>
+        </div>
+        <div class="col-lg-2 col-md-6">
+          <label class="form-label small text-muted mb-1">Category</label>
+          <%= form.select :product_category, options_for_select([
+            ['All Categories', ''],
+            ['Insurance', 'insurance'],
+            ['Investments', 'investments'],
+            ['Loans', 'loans'],
+            ['Taxation', 'taxation']
+          ], params[:product_category]), {}, { class: "form-select" } %>
+        </div>
+        <div class="col-lg-2 col-md-6">
+          <label class="form-label small text-muted mb-1">Source</label>
+          <%= form.select :referred_by, options_for_select([
+            ['All Sources', ''],
+            ['Agent', 'agent'],
+            ['Online', 'online'],
+            ['Walk-in', 'walkin'],
+            ['Tele-calling', 'telecalling']
+          ], params[:referred_by]), {}, { class: "form-select" } %>
+        </div>
+        <div class="col-lg-3 col-md-12">
+          <div class="d-flex gap-2">
+            <%= form.submit "Apply", class: "btn btn-primary" do %>
+              <i class="bi bi-funnel me-1"></i>
+              Apply
+            <% end %>
+            <%= link_to admin_leads_path, class: "btn btn-outline-secondary", title: "Clear all filters" do %>
+              <i class="bi bi-arrow-clockwise"></i>
+            <% end %>
+          </div>
+        </div>
       </div>
     <% end %>
   </div>
@@ -339,6 +360,39 @@
 
 <!-- Custom Styles -->
 <style>
+/* Compact Layout Optimization */
+.card.shadow-sm {
+  margin-bottom: 1rem;
+}
+
+.card-body {
+  padding: 1rem;
+}
+
+.card-header {
+  padding: 0.75rem 1rem;
+}
+
+.mb-3 {
+  margin-bottom: 0.5rem !important;
+}
+
+.mb-2 {
+  margin-bottom: 0.5rem !important;
+}
+
+.row.mb-3 {
+  margin-bottom: 0.75rem !important;
+}
+
+/* Statistics cards optimization */
+.card h-100 {
+  min-height: auto;
+}
+
+.card h-100 .card-body {
+  padding: 1rem;
+}
 
 .lead-row:hover {
   background-color: rgba(0, 123, 255, 0.05);
@@ -592,6 +646,19 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log(`Found ${checkboxes.length} lead checkboxes`);
   } catch (error) {
     console.error('Error setting up lead checkboxes:', error);
+  }
+
+  // Auto-submit form when stage filter changes
+  const stageFilter = document.querySelector('.stage-filter-dropdown');
+  if (stageFilter) {
+    stageFilter.addEventListener('change', function() {
+      console.log('Stage filter changed to:', this.value);
+      // Find the form and submit it
+      const form = this.closest('form');
+      if (form) {
+        form.submit();
+      }
+    });
   }
 
   // Delete confirmation functionality
@@ -963,6 +1030,55 @@ document.addEventListener('DOMContentLoaded', function() {
 .stage-convert-btn:active {
   transform: translateY(0) !important;
   box-shadow: 0 2px 6px rgba(253, 126, 20, 0.3) !important;
+}
+
+/* Filter Form Styling */
+.filter-form {
+  margin: 0;
+}
+
+.filter-form .form-label {
+  font-weight: 500;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.filter-form .form-control,
+.filter-form .form-select {
+  font-size: 0.9rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.filter-form .form-control:focus,
+.filter-form .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Stage Filter Dropdown Styling */
+.stage-filter-dropdown {
+  min-width: 100%;
+  font-size: 0.85rem;
+}
+
+.stage-filter-dropdown option {
+  padding: 8px 12px;
+  line-height: 1.4;
+}
+
+/* Responsive filter adjustments */
+@media (max-width: 768px) {
+  .filter-form .d-flex {
+    flex-direction: column;
+    gap: 0.5rem !important;
+  }
+
+  .filter-form .btn {
+    width: 100%;
+  }
 }
 
 /* Stage Conversion Menu Styling */

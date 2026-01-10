@@ -53,7 +53,7 @@
               <% end %>
               <%= form.text_field :name,
                   class: "form-control #{'is-invalid' if @insurance_company.errors[:name].any?}",
-                  placeholder: "Enter company name",
+                  placeholder: "Enter company name (include type in name, e.g., LIC Life Insurance)",
                   required: true %>
               <% if @insurance_company.errors[:name].any? %>
                 <div class="invalid-feedback">

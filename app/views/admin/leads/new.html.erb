@@ -251,7 +251,7 @@
             <%= form.label :product_subcategory, "Product Type *", class: "form-label" %>
             <%= form.select :product_subcategory, options_for_select([
               ['Select Product Type', '']
-            ]), {}, { class: "form-select", required: true, id: "product_subcategory", disabled: true } %>
+            ]), {}, { class: "form-select searchable-select", required: true, id: "product_subcategory", disabled: true, data: { placeholder: "Search and select product type..." } } %>
           </div>
         </div>
       </div>
@@ -337,7 +337,7 @@
             ['👤 Convert to Customer', 'converted'],
             ['📄 Policy Created', 'policy_created'],
             ['📁 Lead Closed', 'lead_closed']
-          ], @lead&.current_stage || 'lead_generated'), {}, { class: "form-select", required: true } %>
+          ], @lead&.current_stage || 'lead_generated'), {}, { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select stage..." } } %>
         </div>
 
         <div class="col-md-6 mb-3">
@@ -362,14 +362,14 @@
           <%= form.label :call_disposition, "Call Disposition", class: "form-label" %>
           <%= form.select :call_disposition, options_for_select([
             ['Select Disposition', ''],
-            ['Interested', 'interested'],
-            ['Not Interested', 'not_interested'],
-            ['Call Back Later', 'call_back'],
-            ['Follow Up Required', 'follow_up'],
-            ['Number Not Reachable', 'not_reachable'],
-            ['Wrong Number', 'wrong_number'],
-            ['Do Not Call', 'do_not_call']
-          ], @lead&.call_disposition), {}, { class: "form-select" } %>
+            ['📞 Interested', 'interested'],
+            ['❌ Not Interested', 'not_interested'],
+            ['📞 Call Back Later', 'call_back'],
+            ['📝 Follow Up Required', 'follow_up'],
+            ['📵 Number Not Reachable', 'not_reachable'],
+            ['☎️ Wrong Number', 'wrong_number'],
+            ['🚫 Do Not Call', 'do_not_call']
+          ], @lead&.call_disposition), {}, { class: "form-select searchable-select", data: { placeholder: "Search and select call disposition..." } } %>
         </div>
 
         <div class="col-md-6 mb-3">
@@ -1123,6 +1123,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize form state on page load
   initializeFormState();
 
+  // Initialize all searchable dropdowns
+  setTimeout(() => {
+    initializeSearchableDropdowns();
+  }, 100);
+
   // Set Individual as default if no customer type is selected
   const selectedRadio = document.querySelector('input[name="lead[customer_type]"]:checked');
   if (!selectedRadio) {
@@ -1332,6 +1337,12 @@ document.addEventListener('DOMContentLoaded', function() {
   function handleProductCategoryChange(selectedCategory) {
     console.log('Product category changed to:', selectedCategory);
     const subcategorySelect = productSubcategoryField;
+    const $subcategorySelect = $(subcategorySelect);
+
+    // Destroy Select2 if it exists
+    if ($subcategorySelect.hasClass('select2-hidden-accessible')) {
+      $subcategorySelect.select2('destroy');
+    }
 
     // Clear existing options
     subcategorySelect.innerHTML = '<option value="">Select Product Type</option>';
@@ -1351,6 +1362,18 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 
       console.log('Added', subcategoryOptions[selectedCategory].length, 'subcategory options');
+
+      // Reinitialize Select2 for the subcategory dropdown
+      setTimeout(() => {
+        $subcategorySelect.select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Search and select product type...',
+          allowClear: true,
+          width: '100%',
+          minimumResultsForSearch: 0,
+          dropdownParent: $('body')
+        });
+      }, 50);
     } else {
       console.log('No subcategory options found for:', selectedCategory);
       // Disable the subcategory dropdown
@@ -1492,6 +1515,31 @@ document.addEventListener('DOMContentLoaded', function() {
         minimumResultsForSearch: 0
       });
     }, 50);
+  }
+
+  // Initialize all searchable dropdowns with Select2
+  function initializeSearchableDropdowns() {
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+      // Initialize all dropdowns with searchable-select class
+      $('.searchable-select').each(function() {
+        const $element = $(this);
+        const placeholder = $element.data('placeholder') || 'Search and select...';
+
+        // Skip if already initialized
+        if ($element.hasClass('select2-hidden-accessible')) {
+          return;
+        }
+
+        $element.select2({
+          theme: 'bootstrap-5',
+          placeholder: placeholder,
+          allowClear: true,
+          width: '100%',
+          minimumResultsForSearch: 0,
+          dropdownParent: $('body')
+        });
+      });
+    }
   }
 
   // Setup lead form state-city functionality

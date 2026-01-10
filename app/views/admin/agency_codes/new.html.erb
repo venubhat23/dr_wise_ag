@@ -1,13 +1,17 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-1">Agency Code Management</h2>
-    <p class="text-muted mb-0">Manage agency codes by insurance type</p>
+    <h2 class="mb-1">Add New Broker Code</h2>
+    <p class="text-muted mb-0">Create a new broker code mapping for insurance agents</p>
   </div>
-  <div>
-    <%= link_to admin_agency_codes_path, class: "btn btn-secondary" do %>
+  <div class="d-flex gap-2">
+    <%= link_to admin_brokers_path, class: "btn btn-outline-secondary" do %>
       <i class="bi bi-arrow-left me-1"></i>
-      Back to Agency Codes
+      Back to Brokers
+    <% end %>
+    <%= link_to admin_agency_codes_path, class: "btn btn-secondary" do %>
+      <i class="bi bi-list me-1"></i>
+      View All Codes
     <% end %>
   </div>
 </div>
@@ -24,28 +28,20 @@
 
   <div class="card-body">
     <%= form_with model: [:admin, @agency_code], local: true, class: "row g-4", data: { turbo: false } do |form| %>
+
+      <!-- Broker Name -->
       <div class="col-md-6">
-        <label class="form-label">Type</label>
-        <%= form.select :insurance_type,
-            options_for_select(@insurance_types.map { |type| [type, type] }, @agency_code.insurance_type),
-            { prompt: 'Select Type' },
-            { class: "form-select", required: true } %>
-        <% if @agency_code.errors[:insurance_type].any? %>
-          <div class="text-danger small mt-1"><%= @agency_code.errors[:insurance_type].first %></div>
+        <label class="form-label">Broker Name</label>
+        <%= form.select :broker_id,
+            options_from_collection_for_select(@brokers, :id, :name, @agency_code.broker_id),
+            { prompt: 'Select Broker' },
+            { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select broker..." } } %>
+        <% if @agency_code.errors[:broker_id].any? %>
+          <div class="text-danger small mt-1"><%= @agency_code.errors[:broker_id].first %></div>
         <% end %>
       </div>
 
-      <div class="col-md-6">
-        <label class="form-label">Company Name</label>
-        <%= form.select :company_name,
-            options_for_select(@insurance_companies.map { |company| [company, company] }, @agency_code.company_name),
-            { prompt: 'Select Company' },
-            { class: "form-select", required: true } %>
-        <% if @agency_code.errors[:company_name].any? %>
-          <div class="text-danger small mt-1"><%= @agency_code.errors[:company_name].first %></div>
-        <% end %>
-      </div>
-
+      <!-- Agent Name -->
       <div class="col-md-6">
         <label class="form-label">Agent Name</label>
         <%= form.text_field :agent_name,
@@ -57,15 +53,39 @@
         <% end %>
       </div>
 
-
+      <!-- Broker Code -->
       <div class="col-md-6">
-        <label class="form-label">Agency Code</label>
+        <label class="form-label">Broker Code</label>
         <%= form.text_field :code,
             class: "form-control",
-            placeholder: "Enter agency code",
+            placeholder: "Enter broker code",
             required: true %>
         <% if @agency_code.errors[:code].any? %>
           <div class="text-danger small mt-1"><%= @agency_code.errors[:code].first %></div>
+        <% end %>
+      </div>
+
+      <!-- Insurance Type -->
+      <div class="col-md-6">
+        <label class="form-label">Insurance Type</label>
+        <%= form.select :insurance_type,
+            options_for_select(@insurance_types.map { |type| [type, type] }, @agency_code.insurance_type),
+            { prompt: 'Select Insurance Type' },
+            { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select type..." } } %>
+        <% if @agency_code.errors[:insurance_type].any? %>
+          <div class="text-danger small mt-1"><%= @agency_code.errors[:insurance_type].first %></div>
+        <% end %>
+      </div>
+
+      <!-- Company Name -->
+      <div class="col-md-12">
+        <label class="form-label">Company Name</label>
+        <%= form.select :company_name,
+            options_for_select(@insurance_companies.map { |company| [company, company] }, @agency_code.company_name),
+            { prompt: 'Select Company' },
+            { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select company..." } } %>
+        <% if @agency_code.errors[:company_name].any? %>
+          <div class="text-danger small mt-1"><%= @agency_code.errors[:company_name].first %></div>
         <% end %>
       </div>
 
@@ -78,6 +98,12 @@
     <% end %>
   </div>
 </div>
+
+<!-- jQuery and Select2 for searchable dropdowns -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <style>
 .card {
@@ -108,4 +134,73 @@
   font-weight: 500;
   padding: 0.75rem 1.5rem;
 }
+
+/* Select2 styling */
+.select2-container--bootstrap-5 .select2-selection--single {
+  height: 48px;
+  border: 1px solid #e0e6ed;
+  border-radius: 8px;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single:focus-within {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.select2-container--bootstrap-5 .select2-selection__rendered {
+  color: #495057;
+  padding-left: 1rem;
+  padding-right: 20px;
+  line-height: 46px;
+  font-size: 0.9rem;
+}
+
+.select2-container--bootstrap-5 .select2-results__option {
+  padding: 8px 16px;
+}
+
+.select2-container--bootstrap-5 .select2-results__option--highlighted {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.select2-dropdown {
+  border: 1px solid #e0e6ed;
+  border-radius: 8px;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.select2-results__options {
+  max-height: 400px !important;
+  overflow-y: auto;
+}
+
+.select2-search__field {
+  border: 1px solid #e0e6ed;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize all searchable dropdowns with Select2
+  if (typeof $ !== 'undefined' && $.fn.select2) {
+    $('.searchable-select').each(function() {
+      const $element = $(this);
+      const placeholder = $element.data('placeholder') || 'Search and select...';
+
+      $element.select2({
+        theme: 'bootstrap-5',
+        placeholder: placeholder,
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0,
+        dropdownParent: $('body')
+      });
+    });
+  }
+});
+</script>

@@ -300,16 +300,24 @@
                   <div class="d-flex align-items-center">
                     <i class="bi bi-file-earmark me-3 text-muted fs-5"></i>
                     <div>
-                      <span class="fw-medium"><%= document.filename %></span>
+                      <span class="fw-medium">
+                        <%= document.filename || "Document (#{document.document_type})" %>
+                      </span>
                       <small class="text-muted d-block">
-                        <i class="bi bi-hdd me-1"></i>Size: <%= number_to_human_size(document.byte_size) %>
-                        <i class="bi bi-calendar ms-3 me-1"></i><%= document.created_at&.strftime("%b %d, %Y") if document.respond_to?(:created_at) %>
+                        <% if document.file_size %>
+                          <i class="bi bi-hdd me-1"></i>Size: <%= number_to_human_size(document.file_size) %>
+                        <% end %>
+                        <i class="bi bi-calendar ms-3 me-1"></i><%= document.created_at&.strftime("%b %d, %Y") %>
                       </small>
                     </div>
                   </div>
                   <div>
-                    <%= link_to document, class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
-                      <i class="bi bi-download me-1"></i>Download
+                    <% if document.file.attached? %>
+                      <%= link_to rails_blob_path(document.file, disposition: "attachment"), class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
+                        <i class="bi bi-download me-1"></i>Download
+                      <% end %>
+                    <% else %>
+                      <span class="badge bg-warning text-dark">No File</span>
                     <% end %>
                   </div>
                 </div>

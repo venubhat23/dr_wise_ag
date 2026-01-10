@@ -1,4 +1,5 @@
 class Admin::BrokersController < Admin::ApplicationController
+  include InsuranceCompanyMethods
   before_action :set_broker, only: [:show, :edit, :update, :destroy, :toggle_status]
 
   def index
@@ -19,6 +20,25 @@ class Admin::BrokersController < Admin::ApplicationController
         @total_brokers = Broker.count
         @active_brokers = Broker.active.count
         @inactive_brokers = Broker.inactive.count
+
+        # Data for Add Broker Code modal
+        @agency_code = AgencyCode.new
+        @insurance_companies = insurance_companies_list
+        @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
+
+        # Data for Broker Code tab
+        @agency_codes = AgencyCode.includes(:broker)
+
+        # Apply search filter to agency codes if present
+        if params[:search].present?
+          @agency_codes = @agency_codes.search(params[:search])
+        end
+
+        # Get total count before pagination for display purposes
+        @total_filtered_agency_codes = @agency_codes.count
+
+        # Apply pagination for agency codes (10 records per page)
+        @agency_codes = @agency_codes.order(created_at: :desc).page(params[:page]).per(10)
       end
 
       format.json do
