@@ -247,10 +247,10 @@
                           <i class="bi bi-telephone"></i> <span class="affiliate-mobile"><%= sub_agent.mobile %></span>
                         </span>
                       </small>
-                      <% if sub_agent.state.present? || sub_agent.city.present? %>
+                      <% if sub_agent.address.present? %>
                         <small class="text-muted d-block">
                           <i class="bi bi-geo-alt"></i>
-                          <%= [sub_agent.city&.name, sub_agent.state&.name].compact.join(', ') %>
+                          <%= sub_agent.address %>
                         </small>
                       <% end %>
                     </div>

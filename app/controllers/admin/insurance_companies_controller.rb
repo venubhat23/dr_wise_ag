@@ -55,6 +55,6 @@ class Admin::InsuranceCompaniesController < Admin::ApplicationController
   end
 
   def insurance_company_params
-    params.require(:insurance_company).permit(:name, :code, :contact_person, :email, :mobile, :address, :status)
+    params.require(:insurance_company).permit(:name, :code, :contact_person, :email, :mobile, :address, :status, :insurance_type)
   end
 end
