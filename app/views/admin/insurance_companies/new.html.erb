@@ -43,19 +43,48 @@
         </div>
         <div class="card-body">
           <div class="row">
-            <div class="col-md-8 mb-3">
+            <div class="col-md-6 mb-3">
+              <%= form.label :insurance_type, class: "form-label" do %>
+                Insurance Type <span class="text-danger">*</span>
+              <% end %>
+              <%= form.select :insurance_type,
+                  options_for_select([
+                    ['Select Insurance Type', ''],
+                    ['Health Insurance', 'health'],
+                    ['Life Insurance', 'life'],
+                    ['Motor Insurance', 'motor'],
+                    ['Travel Insurance', 'travel'],
+                    ['Other Insurance', 'other']
+                  ]),
+                  {},
+                  {
+                    class: "form-select #{'is-invalid' if @insurance_company.errors[:insurance_type].any?}",
+                    required: true,
+                    id: "insurance_type_select"
+                  } %>
+              <% if @insurance_company.errors[:insurance_type].any? %>
+                <div class="invalid-feedback">
+                  <%= @insurance_company.errors[:insurance_type].first %>
+                </div>
+              <% end %>
+              <small class="form-text text-muted">Select the type of insurance this company provides</small>
+            </div>
+
+            <div class="col-md-6 mb-3">
               <%= form.label :name, class: "form-label" do %>
                 Company Name <span class="text-danger">*</span>
               <% end %>
               <%= form.text_field :name,
                   class: "form-control #{'is-invalid' if @insurance_company.errors[:name].any?}",
-                  placeholder: "Enter company name (include type in name, e.g., LIC Life Insurance)",
-                  required: true %>
+                  placeholder: "Enter company name",
+                  required: true,
+                  id: "company_name_field" %>
               <% if @insurance_company.errors[:name].any? %>
                 <div class="invalid-feedback">
                   <%= @insurance_company.errors[:name].first %>
                 </div>
               <% end %>
+              <small class="form-text text-muted" id="name_suggestion">Name will auto-update based on type selection</small>
             </div>
 
             <div class="col-md-4 mb-3">
@@ -217,22 +246,160 @@ document.addEventListener('DOMContentLoaded', function() {
     }, false);
   });
 
-  // Auto-generate company code from name
-  const nameField = document.querySelector('input[name="insurance_company[name]"]');
+  // Auto-loading functionality for insurance type
+  const insuranceTypeSelect = document.getElementById('insurance_type_select');
+  const companyNameField = document.getElementById('company_name_field');
+  const nameSuggestion = document.getElementById('name_suggestion');
   const codeField = document.querySelector('input[name="insurance_company[code]"]');
 
-  if (nameField && codeField && !codeField.value) {
-    nameField.addEventListener('input', function() {
-      // Generate code from first letters of each word
-      const words = this.value.trim().split(/\s+/);
-      const code = words.slice(0, 3).map(word =>
-        word.charAt(0).toUpperCase()
-      ).join('');
+  let userModifiedName = false;
 
-      if (code.length > 0) {
-        codeField.value = code;
+  // Track if user manually edits the name field
+  companyNameField.addEventListener('input', function() {
+    userModifiedName = true;
+
+    // Auto-generate company code from name
+    const words = this.value.trim().split(/\s+/);
+    const code = words.slice(0, 3).map(word =>
+      word.charAt(0).toUpperCase()
+    ).join('');
+
+    if (code.length > 0 && codeField && !codeField.value) {
+      codeField.value = code;
+    }
+  });
+
+  insuranceTypeSelect.addEventListener('change', function() {
+    const selectedType = this.value;
+    const selectedText = this.options[this.selectedIndex].text;
+
+    if (selectedType && selectedType !== '') {
+      // Only auto-update if user hasn't manually modified the name
+      if (!userModifiedName || companyNameField.value === '') {
+        // Get the base company name (remove any existing insurance type suffix)
+        let baseName = companyNameField.value
+          .replace(/ Health Insurance$/i, '')
+          .replace(/ Life Insurance$/i, '')
+          .replace(/ Motor Insurance$/i, '')
+          .replace(/ Travel Insurance$/i, '')
+          .replace(/ Insurance$/i, '')
+          .trim();
+
+        // If no base name, prompt for one
+        if (!baseName) {
+          baseName = prompt('Enter the company base name (e.g., "LIC", "HDFC", "Star Health"):');
+          if (!baseName) {
+            return;
+          }
+        }
+
+        // Add the insurance type suffix
+        companyNameField.value = baseName + ' ' + selectedText;
+
+        // Auto-generate code
+        const words = companyNameField.value.trim().split(/\s+/);
+        const code = words.slice(0, 3).map(word =>
+          word.charAt(0).toUpperCase()
+        ).join('');
+        if (code.length > 0 && codeField) {
+          codeField.value = code;
+        }
+
+        // Show suggestion
+        nameSuggestion.textContent = 'Name updated to: ' + companyNameField.value;
+        nameSuggestion.classList.add('text-success');
+
+        // Reset the modified flag since we auto-updated
+        userModifiedName = false;
       }
-    });
+
+      // Load pre-defined company names based on type
+      loadCompanySuggestions(selectedType);
+    } else {
+      nameSuggestion.textContent = 'Name will auto-update based on type selection';
+      nameSuggestion.classList.remove('text-success');
+    }
+  });
+
+  // Function to load company suggestions based on insurance type
+  function loadCompanySuggestions(insuranceType) {
+    const companySuggestions = {
+      'health': [
+        'Star Health Insurance',
+        'HDFC ERGO Health Insurance',
+        'Bajaj Allianz Health Insurance',
+        'Max Bupa Health Insurance',
+        'Apollo Munich Health Insurance',
+        'Religare Health Insurance',
+        'ICICI Lombard Health Insurance',
+        'Aditya Birla Health Insurance',
+        'Care Health Insurance',
+        'Niva Bupa Health Insurance'
+      ],
+      'life': [
+        'LIC Life Insurance',
+        'HDFC Life Insurance',
+        'ICICI Prudential Life Insurance',
+        'SBI Life Insurance',
+        'Max Life Insurance',
+        'Bajaj Allianz Life Insurance',
+        'Kotak Life Insurance',
+        'Tata AIA Life Insurance',
+        'PNB MetLife Insurance',
+        'Aditya Birla Sun Life Insurance'
+      ],
+      'motor': [
+        'HDFC ERGO Motor Insurance',
+        'ICICI Lombard Motor Insurance',
+        'Bajaj Allianz Motor Insurance',
+        'Tata AIG Motor Insurance',
+        'New India Motor Insurance',
+        'United India Motor Insurance',
+        'National Motor Insurance',
+        'Oriental Motor Insurance',
+        'Reliance Motor Insurance',
+        'Bharti AXA Motor Insurance'
+      ],
+      'travel': [
+        'HDFC ERGO Travel Insurance',
+        'ICICI Lombard Travel Insurance',
+        'Bajaj Allianz Travel Insurance',
+        'Tata AIG Travel Insurance',
+        'Religare Travel Insurance',
+        'Apollo Munich Travel Insurance',
+        'Star Health Travel Insurance',
+        'Care Travel Insurance',
+        'Future Generali Travel Insurance',
+        'Universal Sompo Travel Insurance'
+      ],
+      'other': [
+        'General Insurance Corporation',
+        'Agriculture Insurance Company',
+        'Export Credit Guarantee Corporation',
+        'Miscellaneous Insurance Provider'
+      ]
+    };
+
+    // Create datalist for suggestions if it doesn't exist
+    let datalist = document.getElementById('company_suggestions');
+    if (!datalist) {
+      datalist = document.createElement('datalist');
+      datalist.id = 'company_suggestions';
+      companyNameField.parentNode.appendChild(datalist);
+      companyNameField.setAttribute('list', 'company_suggestions');
+    }
+
+    // Clear existing options
+    datalist.innerHTML = '';
+
+    // Add suggestions based on type
+    if (companySuggestions[insuranceType]) {
+      companySuggestions[insuranceType].forEach(function(company) {
+        const option = document.createElement('option');
+        option.value = company;
+        datalist.appendChild(option);
+      });
+    }
   }
 });
 </script>

@@ -295,5 +295,148 @@ document.addEventListener('DOMContentLoaded', function() {
       form.classList.add('was-validated');
     }, false);
   });
+
+  // Auto-loading functionality for insurance type
+  const insuranceTypeSelect = document.getElementById('insurance_type_select');
+  const companyNameField = document.getElementById('company_name_field');
+  const nameSuggestion = document.getElementById('name_suggestion');
+
+  // Store the original value when page loads
+  let originalName = companyNameField.value;
+  let userModifiedName = false;
+
+  // Track if user manually edits the name field
+  companyNameField.addEventListener('input', function() {
+    userModifiedName = true;
+  });
+
+  insuranceTypeSelect.addEventListener('change', function() {
+    const selectedType = this.value;
+    const selectedText = this.options[this.selectedIndex].text;
+
+    if (selectedType && selectedType !== '') {
+      // Only auto-update if user hasn't manually modified the name
+      if (!userModifiedName || companyNameField.value === '') {
+        // Get the base company name (remove any existing insurance type suffix)
+        let baseName = companyNameField.value
+          .replace(/ Health Insurance$/i, '')
+          .replace(/ Life Insurance$/i, '')
+          .replace(/ Motor Insurance$/i, '')
+          .replace(/ Travel Insurance$/i, '')
+          .replace(/ Insurance$/i, '')
+          .trim();
+
+        // If no base name, prompt for one
+        if (!baseName) {
+          baseName = prompt('Enter the company base name (e.g., "LIC", "HDFC", "Star Health"):');
+          if (!baseName) {
+            return;
+          }
+        }
+
+        // Add the insurance type suffix
+        companyNameField.value = baseName + ' ' + selectedText;
+
+        // Show suggestion
+        nameSuggestion.textContent = 'Name updated to: ' + companyNameField.value;
+        nameSuggestion.classList.add('text-success');
+
+        // Reset the modified flag since we auto-updated
+        userModifiedName = false;
+      }
+
+      // Load pre-defined company names based on type
+      loadCompanySuggestions(selectedType);
+    } else {
+      nameSuggestion.textContent = 'Name will auto-update based on type selection';
+      nameSuggestion.classList.remove('text-success');
+    }
+  });
+
+  // Function to load company suggestions based on insurance type
+  function loadCompanySuggestions(insuranceType) {
+    const companySuggestions = {
+      'health': [
+        'Star Health Insurance',
+        'HDFC ERGO Health Insurance',
+        'Bajaj Allianz Health Insurance',
+        'Max Bupa Health Insurance',
+        'Apollo Munich Health Insurance',
+        'Religare Health Insurance',
+        'ICICI Lombard Health Insurance',
+        'Aditya Birla Health Insurance',
+        'Care Health Insurance',
+        'Niva Bupa Health Insurance'
+      ],
+      'life': [
+        'LIC Life Insurance',
+        'HDFC Life Insurance',
+        'ICICI Prudential Life Insurance',
+        'SBI Life Insurance',
+        'Max Life Insurance',
+        'Bajaj Allianz Life Insurance',
+        'Kotak Life Insurance',
+        'Tata AIA Life Insurance',
+        'PNB MetLife Insurance',
+        'Aditya Birla Sun Life Insurance'
+      ],
+      'motor': [
+        'HDFC ERGO Motor Insurance',
+        'ICICI Lombard Motor Insurance',
+        'Bajaj Allianz Motor Insurance',
+        'Tata AIG Motor Insurance',
+        'New India Motor Insurance',
+        'United India Motor Insurance',
+        'National Motor Insurance',
+        'Oriental Motor Insurance',
+        'Reliance Motor Insurance',
+        'Bharti AXA Motor Insurance'
+      ],
+      'travel': [
+        'HDFC ERGO Travel Insurance',
+        'ICICI Lombard Travel Insurance',
+        'Bajaj Allianz Travel Insurance',
+        'Tata AIG Travel Insurance',
+        'Religare Travel Insurance',
+        'Apollo Munich Travel Insurance',
+        'Star Health Travel Insurance',
+        'Care Travel Insurance',
+        'Future Generali Travel Insurance',
+        'Universal Sompo Travel Insurance'
+      ],
+      'other': [
+        'General Insurance Corporation',
+        'Agriculture Insurance Company',
+        'Export Credit Guarantee Corporation',
+        'Miscellaneous Insurance Provider'
+      ]
+    };
+
+    // Create datalist for suggestions if it doesn't exist
+    let datalist = document.getElementById('company_suggestions');
+    if (!datalist) {
+      datalist = document.createElement('datalist');
+      datalist.id = 'company_suggestions';
+      companyNameField.parentNode.appendChild(datalist);
+      companyNameField.setAttribute('list', 'company_suggestions');
+    }
+
+    // Clear existing options
+    datalist.innerHTML = '';
+
+    // Add suggestions based on type
+    if (companySuggestions[insuranceType]) {
+      companySuggestions[insuranceType].forEach(function(company) {
+        const option = document.createElement('option');
+        option.value = company;
+        datalist.appendChild(option);
+      });
+    }
+  }
+
+  // Trigger change event on page load if a type is already selected
+  if (insuranceTypeSelect.value) {
+    loadCompanySuggestions(insuranceTypeSelect.value);
+  }
 });
 </script>
