@@ -82,7 +82,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Premium Amount</h6>
-            <h4 class="mb-0 text-warning">₹<%= number_with_delimiter(@commission_breakdown[:policy][:premium].to_i) %></h4>
+            <h4 class="mb-0 text-warning"><%= indian_currency(@commission_breakdown[:policy][:premium].to_i) %></h4>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
             <i class="bi bi-currency-rupee text-warning fs-4"></i>
@@ -108,27 +108,27 @@
           </h6>
           <div class="d-flex justify-content-between py-2 border-bottom">
             <span>Total Commission</span>
-            <strong class="text-success">₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:main_agent][:total_commission].to_i) %></strong>
+            <strong class="text-success"><%= indian_currency(@commission_breakdown[:commission_breakdown][:main_agent][:total_commission].to_i) %></strong>
           </div>
           <div class="d-flex justify-content-between py-2 border-bottom">
             <span>Less: Affiliate Share</span>
-            <span class="text-danger">-₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:main_agent][:deductions][:affiliate].to_i) %></span>
+            <span class="text-danger">-<%= indian_currency(@commission_breakdown[:commission_breakdown][:main_agent][:deductions][:affiliate].to_i) %></span>
           </div>
           <div class="d-flex justify-content-between py-2 border-bottom">
             <span>Less: Ambassador Share</span>
-            <span class="text-danger">-₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:main_agent][:deductions][:ambassador].to_i) %></span>
+            <span class="text-danger">-<%= indian_currency(@commission_breakdown[:commission_breakdown][:main_agent][:deductions][:ambassador].to_i) %></span>
           </div>
           <div class="d-flex justify-content-between py-2 border-bottom">
             <span>Less: Investor Share</span>
-            <span class="text-danger">-₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:main_agent][:deductions][:investor].to_i) %></span>
+            <span class="text-danger">-<%= indian_currency(@commission_breakdown[:commission_breakdown][:main_agent][:deductions][:investor].to_i) %></span>
           </div>
           <div class="d-flex justify-content-between py-2 border-bottom">
             <span>Less: Company Expense</span>
-            <span class="text-danger">-₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:main_agent][:deductions][:company_expense].to_i) %></span>
+            <span class="text-danger">-<%= indian_currency(@commission_breakdown[:commission_breakdown][:main_agent][:deductions][:company_expense].to_i) %></span>
           </div>
           <div class="d-flex justify-content-between py-2 fw-bold text-primary">
             <span>Final Profit</span>
-            <span>₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:main_agent][:final_profit].to_i) %></span>
+            <span><%= indian_currency(@commission_breakdown[:commission_breakdown][:main_agent][:final_profit].to_i) %></span>
           </div>
         </div>
       </div>
@@ -141,23 +141,23 @@
           </h6>
           <div class="d-flex justify-content-between py-2 border-bottom">
             <span>Affiliate (<%= @saved_payout&.affiliate_percentage || 2 %>%)</span>
-            <strong class="text-success">₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:payouts][:affiliate].to_i) %></strong>
+            <strong class="text-success"><%= indian_currency(@commission_breakdown[:commission_breakdown][:payouts][:affiliate].to_i) %></strong>
           </div>
           <div class="d-flex justify-content-between py-2 border-bottom">
             <span>Ambassador (<%= @saved_payout&.ambassador_percentage || 2 %>%)</span>
-            <strong class="text-success">₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:payouts][:ambassador].to_i) %></strong>
+            <strong class="text-success"><%= indian_currency(@commission_breakdown[:commission_breakdown][:payouts][:ambassador].to_i) %></strong>
           </div>
           <div class="d-flex justify-content-between py-2 border-bottom">
             <span>Investor (<%= @saved_payout&.investor_percentage || 1 %>%)</span>
-            <strong class="text-success">₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:payouts][:investor].to_i) %></strong>
+            <strong class="text-success"><%= indian_currency(@commission_breakdown[:commission_breakdown][:payouts][:investor].to_i) %></strong>
           </div>
           <div class="d-flex justify-content-between py-2 border-bottom">
             <span>Company Expense (<%= @saved_payout&.company_expense_percentage || 3 %>%)</span>
-            <strong class="text-warning">₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:payouts][:company_expense].to_i) %></strong>
+            <strong class="text-warning"><%= indian_currency(@commission_breakdown[:commission_breakdown][:payouts][:company_expense].to_i) %></strong>
           </div>
           <div class="d-flex justify-content-between py-2 fw-bold text-primary">
             <span>Total Distributed</span>
-            <span>₹<%= number_with_delimiter(@commission_breakdown[:commission_breakdown][:summary][:total_distributed].to_i + @commission_breakdown[:commission_breakdown][:summary][:company_expense].to_i) %></span>
+            <span><%= indian_currency(@commission_breakdown[:commission_breakdown][:summary][:total_distributed].to_i + @commission_breakdown[:commission_breakdown][:summary][:company_expense].to_i) %></span>
           </div>
         </div>
       </div>
@@ -185,7 +185,7 @@
           </div>
           <div class="card-body">
             <% if @commission_breakdown[:payout_status][:affiliate][:status] == 'paid' %>
-              <p class="mb-2"><strong>Amount:</strong> ₹<%= number_with_delimiter(@commission_breakdown[:payout_status][:affiliate][:amount].to_i) %></p>
+              <p class="mb-2"><strong>Amount:</strong> <%= indian_currency(@commission_breakdown[:payout_status][:affiliate][:amount].to_i) %></p>
               <p class="mb-2"><strong>Transfer Date:</strong> <%= @commission_breakdown[:payout_status][:affiliate][:payout_date] %></p>
               <p class="mb-0"><strong>Transaction ID:</strong> <%= @commission_breakdown[:payout_status][:affiliate][:transaction_id] %></p>
             <% else %>
@@ -222,7 +222,7 @@
           </div>
           <div class="card-body">
             <% if @commission_breakdown[:payout_status][:ambassador][:status] == 'paid' %>
-              <p class="mb-2"><strong>Amount:</strong> ₹<%= number_with_delimiter(@commission_breakdown[:payout_status][:ambassador][:amount].to_i) %></p>
+              <p class="mb-2"><strong>Amount:</strong> <%= indian_currency(@commission_breakdown[:payout_status][:ambassador][:amount].to_i) %></p>
               <p class="mb-2"><strong>Transfer Date:</strong> <%= @commission_breakdown[:payout_status][:ambassador][:payout_date] %></p>
               <p class="mb-0"><strong>Transaction ID:</strong> <%= @commission_breakdown[:payout_status][:ambassador][:transaction_id] %></p>
             <% else %>
@@ -259,7 +259,7 @@
           </div>
           <div class="card-body">
             <% if @commission_breakdown[:payout_status][:investor][:status] == 'paid' %>
-              <p class="mb-2"><strong>Amount:</strong> ₹<%= number_with_delimiter(@commission_breakdown[:payout_status][:investor][:amount].to_i) %></p>
+              <p class="mb-2"><strong>Amount:</strong> <%= indian_currency(@commission_breakdown[:payout_status][:investor][:amount].to_i) %></p>
               <p class="mb-2"><strong>Transfer Date:</strong> <%= @commission_breakdown[:payout_status][:investor][:payout_date] %></p>
               <p class="mb-0"><strong>Transaction ID:</strong> <%= @commission_breakdown[:payout_status][:investor][:transaction_id] %></p>
             <% else %>
@@ -296,7 +296,7 @@
           </div>
           <div class="card-body">
             <% if @commission_breakdown[:payout_status][:company_expense][:status] == 'paid' %>
-              <p class="mb-2"><strong>Amount:</strong> ₹<%= number_with_delimiter(@commission_breakdown[:payout_status][:company_expense][:amount].to_i) %></p>
+              <p class="mb-2"><strong>Amount:</strong> <%= indian_currency(@commission_breakdown[:payout_status][:company_expense][:amount].to_i) %></p>
               <p class="mb-2"><strong>Transfer Date:</strong> <%= @commission_breakdown[:payout_status][:company_expense][:payout_date] %></p>
               <p class="mb-0"><strong>Transaction ID:</strong> <%= @commission_breakdown[:payout_status][:company_expense][:transaction_id] %></p>
             <% else %>
@@ -349,7 +349,7 @@
                   <h6 class="mb-0"><%= transfer.payout_to.humanize %> Transfer</h6>
                 </td>
                 <td>
-                  <strong class="text-success">₹<%= number_with_delimiter(transfer.payout_amount.to_i) %></strong>
+                  <strong class="text-success"><%= indian_currency(transfer.payout_amount.to_i) %></strong>
                 </td>
                 <td>
                   <span class="badge <%= transfer.status == 'paid' ? 'bg-success' : 'bg-warning' %>">

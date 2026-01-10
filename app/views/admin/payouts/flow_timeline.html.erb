@@ -41,7 +41,7 @@
             </div>
             <div class="col-md-3">
               <strong class="text-muted d-block">Payout Amount</strong>
-              ₹<%= number_with_delimiter(@payout.payout_amount.to_i) %>
+              <%= indian_currency(@payout.payout_amount.to_i) %>
             </div>
             <div class="col-md-3">
               <strong class="text-muted d-block">Status</strong>
@@ -133,7 +133,7 @@
               </div>
               <div class="col-md-4">
                 <strong class="text-muted d-block">Premium Amount</strong>
-                ₹<%= number_with_delimiter(@policy.try(:total_premium).to_i) %>
+                <%= indian_currency(@policy.try(:total_premium).to_i) %>
               </div>
               <% if @policy.try(:policy_start_date).present? %>
                 <div class="col-md-4">

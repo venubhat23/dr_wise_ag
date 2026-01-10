@@ -23,6 +23,9 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
     @default_affiliate_commission = SystemSetting.default_affiliate_commission
     @default_ambassador_commission = SystemSetting.default_ambassador_commission
     @default_company_expenses = SystemSetting.default_company_expenses
+
+    # Get terms and conditions
+    @terms_and_conditions = SystemSetting.terms_and_conditions
   end
 
   def update
@@ -84,6 +87,24 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
       end
     end
 
+    # Handle terms and conditions update
+    if params[:terms_and_conditions_update] == "true"
+      terms_content = params[:terms_and_conditions]&.strip
+
+      if terms_content.present?
+        begin
+          SystemSetting.set_terms_and_conditions(terms_content)
+          success_messages << 'Terms and conditions updated successfully!'
+        rescue => e
+          redirect_to admin_settings_system_path, alert: "Error updating terms and conditions: #{e.message}"
+          return
+        end
+      else
+        redirect_to admin_settings_system_path, alert: 'Terms and conditions cannot be empty.'
+        return
+      end
+    end
+
     if success_messages.any?
       redirect_to admin_settings_system_path, notice: success_messages.join(' ')
     else
@@ -98,7 +119,7 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
       :maintenance_mode, :email_notifications, :backup_frequency, :session_timeout,
       :max_file_upload_size, :company_expenses_percentage, :default_pagination_per_page,
       :default_main_agent_commission, :default_affiliate_commission,
-      :default_ambassador_commission, :default_company_expenses
+      :default_ambassador_commission, :default_company_expenses, :terms_and_conditions
     )
   end
 end

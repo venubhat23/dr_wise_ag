@@ -48,7 +48,7 @@
           <%= form.select :insurance_type,
               options_for_select(@insurance_types.map { |type| [type, type] }, @agency_code.insurance_type),
               { prompt: 'Select Insurance Type' },
-              { class: "form-select form-select-lg", required: true } %>
+              { class: "form-select form-select-lg searchable-select", required: true, data: { placeholder: "Search and select type..." } } %>
           <small class="form-text text-muted">
             <i class="bi bi-info-circle me-1"></i>
             Select the type of insurance coverage
@@ -66,7 +66,7 @@
           <%= form.select :company_name,
               options_for_select(@insurance_companies.map { |company| [company, company] }, @agency_code.company_name),
               { prompt: 'Select Insurance Company' },
-              { class: "form-select form-select-lg", required: true } %>
+              { class: "form-select form-select-lg searchable-select", required: true, data: { placeholder: "Search and select company..." } } %>
           <small class="form-text text-muted">
             <i class="bi bi-info-circle me-1"></i>
             Choose the insurance company
@@ -216,5 +216,116 @@ document.addEventListener('DOMContentLoaded', function() {
   if (firstInput) {
     firstInput.focus();
   }
+
+  // Initialize Select2 for searchable dropdowns
+  if (typeof $ !== 'undefined' && $.fn.select2) {
+    $('.searchable-select').each(function() {
+      const $element = $(this);
+      const placeholder = $element.data('placeholder') || 'Search and select...';
+
+      $element.select2({
+        theme: 'bootstrap-5',
+        placeholder: placeholder,
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0,
+        dropdownParent: $('body')
+      });
+    });
+  }
+
+  // Dynamic company filtering based on insurance type
+  const insuranceTypeSelect = document.getElementById('agency_code_insurance_type');
+  const companySelect = document.getElementById('agency_code_company_name');
+
+  if (insuranceTypeSelect && companySelect) {
+    // Function to load companies based on insurance type
+    function loadCompaniesByType(insuranceType) {
+      if (!insuranceType) {
+        // Reset to all companies if no type selected
+        companySelect.innerHTML = '<option value="">Select Insurance Company</option>';
+        if ($(companySelect).hasClass('select2-hidden-accessible')) {
+          $(companySelect).val(null).trigger('change');
+        }
+        return;
+      }
+
+      // Fetch companies for the selected insurance type
+      fetch(`/admin/agency_codes/companies_by_type?insurance_type=${encodeURIComponent(insuranceType)}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Store current value
+          const currentValue = companySelect.value;
+
+          // Clear existing options
+          companySelect.innerHTML = '<option value="">Select Insurance Company</option>';
+
+          // Add new options
+          data.companies.forEach(company => {
+            const option = document.createElement('option');
+            option.value = company;
+            option.textContent = company;
+            // Restore selection if it exists in the new list
+            if (company === currentValue) {
+              option.selected = true;
+            }
+            companySelect.appendChild(option);
+          });
+
+          // Update Select2 if it's initialized
+          if ($(companySelect).hasClass('select2-hidden-accessible')) {
+            $(companySelect).trigger('change');
+          }
+
+          console.log(`Loaded ${data.companies.length} companies for ${insuranceType} insurance`);
+        } else {
+          console.error('Failed to load companies:', data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error loading companies:', error);
+      });
+    }
+
+    // Handle insurance type change
+    insuranceTypeSelect.addEventListener('change', function() {
+      const selectedType = this.value;
+      console.log('Insurance type changed to:', selectedType);
+      loadCompaniesByType(selectedType);
+    });
+
+    // Handle Select2 change event for insurance type
+    $('#agency_code_insurance_type').on('select2:select', function(e) {
+      const selectedType = e.params.data.id;
+      console.log('Insurance type changed via Select2 to:', selectedType);
+      loadCompaniesByType(selectedType);
+    });
+
+    // Clear company when insurance type is cleared
+    $('#agency_code_insurance_type').on('select2:clear', function() {
+      console.log('Insurance type cleared');
+      loadCompaniesByType(null);
+    });
+
+    // Load companies on page load if insurance type is already selected
+    const initialInsuranceType = insuranceTypeSelect.value;
+    if (initialInsuranceType) {
+      console.log('Loading companies for initial type:', initialInsuranceType);
+      loadCompaniesByType(initialInsuranceType);
+    }
+  }
 });
 </script>
+
+<!-- Add Select2 CSS and JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>

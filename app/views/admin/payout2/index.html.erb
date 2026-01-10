@@ -249,7 +249,7 @@
       <div class="d-flex justify-content-between align-items-start">
         <div>
           <h6 class="text-muted mb-2">Total Commission</h6>
-          <h3 class="mb-0 fw-bold">₹<%= number_with_delimiter(@total_amount.round(2)) %></h3>
+          <h3 class="mb-0 fw-bold"><%= indian_currency(@total_amount.round(2)) %></h3>
           <small class="text-muted">Generated amount</small>
         </div>
         <div class="bg-info bg-opacity-10 rounded p-3">
@@ -264,7 +264,7 @@
       <div class="d-flex justify-content-between align-items-start">
         <div>
           <h6 class="text-muted mb-2">Paid Amount</h6>
-          <h3 class="mb-0 fw-bold text-success">₹<%= number_with_delimiter(@paid_amount.round(2)) %></h3>
+          <h3 class="mb-0 fw-bold text-success"><%= indian_currency(@paid_amount.round(2)) %></h3>
           <small class="text-muted">Completed transfers</small>
         </div>
         <div class="bg-success bg-opacity-10 rounded p-3">
@@ -279,7 +279,7 @@
       <div class="d-flex justify-content-between align-items-start">
         <div>
           <h6 class="text-muted mb-2">Pending Amount</h6>
-          <h3 class="mb-0 fw-bold text-warning">₹<%= number_with_delimiter(@pending_amount.round(2)) %></h3>
+          <h3 class="mb-0 fw-bold text-warning"><%= indian_currency(@pending_amount.round(2)) %></h3>
           <small class="text-muted">Awaiting transfer</small>
         </div>
         <div class="bg-warning bg-opacity-10 rounded p-3">
@@ -335,36 +335,36 @@
 
               <!-- Premium -->
               <td class="commission-cell">
-                <div class="commission-amount premium-amount">₹<%= number_with_delimiter(payout[:premium_amount].round(2)) %></div>
+                <div class="commission-amount premium-amount"><%= indian_currency(payout[:premium_amount].round(2)) %></div>
               </td>
 
               <!-- Main Agent Commission -->
               <td class="commission-cell">
-                <div class="commission-amount">₹<%= number_with_delimiter(payout[:main_agent_commission].round(2)) %></div>
+                <div class="commission-amount"><%= indian_currency(payout[:main_agent_commission].round(2)) %></div>
                 <div class="commission-percentage">(<%= payout[:main_agent_percentage] %>%)</div>
               </td>
 
               <!-- Affiliate Commission -->
               <td class="commission-cell">
-                <div class="commission-amount">₹<%= number_with_delimiter(payout[:breakdown][:affiliate][:amount].round(2)) %></div>
+                <div class="commission-amount"><%= indian_currency(payout[:breakdown][:affiliate][:amount].round(2)) %></div>
                 <div class="commission-percentage">(<%= payout[:breakdown][:affiliate][:percentage] %>%)</div>
               </td>
 
               <!-- Ambassador Commission -->
               <td class="commission-cell">
-                <div class="commission-amount">₹<%= number_with_delimiter(payout[:breakdown][:ambassador][:amount].round(2)) %></div>
+                <div class="commission-amount"><%= indian_currency(payout[:breakdown][:ambassador][:amount].round(2)) %></div>
                 <div class="commission-percentage">(<%= payout[:breakdown][:ambassador][:percentage] %>%)</div>
               </td>
 
               <!-- Investor Commission -->
               <td class="commission-cell">
-                <div class="commission-amount">₹<%= number_with_delimiter(payout[:breakdown][:investor][:amount].round(2)) %></div>
+                <div class="commission-amount"><%= indian_currency(payout[:breakdown][:investor][:amount].round(2)) %></div>
                 <div class="commission-percentage">(<%= payout[:breakdown][:investor][:percentage] %>%)</div>
               </td>
 
               <!-- Company Expenses -->
               <td class="commission-cell">
-                <div class="commission-amount">₹<%= number_with_delimiter(payout[:breakdown][:company][:amount].round(2)) %></div>
+                <div class="commission-amount"><%= indian_currency(payout[:breakdown][:company][:amount].round(2)) %></div>
                 <div class="commission-percentage">(<%= payout[:breakdown][:company][:percentage] %>%)</div>
               </td>
 
@@ -376,7 +376,7 @@
                     Completed
                   </span>
                   <div class="mt-1">
-                    <small class="text-muted">₹<%= number_with_delimiter(payout[:total_commission].round(2)) %></small>
+                    <small class="text-muted"><%= indian_currency(payout[:total_commission].round(2)) %></small>
                   </div>
                 <% else %>
                   <span class="transfer-status-badge badge-partial">
@@ -384,7 +384,7 @@
                     <%= payout[:transfer_status] %>
                   </span>
                   <div class="mt-1">
-                    <small class="text-muted">₹<%= number_with_delimiter((payout[:paid_count].to_f / payout[:total_count] * payout[:total_commission]).round(2)) %></small>
+                    <small class="text-muted"><%= indian_currency((payout[:paid_count].to_f / payout[:total_count] * payout[:total_commission]).round(2)) %></small>
                   </div>
                 <% end %>
               </td>

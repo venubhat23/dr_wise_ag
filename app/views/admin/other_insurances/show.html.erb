@@ -73,15 +73,15 @@
               <table class="table table-borderless">
                 <tr>
                   <th width="40%">Sum Insured:</th>
-                  <td><strong>₹<%= number_with_delimiter(@other_insurance.sum_insured) %></strong></td>
+                  <td><strong><%= indian_currency(@other_insurance.sum_insured) %></strong></td>
                 </tr>
                 <tr>
                   <th>Net Premium:</th>
-                  <td>₹<%= number_with_delimiter(@other_insurance.net_premium) %></td>
+                  <td><%= indian_currency(@other_insurance.net_premium) %></td>
                 </tr>
                 <tr>
                   <th>Total Premium:</th>
-                  <td><strong>₹<%= number_with_delimiter(@other_insurance.total_premium) %></strong></td>
+                  <td><strong><%= indian_currency(@other_insurance.total_premium) %></strong></td>
                 </tr>
                 <tr>
                   <th>Payment Mode:</th>
@@ -266,15 +266,15 @@
         <div class="card-body">
           <div class="d-flex justify-content-between mb-2">
             <span class="text-muted">Sum Insured:</span>
-            <strong>₹<%= number_with_delimiter(@other_insurance.sum_insured) %></strong>
+            <strong><%= indian_currency(@other_insurance.sum_insured) %></strong>
           </div>
           <div class="d-flex justify-content-between mb-2">
             <span class="text-muted">Net Premium:</span>
-            <span>₹<%= number_with_delimiter(@other_insurance.net_premium) %></span>
+            <span><%= indian_currency(@other_insurance.net_premium) %></span>
           </div>
           <div class="d-flex justify-content-between mb-2">
             <span class="text-muted">Total Premium:</span>
-            <strong class="text-success">₹<%= number_with_delimiter(@other_insurance.total_premium) %></strong>
+            <strong class="text-success"><%= indian_currency(@other_insurance.total_premium) %></strong>
           </div>
           <hr>
           <div class="d-flex justify-content-between">

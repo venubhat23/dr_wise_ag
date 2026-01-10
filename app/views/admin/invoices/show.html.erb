@@ -583,8 +583,8 @@
             </td>
             <td class="center-align"><%= @invoice.payout_type.humanize %></td>
             <td class="center-align">1 Payout</td>
-            <td class="right-align">₹<%= number_with_delimiter(@invoice.total_amount, delimiter: ',') %></td>
-            <td class="right-align">₹<%= number_with_delimiter(@invoice.total_amount, delimiter: ',') %></td>
+            <td class="right-align"><%= indian_currency(@invoice.total_amount, delimiter: ',') %></td>
+            <td class="right-align"><%= indian_currency(@invoice.total_amount, delimiter: ',') %></td>
           </tr>
         </tbody>
       </table>
@@ -598,7 +598,7 @@
             <table class="subtotal-values-table">
               <tr>
                 <td>₹ 0.00</td>
-                <td>₹ <%= number_with_delimiter(@invoice.total_amount, delimiter: ',') %></td>
+                <td><%= indian_currency(@invoice.total_amount) %></td>
               </tr>
             </table>
           </td>
@@ -615,7 +615,7 @@
             <div class="summary-section">
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px; padding: 3px 0; border-bottom: 1px solid #eee;">
                 <span>SUBTOTAL</span>
-                <span style="font-weight: bold;">₹ <%= number_with_delimiter(@invoice.total_amount, delimiter: ',') %></span>
+                <span style="font-weight: bold;"><%= indian_currency(@invoice.total_amount) %></span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px; padding: 3px 0; border-bottom: 1px solid #eee;">
                 <span>TAX (N/A)</span>
@@ -623,7 +623,7 @@
               </div>
               <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; border-top: 2px solid #5a4ec9; padding-top: 6px; margin-top: 6px; background-color: #f0f0f0; padding: 8px; border-radius: 5px;">
                 <span>TOTAL AMOUNT</span>
-                <span>₹ <%= number_with_delimiter(@invoice.total_amount, delimiter: ',') %></span>
+                <span><%= indian_currency(@invoice.total_amount) %></span>
               </div>
 
               <div class="amount-words">

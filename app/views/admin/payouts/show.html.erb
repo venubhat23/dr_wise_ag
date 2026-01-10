@@ -88,7 +88,7 @@
           </div>
           <div class="col-md-6">
             <strong class="text-muted d-block">Payout Amount</strong>
-            <span class="fs-5 fw-bold text-success">₹<%= number_with_delimiter(@payout.payout_amount) %></span>
+            <span class="fs-5 fw-bold text-success"><%= indian_currency(@payout.payout_amount) %></span>
           </div>
           <div class="col-md-6">
             <strong class="text-muted d-block">Scheduled Date</strong>
@@ -127,12 +127,12 @@
             <% if @policy.respond_to?(:sum_insured) %>
               <div class="col-md-6">
                 <strong class="text-muted d-block">Sum Insured</strong>
-                ₹<%= number_with_delimiter(@policy.sum_insured) if @policy.sum_insured %>
+                <%= indian_currency(@policy.sum_insured) if @policy.sum_insured %>
               </div>
             <% end %>
             <div class="col-md-6">
               <strong class="text-muted d-block">Premium Amount</strong>
-              ₹<%= number_with_delimiter(@policy.try(:total_premium) || @policy.try(:premium_amount) || 0) %>
+              <%= indian_currency(@policy.try(:total_premium) || @policy.try(:premium_amount) || 0) %>
             </div>
             <div class="col-md-6">
               <strong class="text-muted d-block">Policy Start Date</strong>
@@ -316,7 +316,7 @@
         <div class="row g-3">
           <div class="col-12">
             <div class="text-center">
-              <h4 class="text-success mb-1">₹<%= number_with_delimiter(@payout.payout_amount) %></h4>
+              <h4 class="text-success mb-1"><%= indian_currency(@payout.payout_amount) %></h4>
               <small class="text-muted">Payout Amount</small>
             </div>
           </div>

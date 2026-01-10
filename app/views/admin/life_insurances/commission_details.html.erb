@@ -43,13 +43,13 @@
           <div class="col-md-6">
             <div class="info-group">
               <label class="info-label">Sum Insured</label>
-              <div class="info-value">₹<%= number_with_delimiter(@life_insurance.sum_insured) %></div>
+              <div class="info-value"><%= indian_currency(@life_insurance.sum_insured) %></div>
             </div>
           </div>
           <div class="col-md-6">
             <div class="info-group">
               <label class="info-label">Net Premium</label>
-              <div class="info-value fw-bold text-primary">₹<%= number_with_delimiter(@life_insurance.net_premium) %></div>
+              <div class="info-value fw-bold text-primary"><%= indian_currency(@life_insurance.net_premium) %></div>
             </div>
           </div>
         </div>
@@ -246,7 +246,7 @@
           <div class="step-label">Main Income</div>
           <div class="step-value text-primary">₹<span id="mainIncomeDisplay">0</span></div>
           <div class="step-formula">
-            <span id="mainIncomePercentageDisplay">10.0</span>% of ₹<%= number_with_delimiter(@life_insurance.net_premium) %>
+            <span id="mainIncomePercentageDisplay">10.0</span>% of <%= indian_currency(@life_insurance.net_premium) %>
           </div>
         </div>
 

@@ -233,7 +233,7 @@
                     <td>
                       <span class="badge bg-primary"><%= policy.insurance_type.humanize %></span>
                     </td>
-                    <td>₹<%= number_with_delimiter(policy.total_premium) %></td>
+                    <td><%= indian_currency(policy.total_premium) %></td>
                     <td><%= policy.created_at.strftime("%d %b %Y") %></td>
                   </tr>
                 <% end %>

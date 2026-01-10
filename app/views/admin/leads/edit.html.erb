@@ -866,10 +866,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }, {});
   }
 
-  function loadLeadCitiesForState(stateValue) {
+  function loadLeadCitiesForState(stateValue, selectedCityValue = null) {
     console.log('Loading cities for lead edit form:', stateValue);
-    console.log('Available location data keys:', Object.keys(leadCitiesData));
-    console.log('Saved state value:', '<%= @lead&.state %>');
+    console.log('Selected city to set:', selectedCityValue);
 
     if (!stateValue) {
       leadCitySelect.innerHTML = '<option value="">Select State First</option>';
@@ -877,52 +876,48 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    // Get cities for this state from local data first
-    let cities = leadCitiesData[stateValue] || [];
+    let cities = [];
 
-    // If no cities found with direct key match, try to find by display name
-    if (cities.length === 0) {
-      console.log('No cities found for direct key, trying to find by display name mapping...');
+    // Try to get cities from location data using multiple methods
+    if (window.LocationData && window.LocationData.states) {
+      // Method 1: Direct key match
+      cities = leadCitiesData[stateValue] || [];
+      console.log('Direct key match cities:', cities.length);
 
-      // Create a reverse mapping from display name to key
-      const stateDisplayNameToKey = {};
-      if (window.LocationData && window.LocationData.states) {
+      // Method 2: Match by state name if direct key fails
+      if (cities.length === 0) {
         Object.keys(window.LocationData.states).forEach(key => {
-          const stateName = window.LocationData.states[key].name;
-          stateDisplayNameToKey[stateName] = key;
+          const stateData = window.LocationData.states[key];
+          if (stateData.name === stateValue || key === stateValue) {
+            cities = stateData.cities || [];
+            console.log('Found by state name match:', cities.length);
+          }
         });
       }
 
-      console.log('Display name to key mapping:', stateDisplayNameToKey);
-
-      // Try to get the correct key from display name
-      const correctKey = stateDisplayNameToKey[stateValue];
-      if (correctKey && leadCitiesData[correctKey]) {
-        cities = leadCitiesData[correctKey];
-        console.log('Found cities using display name mapping:', cities.length);
+      // Method 3: Case-insensitive search
+      if (cities.length === 0) {
+        const stateLower = stateValue.toLowerCase();
+        Object.keys(window.LocationData.states).forEach(key => {
+          const stateData = window.LocationData.states[key];
+          if (stateData.name.toLowerCase() === stateLower || key.toLowerCase() === stateLower) {
+            cities = stateData.cities || [];
+            console.log('Found by case-insensitive match:', cities.length);
+          }
+        });
       }
     }
 
     if (cities.length > 0) {
-      // Use local data if available
-      populateCityDropdown(cities);
+      populateCityDropdown(cities, selectedCityValue);
     } else {
-      // Fallback to API call
-      fetch(`/api/cities?state=${stateValue}`)
-        .then(response => response.json())
-        .then(data => {
-          cities = data.cities || [];
-          populateCityDropdown(cities);
-        })
-        .catch(error => {
-          console.error('Error loading cities:', error);
-          leadCitySelect.innerHTML = '<option value="">Error loading cities</option>';
-          leadCitySelect.disabled = true;
-        });
+      console.warn('No cities found for state:', stateValue, 'using fallback');
+      // Fallback: populate with empty and try to preserve selected city
+      populateCityDropdown([], selectedCityValue);
     }
   }
 
-  function populateCityDropdown(cities) {
+  function populateCityDropdown(cities, selectedCityValue = null) {
     // First destroy Select2 if it exists
     const $leadCitySelect = $(leadCitySelect);
     if ($leadCitySelect.hasClass('select2-hidden-accessible')) {
@@ -932,22 +927,39 @@ document.addEventListener('DOMContentLoaded', function() {
     // Clear dropdown and add cities
     leadCitySelect.innerHTML = '<option value="">Select City</option>';
 
-    cities.forEach(city => {
-      const option = document.createElement('option');
-      option.value = city;
-      option.textContent = city;
-      leadCitySelect.appendChild(option);
-    });
-
-    leadCitySelect.disabled = false;
-
-    // Set the saved city value if it exists
-    const savedCity = '<%= @lead&.city %>';
-    if (savedCity) {
-      leadCitySelect.value = savedCity;
+    // If cities are available, populate them
+    if (cities && cities.length > 0) {
+      cities.forEach(city => {
+        const option = document.createElement('option');
+        option.value = city;
+        option.textContent = city;
+        leadCitySelect.appendChild(option);
+      });
+      leadCitySelect.disabled = false;
+    } else {
+      // If no cities available but we have a selected city, add it as an option
+      const savedCity = selectedCityValue || '<%= @lead&.city %>';
+      if (savedCity) {
+        const option = document.createElement('option');
+        option.value = savedCity;
+        option.textContent = savedCity;
+        option.selected = true;
+        leadCitySelect.appendChild(option);
+        leadCitySelect.disabled = false;
+        console.log('Added saved city as fallback option:', savedCity);
+      } else {
+        leadCitySelect.disabled = true;
+      }
     }
 
-    console.log(`Loaded ${cities.length} cities for leads edit form`);
+    // Set the selected city value
+    const cityToSelect = selectedCityValue || '<%= @lead&.city %>';
+    if (cityToSelect && leadCitySelect.querySelector(`option[value="${cityToSelect}"]`)) {
+      leadCitySelect.value = cityToSelect;
+      console.log('Set selected city:', cityToSelect);
+    }
+
+    console.log(`Loaded ${cities.length} cities for leads edit form, selected: ${cityToSelect}`);
 
     // Reinitialize Select2
     setTimeout(() => {
@@ -959,8 +971,8 @@ document.addEventListener('DOMContentLoaded', function() {
         minimumResultsForSearch: 0
       });
 
-      // Trigger change event to update Select2 display with the saved value
-      if (savedCity) {
+      // Trigger change event to update Select2 display with the selected value
+      if (cityToSelect && leadCitySelect.value === cityToSelect) {
         $leadCitySelect.trigger('change');
       }
     }, 50);
@@ -997,26 +1009,38 @@ document.addEventListener('DOMContentLoaded', function() {
       loadLeadCitiesForState(selectedValue);
     });
 
-    // Load cities if state is pre-selected
-    if (leadStateSelect.value) {
-      console.log('State dropdown value on page load:', leadStateSelect.value);
-      console.log('State dropdown selected option text:', leadStateSelect.options[leadStateSelect.selectedIndex]?.text);
-      loadLeadCitiesForState(leadStateSelect.value);
-    } else {
-      console.log('No state pre-selected, checking if saved state exists...');
-      // Check if there's a saved state value that didn't get selected
-      const savedState = '<%= @lead&.state %>';
-      if (savedState) {
-        console.log('Found saved state but dropdown not selected:', savedState);
-        // Try to set the dropdown value and load cities
-        leadStateSelect.value = savedState;
-        if (leadStateSelect.value === savedState) {
-          loadLeadCitiesForState(savedState);
+    // Load cities if state is pre-selected (improved initialization)
+    const savedState = '<%= @lead&.state %>';
+    const savedCity = '<%= @lead&.city %>';
+
+    console.log('Initializing lead edit form with saved state:', savedState, 'and city:', savedCity);
+
+    // Initialize Select2 first, then check state value
+    setTimeout(() => {
+      if (leadStateSelect.value && leadStateSelect.value !== '') {
+        console.log('State dropdown has value on page load:', leadStateSelect.value);
+        loadLeadCitiesForState(leadStateSelect.value, savedCity);
+      } else if (savedState) {
+        console.log('No state selected in dropdown, but saved state exists:', savedState);
+
+        // Try to find the state in dropdown options
+        const stateOption = Array.from(leadStateSelect.options).find(option =>
+          option.value === savedState || option.text === savedState
+        );
+
+        if (stateOption) {
+          leadStateSelect.value = stateOption.value;
+          $('#lead_state').val(stateOption.value).trigger('change');
+          loadLeadCitiesForState(stateOption.value, savedCity);
+          console.log('Set state dropdown to:', stateOption.value);
         } else {
-          console.log('State value not found in dropdown options');
+          console.log('State not found in dropdown options, loading cities anyway');
+          loadLeadCitiesForState(savedState, savedCity);
         }
+      } else {
+        console.log('No saved state found');
       }
-    }
+    }, 100);
   }
 
   // Initialize affiliate dropdown with Select2 for edit form

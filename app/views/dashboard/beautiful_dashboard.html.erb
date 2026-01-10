@@ -635,7 +635,7 @@ body {
               <% elsif @total_premium_collected > 1000 %>
                 ₹<%= (@total_premium_collected / 1000.0).round(1) %>K
               <% else %>
-                ₹<%= number_with_delimiter(@total_premium_collected.to_i) %>
+                <%= indian_currency(@total_premium_collected.to_i) %>
               <% end %>
             </div>
             <div class="stat-label">Premium Collected</div>
@@ -654,7 +654,7 @@ body {
               <% elsif @total_sum_insured > 1000 %>
                 ₹<%= (@total_sum_insured / 1000.0).round(1) %>K
               <% else %>
-                ₹<%= number_with_delimiter(@total_sum_insured.to_i) %>
+                <%= indian_currency(@total_sum_insured.to_i) %>
               <% end %>
             </div>
             <div class="stat-label">Sum Insured</div>
@@ -729,7 +729,7 @@ body {
                 </div>
                 <div class="activity-content">
                   <h4>New <%= policy.class.name.underscore.humanize %> Policy</h4>
-                  <p><%= policy.customer&.display_name || "Customer" %> - ₹<%= number_with_delimiter(policy.total_premium.to_i) %></p>
+                  <p><%= policy.customer&.display_name || "Customer" %> - <%= indian_currency(policy.total_premium.to_i) %></p>
                   <div class="activity-time"><%= time_ago_in_words(policy.created_at) %> ago</div>
                 </div>
               </div>

@@ -678,7 +678,7 @@
         </div>
         <div class="stat-metric-value">
           <% premium = @total_premium_collected || 73200000 %>
-          <%= premium > 1000000 ? "₹#{(premium / 1000000.0).round(1)}M" : "₹#{number_with_delimiter(premium)}" %>
+          <%= premium > 1000000 ? "₹#{(premium / 1000000.0).round(1)}M" : indian_currency(premium) %>
         </div>
         <div class="stat-metric-label">Premium Collected</div>
         <div class="stat-trend-indicator trend-positive">
@@ -697,7 +697,7 @@
         </div>
         <div class="stat-metric-value">
           <% sum_insured = @total_sum_insured || 861400000 %>
-          <%= sum_insured > 1000000 ? "₹#{(sum_insured / 1000000.0).round(1)}M" : "₹#{number_with_delimiter(sum_insured)}" %>
+          <%= sum_insured > 1000000 ? "₹#{(sum_insured / 1000000.0).round(1)}M" : indian_currency(sum_insured) %>
         </div>
         <div class="stat-metric-label">Sum Insured</div>
         <div class="stat-trend-indicator trend-positive">

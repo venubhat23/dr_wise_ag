@@ -1,4 +1,5 @@
 module ApplicationHelper
+  include CurrencyHelper
   # Permission checking helpers
   def current_user_can?(module_name, action = 'read')
     return true if current_user&.admin? || current_user&.user_type == 'admin'
@@ -143,7 +144,7 @@ module ApplicationHelper
                                 .select(:id, :policy_number, :customer_id, :total_premium)
                                 .map do |policy|
         customer_name = policy.customer&.display_name || 'Unknown Customer'
-        ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{policy.total_premium}", policy.id]
+        ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - #{indian_currency(policy.total_premium)}", policy.id]
       end
     when 'life_insurance', 'life'
       policies = LifeInsurance.includes(:customer)
@@ -151,7 +152,7 @@ module ApplicationHelper
                               .map do |policy|
         customer_name = policy.customer&.display_name || 'Unknown Customer'
         premium = policy.total_premium || 0
-        ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{premium}", policy.id]
+        ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - #{indian_currency(premium)}", policy.id]
       end
     when 'motor_insurance', 'motor'
       if defined?(MotorInsurance)
@@ -160,7 +161,7 @@ module ApplicationHelper
                                  .map do |policy|
           customer_name = policy.customer&.display_name || 'Unknown Customer'
           premium = policy.total_premium || 0
-          ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{premium}", policy.id]
+          ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - #{indian_currency(premium)}", policy.id]
         end
       end
     when 'general_insurance', 'general'
@@ -170,7 +171,7 @@ module ApplicationHelper
                                    .map do |policy|
           customer_name = policy.customer&.display_name || 'Unknown Customer'
           premium = policy.total_premium || 0
-          ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{premium}", policy.id]
+          ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - #{indian_currency(premium)}", policy.id]
         end
       end
     else
@@ -179,7 +180,7 @@ module ApplicationHelper
                                        .select(:id, :policy_number, :customer_id, :total_premium)
                                        .map do |policy|
         customer_name = policy.customer&.display_name || 'Unknown Customer'
-        ["Health: #{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{policy.total_premium}", policy.id]
+        ["Health: #{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - #{indian_currency(policy.total_premium)}", policy.id]
       end
 
       life_policies = LifeInsurance.includes(:customer)
@@ -187,7 +188,7 @@ module ApplicationHelper
                                    .map do |policy|
         customer_name = policy.customer&.display_name || 'Unknown Customer'
         premium = policy.total_premium || 0
-        ["Life: #{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - ₹#{premium}", policy.id]
+        ["Life: #{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - #{indian_currency(premium)}", policy.id]
       end
 
       policies = health_policies + life_policies
@@ -304,8 +305,7 @@ module ApplicationHelper
   end
 
   def format_currency(amount)
-    return '₹0' if amount.nil? || amount == 0
-    "₹#{number_with_delimiter(amount.to_i)}"
+    indian_currency(amount)
   end
 
   def percentage_display(percentage)

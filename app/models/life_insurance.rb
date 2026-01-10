@@ -38,7 +38,6 @@ class LifeInsurance < ApplicationRecord
   validates :first_year_gst_percentage, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :total_premium, presence: true, numericality: { greater_than: 0 }
   validates :policy_term, presence: true, numericality: { greater_than: 0 }
-  validates :premium_payment_term, presence: true, numericality: { greater_than: 0 }
   validates :distributor_id, presence: true
   # investor_id removed - commission is collectively distributed
 
@@ -427,7 +426,6 @@ class LifeInsurance < ApplicationRecord
 
   def normalize_numeric_fields
     # Convert empty strings to nil for numeric fields to prevent validation errors
-    self.premium_payment_term = nil if premium_payment_term.blank?
     self.policy_term = nil if policy_term.blank?
     self.net_premium = nil if net_premium.blank?
     self.total_premium = nil if total_premium.blank?

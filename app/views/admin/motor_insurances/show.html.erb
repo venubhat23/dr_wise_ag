@@ -138,23 +138,23 @@
         <div class="row">
           <div class="col-md-6 mb-3">
             <strong>Vehicle IDV:</strong><br>
-            <span class="text-warning">₹<%= number_with_delimiter(@motor_insurance.vehicle_idv) if @motor_insurance.vehicle_idv %></span>
+            <span class="text-warning"><%= indian_currency(@motor_insurance.vehicle_idv) if @motor_insurance.vehicle_idv %></span>
           </div>
           <div class="col-md-6 mb-3">
             <strong>Total IDV:</strong><br>
-            <span class="text-warning">₹<%= number_with_delimiter(@motor_insurance.total_idv) if @motor_insurance.total_idv %></span>
+            <span class="text-warning"><%= indian_currency(@motor_insurance.total_idv) if @motor_insurance.total_idv %></span>
           </div>
           <div class="col-md-6 mb-3">
             <strong>Sum Insured:</strong><br>
-            <span class="text-info">₹<%= number_with_delimiter(@motor_insurance.sum_insured) if @motor_insurance.sum_insured %></span>
+            <span class="text-info"><%= indian_currency(@motor_insurance.sum_insured) if @motor_insurance.sum_insured %></span>
           </div>
           <div class="col-md-6 mb-3">
             <strong>Third Party Premium:</strong><br>
-            ₹<%= number_with_delimiter(@motor_insurance.tp_premium) if @motor_insurance.tp_premium %>
+            <%= indian_currency(@motor_insurance.tp_premium) if @motor_insurance.tp_premium %>
           </div>
           <div class="col-md-6 mb-3">
             <strong>Net Premium:</strong><br>
-            ₹<%= number_with_delimiter(@motor_insurance.net_premium) if @motor_insurance.net_premium %>
+            <%= indian_currency(@motor_insurance.net_premium) if @motor_insurance.net_premium %>
           </div>
           <div class="col-md-6 mb-3">
             <strong>GST (%):</strong><br>
@@ -162,7 +162,7 @@
           </div>
           <div class="col-md-6 mb-3">
             <strong>Total Premium:</strong><br>
-            <span class="text-success h5">₹<%= number_with_delimiter(@motor_insurance.total_premium) if @motor_insurance.total_premium %></span>
+            <span class="text-success h5"><%= indian_currency(@motor_insurance.total_premium) if @motor_insurance.total_premium %></span>
           </div>
         </div>
       </div>

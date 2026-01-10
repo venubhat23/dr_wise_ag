@@ -846,7 +846,7 @@
           <% elsif @total_premium_collected > 1000 %>
             ₹<%= (@total_premium_collected / 1000.0).round(1) %>K
           <% else %>
-            ₹<%= number_with_delimiter(@total_premium_collected.to_i) %>
+            <%= indian_currency(@total_premium_collected.to_i) %>
           <% end %>
         </div>
         <div class="stat-label">Premium Collected</div>
@@ -867,7 +867,7 @@
           <% elsif @total_sum_insured > 1000 %>
             ₹<%= (@total_sum_insured / 1000.0).round(1) %>K
           <% else %>
-            ₹<%= number_with_delimiter(@total_sum_insured.to_i) %>
+            <%= indian_currency(@total_sum_insured.to_i) %>
           <% end %>
         </div>
         <div class="stat-label">Sum Insured</div>
@@ -920,7 +920,7 @@
           <% elsif @pending_payouts > 1000 %>
             ₹<%= (@pending_payouts / 1000.0).round(1) %>K
           <% else %>
-            ₹<%= number_with_delimiter(@pending_payouts.to_i) %>
+            <%= indian_currency(@pending_payouts.to_i) %>
           <% end %>
         </div>
         <div class="stat-label">Pending Payouts</div>
@@ -1157,7 +1157,7 @@
                 </td>
                 <td>
                   <div style="font-weight: 600; font-family: 'JetBrains Mono', monospace;">
-                    ₹<%= number_with_delimiter(policy.try(:total_premium) || 0) %>
+                    <%= indian_currency(policy.try(:total_premium) || 0) %>
                   </div>
                 </td>
                 <td>

@@ -124,6 +124,35 @@ class User < ApplicationRecord
     role.permissions.where(module_name: module_name.to_s).pluck(:action_type)
   end
 
+  # Password reset tracking methods
+  def password_reset_days
+    return 0 unless password_reset_at
+    ((Time.current - password_reset_at) / 1.day).to_i
+  end
+
+  def password_reset_required?
+    return false unless password_reset_at
+    password_reset_days >= 180
+  end
+
+  def days_until_password_expires
+    return 0 unless password_reset_at
+    [180 - password_reset_days, 0].max
+  end
+
+  def mark_password_reset!
+    update_column(:password_reset_at, Time.current)
+  end
+
+  # Override Devise password update to track reset
+  def update_password(params, *options)
+    result = super
+    if result && password_changed?
+      mark_password_reset!
+    end
+    result
+  end
+
   # Sidebar permissions methods
   def sidebar_permissions_array
     return [] if sidebar_permissions.blank?

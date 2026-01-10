@@ -24,13 +24,25 @@ class Api::V1::PublicController < ActionController::Base
           if query.present? && query.strip.length >= 2
             # Apply search filter on the linked affiliate
             if customer.affiliate.display_name.downcase.include?(query.downcase)
-              affiliates = [{ id: customer.affiliate.id, text: customer.affiliate.display_name }]
+              affiliates = [{
+                id: customer.affiliate.id,
+                text: customer.affiliate.display_name,
+                commission_earned: 0,
+                customers_count: 0,
+                policies_count: 0
+              }]
             else
               affiliates = []
             end
           else
             # Just return the linked affiliate
-            affiliates = [{ id: customer.affiliate.id, text: customer.affiliate.display_name }]
+            affiliates = [{
+              id: customer.affiliate.id,
+              text: customer.affiliate.display_name,
+              commission_earned: 0,
+              customers_count: 0,
+              policies_count: 0
+            }]
           end
 
           Rails.logger.info "Filtered to customer's linked affiliate: #{affiliates}"
@@ -47,14 +59,26 @@ class Api::V1::PublicController < ActionController::Base
         affiliates = sub_agents_scope
                             .where("LOWER(first_name || ' ' || last_name) ILIKE ?", "%#{query.downcase}%")
                             .limit(limit)
-                            .map { |agent| { id: agent.id, text: agent.display_name } }
+                            .map { |agent| {
+                              id: agent.id,
+                              text: agent.display_name,
+                              commission_earned: 0,
+                              customers_count: 0,
+                              policies_count: 0
+                            } }
         Rails.logger.info "Search found #{affiliates.count} sub agents matching '#{query}'"
       else
         # Return default affiliates when no search query (show recently active or all)
         affiliates = sub_agents_scope
                             .order(:first_name, :last_name)
                             .limit([limit, 10].min) # Show max 10 when no search
-                            .map { |agent| { id: agent.id, text: agent.display_name } }
+                            .map { |agent| {
+                              id: agent.id,
+                              text: agent.display_name,
+                              commission_earned: 0,
+                              customers_count: 0,
+                              policies_count: 0
+                            } }
         Rails.logger.info "Returning #{affiliates.count} default sub agents"
       end
 
@@ -66,6 +90,57 @@ class Api::V1::PublicController < ActionController::Base
       render json: {
         results: [],
         error: "Failed to load affiliates: #{e.message}"
+      }, status: 500
+    end
+  end
+
+  def search_distributors
+    begin
+      query = params[:q] || params[:query]
+      limit = params[:limit]&.to_i || 20
+      distributors = []
+
+      Rails.logger.info "Public search distributors called with query: '#{query}', limit: #{limit}"
+
+      # Start with active distributors
+      distributors_scope = Distributor.active
+
+      if query.present? && query.strip.length >= 2
+        # Search with query
+        distributors = distributors_scope
+                              .where("LOWER(first_name || ' ' || last_name) ILIKE ?", "%#{query.downcase}%")
+                              .limit(limit)
+                              .map { |distributor| {
+                                id: distributor.id,
+                                text: distributor.display_name,
+                                commission_earned: 0,
+                                customers_count: 0,
+                                policies_count: 0
+                              } }
+        Rails.logger.info "Search found #{distributors.count} distributors matching '#{query}'"
+      else
+        # Return default distributors when no search query
+        distributors = distributors_scope
+                              .order(:first_name, :last_name)
+                              .limit([limit, 10].min)
+                              .map { |distributor| {
+                                id: distributor.id,
+                                text: distributor.display_name,
+                                commission_earned: 0,
+                                customers_count: 0,
+                                policies_count: 0
+                              } }
+        Rails.logger.info "Returning #{distributors.count} default distributors"
+      end
+
+      Rails.logger.info "Returning distributors: #{distributors}"
+      render json: { results: distributors }
+    rescue => e
+      Rails.logger.error "Error in public search_distributors: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      render json: {
+        results: [],
+        error: "Failed to load distributors: #{e.message}"
       }, status: 500
     end
   end

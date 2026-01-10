@@ -212,7 +212,7 @@
                         </h6>
                         <p class="card-text small">
                           <strong>Company:</strong> <%= policy.try(:insurance_company_name) || 'N/A' %><br>
-                          <strong>Premium:</strong> ₹<%= number_with_delimiter(policy.try(:total_premium).to_i) %><br>
+                          <strong>Premium:</strong> <%= indian_currency(policy.try(:total_premium).to_i) %><br>
                           <strong>Start:</strong> <%= policy.try(:policy_start_date)&.strftime("%b %d, %Y") || 'N/A' %><br>
                           <strong>End:</strong> <%= policy.try(:policy_end_date)&.strftime("%b %d, %Y") || 'N/A' %>
                         </p>

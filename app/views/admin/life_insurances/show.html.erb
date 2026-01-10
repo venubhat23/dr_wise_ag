@@ -55,15 +55,11 @@
           </div>
           <div class="col-md-6 mb-3">
             <strong>Sum Insured:</strong><br>
-            <span class="text-success fw-bold">₹<%= number_with_delimiter(@life_insurance.sum_insured) %></span>
+            <span class="text-success fw-bold"><%= indian_currency(@life_insurance.sum_insured) %></span>
           </div>
           <div class="col-md-6 mb-3">
             <strong>Total Premium:</strong><br>
-            <span class="text-warning fw-bold">₹<%= number_with_delimiter(@life_insurance.total_premium) %></span>
-          </div>
-          <div class="col-md-6 mb-3">
-            <strong>Policy Term:</strong><br>
-            <%= @life_insurance.policy_term %> years
+            <span class="text-warning fw-bold"><%= indian_currency(@life_insurance.total_premium) %></span>
           </div>
           <div class="col-md-6 mb-3">
             <strong>Payment Mode:</strong><br>
@@ -156,35 +152,35 @@
                 <% if @life_insurance.term_rider_amount > 0 %>
                   <tr>
                     <td>Term Rider</td>
-                    <td>₹<%= number_with_delimiter(@life_insurance.term_rider_amount) %></td>
+                    <td><%= indian_currency(@life_insurance.term_rider_amount) %></td>
                     <td><%= @life_insurance.term_rider_note %></td>
                   </tr>
                 <% end %>
                 <% if @life_insurance.critical_illness_rider_amount > 0 %>
                   <tr>
                     <td>Critical Illness Rider</td>
-                    <td>₹<%= number_with_delimiter(@life_insurance.critical_illness_rider_amount) %></td>
+                    <td><%= indian_currency(@life_insurance.critical_illness_rider_amount) %></td>
                     <td><%= @life_insurance.critical_illness_rider_note %></td>
                   </tr>
                 <% end %>
                 <% if @life_insurance.accident_rider_amount > 0 %>
                   <tr>
                     <td>Accident Rider</td>
-                    <td>₹<%= number_with_delimiter(@life_insurance.accident_rider_amount) %></td>
+                    <td><%= indian_currency(@life_insurance.accident_rider_amount) %></td>
                     <td><%= @life_insurance.accident_rider_note %></td>
                   </tr>
                 <% end %>
                 <% if @life_insurance.pwb_rider_amount > 0 %>
                   <tr>
                     <td>PWB (Premium Waiver Benefit)</td>
-                    <td>₹<%= number_with_delimiter(@life_insurance.pwb_rider_amount) %></td>
+                    <td><%= indian_currency(@life_insurance.pwb_rider_amount) %></td>
                     <td><%= @life_insurance.pwb_rider_note %></td>
                   </tr>
                 <% end %>
                 <% if @life_insurance.other_rider_amount > 0 %>
                   <tr>
                     <td>Others</td>
-                    <td>₹<%= number_with_delimiter(@life_insurance.other_rider_amount) %></td>
+                    <td><%= indian_currency(@life_insurance.other_rider_amount) %></td>
                     <td><%= @life_insurance.other_rider_note %></td>
                   </tr>
                 <% end %>
@@ -207,7 +203,7 @@
         <div class="row">
           <div class="col-md-6 mb-3">
             <strong>Net Premium:</strong><br>
-            ₹<%= number_with_delimiter(@life_insurance.net_premium) %>
+            <%= indian_currency(@life_insurance.net_premium) %>
           </div>
           <div class="col-md-6 mb-3">
             <strong>1st Year GST (%):</strong><br>
@@ -219,7 +215,7 @@
           </div>
           <div class="col-md-6 mb-3">
             <strong>Commission Amount:</strong><br>
-            ₹<%= number_with_delimiter(@life_insurance.commission_amount) %>
+            <%= indian_currency(@life_insurance.commission_amount) %>
           </div>
           <div class="col-md-6 mb-3">
             <strong>TDS (%):</strong><br>
@@ -227,7 +223,7 @@
           </div>
           <div class="col-md-6 mb-3">
             <strong>After TDS Value:</strong><br>
-            ₹<%= number_with_delimiter(@life_insurance.after_tds_value) %>
+            <%= indian_currency(@life_insurance.after_tds_value) %>
           </div>
         </div>
       </div>

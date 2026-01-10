@@ -433,6 +433,37 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     end
   end
 
+  # GET /admin/agency_codes/companies_by_type - API endpoint for fetching companies by insurance type
+  def companies_by_type
+    insurance_type = params[:insurance_type]
+
+    if insurance_type.present?
+      companies = companies_by_type(insurance_type)
+    else
+      companies = insurance_companies_list
+    end
+
+    respond_to do |format|
+      format.json do
+        render json: {
+          success: true,
+          companies: companies,
+          insurance_type: insurance_type,
+          count: companies.length
+        }
+      end
+    end
+  rescue => e
+    respond_to do |format|
+      format.json do
+        render json: {
+          success: false,
+          message: "Error fetching companies by type: #{e.message}"
+        }, status: :internal_server_error
+      end
+    end
+  end
+
   private
 
   def set_agency_code

@@ -273,18 +273,18 @@
           <div class="card-body">
             <div class="row text-center">
               <div class="col-6 border-end">
-                <h5 class="text-primary mb-1">₹<span id="summary_premium"><%= number_with_delimiter(@other_insurance.net_premium) %></span></h5>
+                <h5 class="text-primary mb-1"><span id="summary_premium"><%= indian_currency(@other_insurance.net_premium) %></span></h5>
                 <small class="text-muted">Net Premium</small>
               </div>
               <div class="col-6">
-                <h5 class="text-success mb-1">₹<span id="summary_total"><%= number_with_delimiter(@other_insurance.total_premium) %></span></h5>
+                <h5 class="text-success mb-1"><span id="summary_total"><%= indian_currency(@other_insurance.total_premium) %></span></h5>
                 <small class="text-muted">Total Premium</small>
               </div>
             </div>
             <hr>
             <div class="row text-center">
               <div class="col-12">
-                <h6 class="text-info mb-1">₹<span id="summary_coverage"><%= number_with_delimiter(@other_insurance.sum_insured) %></span></h6>
+                <h6 class="text-info mb-1"><span id="summary_coverage"><%= indian_currency(@other_insurance.sum_insured) %></span></h6>
                 <small class="text-muted">Sum Insured</small>
               </div>
             </div>

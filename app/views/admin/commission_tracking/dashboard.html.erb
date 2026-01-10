@@ -298,7 +298,7 @@
                       <span class="activity-desc"><%= item[:type].capitalize %> Insurance</span>
                     </div>
                     <div class="activity-amount">
-                      <span class="amount-value">+₹<%= number_with_delimiter(item[:policy].total_premium.to_i) %></span>
+                      <span class="amount-value">+<%= indian_currency(item[:policy].total_premium.to_i) %></span>
                       <span class="activity-time">Just now</span>
                     </div>
                   </div>
@@ -367,10 +367,10 @@
                         </span>
                       </td>
                       <td>
-                        <span class="amount">₹<%= number_with_delimiter(item[:policy].total_premium.to_i) %></span>
+                        <span class="amount"><%= indian_currency(item[:policy].total_premium.to_i) %></span>
                       </td>
                       <td>
-                        <span class="commission">₹<%= number_with_delimiter((item[:commission_data].dig(:summary, :total_commission_generated) || 0).to_i) %></span>
+                        <span class="commission"><%= indian_currency((item[:commission_data].dig(:summary, :total_commission_generated) || 0).to_i) %></span>
                       </td>
                       <td>
                         <span class="status-badge <%= ['success', 'pending', 'processing'].sample %>">

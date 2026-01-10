@@ -595,10 +595,10 @@
                   <% customer_count = Customer.where(sub_agent: affiliate_name).count %>
                   <%= customer_count %>
                 </td>
-                <td>₹<%= number_with_delimiter(premium.to_i) %></td>
+                <td><%= indian_currency(premium.to_i) %></td>
                 <td>
                   <span class="badge <%= premium > 0 ? 'badge-success' : 'badge-warning' %>">
-                    ₹<%= number_with_delimiter((premium * 0.05).to_i) %>
+                    <%= indian_currency((premium * 0.05).to_i) %>
                   </span>
                 </td>
               </tr>
@@ -622,7 +622,7 @@
                 <div class="activity-title">New <%= policy.class.name.underscore.humanize %></div>
                 <div class="activity-description">
                   <%= policy.customer&.display_name || "Customer" %> -
-                  ₹<%= number_with_delimiter(policy.total_premium.to_i) %>
+                  <%= indian_currency(policy.total_premium.to_i) %>
                 </div>
                 <div class="activity-time"><%= time_ago_in_words(policy.created_at) %> ago</div>
               </div>
@@ -669,7 +669,7 @@
             <span style="font-weight: 500; color: #1a202c; font-size: 0.875rem;"><%= label %></span>
             <span style="color: <%= data[:color] %>; font-size: 0.875rem; font-weight: 600;">
               <% if data[:format] == 'currency' %>
-                ₹<%= number_with_delimiter(data[:value]) %>
+                <%= indian_currency(data[:value]) %>
               <% elsif data[:format] == 'percentage' %>
                 <%= data[:value] %>%
               <% else %>
@@ -712,10 +712,10 @@
             <div style="font-weight: 600; color: #1a202c; margin-bottom: 0.5rem;"><%= type %></div>
             <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
               <span>Policies: <strong><%= data[:count] %></strong></span>
-              <span>Premium: <strong>₹<%= number_with_delimiter(data[:premium]) %></strong></span>
+              <span>Premium: <strong><%= indian_currency(data[:premium]) %></strong></span>
             </div>
             <div style="font-size: 0.8rem; color: #718096; margin-top: 0.25rem;">
-              Avg Premium: ₹<%= number_with_delimiter(data[:avg_premium]) %>
+              Avg Premium: <%= indian_currency(data[:avg_premium]) %>
             </div>
           </div>
         <% end %>
@@ -839,7 +839,7 @@
                   </div>
                   <div style="font-size: 0.75rem; color: #9ca3af;"><%= days_left %> days left</div>
                 </td>
-                <td style="font-weight: 600;">₹<%= number_with_delimiter(policy.total_premium.to_i) %></td>
+                <td style="font-weight: 600;"><%= indian_currency(policy.total_premium.to_i) %></td>
                 <td>
                   <span class="badge <%= days_left && days_left < 7 ? 'badge-danger' : 'badge-warning' %>">
                     <%= days_left && days_left < 7 ? 'Urgent' : 'Due Soon' %>
@@ -892,7 +892,7 @@
                     <%= policy.policy_end_date&.strftime('%d %b %Y') %>
                   </div>
                 </td>
-                <td style="font-weight: 600;">₹<%= number_with_delimiter(policy.total_premium.to_i) %></td>
+                <td style="font-weight: 600;"><%= indian_currency(policy.total_premium.to_i) %></td>
                 <td>
                   <div style="font-size: 0.875rem; color: #dc2626; font-weight: 600;"><%= days_expired %> days</div>
                 </td>

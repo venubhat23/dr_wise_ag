@@ -35,7 +35,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Premium</h6>
-            <h3 class="mb-0 text-success" data-stat="total-premium">₹<%= number_with_delimiter(@total_premium_amount.to_i) %></h3>
+            <h3 class="mb-0 text-success" data-stat="total-premium"><%= indian_currency(@total_premium_amount.to_i) %></h3>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
             <i class="bi bi-currency-rupee text-success fs-4"></i>
@@ -51,7 +51,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Coverage</h6>
-            <h3 class="mb-0 text-info" data-stat="total-coverage">₹<%= number_with_delimiter(@total_coverage_amount.to_i) %></h3>
+            <h3 class="mb-0 text-info" data-stat="total-coverage"><%= indian_currency(@total_coverage_amount.to_i) %></h3>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">
             <i class="bi bi-shield-check text-info fs-4"></i>
@@ -222,13 +222,13 @@
                 </td>
                 <td>
                   <div>
-                    <div class="fw-bold">₹<%= number_with_delimiter(policy.sum_insured) %></div>
+                    <div class="fw-bold"><%= indian_currency(policy.sum_insured) %></div>
                     <small class="text-muted">Sum Assured</small>
                   </div>
                 </td>
                 <td>
                   <div>
-                    <div class="fw-bold">₹<%= number_with_delimiter(policy.total_premium) %></div>
+                    <div class="fw-bold"><%= indian_currency(policy.total_premium) %></div>
                     <small class="text-muted"><%= policy.payment_mode&.humanize %></small>
                   </div>
                 </td>

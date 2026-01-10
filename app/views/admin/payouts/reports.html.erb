@@ -94,7 +94,7 @@
         <div class="d-flex align-items-center justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Amount</h6>
-            <h3 class="mb-0 text-success">₹<%= number_with_delimiter(@report_data[:summary][:total_amount]) %></h3>
+            <h3 class="mb-0 text-success"><%= indian_currency(@report_data[:summary][:total_amount]) %></h3>
           </div>
           <div class="icon-shape bg-success-soft text-success">
             <i class="bi bi-cash-coin"></i>
@@ -110,7 +110,7 @@
         <div class="d-flex align-items-center justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Paid Amount</h6>
-            <h3 class="mb-0 text-info">₹<%= number_with_delimiter(@report_data[:summary][:paid_amount]) %></h3>
+            <h3 class="mb-0 text-info"><%= indian_currency(@report_data[:summary][:paid_amount]) %></h3>
           </div>
           <div class="icon-shape bg-info-soft text-info">
             <i class="bi bi-check-circle-fill"></i>
@@ -126,7 +126,7 @@
         <div class="d-flex align-items-center justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Pending Amount</h6>
-            <h3 class="mb-0 text-warning">₹<%= number_with_delimiter(@report_data[:summary][:pending_amount]) %></h3>
+            <h3 class="mb-0 text-warning"><%= indian_currency(@report_data[:summary][:pending_amount]) %></h3>
           </div>
           <div class="icon-shape bg-warning-soft text-warning">
             <i class="bi bi-clock-fill"></i>
@@ -162,7 +162,7 @@
                   <%= status.humanize %>
                 </span>
               </div>
-              <strong>₹<%= number_with_delimiter(amount) %></strong>
+              <strong><%= indian_currency(amount) %></strong>
             </div>
           <% end %>
         <% else %>
@@ -186,7 +186,7 @@
           <% @report_data[:breakdowns][:by_recipient].each do |recipient, amount| %>
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span><%= recipient.humanize %></span>
-              <strong>₹<%= number_with_delimiter(amount) %></strong>
+              <strong><%= indian_currency(amount) %></strong>
             </div>
           <% end %>
         <% else %>
@@ -210,7 +210,7 @@
           <% @report_data[:breakdowns][:by_policy_type].each do |policy_type, amount| %>
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span><%= policy_type.humanize %></span>
-              <strong>₹<%= number_with_delimiter(amount) %></strong>
+              <strong><%= indian_currency(amount) %></strong>
             </div>
           <% end %>
         <% else %>
@@ -262,7 +262,7 @@
                   <span class="badge bg-secondary"><%= payout.payout_to.humanize %></span>
                 </td>
                 <td>
-                  <strong class="text-success">₹<%= number_with_delimiter(payout.payout_amount) %></strong>
+                  <strong class="text-success"><%= indian_currency(payout.payout_amount) %></strong>
                 </td>
                 <td>
                   <%= payout.payout_date&.strftime("%b %d, %Y") || '-' %>

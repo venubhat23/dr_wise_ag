@@ -28,7 +28,7 @@
     <div class="card border-success">
       <div class="card-body text-center">
         <h5 class="card-title text-success">Total Commission Earned</h5>
-        <h2 class="text-success">₹<%= number_with_delimiter(@total_commission_earned.round(2)) %></h2>
+        <h2 class="text-success"><%= indian_currency(@total_commission_earned.round(2)) %></h2>
       </div>
     </div>
   </div>
@@ -36,7 +36,7 @@
     <div class="card border-warning">
       <div class="card-body text-center">
         <h5 class="card-title text-warning">Pending Amount</h5>
-        <h2 class="text-warning">₹<%= number_with_delimiter(@total_pending_amount.round(2)) %></h2>
+        <h2 class="text-warning"><%= indian_currency(@total_pending_amount.round(2)) %></h2>
       </div>
     </div>
   </div>
@@ -44,7 +44,7 @@
     <div class="card border-primary">
       <div class="card-body text-center">
         <h5 class="card-title text-primary">Paid Amount</h5>
-        <h2 class="text-primary">₹<%= number_with_delimiter(@total_paid_amount.round(2)) %></h2>
+        <h2 class="text-primary"><%= indian_currency(@total_paid_amount.round(2)) %></h2>
       </div>
     </div>
   </div>
@@ -86,7 +86,7 @@
                   <div class="d-flex flex-wrap gap-1">
                     <% distributor_data[:leads].each do |lead_data| %>
                       <span class="badge <%= lead_data[:paid] ? 'bg-success' : 'bg-warning' %> text-dark">
-                        <%= lead_data[:lead].lead_id %>: ₹<%= number_with_delimiter(lead_data[:commission].to_i) %>
+                        <%= lead_data[:lead].lead_id %>: <%= indian_currency(lead_data[:commission].to_i) %>
                         <% if lead_data[:paid] %>
                           <i class="bi bi-check-circle ms-1"></i>
                         <% end %>
@@ -97,12 +97,12 @@
                 </td>
                 <td>
                   <span class="fw-bold text-dark">
-                    ₹<%= number_with_delimiter(distributor_data[:total_amount].to_i) %>
+                    <%= indian_currency(distributor_data[:total_amount].to_i) %>
                   </span>
                   <br>
                   <small class="text-muted">
-                    Paid: ₹<%= number_with_delimiter(distributor_data[:paid_amount].to_i) %> |
-                    Pending: ₹<%= number_with_delimiter(distributor_data[:pending_amount].to_i) %>
+                    Paid: <%= indian_currency(distributor_data[:paid_amount].to_i) %> |
+                    Pending: <%= indian_currency(distributor_data[:pending_amount].to_i) %>
                   </small>
                 </td>
                 <td>
@@ -112,7 +112,7 @@
                         <i class="bi bi-clock me-1"></i>Pending Payment
                       </span>
                       <small class="text-muted">
-                        ₹<%= number_with_delimiter(distributor_data[:pending_amount].to_i) %> pending
+                        <%= indian_currency(distributor_data[:pending_amount].to_i) %> pending
                       </small>
                     </div>
                   <% else %>
@@ -245,7 +245,7 @@
                 </td>
                 <td>
                   <span class="fw-bold text-success">
-                    ₹<%= number_with_delimiter(record.payout_amount.to_i) %>
+                    <%= indian_currency(record.payout_amount.to_i) %>
                   </span>
                 </td>
                 <td>

@@ -262,7 +262,7 @@
 
         <div class="mb-3">
           <label class="form-label text-muted small">Sum Insured</label>
-          <h6 class="text-warning">₹<%= number_with_delimiter(@health_insurance.sum_insured.to_i) %></h6>
+          <h6 class="text-warning"><%= indian_currency(@health_insurance.sum_insured.to_i) %></h6>
         </div>
 
         <div class="mb-3">

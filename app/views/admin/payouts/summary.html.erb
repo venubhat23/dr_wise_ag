@@ -38,7 +38,7 @@
           <div>
             <h6 class="text-muted mb-2">Total Amount</h6>
             <h2 class="mb-0 text-success">₹<%= number_to_human(@summary_data[:overview][:total_amount], precision: 2, significant: false, format: '%n%u', units: { thousand: 'K', million: 'M', billion: 'B' }) %></h2>
-            <small class="text-muted">₹<%= number_with_delimiter(@summary_data[:overview][:total_amount]) %></small>
+            <small class="text-muted"><%= indian_currency(@summary_data[:overview][:total_amount]) %></small>
           </div>
           <div class="icon-shape bg-success-soft text-success">
             <i class="bi bi-cash-stack"></i>
@@ -55,7 +55,7 @@
           <div>
             <h6 class="text-muted mb-2">Pending Amount</h6>
             <h2 class="mb-0 text-warning">₹<%= number_to_human(@summary_data[:overview][:pending_amount], precision: 2, significant: false, format: '%n%u', units: { thousand: 'K', million: 'M', billion: 'B' }) %></h2>
-            <small class="text-muted">₹<%= number_with_delimiter(@summary_data[:overview][:pending_amount]) %></small>
+            <small class="text-muted"><%= indian_currency(@summary_data[:overview][:pending_amount]) %></small>
           </div>
           <div class="icon-shape bg-warning-soft text-warning">
             <i class="bi bi-clock-fill"></i>
@@ -72,7 +72,7 @@
           <div>
             <h6 class="text-muted mb-2">Processing Amount</h6>
             <h2 class="mb-0 text-info">₹<%= number_to_human(@summary_data[:overview][:processing_amount], precision: 2, significant: false, format: '%n%u', units: { thousand: 'K', million: 'M', billion: 'B' }) %></h2>
-            <small class="text-muted">₹<%= number_with_delimiter(@summary_data[:overview][:processing_amount]) %></small>
+            <small class="text-muted"><%= indian_currency(@summary_data[:overview][:processing_amount]) %></small>
           </div>
           <div class="icon-shape bg-info-soft text-info">
             <i class="bi bi-gear-fill"></i>
@@ -111,7 +111,7 @@
                 </span>
               </div>
               <div class="text-end">
-                <strong>₹<%= number_with_delimiter(amount) %></strong>
+                <strong><%= indian_currency(amount) %></strong>
               </div>
             </div>
           <% end %>
@@ -152,7 +152,7 @@
                 </span>
               </div>
               <div class="text-end">
-                <strong>₹<%= number_with_delimiter(amount) %></strong>
+                <strong><%= indian_currency(amount) %></strong>
               </div>
             </div>
           <% end %>

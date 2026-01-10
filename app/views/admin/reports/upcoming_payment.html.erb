@@ -85,7 +85,7 @@
           <div>
             <h6 class="text-muted mb-2">Total Amount</h6>
             <h3 class="mb-0 text-success">
-              ₹<%= number_with_delimiter(@upcoming_payments&.sum(:total_premium)&.to_i || 0) %>
+              <%= indian_currency(@upcoming_payments&.sum(:total_premium)&.to_i || 0) %>
             </h3>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
@@ -167,7 +167,7 @@
                 </td>
                 <td>
                   <div>
-                    <div class="fw-semibold text-success">₹<%= number_with_delimiter(policy.total_premium) %></div>
+                    <div class="fw-semibold text-success"><%= indian_currency(policy.total_premium) %></div>
                     <small class="text-muted">Annual Premium</small>
                   </div>
                 </td>

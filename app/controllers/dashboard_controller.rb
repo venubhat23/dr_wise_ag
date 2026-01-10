@@ -43,6 +43,8 @@ class DashboardController < ApplicationController
       converted_leads: @converted_leads,
       pending_leads: @pending_leads,
       lead_conversion_percentage: @lead_conversion_percentage,
+      lead_conversion_funnel: @lead_conversion_funnel,
+      lead_stage_distribution: @lead_stage_distribution,
 
       # Policy status
       renewal_due_count: @renewal_due_count,
@@ -71,6 +73,10 @@ class DashboardController < ApplicationController
   private
 
   def load_dashboard_data
+    # Clear any active record caches for real-time data
+    Rails.cache.clear rescue nil
+    Lead.reset_column_information
+
     # Optimize with a single query for basic counts
     policy_counts = get_optimized_policy_counts
 
@@ -91,7 +97,7 @@ class DashboardController < ApplicationController
 
     @total_leads = Lead.count
     @converted_leads = Lead.where(current_stage: ['converted', 'policy_created']).count
-    @pending_leads = Lead.where(current_stage: ['new', 'contacted', 'consultation', 'one_on_one']).count
+    @pending_leads = Lead.where(current_stage: ['lead_generated', 'follow_up', 'follow_up_successful', 'one_on_one']).count
 
     # Lead conversion percentage
     @lead_conversion_percentage = @total_leads > 0 ? ((@converted_leads.to_f / @total_leads) * 100).round(2) : 0
@@ -144,14 +150,41 @@ class DashboardController < ApplicationController
     end
     @premium_collection_trend = @premium_collection_trend.to_a.reverse.to_h
 
-    # Lead conversion funnel
+    # Lead conversion funnel - using actual database stages with real-time data
     @lead_conversion_funnel = {
-      'Leads Generated' => Lead.count,
-      'Consultation' => Lead.where(current_stage: 'consultation').count,
+      'Leads Generated' => Lead.where(current_stage: 'lead_generated').count,
+      'Follow Up' => Lead.where(current_stage: ['follow_up', 'follow_up_successful']).count,
       'One-on-One' => Lead.where(current_stage: 'one_on_one').count,
       'Converted' => Lead.where(current_stage: 'converted').count,
       'Policy Created' => Lead.where(current_stage: 'policy_created').count
     }
+
+    # Lead stage distribution - complete breakdown of all stages with humanized names
+    stage_counts = Lead.group(:current_stage).count.sort_by { |stage, count| -count }
+    @lead_stage_distribution = {}
+    stage_counts.each do |stage, count|
+      humanized_stage = case stage
+      when 'lead_generated'
+        'Leads Generated'
+      when 'follow_up'
+        'Follow Up'
+      when 'follow_up_successful'
+        'Follow Up Successful'
+      when 'follow_up_unsuccessful'
+        'Follow Up Unsuccessful'
+      when 'one_on_one'
+        'One-on-One Meeting'
+      when 'converted'
+        'Converted'
+      when 'policy_created'
+        'Policy Created'
+      when 'not_interested'
+        'Not Interested'
+      else
+        stage.to_s.humanize
+      end
+      @lead_stage_distribution[humanized_stage] = count
+    end
 
     # Top Affiliate performance - based on actual SubAgent data
     @agent_performance = {}

@@ -208,7 +208,7 @@
       <div class="d-flex justify-content-between align-items-start">
         <div>
           <h6 class="text-muted mb-2">Total Premium Collected</h6>
-          <h3 class="mb-0 fw-bold">₹<%= number_with_delimiter((@summary[:total_amount] || 0).to_i) %></h3>
+          <h3 class="mb-0 fw-bold"><%= indian_currency((@summary[:total_amount] || 0).to_i) %></h3>
           <small class="text-muted"><%= number_with_delimiter(@summary[:total_payouts] || 0) %> policies</small>
         </div>
         <div class="bg-primary bg-opacity-10 rounded p-3">
@@ -223,7 +223,7 @@
       <div class="d-flex justify-content-between align-items-start">
         <div>
           <h6 class="text-muted mb-2">Paid Commissions</h6>
-          <h3 class="mb-0 fw-bold text-success">₹<%= number_with_delimiter((@summary[:paid_amount] || 0).to_i) %></h3>
+          <h3 class="mb-0 fw-bold text-success"><%= indian_currency((@summary[:paid_amount] || 0).to_i) %></h3>
           <small class="text-muted"><%= @summary[:paid_count] || 0 %> completed</small>
         </div>
         <div class="bg-success bg-opacity-10 rounded p-3">
@@ -238,7 +238,7 @@
       <div class="d-flex justify-content-between align-items-start">
         <div>
           <h6 class="text-muted mb-2">Pending Payouts</h6>
-          <h3 class="mb-0 fw-bold text-warning">₹<%= number_with_delimiter((@summary[:pending_amount] || 0).to_i) %></h3>
+          <h3 class="mb-0 fw-bold text-warning"><%= indian_currency((@summary[:pending_amount] || 0).to_i) %></h3>
           <small class="text-muted"><%= @summary[:pending_count] || 0 %> waiting</small>
         </div>
         <div class="bg-warning bg-opacity-10 rounded p-3">
@@ -253,7 +253,7 @@
       <div class="d-flex justify-content-between align-items-start">
         <div>
           <h6 class="text-muted mb-2">This Month</h6>
-          <h3 class="mb-0 fw-bold text-info">₹<%= number_with_delimiter((@summary[:this_month] || 0).to_i) %></h3>
+          <h3 class="mb-0 fw-bold text-info"><%= indian_currency((@summary[:this_month] || 0).to_i) %></h3>
           <small class="text-muted">
             <% change = @summary[:this_month].to_f / [@summary[:last_month].to_f, 1].max %>
             <% if change > 1 %>
@@ -344,7 +344,7 @@
                 <% if actual_policy %>
                   <small class="text-muted d-block">
                     <%= actual_policy.customer&.display_name %>
-                    • Premium: ₹<%= number_with_delimiter((actual_policy.total_premium || actual_policy.net_premium || 0).to_i) %>
+                    • Premium: <%= indian_currency((actual_policy.total_premium || actual_policy.net_premium || 0).to_i) %>
                   </small>
                 <% end %>
               </td>
@@ -354,7 +354,7 @@
                 <% main_agent_payout = policy_payouts.find { |p| p.payout_to == 'agent' } %>
                 <% if actual_policy&.commission_amount.to_f > 0 %>
                   <div class="d-flex align-items-center">
-                    <span class="fw-bold">₹<%= number_with_delimiter(actual_policy.commission_amount.to_i) %></span>
+                    <span class="fw-bold"><%= indian_currency(actual_policy.commission_amount.to_i) %></span>
                     <% if main_agent_payout %>
                       <i class="bi bi-check-circle text-success ms-2" data-bs-toggle="tooltip" title="Paid"></i>
                     <% else %>
@@ -374,7 +374,7 @@
                 <% sub_agent_payout = policy_payouts.find { |p| p.payout_to == 'sub_agent' } %>
                 <% if actual_policy&.respond_to?(:sub_agent_after_tds_value) && actual_policy.sub_agent_after_tds_value.to_f > 0 %>
                   <div class="d-flex align-items-center">
-                    <span class="fw-bold">₹<%= number_with_delimiter(actual_policy.sub_agent_after_tds_value.to_i) %></span>
+                    <span class="fw-bold"><%= indian_currency(actual_policy.sub_agent_after_tds_value.to_i) %></span>
                     <% if sub_agent_payout&.status == 'paid' %>
                       <i class="bi bi-check-circle text-success ms-2"></i>
                     <% elsif sub_agent_payout&.status == 'pending' %>
@@ -396,7 +396,7 @@
                 <% distributor_payout = policy_payouts.find { |p| p.payout_to == 'distributor' } %>
                 <% if actual_policy&.respond_to?(:distributor_after_tds_value) && actual_policy.distributor_after_tds_value.to_f > 0 %>
                   <div class="d-flex align-items-center">
-                    <span class="fw-bold">₹<%= number_with_delimiter(actual_policy.distributor_after_tds_value.to_i) %></span>
+                    <span class="fw-bold"><%= indian_currency(actual_policy.distributor_after_tds_value.to_i) %></span>
                     <% if distributor_payout&.status == 'paid' %>
                       <i class="bi bi-check-circle text-success ms-2"></i>
                     <% elsif distributor_payout&.status == 'pending' %>
@@ -418,7 +418,7 @@
                 <% investor_payout = policy_payouts.find { |p| p.payout_to == 'investor' } %>
                 <% if actual_policy&.respond_to?(:investor_after_tds_value) && actual_policy.investor_after_tds_value.to_f > 0 %>
                   <div class="d-flex align-items-center">
-                    <span class="fw-bold">₹<%= number_with_delimiter(actual_policy.investor_after_tds_value.to_i) %></span>
+                    <span class="fw-bold"><%= indian_currency(actual_policy.investor_after_tds_value.to_i) %></span>
                     <% if investor_payout&.status == 'paid' %>
                       <i class="bi bi-check-circle text-success ms-2"></i>
                     <% elsif investor_payout&.status == 'pending' %>
@@ -440,7 +440,7 @@
                 <% if actual_policy&.respond_to?(:company_expenses_percentage) && actual_policy.company_expenses_percentage %>
                   <div>
                     <span class="fw-bold text-info">
-                      ₹<%= number_with_delimiter(((actual_policy.total_premium || actual_policy.net_premium || 0) * actual_policy.company_expenses_percentage / 100).to_i) %>
+                      <%= indian_currency(((actual_policy.total_premium || actual_policy.net_premium || 0) * actual_policy.company_expenses_percentage / 100).to_i) %>
                     </span>
                     <br><small class="text-muted">(<%= actual_policy.company_expenses_percentage %>%)</small>
                   </div>
@@ -452,7 +452,7 @@
               <!-- Total Flow -->
               <td>
                 <div>
-                  <span class="fw-bold text-primary">₹<%= number_with_delimiter(policy_payouts.sum(&:payout_amount).to_i) %></span>
+                  <span class="fw-bold text-primary"><%= indian_currency(policy_payouts.sum(&:payout_amount).to_i) %></span>
                   <br>
                   <% paid_count = policy_payouts.count { |p| p.status == 'paid' } %>
                   <% total_count = policy_payouts.count %>

@@ -202,5 +202,86 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   }
+
+  // Dynamic company filtering based on insurance type
+  const insuranceTypeSelect = document.getElementById('agency_code_insurance_type');
+  const companySelect = document.getElementById('agency_code_company_name');
+
+  if (insuranceTypeSelect && companySelect) {
+    // Function to load companies based on insurance type
+    function loadCompaniesByType(insuranceType) {
+      if (!insuranceType) {
+        // Reset to all companies if no type selected
+        companySelect.innerHTML = '<option value="">Select Company</option>';
+        if ($(companySelect).hasClass('select2-hidden-accessible')) {
+          $(companySelect).val(null).trigger('change');
+        }
+        return;
+      }
+
+      // Fetch companies for the selected insurance type
+      fetch(`/admin/agency_codes/companies_by_type?insurance_type=${encodeURIComponent(insuranceType)}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Clear existing options
+          companySelect.innerHTML = '<option value="">Select Company</option>';
+
+          // Add new options
+          data.companies.forEach(company => {
+            const option = document.createElement('option');
+            option.value = company;
+            option.textContent = company;
+            companySelect.appendChild(option);
+          });
+
+          // Update Select2 if it's initialized
+          if ($(companySelect).hasClass('select2-hidden-accessible')) {
+            $(companySelect).trigger('change');
+          }
+
+          console.log(`Loaded ${data.companies.length} companies for ${insuranceType} insurance`);
+        } else {
+          console.error('Failed to load companies:', data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error loading companies:', error);
+      });
+    }
+
+    // Handle insurance type change
+    insuranceTypeSelect.addEventListener('change', function() {
+      const selectedType = this.value;
+      console.log('Insurance type changed to:', selectedType);
+      loadCompaniesByType(selectedType);
+    });
+
+    // Handle Select2 change event for insurance type
+    $('#agency_code_insurance_type').on('select2:select', function(e) {
+      const selectedType = e.params.data.id;
+      console.log('Insurance type changed via Select2 to:', selectedType);
+      loadCompaniesByType(selectedType);
+    });
+
+    // Clear company when insurance type is cleared
+    $('#agency_code_insurance_type').on('select2:clear', function() {
+      console.log('Insurance type cleared');
+      loadCompaniesByType(null);
+    });
+
+    // Load companies on page load if insurance type is already selected
+    const initialInsuranceType = insuranceTypeSelect.value;
+    if (initialInsuranceType) {
+      console.log('Loading companies for initial type:', initialInsuranceType);
+      loadCompaniesByType(initialInsuranceType);
+    }
+  }
 });
 </script>

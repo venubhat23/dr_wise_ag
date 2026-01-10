@@ -215,14 +215,14 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
 
   # GET /api/v1/mobile/settings/terms
   def terms_and_conditions
-    # You can store this in database or return static content
-    terms_url = "#{request.base_url}/terms_and_conditions.html"
+    # Get terms and conditions from database
+    terms_content = SystemSetting.terms_and_conditions
 
     render json: {
       success: true,
       data: {
-        terms_url: terms_url,
-        terms_content: get_terms_content
+        terms_content: terms_content.present? ? terms_content : get_default_terms_content,
+        last_updated: SystemSetting.find_by(key: 'system_config')&.updated_at&.strftime('%B %d, %Y') || 'Not available'
       }
     }
   end
@@ -385,8 +385,8 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
 
   private
 
-  def get_terms_content
-    # You can store this in database or return static content
+  def get_default_terms_content
+    # Default terms and conditions if none are set in database
     <<~TERMS
       Terms and Conditions for Drwise Admin
 

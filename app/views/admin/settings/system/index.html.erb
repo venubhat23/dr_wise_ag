@@ -185,6 +185,37 @@
           <% end %>
         </div>
 
+        <hr class="my-4">
+
+        <!-- Terms and Conditions Settings -->
+        <div class="mb-4">
+          <h6 class="text-muted mb-3">Terms and Conditions</h6>
+          <%= form_with url: admin_settings_system_path, method: :patch, local: true do |form| %>
+            <div class="bg-light rounded p-3">
+              <div class="row">
+                <div class="col-12 mb-3">
+                  <label for="terms_and_conditions" class="form-label">
+                    <i class="bi bi-file-text me-1"></i>
+                    Terms and Conditions Content
+                  </label>
+                  <%= form.text_area :terms_and_conditions,
+                        value: @terms_and_conditions,
+                        class: "form-control",
+                        rows: 10,
+                        placeholder: "Enter your terms and conditions content here..." %>
+                  <div class="form-text">Configure the terms and conditions that will be displayed to users</div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-12">
+                  <%= form.hidden_field :terms_and_conditions_update, value: "true" %>
+                  <%= form.submit "Update Terms and Conditions", class: "btn btn-primary" %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
       </div>
     </div>
 

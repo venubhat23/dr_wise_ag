@@ -117,7 +117,7 @@
           <div class="col-md-6">
             <strong class="text-muted d-block">Annual Income</strong>
             <% if @customer.annual_income.present? %>
-              ₹<%= number_with_delimiter(@customer.annual_income) %>
+              <%= indian_currency(@customer.annual_income) %>
             <% else %>
               -
             <% end %>
@@ -391,7 +391,7 @@
                       </div>
                       <div class="col-6">
                         <strong class="text-muted d-block">Premium</strong>
-                        <span class="text-success fw-bold">₹<%= number_with_delimiter(policy_data[:premium].to_i) %></span>
+                        <span class="text-success fw-bold"><%= indian_currency(policy_data[:premium].to_i) %></span>
                       </div>
                       <div class="col-6">
                         <strong class="text-muted d-block">Policy Period</strong>
@@ -591,7 +591,7 @@
                     </small>
                   </div>
                   <div class="text-end">
-                    <small class="text-success fw-bold d-block">₹<%= number_with_delimiter(policy_data[:premium].to_i) %></small>
+                    <small class="text-success fw-bold d-block"><%= indian_currency(policy_data[:premium].to_i) %></small>
                     <% if policy_data[:end_date] %>
                       <small class="text-muted">
                         Exp: <%= policy_data[:end_date].strftime("%b %Y") %>

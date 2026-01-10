@@ -19,7 +19,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Commission Generated</h6>
-            <h3 class="mb-0 text-primary">₹<%= number_with_delimiter(@total_commission_generated.to_i) %></h3>
+            <h3 class="mb-0 text-primary"><%= indian_currency(@total_commission_generated.to_i) %></h3>
           </div>
           <div class="bg-primary bg-opacity-10 rounded p-3">
             <i class="bi bi-currency-rupee text-primary fs-4"></i>
@@ -35,7 +35,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Transferred</h6>
-            <h3 class="mb-0 text-success">₹<%= number_with_delimiter(@total_transferred.to_i) %></h3>
+            <h3 class="mb-0 text-success"><%= indian_currency(@total_transferred.to_i) %></h3>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
             <i class="bi bi-arrow-right-circle text-success fs-4"></i>
@@ -51,7 +51,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Pending Transfers</h6>
-            <h3 class="mb-0 text-warning">₹<%= number_with_delimiter(@pending_transfers.to_i) %></h3>
+            <h3 class="mb-0 text-warning"><%= indian_currency(@pending_transfers.to_i) %></h3>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
             <i class="bi bi-clock text-warning fs-4"></i>
@@ -67,7 +67,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Company Expenses</h6>
-            <h3 class="mb-0 text-info">₹<%= number_with_delimiter(@company_expenses.to_i) %></h3>
+            <h3 class="mb-0 text-info"><%= indian_currency(@company_expenses.to_i) %></h3>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">
             <i class="bi bi-building text-info fs-4"></i>
@@ -305,17 +305,17 @@ body.modal-open {
 
                 <td>
                   <div>
-                    <strong>₹<%= number_with_delimiter(policy.total_premium.to_i) %></strong>
+                    <strong><%= indian_currency(policy.total_premium.to_i) %></strong>
                   </div>
                 </td>
 
                 <td>
                   <div>
                     <span class="badge bg-success">
-                      ₹<%= number_with_delimiter(commission_data.dig(:summary, :total_commission_generated).to_i) %>
+                      <%= indian_currency(commission_data.dig(:summary, :total_commission_generated).to_i) %>
                     </span>
                     <small class="text-muted d-block mt-1">
-                      Main Agent: ₹<%= number_with_delimiter(commission_data.dig(:main_agent, :total_commission).to_i) %>
+                      Main Agent: <%= indian_currency(commission_data.dig(:main_agent, :total_commission).to_i) %>
                       <span class="text-muted">(<%= commission_data.dig(:percentages, :main_agent) || commission_data.dig(:main_agent, :percentage) || policy&.main_agent_commission_percentage || '0' %>%)</span>
                     </small>
                   </div>
@@ -333,7 +333,7 @@ body.modal-open {
                   <% if main_agent_payout&.status == 'paid' %>
                     <div>
                       <span class="text-success">
-                        <i class="bi bi-check-circle me-1"></i>₹<%= number_with_delimiter(main_agent_payout.payout_amount.to_i) %>
+                        <i class="bi bi-check-circle me-1"></i><%= indian_currency(main_agent_payout.payout_amount.to_i) %>
                       </span>
                       <% if main_agent_payout.payout_date %>
                         <small class="text-success d-block">
@@ -362,7 +362,7 @@ body.modal-open {
                     <div>
                       <small>Amount: </small>
                       <span class="badge bg-info">
-                        ₹<%= number_with_delimiter(transfer_status[:paid_amount].to_i) %>
+                        <%= indian_currency(transfer_status[:paid_amount].to_i) %>
                       </span>
                     </div>
                   </div>
@@ -371,19 +371,19 @@ body.modal-open {
                 <td>
                   <div>
                     <small class="d-block">
-                      Affiliate: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :affiliate).to_i) %>
+                      Affiliate: <%= indian_currency(commission_data.dig(:payouts, :affiliate).to_i) %>
                       <span class="text-muted">(<%= commission_data.dig(:percentages, :affiliate) || policy&.sub_agent_commission_percentage || '0' %>%)</span>
                     </small>
                     <small class="d-block">
-                      Ambassador: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :ambassador).to_i) %>
+                      Ambassador: <%= indian_currency(commission_data.dig(:payouts, :ambassador).to_i) %>
                       <span class="text-muted">(<%= commission_data.dig(:percentages, :ambassador) || policy&.ambassador_commission_percentage || '0' %>%)</span>
                     </small>
                     <small class="d-block">
-                      Investor: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :investor).to_i) %>
+                      Investor: <%= indian_currency(commission_data.dig(:payouts, :investor).to_i) %>
                       <span class="text-muted">(<%= commission_data.dig(:percentages, :investor) || policy&.investor_commission_percentage || '0' %>%)</span>
                     </small>
                     <small class="d-block">
-                      Company: ₹<%= number_with_delimiter(commission_data.dig(:payouts, :company_expense).to_i) %>
+                      Company: <%= indian_currency(commission_data.dig(:payouts, :company_expense).to_i) %>
                       <span class="text-muted">(<%= commission_data.dig(:percentages, :company_expense) || policy&.company_expenses_percentage || '0' %>%)</span>
                     </small>
                   </div>

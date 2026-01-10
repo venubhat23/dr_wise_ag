@@ -56,7 +56,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Premium</h6>
-            <h3 class="mb-0 text-warning">₹<%= number_with_delimiter(@commission_summary[:total_premium]) %></h3>
+            <h3 class="mb-0 text-warning"><%= indian_currency(@commission_summary[:total_premium]) %></h3>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
             <i class="bi bi-currency-rupee text-warning fs-4"></i>
@@ -72,7 +72,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Commission Paid</h6>
-            <h3 class="mb-0 text-info">₹<%= number_with_delimiter(@commission_payouts.where(status: 'paid').sum(:payout_amount)) %></h3>
+            <h3 class="mb-0 text-info"><%= indian_currency(@commission_payouts.where(status: 'paid').sum(:payout_amount)) %></h3>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">
             <i class="bi bi-cash-coin text-info fs-4"></i>
@@ -123,7 +123,7 @@
             <div class="metric-item mb-3">
               <div class="d-flex justify-content-between align-items-center">
                 <span class="metric-label">Total Investment</span>
-                <span class="metric-value text-success">₹<%= number_with_delimiter(@commission_summary[:total_premium]) %></span>
+                <span class="metric-value text-success"><%= indian_currency(@commission_summary[:total_premium]) %></span>
               </div>
             </div>
 
@@ -271,7 +271,7 @@
               </div>
               <div class="col-6">
                 <div class="stat-card">
-                  <h4 class="text-success mb-1">₹<%= number_with_delimiter(data[:total_premium]) %></h4>
+                  <h4 class="text-success mb-1"><%= indian_currency(data[:total_premium]) %></h4>
                   <small class="text-muted">Premium</small>
                 </div>
               </div>
@@ -292,6 +292,22 @@
               <i class="bi bi-plus-circle text-muted" style="font-size: 3rem;"></i>
               <h6 class="text-muted mt-3">No policies found</h6>
               <small class="text-muted">Customer has not opted for this policy type</small>
+              <div class="mt-3">
+                <% case policy_type %>
+                <% when 'Health Insurance' %>
+                  <%= link_to "Add Health Insurance", new_admin_health_insurance_path(customer_id: @customer.id), class: "btn btn-sm btn-success" do %>
+                    <i class="bi bi-plus me-1"></i>Add Policy
+                  <% end %>
+                <% when 'Life Insurance' %>
+                  <%= link_to "Add Life Insurance", new_admin_life_insurance_path(customer_id: @customer.id), class: "btn btn-sm btn-primary" do %>
+                    <i class="bi bi-plus me-1"></i>Add Policy
+                  <% end %>
+                <% when 'Motor Insurance' %>
+                  <%= link_to "Add Motor Insurance", new_admin_motor_insurance_path(customer_id: @customer.id), class: "btn btn-sm btn-warning" do %>
+                    <i class="bi bi-plus me-1"></i>Add Policy
+                  <% end %>
+                <% end %>
+              </div>
             </div>
           <% end %>
         </div>
@@ -339,7 +355,7 @@
                   </span>
                 </td>
                 <td><%= payout.payout_to.humanize %></td>
-                <td class="fw-bold text-success">₹<%= number_with_delimiter(payout.payout_amount) %></td>
+                <td class="fw-bold text-success"><%= indian_currency(payout.payout_amount) %></td>
                 <td>
                   <span class="badge bg-<%=
                     case payout.status
@@ -359,14 +375,6 @@
           </tbody>
         </table>
       </div>
-    </div>
-  </div>
-<% else %>
-  <div class="card border-0 shadow-sm">
-    <div class="card-body text-center py-5">
-      <i class="bi bi-cash-coin text-muted fs-1 mb-3"></i>
-      <h5 class="text-muted mb-2">No Commission Payouts</h5>
-      <p class="text-muted">No commission payouts have been processed for this customer's policies yet.</p>
     </div>
   </div>
 <% end %>

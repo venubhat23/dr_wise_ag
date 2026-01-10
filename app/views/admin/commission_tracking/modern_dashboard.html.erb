@@ -486,12 +486,12 @@
                   </td>
                   <td>
                     <div class="amount-cell">
-                      <span class="amount-value">₹<%= number_with_delimiter(item[:policy].total_premium.to_i) %></span>
+                      <span class="amount-value"><%= indian_currency(item[:policy].total_premium.to_i) %></span>
                     </div>
                   </td>
                   <td>
                     <div class="commission-cell">
-                      <span class="commission-value">₹<%= number_with_delimiter((item[:commission_data].dig(:summary, :total_commission_generated) || rand(10000..50000)).to_i) %></span>
+                      <span class="commission-value"><%= indian_currency((item[:commission_data].dig(:summary, :total_commission_generated) || rand(10000..50000)).to_i) %></span>
                       <span class="commission-percentage">12%</span>
                     </div>
                   </td>

@@ -50,12 +50,12 @@
 
           <div class="col-md-6 mb-3">
             <label class="form-label text-muted">Sum Insured</label>
-            <h5 class="text-warning mb-0">₹<%= number_with_delimiter(@health_insurance.sum_insured.to_i) %></h5>
+            <h5 class="text-warning mb-0"><%= indian_currency(@health_insurance.sum_insured) %></h5>
           </div>
 
           <div class="col-md-6 mb-3">
             <label class="form-label text-muted">Total Premium</label>
-            <h5 class="text-success mb-0">₹<%= number_with_delimiter(@health_insurance.total_premium.to_i) %></h5>
+            <h5 class="text-success mb-0"><%= indian_currency(@health_insurance.total_premium) %></h5>
           </div>
 
           <div class="col-md-6 mb-3">

@@ -146,7 +146,7 @@
                         <small class="text-muted">Total Policies</small>
                       </div>
                       <div class="col-3 text-center">
-                        <h6 class="text-success mb-1">₹<%= number_with_delimiter(stats[:total_premium].to_i) %></h6>
+                        <h6 class="text-success mb-1"><%= indian_currency(stats[:total_premium].to_i) %></h6>
                         <small class="text-muted">Total Premium</small>
                       </div>
                       <div class="col-3 text-center">
@@ -154,7 +154,7 @@
                         <small class="text-muted">Customers</small>
                       </div>
                       <div class="col-3 text-center">
-                        <h6 class="text-warning mb-1">₹<%= number_with_delimiter(stats[:total_commission].to_i) %></h6>
+                        <h6 class="text-warning mb-1"><%= indian_currency(stats[:total_commission].to_i) %></h6>
                         <small class="text-muted">Commission</small>
                       </div>
                     </div>
@@ -189,7 +189,7 @@
                                 <strong class="ms-2"><%= policy[:policy_number] %></strong>
                               </small>
                               <small class="text-muted d-block">
-                                <%= policy[:customer] %> - ₹<%= number_with_delimiter(policy[:premium].to_i) %>
+                                <%= policy[:customer] %> - <%= indian_currency(policy[:premium].to_i) %>
                               </small>
                               <small class="text-muted">
                                 <%= time_ago_in_words(policy[:created_at]) %> ago
@@ -260,7 +260,7 @@
             <small class="text-muted">Total Customers</small>
           </div>
           <div class="col-12">
-            <h5 class="text-success mb-1">₹<%= number_with_delimiter(@distributor_stats[:total_premium].to_i) %></h5>
+            <h5 class="text-success mb-1"><%= indian_currency(@distributor_stats[:total_premium].to_i) %></h5>
             <small class="text-muted">Total Premium Generated</small>
           </div>
         </div>
@@ -278,7 +278,7 @@
       <div class="card-body">
         <div class="row text-center">
           <div class="col-12 mb-3">
-            <h5 class="text-success mb-1">₹<%= number_with_delimiter(@distributor_stats[:total_commission].to_i) %></h5>
+            <h5 class="text-success mb-1"><%= indian_currency(@distributor_stats[:total_commission].to_i) %></h5>
             <small class="text-muted">Total Commission Earned</small>
           </div>
           <div class="col-6">

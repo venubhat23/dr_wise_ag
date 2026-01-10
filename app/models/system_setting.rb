@@ -94,4 +94,22 @@ class SystemSetting < ApplicationRecord
       default_company_expenses: params[:default_company_expenses]
     )
   end
+
+  # Get terms and conditions
+  def self.terms_and_conditions
+    setting = find_by(key: 'system_config')
+    setting&.terms_and_conditions || ''
+  end
+
+  # Set terms and conditions
+  def self.set_terms_and_conditions(content)
+    setting = find_by(key: 'system_config') || create!(
+      key: 'system_config',
+      value: 'system configuration',
+      setting_type: 'configuration',
+      description: 'System configuration settings'
+    )
+
+    setting.update!(terms_and_conditions: content)
+  end
 end
