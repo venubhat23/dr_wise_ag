@@ -182,31 +182,94 @@
 
   <!-- 3. Affiliate Assignment -->
   <div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-transparent border-0 d-flex align-items-center">
-      <i class="bi bi-people me-2 text-info"></i>
-      <h5 class="mb-0">Affiliate Assignment</h5>
+    <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-people me-2 text-info"></i>
+        <h5 class="mb-0">Affiliate Assignment</h5>
+      </div>
+      <div class="text-muted small">
+        <span id="assigned-count">0</span> affiliates selected
+      </div>
     </div>
     <div class="card-body">
       <div class="row">
         <div class="col-md-12">
           <%= form.label :assigned_affiliate_ids, "Assign Affiliates", class: "form-label" %>
-          <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+
+          <!-- Search Box -->
+          <div class="mb-3">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text"
+                     class="form-control"
+                     id="affiliate-search"
+                     placeholder="Search affiliates by name, email, or mobile..."
+                     autocomplete="off">
+              <button class="btn btn-outline-secondary" type="button" id="clear-search">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Select/Deselect All Controls -->
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <button type="button" class="btn btn-sm btn-outline-primary" id="select-all-visible">
+                <i class="bi bi-check-square me-1"></i>Select All Visible
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="deselect-all">
+                <i class="bi bi-square me-1"></i>Deselect All
+              </button>
+            </div>
+            <div class="text-muted small">
+              <span id="visible-count"><%= SubAgent.where(status: :active).count %></span> affiliates found
+            </div>
+          </div>
+
+          <!-- Affiliates List -->
+          <div class="border rounded p-3" id="affiliates-container" style="max-height: 400px; overflow-y: auto;">
             <% SubAgent.where(status: :active).each do |sub_agent| %>
-              <div class="form-check mb-2">
+              <div class="form-check mb-3 affiliate-item"
+                   data-name="<%= sub_agent.display_name.downcase %>"
+                   data-email="<%= sub_agent.email.downcase %>"
+                   data-mobile="<%= sub_agent.mobile %>">
                 <%= check_box_tag "distributor[assigned_affiliate_ids][]", sub_agent.id, false,
-                    class: "form-check-input", id: "affiliate_#{sub_agent.id}" %>
-                <%= label_tag "affiliate_#{sub_agent.id}", class: "form-check-label ms-2" do %>
-                  <strong><%= sub_agent.display_name %></strong>
-                  <small class="text-muted d-block">
-                    <i class="bi bi-envelope"></i> <%= sub_agent.email %> |
-                    <i class="bi bi-telephone"></i> <%= sub_agent.mobile %>
-                  </small>
+                    class: "form-check-input affiliate-checkbox", id: "affiliate_#{sub_agent.id}" %>
+                <%= label_tag "affiliate_#{sub_agent.id}", class: "form-check-label ms-2 w-100" do %>
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                      <div class="d-flex align-items-center">
+                        <strong class="affiliate-name"><%= sub_agent.display_name %></strong>
+                      </div>
+                      <small class="text-muted d-block mt-1">
+                        <i class="bi bi-envelope"></i> <span class="affiliate-email"><%= sub_agent.email %></span>
+                        <span class="ms-3">
+                          <i class="bi bi-telephone"></i> <span class="affiliate-mobile"><%= sub_agent.mobile %></span>
+                        </span>
+                      </small>
+                      <% if sub_agent.state.present? || sub_agent.city.present? %>
+                        <small class="text-muted d-block">
+                          <i class="bi bi-geo-alt"></i>
+                          <%= [sub_agent.city&.name, sub_agent.state&.name].compact.join(', ') %>
+                        </small>
+                      <% end %>
+                    </div>
+                  </div>
                 <% end %>
               </div>
             <% end %>
           </div>
-          <small class="form-text text-muted mt-1">
-            Select the affiliates (sub-agents) you want to assign to this distributor
+
+          <!-- No Results Message -->
+          <div id="no-results-message" class="text-center py-4 text-muted" style="display: none;">
+            <i class="bi bi-search fs-1 mb-2"></i>
+            <h6>No affiliates found</h6>
+            <p class="mb-0">Try adjusting your search criteria</p>
+          </div>
+
+          <small class="form-text text-muted mt-2">
+            <i class="bi bi-info-circle me-1"></i>
+            Use the search box to quickly find and select affiliates for this Ambassador.
           </small>
         </div>
       </div>
@@ -426,5 +489,107 @@ document.addEventListener('DOMContentLoaded', function() {
       e.target.closest('.document-entry').remove();
     }
   });
+});
+
+// Affiliate Search Functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('affiliate-search');
+  const clearSearchBtn = document.getElementById('clear-search');
+  const selectAllBtn = document.getElementById('select-all-visible');
+  const deselectAllBtn = document.getElementById('deselect-all');
+  const affiliatesContainer = document.getElementById('affiliates-container');
+  const noResultsMessage = document.getElementById('no-results-message');
+  const visibleCountSpan = document.getElementById('visible-count');
+  const assignedCountSpan = document.getElementById('assigned-count');
+
+  if (!searchInput) return; // Exit if elements don't exist
+
+  // Function to update counts
+  function updateCounts() {
+    const visibleItems = document.querySelectorAll('.affiliate-item:not([style*="display: none"])');
+    const checkedItems = document.querySelectorAll('.affiliate-checkbox:checked');
+
+    visibleCountSpan.textContent = visibleItems.length;
+    assignedCountSpan.textContent = checkedItems.length;
+
+    // Show/hide no results message
+    if (visibleItems.length === 0) {
+      noResultsMessage.style.display = 'block';
+      affiliatesContainer.style.display = 'none';
+    } else {
+      noResultsMessage.style.display = 'none';
+      affiliatesContainer.style.display = 'block';
+    }
+  }
+
+  // Search functionality
+  function performSearch() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const affiliateItems = document.querySelectorAll('.affiliate-item');
+
+    affiliateItems.forEach(item => {
+      const name = item.dataset.name || '';
+      const email = item.dataset.email || '';
+      const mobile = item.dataset.mobile || '';
+
+      // Search in name, email, and mobile
+      const matches = searchTerm === '' ||
+                     name.includes(searchTerm) ||
+                     email.includes(searchTerm) ||
+                     mobile.includes(searchTerm);
+
+      item.style.display = matches ? 'block' : 'none';
+    });
+
+    updateCounts();
+
+    // Show/hide clear button
+    clearSearchBtn.style.display = searchTerm ? 'inline-block' : 'none';
+  }
+
+  // Event listeners
+  searchInput.addEventListener('input', performSearch);
+  searchInput.addEventListener('keyup', performSearch);
+
+  // Clear search
+  clearSearchBtn.addEventListener('click', function() {
+    searchInput.value = '';
+    performSearch();
+    searchInput.focus();
+  });
+
+  // Select all visible
+  selectAllBtn.addEventListener('click', function() {
+    const visibleCheckboxes = document.querySelectorAll('.affiliate-item:not([style*="display: none"]) .affiliate-checkbox');
+    visibleCheckboxes.forEach(checkbox => {
+      checkbox.checked = true;
+    });
+    updateCounts();
+  });
+
+  // Deselect all
+  deselectAllBtn.addEventListener('click', function() {
+    const allCheckboxes = document.querySelectorAll('.affiliate-checkbox');
+    allCheckboxes.forEach(checkbox => {
+      checkbox.checked = false;
+    });
+    updateCounts();
+  });
+
+  // Update count when checkboxes change
+  document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('affiliate-checkbox')) {
+      updateCounts();
+    }
+  });
+
+  // Initialize
+  updateCounts();
+  clearSearchBtn.style.display = 'none';
+
+  // Auto-focus search on page load
+  setTimeout(() => {
+    searchInput.focus();
+  }, 500);
 });
 </script>

@@ -1714,23 +1714,33 @@ document.addEventListener('DOMContentLoaded', function() {
   const individualCity = document.getElementById('customer_city_individual');
 
   if (individualState && individualCity) {
-    const initialCityValue = individualCity.value; // Store initial city value from server
+    // Get initial city value from server-side data (from lead conversion)
+    const initialCityValue = '<%= @customer.city.to_s.html_safe if @customer.city.present? %>'; // Get from server instead of empty dropdown
+    console.log('Individual customer - Initial city value:', initialCityValue);
+    console.log('Individual customer - Initial state value:', individualState.value);
 
     // Handle both regular change and Select2 change events
     individualState.addEventListener('change', function() {
-      loadCitiesForState(this.value, individualCity);
+      loadCitiesForState(this.value, individualCity, null); // No initial city on manual state change
     });
 
     // Handle Select2 change event specifically
     $('#customer_state_individual').on('select2:select', function (e) {
       const selectedValue = e.params.data.id;
-      loadCitiesForState(selectedValue, individualCity);
+      loadCitiesForState(selectedValue, individualCity, null); // No initial city on manual state change
     });
 
     // Load cities if state already selected and preserve the initial city selection
-    if (individualState.value) {
-      loadCitiesForState(individualState.value, individualCity, initialCityValue);
-    }
+    // Add a small delay to ensure DOM is ready
+    setTimeout(() => {
+      if (individualState.value && initialCityValue) {
+        console.log('Loading cities with initial city selection for individual customer:', initialCityValue);
+        loadCitiesForState(individualState.value, individualCity, initialCityValue);
+      } else if (individualState.value) {
+        console.log('Loading cities without initial city selection for individual customer');
+        loadCitiesForState(individualState.value, individualCity);
+      }
+    }, 200);
   }
 
   // Setup for Corporate customer
@@ -1738,22 +1748,29 @@ document.addEventListener('DOMContentLoaded', function() {
   const corporateCity = document.getElementById('customer_city_corporate');
 
   if (corporateState && corporateCity) {
-    const initialCorporateCityValue = corporateCity.value; // Store initial city value from server
+    // Get initial city value from server-side data (from lead conversion)
+    const initialCorporateCityValue = '<%= @customer.city.to_s.html_safe if @customer.city.present? %>'; // Get from server instead of empty dropdown
+    console.log('Corporate customer - Initial city value:', initialCorporateCityValue);
+    console.log('Corporate customer - Initial state value:', corporateState.value);
 
     // Handle both regular change and Select2 change events
     corporateState.addEventListener('change', function() {
-      loadCitiesForState(this.value, corporateCity);
+      loadCitiesForState(this.value, corporateCity, null); // No initial city on manual state change
     });
 
     // Handle Select2 change event specifically
     $('#customer_state_corporate').on('select2:select', function (e) {
       const selectedValue = e.params.data.id;
-      loadCitiesForState(selectedValue, corporateCity);
+      loadCitiesForState(selectedValue, corporateCity, null); // No initial city on manual state change
     });
 
     // Load cities if state already selected and preserve the initial city selection
-    if (corporateState.value) {
+    if (corporateState.value && initialCorporateCityValue) {
+      console.log('Loading cities with initial city selection for corporate customer');
       loadCitiesForState(corporateState.value, corporateCity, initialCorporateCityValue);
+    } else if (corporateState.value) {
+      console.log('Loading cities without initial city selection for corporate customer');
+      loadCitiesForState(corporateState.value, corporateCity);
     }
   }
 
