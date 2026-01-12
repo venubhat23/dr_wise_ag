@@ -245,7 +245,7 @@
               ['Investments', 'investments'],
               ['Loans', 'loans'],
               ['Taxation', 'taxation']
-            ], @lead&.product_category), {}, { class: "form-select", required: true, id: "product_category" } %>
+            ], @lead&.product_category), {}, { class: "form-select searchable-select", required: true, id: "product_category", data: { placeholder: "Search and select category..." } } %>
           </div>
           <div class="col-md-6 mb-3">
             <%= form.label :product_subcategory, "Product Type *", class: "form-label" %>
@@ -355,7 +355,7 @@
             ['Walk In', 'walk_in'],
             ['Tele Calling', 'tele_calling'],
             ['Campaign', 'campaign']
-          ], @lead&.lead_source), {}, { class: "form-select", required: true } %>
+          ], @lead&.lead_source), {}, { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select lead source..." } } %>
         </div>
 
         <div class="col-md-6 mb-3">
@@ -1123,9 +1123,24 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize form state on page load
   initializeFormState();
 
-  // Initialize all searchable dropdowns
+  // Initialize all searchable dropdowns including Product Category
   setTimeout(() => {
     initializeSearchableDropdowns();
+
+    // Explicitly initialize Product Category with Select2 if not already initialized
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+      const $productCategory = $('#product_category');
+      if (!$productCategory.hasClass('select2-hidden-accessible')) {
+        $productCategory.select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Search and select category...',
+          allowClear: true,
+          width: '100%',
+          minimumResultsForSearch: 0,
+          dropdownParent: $('body')
+        });
+      }
+    }
   }, 100);
 
   // Set Individual as default if no customer type is selected
@@ -1381,9 +1396,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Attach event listener
+  // Attach event listeners for both native change and Select2 change
   productCategoryField.addEventListener('change', function() {
     handleProductCategoryChange(this.value);
+  });
+
+  // Also handle Select2 change event
+  $('#product_category').on('select2:select', function (e) {
+    const selectedValue = e.params.data.id;
+    handleProductCategoryChange(selectedValue);
   });
 
   // Force initialization of product subcategory dropdown
@@ -1510,9 +1531,16 @@ document.addEventListener('DOMContentLoaded', function() {
       $leadCitySelect.select2({
         theme: 'bootstrap-5',
         placeholder: 'Search and select city...',
-        allowClear: true,
+        allowClear: false, // Changed to false to prevent clearing
         width: '100%',
         minimumResultsForSearch: 0
+      });
+
+      // Add change event handler to ensure value is properly set
+      $leadCitySelect.on('select2:select', function(e) {
+        const selectedCity = e.params.data.id;
+        leadCitySelect.value = selectedCity;
+        console.log('City selected via Select2:', selectedCity);
       });
     }, 50);
   }
@@ -1549,7 +1577,7 @@ document.addEventListener('DOMContentLoaded', function() {
       $(leadStateSelect).select2({
         theme: 'bootstrap-5',
         placeholder: 'Search and select state...',
-        allowClear: true,
+        allowClear: false, // Changed to prevent clearing
         width: '100%',
         minimumResultsForSearch: 0
       });
@@ -1557,20 +1585,29 @@ document.addEventListener('DOMContentLoaded', function() {
       $(leadCitySelect).select2({
         theme: 'bootstrap-5',
         placeholder: 'Search and select city...',
-        allowClear: true,
+        allowClear: false, // Changed to prevent clearing
         width: '100%',
         minimumResultsForSearch: 0
+      });
+
+      // Add change event handler to ensure state value is properly set
+      $(leadStateSelect).on('select2:select', function(e) {
+        const selectedState = e.params.data.id;
+        leadStateSelect.value = selectedState;
+        console.log('State selected via Select2:', selectedState);
+        loadLeadCitiesForState(selectedState);
+      });
+
+      // Add change event handler for city to ensure value is properly set
+      $(leadCitySelect).on('select2:select', function(e) {
+        const selectedCity = e.params.data.id;
+        leadCitySelect.value = selectedCity;
+        console.log('City selected via Select2:', selectedCity);
       });
     }
 
     leadStateSelect.addEventListener('change', function() {
       loadLeadCitiesForState(this.value);
-    });
-
-    // Handle Select2 change event specifically
-    $('#lead_state').on('select2:select', function (e) {
-      const selectedValue = e.params.data.id;
-      loadLeadCitiesForState(selectedValue);
     });
 
     // Load cities if state is pre-selected
@@ -1583,6 +1620,29 @@ document.addEventListener('DOMContentLoaded', function() {
   form.addEventListener('submit', function(e) {
     // Restore important field values before validation and submission
     restoreImportantFieldValues();
+
+    // Ensure Select2 values are properly synced to underlying select elements
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+      // Sync city value from Select2
+      const $citySelect = $('#lead_city');
+      if ($citySelect.hasClass('select2-hidden-accessible')) {
+        const cityValue = $citySelect.val();
+        if (cityValue) {
+          leadCitySelect.value = cityValue;
+          console.log('City value synced:', cityValue);
+        }
+      }
+
+      // Sync state value from Select2
+      const $stateSelect = $('#lead_state');
+      if ($stateSelect.hasClass('select2-hidden-accessible')) {
+        const stateValue = $stateSelect.val();
+        if (stateValue) {
+          leadStateSelect.value = stateValue;
+          console.log('State value synced:', stateValue);
+        }
+      }
+    }
 
     let isValid = true;
     const errors = [];
@@ -1626,6 +1686,10 @@ document.addEventListener('DOMContentLoaded', function() {
       errors.push('Please select a lead date');
       isValid = false;
     }
+
+    // Debug logging for city and state values
+    console.log('Final form submission - City value:', leadCitySelect.value);
+    console.log('Final form submission - State value:', leadStateSelect.value);
 
     if (!isValid) {
       e.preventDefault();

@@ -9,6 +9,9 @@ class ApplicationController < ActionController::Base
   before_action :authenticate_user!
   before_action :configure_permitted_parameters, if: :devise_controller?
 
+  # Use devise layout for devise controllers
+  layout :layout_by_resource
+
   # Authorization
   load_and_authorize_resource unless: :devise_controller?, if: :should_authorize?
 
@@ -34,5 +37,15 @@ class ApplicationController < ActionController::Base
       return false
     end
     true
+  end
+
+  private
+
+  def layout_by_resource
+    if devise_controller?
+      "devise"
+    else
+      "application"
+    end
   end
 end

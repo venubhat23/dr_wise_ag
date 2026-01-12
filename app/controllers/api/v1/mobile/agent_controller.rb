@@ -19,7 +19,11 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
           role: agent.role&.name || 'sub_agent'
         },
         statistics: stats,
-        recent_activities: get_recent_activities(agent)
+        recent_activities: get_recent_activities(agent),
+        # Additional top-level fields as requested
+        commission_earned: stats[:commission_earned].to_f,
+        customers_count: stats[:customers_count].to_i,
+        policies_count: stats[:policies_count].to_i
       }
     }
   end
@@ -115,11 +119,38 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # Get statistics for different types
     stats = get_customer_statistics(agent)
 
+    # Get agent's policies for the policies section
+    policies_data = []
+    # Preload commission data
+    payout_to_value = if is_sub_agent?(current_user) || is_affiliate?(current_user)
+                        'affiliate'
+                      else
+                        'agent'
+                      end
+    commission_payouts = CommissionPayout.where(payout_to: payout_to_value).index_by { |cp| "#{cp.policy_type}:#{cp.policy_id}" }
+
+    # Get agent's policies
+    agent_health_policies, agent_life_policies, _ = get_agent_policies(agent)
+
+    # Format health policies
+    agent_health_policies.includes(:customer).each do |policy|
+      policies_data << format_policy_data_with_commission(policy, 'Health', commission_payouts)
+    end
+
+    # Format life policies
+    agent_life_policies.includes(:customer).each do |policy|
+      policies_data << format_policy_data_with_commission(policy, 'Life', commission_payouts)
+    end
+
+    # Sort by creation date (newest first)
+    policies_data.sort_by! { |policy| -policy[:created_at].to_time.to_i }
+
     render json: {
       success: true,
       data: {
         customers: customers_data,
         statistics: stats,
+        policies: policies_data,
         pagination: {
           current_page: page.to_i,
           per_page: per_page.to_i,
@@ -1698,8 +1729,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       agent_commission: agent_commission,
       status: policy.respond_to?(:active?) ? (policy.active? ? 'Active' : 'Inactive') : 'Active',
       is_drwise_policy: determine_drwise_policy(policy),
-      documents: documents,
-      documents_count: documents.count,
+      policy_document: documents.first || nil,
       created_at: policy.created_at
     }
   end

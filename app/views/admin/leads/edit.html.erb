@@ -260,7 +260,7 @@
                 ['Investments', 'investments'],
                 ['Loans', 'loans'],
                 ['Taxation', 'taxation']
-              ], @lead.product_category), { prompt: 'Select Category' }, { class: "form-select", required: true, id: "product_category" } %>
+              ], @lead.product_category), { prompt: 'Select Category' }, { class: "form-select searchable-select", required: true, id: "product_category", data: { placeholder: "Search and select category..." } } %>
               <div class="invalid-feedback">Please select a product category.</div>
             </div>
 
@@ -306,9 +306,9 @@
             <div class="col-md-6">
               <%= form.label :city, "City", class: "form-label" %>
               <%= form.select :city,
-                  options_for_select([], @lead&.city),
+                  options_for_select(@lead&.city.present? ? [[@lead.city, @lead.city]] : [], @lead&.city),
                   { prompt: 'Search and select city...' },
-                  { class: "form-select searchable-select", id: "lead_city", disabled: true, data: { placeholder: "Type to search cities..." } } %>
+                  { class: "form-select searchable-select", id: "lead_city", disabled: @lead&.state.blank?, data: { placeholder: "Type to search cities...", saved_city: @lead&.city } } %>
             </div>
           </div>
         </div>
@@ -378,7 +378,7 @@
                 ['Walk-in', 'walk_in'],
                 ['Tele Calling', 'tele_calling'],
                 ['Campaign', 'campaign']
-              ], @lead.lead_source), { prompt: 'Select Source' }, { class: "form-select", required: true } %>
+              ], @lead.lead_source), { prompt: 'Select Source' }, { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select lead source..." } } %>
               <div class="invalid-feedback">Please select a lead source.</div>
             </div>
 
@@ -794,8 +794,25 @@ document.addEventListener('DOMContentLoaded', function() {
       productSubcategoryField.disabled = false;
     }
 
+    // Handle both native change and Select2 change events
     productCategoryField.addEventListener('change', function() {
       const selectedCategory = this.value;
+      handleCategoryChange(selectedCategory);
+    });
+
+    // Also handle Select2 change event
+    $('#product_category').on('select2:select', function (e) {
+      const selectedValue = e.params.data.id;
+      handleCategoryChange(selectedValue);
+    });
+
+    function handleCategoryChange(selectedCategory) {
+      // First destroy Select2 on subcategory if it exists
+      const $subcategorySelect = $(productSubcategoryField);
+      if ($subcategorySelect.hasClass('select2-hidden-accessible')) {
+        $subcategorySelect.select2('destroy');
+      }
+
       productSubcategoryField.innerHTML = '<option value="">Select Product Type</option>';
 
       if (selectedCategory && subcategoryOptions[selectedCategory]) {
@@ -806,16 +823,51 @@ document.addEventListener('DOMContentLoaded', function() {
           optionElement.textContent = option[0];
           productSubcategoryField.appendChild(optionElement);
         });
+
+        // Reinitialize Select2 for the subcategory dropdown
+        setTimeout(() => {
+          $subcategorySelect.select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search and select product type...',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 0,
+            dropdownParent: $('body')
+          });
+        }, 50);
       } else {
         productSubcategoryField.disabled = true;
       }
-    });
+    }
   }
 
   // Native HTML5 date picker is now used - no additional formatting needed
 
   // Form validation
   form.addEventListener('submit', function(e) {
+    // Ensure Select2 values are properly synced to underlying select elements
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+      // Sync city value from Select2
+      const $citySelect = $('#lead_city');
+      if ($citySelect.hasClass('select2-hidden-accessible')) {
+        const cityValue = $citySelect.val();
+        if (cityValue) {
+          leadCitySelect.value = cityValue;
+          console.log('City value synced:', cityValue);
+        }
+      }
+
+      // Sync state value from Select2
+      const $stateSelect = $('#lead_state');
+      if ($stateSelect.hasClass('select2-hidden-accessible')) {
+        const stateValue = $stateSelect.val();
+        if (stateValue) {
+          leadStateSelect.value = stateValue;
+          console.log('State value synced:', stateValue);
+        }
+      }
+    }
+
     let isValid = true;
     const errors = [];
 
@@ -843,6 +895,10 @@ document.addEventListener('DOMContentLoaded', function() {
       errors.push('Please select a product type');
       isValid = false;
     }
+
+    // Debug logging for city and state values
+    console.log('Final form submission (edit) - City value:', leadCitySelect ? leadCitySelect.value : 'N/A');
+    console.log('Final form submission (edit) - State value:', leadStateSelect ? leadStateSelect.value : 'N/A');
 
     // HTML5 date field handles date validation automatically
 
@@ -909,11 +965,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (cities.length > 0) {
-      populateCityDropdown(cities, selectedCityValue);
+      populateCityDropdownWithSelection(cities, selectedCityValue);
     } else {
       console.warn('No cities found for state:', stateValue, 'using fallback');
       // Fallback: populate with empty and try to preserve selected city
-      populateCityDropdown([], selectedCityValue);
+      populateCityDropdownWithSelection([], selectedCityValue);
     }
   }
 
@@ -924,8 +980,14 @@ document.addEventListener('DOMContentLoaded', function() {
       $leadCitySelect.select2('destroy');
     }
 
+    // Get the saved city from either parameter or data attribute
+    const savedCity = selectedCityValue || leadCitySelect.dataset.savedCity || '<%= @lead&.city %>';
+
     // Clear dropdown and add cities
     leadCitySelect.innerHTML = '<option value="">Select City</option>';
+
+    // Track if saved city is found in the list
+    let savedCityFound = false;
 
     // If cities are available, populate them
     if (cities && cities.length > 0) {
@@ -933,49 +995,133 @@ document.addEventListener('DOMContentLoaded', function() {
         const option = document.createElement('option');
         option.value = city;
         option.textContent = city;
+        if (savedCity && city === savedCity) {
+          option.selected = true;
+          savedCityFound = true;
+        }
         leadCitySelect.appendChild(option);
       });
       leadCitySelect.disabled = false;
-    } else {
-      // If no cities available but we have a selected city, add it as an option
-      const savedCity = selectedCityValue || '<%= @lead&.city %>';
-      if (savedCity) {
-        const option = document.createElement('option');
-        option.value = savedCity;
-        option.textContent = savedCity;
-        option.selected = true;
-        leadCitySelect.appendChild(option);
-        leadCitySelect.disabled = false;
-        console.log('Added saved city as fallback option:', savedCity);
-      } else {
-        leadCitySelect.disabled = true;
-      }
     }
 
-    // Set the selected city value
-    const cityToSelect = selectedCityValue || '<%= @lead&.city %>';
-    if (cityToSelect && leadCitySelect.querySelector(`option[value="${cityToSelect}"]`)) {
-      leadCitySelect.value = cityToSelect;
-      console.log('Set selected city:', cityToSelect);
+    // If saved city wasn't in the list but exists, add it as an option
+    if (savedCity && !savedCityFound) {
+      const option = document.createElement('option');
+      option.value = savedCity;
+      option.textContent = savedCity;
+      option.selected = true;
+      leadCitySelect.appendChild(option);
+      leadCitySelect.disabled = false;
+      console.log('Added saved city as additional option:', savedCity);
     }
 
-    console.log(`Loaded ${cities.length} cities for leads edit form, selected: ${cityToSelect}`);
+    // Ensure city is disabled only if no state is selected and no saved city
+    if (!cities.length && !savedCity) {
+      leadCitySelect.disabled = true;
+    }
+
+    console.log(`Loaded ${cities.length} cities for leads edit form, selected: ${savedCity}`);
 
     // Reinitialize Select2
     setTimeout(() => {
       $leadCitySelect.select2({
         theme: 'bootstrap-5',
         placeholder: 'Search and select city...',
-        allowClear: true,
+        allowClear: false, // Changed to prevent clearing
         width: '100%',
         minimumResultsForSearch: 0
       });
 
-      // Trigger change event to update Select2 display with the selected value
-      if (cityToSelect && leadCitySelect.value === cityToSelect) {
-        $leadCitySelect.trigger('change');
+      // Add change event handler to ensure value is properly set
+      $leadCitySelect.on('select2:select', function(e) {
+        const selectedCity = e.params.data.id;
+        leadCitySelect.value = selectedCity;
+        console.log('City selected via Select2:', selectedCity);
+      });
+
+      // Ensure the saved city is selected in Select2
+      if (savedCity && leadCitySelect.value === savedCity) {
+        $leadCitySelect.val(savedCity).trigger('change.select2');
       }
     }, 50);
+  }
+
+  function populateCityDropdownWithSelection(cities, selectedCityValue = null) {
+    // First destroy Select2 if it exists
+    const $leadCitySelect = $(leadCitySelect);
+    if ($leadCitySelect.hasClass('select2-hidden-accessible')) {
+      $leadCitySelect.select2('destroy');
+    }
+
+    // Get the saved city from parameter or lead data
+    const savedCity = selectedCityValue || '<%= @lead&.city %>';
+    console.log('Populating cities with selection:', savedCity);
+
+    // Clear dropdown and add cities
+    leadCitySelect.innerHTML = '<option value="">Select City</option>';
+
+    // Track if saved city is found in the list
+    let savedCityFound = false;
+
+    // If cities are available, populate them
+    if (cities && cities.length > 0) {
+      cities.forEach(city => {
+        const option = document.createElement('option');
+        option.value = city;
+        option.textContent = city;
+        if (savedCity && city === savedCity) {
+          option.selected = true;
+          savedCityFound = true;
+          console.log('Found and selected saved city:', city);
+        }
+        leadCitySelect.appendChild(option);
+      });
+      leadCitySelect.disabled = false;
+    }
+
+    // If saved city wasn't in the list but exists, add it as an option
+    if (savedCity && !savedCityFound) {
+      const option = document.createElement('option');
+      option.value = savedCity;
+      option.textContent = savedCity;
+      option.selected = true;
+      leadCitySelect.appendChild(option);
+      leadCitySelect.disabled = false;
+      console.log('Added saved city as additional option:', savedCity);
+      savedCityFound = true;
+    }
+
+    // Ensure city is disabled only if no state is selected and no saved city
+    if (!cities.length && !savedCity) {
+      leadCitySelect.disabled = true;
+    }
+
+    console.log(`Loaded ${cities.length} cities for leads edit form, selected: ${savedCity}, found: ${savedCityFound}`);
+
+    // Reinitialize Select2
+    setTimeout(() => {
+      $leadCitySelect.select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select city...',
+        allowClear: false,
+        width: '100%',
+        minimumResultsForSearch: 0
+      });
+
+      // Add change event handler to ensure value is properly set
+      $leadCitySelect.on('select2:select', function(e) {
+        const selectedCity = e.params.data.id;
+        leadCitySelect.value = selectedCity;
+        console.log('City selected via Select2:', selectedCity);
+      });
+
+      // Force set the saved city value in Select2
+      if (savedCity && savedCityFound) {
+        $leadCitySelect.val(savedCity);
+        $leadCitySelect.trigger('change.select2');
+        console.log('Forced Select2 to show saved city:', savedCity);
+      }
+    }, 100);
   }
 
   // Setup lead edit form state-city functionality
@@ -985,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', function() {
       $(leadStateSelect).select2({
         theme: 'bootstrap-5',
         placeholder: 'Search and select state...',
-        allowClear: true,
+        allowClear: false, // Changed to prevent clearing
         width: '100%',
         minimumResultsForSearch: 0
       });
@@ -993,20 +1139,29 @@ document.addEventListener('DOMContentLoaded', function() {
       $(leadCitySelect).select2({
         theme: 'bootstrap-5',
         placeholder: 'Search and select city...',
-        allowClear: true,
+        allowClear: false, // Changed to prevent clearing
         width: '100%',
         minimumResultsForSearch: 0
+      });
+
+      // Add change event handler to ensure state value is properly set
+      $(leadStateSelect).on('select2:select', function(e) {
+        const selectedState = e.params.data.id;
+        leadStateSelect.value = selectedState;
+        console.log('State selected via Select2:', selectedState);
+        loadLeadCitiesForState(selectedState);
+      });
+
+      // Add change event handler for city to ensure value is properly set
+      $(leadCitySelect).on('select2:select', function(e) {
+        const selectedCity = e.params.data.id;
+        leadCitySelect.value = selectedCity;
+        console.log('City selected via Select2:', selectedCity);
       });
     }
 
     leadStateSelect.addEventListener('change', function() {
       loadLeadCitiesForState(this.value);
-    });
-
-    // Handle Select2 change event specifically
-    $('#lead_state').on('select2:select', function (e) {
-      const selectedValue = e.params.data.id;
-      loadLeadCitiesForState(selectedValue);
     });
 
     // Load cities if state is pre-selected (improved initialization)
@@ -1017,30 +1172,65 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize Select2 first, then check state value
     setTimeout(() => {
-      if (leadStateSelect.value && leadStateSelect.value !== '') {
-        console.log('State dropdown has value on page load:', leadStateSelect.value);
-        loadLeadCitiesForState(leadStateSelect.value, savedCity);
-      } else if (savedState) {
-        console.log('No state selected in dropdown, but saved state exists:', savedState);
+      console.log('Starting edit form initialization...');
+      console.log('Saved state:', savedState);
+      console.log('Saved city:', savedCity);
+      console.log('Lead state select value:', leadStateSelect.value);
 
+      // First check if state has a value and load cities
+      if (savedState) {
         // Try to find the state in dropdown options
         const stateOption = Array.from(leadStateSelect.options).find(option =>
           option.value === savedState || option.text === savedState
         );
 
         if (stateOption) {
+          // Set the state value
           leadStateSelect.value = stateOption.value;
-          $('#lead_state').val(stateOption.value).trigger('change');
-          loadLeadCitiesForState(stateOption.value, savedCity);
+          $('#lead_state').val(stateOption.value).trigger('change.select2');
           console.log('Set state dropdown to:', stateOption.value);
-        } else {
-          console.log('State not found in dropdown options, loading cities anyway');
-          loadLeadCitiesForState(savedState, savedCity);
         }
+
+        // Always load cities for the saved state
+        loadLeadCitiesForState(savedState, savedCity);
+      } else if (leadStateSelect.value && leadStateSelect.value !== '') {
+        console.log('State dropdown has value on page load:', leadStateSelect.value);
+        loadLeadCitiesForState(leadStateSelect.value, savedCity);
       } else {
-        console.log('No saved state found');
+        console.log('No saved state found, checking if city exists');
+        // If there's a saved city but no state, still show it
+        if (savedCity) {
+          console.log('Saved city exists without state, adding it manually');
+          const $leadCitySelect = $(leadCitySelect);
+          leadCitySelect.disabled = false;
+
+          // Ensure the saved city option is available
+          if (!leadCitySelect.querySelector(`option[value="${savedCity}"]`)) {
+            const option = document.createElement('option');
+            option.value = savedCity;
+            option.textContent = savedCity;
+            option.selected = true;
+            leadCitySelect.appendChild(option);
+            console.log('Added saved city option:', savedCity);
+          }
+
+          // Initialize Select2 and set the value
+          setTimeout(() => {
+            if (!$leadCitySelect.hasClass('select2-hidden-accessible')) {
+              $leadCitySelect.select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Search and select city...',
+                allowClear: false,
+                width: '100%',
+                minimumResultsForSearch: 0
+              });
+            }
+            $leadCitySelect.val(savedCity).trigger('change.select2');
+            console.log('Forced city selection:', savedCity);
+          }, 150);
+        }
       }
-    }, 100);
+    }, 200);
   }
 
   // Initialize affiliate dropdown with Select2 for edit form
@@ -1131,6 +1321,21 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize searchable dropdowns after DOM is ready
   setTimeout(() => {
     initializeSearchableDropdowns();
+
+    // Explicitly initialize Product Category with Select2 if not already initialized
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+      const $productCategory = $('#product_category');
+      if (!$productCategory.hasClass('select2-hidden-accessible')) {
+        $productCategory.select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Search and select category...',
+          allowClear: true,
+          width: '100%',
+          minimumResultsForSearch: 0,
+          dropdownParent: $('body')
+        });
+      }
+    }
   }, 100);
 
   // Reinitialize product subcategory when options are updated

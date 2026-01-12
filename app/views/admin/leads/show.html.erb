@@ -696,16 +696,6 @@
         <div class="mb-3">
           <label class="form-label text-muted">Quick Actions</label>
           <div class="d-grid gap-2">
-            <!-- Add Notes -->
-            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addNotesModal">
-              <i class="bi bi-journal-text me-1"></i>Add Notes
-            </button>
-
-            <!-- Send Email -->
-            <button type="button" class="btn btn-outline-info btn-sm">
-              <i class="bi bi-envelope me-1"></i>Send Email
-            </button>
-
             <!-- Schedule Follow-up -->
             <% if @lead.in_follow_up_cycle? %>
               <button type="button" class="btn btn-outline-warning btn-sm">

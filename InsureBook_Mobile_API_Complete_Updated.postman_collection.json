@@ -1,0 +1,513 @@
+{
+  "info": {
+    "name": "InsureBook Mobile API - Complete Updated Collection",
+    "description": "Complete updated collection with all recent API changes including single document structure, motor insurance, and enhanced features",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "12345678-1234-1234-1234-123456789020",
+    "version": "3.0.0"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication APIs",
+      "item": [
+        {
+          "name": "Agent/Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"customer@example.com\",\n  \"password\": \"Ganesha@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newcustomer@example.com\",\n  \"password\": \"Ganesha@123\",\n  \"email\": \"newcustomer@example.com\",\n  \"mobile\": \"+91 98765 43210\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"role\": \"customer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "auth", "register"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Agent Dashboard APIs",
+      "item": [
+        {
+          "name": "Agent Dashboard - Enhanced with Top-level Fields",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "dashboard"]
+            }
+          },
+          "response": [
+            {
+              "name": "Enhanced Dashboard Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/mobile/agent/dashboard",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "mobile", "agent", "dashboard"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"data\": {\n        \"agent_info\": {\n            \"name\": \"ravi v  ram\",\n            \"email\": \"221121@gmail.com\",\n            \"mobile\": \"+91 11111 11111\",\n            \"role\": \"agent\"\n        },\n        \"statistics\": {\n            \"customers_count\": 1,\n            \"policies_count\": 4,\n            \"health_policies_count\": 0,\n            \"life_policies_count\": 4,\n            \"total_premium\": \"60773.14\",\n            \"total_sum_insured\": \"1001072.0\",\n            \"commission_earned\": \"1035.42\",\n            \"this_month_policies\": 4,\n            \"this_month_premium\": \"60773.14\",\n            \"this_month_customers\": 1,\n            \"policy_distribution\": {\n                \"health\": {\n                    \"count\": 0,\n                    \"percentage\": 0.0\n                },\n                \"life\": {\n                    \"count\": 4,\n                    \"percentage\": 100.0\n                }\n            },\n            \"performance_metrics\": {\n                \"conversion_rate\": 400.0,\n                \"commission_this_month\": \"1035.42\",\n                \"target_achievement\": \"2.07\"\n            }\n        },\n        \"recent_activities\": [\n            {\n                \"type\": \"policy_created\",\n                \"message\": \"Life insurance policy dsd created for arpana c bhat\",\n                \"timestamp\": \"2026-01-10T03:44:41.120Z\",\n                \"policy_type\": \"Life\"\n            }\n        ],\n        \"commission_earned\": 1035.42,\n        \"customers_count\": 1,\n        \"policies_count\": 4\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Agent Customers - With Policies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/customers?page=1&per_page=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "customers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Customers with Policies Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/mobile/agent/customers",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "mobile", "agent", "customers"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"data\": {\n        \"customers\": [\n            {\n                \"id\": 705,\n                \"name\": \"arpana c bhat\",\n                \"mobile\": \"+91 93838 38388\",\n                \"email\": \"password1234@gmail.com\",\n                \"password\": \"arpana8388123\",\n                \"customer_type\": \"individual\",\n                \"status\": \"Active\",\n                \"policies_count\": 6,\n                \"total_premium\": \"72885.84\",\n                \"added_by\": \"\",\n                \"added_via\": \"system\",\n                \"created_at\": \"2026-01-06T00:52:25.001Z\",\n                \"profile_image\": null,\n                \"attached_documents\": []\n            }\n        ],\n        \"statistics\": {\n            \"total_customers\": 1,\n            \"agent_added_customers\": 0,\n            \"system_added_customers\": 1,\n            \"my_added_customers\": 0\n        },\n        \"policies\": [\n            {\n                \"id\": 197,\n                \"insurance_name\": \"\",\n                \"insurance_type\": \"Life\",\n                \"policy_number\": \"dsd\",\n                \"client_name\": \"arpana c bhat\",\n                \"policy_type\": \"New\",\n                \"policy_holder\": \"Self\",\n                \"entry_date\": \"2026-01-10\",\n                \"start_date\": \"2026-01-10\",\n                \"end_date\": \"2027-01-09\",\n                \"total_premium\": \"14.14\",\n                \"sum_insured\": \"500000.0\",\n                \"insurance_company\": \"Bajaj Allianz General Insurance Company Limited\",\n                \"payment_mode\": \"Half-Yearly\",\n                \"commission_amount\": \"0.24\",\n                \"agent_percentage\": 1.7,\n                \"agent_commission\": \"0.24\",\n                \"status\": \"Active\",\n                \"is_drwise_policy\": true,\n                \"policy_document\": {\n                    \"id\": 1,\n                    \"filename\": \"policy_document.pdf\",\n                    \"content_type\": \"application/pdf\",\n                    \"byte_size\": 1024,\n                    \"created_at\": \"2026-01-10 10:30:00\",\n                    \"url\": \"https://dr-wise-ag.onrender.com/rails/active_storage/blobs/...\"\n                },\n                \"created_at\": \"2026-01-10T03:44:41.120Z\"\n            }\n        ],\n        \"pagination\": {\n            \"current_page\": 1,\n            \"per_page\": 10,\n            \"total_customers\": 1,\n            \"total_pages\": 1\n        }\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Agent Policies - With Single Policy Documents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies?policy_type=all&page=1&per_page=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "policies"],
+              "query": [
+                {
+                  "key": "policy_type",
+                  "value": "all"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Policies with Single Document Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/mobile/agent/policies?policy_type=all",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "mobile", "agent", "policies"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"data\": {\n        \"policies\": [\n            {\n                \"id\": 197,\n                \"insurance_name\": \"\",\n                \"insurance_type\": \"Life\",\n                \"policy_number\": \"dsd\",\n                \"client_name\": \"arpana c bhat\",\n                \"policy_type\": \"New\",\n                \"policy_holder\": \"Self\",\n                \"entry_date\": \"2026-01-10\",\n                \"start_date\": \"2026-01-10\",\n                \"end_date\": \"2027-01-09\",\n                \"total_premium\": \"14.14\",\n                \"sum_insured\": \"500000.0\",\n                \"insurance_company\": \"Bajaj Allianz General Insurance Company Limited\",\n                \"payment_mode\": \"Half-Yearly\",\n                \"commission_amount\": \"0.24\",\n                \"agent_percentage\": 1.7,\n                \"agent_commission\": \"0.24\",\n                \"status\": \"Active\",\n                \"is_drwise_policy\": true,\n                \"policy_document\": {\n                    \"id\": 1,\n                    \"filename\": \"policy_document.pdf\",\n                    \"content_type\": \"application/pdf\",\n                    \"byte_size\": 1024,\n                    \"created_at\": \"2026-01-10 10:30:00\",\n                    \"url\": \"https://dr-wise-ag.onrender.com/rails/active_storage/blobs/...\"\n                },\n                \"created_at\": \"2026-01-10T03:44:41.120Z\"\n            }\n        ],\n        \"pagination\": {\n            \"current_page\": 1,\n            \"per_page\": 10,\n            \"total_policies\": 4,\n            \"total_pages\": 1\n        }\n    }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Policy Creation APIs",
+      "item": [
+        {
+          "name": "Create Life Insurance Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": 705,\n  \"policy_holder\": \"Self\",\n  \"plan_name\": \"Term Life Insurance\",\n  \"policy_number\": \"LI123456\",\n  \"insurance_company_name\": \"LIC of India\",\n  \"policy_type\": \"New\",\n  \"policy_start_date\": \"2026-01-15\",\n  \"policy_end_date\": \"2046-01-14\",\n  \"policy_booking_date\": \"2026-01-10\",\n  \"payment_mode\": \"Yearly\",\n  \"policy_term_years\": 20,\n  \"premium_payment_term_years\": 10,\n  \"sum_insured\": 1000000,\n  \"net_premium\": 25000,\n  \"gst_percentage_year_1\": 18,\n  \"gst_percentage_year_2\": 18,\n  \"gst_percentage_year_3\": 18,\n  \"total_premium\": 29500,\n  \"reference_by_name\": \"Agent Reference\",\n  \"nominees\": [\n    {\n      \"nominee_name\": \"Jane Doe\",\n      \"relationship\": \"Spouse\",\n      \"age\": 28\n    }\n  ],\n  \"bank_details\": {\n    \"bank_name\": \"HDFC Bank\",\n    \"account_type\": \"Savings\",\n    \"account_number\": \"123456789\",\n    \"ifsc_code\": \"HDFC0001234\",\n    \"account_holder_name\": \"John Doe\"\n  },\n  \"documents\": [\n    {\n      \"document_type\": \"Policy Document\",\n      \"document_file\": \"base64_encoded_file_data\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies/life",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "policies", "life"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Motor Insurance Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": 705,\n  \"policy_holder\": \"John Doe\",\n  \"policy_number\": \"MOT123456\",\n  \"policy_start_date\": \"2026-01-15\",\n  \"policy_end_date\": \"2027-01-14\",\n  \"policy_booking_date\": \"2026-01-10\",\n  \"insurance_company_name\": \"HDFC ERGO General Insurance\",\n  \"policy_type\": \"New\",\n  \"total_premium\": 15000.0,\n  \"net_premium\": 12712.0,\n  \"gst_percentage\": 18.0,\n  \"payment_mode\": \"Yearly\",\n  \"vehicle_type\": \"Private Car\",\n  \"make\": \"Maruti Suzuki\",\n  \"model\": \"Swift\",\n  \"registration_number\": \"KA01AB1234\",\n  \"registration_date\": \"2020-03-15\",\n  \"engine_number\": \"ENG123456\",\n  \"chassis_number\": \"CHA789012\",\n  \"mfy\": 2020,\n  \"variant\": \"VDI\",\n  \"seating_capacity\": 5,\n  \"vehicle_idv\": 450000.0,\n  \"zero_depreciation\": true,\n  \"roadside_assistance\": true,\n  \"ncb\": \"20%\",\n  \"previous_policy_number\": \"OLD123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies/motor",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "policies", "motor"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Health Insurance Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": 705,\n  \"policy_holder\": \"Self\",\n  \"plan_name\": \"Family Health Insurance\",\n  \"policy_number\": \"HI123456\",\n  \"insurance_company_name\": \"Star Health Insurance\",\n  \"insurance_type\": \"Family Floater\",\n  \"policy_type\": \"New\",\n  \"policy_start_date\": \"2026-01-15\",\n  \"policy_end_date\": \"2027-01-14\",\n  \"policy_booking_date\": \"2026-01-10\",\n  \"payment_mode\": \"Yearly\",\n  \"sum_insured\": 500000,\n  \"net_premium\": 18000,\n  \"gst_percentage\": 18,\n  \"total_premium\": 21240,\n  \"family_members\": [\n    {\n      \"full_name\": \"John Doe\",\n      \"age\": 32,\n      \"relationship\": \"Self\",\n      \"sum_insured\": 500000\n    },\n    {\n      \"full_name\": \"Jane Doe\",\n      \"age\": 28,\n      \"relationship\": \"Spouse\",\n      \"sum_insured\": 500000\n    }\n  ],\n  \"documents\": [\n    {\n      \"document_type\": \"Policy Document\",\n      \"document_file\": \"base64_encoded_file_data\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "policies", "health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Customer Mobile APIs",
+      "item": [
+        {
+          "name": "Customer Portfolio - With Single Documents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/customer/portfolio",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "customer", "portfolio"]
+            }
+          },
+          "response": [
+            {
+              "name": "Portfolio with Single Documents",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/mobile/customer/portfolio",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "mobile", "customer", "portfolio"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"data\": {\n        \"portfolio\": [\n            {\n                \"id\": 197,\n                \"insurance_name\": \"Health Insurance\",\n                \"insurance_type\": \"Health\",\n                \"policy_number\": \"POL123\",\n                \"policy_holder\": \"John Doe\",\n                \"start_date\": \"2026-01-10\",\n                \"end_date\": \"2027-01-09\",\n                \"total_premium\": \"25000.0\",\n                \"sum_insured\": \"500000.0\",\n                \"insurance_company\": \"ABC Insurance\",\n                \"payment_mode\": \"Yearly\",\n                \"status\": \"Active\",\n                \"document\": {\n                    \"id\": 1,\n                    \"filename\": \"policy_document.pdf\",\n                    \"content_type\": \"application/pdf\",\n                    \"size\": 1024,\n                    \"url\": \"https://example.com/policy_doc.pdf\"\n                }\n            }\n        ],\n        \"total_policies\": 1,\n        \"total_premium\": 25000.0,\n        \"total_sum_insured\": 500000.0,\n        \"active_policies\": 1,\n        \"expiring_policies\": 0,\n        \"portfolio_summary\": {\n            \"total_policies\": 1,\n            \"upcoming_installments\": 0,\n            \"renewal_policies\": 0\n        }\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Upcoming Installments - With Single Documents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/customer/upcoming_installments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "customer", "upcoming_installments"]
+            }
+          },
+          "response": [
+            {
+              "name": "Installments with Single Documents",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/mobile/customer/upcoming_installments",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "mobile", "customer", "upcoming_installments"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"data\": {\n        \"upcoming_installments\": [\n            {\n                \"id\": 197,\n                \"insurance_name\": \"Health Insurance\",\n                \"insurance_type\": \"Health\",\n                \"policy_number\": \"POL123\",\n                \"policy_holder\": \"John Doe\",\n                \"insurance_company\": \"ABC Insurance\",\n                \"start_date\": \"2026-01-10\",\n                \"end_date\": \"2027-01-09\",\n                \"total_premium\": 25000.0,\n                \"payment_mode\": \"Quarterly\",\n                \"next_installment_date\": \"2026-04-10\",\n                \"installment_amount\": 6250.0,\n                \"days_until_installment\": 89,\n                \"days_left_from_today\": 89,\n                \"label\": \"Upcoming\",\n                \"installment_type\": \"regular\",\n                \"is_expired\": false,\n                \"is_overdue\": false,\n                \"document\": {\n                    \"id\": 1,\n                    \"filename\": \"policy_document.pdf\",\n                    \"content_type\": \"application/pdf\",\n                    \"size\": 1024,\n                    \"url\": \"https://example.com/policy_doc.pdf\"\n                }\n            }\n        ],\n        \"total_installments\": 1,\n        \"total_amount\": 6250.0\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Upcoming Renewals - With Single Documents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/customer/upcoming_renewals",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "customer", "upcoming_renewals"]
+            }
+          },
+          "response": [
+            {
+              "name": "Renewals with Single Documents",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/mobile/customer/upcoming_renewals",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "mobile", "customer", "upcoming_renewals"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"data\": {\n        \"upcoming_renewals\": [\n            {\n                \"id\": 197,\n                \"insurance_name\": \"Health Insurance\",\n                \"insurance_type\": \"Health\",\n                \"policy_number\": \"POL123\",\n                \"policy_holder\": \"John Doe\",\n                \"start_date\": \"2026-01-10\",\n                \"end_date\": \"2027-01-09\",\n                \"renewal_date\": \"2027-01-10\",\n                \"total_premium\": 25000.0,\n                \"sum_insured\": 500000.0,\n                \"payment_mode\": \"Yearly\",\n                \"days_until_renewal\": 364,\n                \"renewal_status\": \"upcoming\",\n                \"is_expired\": false,\n                \"days_since_expiry\": null,\n                \"insurance_company\": \"ABC Insurance\",\n                \"document\": {\n                    \"id\": 1,\n                    \"filename\": \"policy_document.pdf\",\n                    \"content_type\": \"application/pdf\",\n                    \"size\": 1024,\n                    \"url\": \"https://example.com/policy_doc.pdf\"\n                }\n            }\n        ],\n        \"total_renewals\": 1,\n        \"urgent_renewals\": 0,\n        \"due_soon\": 0,\n        \"approaching\": 0,\n        \"upcoming\": 1,\n        \"overdue\": 0\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Customer Policy Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"insurance_type\": \"health\",\n  \"plan_name\": \"Family Health Plan\",\n  \"sum_insured\": 500000,\n  \"premium_amount\": 25000,\n  \"renewal_date\": \"2027-01-15\",\n  \"policy_number\": \"REQ123456\",\n  \"insurance_company\": \"Star Health Insurance\",\n  \"remarks\": \"Customer request for family coverage\",\n  \"product_through_dr\": true,\n  \"family_members\": [\"Self\", \"Spouse\", \"Child\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/customer/add_policy",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "customer", "add_policy"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Form Data APIs",
+      "item": [
+        {
+          "name": "Agent Form Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/form_data",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "form_data"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Customer Management APIs",
+      "item": [
+        {
+          "name": "Add Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_type\": \"individual\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"mobile\": \"+91 98765 43210\",\n  \"gender\": \"male\",\n  \"birth_date\": \"1990-01-15\",\n  \"address\": \"123 Main Street\",\n  \"city\": \"Bangalore\",\n  \"state\": \"Karnataka\",\n  \"pincode\": \"560001\",\n  \"pan_no\": \"ABCDE1234F\",\n  \"occupation\": \"Software Engineer\",\n  \"annual_income\": 1200000,\n  \"marital_status\": \"married\",\n  \"password\": \"Ganesha@123\",\n  \"password_confirmation\": \"Ganesha@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/customers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "customers"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
