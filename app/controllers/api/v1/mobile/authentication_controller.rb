@@ -63,7 +63,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
               customer_id: customer.id,
               email: user.email,
               mobile: user.mobile,
-              password_reset_days: user.password_reset_days,
+              password_reset_days: user.days_until_password_expires,
               password_reset_required: user.password_reset_required?,
               portfolio_summary: {
                 total_policies: portfolio_stats[:total_policies],
@@ -88,7 +88,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
             user_id: user.id,
             email: user.email,
             mobile: user.mobile,
-            password_reset_days: user.password_reset_days,
+            password_reset_days: user.days_until_password_expires,
             password_reset_required: user.password_reset_required?,
             commission_earned: agent_stats[:commission_earned],
             customers_count: agent_stats[:customers_count],
@@ -1183,12 +1183,14 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
 
   # Helper methods for sub-agent password reset tracking
   def get_sub_agent_password_reset_days(sub_agent)
-    return 0 unless sub_agent.respond_to?(:password_reset_at) && sub_agent.password_reset_at
-    ((Time.current - sub_agent.password_reset_at) / 1.day).to_i
+    return 180 unless sub_agent.respond_to?(:password_reset_at) && sub_agent.password_reset_at
+    days_elapsed = ((Time.current - sub_agent.password_reset_at) / 1.day).to_i
+    [180 - days_elapsed, 0].max
   end
 
   def get_sub_agent_password_reset_required(sub_agent)
-    return false unless sub_agent.respond_to?(:password_reset_at) && sub_agent.password_reset_at
-    get_sub_agent_password_reset_days(sub_agent) >= 180
+    return true unless sub_agent.respond_to?(:password_reset_at) && sub_agent.password_reset_at
+    days_elapsed = ((Time.current - sub_agent.password_reset_at) / 1.day).to_i
+    days_elapsed >= 180
   end
 end

@@ -30,7 +30,7 @@ class MotorInsurance < ApplicationRecord
   validates :total_premium, presence: true, numericality: { greater_than: 0 }
 
   # Custom validations
-  validate :company_name_must_be_valid
+  # validate :company_name_must_be_valid  # Commented out to accept any insurance company name
   validate :tp_premium_required_for_tp_policy
 
   # Enums for dropdowns
