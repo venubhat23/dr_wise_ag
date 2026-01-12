@@ -26,11 +26,17 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       @selected_customer = Customer.find(params[:customer_id])
       @health_insurance.customer_id = @selected_customer.id
 
-      # Auto-select default affiliate if customer doesn't have policies yet
-      if @selected_customer.health_insurances.empty?
+      # Auto-select customer's existing affiliate if they have one
+      if @selected_customer.affiliate.present?
+        @health_insurance.sub_agent_id = @selected_customer.affiliate.id
+        @auto_select_affiliate = @selected_customer.affiliate.id
+      else
         # Set 'Self' as default affiliate (no sub_agent)
         @auto_select_affiliate = 'self'
       end
+
+      # Auto-populate family members as policy holder options
+      @customer_family_members = @selected_customer.family_members.includes(:customer)
     end
   end
 

@@ -36,8 +36,16 @@
 
         <div class="col-md-4 mb-3">
           <%= form.label :policy_holder, "Policy Holder", class: "form-label" %>
+          <%
+            policy_holder_options = [['Self', 'Self']]
+            if @customer_family_members&.any?
+              @customer_family_members.each do |member|
+                policy_holder_options << ["#{member.name} (#{member.relationship.humanize})", "#{member.name}"]
+              end
+            end
+          %>
           <%= form.select :policy_holder,
-              options_for_select([['Self', 'Self']], @motor_insurance.policy_holder),
+              options_for_select(policy_holder_options, @motor_insurance.policy_holder),
               { prompt: 'Select Policy Holder' },
               { class: "form-control", id: "policy_holder_select" } %>
         </div>
@@ -45,7 +53,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :sub_agent_id, "Affiliate", class: "form-label" %>
           <%= form.select :sub_agent_id,
-              options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, (@auto_select_affiliate == 'self' ? '' : @motor_insurance.sub_agent_id)),
+              options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, (@auto_select_affiliate == 'self' ? '' : @auto_select_affiliate)),
               { prompt: 'Self' },
               { class: "form-control", id: "affiliate_select" } %>
         </div>
