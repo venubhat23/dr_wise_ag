@@ -406,6 +406,7 @@ Rails.application.routes.draw do
         post 'agent/policies/other', to: 'agent#add_other_policy'
         get 'agent/form_data', to: 'agent#form_data'
         get 'agent/insurance_companies', to: 'agent#insurance_companies'
+        get 'agent/motor_insurance_companies', to: 'agent#motor_insurance_companies'
 
         # Leads APIs
         get 'agent/leads', to: 'agent#leads'

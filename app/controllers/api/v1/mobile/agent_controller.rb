@@ -1251,6 +1251,18 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     }
   end
 
+  # GET /api/v1/mobile/agent/motor_insurance_companies
+  def motor_insurance_companies
+    render json: {
+      success: true,
+      data: {
+        companies: MotorInsurance.insurance_company_names,
+        total_companies: MotorInsurance.insurance_company_names.count,
+        message: "Use exact company names from this list when creating motor insurance policies"
+      }
+    }
+  end
+
   # GET /api/v1/mobile/agent/commission_distribution
   def commission_distribution
     agent = current_user
