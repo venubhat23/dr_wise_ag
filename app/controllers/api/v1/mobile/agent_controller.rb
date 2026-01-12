@@ -63,6 +63,14 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
     customers = customers.includes(:documents, profile_image_attachment: :blob).active.page(page).per(per_page)
 
+    # Preload commission data
+    payout_to_value = if is_sub_agent?(current_user) || is_affiliate?(current_user)
+                        'affiliate'
+                      else
+                        'agent'
+                      end
+    commission_payouts = CommissionPayout.where(payout_to: payout_to_value).index_by { |cp| "#{cp.policy_type}:#{cp.policy_id}" }
+
     customers_data = customers.map do |customer|
       # Format document data
       attached_documents = customer.documents.map do |doc|
@@ -107,45 +115,19 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         added_via: determine_add_source(customer.added_by),
         created_at: customer.created_at,
         profile_image: profile_image_url,
-        attached_documents: attached_documents
+        attached_documents: attached_documents,
+        policies: get_customer_policies_with_documents(customer, commission_payouts)
       }
     end
 
     # Get statistics for different types
     stats = get_customer_statistics(agent)
 
-    # Get agent's policies for the policies section
-    policies_data = []
-    # Preload commission data
-    payout_to_value = if is_sub_agent?(current_user) || is_affiliate?(current_user)
-                        'affiliate'
-                      else
-                        'agent'
-                      end
-    commission_payouts = CommissionPayout.where(payout_to: payout_to_value).index_by { |cp| "#{cp.policy_type}:#{cp.policy_id}" }
-
-    # Get agent's policies
-    agent_health_policies, agent_life_policies, _ = get_agent_policies(agent)
-
-    # Format health policies
-    agent_health_policies.includes(:customer).each do |policy|
-      policies_data << format_policy_data_with_commission(policy, 'Health', commission_payouts)
-    end
-
-    # Format life policies
-    agent_life_policies.includes(:customer).each do |policy|
-      policies_data << format_policy_data_with_commission(policy, 'Life', commission_payouts)
-    end
-
-    # Sort by creation date (newest first)
-    policies_data.sort_by! { |policy| -policy[:created_at].to_time.to_i }
-
     render json: {
       success: true,
       data: {
         customers: customers_data,
         statistics: stats,
-        policies: policies_data,
         pagination: {
           current_page: page.to_i,
           per_page: per_page.to_i,
@@ -771,6 +753,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       customer_id: customer.id,
       sub_agent_id: current_user.id,
       policy_holder: policy_params[:policy_holder],
+      plan_name: policy_params[:plan_name],
       insurance_company_name: policy_params[:insurance_company_name],
       policy_number: policy_params[:policy_number],
       policy_type: policy_params[:policy_type] == 'renewal' ? 'Renewal' : 'New',
@@ -1464,6 +1447,33 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   end
 
   private
+
+  def get_customer_policies_with_documents(customer, commission_payouts)
+    policies = []
+
+    # Get health insurance policies for this customer
+    customer.health_insurances.includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+      policies << format_policy_data_with_commission(policy, 'Health', commission_payouts)
+    end
+
+    # Get life insurance policies for this customer
+    customer.life_insurances.includes(:life_insurance_documents, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+      policies << format_policy_data_with_commission(policy, 'Life', commission_payouts)
+    end
+
+    # Get motor insurance policies for this customer
+    customer.motor_insurances.includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+      policies << format_policy_data_with_commission(policy, 'Motor', commission_payouts)
+    end
+
+    # Get other insurance policies for this customer
+    customer.policies.where(insurance_type: 'other').includes(documents_attachments: :blob).each do |policy|
+      policies << format_policy_data_with_commission(policy, 'Other', commission_payouts)
+    end
+
+    # Sort by creation date (newest first)
+    policies.sort_by { |p| -p[:created_at].to_time.to_i }
+  end
 
   def determine_drwise_policy(policy)
     # DR wise policy: Only admin added (not customer or agent added)
