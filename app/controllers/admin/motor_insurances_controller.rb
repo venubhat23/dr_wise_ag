@@ -50,6 +50,18 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       gst_percentage: 18.0,
       is_admin_added: true
     )
+
+    # Pre-fill customer data if coming from customer page
+    if params[:customer_id].present?
+      @selected_customer = Customer.find(params[:customer_id])
+      @motor_insurance.customer_id = @selected_customer.id
+
+      # Auto-select default affiliate if customer doesn't have policies yet
+      if @selected_customer.motor_insurances.empty?
+        # Set 'Self' as default affiliate (no sub_agent)
+        @auto_select_affiliate = 'self'
+      end
+    end
   end
 
   def edit

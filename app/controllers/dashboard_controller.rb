@@ -97,7 +97,7 @@ class DashboardController < ApplicationController
 
     @total_leads = Lead.count
     @converted_leads = Lead.where(current_stage: ['converted', 'policy_created']).count
-    @pending_leads = Lead.where(current_stage: ['lead_generated', 'follow_up', 'follow_up_successful', 'one_on_one']).count
+    @pending_leads = Lead.where(current_stage: ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one']).count
 
     # Lead conversion percentage
     @lead_conversion_percentage = @total_leads > 0 ? ((@converted_leads.to_f / @total_leads) * 100).round(2) : 0
@@ -152,28 +152,38 @@ class DashboardController < ApplicationController
 
     # Lead conversion funnel - using actual database stages with real-time data
     @lead_conversion_funnel = {
-      'Leads Generated' => Lead.where(current_stage: 'lead_generated').count,
-      'Follow Up' => Lead.where(current_stage: ['follow_up', 'follow_up_successful']).count,
+      'New Leads' => Lead.where(current_stage: 'lead_generated').count,
+      'Contacted' => Lead.where(current_stage: ['follow_up', 'follow_up_successful']).count,
+      'Consultation' => Lead.where(current_stage: 'consultation_scheduled').count,
       'One-on-One' => Lead.where(current_stage: 'one_on_one').count,
       'Converted' => Lead.where(current_stage: 'converted').count,
       'Policy Created' => Lead.where(current_stage: 'policy_created').count
     }
 
     # Lead stage distribution - complete breakdown of all stages with humanized names
-    stage_counts = Lead.group(:current_stage).count.sort_by { |stage, count| -count }
+    stage_counts = Lead.group(:current_stage).count
     @lead_stage_distribution = {}
-    stage_counts.each do |stage, count|
+
+    # Define the proper order for lead stages
+    stage_order = ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one', 'converted', 'policy_created', 'follow_up_unsuccessful', 'not_interested']
+
+    stage_order.each do |stage|
+      count = stage_counts[stage] || 0
+      next if count == 0  # Skip stages with 0 count
+
       humanized_stage = case stage
       when 'lead_generated'
-        'Leads Generated'
+        'New Leads'
       when 'follow_up'
         'Follow Up'
       when 'follow_up_successful'
-        'Follow Up Successful'
+        'Contacted'
+      when 'consultation_scheduled'
+        'Consultation'
       when 'follow_up_unsuccessful'
         'Follow Up Unsuccessful'
       when 'one_on_one'
-        'One-on-One Meeting'
+        'One-on-One'
       when 'converted'
         'Converted'
       when 'policy_created'
@@ -184,6 +194,12 @@ class DashboardController < ApplicationController
         stage.to_s.humanize
       end
       @lead_stage_distribution[humanized_stage] = count
+    end
+
+    # Add any stages not in our predefined order
+    stage_counts.each do |stage, count|
+      next if stage_order.include?(stage) || count == 0
+      @lead_stage_distribution[stage.to_s.humanize] = count
     end
 
     # Top Affiliate performance - based on actual SubAgent data

@@ -26,7 +26,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :customer_id, "Client Name*", class: "form-label" %>
           <%= form.select :customer_id,
-              options_for_select(@customers.map { |c| [c.display_name, c.id] }, @motor_insurance.customer_id),
+              options_for_select(@customers.map { |c| [c.display_name, c.id] }, @selected_customer&.id || @motor_insurance.customer_id),
               { prompt: 'Select Client' },
               { class: "form-control #{'is-invalid' if @motor_insurance.errors[:customer_id].any?}", required: true, id: "customer_select" } %>
           <% if @motor_insurance.errors[:customer_id].any? %>
@@ -45,7 +45,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :sub_agent_id, "Affiliate", class: "form-label" %>
           <%= form.select :sub_agent_id,
-              options_for_select(@sub_agents.map { |a| [a.display_name, a.id] }, @motor_insurance.sub_agent_id),
+              options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, (@auto_select_affiliate == 'self' ? '' : @motor_insurance.sub_agent_id)),
               { prompt: 'Self' },
               { class: "form-control", id: "affiliate_select" } %>
         </div>

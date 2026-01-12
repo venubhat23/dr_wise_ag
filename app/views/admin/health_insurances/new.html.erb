@@ -40,7 +40,7 @@
               <div class="col-md-6 mb-3">
                 <%= form.label :customer_id, "Client Name", class: "form-label required" %>
                 <%= form.select :customer_id,
-                    options_for_select([['Select Client', '']] + @customers.map { |c| [c.display_name, c.id] }),
+                    options_for_select([['Select Client', '']] + @customers.map { |c| [c.display_name, c.id] }, @selected_customer&.id),
                     { prompt: 'Select Client' },
                     { class: "form-select", required: true, id: "customer_select" } %>
                 <div class="invalid-feedback">Please select a client</div>
@@ -64,7 +64,7 @@
               <div class="col-md-6 mb-3">
                 <%= form.label :sub_agent_id, "Affiliate", class: "form-label" %>
                 <%= form.select :sub_agent_id,
-                    options_for_select([['Self', '']] + @sub_agents.map { |agent| [agent.display_name, agent.id] }),
+                    options_for_select([['Self', '']] + @sub_agents.map { |agent| [agent.display_name, agent.id] }, (@auto_select_affiliate == 'self' ? '' : nil)),
                     {},
                     { class: "form-select", id: "affiliate_select" } %>
               </div>
@@ -1175,6 +1175,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initialize affiliate selection handling
   handleAffiliateSelection();
+
+  // Auto-trigger customer selection if customer is pre-selected
+  const customerSelect = document.getElementById('customer_select');
+  if (customerSelect && customerSelect.value) {
+    // Trigger change event to populate policy holder options
+    customerSelect.dispatchEvent(new Event('change'));
+  }
 
   // Initial calculations
   calculateTotalPremium();

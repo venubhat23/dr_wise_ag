@@ -748,9 +748,11 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     policy_params = params.permit(
       :customer_id, :policy_holder, :plan_name, :policy_number,
       :insurance_company_name, :policy_type, :policy_start_date, :policy_end_date,
-      :payment_mode, :sum_insured, :net_premium, :gst_percentage, :total_premium,
-      :agent_commission_percentage, :commission_amount, :vehicle_make, :vehicle_model,
-      :vehicle_number, :vehicle_year, :engine_number, :chassis_number, :vehicle_type
+      :policy_booking_date, :sum_insured, :net_premium, :gst_percentage, :total_premium,
+      :agent_commission_percentage, :commission_amount, :vehicle_type, :make, :model,
+      :registration_number, :registration_date, :engine_number, :chassis_number, :mfy,
+      :variant, :seating_capacity, :vehicle_idv, :zero_depreciation, :roadside_assistance,
+      :ncb, :previous_policy_number
     )
 
     if policy_params[:customer_id].blank?
@@ -768,42 +770,46 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       }, status: :not_found
     end
 
-    # For Motor insurance, we can use the Policy model with motor type
-    policy = Policy.new(
-      customer: customer,
-      user: current_user,
-      insurance_company_id: 1, # Default, should be dynamic
-      agency_broker_id: 1, # Default, should be dynamic
+    # Create motor insurance policy directly
+    policy = MotorInsurance.new(
+      customer_id: customer.id,
+      sub_agent_id: current_user.id,
+      policy_holder: policy_params[:policy_holder],
+      insurance_company_name: policy_params[:insurance_company_name],
       policy_number: policy_params[:policy_number],
-      plan_name: policy_params[:plan_name],
-      insurance_type: 'motor',
-      policy_type: policy_params[:policy_type] == 'renewal' ? 'renewal' : 'new_policy',
-      policy_start_date: policy_params[:policy_start_date],
-      policy_end_date: policy_params[:policy_end_date],
-      payment_mode: policy_params[:payment_mode] || 'yearly',
+      policy_type: policy_params[:policy_type] == 'renewal' ? 'Renewal' : 'New',
+      policy_start_date: parse_date(policy_params[:policy_start_date]),
+      policy_end_date: parse_date(policy_params[:policy_end_date]),
+      policy_booking_date: parse_date(policy_params[:policy_booking_date]) || Date.current,
+      vehicle_type: 'New Vehicle', # Default based on model requirements
+      class_of_vehicle: policy_params[:vehicle_type] || 'Private Car', # Use parameter or default
+      insurance_type: 'Comprehensive', # Default
+      registration_number: policy_params[:registration_number],
+      registration_date: parse_date(policy_params[:registration_date]),
+      make: policy_params[:make],
+      model: policy_params[:model],
+      mfy: policy_params[:mfy],
+      variant: policy_params[:variant],
+      seating_capacity: policy_params[:seating_capacity],
+      engine_number: policy_params[:engine_number],
+      chassis_number: policy_params[:chassis_number],
+      vehicle_idv: policy_params[:vehicle_idv],
       sum_insured: policy_params[:sum_insured],
       net_premium: policy_params[:net_premium],
       gst_percentage: policy_params[:gst_percentage] || 18,
       total_premium: policy_params[:total_premium],
-      agent_commission_percentage: policy_params[:agent_commission_percentage],
-      commission_amount: policy_params[:commission_amount],
-      status: true
+      tp_premium: 0, # Default for comprehensive
+      main_agent_commission_percentage: policy_params[:agent_commission_percentage],
+      zero_depreciation: policy_params[:zero_depreciation],
+      roadside_assistance: policy_params[:roadside_assistance],
+      ncb: policy_params[:ncb],
+      previous_policy_number: policy_params[:previous_policy_number],
+      is_agent_added: true,
+      is_customer_added: false,
+      is_admin_added: false
     )
 
     if policy.save
-      # Create motor insurance specific data
-      motor_insurance = MotorInsurance.create!(
-        policy: policy,
-        vehicle_make: policy_params[:vehicle_make],
-        vehicle_model: policy_params[:vehicle_model],
-        vehicle_number: policy_params[:vehicle_number],
-        vehicle_year: policy_params[:vehicle_year],
-        engine_number: policy_params[:engine_number],
-        chassis_number: policy_params[:chassis_number],
-        vehicle_type: policy_params[:vehicle_type],
-        is_admin_added: false
-      )
-
       render json: {
         success: true,
         message: 'Motor insurance policy added successfully',
@@ -1729,7 +1735,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       agent_commission: agent_commission,
       status: policy.respond_to?(:active?) ? (policy.active? ? 'Active' : 'Inactive') : 'Active',
       is_drwise_policy: determine_drwise_policy(policy),
-      policy_document: documents.first || nil,
+      document: documents.first || nil,
       created_at: policy.created_at
     }
   end

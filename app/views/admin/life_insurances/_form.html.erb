@@ -26,7 +26,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :customer_id, "Client Name*", class: "form-label" %>
           <%= form.select :customer_id,
-              options_for_select(@customers.map { |c| [c.display_name, c.id] }, @life_insurance.customer_id),
+              options_for_select(@customers.map { |c| [c.display_name, c.id] }, @selected_customer&.id || @life_insurance.customer_id),
               { prompt: 'Search and select client...' },
               { class: "form-control #{'is-invalid' if @life_insurance.errors[:customer_id].any?}", required: true, id: "customer_select", data: { placeholder: "Type to search clients..." } } %>
           <% if @life_insurance.errors[:customer_id].any? %>
@@ -45,7 +45,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :sub_agent_id, "Affiliate", class: "form-label" %>
           <%= form.select :sub_agent_id,
-              options_for_select(@sub_agents.map { |a| [a.display_name, a.id] }, @life_insurance.sub_agent_id),
+              options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, (@auto_select_affiliate == 'self' ? '' : @life_insurance.sub_agent_id)),
               { prompt: 'Search and select affiliate...' },
               { class: "form-control", id: "affiliate_select", data: { placeholder: "Type to search affiliates..." } } %>
         </div>

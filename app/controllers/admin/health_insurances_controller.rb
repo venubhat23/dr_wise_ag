@@ -20,6 +20,18 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   def new
     @health_insurance = HealthInsurance.new
     @health_insurance.health_insurance_members.build
+
+    # Pre-fill customer data if coming from customer page
+    if params[:customer_id].present?
+      @selected_customer = Customer.find(params[:customer_id])
+      @health_insurance.customer_id = @selected_customer.id
+
+      # Auto-select default affiliate if customer doesn't have policies yet
+      if @selected_customer.health_insurances.empty?
+        # Set 'Self' as default affiliate (no sub_agent)
+        @auto_select_affiliate = 'self'
+      end
+    end
   end
 
   def edit
