@@ -657,18 +657,46 @@
           <%= form.label :policy_documents, "Upload Policy", class: "form-label" %>
           <%= form.file_field :policy_documents,
               class: "form-control",
-              multiple: true, accept: ".pdf,.jpg,.jpeg,.png" %>
+              multiple: true, accept: ".pdf,.jpg,.jpeg,.png",
+              id: "motor_policy_documents" %>
           <div class="form-text">Click to upload or drag and drop (PDF, JPG, PNG)</div>
+
+          <!-- Motor Policy Documents Preview -->
+          <%= render 'shared/file_upload_preview',
+                     field_id: 'motor_policy_documents',
+                     preview_id: 'motor_policy_documents_preview',
+                     accept: '.pdf,.jpg,.jpeg,.png',
+                     show_file_info: true,
+                     max_file_size: '10MB' %>
         </div>
 
         <div class="col-md-6 mb-3">
           <%= form.label :documents, "Upload Documents", class: "form-label" %>
           <%= form.file_field :documents,
               class: "form-control",
-              multiple: true, accept: ".pdf,.jpg,.jpeg,.png" %>
+              multiple: true, accept: ".pdf,.jpg,.jpeg,.png",
+              id: "motor_additional_documents" %>
           <div class="form-text">Upload additional documents</div>
+
+          <!-- Motor Additional Documents Preview -->
+          <%= render 'shared/file_upload_preview',
+                     field_id: 'motor_additional_documents',
+                     preview_id: 'motor_additional_documents_preview',
+                     accept: '.pdf,.jpg,.jpeg,.png',
+                     show_file_info: true,
+                     max_file_size: '10MB' %>
         </div>
       </div>
+
+      <!-- Existing Documents (Edit Mode) -->
+      <% if @motor_insurance&.persisted? && @motor_insurance.respond_to?(:uploaded_documents) && @motor_insurance.uploaded_documents.any? %>
+        <%= render 'shared/existing_documents_display',
+                   documents: @motor_insurance.uploaded_documents,
+                   title: 'Current Motor Insurance Documents',
+                   show_actions: true,
+                   record_type: 'motor insurance policy',
+                   container_class: 'border-top pt-4 mt-4' %>
+      <% end %>
     </div>
   </div>
 

@@ -140,104 +140,282 @@
       </div>
     </div>
 
-    <!-- Comprehensive Product Matrix Table -->
-    <div class="table-responsive product-matrix-container">
-      <table class="table table-bordered mb-0 product-matrix-table">
-        <thead>
-          <tr class="table-header-row">
-            <th colspan="5" class="product-category insurance-category">
-              <i class="bi bi-shield-check me-2"></i>Insurance
-            </th>
-            <th colspan="4" class="product-category investments-category">
-              <i class="bi bi-graph-up me-2"></i>Investments
-            </th>
-            <th colspan="3" class="product-category loans-category">
-              <i class="bi bi-bank me-2"></i>Loans
-            </th>
-            <th class="product-category taxation-category">
-              <i class="bi bi-calculator me-2"></i>Taxation
-            </th>
-            <th colspan="4" class="product-category travel-category">
-              <i class="bi bi-airplane me-2"></i>Travel
-            </th>
-          </tr>
-          <tr class="sub-header-row">
-            <th class="product-subheader health">
-              <i class="bi bi-heart-pulse me-1"></i>Life
-            </th>
-            <th class="product-subheader health">
-              <i class="bi bi-activity me-1"></i>Health
-            </th>
-            <th class="product-subheader motor">
-              <i class="bi bi-car-front me-1"></i>Motor
-            </th>
-            <th class="product-subheader general">
-              <i class="bi bi-umbrella me-1"></i>General
-            </th>
-            <th class="product-subheader travel-ins">
-              <i class="bi bi-airplane-engines me-1"></i>Travel
-            </th>
-            <th class="product-subheader mutual-fund">
-              <i class="bi bi-pie-chart me-1"></i>Mutual Fund
-            </th>
-            <th class="product-subheader gold">
-              <i class="bi bi-coin me-1"></i>Gold
-            </th>
-            <th class="product-subheader nps">
-              <i class="bi bi-building me-1"></i>NPS
-            </th>
-            <th class="product-subheader bonds">
-              <i class="bi bi-receipt me-1"></i>Bonds
-            </th>
-            <th class="product-subheader personal">
-              <i class="bi bi-person me-1"></i>Personal
-            </th>
-            <th class="product-subheader home">
-              <i class="bi bi-house me-1"></i>Home
-            </th>
-            <th class="product-subheader business">
-              <i class="bi bi-briefcase me-1"></i>Business
-            </th>
-            <th class="product-subheader taxation">
-              <i class="bi bi-file-earmark-text me-1"></i>ITR
-            </th>
-            <th class="product-subheader domestic">
-              <i class="bi bi-geo me-1"></i>Domestic
-            </th>
-            <th class="product-subheader international">
-              <i class="bi bi-globe me-1"></i>International
-            </th>
-            <th class="product-subheader additional-1">
-              <i class="bi bi-plus-circle me-1"></i>Additional 1
-            </th>
-            <th class="product-subheader additional-2">
-              <i class="bi bi-plus-circle me-1"></i>Additional 2
-            </th>
+    <!-- Comprehensive Product Matrix Table - Vertical Layout -->
+    <div class="table-responsive product-matrix-vertical-container">
+      <table class="table table-hover mb-0 product-matrix-vertical-table">
+        <thead class="bg-light">
+          <tr>
+            <th class="border-0">Product Category</th>
+            <th class="border-0">Product Type</th>
+            <th class="border-0">Status</th>
+            <th class="border-0">Policies</th>
+            <th class="border-0">Coverage Details</th>
           </tr>
         </thead>
         <tbody>
-          <tr class="status-row">
-            <% @product_status.each do |product_name, opted| %>
-              <td class="product-status-cell">
-                <div class="status-indicator-wrapper">
-                  <div class="status-indicator <%= opted ? 'opted' : 'not-opted' %>">
-                    <% if opted %>
-                      <i class="bi bi-check-circle-fill status-icon opted-icon" title="<%= product_name %> - Active"></i>
-                      <div class="status-text">Yes</div>
-                    <% else %>
-                      <i class="bi bi-x-circle status-icon not-opted-icon" title="<%= product_name %> - Not Active"></i>
-                      <div class="status-text">No</div>
-                    <% end %>
-                  </div>
-                  <% if opted && @policy_status["#{product_name} Insurance"] %>
-                    <div class="product-details">
-                      <small class="detail-count"><%= @policy_status["#{product_name} Insurance"][:count] %> policies</small>
-                    </div>
-                  <% end %>
+          <!-- Insurance Products -->
+          <tr class="category-divider">
+            <td colspan="5" class="category-header insurance-header">
+              <i class="bi bi-shield-check me-2"></i>
+              <strong>Insurance Products</strong>
+            </td>
+          </tr>
+
+          <%
+            insurance_products = [
+              { name: 'Life', icon: 'bi-heart-pulse', key: 'Life', category_class: 'life-insurance' },
+              { name: 'Health', icon: 'bi-activity', key: 'Health', category_class: 'health-insurance' },
+              { name: 'Motor', icon: 'bi-car-front', key: 'Motor', category_class: 'motor-insurance' },
+              { name: 'General', icon: 'bi-umbrella', key: 'General', category_class: 'general-insurance' },
+              { name: 'Travel Insurance', icon: 'bi-airplane-engines', key: 'Travel', category_class: 'travel-insurance' }
+            ]
+          %>
+
+          <% insurance_products.each do |product| %>
+            <% opted = @product_status[product[:key]] %>
+            <% policy_data = @policy_status["#{product[:key]} Insurance"] %>
+            <tr class="product-row <%= product[:category_class] %>">
+              <td>
+                <span class="category-simple-text text-primary fw-medium">
+                  Insurance
+                </span>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <i class="<%= product[:icon] %> me-2 text-primary"></i>
+                  <span class="fw-medium"><%= product[:name] %></span>
                 </div>
               </td>
-            <% end %>
+              <td>
+                <% if opted %>
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle me-1"></i>Yes
+                  </span>
+                <% else %>
+                  <span class="badge bg-secondary">
+                    <i class="bi bi-x-circle me-1"></i>No
+                  </span>
+                <% end %>
+              </td>
+              <td>
+                <% if opted && policy_data %>
+                  <span class="badge bg-info"><%= policy_data[:count] %> policies</span>
+                <% else %>
+                  <span class="text-muted">-</span>
+                <% end %>
+              </td>
+              <td>
+                <% if opted && policy_data %>
+                  <div class="small">
+                    <div class="text-success mb-1">
+                      <i class="bi bi-currency-rupee me-1"></i>
+                      Total Premium: <%= indian_currency(policy_data[:total_premium]) %>
+                    </div>
+                    <% if policy_data[:latest_policy] %>
+                      <div class="text-muted">
+                        <i class="bi bi-clock me-1"></i>
+                        Latest: <%= policy_data[:latest_policy].created_at.strftime('%b %d, %Y') %>
+                      </div>
+                    <% end %>
+                  </div>
+                <% else %>
+                  <span class="text-muted">No policies found</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+
+          <!-- Investment Products -->
+          <tr class="category-divider">
+            <td colspan="5" class="category-header investments-header">
+              <i class="bi bi-graph-up me-2"></i>
+              <strong>Investment Products</strong>
+            </td>
           </tr>
+
+          <%
+            investment_products = [
+              { name: 'Mutual Fund', icon: 'bi-pie-chart', key: 'Mutual Fund', category_class: 'mutual-fund' },
+              { name: 'Gold', icon: 'bi-coin', key: 'Gold', category_class: 'gold-investment' },
+              { name: 'NPS', icon: 'bi-building', key: 'NPS', category_class: 'nps-investment' },
+              { name: 'Bonds', icon: 'bi-receipt', key: 'Bonds', category_class: 'bonds-investment' }
+            ]
+          %>
+
+          <% investment_products.each do |product| %>
+            <% opted = @product_status[product[:key]] %>
+            <tr class="product-row <%= product[:category_class] %>">
+              <td>
+                <span class="category-simple-text text-success fw-medium">
+                  Investments
+                </span>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <i class="<%= product[:icon] %> me-2 text-success"></i>
+                  <span class="fw-medium"><%= product[:name] %></span>
+                </div>
+              </td>
+              <td>
+                <% if opted %>
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle me-1"></i>Yes
+                  </span>
+                <% else %>
+                  <span class="badge bg-secondary">
+                    <i class="bi bi-x-circle me-1"></i>No
+                  </span>
+                <% end %>
+              </td>
+              <td>
+                <span class="text-muted">-</span>
+              </td>
+              <td>
+                <span class="text-muted">Product not yet implemented</span>
+              </td>
+            </tr>
+          <% end %>
+
+          <!-- Loan Products -->
+          <tr class="category-divider">
+            <td colspan="5" class="category-header loans-header">
+              <i class="bi bi-bank me-2"></i>
+              <strong>Loan Products</strong>
+            </td>
+          </tr>
+
+          <%
+            loan_products = [
+              { name: 'Personal Loan', icon: 'bi-person', key: 'Personal', category_class: 'personal-loan' },
+              { name: 'Home Loan', icon: 'bi-house', key: 'Home', category_class: 'home-loan' },
+              { name: 'Business Loan', icon: 'bi-briefcase', key: 'Business', category_class: 'business-loan' }
+            ]
+          %>
+
+          <% loan_products.each do |product| %>
+            <% opted = @product_status[product[:key]] %>
+            <tr class="product-row <%= product[:category_class] %>">
+              <td>
+                <span class="category-simple-text text-warning fw-medium">
+                  Loans
+                </span>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <i class="<%= product[:icon] %> me-2 text-warning"></i>
+                  <span class="fw-medium"><%= product[:name] %></span>
+                </div>
+              </td>
+              <td>
+                <% if opted %>
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle me-1"></i>Yes
+                  </span>
+                <% else %>
+                  <span class="badge bg-secondary">
+                    <i class="bi bi-x-circle me-1"></i>No
+                  </span>
+                <% end %>
+              </td>
+              <td>
+                <span class="text-muted">-</span>
+              </td>
+              <td>
+                <span class="text-muted">Product not yet implemented</span>
+              </td>
+            </tr>
+          <% end %>
+
+          <!-- Taxation Products -->
+          <tr class="category-divider">
+            <td colspan="5" class="category-header taxation-header">
+              <i class="bi bi-calculator me-2"></i>
+              <strong>Taxation Services</strong>
+            </td>
+          </tr>
+
+          <% opted = @product_status['ITR'] %>
+          <tr class="product-row taxation-service">
+            <td>
+              <span class="category-simple-text text-danger fw-medium">
+                Taxation
+              </span>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <i class="bi-file-earmark-text me-2 text-danger"></i>
+                <span class="fw-medium">Income Tax Return (ITR)</span>
+              </div>
+            </td>
+            <td>
+              <% if opted %>
+                <span class="badge bg-success">
+                  <i class="bi bi-check-circle me-1"></i>Yes
+                </span>
+              <% else %>
+                <span class="badge bg-secondary">
+                  <i class="bi bi-x-circle me-1"></i>No
+                </span>
+              <% end %>
+            </td>
+            <td>
+              <span class="text-muted">-</span>
+            </td>
+            <td>
+              <span class="text-muted">Service not yet implemented</span>
+            </td>
+          </tr>
+
+          <!-- Travel Products -->
+          <tr class="category-divider">
+            <td colspan="5" class="category-header travel-header">
+              <i class="bi bi-airplane me-2"></i>
+              <strong>Travel Services</strong>
+            </td>
+          </tr>
+
+          <%
+            travel_products = [
+              { name: 'Domestic Travel', icon: 'bi-geo', key: 'Domestic', category_class: 'domestic-travel' },
+              { name: 'International Travel', icon: 'bi-globe', key: 'International', category_class: 'international-travel' },
+              { name: 'Additional Service 1', icon: 'bi-plus-circle', key: 'Additional1', category_class: 'additional-1' },
+              { name: 'Additional Service 2', icon: 'bi-plus-circle', key: 'Additional2', category_class: 'additional-2' }
+            ]
+          %>
+
+          <% travel_products.each do |product| %>
+            <% opted = @product_status[product[:key]] %>
+            <tr class="product-row <%= product[:category_class] %>">
+              <td>
+                <span class="category-simple-text text-info fw-medium">
+                  Travel
+                </span>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <i class="<%= product[:icon] %> me-2 text-secondary"></i>
+                  <span class="fw-medium"><%= product[:name] %></span>
+                </div>
+              </td>
+              <td>
+                <% if opted %>
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle me-1"></i>Yes
+                  </span>
+                <% else %>
+                  <span class="badge bg-secondary">
+                    <i class="bi bi-x-circle me-1"></i>No
+                  </span>
+                <% end %>
+              </td>
+              <td>
+                <span class="text-muted">-</span>
+              </td>
+              <td>
+                <span class="text-muted">Service not yet implemented</span>
+              </td>
+            </tr>
+          <% end %>
         </tbody>
       </table>
     </div>
@@ -418,6 +596,200 @@
 /* Coverage Details */
 .coverage-details {
   padding: 20px;
+}
+
+/* New Vertical Product Matrix Table Styles */
+.product-matrix-vertical-container {
+  background: #ffffff;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.product-matrix-vertical-table {
+  margin: 0;
+  border: none;
+}
+
+.product-matrix-vertical-table thead th {
+  background: #f8f9fa;
+  border: none;
+  padding: 15px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.category-divider {
+  background: none;
+}
+
+.category-header {
+  background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
+  padding: 12px 15px;
+  border: none;
+  font-size: 0.95rem;
+  color: #495057;
+  font-weight: 600;
+}
+
+.insurance-header {
+  background: linear-gradient(135deg, rgba(0, 123, 255, 0.1) 0%, rgba(0, 123, 255, 0.05) 100%);
+  color: #007bff;
+  border-left: 4px solid #007bff;
+}
+
+.investments-header {
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
+  color: #28a745;
+  border-left: 4px solid #28a745;
+}
+
+.loans-header {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+  color: #ffc107;
+  border-left: 4px solid #ffc107;
+}
+
+.taxation-header {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+  color: #dc3545;
+  border-left: 4px solid #dc3545;
+}
+
+.travel-header {
+  background: linear-gradient(135deg, rgba(108, 117, 125, 0.1) 0%, rgba(108, 117, 125, 0.05) 100%);
+  color: #6c757d;
+  border-left: 4px solid #6c757d;
+}
+
+.product-row {
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.product-row:hover {
+  background: rgba(0, 123, 255, 0.02);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.product-row td {
+  padding: 12px 15px;
+  vertical-align: middle;
+  border-top: 1px solid #e9ecef;
+  border-bottom: none;
+  border-left: none;
+  border-right: none;
+}
+
+.product-row:first-child td {
+  border-top: none;
+}
+
+/* Product row hover effects by category */
+.life-insurance:hover {
+  background: rgba(220, 53, 69, 0.02);
+}
+
+.health-insurance:hover {
+  background: rgba(220, 53, 69, 0.02);
+}
+
+.motor-insurance:hover {
+  background: rgba(255, 193, 7, 0.02);
+}
+
+.general-insurance:hover {
+  background: rgba(0, 123, 255, 0.02);
+}
+
+.travel-insurance:hover {
+  background: rgba(111, 66, 193, 0.02);
+}
+
+.mutual-fund:hover {
+  background: rgba(40, 167, 69, 0.02);
+}
+
+.gold-investment:hover {
+  background: rgba(255, 193, 7, 0.02);
+}
+
+.nps-investment:hover {
+  background: rgba(13, 202, 240, 0.02);
+}
+
+.bonds-investment:hover {
+  background: rgba(108, 117, 125, 0.02);
+}
+
+.personal-loan:hover,
+.home-loan:hover,
+.business-loan:hover {
+  background: rgba(255, 193, 7, 0.02);
+}
+
+.taxation-service:hover {
+  background: rgba(220, 53, 69, 0.02);
+}
+
+.domestic-travel:hover,
+.international-travel:hover,
+.additional-1:hover,
+.additional-2:hover {
+  background: rgba(108, 117, 125, 0.02);
+}
+
+/* Badge Styling */
+.badge {
+  font-size: 0.75rem;
+  padding: 0.5em 0.75em;
+  border-radius: 0.375rem;
+}
+
+/* Simple Category Text Styling */
+.category-simple-text {
+  font-size: 0.9rem;
+  padding: 0.25rem 0;
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Icon Colors */
+.text-primary { color: #007bff !important; }
+.text-success { color: #28a745 !important; }
+.text-warning { color: #ffc107 !important; }
+.text-danger { color: #dc3545 !important; }
+.text-secondary { color: #6c757d !important; }
+
+/* Responsive Design for Vertical Table */
+@media (max-width: 768px) {
+  .product-matrix-vertical-table {
+    font-size: 0.85rem;
+  }
+
+  .product-matrix-vertical-table thead th {
+    padding: 10px 8px;
+    font-size: 0.8rem;
+  }
+
+  .product-row td {
+    padding: 10px 8px;
+  }
+
+  .category-header {
+    padding: 10px 8px;
+    font-size: 0.9rem;
+  }
+
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.4em 0.6em;
+  }
 }
 
 .metric-item {

@@ -1,5 +1,6 @@
 class DashboardController < ApplicationController
   skip_load_and_authorize_resource
+  before_action :redirect_ambassador_users
 
   def index
     authorize! :read, :dashboard
@@ -71,6 +72,12 @@ class DashboardController < ApplicationController
   end
 
   private
+
+  def redirect_ambassador_users
+    if current_user&.ambassador?
+      redirect_to ambassador_dashboard_path
+    end
+  end
 
   def load_dashboard_data
     # Clear any active record caches for real-time data

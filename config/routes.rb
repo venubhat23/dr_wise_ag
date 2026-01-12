@@ -20,6 +20,11 @@ Rails.application.routes.draw do
   get 'dashboard/ultra', to: 'dashboard#ultra'
   get 'dashboard/stats', to: 'dashboard#stats'
 
+  # Ambassador Dashboard
+  get 'ambassador/dashboard', to: 'ambassador#dashboard'
+  get 'ambassador/commission_details', to: 'ambassador#commission_details'
+  get 'ambassador/payout_history', to: 'ambassador#payout_history'
+
   # API routes
   namespace :api do
     resources :cities, only: [:index]
@@ -27,6 +32,8 @@ Rails.application.routes.draw do
       # Public API endpoints (no authentication required)
       get 'public/search_sub_agents', to: 'public#search_sub_agents'
       get 'public/search_distributors', to: 'public#search_distributors'
+      get 'public/insurance_companies', to: 'public#insurance_companies'
+      get 'public/motor_insurance_companies', to: 'public#motor_insurance_companies'
     end
   end
 
@@ -347,6 +354,16 @@ Rails.application.routes.draw do
     post 'import/life_insurances', to: 'imports#life_insurances'
     post 'import/motor_insurances', to: 'imports#motor_insurances'
     post 'import/agencies', to: 'imports#agencies'
+
+    # Commission management for ambassadors/distributors
+    resources :commissions, only: [:index] do
+      collection do
+        get :dashboard
+        get :reports
+        get :payouts
+        get :affiliates
+      end
+    end
 
     # Settings namespace
     namespace :settings do

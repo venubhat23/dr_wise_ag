@@ -39,13 +39,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         payment_mode: policy.payment_mode,
         status: policy.active? ? 'Active' : (policy.expired? ? 'Expired' : 'Expiring Soon'),
         days_until_expiry: policy.days_until_expiry,
-        document: policy.policy_documents.attached? ? {
-          id: policy.policy_documents.first.id,
-          filename: policy.policy_documents.first.filename.to_s,
-          content_type: policy.policy_documents.first.content_type,
-          size: policy.policy_documents.first.byte_size,
-          url: rails_blob_url(policy.policy_documents.first)
-        } : nil
+        document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
       }
     end
 
@@ -65,13 +59,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         payment_mode: policy.payment_mode,
         status: policy.active? ? 'Active' : (policy.expired? ? 'Expired' : 'Expiring Soon'),
         days_until_expiry: policy.days_until_expiry,
-        document: policy.policy_documents.attached? ? {
-          id: policy.policy_documents.first.id,
-          filename: policy.policy_documents.first.filename.to_s,
-          content_type: policy.policy_documents.first.content_type,
-          size: policy.policy_documents.first.byte_size,
-          url: rails_blob_url(policy.policy_documents.first)
-        } : nil,
+        document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
         # Life insurance specific fields
         nominee_name: policy.nominee_name,
         nominee_relationship: policy.nominee_relationship,
@@ -109,10 +97,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
           end
         end,
         document: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? {
-          id: policy.policy_documents.first.id,
-          filename: policy.policy_documents.first.filename.to_s,
-          content_type: policy.policy_documents.first.content_type,
-          size: policy.policy_documents.first.byte_size,
+          document: 'Policy Document',
           url: rails_blob_url(policy.policy_documents.first)
         } : nil
       }
@@ -228,13 +213,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             installment_type: installment_type, # 'regular' or 'renewal'
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
-            document: policy.policy_documents.attached? ? {
-          id: policy.policy_documents.first.id,
-          filename: policy.policy_documents.first.filename.to_s,
-          content_type: policy.policy_documents.first.content_type,
-          size: policy.policy_documents.first.byte_size,
-          url: rails_blob_url(policy.policy_documents.first)
-        } : nil
+            document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
           }
         end
       end
@@ -323,13 +302,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             installment_type: installment_type, # 'regular' or 'renewal'
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
-            document: policy.policy_documents.attached? ? {
-          id: policy.policy_documents.first.id,
-          filename: policy.policy_documents.first.filename.to_s,
-          content_type: policy.policy_documents.first.content_type,
-          size: policy.policy_documents.first.byte_size,
-          url: rails_blob_url(policy.policy_documents.first)
-        } : nil
+            document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
           }
         end
       end
@@ -428,12 +401,9 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
             document: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? {
-          id: policy.policy_documents.first.id,
-          filename: policy.policy_documents.first.filename.to_s,
-          content_type: policy.policy_documents.first.content_type,
-          size: policy.policy_documents.first.byte_size,
-          url: rails_blob_url(policy.policy_documents.first)
-        } : nil
+              document: 'Policy Document',
+              url: rails_blob_url(policy.policy_documents.first)
+            } : nil
           }
         end
       end
@@ -521,13 +491,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         is_expired: policy.policy_end_date < Date.current,
         days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
         insurance_company: policy.insurance_company_name,
-        document: policy.policy_documents.attached? ? {
-          id: policy.policy_documents.first.id,
-          filename: policy.policy_documents.first.filename.to_s,
-          content_type: policy.policy_documents.first.content_type,
-          size: policy.policy_documents.first.byte_size,
-          url: rails_blob_url(policy.policy_documents.first)
-        } : nil
+        document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
       }
     end
 
@@ -579,13 +543,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         is_expired: policy.policy_end_date < Date.current,
         days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
         insurance_company: policy.insurance_company_name,
-        document: policy.policy_documents.attached? ? {
-          id: policy.policy_documents.first.id,
-          filename: policy.policy_documents.first.filename.to_s,
-          content_type: policy.policy_documents.first.content_type,
-          size: policy.policy_documents.first.byte_size,
-          url: rails_blob_url(policy.policy_documents.first)
-        } : nil
+        document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
       }
     end
 
@@ -678,12 +636,9 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
               days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
               insurance_company: policy.respond_to?(:insurance_company_name) ? policy.insurance_company_name : "Unknown",
               document: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? {
-          id: policy.policy_documents.first.id,
-          filename: policy.policy_documents.first.filename.to_s,
-          content_type: policy.policy_documents.first.content_type,
-          size: policy.policy_documents.first.byte_size,
-          url: rails_blob_url(policy.policy_documents.first)
-        } : nil,
+              document: 'Policy Document',
+              url: rails_blob_url(policy.policy_documents.first)
+            } : nil,
               # Additional fields specific to motor insurance
               vehicle_number: insurance_config[:type] == 'Motor' && policy.respond_to?(:vehicle_number) ? policy.vehicle_number : nil,
               vehicle_make: insurance_config[:type] == 'Motor' && policy.respond_to?(:vehicle_make) ? policy.vehicle_make : nil,

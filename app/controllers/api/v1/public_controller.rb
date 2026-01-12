@@ -145,6 +145,123 @@ class Api::V1::PublicController < ActionController::Base
     end
   end
 
+  # GET /api/v1/public/insurance_companies
+  def insurance_companies
+    begin
+      page = params[:page] || 1
+      per_page = params[:per_page] || 50
+      search = params[:search]
+      status_filter = params[:status] # 'active', 'inactive', or 'all'
+
+      companies = InsuranceCompany.all
+
+      # Apply search filter
+      if search.present?
+        companies = companies.where("name ILIKE ? OR code ILIKE ?", "%#{search}%", "%#{search}%")
+      end
+
+      # Apply status filter
+      case status_filter
+      when 'active'
+        companies = companies.where(status: true)
+      when 'inactive'
+        companies = companies.where(status: false)
+      # 'all' or nil shows all companies
+      end
+
+      companies = companies.order(:name)
+
+      # Apply pagination if requested, otherwise return all
+      if params[:page].present?
+        companies = companies.page(page).per(per_page)
+      end
+
+      companies_data = companies.map do |company|
+        {
+          id: company.id,
+          name: company.name,
+          code: company.code,
+          status: company.status ? 'Active' : 'Inactive',
+          contact_person: company.contact_person,
+          email: company.email,
+          mobile: company.mobile,
+          address: company.address,
+          insurance_type: company.insurance_type
+        }
+      end
+
+      render json: {
+        success: true,
+        data: companies_data,
+        pagination: {
+          current_page: params[:page]&.to_i || 1,
+          per_page: per_page,
+          total_companies: companies.respond_to?(:total_count) ? companies.total_count : companies_data.count,
+          total_pages: companies.respond_to?(:total_pages) ? companies.total_pages : 1
+        }
+      }
+    rescue => e
+      Rails.logger.error "Error in public insurance_companies: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      render json: {
+        success: false,
+        message: "Failed to load insurance companies: #{e.message}"
+      }, status: 500
+    end
+  end
+
+  # GET /api/v1/public/motor_insurance_companies
+  def motor_insurance_companies
+    begin
+      page = params[:page] || 1
+      per_page = params[:per_page] || 50
+      search = params[:search]
+
+      companies = InsuranceCompany.where(status: true) # Only active companies for motor insurance
+
+      # Apply search filter
+      if search.present?
+        companies = companies.where("name ILIKE ?", "%#{search}%")
+      end
+
+      companies = companies.order(:name)
+
+      # Apply pagination if requested, otherwise return all
+      if params[:page].present?
+        companies = companies.page(page).per(per_page)
+      end
+
+      companies_data = companies.map do |company|
+        {
+          id: company.id,
+          name: company.name,
+          code: company.code,
+          contact_person: company.contact_person,
+          email: company.email,
+          mobile: company.mobile
+        }
+      end
+
+      render json: {
+        success: true,
+        data: companies_data,
+        pagination: {
+          current_page: params[:page]&.to_i || 1,
+          per_page: per_page,
+          total_companies: companies.respond_to?(:total_count) ? companies.total_count : companies_data.count,
+          total_pages: companies.respond_to?(:total_pages) ? companies.total_pages : 1
+        }
+      }
+    rescue => e
+      Rails.logger.error "Error in public motor_insurance_companies: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      render json: {
+        success: false,
+        message: "Failed to load motor insurance companies: #{e.message}"
+      }, status: 500
+    end
+  end
+
   private
 
   def set_cors_headers

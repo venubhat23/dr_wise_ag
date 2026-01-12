@@ -19,6 +19,15 @@ class ApplicationController < ActionController::Base
     redirect_to root_path, alert: exception.message
   end
 
+  # Redirect users after sign in based on their role
+  def after_sign_in_path_for(resource)
+    if resource.ambassador?
+      ambassador_dashboard_path
+    else
+      stored_location_for(resource) || root_path
+    end
+  end
+
   protected
 
   def configure_permitted_parameters
@@ -36,6 +45,12 @@ class ApplicationController < ActionController::Base
     if self.class.name.start_with?('Admin::') && (current_user&.admin? || current_user&.user_type == 'admin')
       return false
     end
+
+    # Skip authorization for ambassador controller
+    if self.class.name == 'AmbassadorController'
+      return false
+    end
+
     true
   end
 

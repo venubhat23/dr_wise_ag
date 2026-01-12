@@ -133,6 +133,121 @@
     </div>
   </div>
 
+  <!-- 1.5. Login Credentials Section -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-key me-2 text-success"></i>
+      <h5 class="mb-0">Login Credentials</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-12">
+          <h6 class="text-primary mb-3">
+            <i class="bi bi-shield-check me-2"></i>Ambassador Account Creation
+          </h6>
+          <p class="text-muted small mb-3">Create login account for this ambassador to access the system</p>
+        </div>
+
+        <!-- Password Creation Options -->
+        <div class="col-12 mb-4">
+          <label class="form-label mb-3">Password Creation Method</label>
+
+          <!-- Auto Generate Option (Default) -->
+          <div class="form-check mb-3 p-3 border rounded bg-light">
+            <input class="form-check-input" type="radio" name="password_option" id="auto_generate_password" value="auto_generate" checked>
+            <label class="form-check-label w-100" for="auto_generate_password">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-cpu me-2 text-primary"></i>
+                <strong>Auto Generate Password (Recommended)</strong>
+              </div>
+              <small class="text-muted d-block mt-1">
+                System will automatically generate a secure password: <strong>Ganesha@123</strong>
+              </small>
+            </label>
+          </div>
+
+          <!-- Manual Entry Option -->
+          <div class="form-check mb-3 p-3 border rounded">
+            <input class="form-check-input" type="radio" name="password_option" id="manual_password" value="manual">
+            <label class="form-check-label w-100" for="manual_password">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-pencil me-2 text-success"></i>
+                <strong>Set Custom Password</strong>
+              </div>
+              <small class="text-muted d-block mt-1">
+                Manually enter a custom password for the ambassador
+              </small>
+            </label>
+          </div>
+        </div>
+
+        <!-- Manual Password Fields (hidden by default) -->
+        <div id="manual_password_fields" class="col-12" style="display: none;">
+          <div class="card bg-light border-0">
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <label class="form-label" for="distributor_password">
+                    Password <span class="text-danger">*</span>
+                  </label>
+                  <div class="input-group">
+                    <input type="password" class="form-control" id="distributor_password" name="distributor[password]" placeholder="Enter password" minlength="8">
+                    <button class="btn btn-outline-secondary" type="button" id="toggle_password">
+                      <i class="bi bi-eye" id="password_icon"></i>
+                    </button>
+                  </div>
+                  <small class="form-text text-muted">Minimum 8 characters with letters and numbers</small>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="distributor_password_confirmation">
+                    Confirm Password <span class="text-danger">*</span>
+                  </label>
+                  <div class="input-group">
+                    <input type="password" class="form-control" id="distributor_password_confirmation" name="distributor[password_confirmation]" placeholder="Confirm password">
+                    <button class="btn btn-outline-secondary" type="button" id="toggle_confirm_password">
+                      <i class="bi bi-eye" id="confirm_password_icon"></i>
+                    </button>
+                  </div>
+                  <small class="form-text text-muted">Must match the password above</small>
+                </div>
+              </div>
+
+              <!-- Password Strength Indicator -->
+              <div class="mt-3">
+                <label class="form-label small">Password Strength:</label>
+                <div class="progress" style="height: 8px;">
+                  <div class="progress-bar" id="password_strength_bar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <small id="password_strength_text" class="text-muted"></small>
+              </div>
+
+              <!-- Generate Password Button -->
+              <div class="mt-3">
+                <button type="button" class="btn btn-outline-primary btn-sm" id="generate_password">
+                  <i class="bi bi-arrow-clockwise me-1"></i>Generate Strong Password
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm ms-2" id="copy_generated_password" style="display: none;">
+                  <i class="bi bi-clipboard me-1"></i>Copy Password
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto Generated Password Info -->
+        <div id="auto_password_info" class="col-12">
+          <div class="alert alert-info d-flex align-items-center">
+            <i class="bi bi-shield-check fs-4 me-3 text-primary"></i>
+            <div>
+              <strong>Default Password: Ganesha@123</strong><br>
+              <small class="text-muted">This password will be assigned to the ambassador. They can change it after their first login.</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 2. Bank Details -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-transparent border-0 d-flex align-items-center">
@@ -287,8 +402,16 @@
       <div class="row mb-4">
         <div class="col-md-12">
           <%= form.label :upload_main_document, "Upload Main Document", class: "form-label" %>
-          <%= form.file_field :upload_main_document, class: "form-control", accept: "image/*,application/pdf" %>
+          <%= form.file_field :upload_main_document, class: "form-control", accept: "image/*,application/pdf", id: "main_document_upload" %>
           <small class="form-text text-muted">Upload main identification document (JPG, PNG, PDF)</small>
+
+          <!-- Main Document Preview -->
+          <%= render 'shared/file_upload_preview',
+                     field_id: 'main_document_upload',
+                     preview_id: 'main_document_preview',
+                     accept: 'image/*,application/pdf',
+                     show_file_info: true,
+                     max_file_size: '10MB' %>
         </div>
       </div>
 
@@ -454,7 +577,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   addDocumentBtn?.addEventListener('click', function() {
     const documentHtml = `
-      <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${documentIndex}">
+      <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${documentIndex}" style="background: #f8f9fa;">
         <button type="button" class="btn btn-sm btn-outline-danger remove-btn remove-document">
           <i class="bi bi-trash"></i>
         </button>
@@ -473,15 +596,183 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <div class="col-md-6">
             <label class="form-label">Document File <span class="text-danger">*</span></label>
-            <input type="file" name="distributor[distributor_documents_attributes][${documentIndex}][document_file]" class="form-control" accept="image/*,application/pdf" required>
+            <input type="file" name="distributor[distributor_documents_attributes][${documentIndex}][document_file]" class="form-control" accept="image/*,application/pdf" required id="distributor_doc_file_${documentIndex}">
+          </div>
+        </div>
+
+        <!-- Document Preview Container -->
+        <div id="distributor_doc_preview_${documentIndex}" class="mt-3" style="display: none;">
+          <div class="card border-light bg-light">
+            <div class="card-body p-3">
+              <div class="d-flex align-items-start">
+                <!-- Preview Content -->
+                <div class="preview-content me-3">
+                  <!-- Image Preview -->
+                  <div class="image-preview" style="display: none;">
+                    <img class="preview-image rounded" style="max-width: 120px; max-height: 120px; object-fit: cover; border: 2px solid #e9ecef;" alt="Preview">
+                  </div>
+
+                  <!-- Document Preview -->
+                  <div class="document-preview" style="display: none;">
+                    <div class="d-flex align-items-center p-2 border rounded" style="background-color: #f8f9fa; min-width: 120px;">
+                      <i class="file-icon bi bi-file-earmark text-primary fs-3 me-2"></i>
+                      <div>
+                        <div class="fw-bold file-name text-truncate small" style="max-width: 100px;"></div>
+                        <small class="text-muted file-type"></small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- File Information -->
+                <div class="file-info flex-grow-1">
+                  <h6 class="mb-1 small">
+                    <i class="bi bi-file-earmark-check text-success me-1"></i>
+                    <span class="file-title">Document Ready</span>
+                  </h6>
+                  <div class="file-details small text-muted">
+                    <div><strong>Name:</strong> <span class="file-name-detail"></span></div>
+                    <div><strong>Size:</strong> <span class="file-size-detail"></span></div>
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="file-actions">
+                  <button type="button" class="btn btn-sm btn-outline-danger remove-file" title="Remove File">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     `;
     documentsContainer.insertAdjacentHTML('beforeend', documentHtml);
+
+    // Add event listener for the new file input
+    setupDistributorDocumentPreview(documentIndex);
+
     documentIndex++;
   });
 
+
+  // Function to setup preview functionality for distributor documents
+  function setupDistributorDocumentPreview(index) {
+    const fileInput = document.getElementById(`distributor_doc_file_${index}`);
+    const previewContainer = document.getElementById(`distributor_doc_preview_${index}`);
+
+    if (!fileInput || !previewContainer) return;
+
+    fileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+
+      if (!file) {
+        previewContainer.style.display = 'none';
+        return;
+      }
+
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        showDistributorDocError(fileInput, 'File size exceeds 10MB limit');
+        fileInput.value = '';
+        previewContainer.style.display = 'none';
+        return;
+      }
+
+      showDistributorDocumentPreview(file, previewContainer);
+    });
+
+    // Remove file button
+    previewContainer.querySelector('.remove-file')?.addEventListener('click', function() {
+      fileInput.value = '';
+      previewContainer.style.display = 'none';
+    });
+  }
+
+  function showDistributorDocumentPreview(file, previewContainer) {
+    const imagePreview = previewContainer.querySelector('.image-preview');
+    const documentPreview = previewContainer.querySelector('.document-preview');
+    const fileNameElement = previewContainer.querySelector('.file-name-detail');
+    const fileSizeElement = previewContainer.querySelector('.file-size-detail');
+
+    // Hide both previews initially
+    imagePreview.style.display = 'none';
+    documentPreview.style.display = 'none';
+
+    // Show preview container
+    previewContainer.style.display = 'block';
+
+    // Update file details
+    if (fileNameElement) fileNameElement.textContent = file.name;
+    if (fileSizeElement) fileSizeElement.textContent = formatDistributorFileSize(file.size);
+
+    // Check if file is an image
+    if (file.type && file.type.startsWith('image/')) {
+      showDistributorImagePreview(file, imagePreview);
+    } else {
+      showDistributorDocPreview(file, documentPreview);
+    }
+
+    // Add smooth animation
+    previewContainer.style.opacity = '0';
+    setTimeout(() => {
+      previewContainer.style.transition = 'opacity 0.3s ease';
+      previewContainer.style.opacity = '1';
+    }, 10);
+  }
+
+  function showDistributorImagePreview(file, container) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = container.querySelector('.preview-image');
+      img.src = e.target.result;
+      container.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function showDistributorDocPreview(file, container) {
+    const fileIcon = container.querySelector('.file-icon');
+    const fileName = container.querySelector('.file-name');
+    const fileType = container.querySelector('.file-type');
+
+    fileName.textContent = file.name;
+    fileType.textContent = file.type || 'Unknown type';
+
+    // Set appropriate icon
+    fileIcon.className = 'file-icon bi fs-3 me-2 ' + getDistributorFileIcon(file.type || file.name);
+
+    container.style.display = 'block';
+  }
+
+  function formatDistributorFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  function getDistributorFileIcon(fileType) {
+    if (fileType.includes('pdf')) return 'bi-file-earmark-pdf text-danger';
+    if (fileType.includes('word') || fileType.includes('document')) return 'bi-file-earmark-word text-primary';
+    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'bi-file-earmark-excel text-success';
+    if (fileType.includes('image')) return 'bi-file-earmark-image text-info';
+    return 'bi-file-earmark text-muted';
+  }
+
+  function showDistributorDocError(inputElement, message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger alert-dismissible fade show mt-2';
+    errorDiv.innerHTML = `
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    inputElement.parentNode.insertBefore(errorDiv, inputElement.nextSibling);
+    setTimeout(() => errorDiv.remove(), 5000);
+  }
 
   // Event delegation for remove buttons
   document.addEventListener('click', function(e) {
@@ -591,5 +882,244 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(() => {
     searchInput.focus();
   }, 500);
+});
+
+// Password type toggle functionality for distributors
+document.addEventListener('DOMContentLoaded', function() {
+  const distributorUserEnterPasswordCheckbox = document.getElementById('distributor_user_enter_password');
+  const distributorManualPasswordFields = document.getElementById('distributor_manual_password_fields');
+  const distributorSystemPasswordInfo = document.getElementById('distributor_system_password_info');
+  const distributorPasswordField = document.getElementById('distributor_password');
+  const distributorPasswordConfirmationField = document.getElementById('distributor_password_confirmation');
+
+  if (distributorUserEnterPasswordCheckbox) {
+    distributorUserEnterPasswordCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        // User wants to enter password manually
+        distributorManualPasswordFields.style.display = 'block';
+        distributorSystemPasswordInfo.style.display = 'none';
+        distributorPasswordField.setAttribute('required', 'required');
+        distributorPasswordConfirmationField.setAttribute('required', 'required');
+      } else {
+        // System will generate password (Ganesha@123)
+        distributorManualPasswordFields.style.display = 'none';
+        distributorSystemPasswordInfo.style.display = 'block';
+        distributorPasswordField.removeAttribute('required');
+        distributorPasswordConfirmationField.removeAttribute('required');
+        distributorPasswordField.value = '';
+        distributorPasswordConfirmationField.value = '';
+      }
+    });
+  }
+
+  // Password strength validation
+  if (distributorPasswordField) {
+    distributorPasswordField.addEventListener('input', function() {
+      const password = this.value;
+      const confirmField = distributorPasswordConfirmationField;
+
+      if (password.length < 8) {
+        this.classList.add('is-invalid');
+        this.classList.remove('is-valid');
+      } else {
+        this.classList.remove('is-invalid');
+        this.classList.add('is-valid');
+      }
+
+      // Check password confirmation match
+      if (confirmField.value && confirmField.value !== password) {
+        confirmField.classList.add('is-invalid');
+        confirmField.classList.remove('is-valid');
+      } else if (confirmField.value === password && password.length >= 8) {
+        confirmField.classList.remove('is-invalid');
+        confirmField.classList.add('is-valid');
+      }
+    });
+  }
+
+  if (distributorPasswordConfirmationField) {
+    distributorPasswordConfirmationField.addEventListener('input', function() {
+      const password = distributorPasswordField.value;
+      const confirmation = this.value;
+
+      if (confirmation !== password) {
+        this.classList.add('is-invalid');
+        this.classList.remove('is-valid');
+      } else if (confirmation === password && password.length >= 8) {
+        this.classList.remove('is-invalid');
+        this.classList.add('is-valid');
+      }
+    });
+  }
+
+  // Password Option Toggle Functionality
+  const autoGenerateRadio = document.getElementById('auto_generate_password');
+  const manualPasswordRadio = document.getElementById('manual_password');
+  const manualPasswordFields = document.getElementById('manual_password_fields');
+  const autoPasswordInfo = document.getElementById('auto_password_info');
+
+  function togglePasswordFields() {
+    if (manualPasswordRadio.checked) {
+      manualPasswordFields.style.display = 'block';
+      autoPasswordInfo.style.display = 'none';
+      // Make password fields required
+      document.getElementById('distributor_password').required = true;
+      document.getElementById('distributor_password_confirmation').required = true;
+    } else {
+      manualPasswordFields.style.display = 'none';
+      autoPasswordInfo.style.display = 'block';
+      // Remove required attribute
+      document.getElementById('distributor_password').required = false;
+      document.getElementById('distributor_password_confirmation').required = false;
+      // Clear password fields
+      document.getElementById('distributor_password').value = '';
+      document.getElementById('distributor_password_confirmation').value = '';
+    }
+  }
+
+  // Event listeners for radio buttons
+  autoGenerateRadio?.addEventListener('change', togglePasswordFields);
+  manualPasswordRadio?.addEventListener('change', togglePasswordFields);
+
+  // Password visibility toggle
+  const togglePasswordBtn = document.getElementById('toggle_password');
+  const toggleConfirmPasswordBtn = document.getElementById('toggle_confirm_password');
+  const passwordField = document.getElementById('distributor_password');
+  const confirmPasswordField = document.getElementById('distributor_password_confirmation');
+  const passwordIcon = document.getElementById('password_icon');
+  const confirmPasswordIcon = document.getElementById('confirm_password_icon');
+
+  togglePasswordBtn?.addEventListener('click', function() {
+    const type = passwordField.type === 'password' ? 'text' : 'password';
+    passwordField.type = type;
+    passwordIcon.classList.toggle('bi-eye');
+    passwordIcon.classList.toggle('bi-eye-slash');
+  });
+
+  toggleConfirmPasswordBtn?.addEventListener('click', function() {
+    const type = confirmPasswordField.type === 'password' ? 'text' : 'password';
+    confirmPasswordField.type = type;
+    confirmPasswordIcon.classList.toggle('bi-eye');
+    confirmPasswordIcon.classList.toggle('bi-eye-slash');
+  });
+
+  // Password strength checker
+  const strengthBar = document.getElementById('password_strength_bar');
+  const strengthText = document.getElementById('password_strength_text');
+
+  function checkPasswordStrength(password) {
+    let strength = 0;
+    const checks = {
+      length: password.length >= 8,
+      lower: /[a-z]/.test(password),
+      upper: /[A-Z]/.test(password),
+      number: /\d/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    };
+
+    strength = Object.values(checks).filter(Boolean).length;
+
+    let strengthLevel = '';
+    let colorClass = '';
+    let widthPercent = 0;
+
+    switch(strength) {
+      case 0:
+      case 1:
+        strengthLevel = 'Very Weak';
+        colorClass = 'bg-danger';
+        widthPercent = 20;
+        break;
+      case 2:
+        strengthLevel = 'Weak';
+        colorClass = 'bg-warning';
+        widthPercent = 40;
+        break;
+      case 3:
+        strengthLevel = 'Fair';
+        colorClass = 'bg-info';
+        widthPercent = 60;
+        break;
+      case 4:
+        strengthLevel = 'Good';
+        colorClass = 'bg-primary';
+        widthPercent = 80;
+        break;
+      case 5:
+        strengthLevel = 'Strong';
+        colorClass = 'bg-success';
+        widthPercent = 100;
+        break;
+    }
+
+    strengthBar.className = `progress-bar ${colorClass}`;
+    strengthBar.style.width = `${widthPercent}%`;
+    strengthText.textContent = strengthLevel;
+  }
+
+  passwordField?.addEventListener('input', function() {
+    checkPasswordStrength(this.value);
+  });
+
+  // Password generator
+  const generatePasswordBtn = document.getElementById('generate_password');
+  const copyPasswordBtn = document.getElementById('copy_generated_password');
+
+  function generateStrongPassword() {
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numbers = '0123456789';
+    const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+    let password = '';
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+
+    const allChars = lowercase + uppercase + numbers + symbols;
+    for (let i = 4; i < 12; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+  }
+
+  generatePasswordBtn?.addEventListener('click', function() {
+    const newPassword = generateStrongPassword();
+    passwordField.value = newPassword;
+    confirmPasswordField.value = newPassword;
+    checkPasswordStrength(newPassword);
+    copyPasswordBtn.style.display = 'inline-block';
+
+    // Trigger validation
+    passwordField.dispatchEvent(new Event('input'));
+    confirmPasswordField.dispatchEvent(new Event('input'));
+  });
+
+  // Copy password to clipboard
+  copyPasswordBtn?.addEventListener('click', async function() {
+    try {
+      await navigator.clipboard.writeText(passwordField.value);
+      this.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+      this.classList.replace('btn-outline-secondary', 'btn-success');
+
+      setTimeout(() => {
+        this.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy Password';
+        this.classList.replace('btn-success', 'btn-outline-secondary');
+      }, 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      passwordField.select();
+      document.execCommand('copy');
+      this.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+      setTimeout(() => {
+        this.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy Password';
+      }, 2000);
+    }
+  });
+
+  // Initialize the form state
+  togglePasswordFields();
 });
 </script>

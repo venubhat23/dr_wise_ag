@@ -58,14 +58,14 @@
             </div>
 
             <div class="col-md-6 mb-3">
-              <%= form.label :insurance_company_id, "Insurance Company", class: "form-label" %>
-              <%= form.select :insurance_company_id,
-                  options_from_collection_for_select(InsuranceCompany.all, :id, :name, @health_insurance.insurance_company_id),
+              <%= form.label :insurance_company_name, "Insurance Company", class: "form-label" %>
+              <%= form.select :insurance_company_name,
+                  options_from_collection_for_select(InsuranceCompany.all, :name, :name, @health_insurance.insurance_company_name),
                   { prompt: 'Select Insurance Company' },
-                  { class: "form-control #{'is-invalid' if @health_insurance.errors[:insurance_company_id].any?}", required: true } %>
-              <% if @health_insurance.errors[:insurance_company_id].any? %>
+                  { class: "form-control #{'is-invalid' if @health_insurance.errors[:insurance_company_name].any?}", required: true } %>
+              <% if @health_insurance.errors[:insurance_company_name].any? %>
                 <div class="invalid-feedback">
-                  <%= @health_insurance.errors[:insurance_company_id].first %>
+                  <%= @health_insurance.errors[:insurance_company_name].first %>
                 </div>
               <% end %>
             </div>
@@ -214,6 +214,26 @@
           </div>
         </div>
       </div>
+
+      <!-- Existing Documents (Edit Mode) -->
+      <% if @health_insurance.respond_to?(:uploaded_documents) && @health_insurance.uploaded_documents.any? %>
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="bi bi-files me-2 text-primary"></i>
+              Policy Documents
+            </h5>
+          </div>
+          <div class="card-body">
+            <%= render 'shared/existing_documents_display',
+                       documents: @health_insurance.uploaded_documents,
+                       title: 'Current Health Insurance Documents',
+                       show_actions: true,
+                       record_type: 'health insurance policy',
+                       container_class: '' %>
+          </div>
+        </div>
+      <% end %>
 
       <!-- Form Actions -->
       <div class="card">

@@ -94,7 +94,7 @@
         <div class="col-md-4">
           <%= form.label :city_id, "City", class: "form-label" %>
           <%= form.select :city_id,
-              options_for_select([], @distributor.city_id),
+              options_for_select(LocationData.cities_for_state(@distributor.state_id), @distributor.city_id),
               { prompt: 'Search and select city...' },
               { class: "form-select searchable-select", id: "distributor_city", data: { placeholder: "Type to search cities..." } } %>
         </div>
@@ -280,7 +280,8 @@
     </div>
   </div>
 
-  <!-- 4. Documents & QR Code -->
+  <%# 4. Documents & QR Code - Temporarily disabled %>
+  <%#
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-transparent border-0 d-flex align-items-center">
       <i class="bi bi-file-earmark-arrow-up me-2 text-warning"></i>
@@ -304,39 +305,19 @@
       <!-- Existing Documents -->
       <% if @distributor.distributor_documents.any? %>
         <div class="border-bottom pb-4 mb-4">
-          <h6 class="mb-3">Existing Documents</h6>
-          <div class="row">
-            <% @distributor.distributor_documents.each do |document| %>
-              <div class="col-md-6 mb-3">
-                <div class="card h-100">
-                  <div class="card-body">
-                    <h6 class="card-title"><%= document.document_type %></h6>
-                    <p class="card-text">
-                      <small class="text-muted">
-                        <%= document.document_name %><br>
-                        Uploaded: <%= document.created_at ? time_ago_in_words(document.created_at) + ' ago' : 'Date not available' %>
-                      </small>
-                    </p>
-                    <div class="d-flex gap-2">
-                      <% if document.document_file.attached? %>
-                        <%= link_to document.document_url, target: '_blank', class: "btn btn-sm btn-outline-primary" do %>
-                          <i class="bi bi-eye me-1"></i>View
-                        <% end %>
-                      <% end %>
-                      <button type="button" class="btn btn-sm btn-outline-danger"
-                              onclick="markForDeletion(<%= document.id %>)">
-                        <i class="bi bi-trash me-1"></i>Delete
-                      </button>
-                      <!-- Hidden field for deletion marking -->
-                      <%= hidden_field_tag "distributor[distributor_documents_attributes][#{document.id}][id]", document.id %>
-                      <%= hidden_field_tag "distributor[distributor_documents_attributes][#{document.id}][_destroy]", false,
-                                          id: "document_destroy_#{document.id}" %>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            <% end %>
-          </div>
+          <%= render 'shared/existing_documents_display',
+                     documents: @distributor.distributor_documents,
+                     title: 'Current Ambassador Documents',
+                     show_actions: true,
+                     record_type: 'ambassador',
+                     container_class: '' %>
+
+          <!-- Hidden fields for document deletion -->
+          <% @distributor.distributor_documents.each do |document| %>
+            <%= hidden_field_tag "distributor[distributor_documents_attributes][#{document.id}][id]", document.id %>
+            <%= hidden_field_tag "distributor[distributor_documents_attributes][#{document.id}][_destroy]", false,
+                                id: "document_destroy_#{document.id}" %>
+          <% end %>
         </div>
       <% end %>
 
@@ -360,6 +341,7 @@
       </div>
     </div>
   </div>
+  %>
 
   <!-- Form Actions -->
   <div class="card border-0 shadow-sm">
@@ -436,9 +418,9 @@ document.addEventListener('DOMContentLoaded', function() {
     citySelect.innerHTML = '<option value="">Select City</option>';
     cities.forEach(city => {
       const option = document.createElement('option');
-      option.value = city;
-      option.textContent = city;
-      if (city === selectedCityValue) {
+      option.value = city.value || city;
+      option.textContent = city.text || city;
+      if ((city.value || city) == selectedCityValue) {
         option.selected = true;
       }
       citySelect.appendChild(option);
@@ -496,9 +478,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Load cities if state is pre-selected (for edit page auto-fill)
   if (stateSelect.value) {
-    // Get current city text value based on city_id for auto-selection
-    const currentCityText = citySelect.querySelector(`option[value="${currentCityId}"]`)?.textContent;
-    loadCitiesForState(stateSelect.value, currentCityText);
+    // Use the current city ID directly for auto-selection
+    loadCitiesForState(stateSelect.value, currentCityId);
   }
 
   // Document management

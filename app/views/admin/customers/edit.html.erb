@@ -343,54 +343,14 @@
               </div>
             <% end %>
 
-            <!-- New Document System -->
+            <!-- Enhanced Document System -->
             <% if @customer.uploaded_documents.any? %>
-              <h6>Documents</h6>
-              <div class="row">
-                <% @customer.uploaded_documents.each do |document| %>
-                  <div class="col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm">
-                      <div class="card-body">
-                        <div class="d-flex align-items-center">
-                          <div class="flex-shrink-0">
-                            <i class="bi bi-<%= document.file_icon %> text-primary fs-4"></i>
-                          </div>
-                          <div class="flex-grow-1 ms-3">
-                            <h6 class="mb-1"><%= document.title %></h6>
-                            <small class="text-muted">
-                              <%= document.human_document_type %> •
-                              <%= document.human_file_type %>
-                              <% if document.file_size %>
-                                • <%= number_to_human_size(document.file_size) %>
-                              <% end %>
-                            </small>
-                            <% if document.description.present? %>
-                              <p class="text-muted mt-1 mb-0 small"><%= document.description %></p>
-                            <% end %>
-                          </div>
-                          <div class="flex-shrink-0">
-                            <div class="btn-group">
-                              <%= link_to admin_document_path(document), class: "btn btn-sm btn-outline-info", target: "_blank", title: "View" do %>
-                                <i class="bi bi-eye"></i>
-                              <% end %>
-                              <%= link_to download_admin_document_path(document), class: "btn btn-sm btn-outline-primary", target: "_blank", title: "Download" do %>
-                                <i class="bi bi-download"></i>
-                              <% end %>
-                              <%= link_to admin_document_path(document), method: :delete,
-                                  class: "btn btn-sm btn-outline-danger",
-                                  title: "Delete",
-                                  confirm: "Are you sure you want to delete this document?",
-                                  data: { turbo_method: :delete } do %>
-                                <i class="bi bi-trash"></i>
-                              <% end %>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                <% end %>
-              </div>
+              <%= render 'shared/existing_documents_display',
+                         documents: @customer.uploaded_documents,
+                         title: 'Customer Documents',
+                         show_actions: true,
+                         record_type: 'customer',
+                         container_class: '' %>
             <% end %>
           </div>
         </div>

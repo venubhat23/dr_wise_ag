@@ -81,13 +81,21 @@
           <!-- File Upload -->
           <div class="mb-3">
             <%= form.label :file, class: "form-label" %>
-            <%= form.file_field :file, class: "form-control", accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document", required: true %>
+            <%= form.file_field :file, class: "form-control", accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document", required: true, id: "document_file" %>
             <div class="form-text">
               Accepted formats: PDF, JPG, PNG, DOC. Maximum size: 10MB.
             </div>
             <div class="invalid-feedback">
               Please select a file to upload.
             </div>
+
+            <!-- File Preview Component -->
+            <%= render 'shared/file_upload_preview',
+                       field_id: 'document_file',
+                       preview_id: 'document_file_preview',
+                       accept: 'application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                       show_file_info: true,
+                       max_file_size: '10MB' %>
           </div>
 
           <!-- Description -->

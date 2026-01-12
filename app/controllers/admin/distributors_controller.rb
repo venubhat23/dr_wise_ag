@@ -68,8 +68,10 @@ class Admin::DistributorsController < Admin::ApplicationController
     @distributor.role_id = 'distributor'
 
     if @distributor.save
+      # Create user account for ambassador login (same logic as customers)
+      create_ambassador_user_account(@distributor)
       handle_affiliate_assignments(@distributor, params[:distributor][:assigned_affiliate_ids])
-      redirect_to admin_distributors_path, notice: 'Distributor was successfully created.'
+      redirect_to admin_distributors_path, notice: 'Ambassador was successfully created with login credentials.'
     else
       @distributor.distributor_documents.build if @distributor.distributor_documents.empty?
       render :new, status: :unprocessable_entity
@@ -156,6 +158,38 @@ class Admin::DistributorsController < Admin::ApplicationController
   end
 
   private
+
+  def create_ambassador_user_account(distributor)
+    return unless distributor&.email.present?
+
+    # Check if user already exists
+    existing_user = User.find_by(email: distributor.email)
+    return if existing_user
+
+    # Get ambassador roles
+    ambassador_user_role = UserRole.find_by(name: 'Ambassador')
+    ambassador_role = Role.find_by(name: 'ambassador') || Role.find_by(name: 'Ambassador')
+
+    begin
+      # Create user with same password logic as customers
+      user = User.create!(
+        first_name: distributor.first_name || 'Ambassador',
+        last_name: distributor.last_name || 'User',
+        email: distributor.email,
+        password: 'Ganesha@123',
+        password_confirmation: 'Ganesha@123',
+        mobile: distributor.mobile,
+        user_type: 'ambassador',
+        role: ambassador_role,
+        user_role: ambassador_user_role,
+        status: true
+      )
+
+      Rails.logger.info "✅ Ambassador user account created: #{user.email}"
+    rescue => e
+      Rails.logger.error "❌ Failed to create ambassador user: #{e.message}"
+    end
+  end
 
   def set_distributor
     @distributor = Distributor.find(params[:id])

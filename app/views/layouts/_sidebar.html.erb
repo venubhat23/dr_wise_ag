@@ -1062,6 +1062,53 @@
         </ul>
       </div>
     <% end %>
+
+    <!-- Commission Section for Ambassadors -->
+    <% if current_user&.ambassador? %>
+    <div class="nav-section">
+      <div class="nav-section-title">Commission</div>
+      <ul class="nav-menu">
+        <!-- My Commission Dashboard -->
+        <li class="nav-item">
+          <%= link_to ambassador_dashboard_path, class: "nav-link-modern #{'active' if request.path.include?('/ambassador/dashboard')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-emerald">
+                <i class="bi bi-grid-3x3-gap-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Commission Dashboard</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Commission Details -->
+        <li class="nav-item">
+          <%= link_to ambassador_commission_details_path, class: "nav-link-modern #{'active' if request.path.include?('/ambassador/commission_details')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-cyan">
+                <i class="bi bi-list-columns-reverse"></i>
+              </div>
+            </div>
+            <span class="nav-text">Commission Details</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Payout History -->
+        <li class="nav-item">
+          <%= link_to ambassador_payout_history_path, class: "nav-link-modern #{'active' if request.path.include?('/ambassador/payout_history')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-yellow">
+                <i class="bi bi-wallet2"></i>
+              </div>
+            </div>
+            <span class="nav-text">Payout History</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+      </ul>
+    </div>
+    <% end %>
   </nav>
 
   <!-- Logout Section - Moved outside nav to be fixed at bottom -->

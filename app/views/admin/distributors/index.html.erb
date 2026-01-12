@@ -105,7 +105,7 @@
             <tr>
               <th>Name</th>
               <th>Mobile</th>
-              <th>Email</th>
+              <th>Login Credentials</th>
               <th>Role</th>
               <th>Affiliates</th>
               <th>Status</th>
@@ -134,10 +134,26 @@
                   </span>
                 </td>
                 <td>
-                  <span class="badge bg-light text-dark border">
-                    <i class="bi bi-envelope me-1"></i>
-                    <%= distributor.formatted_email %>
-                  </span>
+                  <div class="login-credentials">
+                    <div class="mb-1">
+                      <small class="text-muted d-block">Username:</small>
+                      <div class="d-flex align-items-center">
+                        <code class="bg-light border rounded px-2 py-1 me-2" id="username_<%= distributor.id %>"><%= distributor.email %></code>
+                        <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-copy="<%= distributor.email %>" title="Copy Username">
+                          <i class="bi bi-copy"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <small class="text-muted d-block">Password:</small>
+                      <div class="d-flex align-items-center">
+                        <code class="bg-light border rounded px-2 py-1 me-2" id="password_<%= distributor.id %>">Ganesha@123</code>
+                        <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-copy="Ganesha@123" title="Copy Password">
+                          <i class="bi bi-copy"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </td>
                 <td>
                   <span class="badge bg-info">Role <%= distributor.role_id %></span>
@@ -374,5 +390,88 @@ document.addEventListener('DOMContentLoaded', function() {
       this.remove();
     });
   }
+
+  // Copy to clipboard functionality
+  const copyButtons = document.querySelectorAll('.copy-btn');
+  copyButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const textToCopy = this.getAttribute('data-copy');
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          showCopyNotification(this, 'Copied!');
+        }).catch(err => {
+          fallbackCopyTextToClipboard(textToCopy, this);
+        });
+      } else {
+        fallbackCopyTextToClipboard(textToCopy, this);
+      }
+    });
+  });
+
+  function fallbackCopyTextToClipboard(text, button) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.top = "-1000px";
+    textArea.style.left = "-1000px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        showCopyNotification(button, 'Copied!');
+      } else {
+        showCopyNotification(button, 'Failed to copy', true);
+      }
+    } catch (err) {
+      showCopyNotification(button, 'Failed to copy', true);
+    }
+
+    document.body.removeChild(textArea);
+  }
+
+  function showCopyNotification(button, message, isError = false) {
+    const originalIcon = button.innerHTML;
+    const originalClass = button.className;
+
+    button.innerHTML = `<i class="bi bi-check"></i>`;
+    button.className = isError ? 'btn btn-sm btn-outline-danger' : 'btn btn-sm btn-outline-success';
+
+    setTimeout(() => {
+      button.innerHTML = originalIcon;
+      button.className = originalClass;
+    }, 1000);
+  }
 });
 </script>
+
+<!-- Additional Styling for Login Credentials -->
+<style>
+.login-credentials code {
+  font-size: 0.75rem;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+}
+
+.login-credentials .copy-btn {
+  padding: 0.125rem 0.25rem;
+}
+
+.login-credentials .copy-btn i {
+  font-size: 0.75rem;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+.login-credentials {
+  min-width: 180px;
+}
+</style>

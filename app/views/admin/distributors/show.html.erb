@@ -309,29 +309,21 @@
     </div>
 
     <!-- Documents -->
-    <% if @documents.any? %>
+    <% if @distributor.distributor_documents.any? %>
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-transparent border-0">
           <h6 class="mb-0">
             <i class="bi bi-file-earmark me-2 text-warning"></i>
-            Documents (<%= @documents.count %>)
+            Documents
           </h6>
         </div>
-        <div class="card-body">
-          <% @documents.each do |document| %>
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <div>
-                <small class="fw-medium"><%= document.document_type %></small>
-                <br>
-                <small class="text-muted"><%= document.document_name %></small>
-              </div>
-              <% if document.document_file.attached? %>
-                <%= link_to document.document_url, target: '_blank', class: "btn btn-sm btn-outline-primary" do %>
-                  <i class="bi bi-eye"></i>
-                <% end %>
-              <% end %>
-            </div>
-          <% end %>
+        <div class="card-body p-2">
+          <%= render 'shared/existing_documents_display',
+                     documents: @distributor.distributor_documents,
+                     title: 'Ambassador Documents',
+                     show_actions: true,
+                     record_type: 'ambassador',
+                     container_class: '' %>
         </div>
       </div>
     <% end %>

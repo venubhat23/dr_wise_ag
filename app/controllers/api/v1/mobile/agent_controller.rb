@@ -1,5 +1,5 @@
 class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
-  before_action :authenticate_agent!
+  before_action :authenticate_agent!, except: [:insurance_companies, :motor_insurance_companies]
   attr_reader :current_user
 
   # GET /api/v1/mobile/agent/dashboard
@@ -77,13 +77,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                       end
 
         {
-          id: doc.id,
-          document_type: doc.document_type,
-          filename: doc.filename,
-          file_size: doc.file_size,
-          file_type: doc.file_type,
-          uploaded_at: doc.created_at,
-          download_url: download_url
+          document: doc.document_type,
+          url: download_url
         }
       end
 
@@ -752,7 +747,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       :agent_commission_percentage, :commission_amount, :vehicle_type, :make, :model,
       :registration_number, :registration_date, :engine_number, :chassis_number, :mfy,
       :variant, :seating_capacity, :vehicle_idv, :zero_depreciation, :roadside_assistance,
-      :ncb, :previous_policy_number
+      :ncb, :previous_policy_number, :payment_mode,
+      documents: [:document_type, :document_file]
     )
 
     if policy_params[:customer_id].blank?
@@ -804,12 +800,18 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       roadside_assistance: policy_params[:roadside_assistance],
       ncb: policy_params[:ncb],
       previous_policy_number: policy_params[:previous_policy_number],
+      payment_mode: policy_params[:payment_mode] || 'Annual',
       is_agent_added: true,
       is_customer_added: false,
       is_admin_added: false
     )
 
     if policy.save
+      # Handle document uploads
+      if params[:documents].present?
+        handle_motor_insurance_document_uploads(policy, params[:documents])
+      end
+
       render json: {
         success: true,
         message: 'Motor insurance policy added successfully',
@@ -1674,11 +1676,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     if policy.respond_to?(:documents) && policy.documents.attached?
       documents += policy.documents.map do |doc|
         {
-          id: doc.id,
-          filename: doc.filename.to_s,
-          content_type: doc.content_type || 'application/pdf',
-          byte_size: doc.byte_size,
-          created_at: doc.created_at&.strftime('%Y-%m-%d %H:%M:%S'),
+          document: 'Policy Document',
           url: begin
                   Rails.application.routes.url_helpers.rails_blob_url(doc, host: 'dr-wise-ag.onrender.com', protocol: 'https')
                 rescue
@@ -1692,11 +1690,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     if policy.respond_to?(:policy_documents) && policy.policy_documents.attached?
       documents += policy.policy_documents.map do |doc|
         {
-          id: doc.id,
-          filename: doc.filename.to_s,
-          content_type: doc.content_type || 'application/pdf',
-          byte_size: doc.byte_size,
-          created_at: doc.created_at&.strftime('%Y-%m-%d %H:%M:%S'),
+          document: 'Policy Document',
           url: begin
                   Rails.application.routes.url_helpers.rails_blob_url(doc, host: 'dr-wise-ag.onrender.com', protocol: 'https')
                 rescue
@@ -1711,12 +1705,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       policy.life_insurance_documents.includes(:document_attachment).each do |doc_record|
         if doc_record.document.attached?
           documents << {
-            id: doc_record.id,
-            filename: doc_record.document.filename.to_s,
-            content_type: doc_record.document.content_type || 'application/pdf',
-            byte_size: doc_record.document.byte_size,
-            document_type: doc_record.document_type,
-            created_at: doc_record.created_at&.strftime('%Y-%m-%d %H:%M:%S'),
+            document: doc_record.document_type || 'Life Insurance Document',
             url: begin
                     Rails.application.routes.url_helpers.rails_blob_url(doc_record.document, host: 'dr-wise-ag.onrender.com', protocol: 'https')
                   rescue
@@ -1747,7 +1736,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       agent_commission: agent_commission,
       status: policy.respond_to?(:active?) ? (policy.active? ? 'Active' : 'Inactive') : 'Active',
       is_drwise_policy: determine_drwise_policy(policy),
-      document: documents.first || nil,
+      document: documents.first ? documents.first[:url] : nil,
       created_at: policy.created_at
     }
   end
@@ -2306,6 +2295,64 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         Rails.logger.info "Life insurance document uploaded successfully: #{filename}"
       rescue => e
         Rails.logger.error "Error processing life insurance document #{index}: #{e.message}"
+      end
+    end
+  end
+
+  def handle_motor_insurance_document_uploads(policy, documents_data)
+    documents_data.each_with_index do |doc_data, index|
+      next if doc_data[:document_file].blank?
+
+      begin
+        # Handle base64 document data
+        if doc_data[:document_file].is_a?(String) && doc_data[:document_file].start_with?('data:')
+          # Handle base64 encoded file with mime type
+          data_match = doc_data[:document_file].match(/^data:([^;]+);base64,(.+)$/)
+          if data_match
+            content_type = data_match[1]
+            base64_data = data_match[2]
+            decoded_file = Base64.decode64(base64_data)
+          else
+            # Fallback: treat as plain base64 PDF
+            content_type = 'application/pdf'
+            decoded_file = Base64.decode64(doc_data[:document_file])
+          end
+        else
+          # Assume plain base64 string
+          content_type = 'application/pdf'
+          decoded_file = Base64.decode64(doc_data[:document_file])
+        end
+
+        # Determine file extension based on content type
+        extension = case content_type
+                   when /image\/jpeg/ then '.jpg'
+                   when /image\/png/ then '.png'
+                   when /application\/pdf/ then '.pdf'
+                   else '.pdf'
+                   end
+
+        # Create filename
+        filename = "motor_insurance_#{policy.id}_#{doc_data[:document_type]}_#{index + 1}#{extension}"
+
+        # Create a StringIO object for Active Storage
+        file_io = StringIO.new(decoded_file)
+        file_io.set_encoding('BINARY')
+
+        # Attach the document directly to the motor insurance policy using Active Storage
+        policy.documents.attach(
+          io: file_io,
+          filename: filename,
+          content_type: content_type,
+          metadata: {
+            document_type: doc_data[:document_type],
+            uploaded_by: 'agent',
+            uploaded_at: Time.current.iso8601
+          }
+        )
+
+        Rails.logger.info "Motor insurance document uploaded successfully: #{filename}"
+      rescue => e
+        Rails.logger.error "Error processing motor insurance document #{index}: #{e.message}"
       end
     end
   end

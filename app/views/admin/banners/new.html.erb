@@ -57,10 +57,18 @@
       <!-- Banner Image -->
       <div class="col-md-6">
         <%= form.label :banner_image, "Banner Image", class: "form-label" %>
-        <%= form.file_field :banner_image, class: "form-control", accept: "image/*" %>
+        <%= form.file_field :banner_image, class: "form-control", accept: "image/*", id: "banner_image_upload" %>
         <div class="form-text">
           Upload image (JPG, PNG, or WEBP). Images should be optimized for web to reduce load time.
         </div>
+
+        <!-- Banner Image Preview -->
+        <%= render 'shared/file_upload_preview',
+                   field_id: 'banner_image_upload',
+                   preview_id: 'banner_image_preview',
+                   accept: 'image/*',
+                   show_file_info: true,
+                   max_file_size: '5MB' %>
       </div>
 
       <!-- Redirect Link -->
