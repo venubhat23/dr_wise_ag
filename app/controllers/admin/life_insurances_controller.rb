@@ -286,7 +286,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     end
 
     # Load only life insurance companies
-    @insurance_companies = helpers.life_insurance_companies
+    @insurance_companies = LifeInsurance.life_insurance_companies.map { |company| company[:name] }
     @policy_types = LifeInsurance::POLICY_TYPES
     @payment_modes = LifeInsurance::PAYMENT_MODES
     @relationships = LifeInsurance::RELATIONSHIPS

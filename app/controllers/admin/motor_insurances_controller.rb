@@ -132,7 +132,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @agency_codes = AgencyCode.all.order(:code)
     @brokers = Broker.active.order(:name)
     # Load only motor/general insurance companies
-    @insurance_companies = helpers.motor_insurance_companies
+    @insurance_companies = MotorInsurance.general_insurance_companies.map { |company| company[:name] }
     @vehicle_types = MotorInsurance::VEHICLE_TYPES
     @class_of_vehicles = MotorInsurance::CLASS_OF_VEHICLES
     @insurance_types = MotorInsurance::INSURANCE_TYPES

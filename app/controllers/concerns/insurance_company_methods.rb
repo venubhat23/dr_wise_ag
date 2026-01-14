@@ -1,85 +1,34 @@
 module InsuranceCompanyMethods
   extend ActiveSupport::Concern
-
-  # List of insurance companies with their types
-  INSURANCE_COMPANIES = {
-    # Health Insurance Companies
-    "Aditya Birla Health Insurance Co Ltd" => "Health",
-    "Care Health Insurance Ltd" => "Health",
-    "Manipal Cigna Health Insurance Company Limited" => "Health",
-    "Niva Bupa Health Insurance Co Ltd" => "Health",
-    "Star Health Allied Insurance Co Ltd" => "Health",
-
-    # Life Insurance Companies
-    "ICICI Prudential Life Insurance Co Ltd" => "Life",
-    "HDFC Life Insurance Co Ltd" => "Life",
-    "SBI Life Insurance Co Ltd" => "Life",
-    "LIC of India" => "Life",
-    "Bajaj Allianz Life Insurance Co Ltd" => "Life",
-    "Max Life Insurance Co Ltd" => "Life",
-    "Tata AIA Life Insurance Co Ltd" => "Life",
-    "Kotak Mahindra Life Insurance Co Ltd" => "Life",
-    "Aditya Birla Sun Life Insurance Co Ltd" => "Life",
-    "Reliance Nippon Life Insurance Co Ltd" => "Life",
-    "PNB MetLife India Insurance Co Ltd" => "Life",
-    "Canara HSBC Oriental Bank of Commerce Life Insurance Co Ltd" => "Life",
-    "Aviva Life Insurance Co India Ltd" => "Life",
-    "Exide Life Insurance Co Ltd" => "Life",
-
-    # Motor/General Insurance Companies
-    "Acko General Insurance Limited" => "Motor",
-    "Bajaj Allianz General Insurance Company Limited" => "Motor",
-    "Cholamandalam MS General Insurance Co Ltd" => "Motor",
-    "Go Digit General Insurance" => "Motor",
-    "HDFC ERGO General Insurance Co Ltd" => "Motor",
-    "IFFCO TOKIO General Insurance Co Ltd" => "Motor",
-    "Kotak Mahindra General Insurance Company Limited" => "Motor",
-    "Liberty General Insurance Ltd" => "Motor",
-    "National Insurance Co Ltd" => "Motor",
-    "Navi General Insurance Limited" => "Motor",
-    "Oriental Insurance Company Limited" => "Motor",
-    "Raheja QBE General Insurance Co Ltd" => "Motor",
-    "Reliance General Insurance Co Ltd" => "Motor",
-    "Royal Sundaram General Insurance Co Ltd" => "Motor",
-    "Shriram General Insurance Company Limited" => "Motor",
-    "Tata AIG General Insurance Co Ltd" => "Motor",
-    "The New India Assurance Co Ltd" => "Motor",
-    "United India Insurance Company Limited" => "Motor",
-    "Universal Sompo General Insurance Co Ltd" => "Motor",
-    "Zuno General Insurance Ltd" => "Motor",
-
-    # General Insurance Companies
-    "Agriculture Insurance Company of India Ltd" => "General",
-    "ECGC Limited" => "General",
-    "Generalli Central Insurance" => "General",
-    "Kshema General Insurance Limited" => "General"
-  }.freeze
+  include InsuranceCompanyConstants
 
   private
 
-  # Get all insurance companies
+  # Get all insurance companies from InsuranceCompanyConstants
   def insurance_companies_list
-    INSURANCE_COMPANIES.keys
+    self.class.insurance_company_names
   end
 
   # Get health insurance companies only
   def health_insurance_companies
-    INSURANCE_COMPANIES.select { |name, type| type == "Health" }.keys
+    self.class.health_insurance_companies.map { |company| company[:name] }
   end
 
   # Get life insurance companies only
   def life_insurance_companies
-    INSURANCE_COMPANIES.select { |name, type| type == "Life" }.keys
+    self.class.life_insurance_companies.map { |company| company[:name] }
   end
 
   # Get motor insurance companies only
   def motor_insurance_companies
-    INSURANCE_COMPANIES.select { |name, type| type == "Motor" }.keys
+    self.class.general_insurance_companies.select { |company|
+      company[:name].match?(/(Motor|General|ERGO|Digit|Allianz|IFFCO|Cholamandalam|Raheja|Sundaram)/i)
+    }.map { |company| company[:name] }
   end
 
   # Get general insurance companies only
   def general_insurance_companies
-    INSURANCE_COMPANIES.select { |name, type| type == "General" }.keys
+    self.class.general_insurance_companies.map { |company| company[:name] }
   end
 
   # Get companies by insurance type
@@ -100,7 +49,7 @@ module InsuranceCompanyMethods
 
   # Get options for select dropdown
   def insurance_company_options
-    INSURANCE_COMPANIES.map { |name, type| ["#{name} (#{type})", name] }
+    self.class.insurance_company_options
   end
 
   # Get health insurance options for select dropdown
@@ -125,26 +74,26 @@ module InsuranceCompanyMethods
 
   # Get company type by name
   def insurance_company_type(name)
-    INSURANCE_COMPANIES[name]
+    self.class.insurance_company_type(name)
   end
 
   # Check if company is health insurance
   def health_insurance?(name)
-    insurance_company_type(name) == "Health"
+    insurance_company_type(name) == "HEALTH"
   end
 
   # Check if company is life insurance
   def life_insurance?(name)
-    insurance_company_type(name) == "Life"
+    insurance_company_type(name) == "LIFE"
   end
 
   # Check if company is motor insurance
   def motor_insurance?(name)
-    insurance_company_type(name) == "Motor"
+    insurance_company_type(name) == "MOTOR"
   end
 
   # Check if company is general insurance
   def general_insurance?(name)
-    insurance_company_type(name) == "General"
+    insurance_company_type(name) == "GENERAL"
   end
 end

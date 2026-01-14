@@ -15,7 +15,7 @@ module InsuranceCompanyConstants
     { name: "Generalli Central Insurance", type: "GENERAL" },
     { name: "Go Digit General Insurance", type: "GENERAL" },
     { name: "HDFC ERGO General Insurance Co Ltd", type: "GENERAL" },
-    { name: "ICICI Prudential Life Insurance Co Ltd", type: "GENERAL" },
+    { name: "ICICI Prudential Life Insurance Co Ltd", type: "LIFE" },
     { name: "IFFCO TOKIO General Insurance Co Ltd", type: "GENERAL" },
     { name: "Kotak Mahindra General Insurance Company Limited", type: "GENERAL" },
     { name: "Kshema General Insurance Limited", type: "GENERAL" },
@@ -36,7 +36,30 @@ module InsuranceCompanyConstants
     { name: "The New India Assurance Co Ltd", type: "GENERAL" },
     { name: "United India Insurance Company Limited", type: "GENERAL" },
     { name: "Universal Sompo General Insurance Co Ltd", type: "GENERAL" },
-    { name: "Zuno General Insurance Ltd", type: "GENERAL" }
+    { name: "Zuno General Insurance Ltd", type: "GENERAL" },
+
+    # Life Insurance Companies
+    { name: "SBI Life Insurance Co Ltd", type: "LIFE" },
+    { name: "LIC India", type: "LIFE" },
+    { name: "HDFC Standard Life Insurance Co Ltd", type: "LIFE" },
+    { name: "Max Life Insurance Co Ltd", type: "LIFE" },
+    { name: "Bajaj Allianz Life Insurance Co Ltd", type: "LIFE" },
+    { name: "Reliance Nippon Life Insurance Co Ltd", type: "LIFE" },
+    { name: "Birla Sun Life Insurance Co Ltd", type: "LIFE" },
+    { name: "Tata AIA Life Insurance Co Ltd", type: "LIFE" },
+    { name: "Kotak Mahindra Old Mutual Life Insurance Ltd", type: "LIFE" },
+    { name: "Aviva Life Insurance Co India Ltd", type: "LIFE" },
+    { name: "Bharti AXA Life Insurance Co Ltd", type: "LIFE" },
+    { name: "Canara HSBC Oriental Bank of Commerce Life Insurance Co Ltd", type: "LIFE" },
+    { name: "Edelweiss Tokio Life Insurance Co Ltd", type: "LIFE" },
+    { name: "Exide Life Insurance Co Ltd", type: "LIFE" },
+    { name: "Future Generali India Life Insurance Co Ltd", type: "LIFE" },
+    { name: "IDBI Federal Life Insurance Co Ltd", type: "LIFE" },
+    { name: "IndiaFirst Life Insurance Co Ltd", type: "LIFE" },
+    { name: "PNB MetLife India Insurance Co Ltd", type: "LIFE" },
+    { name: "Sahara India Life Insurance Co Ltd", type: "LIFE" },
+    { name: "Shriram Life Insurance Co Ltd", type: "LIFE" },
+    { name: "Star Union Dai-ichi Life Insurance Co Ltd", type: "LIFE" }
   ].freeze
 
   class_methods do
@@ -50,6 +73,10 @@ module InsuranceCompanyConstants
 
     def general_insurance_companies
       INSURANCE_COMPANIES.select { |company| company[:type] == "GENERAL" }
+    end
+
+    def life_insurance_companies
+      INSURANCE_COMPANIES.select { |company| company[:type] == "LIFE" }
     end
 
     def insurance_company_names

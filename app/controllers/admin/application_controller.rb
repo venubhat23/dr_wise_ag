@@ -1,4 +1,7 @@
 class Admin::ApplicationController < ApplicationController
+  helper InsuranceCompanyHelper
+  include InsuranceCompanyHelper
+
   before_action :ensure_admin
 
   # Disable CanCanCan for admin controllers

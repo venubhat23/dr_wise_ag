@@ -105,7 +105,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     @agency_codes = AgencyCode.where(insurance_type: 'Health')
     @brokers = Broker.active.order(:name)
     # Load only health insurance companies
-    @insurance_companies = helpers.health_insurance_companies
+    @insurance_companies = HealthInsurance.health_insurance_companies.map { |company| company[:name] }
   end
 
   def health_insurance_params
