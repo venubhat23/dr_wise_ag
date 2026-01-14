@@ -115,7 +115,7 @@
           </thead>
           <tbody>
             <% @sub_agents.each do |sub_agent| %>
-              <tr>
+              <tr class="<%= sub_agent.deactivated? ? 'table-warning opacity-75' : '' %>">
                 <td>
                   <div class="d-flex align-items-center">
                     <div class="avatar-sm bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3">
@@ -190,7 +190,9 @@
                   <% end %>
                 </td>
                 <td>
-                  <% if sub_agent.active? %>
+                  <% if sub_agent.deactivated? %>
+                    <span class="badge bg-danger">Deactivated</span>
+                  <% elsif sub_agent.active? %>
                     <span class="badge bg-success">Active</span>
                   <% else %>
                     <span class="badge bg-secondary">Inactive</span>
@@ -209,6 +211,28 @@
                     <ul class="dropdown-menu dropdown-menu-end">
                       <li><%= link_to "View", admin_sub_agent_path(sub_agent), class: "dropdown-item" %></li>
                       <li><%= link_to "Edit", edit_admin_sub_agent_path(sub_agent), class: "dropdown-item" %></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <% if sub_agent.deactivated? %>
+                        <li>
+                          <a href="#"
+                             class="dropdown-item text-success deactivation-action"
+                             data-url="<%= activate_admin_sub_agent_path(sub_agent) %>"
+                             data-method="patch"
+                             data-confirm="Are you sure you want to activate this affiliate?">
+                            <i class="bi bi-check-circle text-success me-2"></i>Activate
+                          </a>
+                        </li>
+                      <% else %>
+                        <li>
+                          <a href="#"
+                             class="dropdown-item text-warning deactivation-action"
+                             data-url="<%= deactivate_admin_sub_agent_path(sub_agent) %>"
+                             data-method="patch"
+                             data-confirm="Are you sure you want to deactivate this affiliate?">
+                            <i class="bi bi-x-circle text-warning me-2"></i>Deactivate
+                          </a>
+                        </li>
+                      <% end %>
                       <li><hr class="dropdown-divider"></li>
                       <li>
                         <%= link_to "#",

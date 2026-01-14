@@ -272,6 +272,26 @@ class Admin::SubAgentsController < Admin::ApplicationController
     end
   end
 
+  # PATCH /admin/sub_agents/1/deactivate
+  def deactivate
+    @sub_agent = SubAgent.find(params[:id])
+    if @sub_agent.deactivate!
+      redirect_to admin_sub_agents_path, notice: 'Affiliate was successfully deactivated.'
+    else
+      redirect_to admin_sub_agents_path, alert: 'Failed to deactivate affiliate.'
+    end
+  end
+
+  # PATCH /admin/sub_agents/1/activate
+  def activate
+    @sub_agent = SubAgent.find(params[:id])
+    if @sub_agent.activate!
+      redirect_to admin_sub_agents_path, notice: 'Affiliate was successfully activated.'
+    else
+      redirect_to admin_sub_agents_path, alert: 'Failed to activate affiliate.'
+    end
+  end
+
   # GET /admin/sub_agents/1/distributor
   def distributor
     @sub_agent = SubAgent.find(params[:id])

@@ -157,6 +157,26 @@ class Admin::DistributorsController < Admin::ApplicationController
     end
   end
 
+  # PATCH /admin/distributors/1/deactivate
+  def deactivate
+    @distributor = Distributor.find(params[:id])
+    if @distributor.deactivate!
+      redirect_to admin_distributors_path, notice: 'Ambassador was successfully deactivated.'
+    else
+      redirect_to admin_distributors_path, alert: 'Failed to deactivate ambassador.'
+    end
+  end
+
+  # PATCH /admin/distributors/1/activate
+  def activate
+    @distributor = Distributor.find(params[:id])
+    if @distributor.activate!
+      redirect_to admin_distributors_path, notice: 'Ambassador was successfully activated.'
+    else
+      redirect_to admin_distributors_path, alert: 'Failed to activate ambassador.'
+    end
+  end
+
   private
 
   def create_ambassador_user_account(distributor)

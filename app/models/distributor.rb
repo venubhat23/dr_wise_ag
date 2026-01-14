@@ -43,6 +43,11 @@ class Distributor < ApplicationRecord
   # Enums
   enum :status, { active: 0, inactive: 1 }
 
+  # Scopes
+  scope :not_deactivated, -> { where(deactivated: false) }
+  scope :deactivated, -> { where(deactivated: true) }
+  scope :truly_active, -> { active.not_deactivated }
+
   # Search configuration
   pg_search_scope :search_by_name_mobile_email,
                   against: [:first_name, :last_name, :mobile, :email],
@@ -65,6 +70,22 @@ class Distributor < ApplicationRecord
 
   def formatted_email
     email.presence || "N/A"
+  end
+
+  def deactivated?
+    deactivated == true
+  end
+
+  def deactivate!
+    update(deactivated: true)
+  end
+
+  def activate!
+    update(deactivated: false)
+  end
+
+  def truly_active?
+    active? && !deactivated?
   end
 
   private

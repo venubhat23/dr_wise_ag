@@ -9,7 +9,7 @@
         </div>
       <% end %>
 
-      <% if alert %>
+      <% if alert && alert.present? && alert.strip != "" %>
         <div class="alert alert-danger mb-3">
           <i class="fas fa-exclamation-triangle me-2"></i><%= alert %>
         </div>

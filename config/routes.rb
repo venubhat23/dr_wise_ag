@@ -158,6 +158,8 @@ Rails.application.routes.draw do
     resources :sub_agents do
       member do
         patch :toggle_status
+        patch :deactivate
+        patch :activate
         get :distributor
         get :documents
       end
@@ -168,6 +170,8 @@ Rails.application.routes.draw do
     resources :distributors do
       member do
         patch :toggle_status
+        patch :deactivate
+        patch :activate
       end
     end
 
@@ -188,6 +192,10 @@ Rails.application.routes.draw do
       end
       member do
         patch :toggle_status
+        get :deactivate
+        patch :deactivate
+        get :activate
+        patch :activate
         get :policy_chart
         get :trace_commission
         get :product_selection

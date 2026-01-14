@@ -67,8 +67,10 @@ class Customer < ApplicationRecord
   enum :customer_type, { individual: 'individual', corporate: 'corporate' }
 
   # Scopes
-  scope :active, -> { where(status: true) }
+  scope :active, -> { where(status: true, deactivated: false) }
   scope :inactive, -> { where(status: false) }
+  scope :deactivated, -> { where(deactivated: true) }
+  scope :not_deactivated, -> { where(deactivated: false) }
   scope :individuals, -> { where(customer_type: 'individual') }
   scope :corporates, -> { where(customer_type: 'corporate') }
 
@@ -97,7 +99,19 @@ class Customer < ApplicationRecord
   end
 
   def active?
-    status
+    status && !deactivated
+  end
+
+  def deactivated?
+    deactivated == true
+  end
+
+  def deactivate!
+    update(deactivated: true)
+  end
+
+  def activate!
+    update(deactivated: false)
   end
 
   def individual?

@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </thead>
           <tbody>
             <% @customers.each do |customer| %>
-              <tr>
+              <tr class="<%= customer.deactivated? ? 'table-warning opacity-75' : '' %>">
                 <td>
                   <div>
                     <h6 class="mb-1">
@@ -275,9 +275,13 @@ document.addEventListener('DOMContentLoaded', function() {
                   <span class="badge bg-info"><%= customer.respond_to?(:policies_count) ? (customer.policies_count || 0) : customer.policies.count %> policies</span>
                 </td>
                 <td>
-                  <span class="badge bg-<%= customer.status? ? 'success' : 'secondary' %>">
-                    <%= customer.status? ? 'Active' : 'Inactive' %>
-                  </span>
+                  <% if customer.deactivated? %>
+                    <span class="badge bg-danger">Deactivated</span>
+                  <% else %>
+                    <span class="badge bg-<%= customer.status? ? 'success' : 'secondary' %>">
+                      <%= customer.status? ? 'Active' : 'Inactive' %>
+                    </span>
+                  <% end %>
                 </td>
                 <td>
                   <div class="d-flex gap-1">
@@ -290,15 +294,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     <%= link_to trace_commission_admin_customer_path(customer), class: "btn btn-sm btn-outline-info", title: "Insurace Summary" do %>
                       <i class="bi bi-graph-up-arrow"></i>
                     <% end %>
-                    <%= link_to toggle_status_admin_customer_path(customer),
-                        method: :patch,
-                        class: "btn btn-sm btn-outline-#{customer.status? ? 'secondary' : 'success'}",
-                        title: customer.status? ? 'Deactivate' : 'Activate',
-                        data: {
-                          confirm: "Are you sure you want to #{customer.status? ? 'deactivate' : 'activate'} this customer?",
-                          turbo_method: :patch
-                        } do %>
-                      <i class="bi bi-#{customer.status? ? 'pause-circle' : 'play-circle'}"></i>
+                    <% if customer.deactivated? %>
+                      <%= button_to activate_admin_customer_path(customer),
+                          method: :patch,
+                          class: "btn btn-sm btn-outline-success",
+                          title: "Activate",
+                          form: { class: "d-inline" },
+                          data: {
+                            confirm: "Are you sure you want to activate this customer?",
+                            turbo_method: :patch
+                          } do %>
+                        <i class="bi bi-check-circle"></i>
+                      <% end %>
+                    <% else %>
+                      <%= button_to deactivate_admin_customer_path(customer),
+                          method: :patch,
+                          class: "btn btn-sm btn-outline-danger",
+                          title: "Deactivate",
+                          form: { class: "d-inline" },
+                          data: {
+                            confirm: "Are you sure you want to deactivate this customer?",
+                            turbo_method: :patch
+                          } do %>
+                        <i class="bi bi-x-circle"></i>
+                      <% end %>
                     <% end %>
                     <button type="button"
                         class="btn btn-sm btn-outline-danger delete-customer"

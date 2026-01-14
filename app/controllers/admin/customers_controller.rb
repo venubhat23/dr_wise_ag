@@ -1,7 +1,7 @@
 class Admin::CustomersController < Admin::ApplicationController
   include LocationData
   include ConfigurablePagination
-  before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart, :trace_commission, :product_selection]
+  before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart, :trace_commission, :product_selection, :deactivate, :activate]
   skip_before_action :ensure_admin, only: [:search_sub_agents]
   skip_before_action :authenticate_user!, only: [:search_sub_agents]
   skip_load_and_authorize_resource only: [:search_sub_agents]
@@ -564,6 +564,24 @@ class Admin::CustomersController < Admin::ApplicationController
     @customer.update(status: !@customer.status)
     status_text = @customer.status? ? 'activated' : 'deactivated'
     redirect_to admin_customers_path, notice: "Customer was successfully #{status_text}."
+  end
+
+  # PATCH /admin/customers/1/deactivate
+  def deactivate
+    if @customer.deactivate!
+      redirect_to admin_customers_path, notice: 'Customer was successfully deactivated.'
+    else
+      redirect_to admin_customers_path, alert: 'Failed to deactivate customer.'
+    end
+  end
+
+  # PATCH /admin/customers/1/activate
+  def activate
+    if @customer.activate!
+      redirect_to admin_customers_path, notice: 'Customer was successfully activated.'
+    else
+      redirect_to admin_customers_path, alert: 'Failed to activate customer.'
+    end
   end
 
   # GET /admin/customers/export

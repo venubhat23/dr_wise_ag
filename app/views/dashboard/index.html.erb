@@ -592,7 +592,25 @@
               <tr>
                 <td style="font-weight: 600;"><%= affiliate_name %></td>
                 <td>
-                  <% customer_count = Customer.where(sub_agent: affiliate_name).count %>
+                  <%
+                    # Find the SubAgent by name to get their ID
+                    sub_agent = SubAgent.find_by("CONCAT(first_name, ' ', last_name) = ?", affiliate_name)
+
+                    if sub_agent
+                      # Count customers linked by sub_agent_id
+                      customer_count = Customer.where(sub_agent_id: sub_agent.id).count
+
+                      # Also count customers from insurance policies
+                      health_customers = HealthInsurance.where(sub_agent_id: sub_agent.id).distinct.count(:customer_id)
+                      life_customers = LifeInsurance.where(sub_agent_id: sub_agent.id).distinct.count(:customer_id)
+                      motor_customers = MotorInsurance.where(sub_agent_id: sub_agent.id).distinct.count(:customer_id)
+
+                      # Use the maximum count (could be from direct customer link or from policies)
+                      customer_count = [customer_count, health_customers, life_customers, motor_customers].max
+                    else
+                      customer_count = 0
+                    end
+                  %>
                   <%= customer_count %>
                 </td>
                 <td><%= indian_currency(premium.to_i) %></td>
@@ -1025,6 +1043,118 @@
     <div class="mini-stat-card">
       <div class="mini-stat-value">₹<%= (@monthly_recurring_revenue / 100000.0).round(1) %>L</div>
       <div class="mini-stat-label">Monthly Revenue</div>
+    </div>
+  </div>
+
+  <!-- New Section: Upcoming Renewals & Birthdays -->
+  <div class="data-table-grid" style="margin-top: 2rem;">
+    <!-- Upcoming Renewal & Due Premium -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">Upcoming Renewal & Due Premium</h3>
+      <div style="overflow-x: auto;">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th>Policy Number</th>
+              <th>Customer</th>
+              <th>Insurance Type</th>
+              <th>Expiry Date</th>
+              <th>Premium Due</th>
+              <th>Days Left</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if @upcoming_renewals.present? %>
+              <% @upcoming_renewals.each do |policy| %>
+                <%
+                  days_left = (policy.policy_end_date - Date.current).to_i
+                  insurance_type = policy.class.name.underscore.humanize.gsub(' insurance', '')
+
+                  # Determine badge color based on days left
+                  badge_class = if days_left <= 7
+                                 'badge-danger'
+                               elsif days_left <= 15
+                                 'badge-warning'
+                               else
+                                 'badge-info'
+                               end
+                %>
+                <tr>
+                  <td style="font-weight: 600;"><%= policy.policy_number || "N/A" %></td>
+                  <td><%= policy.customer&.display_name || "Unknown" %></td>
+                  <td>
+                    <span class="badge badge-secondary"><%= insurance_type %></span>
+                  </td>
+                  <td><%= policy.policy_end_date.strftime('%d %b %Y') %></td>
+                  <td style="font-weight: 600; color: #dc2626;">
+                    <%= indian_currency(policy.total_premium.to_i) %>
+                  </td>
+                  <td>
+                    <span class="badge <%= badge_class %>">
+                      <%= days_left %> days
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+            <% else %>
+              <tr>
+                <td colspan="6" style="text-align: center; color: #999;">No upcoming renewals</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Birthdays -->
+    <div class="dashboard-card">
+      <h3 class="chart-title">🎂 Upcoming Birthdays</h3>
+      <div style="overflow-x: auto;">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Relationship</th>
+              <th>Birth Date</th>
+              <th>Age</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if @upcoming_birthdays.present? %>
+              <% @upcoming_birthdays.each_with_index do |birthday, index| %>
+                <%
+                  days_until = (birthday[:birth_date] - Date.current).to_i
+                  is_today = days_until == 0
+                %>
+                <tr <%= 'style="background-color: #fef3c7;"' if is_today %>>
+                  <td><%= index + 1 %></td>
+                  <td style="font-weight: 600;">
+                    <%= birthday[:name] %>
+                    <%= "🎉" if is_today %>
+                  </td>
+                  <td><%= birthday[:relationship] %></td>
+                  <td>
+                    <%= birthday[:birth_date].strftime('%d %b') %>
+                    <% if is_today %>
+                      <span class="badge badge-success">Today!</span>
+                    <% elsif days_until == 1 %>
+                      <span class="badge badge-warning">Tomorrow</span>
+                    <% elsif days_until <= 7 %>
+                      <span class="badge badge-info"><%= days_until %> days</span>
+                    <% end %>
+                  </td>
+                  <td><%= birthday[:age] %></td>
+                </tr>
+              <% end %>
+            <% else %>
+              <tr>
+                <td colspan="5" style="text-align: center; color: #999;">No upcoming birthdays in next 30 days</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
