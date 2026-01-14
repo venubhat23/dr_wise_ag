@@ -76,6 +76,7 @@ class LifeInsurance < ApplicationRecord
   before_save :calculate_totals
   before_validation :set_policy_term_from_dates
   before_validation :normalize_numeric_fields
+  before_validation :set_default_premium_payment_term
   after_save :set_notification_dates
   before_create :inherit_customer_lead_id
   after_create :create_commission_payouts
@@ -306,6 +307,14 @@ class LifeInsurance < ApplicationRecord
     if policy_start_date.present? && policy_end_date.present? && policy_term.nil?
       years = (policy_end_date - policy_start_date) / 365.25
       self.policy_term = years.round
+    end
+  end
+
+  def set_default_premium_payment_term
+    # Set default premium payment term if not provided
+    # Use policy_term as default if available, otherwise default to 10 years
+    if premium_payment_term.blank?
+      self.premium_payment_term = policy_term.present? ? policy_term : 10
     end
   end
 

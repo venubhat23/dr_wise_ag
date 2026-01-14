@@ -285,7 +285,8 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       @agency_codes = []
     end
 
-    @insurance_companies = InsuranceCompanyHelper.company_names
+    # Load only life insurance companies
+    @insurance_companies = helpers.life_insurance_companies
     @policy_types = LifeInsurance::POLICY_TYPES
     @payment_modes = LifeInsurance::PAYMENT_MODES
     @relationships = LifeInsurance::RELATIONSHIPS
@@ -314,7 +315,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       :customer_id, :sub_agent_id, :distributor_id, :investor_id, :agency_code_id, :broker_id, :broker_code_type,
       :policy_holder, :insured_name, :insurance_company_name, :policy_type,
       :payment_mode, :policy_number, :policy_booking_date, :policy_start_date,
-      :policy_end_date, :risk_start_date, :policy_term,
+      :policy_end_date, :risk_start_date, :policy_term, :premium_payment_term,
       :plan_name, :sum_insured, :net_premium, :first_year_gst_percentage,
       :second_year_gst_percentage, :third_year_gst_percentage, :total_premium,
       :term_rider_amount, :term_rider_note, :critical_illness_rider_amount,
