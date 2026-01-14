@@ -1,9 +1,6 @@
 <%#
   Conditional Pagination Partial
   Usage: <%= render 'shared/pagination', records: @your_records %>
-
-  This partial will only show pagination controls if the total number of records
-  exceeds the items_per_page setting from SystemSettings
 %>
 
 <% if local_assigns[:records] && should_show_pagination?(records) %>
@@ -32,10 +29,5 @@
   <div class="text-muted mt-3">
     <% total = records.respond_to?(:total_count) ? records.total_count : records.count %>
     Showing all <strong><%= total %></strong> <%= 'record'.pluralize(total) %>
-    <% if @items_per_page.present? && total <= @items_per_page %>
-      <small class="ms-2 text-muted">
-        (Pagination appears when exceeding <%= @items_per_page %> records)
-      </small>
-    <% end %>
   </div>
 <% end %>
