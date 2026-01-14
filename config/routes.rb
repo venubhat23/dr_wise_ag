@@ -229,6 +229,8 @@ Rails.application.routes.draw do
       member do
         get :commission_details
         patch :remove_rider
+        get :renew
+        post :create_renewal
       end
     end
 
@@ -260,6 +262,18 @@ Rails.application.routes.draw do
       collection do
         get :search
       end
+      resources :broker_codes, except: [:show]
+    end
+
+    # Standalone Broker Codes management (if needed outside broker context)
+    resources :broker_codes do
+      member do
+        patch :toggle_status
+      end
+      collection do
+        get :all_agency_codes
+        get :companies_by_agency_code
+      end
     end
 
     # Agency Code management
@@ -276,6 +290,7 @@ Rails.application.routes.draw do
         get :companies_by_type
         get :all_codes
         get :agents_for_code
+        get :company_for_agency_code
       end
     end
 

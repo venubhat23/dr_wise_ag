@@ -4,7 +4,7 @@ class Lead < ApplicationRecord
   validates :name, presence: true
   validates :contact_number, presence: true, uniqueness: { message: "Contact number already exists" }, format: { with: /\A[\+]?[0-9\s\-\(\)]+\z/, message: "Invalid phone number format" }
   validates :email, uniqueness: { message: "Email already exists" }, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
-  validates :current_stage, presence: true, inclusion: { in: ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_successful', 'follow_up_unsuccessful', 'not_interested', 'converted', 're_follow_up', 'policy_created', 'lead_closed'] }
+  validates :current_stage, presence: true, inclusion: { in: ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_successful', 'follow_up_unsuccessful', 'not_interested', 'converted', 're_follow_up', 'lead_closed'] }
   validates :lead_source, presence: true, inclusion: { in: ['online', 'offline', 'agent_referral', 'walk_in', 'tele_calling', 'campaign'] }
   validates :product_category, presence: true, inclusion: { in: ['insurance', 'investments', 'loans', 'taxation'] }
   validates :product_subcategory, presence: true
@@ -50,7 +50,6 @@ class Lead < ApplicationRecord
     not_interested: 'not_interested',
     converted: 'converted',
     re_follow_up: 're_follow_up',
-    policy_created: 'policy_created',
     lead_closed: 'lead_closed'
   }
 
@@ -139,8 +138,8 @@ class Lead < ApplicationRecord
   end
 
   def can_convert_to_customer?
-    # Allow conversion from any stage except already converted, policy created, or closed
-    !['converted', 'policy_created', 'lead_closed'].include?(current_stage) && converted_customer_id.nil?
+    # Allow conversion from any stage except already converted or closed
+    !['converted', 'lead_closed'].include?(current_stage) && converted_customer_id.nil?
   end
 
   def can_create_policy?
@@ -148,12 +147,12 @@ class Lead < ApplicationRecord
   end
 
   def can_close_lead?
-    not_interested? || (converted? && policy_created?) || (!cannot_change_stage?)
+    not_interested? || converted? || (!cannot_change_stage?)
   end
 
   def cannot_change_stage?
     # Only prevent changes if lead is in truly final states
-    policy_created? || lead_closed?
+    lead_closed?
   end
 
   # Stage transition methods with validation
@@ -197,11 +196,6 @@ class Lead < ApplicationRecord
     update!(current_stage: 'converted', converted_customer_id: customer_id)
   end
 
-  def mark_policy_created!(policy_id = nil)
-    return false unless can_create_policy?
-    update!(current_stage: 'policy_created', policy_created_id: policy_id)
-  end
-
   def close_lead!
     return false unless can_close_lead?
     update!(current_stage: 'lead_closed')
@@ -217,7 +211,7 @@ class Lead < ApplicationRecord
   end
 
   def can_settle_referral?
-    current_stage == 'policy_created' && !transferred_amount && referral_amount > 0
+    current_stage == 'converted' && !transferred_amount && referral_amount > 0
   end
 
   def full_address
@@ -235,7 +229,6 @@ class Lead < ApplicationRecord
     when 'not_interested' then 'bg-dark'
     when 're_follow_up' then 'bg-warning'
     when 'converted' then 'bg-success'
-    when 'policy_created' then 'bg-primary'
     when 'lead_closed' then 'bg-secondary'
     else 'bg-secondary'
     end
@@ -272,9 +265,8 @@ class Lead < ApplicationRecord
     when 're_follow_up' then ['follow_up_successful', 'follow_up_unsuccessful', 'not_interested']
     when 'follow_up_successful' then ['converted']
     when 'follow_up_unsuccessful' then ['re_follow_up']
-    when 'converted' then ['policy_created']
+    when 'converted' then ['lead_closed']
     when 'not_interested' then ['lead_closed']
-    when 'policy_created' then ['lead_closed']
     else []
     end
 
@@ -297,7 +289,6 @@ class Lead < ApplicationRecord
     when 'not_interested' then '🚫 Not Interested'
     when 're_follow_up' then '🔄 Re-Follow Up'
     when 'converted' then '👤 Convert to Customer'
-    when 'policy_created' then '📄 Policy Created'
     when 'lead_closed' then '📁 Lead Closed'
     else current_stage.humanize
     end
@@ -351,12 +342,12 @@ class Lead < ApplicationRecord
   end
 
   def locked_stage?
-    # Once policy is created or lead is closed, don't allow going back to prevent data inconsistency
-    ['policy_created', 'lead_closed', 'converted'].include?(current_stage)
+    # Once lead is closed or converted, don't allow going back to prevent data inconsistency
+    ['lead_closed', 'converted'].include?(current_stage)
   end
 
   def stage_progress_percentage
-    stages = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'converted', 'policy_created', 'lead_closed']
+    stages = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'converted', 'lead_closed']
     current_index = stages.index(current_stage) || 0
     ((current_index + 1).to_f / stages.length * 100).round
   end
@@ -377,7 +368,6 @@ class Lead < ApplicationRecord
     when 'not_interested' then 'Customer explicitly not interested'
     when 're_follow_up' then 'Additional follow-up attempt'
     when 'converted' then 'Lead converted to customer'
-    when 'policy_created' then 'Policy created and linked to customer'
     when 'lead_closed' then 'Lead process completed'
     else 'Unknown stage'
     end

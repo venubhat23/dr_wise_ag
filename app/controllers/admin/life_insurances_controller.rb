@@ -1,6 +1,6 @@
 class Admin::LifeInsurancesController < Admin::ApplicationController
   include ConfigurablePagination
-  before_action :set_life_insurance, only: [:show, :edit, :update, :destroy, :remove_rider, :commission_details]
+  before_action :set_life_insurance, only: [:show, :edit, :update, :destroy, :remove_rider, :commission_details, :renew, :create_renewal]
 
   # GET /admin/insurance/life
   def index
@@ -253,6 +253,70 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     render json: {
       brokers: brokers.map { |b| { id: b.id, name: b.name } }
     }
+  end
+
+  # GET /admin/insurance/life/:id/renew
+  def renew
+    # Check if policy expires within 60 days
+    if @life_insurance.policy_end_date.blank? || @life_insurance.policy_end_date > 60.days.from_now
+      redirect_to admin_life_insurances_path, alert: "This policy is not eligible for renewal yet."
+      return
+    end
+
+    # Create a new life insurance object with pre-filled data from the original policy
+    @renewed_policy = @life_insurance.dup
+
+    # Clear fields that should be reset for renewal
+    @renewed_policy.policy_number = nil
+    @renewed_policy.policy_booking_date = nil
+    @renewed_policy.policy_start_date = nil
+    @renewed_policy.policy_end_date = nil
+    @renewed_policy.risk_start_date = nil
+    @renewed_policy.policy_type = 'renewal'
+    @renewed_policy.created_at = nil
+    @renewed_policy.updated_at = nil
+    @renewed_policy.id = nil
+
+    # Set default dates for renewal
+    @renewed_policy.policy_booking_date = Date.current
+    @renewed_policy.policy_start_date = @life_insurance.policy_end_date + 1.day
+    @renewed_policy.policy_end_date = @renewed_policy.policy_start_date + 1.year
+    @renewed_policy.risk_start_date = @renewed_policy.policy_start_date
+
+    # Store original policy for reference
+    @original_policy = @life_insurance
+
+    # Get available options for dropdowns
+    set_form_data
+  end
+
+  # POST /admin/insurance/life/:id/create_renewal
+  def create_renewal
+    # Check if policy expires within 60 days
+    if @life_insurance.policy_end_date.blank? || @life_insurance.policy_end_date > 60.days.from_now
+      redirect_to admin_life_insurances_path, alert: "This policy is not eligible for renewal yet."
+      return
+    end
+
+    # Create new policy with renewal data
+    @renewed_policy = LifeInsurance.new(life_insurance_params)
+    @renewed_policy.policy_type = 'renewal'
+
+    # Set admin added flags for renewal (same as original)
+    @renewed_policy.is_admin_added = @life_insurance.is_admin_added
+    @renewed_policy.is_customer_added = @life_insurance.is_customer_added
+    @renewed_policy.is_agent_added = @life_insurance.is_agent_added
+
+    if @renewed_policy.save
+      # Update commission calculations
+      set_distributor_from_affiliate(@renewed_policy)
+      redirect_to admin_life_insurance_path(@renewed_policy),
+                  notice: "Life insurance policy renewed successfully! New Policy ID: #{@renewed_policy.policy_number}"
+    else
+      @original_policy = @life_insurance
+      set_form_data
+      render :renew, status: :unprocessable_entity
+    end
   end
 
   private

@@ -83,6 +83,75 @@
   </div>
 </div>
 
+<!-- DrWise vs Non-DrWise Statistics -->
+<div class="row mb-4">
+  <div class="col-lg-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm border-success">
+      <div class="card-header bg-success bg-opacity-10 border-success">
+        <h6 class="mb-0 text-success">
+          <i class="bi bi-check-circle-fill me-2"></i>
+          DrWise Policies
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col-4">
+            <div class="metric-item">
+              <h4 class="mb-1 text-success"><%= @drwise_summary[:total_policies] %></h4>
+              <small class="text-muted">Policies</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="metric-item">
+              <h4 class="mb-1 text-success"><%= indian_currency(@drwise_summary[:total_premium]) %></h4>
+              <small class="text-muted">Premium</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="metric-item">
+              <h4 class="mb-1 text-success"><%= @drwise_summary[:opted_count] %></h4>
+              <small class="text-muted">Products</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm border-warning">
+      <div class="card-header bg-warning bg-opacity-10 border-warning">
+        <h6 class="mb-0 text-warning">
+          <i class="bi bi-person-badge-fill me-2"></i>
+          Non-DrWise Policies
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col-4">
+            <div class="metric-item">
+              <h4 class="mb-1 text-warning"><%= @non_drwise_summary[:total_policies] %></h4>
+              <small class="text-muted">Policies</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="metric-item">
+              <h4 class="mb-1 text-warning"><%= indian_currency(@non_drwise_summary[:total_premium]) %></h4>
+              <small class="text-muted">Premium</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="metric-item">
+              <h4 class="mb-1 text-warning"><%= @non_drwise_summary[:opted_count] %></h4>
+              <small class="text-muted">Products</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Policy Matrix Chart - Very Attractive -->
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-header bg-transparent border-0">
@@ -153,37 +222,45 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Insurance Products -->
+          <!-- ==================== DRWISE PRODUCTS SECTION ==================== -->
           <tr class="category-divider">
-            <td colspan="5" class="category-header insurance-header">
+            <td colspan="5" class="category-header drwise-main-header">
+              <i class="bi bi-check-circle-fill me-2 text-success fs-5"></i>
+              <strong class="fs-5">DrWise Products</strong>
+              <span class="badge bg-success ms-2"><%= @drwise_summary[:total_policies] %> total</span>
+            </td>
+          </tr>
+
+          <!-- DrWise Insurance Products -->
+          <tr class="sub-category-divider">
+            <td colspan="5" class="sub-category-header drwise-header">
               <i class="bi bi-shield-check me-2"></i>
               <strong>Insurance Products</strong>
             </td>
           </tr>
 
           <%
-            insurance_products = [
-              { name: 'Life', icon: 'bi-heart-pulse', key: 'Life', category_class: 'life-insurance' },
-              { name: 'Health', icon: 'bi-activity', key: 'Health', category_class: 'health-insurance' },
-              { name: 'Motor', icon: 'bi-car-front', key: 'Motor', category_class: 'motor-insurance' },
-              { name: 'General', icon: 'bi-umbrella', key: 'General', category_class: 'general-insurance' },
-              { name: 'Travel Insurance', icon: 'bi-airplane-engines', key: 'Travel', category_class: 'travel-insurance' }
+            drwise_insurance_products = [
+              { name: 'Life Insurance', icon: 'bi-heart-pulse', key: 'Life Insurance', category_class: 'drwise-life-insurance' },
+              { name: 'Health Insurance', icon: 'bi-activity', key: 'Health Insurance', category_class: 'drwise-health-insurance' },
+              { name: 'Motor Insurance', icon: 'bi-car-front', key: 'Motor Insurance', category_class: 'drwise-motor-insurance' }
             ]
           %>
 
-          <% insurance_products.each do |product| %>
-            <% opted = @product_status[product[:key]] %>
-            <% policy_data = @policy_status["#{product[:key]} Insurance"] %>
+          <% drwise_insurance_products.each do |product| %>
+            <% policy_data = @drwise_policy_status[product[:key]] %>
+            <% opted = policy_data && policy_data[:opted] %>
             <tr class="product-row <%= product[:category_class] %>">
               <td>
-                <span class="category-simple-text text-primary fw-medium">
-                  Insurance
+                <span class="category-simple-text text-success fw-medium">
+                  DrWise
                 </span>
               </td>
               <td>
                 <div class="d-flex align-items-center">
-                  <i class="<%= product[:icon] %> me-2 text-primary"></i>
+                  <i class="<%= product[:icon] %> me-2 text-success"></i>
                   <span class="fw-medium"><%= product[:name] %></span>
+                  <i class="bi bi-check-circle-fill ms-2 text-success" title="DrWise Policy"></i>
                 </div>
               </td>
               <td>
@@ -199,7 +276,7 @@
               </td>
               <td>
                 <% if opted && policy_data %>
-                  <span class="badge bg-info"><%= policy_data[:count] %> policies</span>
+                  <span class="badge bg-success"><%= policy_data[:count] %> policies</span>
                 <% else %>
                   <span class="text-muted">-</span>
                 <% end %>
@@ -219,41 +296,43 @@
                     <% end %>
                   </div>
                 <% else %>
-                  <span class="text-muted">No policies found</span>
+                  <span class="text-muted">No DrWise policies found</span>
                 <% end %>
               </td>
             </tr>
           <% end %>
 
-          <!-- Investment Products -->
-          <tr class="category-divider">
-            <td colspan="5" class="category-header investments-header">
+          <!-- DrWise Investment Products -->
+          <tr class="sub-category-divider">
+            <td colspan="5" class="sub-category-header drwise-header">
               <i class="bi bi-graph-up me-2"></i>
               <strong>Investment Products</strong>
             </td>
           </tr>
 
           <%
-            investment_products = [
-              { name: 'Mutual Fund', icon: 'bi-pie-chart', key: 'Mutual Fund', category_class: 'mutual-fund' },
-              { name: 'Gold', icon: 'bi-coin', key: 'Gold', category_class: 'gold-investment' },
-              { name: 'NPS', icon: 'bi-building', key: 'NPS', category_class: 'nps-investment' },
-              { name: 'Bonds', icon: 'bi-receipt', key: 'Bonds', category_class: 'bonds-investment' }
+            drwise_investment_products = [
+              { name: 'Mutual Fund', icon: 'bi-pie-chart', key: 'Mutual Fund', category_class: 'drwise-mutual-fund' },
+              { name: 'Gold', icon: 'bi-coin', key: 'Gold', category_class: 'drwise-gold' },
+              { name: 'NPS', icon: 'bi-building', key: 'NPS', category_class: 'drwise-nps' },
+              { name: 'Bonds', icon: 'bi-receipt', key: 'Bonds', category_class: 'drwise-bonds' }
             ]
           %>
 
-          <% investment_products.each do |product| %>
-            <% opted = @product_status[product[:key]] %>
+          <% drwise_investment_products.each do |product| %>
+            <% product_data = @drwise_product_status[product[:key]] %>
+            <% opted = product_data && product_data[:opted] %>
             <tr class="product-row <%= product[:category_class] %>">
               <td>
                 <span class="category-simple-text text-success fw-medium">
-                  Investments
+                  DrWise
                 </span>
               </td>
               <td>
                 <div class="d-flex align-items-center">
                   <i class="<%= product[:icon] %> me-2 text-success"></i>
                   <span class="fw-medium"><%= product[:name] %></span>
+                  <i class="bi bi-check-circle-fill ms-2 text-success" title="DrWise Product"></i>
                 </div>
               </td>
               <td>
@@ -268,7 +347,11 @@
                 <% end %>
               </td>
               <td>
-                <span class="text-muted">-</span>
+                <% if opted && product_data %>
+                  <span class="badge bg-success"><%= product_data[:count] %> investments</span>
+                <% else %>
+                  <span class="text-muted">-</span>
+                <% end %>
               </td>
               <td>
                 <span class="text-muted">Product not yet implemented</span>
@@ -276,34 +359,36 @@
             </tr>
           <% end %>
 
-          <!-- Loan Products -->
-          <tr class="category-divider">
-            <td colspan="5" class="category-header loans-header">
+          <!-- DrWise Loan Products -->
+          <tr class="sub-category-divider">
+            <td colspan="5" class="sub-category-header drwise-header">
               <i class="bi bi-bank me-2"></i>
               <strong>Loan Products</strong>
             </td>
           </tr>
 
           <%
-            loan_products = [
-              { name: 'Personal Loan', icon: 'bi-person', key: 'Personal', category_class: 'personal-loan' },
-              { name: 'Home Loan', icon: 'bi-house', key: 'Home', category_class: 'home-loan' },
-              { name: 'Business Loan', icon: 'bi-briefcase', key: 'Business', category_class: 'business-loan' }
+            drwise_loan_products = [
+              { name: 'Personal Loan', icon: 'bi-person', key: 'Personal Loan', category_class: 'drwise-personal-loan' },
+              { name: 'Home Loan', icon: 'bi-house', key: 'Home Loan', category_class: 'drwise-home-loan' },
+              { name: 'Business Loan', icon: 'bi-briefcase', key: 'Business Loan', category_class: 'drwise-business-loan' }
             ]
           %>
 
-          <% loan_products.each do |product| %>
-            <% opted = @product_status[product[:key]] %>
+          <% drwise_loan_products.each do |product| %>
+            <% product_data = @drwise_product_status[product[:key]] %>
+            <% opted = product_data && product_data[:opted] %>
             <tr class="product-row <%= product[:category_class] %>">
               <td>
-                <span class="category-simple-text text-warning fw-medium">
-                  Loans
+                <span class="category-simple-text text-success fw-medium">
+                  DrWise
                 </span>
               </td>
               <td>
                 <div class="d-flex align-items-center">
-                  <i class="<%= product[:icon] %> me-2 text-warning"></i>
+                  <i class="<%= product[:icon] %> me-2 text-success"></i>
                   <span class="fw-medium"><%= product[:name] %></span>
+                  <i class="bi bi-check-circle-fill ms-2 text-success" title="DrWise Product"></i>
                 </div>
               </td>
               <td>
@@ -318,7 +403,11 @@
                 <% end %>
               </td>
               <td>
-                <span class="text-muted">-</span>
+                <% if opted && product_data %>
+                  <span class="badge bg-success"><%= product_data[:count] %> loans</span>
+                <% else %>
+                  <span class="text-muted">-</span>
+                <% end %>
               </td>
               <td>
                 <span class="text-muted">Product not yet implemented</span>
@@ -326,25 +415,27 @@
             </tr>
           <% end %>
 
-          <!-- Taxation Products -->
-          <tr class="category-divider">
-            <td colspan="5" class="category-header taxation-header">
+          <!-- DrWise Taxation Services -->
+          <tr class="sub-category-divider">
+            <td colspan="5" class="sub-category-header drwise-header">
               <i class="bi bi-calculator me-2"></i>
               <strong>Taxation Services</strong>
             </td>
           </tr>
 
-          <% opted = @product_status['ITR'] %>
-          <tr class="product-row taxation-service">
+          <% product_data = @drwise_product_status['ITR'] %>
+          <% opted = product_data && product_data[:opted] %>
+          <tr class="product-row drwise-taxation">
             <td>
-              <span class="category-simple-text text-danger fw-medium">
-                Taxation
+              <span class="category-simple-text text-success fw-medium">
+                DrWise
               </span>
             </td>
             <td>
               <div class="d-flex align-items-center">
-                <i class="bi-file-earmark-text me-2 text-danger"></i>
+                <i class="bi-file-earmark-text me-2 text-success"></i>
                 <span class="fw-medium">Income Tax Return (ITR)</span>
+                <i class="bi bi-check-circle-fill ms-2 text-success" title="DrWise Service"></i>
               </div>
             </td>
             <td>
@@ -359,42 +450,46 @@
               <% end %>
             </td>
             <td>
-              <span class="text-muted">-</span>
+              <% if opted && product_data %>
+                <span class="badge bg-success"><%= product_data[:count] %> services</span>
+              <% else %>
+                <span class="text-muted">-</span>
+              <% end %>
             </td>
             <td>
               <span class="text-muted">Service not yet implemented</span>
             </td>
           </tr>
 
-          <!-- Travel Products -->
-          <tr class="category-divider">
-            <td colspan="5" class="category-header travel-header">
+          <!-- DrWise Travel Services -->
+          <tr class="sub-category-divider">
+            <td colspan="5" class="sub-category-header drwise-header">
               <i class="bi bi-airplane me-2"></i>
               <strong>Travel Services</strong>
             </td>
           </tr>
 
           <%
-            travel_products = [
-              { name: 'Domestic Travel', icon: 'bi-geo', key: 'Domestic', category_class: 'domestic-travel' },
-              { name: 'International Travel', icon: 'bi-globe', key: 'International', category_class: 'international-travel' },
-              { name: 'Additional Service 1', icon: 'bi-plus-circle', key: 'Additional1', category_class: 'additional-1' },
-              { name: 'Additional Service 2', icon: 'bi-plus-circle', key: 'Additional2', category_class: 'additional-2' }
+            drwise_travel_products = [
+              { name: 'Domestic Travel', icon: 'bi-geo', key: 'Domestic Travel', category_class: 'drwise-domestic-travel' },
+              { name: 'International Travel', icon: 'bi-globe', key: 'International Travel', category_class: 'drwise-international-travel' }
             ]
           %>
 
-          <% travel_products.each do |product| %>
-            <% opted = @product_status[product[:key]] %>
+          <% drwise_travel_products.each do |product| %>
+            <% product_data = @drwise_product_status[product[:key]] %>
+            <% opted = product_data && product_data[:opted] %>
             <tr class="product-row <%= product[:category_class] %>">
               <td>
-                <span class="category-simple-text text-info fw-medium">
-                  Travel
+                <span class="category-simple-text text-success fw-medium">
+                  DrWise
                 </span>
               </td>
               <td>
                 <div class="d-flex align-items-center">
-                  <i class="<%= product[:icon] %> me-2 text-secondary"></i>
+                  <i class="<%= product[:icon] %> me-2 text-success"></i>
                   <span class="fw-medium"><%= product[:name] %></span>
+                  <i class="bi bi-check-circle-fill ms-2 text-success" title="DrWise Service"></i>
                 </div>
               </td>
               <td>
@@ -409,7 +504,305 @@
                 <% end %>
               </td>
               <td>
+                <% if opted && product_data %>
+                  <span class="badge bg-success"><%= product_data[:count] %> packages</span>
+                <% else %>
+                  <span class="text-muted">-</span>
+                <% end %>
+              </td>
+              <td>
+                <span class="text-muted">Service not yet implemented</span>
+              </td>
+            </tr>
+          <% end %>
+
+          <!-- ==================== NON-DRWISE PRODUCTS SECTION ==================== -->
+          <tr class="category-divider">
+            <td colspan="5" class="category-header non-drwise-main-header">
+              <i class="bi bi-person-badge-fill me-2 text-warning fs-5"></i>
+              <strong class="fs-5">Non-DrWise Products</strong>
+              <span class="badge bg-warning ms-2"><%= @non_drwise_summary[:total_policies] %> total</span>
+            </td>
+          </tr>
+
+          <!-- Non-DrWise Insurance Products -->
+          <tr class="sub-category-divider">
+            <td colspan="5" class="sub-category-header non-drwise-header">
+              <i class="bi bi-shield-check me-2"></i>
+              <strong>Insurance Products</strong>
+            </td>
+          </tr>
+
+          <%
+            non_drwise_insurance_products = [
+              { name: 'Life Insurance', icon: 'bi-heart-pulse', key: 'Life Insurance', category_class: 'non-drwise-life-insurance' },
+              { name: 'Health Insurance', icon: 'bi-activity', key: 'Health Insurance', category_class: 'non-drwise-health-insurance' },
+              { name: 'Motor Insurance', icon: 'bi-car-front', key: 'Motor Insurance', category_class: 'non-drwise-motor-insurance' }
+            ]
+          %>
+
+          <% non_drwise_insurance_products.each do |product| %>
+            <% policy_data = @non_drwise_policy_status[product[:key]] %>
+            <% opted = policy_data && policy_data[:opted] %>
+            <tr class="product-row <%= product[:category_class] %>">
+              <td>
+                <span class="category-simple-text text-warning fw-medium">
+                  Non-DrWise
+                </span>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <i class="<%= product[:icon] %> me-2 text-warning"></i>
+                  <span class="fw-medium"><%= product[:name] %></span>
+                  <i class="bi bi-person-badge-fill ms-2 text-warning" title="Customer/Agent Added Policy"></i>
+                </div>
+              </td>
+              <td>
+                <% if opted %>
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle me-1"></i>Yes
+                  </span>
+                <% else %>
+                  <span class="badge bg-secondary">
+                    <i class="bi bi-x-circle me-1"></i>No
+                  </span>
+                <% end %>
+              </td>
+              <td>
+                <% if opted && policy_data %>
+                  <span class="badge bg-warning"><%= policy_data[:count] %> policies</span>
+                <% else %>
+                  <span class="text-muted">-</span>
+                <% end %>
+              </td>
+              <td>
+                <% if opted && policy_data %>
+                  <div class="small">
+                    <div class="text-success mb-1">
+                      <i class="bi bi-currency-rupee me-1"></i>
+                      Total Premium: <%= indian_currency(policy_data[:total_premium]) %>
+                    </div>
+                    <% if policy_data[:latest_policy] %>
+                      <div class="text-muted">
+                        <i class="bi bi-clock me-1"></i>
+                        Latest: <%= policy_data[:latest_policy].created_at.strftime('%b %d, %Y') %>
+                      </div>
+                    <% end %>
+                  </div>
+                <% else %>
+                  <span class="text-muted">No Non-DrWise policies found</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+
+          <!-- Non-DrWise Investment Products -->
+          <tr class="sub-category-divider">
+            <td colspan="5" class="sub-category-header non-drwise-header">
+              <i class="bi bi-graph-up me-2"></i>
+              <strong>Investment Products</strong>
+            </td>
+          </tr>
+
+          <%
+            non_drwise_investment_products = [
+              { name: 'Mutual Fund', icon: 'bi-pie-chart', key: 'Mutual Fund', category_class: 'non-drwise-mutual-fund' },
+              { name: 'Gold', icon: 'bi-coin', key: 'Gold', category_class: 'non-drwise-gold' },
+              { name: 'NPS', icon: 'bi-building', key: 'NPS', category_class: 'non-drwise-nps' },
+              { name: 'Bonds', icon: 'bi-receipt', key: 'Bonds', category_class: 'non-drwise-bonds' }
+            ]
+          %>
+
+          <% non_drwise_investment_products.each do |product| %>
+            <% product_data = @non_drwise_product_status[product[:key]] %>
+            <% opted = product_data && product_data[:opted] %>
+            <tr class="product-row <%= product[:category_class] %>">
+              <td>
+                <span class="category-simple-text text-warning fw-medium">
+                  Non-DrWise
+                </span>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <i class="<%= product[:icon] %> me-2 text-warning"></i>
+                  <span class="fw-medium"><%= product[:name] %></span>
+                  <i class="bi bi-person-badge-fill ms-2 text-warning" title="Customer/Agent Added"></i>
+                </div>
+              </td>
+              <td>
+                <% if opted %>
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle me-1"></i>Yes
+                  </span>
+                <% else %>
+                  <span class="badge bg-secondary">
+                    <i class="bi bi-x-circle me-1"></i>No
+                  </span>
+                <% end %>
+              </td>
+              <td>
+                <% if opted && product_data %>
+                  <span class="badge bg-warning"><%= product_data[:count] %> investments</span>
+                <% else %>
+                  <span class="text-muted">-</span>
+                <% end %>
+              </td>
+              <td>
+                <span class="text-muted">Product not yet implemented</span>
+              </td>
+            </tr>
+          <% end %>
+
+          <!-- Non-DrWise Loan Products -->
+          <tr class="sub-category-divider">
+            <td colspan="5" class="sub-category-header non-drwise-header">
+              <i class="bi bi-bank me-2"></i>
+              <strong>Loan Products</strong>
+            </td>
+          </tr>
+
+          <%
+            non_drwise_loan_products = [
+              { name: 'Personal Loan', icon: 'bi-person', key: 'Personal Loan', category_class: 'non-drwise-personal-loan' },
+              { name: 'Home Loan', icon: 'bi-house', key: 'Home Loan', category_class: 'non-drwise-home-loan' },
+              { name: 'Business Loan', icon: 'bi-briefcase', key: 'Business Loan', category_class: 'non-drwise-business-loan' }
+            ]
+          %>
+
+          <% non_drwise_loan_products.each do |product| %>
+            <% product_data = @non_drwise_product_status[product[:key]] %>
+            <% opted = product_data && product_data[:opted] %>
+            <tr class="product-row <%= product[:category_class] %>">
+              <td>
+                <span class="category-simple-text text-warning fw-medium">
+                  Non-DrWise
+                </span>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <i class="<%= product[:icon] %> me-2 text-warning"></i>
+                  <span class="fw-medium"><%= product[:name] %></span>
+                  <i class="bi bi-person-badge-fill ms-2 text-warning" title="Customer/Agent Added"></i>
+                </div>
+              </td>
+              <td>
+                <% if opted %>
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle me-1"></i>Yes
+                  </span>
+                <% else %>
+                  <span class="badge bg-secondary">
+                    <i class="bi bi-x-circle me-1"></i>No
+                  </span>
+                <% end %>
+              </td>
+              <td>
+                <% if opted && product_data %>
+                  <span class="badge bg-warning"><%= product_data[:count] %> loans</span>
+                <% else %>
+                  <span class="text-muted">-</span>
+                <% end %>
+              </td>
+              <td>
+                <span class="text-muted">Product not yet implemented</span>
+              </td>
+            </tr>
+          <% end %>
+
+          <!-- Non-DrWise Taxation Services -->
+          <tr class="sub-category-divider">
+            <td colspan="5" class="sub-category-header non-drwise-header">
+              <i class="bi bi-calculator me-2"></i>
+              <strong>Taxation Services</strong>
+            </td>
+          </tr>
+
+          <% product_data = @non_drwise_product_status['ITR'] %>
+          <% opted = product_data && product_data[:opted] %>
+          <tr class="product-row non-drwise-taxation">
+            <td>
+              <span class="category-simple-text text-warning fw-medium">
+                Non-DrWise
+              </span>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <i class="bi-file-earmark-text me-2 text-warning"></i>
+                <span class="fw-medium">Income Tax Return (ITR)</span>
+                <i class="bi bi-person-badge-fill ms-2 text-warning" title="Customer/Agent Added"></i>
+              </div>
+            </td>
+            <td>
+              <% if opted %>
+                <span class="badge bg-success">
+                  <i class="bi bi-check-circle me-1"></i>Yes
+                </span>
+              <% else %>
+                <span class="badge bg-secondary">
+                  <i class="bi bi-x-circle me-1"></i>No
+                </span>
+              <% end %>
+            </td>
+            <td>
+              <% if opted && product_data %>
+                <span class="badge bg-warning"><%= product_data[:count] %> services</span>
+              <% else %>
                 <span class="text-muted">-</span>
+              <% end %>
+            </td>
+            <td>
+              <span class="text-muted">Service not yet implemented</span>
+            </td>
+          </tr>
+
+          <!-- Non-DrWise Travel Services -->
+          <tr class="sub-category-divider">
+            <td colspan="5" class="sub-category-header non-drwise-header">
+              <i class="bi bi-airplane me-2"></i>
+              <strong>Travel Services</strong>
+            </td>
+          </tr>
+
+          <%
+            non_drwise_travel_products = [
+              { name: 'Domestic Travel', icon: 'bi-geo', key: 'Domestic Travel', category_class: 'non-drwise-domestic-travel' },
+              { name: 'International Travel', icon: 'bi-globe', key: 'International Travel', category_class: 'non-drwise-international-travel' }
+            ]
+          %>
+
+          <% non_drwise_travel_products.each do |product| %>
+            <% product_data = @non_drwise_product_status[product[:key]] %>
+            <% opted = product_data && product_data[:opted] %>
+            <tr class="product-row <%= product[:category_class] %>">
+              <td>
+                <span class="category-simple-text text-warning fw-medium">
+                  Non-DrWise
+                </span>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <i class="<%= product[:icon] %> me-2 text-warning"></i>
+                  <span class="fw-medium"><%= product[:name] %></span>
+                  <i class="bi bi-person-badge-fill ms-2 text-warning" title="Customer/Agent Added"></i>
+                </div>
+              </td>
+              <td>
+                <% if opted %>
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle me-1"></i>Yes
+                  </span>
+                <% else %>
+                  <span class="badge bg-secondary">
+                    <i class="bi bi-x-circle me-1"></i>No
+                  </span>
+                <% end %>
+              </td>
+              <td>
+                <% if opted && product_data %>
+                  <span class="badge bg-warning"><%= product_data[:count] %> packages</span>
+                <% else %>
+                  <span class="text-muted">-</span>
+                <% end %>
               </td>
               <td>
                 <span class="text-muted">Service not yet implemented</span>
@@ -1228,3 +1621,139 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 </script>
+
+<style>
+  /* DrWise and Non-DrWise section styling */
+  .drwise-main-header {
+    background: linear-gradient(135deg, rgba(25, 135, 84, 0.15), rgba(25, 135, 84, 0.05));
+    border-left: 5px solid #198754;
+    font-size: 1.1rem;
+  }
+
+  .non-drwise-main-header {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.05));
+    border-left: 5px solid #ffc107;
+    font-size: 1.1rem;
+  }
+
+  .drwise-header {
+    background: linear-gradient(90deg, rgba(25, 135, 84, 0.1), transparent);
+    border-left: 4px solid #198754;
+  }
+
+  .non-drwise-header {
+    background: linear-gradient(90deg, rgba(255, 193, 7, 0.1), transparent);
+    border-left: 4px solid #ffc107;
+  }
+
+  /* DrWise product rows */
+  .drwise-life-insurance,
+  .drwise-health-insurance,
+  .drwise-motor-insurance,
+  .drwise-mutual-fund,
+  .drwise-gold,
+  .drwise-nps,
+  .drwise-bonds,
+  .drwise-personal-loan,
+  .drwise-home-loan,
+  .drwise-business-loan,
+  .drwise-taxation,
+  .drwise-domestic-travel,
+  .drwise-international-travel {
+    background-color: rgba(25, 135, 84, 0.02);
+    border-left: 2px solid rgba(25, 135, 84, 0.2);
+  }
+
+  /* Non-DrWise product rows */
+  .non-drwise-life-insurance,
+  .non-drwise-health-insurance,
+  .non-drwise-motor-insurance,
+  .non-drwise-mutual-fund,
+  .non-drwise-gold,
+  .non-drwise-nps,
+  .non-drwise-bonds,
+  .non-drwise-personal-loan,
+  .non-drwise-home-loan,
+  .non-drwise-business-loan,
+  .non-drwise-taxation,
+  .non-drwise-domestic-travel,
+  .non-drwise-international-travel {
+    background-color: rgba(255, 193, 7, 0.02);
+    border-left: 2px solid rgba(255, 193, 7, 0.2);
+  }
+
+  /* DrWise hover effects */
+  .drwise-life-insurance:hover,
+  .drwise-health-insurance:hover,
+  .drwise-motor-insurance:hover,
+  .drwise-mutual-fund:hover,
+  .drwise-gold:hover,
+  .drwise-nps:hover,
+  .drwise-bonds:hover,
+  .drwise-personal-loan:hover,
+  .drwise-home-loan:hover,
+  .drwise-business-loan:hover,
+  .drwise-taxation:hover,
+  .drwise-domestic-travel:hover,
+  .drwise-international-travel:hover {
+    background-color: rgba(25, 135, 84, 0.05);
+    border-left: 2px solid rgba(25, 135, 84, 0.4);
+  }
+
+  /* Non-DrWise hover effects */
+  .non-drwise-life-insurance:hover,
+  .non-drwise-health-insurance:hover,
+  .non-drwise-motor-insurance:hover,
+  .non-drwise-mutual-fund:hover,
+  .non-drwise-gold:hover,
+  .non-drwise-nps:hover,
+  .non-drwise-bonds:hover,
+  .non-drwise-personal-loan:hover,
+  .non-drwise-home-loan:hover,
+  .non-drwise-business-loan:hover,
+  .non-drwise-taxation:hover,
+  .non-drwise-domestic-travel:hover,
+  .non-drwise-international-travel:hover {
+    background-color: rgba(255, 193, 7, 0.05);
+    border-left: 2px solid rgba(255, 193, 7, 0.4);
+  }
+
+  /* Enhanced table styling for better visibility */
+  .category-divider td {
+    font-weight: 600;
+    font-size: 1.05em;
+    padding: 1rem !important;
+  }
+
+  .product-row td {
+    vertical-align: middle;
+    padding: 0.75rem !important;
+  }
+
+  /* Badge enhancements */
+  .badge {
+    font-size: 0.8em;
+    padding: 0.4em 0.6em;
+  }
+
+  /* Icon spacing */
+  .bi {
+    margin-right: 0.3rem;
+  }
+
+  /* Table responsiveness improvements */
+  @media (max-width: 768px) {
+    .product-matrix-vertical-table {
+      font-size: 0.875rem;
+    }
+
+    .category-divider td {
+      font-size: 1rem;
+      padding: 0.75rem !important;
+    }
+
+    .product-row td {
+      padding: 0.5rem !important;
+    }
+  }
+</style>

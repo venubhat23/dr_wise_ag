@@ -46,11 +46,10 @@ class Admin::LeadsController < Admin::ApplicationController
     @one_on_one_leads = Lead.one_on_one.count
     @follow_up_leads = Lead.follow_up.count
     @converted_leads = Lead.converted.count
-    @policy_created_leads = Lead.policy_created.count
     @lead_closed_leads = Lead.lead_closed.count
 
     # Conversion rate calculation
-    total_converted = @converted_leads + @policy_created_leads
+    total_converted = @converted_leads
     @conversion_rate = @total_leads > 0 ? (total_converted.to_f / @total_leads * 100).round(1) : 0
 
     # Pipeline stats
@@ -60,7 +59,6 @@ class Admin::LeadsController < Admin::ApplicationController
       one_on_one: @one_on_one_leads,
       follow_up: @follow_up_leads,
       converted: @converted_leads,
-      policy_created: @policy_created_leads,
       lead_closed: @lead_closed_leads
     }
 
@@ -466,8 +464,6 @@ class Admin::LeadsController < Admin::ApplicationController
       # For now, just mark as converted without customer_id
       @lead.update!(current_stage: 'converted', stage_updated_at: Time.current)
       true
-    when 'policy_created'
-      @lead.mark_policy_created!
     when 'lead_closed'
       @lead.close_lead!
     else
@@ -533,8 +529,6 @@ class Admin::LeadsController < Admin::ApplicationController
     when 'converted'
       @lead.update!(current_stage: 'converted', stage_updated_at: Time.current)
       true
-    when 'policy_created'
-      @lead.mark_policy_created!
     when 'referral_settled'
       @lead.update!(current_stage: 'referral_settled', stage_updated_at: Time.current, transferred_amount: true)
       true

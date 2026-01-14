@@ -215,7 +215,98 @@ class Admin::CustomersController < Admin::ApplicationController
 
   # GET /admin/customers/:id/trace_commission
   def trace_commission
-    # Get all policy types and their status for this customer
+    # Get DrWise and Non-DrWise policies separately
+    @drwise_policy_status = {}
+    @non_drwise_policy_status = {}
+
+    # Health Insurance - DrWise vs Non-DrWise
+    health_drwise = HealthInsurance.where(customer_id: @customer.id, is_admin_added: true, is_customer_added: false, is_agent_added: false)
+    health_non_drwise = HealthInsurance.where(customer_id: @customer.id).where(
+      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+      true, false, false, true, false, false
+    )
+
+    @drwise_policy_status['Health Insurance'] = {
+      opted: health_drwise.exists?,
+      count: health_drwise.count,
+      icon: 'bi-heart-pulse',
+      color: 'success',
+      policies: health_drwise,
+      total_premium: health_drwise.sum(:total_premium) || 0,
+      latest_policy: health_drwise.order(:created_at).last
+    }
+
+    @non_drwise_policy_status['Health Insurance'] = {
+      opted: health_non_drwise.exists?,
+      count: health_non_drwise.count,
+      icon: 'bi-heart-pulse',
+      color: 'success',
+      policies: health_non_drwise,
+      total_premium: health_non_drwise.sum(:total_premium) || 0,
+      latest_policy: health_non_drwise.order(:created_at).last
+    }
+
+    # Life Insurance - DrWise vs Non-DrWise
+    life_drwise = LifeInsurance.where(customer_id: @customer.id, is_admin_added: true, is_customer_added: false, is_agent_added: false)
+    life_non_drwise = LifeInsurance.where(customer_id: @customer.id).where(
+      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+      true, false, false, true, false, false
+    )
+
+    @drwise_policy_status['Life Insurance'] = {
+      opted: life_drwise.exists?,
+      count: life_drwise.count,
+      icon: 'bi-shield-check',
+      color: 'primary',
+      policies: life_drwise,
+      total_premium: life_drwise.sum(:total_premium) || 0,
+      latest_policy: life_drwise.order(:created_at).last
+    }
+
+    @non_drwise_policy_status['Life Insurance'] = {
+      opted: life_non_drwise.exists?,
+      count: life_non_drwise.count,
+      icon: 'bi-shield-check',
+      color: 'primary',
+      policies: life_non_drwise,
+      total_premium: life_non_drwise.sum(:total_premium) || 0,
+      latest_policy: life_non_drwise.order(:created_at).last
+    }
+
+    # Motor Insurance - DrWise vs Non-DrWise (if they have the admin/customer/agent added fields)
+    if MotorInsurance.column_names.include?('is_admin_added')
+      motor_drwise = MotorInsurance.where(customer_id: @customer.id, is_admin_added: true, is_customer_added: false, is_agent_added: false)
+      motor_non_drwise = MotorInsurance.where(customer_id: @customer.id).where(
+        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+        true, false, false, true, false, false
+      )
+    else
+      # For backwards compatibility, treat all motor insurance as non-drwise
+      motor_drwise = MotorInsurance.none
+      motor_non_drwise = MotorInsurance.where(customer_id: @customer.id)
+    end
+
+    @drwise_policy_status['Motor Insurance'] = {
+      opted: motor_drwise.exists?,
+      count: motor_drwise.count,
+      icon: 'bi-car-front',
+      color: 'warning',
+      policies: motor_drwise,
+      total_premium: motor_drwise.sum(:total_premium) || 0,
+      latest_policy: motor_drwise.order(:created_at).last
+    }
+
+    @non_drwise_policy_status['Motor Insurance'] = {
+      opted: motor_non_drwise.exists?,
+      count: motor_non_drwise.count,
+      icon: 'bi-car-front',
+      color: 'warning',
+      policies: motor_non_drwise,
+      total_premium: motor_non_drwise.sum(:total_premium) || 0,
+      latest_policy: motor_non_drwise.order(:created_at).last
+    }
+
+    # Keep original policy status for backwards compatibility
     @policy_status = {
       'Health Insurance' => {
         opted: HealthInsurance.exists?(customer_id: @customer.id),
@@ -256,59 +347,158 @@ class Admin::CustomersController < Admin::ApplicationController
     @product_status['General'] = false # Placeholder for General Insurance
     @product_status['Travel Insurance'] = false # Placeholder for Travel Insurance
 
+    # Initialize DrWise and Non-DrWise status for non-insurance products
+    # Since these don't have actual admin/customer/agent flags yet, we'll use placeholder logic
+
+    # Investment Products - DrWise vs Non-DrWise
+    @drwise_product_status = {}
+    @non_drwise_product_status = {}
+
     # Investment Products (check if tables exist)
     begin
-      @product_status['Mutual Fund'] = @customer.respond_to?(:investments) ?
-        @customer.investments.where(investment_type: 'Mutual Fund').exists? : false
-      @product_status['Gold'] = @customer.respond_to?(:investments) ?
-        @customer.investments.where(investment_type: 'Gold').exists? : false
-      @product_status['NPS'] = @customer.respond_to?(:investments) ?
-        @customer.investments.where(investment_type: 'NPS').exists? : false
-      @product_status['Bonds'] = @customer.respond_to?(:investments) ?
-        @customer.investments.where(investment_type: 'Bonds').exists? : false
+      if @customer.respond_to?(:investments)
+        # For now, randomly assign some as DrWise for demonstration
+        # In real implementation, these would have is_admin_added flags
+        mutual_funds = @customer.investments.where(investment_type: 'Mutual Fund')
+        gold = @customer.investments.where(investment_type: 'Gold')
+        nps = @customer.investments.where(investment_type: 'NPS')
+        bonds = @customer.investments.where(investment_type: 'Bonds')
+
+        @drwise_product_status['Mutual Fund'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Mutual Fund'] = { opted: mutual_funds.exists?, count: mutual_funds.count }
+
+        @drwise_product_status['Gold'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Gold'] = { opted: gold.exists?, count: gold.count }
+
+        @drwise_product_status['NPS'] = { opted: false, count: 0 }
+        @non_drwise_product_status['NPS'] = { opted: nps.exists?, count: nps.count }
+
+        @drwise_product_status['Bonds'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Bonds'] = { opted: bonds.exists?, count: bonds.count }
+      else
+        @drwise_product_status['Mutual Fund'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Mutual Fund'] = { opted: false, count: 0 }
+        @drwise_product_status['Gold'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Gold'] = { opted: false, count: 0 }
+        @drwise_product_status['NPS'] = { opted: false, count: 0 }
+        @non_drwise_product_status['NPS'] = { opted: false, count: 0 }
+        @drwise_product_status['Bonds'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Bonds'] = { opted: false, count: 0 }
+      end
     rescue
-      @product_status['Mutual Fund'] = false
-      @product_status['Gold'] = false
-      @product_status['NPS'] = false
-      @product_status['Bonds'] = false
+      @drwise_product_status['Mutual Fund'] = { opted: false, count: 0 }
+      @non_drwise_product_status['Mutual Fund'] = { opted: false, count: 0 }
+      @drwise_product_status['Gold'] = { opted: false, count: 0 }
+      @non_drwise_product_status['Gold'] = { opted: false, count: 0 }
+      @drwise_product_status['NPS'] = { opted: false, count: 0 }
+      @non_drwise_product_status['NPS'] = { opted: false, count: 0 }
+      @drwise_product_status['Bonds'] = { opted: false, count: 0 }
+      @non_drwise_product_status['Bonds'] = { opted: false, count: 0 }
     end
 
-    # Loan Products
+    # Loan Products - DrWise vs Non-DrWise
     begin
-      @product_status['Personal'] = @customer.respond_to?(:loans) ?
-        @customer.loans.where(loan_type: 'Personal').exists? : false
-      @product_status['Home'] = @customer.respond_to?(:loans) ?
-        @customer.loans.where(loan_type: 'Home').exists? : false
-      @product_status['Business'] = @customer.respond_to?(:loans) ?
-        @customer.loans.where(loan_type: 'Business').exists? : false
+      if @customer.respond_to?(:loans)
+        personal_loans = @customer.loans.where(loan_type: 'Personal')
+        home_loans = @customer.loans.where(loan_type: 'Home')
+        business_loans = @customer.loans.where(loan_type: 'Business')
+
+        @drwise_product_status['Personal Loan'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Personal Loan'] = { opted: personal_loans.exists?, count: personal_loans.count }
+
+        @drwise_product_status['Home Loan'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Home Loan'] = { opted: home_loans.exists?, count: home_loans.count }
+
+        @drwise_product_status['Business Loan'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Business Loan'] = { opted: business_loans.exists?, count: business_loans.count }
+      else
+        @drwise_product_status['Personal Loan'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Personal Loan'] = { opted: false, count: 0 }
+        @drwise_product_status['Home Loan'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Home Loan'] = { opted: false, count: 0 }
+        @drwise_product_status['Business Loan'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Business Loan'] = { opted: false, count: 0 }
+      end
     rescue
-      @product_status['Personal'] = false
-      @product_status['Home'] = false
-      @product_status['Business'] = false
+      @drwise_product_status['Personal Loan'] = { opted: false, count: 0 }
+      @non_drwise_product_status['Personal Loan'] = { opted: false, count: 0 }
+      @drwise_product_status['Home Loan'] = { opted: false, count: 0 }
+      @non_drwise_product_status['Home Loan'] = { opted: false, count: 0 }
+      @drwise_product_status['Business Loan'] = { opted: false, count: 0 }
+      @non_drwise_product_status['Business Loan'] = { opted: false, count: 0 }
     end
 
-    # Tax Services
+    # Tax Services - DrWise vs Non-DrWise
     begin
-      @product_status['ITR'] = @customer.respond_to?(:tax_services) ?
-        @customer.tax_services.where(service_type: 'ITR Filing').exists? : false
+      if @customer.respond_to?(:tax_services)
+        itr_services = @customer.tax_services.where(service_type: 'ITR Filing')
+        @drwise_product_status['ITR'] = { opted: false, count: 0 }
+        @non_drwise_product_status['ITR'] = { opted: itr_services.exists?, count: itr_services.count }
+      else
+        @drwise_product_status['ITR'] = { opted: false, count: 0 }
+        @non_drwise_product_status['ITR'] = { opted: false, count: 0 }
+      end
     rescue
-      @product_status['ITR'] = false
+      @drwise_product_status['ITR'] = { opted: false, count: 0 }
+      @non_drwise_product_status['ITR'] = { opted: false, count: 0 }
     end
 
-    # Travel Services
+    # Travel Services - DrWise vs Non-DrWise
     begin
-      @product_status['Domestic'] = @customer.respond_to?(:travel_packages) ?
-        @customer.travel_packages.where(travel_type: 'Domestic').exists? : false
-      @product_status['International'] = @customer.respond_to?(:travel_packages) ?
-        @customer.travel_packages.where(travel_type: 'International').exists? : false
+      if @customer.respond_to?(:travel_packages)
+        domestic = @customer.travel_packages.where(travel_type: 'Domestic')
+        international = @customer.travel_packages.where(travel_type: 'International')
+
+        @drwise_product_status['Domestic Travel'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Domestic Travel'] = { opted: domestic.exists?, count: domestic.count }
+
+        @drwise_product_status['International Travel'] = { opted: false, count: 0 }
+        @non_drwise_product_status['International Travel'] = { opted: international.exists?, count: international.count }
+      else
+        @drwise_product_status['Domestic Travel'] = { opted: false, count: 0 }
+        @non_drwise_product_status['Domestic Travel'] = { opted: false, count: 0 }
+        @drwise_product_status['International Travel'] = { opted: false, count: 0 }
+        @non_drwise_product_status['International Travel'] = { opted: false, count: 0 }
+      end
     rescue
-      @product_status['Domestic'] = false
-      @product_status['International'] = false
+      @drwise_product_status['Domestic Travel'] = { opted: false, count: 0 }
+      @non_drwise_product_status['Domestic Travel'] = { opted: false, count: 0 }
+      @drwise_product_status['International Travel'] = { opted: false, count: 0 }
+      @non_drwise_product_status['International Travel'] = { opted: false, count: 0 }
     end
+
+    # Keep backward compatibility
+    @product_status['Mutual Fund'] = @non_drwise_product_status['Mutual Fund'][:opted]
+    @product_status['Gold'] = @non_drwise_product_status['Gold'][:opted]
+    @product_status['NPS'] = @non_drwise_product_status['NPS'][:opted]
+    @product_status['Bonds'] = @non_drwise_product_status['Bonds'][:opted]
+    @product_status['Personal'] = @non_drwise_product_status['Personal Loan'][:opted]
+    @product_status['Home'] = @non_drwise_product_status['Home Loan'][:opted]
+    @product_status['Business'] = @non_drwise_product_status['Business Loan'][:opted]
+    @product_status['ITR'] = @non_drwise_product_status['ITR'][:opted]
+    @product_status['Domestic'] = @non_drwise_product_status['Domestic Travel'][:opted]
+    @product_status['International'] = @non_drwise_product_status['International Travel'][:opted]
 
     # Additional placeholder products for future expansion
     @product_status['Additional 1'] = false
     @product_status['Additional 2'] = false
+
+    # Calculate DrWise vs Non-DrWise statistics
+    @drwise_summary = {
+      total_policies: @drwise_policy_status.values.sum { |policy| policy[:count] } +
+                      @drwise_product_status.values.sum { |product| product[:count] },
+      total_premium: @drwise_policy_status.values.sum { |policy| policy[:total_premium] || 0 },
+      opted_count: @drwise_policy_status.values.count { |policy| policy[:opted] } +
+                   @drwise_product_status.values.count { |product| product[:opted] }
+    }
+
+    @non_drwise_summary = {
+      total_policies: @non_drwise_policy_status.values.sum { |policy| policy[:count] } +
+                      @non_drwise_product_status.values.sum { |product| product[:count] },
+      total_premium: @non_drwise_policy_status.values.sum { |policy| policy[:total_premium] || 0 },
+      opted_count: @non_drwise_policy_status.values.count { |policy| policy[:opted] } +
+                   @non_drwise_product_status.values.count { |product| product[:opted] }
+    }
 
     # Calculate comprehensive commission data based on all 17 products
     total_policies = 0

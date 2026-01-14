@@ -103,7 +103,7 @@ class DashboardController < ApplicationController
     @inactive_customers = @total_customers - @active_customers
 
     @total_leads = Lead.count
-    @converted_leads = Lead.where(current_stage: ['converted', 'policy_created']).count
+    @converted_leads = Lead.where(current_stage: 'converted').count
     @pending_leads = Lead.where(current_stage: ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one']).count
 
     # Lead conversion percentage
@@ -163,8 +163,7 @@ class DashboardController < ApplicationController
       'Contacted' => Lead.where(current_stage: ['follow_up', 'follow_up_successful']).count,
       'Consultation' => Lead.where(current_stage: 'consultation_scheduled').count,
       'One-on-One' => Lead.where(current_stage: 'one_on_one').count,
-      'Converted' => Lead.where(current_stage: 'converted').count,
-      'Policy Created' => Lead.where(current_stage: 'policy_created').count
+      'Converted' => Lead.where(current_stage: 'converted').count
     }
 
     # Lead stage distribution - complete breakdown of all stages with humanized names
@@ -172,7 +171,7 @@ class DashboardController < ApplicationController
     @lead_stage_distribution = {}
 
     # Define the proper order for lead stages
-    stage_order = ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one', 'converted', 'policy_created', 'follow_up_unsuccessful', 'not_interested']
+    stage_order = ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one', 'converted', 'follow_up_unsuccessful', 'not_interested']
 
     stage_order.each do |stage|
       count = stage_counts[stage] || 0
@@ -193,8 +192,6 @@ class DashboardController < ApplicationController
         'One-on-One'
       when 'converted'
         'Converted'
-      when 'policy_created'
-        'Policy Created'
       when 'not_interested'
         'Not Interested'
       else
@@ -292,7 +289,7 @@ class DashboardController < ApplicationController
     @referral_status = {
       'Paid' => Lead.where(transferred_amount: true).count,
       'Pending' => Lead.where(current_stage: 'converted', transferred_amount: false).count,
-      'In-Process' => Lead.where(current_stage: 'policy_created', transferred_amount: false).count
+      'In-Process' => Lead.where(current_stage: 'converted', transferred_amount: false).count
     }
 
     # Commission summary by month

@@ -361,7 +361,6 @@
                 ['🚫 Not Interested', 'not_interested'],
                 ['🔄 Re-Follow Up', 're_follow_up'],
                 ['👤 Convert to Customer', 'converted'],
-                ['📄 Policy Created', 'policy_created'],
                 ['📁 Lead Closed', 'lead_closed']
               ], @lead.current_stage), { prompt: 'Select Stage' }, { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select stage..." } } %>
               <div class="invalid-feedback">Please select a current stage.</div>
@@ -438,8 +437,7 @@
             <span class="text-muted">Current Stage:</span>
             <span class="badge bg-<%= @lead.current_stage == 'consultation_scheduled' ? 'info' :
                                        @lead.current_stage == 'one_on_one' ? 'warning' :
-                                       @lead.current_stage == 'converted' ? 'success' :
-                                       @lead.current_stage == 'policy_created' ? 'primary' : 'dark' %>">
+                                       @lead.current_stage == 'converted' ? 'success' : 'dark' %>">
               <%= @lead.current_stage&.humanize %>
             </span>
           </div>
@@ -550,14 +548,6 @@
             <strong>Customer Converted</strong>
           </div>
           <p class="small text-muted mb-0">Customer converted - Ready for policy creation</p>
-        </div>
-
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'policy_created' ? 'bg-primary' : 'bg-light text-dark' %> me-2">📄</span>
-            <strong>Policy Created</strong>
-          </div>
-          <p class="small text-muted mb-0">Policy created - Documentation completed</p>
         </div>
 
         <div class="stage-item mb-0">

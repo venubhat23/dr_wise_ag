@@ -107,7 +107,6 @@
             ['Unsuccessful', 'follow_up_unsuccessful'],
             ['Not Interested', 'not_interested'],
             ['Re-Follow Up', 're_follow_up'],
-            ['Policy Created', 'policy_created'],
             ['Converted', 'converted'],
             ['Closed', 'lead_closed']
           ], params[:current_stage]), {}, { class: "form-select stage-filter-dropdown" } %>
@@ -260,7 +259,6 @@
                              { key: 'follow_up_unsuccessful', name: 'Follow-Up Unsuccessful', icon: '❌', color: 'danger', desc: 'Unsuccessful follow-up' },
                              { key: 'not_interested', name: 'Not Interested', icon: '🚫', color: 'dark', desc: 'Lead not interested' },
                              { key: 're_follow_up', name: 'Re-Follow Up', icon: '🔄', color: 'warning', desc: 'Re-attempting follow-up' },
-                             { key: 'policy_created', name: 'Policy Created', icon: '📄', color: 'primary', desc: 'Policy created' },
                              { key: 'lead_closed', name: 'Lead Closed', icon: '📁', color: 'secondary', desc: 'Lead closed' }
                            ] %>
 
@@ -544,7 +542,6 @@ function bulkUpdateStage(stage) {
     'consultation': 'Consultation',
     'one_on_one': 'One-on-One',
     'converted': 'Converted',
-    'policy_created': 'Policy Created',
     'referral_settled': 'Referral Settled'
   };
 
@@ -1133,10 +1130,6 @@ document.addEventListener('DOMContentLoaded', function() {
 /* Stage option animations */
 .stage-option[data-stage="converted"] {
   background: linear-gradient(90deg, rgba(25, 135, 84, 0.1), transparent);
-}
-
-.stage-option[data-stage="policy_created"] {
-  background: linear-gradient(90deg, rgba(13, 110, 253, 0.1), transparent);
 }
 
 .stage-option[data-stage="not_interested"] {

@@ -1,0 +1,478 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Edit Broker Code</h2>
+    <p class="text-muted mb-0">Update broker code details</p>
+  </div>
+  <div>
+    <%= link_to admin_broker_codes_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Broker Codes
+    <% end %>
+  </div>
+</div>
+
+<!-- Form Card -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0">
+    <h5 class="mb-0">
+      <i class="bi bi-pencil-square me-2 text-warning"></i>
+      Update Broker Code Information
+    </h5>
+  </div>
+  <div class="card-body">
+    <%= form_with model: [:admin, @broker_code], local: true, class: "needs-validation", novalidate: true do |form| %>
+
+      <!-- Error Messages -->
+      <% if @broker_code.errors.any? %>
+        <div class="alert alert-danger alert-dismissible fade show">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Please correct the following errors:</strong>
+          <ul class="mb-0 mt-2">
+            <% @broker_code.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <div class="row">
+        <!-- Agency Code Dropdown (All Agents) -->
+        <div class="col-md-6 mb-3">
+          <%= form.label :agency_code_id, "Agency Code (All Agents)*", class: "form-label" %>
+          <%= form.select :agency_code_id,
+              [],
+              { prompt: 'Search and select agency code...' },
+              {
+                class: "form-control #{'is-invalid' if @broker_code.errors[:agency_code_id].any?}",
+                required: true,
+                id: "agency_code_select",
+                data: { placeholder: "Type to search agency codes..." }
+              } %>
+          <% if @broker_code.errors[:agency_code_id].any? %>
+            <div class="invalid-feedback"><%= @broker_code.errors[:agency_code_id].first %></div>
+          <% end %>
+        </div>
+
+        <!-- Agent Name (Auto-filled from agency code) -->
+        <div class="col-md-6 mb-3">
+          <%= form.label :agent_name, "Agent Name*", class: "form-label" %>
+          <%= form.text_field :agent_name,
+              class: "form-control #{'is-invalid' if @broker_code.errors[:agent_name].any?}",
+              placeholder: "Will be auto-filled from agency code", readonly: true, required: true %>
+          <% if @broker_code.errors[:agent_name].any? %>
+            <div class="invalid-feedback"><%= @broker_code.errors[:agent_name].first %></div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Hidden field for broker_id (will be set from agency code) -->
+      <%= form.hidden_field :broker_id, id: "broker_id_hidden" %>
+
+      <div class="row">
+        <!-- Broker Code -->
+        <div class="col-md-6 mb-3">
+          <%= form.label :broker_code, "Broker Code*", class: "form-label" %>
+          <%= form.text_field :broker_code,
+              class: "form-control #{'is-invalid' if @broker_code.errors[:broker_code].any?}",
+              placeholder: "Enter unique broker code", required: true %>
+          <% if @broker_code.errors[:broker_code].any? %>
+            <div class="invalid-feedback"><%= @broker_code.errors[:broker_code].first %></div>
+          <% end %>
+        </div>
+
+        <!-- Company Name Dropdown (Dynamic based on agency code) -->
+        <div class="col-md-6 mb-3">
+          <%= form.label :company_name, "Insurance Company Name*", class: "form-label" %>
+          <%= form.select :company_name,
+              [],
+              { prompt: 'Select agency code first...' },
+              {
+                class: "form-control #{'is-invalid' if @broker_code.errors[:company_name].any?}",
+                required: true,
+                id: "company_select",
+                data: { placeholder: "Will be auto-filled from agency code..." }
+              } %>
+          <% if @broker_code.errors[:company_name].any? %>
+            <div class="invalid-feedback"><%= @broker_code.errors[:company_name].first %></div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="row">
+        <!-- Status -->
+        <div class="col-md-6 mb-3">
+          <%= form.label :status, "Status", class: "form-label" %>
+          <%= form.select :status,
+              options_for_select([
+                ['Active', true],
+                ['Inactive', false]
+              ], @broker_code.status),
+              {},
+              { class: "form-control" } %>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="d-flex justify-content-between pt-3">
+        <div>
+          <%= link_to admin_broker_codes_path, class: "btn btn-outline-secondary" do %>
+            <i class="bi bi-x-lg me-2"></i>
+            Cancel
+          <% end %>
+        </div>
+        <div>
+          <%= form.submit "Update Broker Code", class: "btn btn-warning btn-lg" %>
+        </div>
+      </div>
+
+    <% end %>
+  </div>
+</div>
+
+<!-- jQuery (required for Select2) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Select2 CSS & JS for searchable dropdown -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- Custom styling for enhanced Select2 dropdown -->
+<style>
+  .select2-container--bootstrap-5 .select2-selection--single {
+    height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+
+  .select2-container--bootstrap-5 .select2-selection--single:focus-within {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+
+  .select2-container--bootstrap-5 .select2-selection__rendered {
+    color: #495057;
+    padding-left: 12px;
+    padding-right: 20px;
+    line-height: 36px;
+  }
+
+  .select2-container--bootstrap-5 .select2-results__option {
+    padding: 8px 12px;
+  }
+
+  .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: #0d6efd;
+    color: white;
+  }
+
+  .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  }
+
+  .select2-results__options {
+    max-height: 400px !important;
+    min-height: 200px;
+  }
+
+  .select2-dropdown-large .select2-results__options {
+    max-height: 600px !important;
+    min-height: 400px !important;
+    overflow-y: auto;
+  }
+
+  .select2-dropdown-large {
+    min-width: 100% !important;
+  }
+
+  .select2-dropdown-large .select2-results__option {
+    padding: 8px 12px !important;
+    min-height: 45px;
+    display: flex;
+    align-items: center;
+  }
+
+  .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 6px 12px;
+  }
+
+  /* Broker option styling */
+  .broker-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    min-height: 45px;
+  }
+
+  .broker-option-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(45deg, #198754, #20c997);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 10px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .broker-option-details {
+    flex: 1;
+  }
+
+  .broker-option-name {
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 2px;
+  }
+
+  .broker-option-type {
+    font-size: 11px;
+    color: #6c757d;
+  }
+
+  /* Company option styling */
+  .company-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    min-height: 45px;
+  }
+
+  .company-option-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(45deg, #dc3545, #fd7e14);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 10px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .company-option-details {
+    flex: 1;
+  }
+
+  .company-option-name {
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 2px;
+  }
+
+  .company-option-type {
+    font-size: 11px;
+    color: #6c757d;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Store existing values for editing
+  var existingAgencyCodeId = '<%= @broker_code.agency_code_id %>';
+  var existingCompanyName = '<%= @broker_code.company_name %>';
+
+  // Initialize Select2 for Agency Code dropdown
+  $('#agency_code_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Search and select agency code...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    dropdownCssClass: 'select2-dropdown-large',
+    minimumResultsForSearch: 0,
+    closeOnSelect: true,
+    templateResult: function(option) {
+      if (!option.id || option.element.value === '') {
+        return option.text;
+      }
+
+      // Parse agent name and code from the option text
+      var parts = option.text.split(' - ');
+      var agentName = parts[0] || option.text;
+      var agencyCode = parts[1] || '';
+
+      // Generate agent initials
+      var initials = agentName.split(' ').map(function(word) {
+        return word.charAt(0).toUpperCase();
+      }).join('').substring(0, 2);
+
+      // Custom template for agency options
+      var $option = $(
+        '<div class="agency-option">' +
+          '<div class="agency-option-avatar">' + initials + '</div>' +
+          '<div class="agency-option-details">' +
+            '<div class="agency-option-name">' + agentName + '</div>' +
+            '<div class="agency-option-code">Code: ' + agencyCode + '</div>' +
+          '</div>' +
+        '</div>'
+      );
+      return $option;
+    },
+    templateSelection: function(option) {
+      return option.text || 'Search and select agency code...';
+    },
+    escapeMarkup: function(markup) {
+      return markup;
+    }
+  });
+
+  // Initialize Select2 for Company dropdown
+  $('#company_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select agency code first...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    dropdownCssClass: 'select2-dropdown-large',
+    minimumResultsForSearch: 0,
+    closeOnSelect: true,
+    templateResult: function(option) {
+      if (!option.id || option.element.value === '') {
+        return option.text;
+      }
+
+      // Generate company initials
+      var initials = option.text.split(' ').map(function(word) {
+        return word.charAt(0).toUpperCase();
+      }).join('').substring(0, 3);
+
+      // Custom template for company options
+      var $option = $(
+        '<div class="company-option">' +
+          '<div class="company-option-avatar">' + initials + '</div>' +
+          '<div class="company-option-details">' +
+            '<div class="company-option-name">' + option.text + '</div>' +
+            '<div class="company-option-type">Insurance Company</div>' +
+          '</div>' +
+        '</div>'
+      );
+      return $option;
+    },
+    templateSelection: function(option) {
+      return option.text || 'Select agency code first...';
+    },
+    escapeMarkup: function(markup) {
+      return markup;
+    }
+  });
+
+  // Load all agency codes on page load
+  loadAgencyCodes();
+
+  // Handle agency code selection change
+  $('#agency_code_select').on('change', function() {
+    var agencyCodeId = $(this).val();
+
+    if (agencyCodeId) {
+      // Get the selected agency code data
+      var selectedAgency = window.agencyCodeData.find(function(agency) {
+        return agency.id == agencyCodeId;
+      });
+
+      if (selectedAgency) {
+        // Auto-fill agent name
+        $('#broker_code_agent_name').val(selectedAgency.name.split(' - ')[0]);
+
+        // Set broker_id from agency code data
+        $('#broker_id_hidden').val(selectedAgency.broker_id);
+
+        // Load company for this agency code
+        loadCompaniesForAgencyCode(agencyCodeId);
+      }
+    } else {
+      // Clear dependent fields
+      $('#broker_code_agent_name').val('');
+      $('#broker_id_hidden').val('');
+      clearCompanyDropdown();
+    }
+  });
+
+  // Function to load all agency codes
+  function loadAgencyCodes() {
+    fetch('/admin/broker_codes/all_agency_codes', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      // Store agency data globally for later use
+      window.agencyCodeData = data.agency_codes;
+
+      // Clear and populate agency code dropdown
+      $('#agency_code_select').empty().append('<option value="">Search and select agency code...</option>');
+
+      data.agency_codes.forEach(function(agency) {
+        $('#agency_code_select').append(new Option(agency.name, agency.id));
+      });
+
+      // Set existing agency code if editing
+      if (existingAgencyCodeId) {
+        $('#agency_code_select').val(existingAgencyCodeId).trigger('change');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading agency codes:', error);
+    });
+  }
+
+  // Function to load companies for selected agency code
+  function loadCompaniesForAgencyCode(agencyCodeId) {
+    fetch('/admin/broker_codes/companies_by_agency_code?agency_code_id=' + agencyCodeId, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      // Clear and populate company dropdown
+      $('#company_select').empty().append('<option value="">Select company...</option>');
+
+      if (data.companies && data.companies.length > 0) {
+        data.companies.forEach(function(company) {
+          $('#company_select').append(new Option(company, company));
+        });
+
+        // Enable the company dropdown
+        $('#company_select').prop('disabled', false);
+
+        // Set existing company if editing
+        if (existingCompanyName) {
+          $('#company_select').val(existingCompanyName).trigger('change');
+        }
+      } else {
+        clearCompanyDropdown();
+      }
+    })
+    .catch(error => {
+      console.error('Error loading companies:', error);
+      clearCompanyDropdown();
+    });
+  }
+
+  // Function to clear and disable company dropdown
+  function clearCompanyDropdown() {
+    $('#company_select').empty().append('<option value="">Select agency code first...</option>');
+    $('#company_select').prop('disabled', true);
+  }
+});
+</script>

@@ -492,6 +492,56 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     end
   end
 
+  # GET /admin/agency_codes/company_for_agency_code - API endpoint for fetching company for specific agency code
+  def company_for_agency_code
+    agency_code_id = params[:agency_code_id]
+
+    if agency_code_id.present?
+      agency_code = AgencyCode.find_by(id: agency_code_id)
+
+      if agency_code&.company_name.present?
+        respond_to do |format|
+          format.json do
+            render json: {
+              success: true,
+              company_name: agency_code.company_name,
+              agency_code_id: agency_code.id,
+              agent_name: agency_code.agent_name,
+              code: agency_code.code
+            }
+          end
+        end
+      else
+        respond_to do |format|
+          format.json do
+            render json: {
+              success: false,
+              message: "No company found for this agency code"
+            }, status: :not_found
+          end
+        end
+      end
+    else
+      respond_to do |format|
+        format.json do
+          render json: {
+            success: false,
+            message: "Agency code ID is required"
+          }, status: :bad_request
+        end
+      end
+    end
+  rescue => e
+    respond_to do |format|
+      format.json do
+        render json: {
+          success: false,
+          message: "Error fetching company for agency code: #{e.message}"
+        }, status: :internal_server_error
+      end
+    end
+  end
+
   private
 
   def set_agency_code

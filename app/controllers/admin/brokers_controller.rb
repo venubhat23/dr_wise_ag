@@ -21,27 +21,31 @@ class Admin::BrokersController < Admin::ApplicationController
         @active_brokers = Broker.active.count
         @inactive_brokers = Broker.inactive.count
 
-        # Data for Add Broker Code modal
-        @agency_code = AgencyCode.new
-        @insurance_companies = insurance_companies_list
-        @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
+        # Data for Broker Code tab (using new BrokerCode model)
+        @broker_codes = BrokerCode.includes(:broker)
 
-        # Data for Broker Code tab
-        @agency_codes = AgencyCode.includes(:broker)
-
-        # Apply search filter to agency codes if present
+        # Apply search filter to broker codes if present
         if params[:search].present?
-          @agency_codes = @agency_codes.search(params[:search])
+          search_term = "%#{params[:search]}%"
+          @broker_codes = @broker_codes.joins(:broker).where(
+            "broker_codes.agent_name ILIKE ? OR broker_codes.broker_code ILIKE ? OR broker_codes.company_name ILIKE ? OR brokers.name ILIKE ?",
+            search_term, search_term, search_term, search_term
+          )
         end
 
         # Get total count before pagination for display purposes
-        @total_filtered_agency_codes = @agency_codes.count
+        @total_filtered_broker_codes = @broker_codes.count
 
-        # Apply pagination for agency codes (10 records per page)
-        @agency_codes = @agency_codes.order(created_at: :desc).page(params[:page]).per(10)
+        # Apply pagination for broker codes (10 records per page)
+        @broker_codes = @broker_codes.order(created_at: :desc).page(params[:page]).per(10)
 
         # Determine which tab should be active
-        @active_tab = params[:tab] || 'broker-list'
+        # Check for anchor parameter or tab parameter
+        if params[:anchor] == 'broker-code' || request.fullpath.include?('#broker-code')
+          @active_tab = 'broker-code'
+        else
+          @active_tab = params[:tab] || 'broker-list'
+        end
       end
 
       format.json do

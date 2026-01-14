@@ -552,8 +552,7 @@
             'Contacted' => Lead.where(current_stage: ['follow_up', 'follow_up_successful']).count,
             'Consultation' => Lead.where(current_stage: 'consultation_scheduled').count,
             'One-on-One' => Lead.where(current_stage: 'one_on_one').count,
-            'Converted' => Lead.where(current_stage: 'converted').count,
-            'Policy Created' => Lead.where(current_stage: 'policy_created').count
+            'Converted' => Lead.where(current_stage: 'converted').count
           }
           total_leads = lead_stages.values.sum
         %>
