@@ -214,21 +214,17 @@
                       <li><hr class="dropdown-divider"></li>
                       <% if sub_agent.deactivated? %>
                         <li>
-                          <a href="#"
-                             class="dropdown-item text-success deactivation-action"
-                             data-url="<%= activate_admin_sub_agent_path(sub_agent) %>"
-                             data-method="patch"
-                             data-confirm="Are you sure you want to activate this affiliate?">
+                          <a href="javascript:void(0)"
+                             class="dropdown-item text-success"
+                             onclick="handleDeactivationAction('<%= activate_admin_sub_agent_path(sub_agent) %>', 'PATCH', 'Are you sure you want to activate this affiliate?'); return false;">
                             <i class="bi bi-check-circle text-success me-2"></i>Activate
                           </a>
                         </li>
                       <% else %>
                         <li>
-                          <a href="#"
-                             class="dropdown-item text-warning deactivation-action"
-                             data-url="<%= deactivate_admin_sub_agent_path(sub_agent) %>"
-                             data-method="patch"
-                             data-confirm="Are you sure you want to deactivate this affiliate?">
+                          <a href="javascript:void(0)"
+                             class="dropdown-item text-warning"
+                             onclick="handleDeactivationAction('<%= deactivate_admin_sub_agent_path(sub_agent) %>', 'PATCH', 'Are you sure you want to deactivate this affiliate?'); return false;">
                             <i class="bi bi-x-circle text-warning me-2"></i>Deactivate
                           </a>
                         </li>
@@ -325,6 +321,36 @@
 </style>
 
 <script>
+// Global function to handle deactivation/activation
+function handleDeactivationAction(url, method, confirmMessage) {
+  if (confirm(confirmMessage)) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.style.display = 'none';
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'authenticity_token';
+      csrfInput.value = csrfToken.getAttribute('content');
+      form.appendChild(csrfInput);
+    }
+
+    // Add method override
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = method;
+    form.appendChild(methodInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   const searchInput = document.getElementById('search_input');
   const statusFilter = document.getElementById('status_filter');
@@ -346,6 +372,45 @@ document.addEventListener('DOMContentLoaded', function() {
   // Auto-submit on status filter change
   statusFilter.addEventListener('change', function() {
     searchForm.submit();
+  });
+
+  // Handle deactivation/activation actions
+  const deactivationActions = document.querySelectorAll('.deactivation-action');
+  deactivationActions.forEach(action => {
+    action.addEventListener('click', function(e) {
+      e.preventDefault();
+
+      const url = this.dataset.url;
+      const method = this.dataset.method;
+      const confirmMessage = this.dataset.confirm;
+
+      if (confirm(confirmMessage)) {
+        // Create and submit form
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+          const csrfInput = document.createElement('input');
+          csrfInput.type = 'hidden';
+          csrfInput.name = 'authenticity_token';
+          csrfInput.value = csrfToken.getAttribute('content');
+          form.appendChild(csrfInput);
+        }
+
+        // Add method override for PATCH
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = method.toUpperCase();
+        form.appendChild(methodInput);
+
+        document.body.appendChild(form);
+        form.submit();
+      }
+    });
   });
 
   // Delete confirmation functionality

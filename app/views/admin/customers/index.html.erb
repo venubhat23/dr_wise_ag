@@ -295,29 +295,19 @@ document.addEventListener('DOMContentLoaded', function() {
                       <i class="bi bi-graph-up-arrow"></i>
                     <% end %>
                     <% if customer.deactivated? %>
-                      <%= button_to activate_admin_customer_path(customer),
-                          method: :patch,
-                          class: "btn btn-sm btn-outline-success",
-                          title: "Activate",
-                          form: { class: "d-inline" },
-                          data: {
-                            confirm: "Are you sure you want to activate this customer?",
-                            turbo_method: :patch
-                          } do %>
+                      <button type="button"
+                          class="btn btn-sm btn-outline-success"
+                          title="Activate"
+                          onclick="handleDeactivationAction('<%= activate_admin_customer_path(customer) %>', 'PATCH', 'Are you sure you want to activate this customer?')">
                         <i class="bi bi-check-circle"></i>
-                      <% end %>
+                      </button>
                     <% else %>
-                      <%= button_to deactivate_admin_customer_path(customer),
-                          method: :patch,
-                          class: "btn btn-sm btn-outline-danger",
-                          title: "Deactivate",
-                          form: { class: "d-inline" },
-                          data: {
-                            confirm: "Are you sure you want to deactivate this customer?",
-                            turbo_method: :patch
-                          } do %>
+                      <button type="button"
+                          class="btn btn-sm btn-outline-danger"
+                          title="Deactivate"
+                          onclick="handleDeactivationAction('<%= deactivate_admin_customer_path(customer) %>', 'PATCH', 'Are you sure you want to deactivate this customer?')">
                         <i class="bi bi-x-circle"></i>
-                      <% end %>
+                      </button>
                     <% end %>
                     <button type="button"
                         class="btn btn-sm btn-outline-danger delete-customer"
@@ -380,8 +370,38 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
+// Global function to handle deactivation/activation
+function handleDeactivationAction(url, method, confirmMessage) {
+  if (confirm(confirmMessage)) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.style.display = 'none';
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'authenticity_token';
+      csrfInput.value = csrfToken.getAttribute('content');
+      form.appendChild(csrfInput);
+    }
+
+    // Add method override
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = method;
+    form.appendChild(methodInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
 
 document.addEventListener('DOMContentLoaded', function() {
+
   // Handle customer delete buttons
   document.addEventListener('click', function(e) {
     if (e.target.closest('.delete-customer')) {

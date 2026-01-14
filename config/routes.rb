@@ -192,9 +192,7 @@ Rails.application.routes.draw do
       end
       member do
         patch :toggle_status
-        get :deactivate
         patch :deactivate
-        get :activate
         patch :activate
         get :policy_chart
         get :trace_commission
