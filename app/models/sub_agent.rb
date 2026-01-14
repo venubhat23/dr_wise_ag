@@ -28,7 +28,12 @@ class SubAgent < ApplicationRecord
   has_many :customers, foreign_key: 'sub_agent_id'
 
   # Nested attributes for documents
-  accepts_nested_attributes_for :sub_agent_documents, allow_destroy: true, reject_if: :all_blank
+  accepts_nested_attributes_for :sub_agent_documents, allow_destroy: true,
+    reject_if: proc { |attributes|
+      # Only reject if both document_type is blank AND there's no file
+      # Also check for _destroy flag to allow deletions
+      attributes['_destroy'] == '1' ? false : (attributes['document_type'].blank? && attributes['document_file'].blank?)
+    }
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations

@@ -1,11 +1,20 @@
 class Admin::SubAgentDocumentsController < Admin::ApplicationController
   before_action :set_sub_agent
-  before_action :set_sub_agent_document, only: [:show, :edit, :update, :destroy]
+  before_action :set_sub_agent_document, only: [:show, :edit, :update, :destroy, :destroy_immediate]
 
   # DELETE /admin/sub_agents/:sub_agent_id/sub_agent_documents/:id
   def destroy
     @sub_agent_document.destroy
     redirect_to edit_admin_sub_agent_path(@sub_agent), notice: 'Document was successfully deleted.'
+  end
+
+  # DELETE /admin/sub_agents/:sub_agent_id/sub_agent_documents/:id/destroy_immediate
+  def destroy_immediate
+    if @sub_agent_document.destroy
+      render json: { success: true, message: 'Document was successfully deleted.' }
+    else
+      render json: { success: false, message: 'Failed to delete document.' }, status: :unprocessable_entity
+    end
   end
 
   # POST /admin/sub_agents/:sub_agent_id/sub_agent_documents

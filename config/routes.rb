@@ -163,7 +163,11 @@ Rails.application.routes.draw do
         get :distributor
         get :documents
       end
-      resources :sub_agent_documents, except: [:show, :index]
+      resources :sub_agent_documents, except: [:show, :index] do
+        member do
+          delete :destroy_immediate
+        end
+      end
     end
 
     # Distributor management
@@ -172,6 +176,11 @@ Rails.application.routes.draw do
         patch :toggle_status
         patch :deactivate
         patch :activate
+      end
+      resources :distributor_documents, except: [:show, :index] do
+        member do
+          delete :destroy_immediate
+        end
       end
     end
 

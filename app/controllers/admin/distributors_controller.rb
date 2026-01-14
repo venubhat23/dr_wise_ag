@@ -59,11 +59,15 @@ class Admin::DistributorsController < Admin::ApplicationController
 
   # GET /admin/distributors/1/edit
   def edit
+    # Documents are already loaded via set_distributor before_action
     @distributor.distributor_documents.build if @distributor.distributor_documents.empty?
   end
 
   # POST /admin/distributors
   def create
+    Rails.logger.info "=== DISTRIBUTOR CREATE PARAMS ==="
+    Rails.logger.info "Documents attributes: #{params[:distributor][:distributor_documents_attributes].inspect}"
+
     @distributor = Distributor.new(distributor_params)
     @distributor.role_id = 'distributor'
 
@@ -71,8 +75,10 @@ class Admin::DistributorsController < Admin::ApplicationController
       # Create user account for ambassador login (same logic as customers)
       create_ambassador_user_account(@distributor)
       handle_affiliate_assignments(@distributor, params[:distributor][:assigned_affiliate_ids])
+      Rails.logger.info "Documents after create: #{@distributor.distributor_documents.count}"
       redirect_to admin_distributors_path, notice: 'Ambassador was successfully created with login credentials.'
     else
+      Rails.logger.error "Create errors: #{@distributor.errors.full_messages}"
       @distributor.distributor_documents.build if @distributor.distributor_documents.empty?
       render :new, status: :unprocessable_entity
     end
@@ -80,10 +86,15 @@ class Admin::DistributorsController < Admin::ApplicationController
 
   # PATCH/PUT /admin/distributors/1
   def update
+    Rails.logger.info "=== DISTRIBUTOR UPDATE PARAMS ==="
+    Rails.logger.info "Documents attributes: #{params[:distributor][:distributor_documents_attributes].inspect}"
+
     if @distributor.update(distributor_params)
       handle_affiliate_assignments(@distributor, params[:distributor][:assigned_affiliate_ids])
+      Rails.logger.info "Documents after update: #{@distributor.distributor_documents.count}"
       redirect_to admin_distributors_path, notice: 'Distributor was successfully updated.'
     else
+      Rails.logger.error "Update errors: #{@distributor.errors.full_messages}"
       @distributor.distributor_documents.build if @distributor.distributor_documents.empty?
       render :edit, status: :unprocessable_entity
     end
@@ -212,7 +223,7 @@ class Admin::DistributorsController < Admin::ApplicationController
   end
 
   def set_distributor
-    @distributor = Distributor.find(params[:id])
+    @distributor = Distributor.includes(distributor_documents: { document_file_attachment: :blob }).find(params[:id])
   end
 
   def distributor_params

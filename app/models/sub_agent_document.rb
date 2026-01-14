@@ -5,10 +5,29 @@ class SubAgentDocument < ApplicationRecord
 
   # Validations
   validates :document_type, presence: true
-  validates :document_file, presence: true
+  # Custom validation for document file presence
+  validate :document_file_presence
   validates :document_type, inclusion: {
     in: ['Aadhaar Card', 'Pancard', 'Driving License', 'Mediclaim', 'RC Book', 'Other File']
   }
+  validate :validate_document_file_size
+
+  private
+
+  def document_file_presence
+    return if document_file.attached?
+    errors.add(:document_file, "must be attached")
+  end
+
+  def validate_document_file_size
+    return unless document_file.attached?
+
+    if document_file.blob.byte_size > 10.megabytes
+      errors.add(:document_file, 'size should be less than 10MB')
+    end
+  end
+
+  public
 
   # Instance methods
   def document_name

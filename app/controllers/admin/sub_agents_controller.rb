@@ -132,6 +132,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
 
   # GET /admin/sub_agents/1/edit
   def edit
+    # Documents are already loaded via set_sub_agent before_action
     @sub_agent.sub_agent_documents.build if @sub_agent.sub_agent_documents.empty?
     @assigned_distributor = @sub_agent.assigned_distributor
     @distributor_assignment = @sub_agent.distributor_assignment
@@ -156,6 +157,9 @@ class Admin::SubAgentsController < Admin::ApplicationController
 
   # POST /admin/sub_agents
   def create
+    Rails.logger.info "=== SUB AGENT CREATE PARAMS ==="
+    Rails.logger.info "Documents attributes: #{params[:sub_agent][:sub_agent_documents_attributes].inspect}"
+
     @sub_agent = SubAgent.new(sub_agent_params)
 
     # Auto-generate password if not provided
@@ -168,8 +172,10 @@ class Admin::SubAgentsController < Admin::ApplicationController
     if @sub_agent.save
       # Create User account for the sub agent
       create_user_account_for_sub_agent(@sub_agent)
+      Rails.logger.info "Documents after create: #{@sub_agent.sub_agent_documents.count}"
       redirect_to admin_sub_agents_path, notice: 'Sub Agent was successfully created.'
     else
+      Rails.logger.error "Create errors: #{@sub_agent.errors.full_messages}"
       @sub_agent.sub_agent_documents.build if @sub_agent.sub_agent_documents.empty?
       render :new, status: :unprocessable_entity
     end
@@ -177,10 +183,15 @@ class Admin::SubAgentsController < Admin::ApplicationController
 
   # PATCH/PUT /admin/sub_agents/1
   def update
+    Rails.logger.info "=== SUB AGENT UPDATE PARAMS ==="
+    Rails.logger.info "Documents attributes: #{params[:sub_agent][:sub_agent_documents_attributes].inspect}"
+
     if @sub_agent.update(sub_agent_params)
       handle_distributor_assignment(@sub_agent, params[:assigned_distributor_id])
+      Rails.logger.info "Documents after update: #{@sub_agent.sub_agent_documents.count}"
       redirect_to admin_sub_agents_path, notice: 'Sub Agent was successfully updated.'
     else
+      Rails.logger.error "Update errors: #{@sub_agent.errors.full_messages}"
       @sub_agent.sub_agent_documents.build if @sub_agent.sub_agent_documents.empty?
       @assigned_distributor = @sub_agent.assigned_distributor
       @distributor_assignment = @sub_agent.distributor_assignment
@@ -310,7 +321,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
   private
 
   def set_sub_agent
-    @sub_agent = SubAgent.find(params[:id])
+    @sub_agent = SubAgent.includes(sub_agent_documents: { document_file_attachment: :blob }).find(params[:id])
   end
 
   def sub_agent_params
