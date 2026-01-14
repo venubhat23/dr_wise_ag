@@ -548,9 +548,9 @@
       <div style="margin-top: 1rem;">
         <%
           lead_stages = {
-            'New Leads' => Lead.where(current_stage: 'new').count,
-            'Contacted' => Lead.where(current_stage: 'contacted').count,
-            'Consultation' => Lead.where(current_stage: 'consultation').count,
+            'New Leads' => Lead.where(current_stage: 'lead_generated').count,
+            'Contacted' => Lead.where(current_stage: ['follow_up', 'follow_up_successful']).count,
+            'Consultation' => Lead.where(current_stage: 'consultation_scheduled').count,
             'One-on-One' => Lead.where(current_stage: 'one_on_one').count,
             'Converted' => Lead.where(current_stage: 'converted').count,
             'Policy Created' => Lead.where(current_stage: 'policy_created').count

@@ -342,13 +342,14 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   # GET /admin/agency_codes/companies_for_broker - API endpoint for fetching companies for selected broker
   def companies_for_broker
     broker_id = params[:broker_id]
+    insurance_type = params[:insurance_type] || 'Life'  # Default to Life if not specified
 
     if broker_id.present?
-      # Get all companies for this broker
+      # Get all companies for this broker, filtered by insurance type
       broker = Broker.find_by(id: broker_id)
 
-      # First try to get companies from agency codes linked to this broker
-      agency_codes = AgencyCode.where(broker_id: broker_id)
+      # First try to get companies from agency codes linked to this broker and insurance type
+      agency_codes = AgencyCode.where(broker_id: broker_id, insurance_type: insurance_type)
                               .select('company_name')
                               .group(:company_name)
                               .order(:company_name)
@@ -356,27 +357,35 @@ class Admin::AgencyCodesController < Admin::ApplicationController
       if agency_codes.any?
         companies = agency_codes.map(&:company_name)
       elsif broker&.respond_to?(:insurance_company) && broker.insurance_company
-        # Fallback to broker's direct insurance company
-        companies = [broker.insurance_company.name]
+        # Fallback to broker's direct insurance company if it matches the insurance type
+        company_name = broker.insurance_company.name
+        # Only include the company if it's of the correct type
+        if insurance_type_matches?(company_name, insurance_type)
+          companies = [company_name]
+        else
+          companies = []
+        end
       else
-        # If no specific associations found, return all available Life insurance companies
+        # If no specific associations found, return available companies for the insurance type
         # This ensures users can still select companies even if broker associations are not set up
-        life_agency_codes = AgencyCode.where(insurance_type: 'Life')
+        type_agency_codes = AgencyCode.where(insurance_type: insurance_type)
                                      .select('company_name')
                                      .group(:company_name)
                                      .order(:company_name)
-        companies = life_agency_codes.map(&:company_name)
+        companies = type_agency_codes.map(&:company_name)
 
-        # If still no companies, fallback to hardcoded list
+        # If still no companies, fallback to companies from concern based on insurance type
         if companies.empty?
-          companies = [
-            'ICICI Prudential Life Insurance Co Ltd',
-            'HDFC Life Insurance Co Ltd',
-            'SBI Life Insurance Co Ltd',
-            'LIC of India',
-            'Bajaj Allianz Life Insurance Co Ltd',
-            'Max Life Insurance Co Ltd'
-          ]
+          companies = case insurance_type.to_s.downcase
+                     when 'life'
+                       life_insurance_companies
+                     when 'health'
+                       health_insurance_companies
+                     when 'motor', 'general'
+                       motor_insurance_companies
+                     else
+                       insurance_companies_list
+                     end
         end
       end
     else
@@ -491,5 +500,19 @@ class Admin::AgencyCodesController < Admin::ApplicationController
 
   def agency_code_params
     params.require(:agency_code).permit(:insurance_type, :company_name, :agent_name, :code, :broker_id)
+  end
+
+  # Helper method to check if an insurance company matches the insurance type
+  def insurance_type_matches?(company_name, insurance_type)
+    case insurance_type.to_s.downcase
+    when 'life'
+      life_insurance_companies.include?(company_name)
+    when 'health'
+      health_insurance_companies.include?(company_name)
+    when 'motor', 'general'
+      motor_insurance_companies.include?(company_name)
+    else
+      true # For other types, allow any company
+    end
   end
 end

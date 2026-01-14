@@ -1,4 +1,5 @@
 class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
+  include InsuranceCompanyConstants
   before_action :authenticate_agent!, except: [:insurance_companies, :motor_insurance_companies]
   attr_reader :current_user
 
@@ -1752,27 +1753,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   end
 
   def get_insurance_companies
-    # You can get this from a dedicated model or return static list
-    [
-      'LIC of India',
-      'SBI Life Insurance',
-      'HDFC Life Insurance',
-      'ICICI Prudential Life Insurance',
-      'Bajaj Allianz Life Insurance',
-      'Aditya Birla Sun Life Insurance',
-      'Max Life Insurance',
-      'Kotak Mahindra Life Insurance',
-      'Tata AIA Life Insurance',
-      'PNB MetLife India Insurance',
-      'Star Health Insurance',
-      'HDFC ERGO Health Insurance',
-      'Care Health Insurance',
-      'Niva Bupa Health Insurance',
-      'Bajaj Allianz General Insurance',
-      'New India Assurance',
-      'Oriental Insurance',
-      'United India Insurance'
-    ]
+    # Use centralized insurance company data from InsuranceCompanyConstants
+    self.class.insurance_company_names
   end
 
   # New helper methods for form data
@@ -1789,17 +1771,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   end
 
   def get_insurance_companies_dropdown
-    # Return insurance companies with ID and name for dropdown
-    companies = [
-      'LIC of India',
-      'SBI Life Insurance',
-      'HDFC Life Insurance',
-      'ICICI Prudential Life Insurance',
-      'Star Health Insurance',
-      'HDFC ERGO Health Insurance',
-      'Care Health Insurance',
-      'Bajaj Allianz General Insurance'
-    ]
+    # Use centralized insurance company data from InsuranceCompanyConstants
+    companies = self.class.insurance_company_names
 
     companies.map.with_index(1) do |company, index|
       {
