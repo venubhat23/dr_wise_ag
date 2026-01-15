@@ -31,6 +31,7 @@ Rails.application.routes.draw do
     namespace :v1 do
       # Public API endpoints (no authentication required)
       get 'public/search_sub_agents', to: 'public#search_sub_agents'
+      get 'public/sub_agent_details', to: 'public#sub_agent_details'
       get 'public/search_distributors', to: 'public#search_distributors'
       get 'public/insurance_companies', to: 'public#insurance_companies'
       get 'public/motor_insurance_companies', to: 'public#motor_insurance_companies'

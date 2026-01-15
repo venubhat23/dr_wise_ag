@@ -145,6 +145,59 @@ class Api::V1::PublicController < ActionController::Base
     end
   end
 
+  def sub_agent_details
+    begin
+      sub_agent_id = params[:id]
+
+      Rails.logger.info "Public sub_agent_details called with ID: #{sub_agent_id}"
+
+      if sub_agent_id.blank?
+        render json: {
+          success: false,
+          message: "Sub agent ID is required"
+        }, status: 400
+        return
+      end
+
+      sub_agent = SubAgent.find_by(id: sub_agent_id)
+
+      if sub_agent.nil?
+        render json: {
+          success: false,
+          message: "Sub agent not found"
+        }, status: 404
+        return
+      end
+
+      # Get distributor ID from the sub agent
+      distributor_id = sub_agent.distributor_id || sub_agent.assigned_distributor&.id
+
+      response_data = {
+        success: true,
+        sub_agent_id: sub_agent.id,
+        sub_agent_name: sub_agent.display_name,
+        distributor_id: distributor_id
+      }
+
+      if distributor_id
+        distributor = Distributor.find_by(id: distributor_id)
+        if distributor
+          response_data[:distributor_name] = distributor.display_name
+        end
+      end
+
+      Rails.logger.info "Returning sub agent details: #{response_data}"
+      render json: response_data
+    rescue => e
+      Rails.logger.error "Error in public sub_agent_details: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      render json: {
+        success: false,
+        message: "Failed to load sub agent details: #{e.message}"
+      }, status: 500
+    end
+  end
+
   # GET /api/v1/public/insurance_companies
   def insurance_companies
     begin

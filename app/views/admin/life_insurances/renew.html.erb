@@ -141,6 +141,7 @@
               { prompt: 'Loading...' },
               { class: "form-control", id: "life_insurance_agency_code_id", required: false } %>
           <%= form.hidden_field :broker_id, id: "broker_id_hidden" %>
+          <%= form.hidden_field :distributor_id, id: "distributor_id_hidden" %>
         </div>
 
         <!-- 3rd: Insurance Company (depends on selected agent/broker) -->
@@ -160,7 +161,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :policy_type, "Policy Type*", class: "form-label" %>
           <%= form.select :policy_type,
-              options_for_select(@policy_types.map { |type| [type, type] }, 'Renewal'),
+              options_for_select(@policy_types.map { |type| [type, type] }, @renewed_policy.policy_type),
               { prompt: 'Select Policy Type' },
               { class: "form-control #{'is-invalid' if @renewed_policy.errors[:policy_type].any?}", required: true, readonly: true } %>
           <% if @renewed_policy.errors[:policy_type].any? %>
@@ -662,6 +663,8 @@
               id: "policy_documents_upload",
               accept: "application/pdf,image/jpeg,image/jpg,image/png" %>
           <div class="form-text">Click to upload or drag and drop</div>
+          <!-- Preview container for policy documents -->
+          <div id="policy_documents_preview" class="mt-3 d-flex flex-wrap gap-2"></div>
         </div>
         <div class="col-md-6 mb-3">
           <%= form.label :documents, "Upload Documents", class: "form-label" %>
@@ -671,6 +674,8 @@
               id: "additional_documents_upload",
               accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
           <div class="form-text">Upload additional documents</div>
+          <!-- Preview container for additional documents -->
+          <div id="additional_documents_preview" class="mt-3 d-flex flex-wrap gap-2"></div>
         </div>
       </div>
 
@@ -736,7 +741,7 @@
             <i class="bi bi-x-lg me-1"></i>
             Cancel
           <% end %>
-          <%= form.submit "Create Renewal Policy", class: "btn btn-warning" %>
+          <%= form.submit "Create Renewal Policy", class: "btn btn-success btn-lg", style: "background: linear-gradient(45deg, #28a745, #20c997); border: none; font-weight: 600; padding: 12px 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" %>
         </div>
       </div>
     </div>
@@ -814,6 +819,117 @@
     border: 1px solid #ced4da;
     border-radius: 0.25rem;
     padding: 6px 12px;
+  }
+
+  /* Image preview styles */
+  .image-preview-container {
+    position: relative;
+    display: inline-block;
+    margin: 5px;
+  }
+
+  .image-preview {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .image-preview:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  .remove-preview {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  .remove-preview:hover {
+    background: #c82333;
+  }
+
+  .file-preview-container {
+    position: relative;
+    display: inline-block;
+    margin: 5px;
+    padding: 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: #f8f9fa;
+    min-width: 120px;
+    text-align: center;
+  }
+
+  .file-icon {
+    font-size: 32px;
+    color: #6c757d;
+    margin-bottom: 5px;
+  }
+
+  .file-name {
+    font-size: 12px;
+    color: #495057;
+    word-break: break-word;
+    max-width: 100px;
+    margin: 0 auto;
+  }
+
+  /* Modal for full-size image preview */
+  .image-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.9);
+    cursor: pointer;
+  }
+
+  .image-modal-content {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 90%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .image-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .image-modal-close:hover,
+  .image-modal-close:focus {
+    color: #bbb;
   }
 
   .client-option {
@@ -1021,6 +1137,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('Affiliate pre-selected successfully');
   }
+
+  // Function to fetch and set distributor for selected affiliate
+  function updateDistributorFromAffiliate(affiliateId) {
+    if (!affiliateId) {
+      $('#distributor_id_hidden').val('');
+      return;
+    }
+
+    // Fetch affiliate details to get distributor
+    $.ajax({
+      url: '/api/v1/public/sub_agent_details',
+      method: 'GET',
+      data: { id: affiliateId },
+      success: function(response) {
+        if (response && response.distributor_id) {
+          $('#distributor_id_hidden').val(response.distributor_id);
+          console.log('Distributor set from affiliate:', response.distributor_id);
+        } else {
+          $('#distributor_id_hidden').val('');
+          console.log('No distributor found for affiliate');
+        }
+      },
+      error: function(xhr, status, error) {
+        console.error('Error fetching affiliate details:', error);
+        $('#distributor_id_hidden').val('');
+      }
+    });
+  }
+
+  // Update distributor when affiliate is selected
+  $('#affiliate_select').on('select2:select', function(e) {
+    var affiliateId = e.params.data.id;
+    console.log('Affiliate selected:', affiliateId);
+    updateDistributorFromAffiliate(affiliateId);
+  });
+
+  // Clear distributor when affiliate is cleared
+  $('#affiliate_select').on('select2:clear', function(e) {
+    $('#distributor_id_hidden').val('');
+    console.log('Distributor cleared');
+  });
+
+  // Check if affiliate already has a value on page load (after a short delay to ensure form is ready)
+  setTimeout(function() {
+    var initialAffiliateId = $('#affiliate_select').val();
+    if (initialAffiliateId) {
+      console.log('Initial affiliate value found:', initialAffiliateId);
+      // Update distributor for the pre-selected affiliate
+      updateDistributorFromAffiliate(initialAffiliateId);
+    }
+  }, 1000);
 
   // Initialize Select2 for Insurance Company dropdown
   $('#life_insurance_insurance_company_name').select2({
@@ -1888,7 +2055,9 @@ document.addEventListener('DOMContentLoaded', function() {
   $('#customer_select').on('select2:clear', function(e) {
     // Clear affiliate dropdown when customer is cleared
     $('#affiliate_select').val(null).trigger('change');
-    console.log('Customer cleared, showing all affiliates');
+    // Also clear distributor when customer is cleared
+    $('#distributor_id_hidden').val('');
+    console.log('Customer cleared, showing all affiliates and clearing distributor');
   });
 
   // Check for customer-specific affiliate loading after a delay
@@ -1918,5 +2087,151 @@ document.addEventListener('DOMContentLoaded', function() {
   updateCommissionSummary();
   calculateTotalPremium();
   calculateEndDate();
+
+  // Image preview functionality
+  function handleFileSelect(event, previewContainerId) {
+    const files = event.target.files;
+    const previewContainer = document.getElementById(previewContainerId);
+
+    // Clear existing previews only if new files are selected
+    if (files.length > 0) {
+      previewContainer.innerHTML = '';
+    }
+
+    Array.from(files).forEach((file, index) => {
+      const reader = new FileReader();
+
+      if (file.type.match('image.*')) {
+        // Handle image files
+        reader.onload = function(e) {
+          const container = document.createElement('div');
+          container.className = 'image-preview-container';
+          container.setAttribute('data-file-index', index);
+
+          const img = document.createElement('img');
+          img.className = 'image-preview';
+          img.src = e.target.result;
+          img.alt = file.name;
+          img.title = file.name;
+          img.onclick = function() {
+            showImageModal(e.target.result, file.name);
+          };
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'remove-preview';
+          removeBtn.innerHTML = '×';
+          removeBtn.onclick = function() {
+            removeFile(event.target, index, container);
+          };
+
+          container.appendChild(img);
+          container.appendChild(removeBtn);
+          previewContainer.appendChild(container);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // Handle non-image files
+        const container = document.createElement('div');
+        container.className = 'file-preview-container';
+        container.setAttribute('data-file-index', index);
+
+        const icon = document.createElement('div');
+        icon.className = 'file-icon';
+
+        // Set icon based on file type
+        if (file.type.includes('pdf')) {
+          icon.innerHTML = '<i class="bi bi-file-earmark-pdf-fill text-danger"></i>';
+        } else if (file.type.includes('word') || file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
+          icon.innerHTML = '<i class="bi bi-file-earmark-word-fill text-primary"></i>';
+        } else {
+          icon.innerHTML = '<i class="bi bi-file-earmark-fill text-secondary"></i>';
+        }
+
+        const fileName = document.createElement('div');
+        fileName.className = 'file-name';
+        fileName.textContent = file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name;
+        fileName.title = file.name;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-preview';
+        removeBtn.innerHTML = '×';
+        removeBtn.onclick = function() {
+          removeFile(event.target, index, container);
+        };
+
+        container.appendChild(icon);
+        container.appendChild(fileName);
+        container.appendChild(removeBtn);
+        previewContainer.appendChild(container);
+      }
+    });
+  }
+
+  // Remove file from input
+  function removeFile(input, index, containerElement) {
+    const dt = new DataTransfer();
+    const files = input.files;
+
+    for (let i = 0; i < files.length; i++) {
+      if (i !== index) {
+        dt.items.add(files[i]);
+      }
+    }
+
+    input.files = dt.files;
+    containerElement.remove();
+
+    // If no files left, trigger change event to clear input
+    if (input.files.length === 0) {
+      $(input).val('').trigger('change');
+    }
+  }
+
+  // Show full-size image modal
+  function showImageModal(src, alt) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('imageModal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'imageModal';
+      modal.className = 'image-modal';
+      modal.innerHTML = `
+        <span class="image-modal-close">&times;</span>
+        <img class="image-modal-content" id="modalImage">
+      `;
+      document.body.appendChild(modal);
+
+      // Close modal when clicking on X or outside the image
+      modal.onclick = function(e) {
+        if (e.target === modal || e.target.className === 'image-modal-close') {
+          modal.style.display = 'none';
+        }
+      };
+    }
+
+    // Set image and show modal
+    document.getElementById('modalImage').src = src;
+    document.getElementById('modalImage').alt = alt;
+    modal.style.display = 'block';
+  }
+
+  // Attach file input listeners
+  document.getElementById('policy_documents_upload').addEventListener('change', function(e) {
+    handleFileSelect(e, 'policy_documents_preview');
+  });
+
+  document.getElementById('additional_documents_upload').addEventListener('change', function(e) {
+    handleFileSelect(e, 'additional_documents_preview');
+  });
+
+  // Close modal on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('imageModal');
+      if (modal && modal.style.display === 'block') {
+        modal.style.display = 'none';
+      }
+    }
+  });
 });
 </script>

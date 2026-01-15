@@ -272,7 +272,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     @renewed_policy.policy_start_date = nil
     @renewed_policy.policy_end_date = nil
     @renewed_policy.risk_start_date = nil
-    @renewed_policy.policy_type = 'renewal'
+    @renewed_policy.policy_type = 'Renewal'
     @renewed_policy.created_at = nil
     @renewed_policy.updated_at = nil
     @renewed_policy.id = nil
@@ -288,6 +288,21 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
     # Get available options for dropdowns
     set_form_data
+
+    # Load customer family members for policy holder dropdown
+    if @renewed_policy.customer_id.present?
+      @customer_family_members = Customer.find(@renewed_policy.customer_id).family_members.includes(:customer)
+    else
+      @customer_family_members = []
+    end
+
+    # Ensure distributor is set for affiliate
+    if @renewed_policy.sub_agent_id.present? && @renewed_policy.distributor_id.blank?
+      sub_agent = SubAgent.find_by(id: @renewed_policy.sub_agent_id)
+      if sub_agent
+        @renewed_policy.distributor_id = sub_agent.distributor_id || sub_agent.assigned_distributor&.id
+      end
+    end
   end
 
   # POST /admin/insurance/life/:id/create_renewal
@@ -299,22 +314,39 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     end
 
     # Create new policy with renewal data
-    @renewed_policy = LifeInsurance.new(life_insurance_params)
-    @renewed_policy.policy_type = 'renewal'
+    processed_params = process_broker_params(life_insurance_params)
+    @renewed_policy = LifeInsurance.new(processed_params)
+    @renewed_policy.policy_type = 'Renewal'
 
     # Set admin added flags for renewal (same as original)
     @renewed_policy.is_admin_added = @life_insurance.is_admin_added
     @renewed_policy.is_customer_added = @life_insurance.is_customer_added
     @renewed_policy.is_agent_added = @life_insurance.is_agent_added
 
+    # Ensure distributor is set from affiliate before saving
+    if @renewed_policy.sub_agent_id.present? && @renewed_policy.distributor_id.blank?
+      sub_agent = SubAgent.find_by(id: @renewed_policy.sub_agent_id)
+      if sub_agent
+        @renewed_policy.distributor_id = sub_agent.distributor_id || sub_agent.assigned_distributor&.id
+      end
+    end
+
     if @renewed_policy.save
-      # Update commission calculations
+      # Update commission calculations (if needed for other fields)
       set_distributor_from_affiliate(@renewed_policy)
       redirect_to admin_life_insurance_path(@renewed_policy),
                   notice: "Life insurance policy renewed successfully! New Policy ID: #{@renewed_policy.policy_number}"
     else
       @original_policy = @life_insurance
       set_form_data
+
+      # Load customer family members for policy holder dropdown on error
+      if @renewed_policy.customer_id.present?
+        @customer_family_members = Customer.find(@renewed_policy.customer_id).family_members.includes(:customer)
+      else
+        @customer_family_members = []
+      end
+
       render :renew, status: :unprocessable_entity
     end
   end
