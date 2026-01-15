@@ -290,7 +290,7 @@
                 ['₹5 Crore', 50000000]
               ], @renewed_policy.sum_insured),
               { prompt: 'Select Sum Insured' },
-              { class: "form-control #{'is-invalid' if @renewed_policy.errors[:sum_insured].any?}", required: true } %>
+              { class: "form-control #{'is-invalid' if @renewed_policy.errors[:sum_insured].any?}", required: true, id: "life_insurance_sum_insured" } %>
           <% if @renewed_policy.errors[:sum_insured].any? %>
             <div class="invalid-feedback"><%= @renewed_policy.errors[:sum_insured].first %></div>
           <% end %>
