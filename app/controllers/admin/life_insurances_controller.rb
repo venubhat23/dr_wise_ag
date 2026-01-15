@@ -332,6 +332,10 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     end
 
     if @renewed_policy.save
+      # Set renewal relationships
+      @renewed_policy.update!(original_policy_id: @life_insurance.id)
+      @life_insurance.update!(renewal_policy_id: @renewed_policy.id, is_renewed: true)
+
       # Update commission calculations (if needed for other fields)
       set_distributor_from_affiliate(@renewed_policy)
       redirect_to admin_life_insurance_path(@renewed_policy),
@@ -423,6 +427,8 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       :main_agent_commission_percentage, :commission_amount, :tds_percentage,
       :tds_amount, :after_tds_value, :installment_autopay_start_date,
       :installment_autopay_end_date, :active,
+      # Renewal tracking fields
+      :original_policy_id, :renewal_policy_id, :is_renewed,
       # New commission fields - All commission details
       :sub_agent_commission_percentage, :sub_agent_commission_amount, :sub_agent_tds_percentage, :sub_agent_tds_amount, :sub_agent_after_tds_value,
       :distributor_commission_percentage, :distributor_commission_amount, :distributor_tds_percentage, :distributor_tds_amount, :distributor_after_tds_value,

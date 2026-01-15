@@ -250,8 +250,17 @@
                       <i class="bi bi-percent"></i>
                     <% end %>
 
-                    <!-- Renewal Button - Show only if policy expires within 60 days -->
-                    <% if policy.policy_end_date.present? && policy.policy_end_date <= 60.days.from_now %>
+                    <!-- Renewal Status -->
+                    <% if policy.has_been_renewed? %>
+                      <!-- Show "Renewed" link to renewal policy -->
+                      <%= link_to admin_life_insurance_path(policy.renewal_policy),
+                          class: "btn btn-sm btn-success",
+                          title: "View Renewal Policy: #{policy.renewal_policy.policy_number}" do %>
+                        <i class="bi bi-check-circle"></i>
+                        <span class="d-none d-md-inline ms-1">Renewed</span>
+                      <% end %>
+                    <% elsif policy.can_be_renewed? %>
+                      <!-- Show Renew button for eligible policies -->
                       <% days_to_expiry = (policy.policy_end_date - Date.current).to_i %>
                       <%= link_to renew_admin_life_insurance_path(policy),
                           class: "btn btn-sm #{'btn-warning' if days_to_expiry <= 30}#{'btn-info' if days_to_expiry > 30}",
@@ -259,6 +268,12 @@
                         <i class="bi bi-arrow-clockwise"></i>
                         <span class="d-none d-md-inline ms-1">Renew</span>
                       <% end %>
+                    <% elsif policy.is_renewal? %>
+                      <!-- Show indicator for renewal policies -->
+                      <span class="btn btn-sm btn-outline-secondary disabled" title="This is a renewal policy">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        <span class="d-none d-md-inline ms-1">Renewal</span>
+                      </span>
                     <% end %>
 
                     <%= link_to edit_admin_life_insurance_path(policy), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>

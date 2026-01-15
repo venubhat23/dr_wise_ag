@@ -1,10 +1,11 @@
 class Admin::CustomersController < Admin::ApplicationController
   include LocationData
   include ConfigurablePagination
-  before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart, :trace_commission, :product_selection, :deactivate, :activate]
+  before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart, :trace_commission, :product_selection, :deactivate, :activate, :get_policies]
   skip_before_action :ensure_admin, only: [:search_sub_agents]
   skip_before_action :authenticate_user!, only: [:search_sub_agents]
   skip_load_and_authorize_resource only: [:search_sub_agents]
+  skip_before_action :verify_authenticity_token, only: [:trace_commission], if: :api_request?
 
   # GET /admin/customers
   def index
@@ -215,6 +216,57 @@ class Admin::CustomersController < Admin::ApplicationController
 
   # GET /admin/customers/:id/trace_commission
   def trace_commission
+    # Handle API requests for insurance policies
+    if params[:type] && params[:insurance_type]
+      type = params[:type] # 'drwise' or 'non-drwise'
+      insurance_type = params[:insurance_type] # 'motor', 'life', 'health', 'motorinsurance', etc.
+
+      Rails.logger.info "API Request - Type: #{type}, Insurance Type: #{insurance_type}, Customer: #{@customer&.id}"
+
+      # Simple test mode for debugging
+      if params[:test] == 'true'
+        return render json: {
+          success: true,
+          message: "API is working",
+          customer: @customer&.display_name,
+          type: type,
+          insurance_type: insurance_type,
+          test: true
+        }
+      end
+
+      begin
+        case insurance_type.downcase
+        when 'motor', 'motorinsurance'
+          policies = fetch_motor_policies(@customer, type)
+        when 'life', 'lifeinsurance'
+          policies = fetch_life_policies(@customer, type)
+        when 'health', 'healthinsurance'
+          policies = fetch_health_policies(@customer, type)
+        else
+          return render json: { success: false, error: 'Invalid insurance type' }, status: 400
+        end
+
+        Rails.logger.info "Found #{policies.count} policies"
+
+        return render json: {
+          success: true,
+          policies: policies,
+          count: policies.count,
+          insurance_type: insurance_type,
+          customer_name: @customer.display_name
+        }
+      rescue => e
+        Rails.logger.error "Error fetching #{insurance_type} insurance policies: #{e.message}"
+        Rails.logger.error e.backtrace.join("\n")
+        return render json: {
+          success: false,
+          error: "Failed to load #{insurance_type} insurance policies",
+          message: e.message,
+          backtrace: Rails.env.development? ? e.backtrace.first(5) : nil
+        }, status: 500
+      end
+    end
     # Get DrWise and Non-DrWise policies separately
     @drwise_policy_status = {}
     @non_drwise_policy_status = {}
@@ -1062,5 +1114,179 @@ class Admin::CustomersController < Admin::ApplicationController
         "#{years} years, #{days} days"
       end
     end
+  end
+
+  # GET /admin/customers/:id/get_policies
+  def get_policies
+    type = params[:type] # 'drwise' or 'non-drwise'
+    insurance_type = params[:insurance_type] # 'motor', 'life', 'health'
+
+    begin
+      case insurance_type
+      when 'motor', 'motorinsurance'
+        policies = fetch_motor_policies(@customer, type)
+      when 'life', 'lifeinsurance'
+        policies = fetch_life_policies(@customer, type)
+      when 'health', 'healthinsurance'
+        policies = fetch_health_policies(@customer, type)
+      else
+        return render json: { success: false, error: 'Invalid insurance type' }, status: 400
+      end
+
+      render json: {
+        success: true,
+        policies: policies,
+        count: policies.count,
+        insurance_type: insurance_type,
+        customer_name: @customer.display_name
+      }
+    rescue => e
+      Rails.logger.error "Error fetching #{insurance_type} insurance policies: #{e.message}"
+      render json: {
+        success: false,
+        error: "Failed to load #{insurance_type} insurance policies",
+        message: e.message
+      }, status: 500
+    end
+  end
+
+  private
+
+  def fetch_motor_policies(customer, type)
+    return [] unless defined?(MotorInsurance) && customer.respond_to?(:motor_insurances)
+
+    policies = if type == 'drwise'
+      # DrWise: Admin or Agent added policies
+      customer.motor_insurances.where(
+        '(is_admin_added = ? AND is_customer_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+        true, false, false, true, false, false
+      )
+    else
+      # Non-DrWise: Customer added policies
+      customer.motor_insurances.where(is_customer_added: true, is_admin_added: false, is_agent_added: false)
+    end
+
+    policies.map do |policy|
+      {
+        id: policy.id,
+        policy_number: policy.policy_number || "POL-#{policy.id}",
+        insurance_company: policy.insurance_company_name || policy.try(:insurance_company) || 'N/A',
+        policy_type: policy.policy_type || 'Motor Insurance',
+        vehicle_details: "#{policy.make} #{policy.model} - #{policy.registration_number}",
+        premium_amount: policy.total_premium || policy.try(:premium_amount) || 0,
+        policy_start_date: policy.policy_start_date,
+        policy_end_date: policy.policy_end_date,
+        additional_info: {
+          vehicle_type: policy.vehicle_type,
+          manufacturing_year: policy.mfy,
+          idv_value: policy.total_idv,
+          make: policy.make,
+          model: policy.model
+        },
+        status: determine_policy_status(policy),
+        created_at: policy.created_at
+      }
+    end
+  end
+
+  def fetch_life_policies(customer, type)
+    return [] unless defined?(LifeInsurance) && customer.respond_to?(:life_insurances)
+
+    policies = if type == 'drwise'
+      # DrWise: Admin or Agent added policies
+      customer.life_insurances.where(
+        '(is_admin_added = ? AND is_customer_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+        true, false, false, true, false, false
+      )
+    else
+      # Non-DrWise: Customer added policies
+      customer.life_insurances.where(is_customer_added: true, is_admin_added: false, is_agent_added: false)
+    end
+
+    policies.map do |policy|
+      {
+        id: policy.id,
+        policy_number: policy.policy_number || "LIFE-#{policy.id}",
+        insurance_company: policy.insurance_company_name || 'N/A',
+        policy_type: policy.policy_type || 'Life Insurance',
+        policy_details: "#{policy.plan_name || 'N/A'} - Sum Assured: ₹#{format_currency(policy.sum_insured || 0)}",
+        premium_amount: policy.total_premium || policy.net_premium || 0,
+        policy_start_date: policy.policy_start_date,
+        policy_end_date: policy.policy_end_date,
+        additional_info: {
+          plan_name: policy.plan_name,
+          sum_insured: policy.sum_insured || 0,
+          policy_holder: policy.policy_holder,
+          payment_mode: policy.payment_mode,
+          policy_term: policy.try(:policy_term),
+          premium_payment_term: policy.try(:premium_payment_term)
+        },
+        status: determine_policy_status(policy),
+        created_at: policy.created_at
+      }
+    end
+  end
+
+  def fetch_health_policies(customer, type)
+    return [] unless defined?(HealthInsurance) && customer.respond_to?(:health_insurances)
+
+    policies = if type == 'drwise'
+      # DrWise: Admin or Agent added policies
+      customer.health_insurances.where(
+        '(is_admin_added = ? AND is_customer_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+        true, false, false, true, false, false
+      )
+    else
+      # Non-DrWise: Customer added policies
+      customer.health_insurances.where(is_customer_added: true, is_admin_added: false, is_agent_added: false)
+    end
+
+    policies.map do |policy|
+      {
+        id: policy.id,
+        policy_number: policy.policy_number || "HEALTH-#{policy.id}",
+        insurance_company: policy.insurance_company_name || 'N/A',
+        policy_type: policy.policy_type || 'Health Insurance',
+        policy_details: "#{policy.plan_name} - Sum Insured: ₹#{policy.sum_insured || 0}",
+        premium_amount: policy.total_premium || policy.net_premium || 0,
+        policy_start_date: policy.policy_start_date,
+        policy_end_date: policy.policy_end_date,
+        additional_info: {
+          plan_name: policy.plan_name,
+          sum_insured: policy.sum_insured,
+          policy_holder: policy.policy_holder,
+          payment_mode: policy.payment_mode,
+          insurance_type: policy.try(:insurance_type)
+        },
+        status: determine_policy_status(policy),
+        created_at: policy.created_at
+      }
+    end
+  end
+
+  private
+
+  def api_request?
+    params[:type].present? && params[:insurance_type].present?
+  end
+
+  def determine_policy_status(policy)
+    return 'Active' unless policy.policy_end_date
+
+    today = Date.current
+    end_date = policy.policy_end_date
+
+    if end_date < today
+      'Expired'
+    elsif end_date <= today + 30.days
+      'Expiring Soon'
+    else
+      'Active'
+    end
+  end
+
+  def format_currency(amount)
+    return "0" if amount.nil? || amount.zero?
+    amount.to_i.to_s.reverse.gsub(/(\\d{3})(?=\\d)/, '\\\\1,').reverse
   end
 end

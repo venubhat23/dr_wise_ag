@@ -207,6 +207,7 @@ Rails.application.routes.draw do
         get :policy_chart
         get :trace_commission
         get :product_selection
+        get :get_policies
       end
       resources :family_members
     end
