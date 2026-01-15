@@ -366,6 +366,16 @@ Rails.application.routes.draw do
     get 'reports/leads', to: 'reports#leads'
     get 'reports/sessions', to: 'reports#sessions'
 
+    # AI Reports
+    resources :ai_reports, only: [] do
+      collection do
+        get :chat_interface
+        post :generate
+        post :ask
+        get :history
+      end
+    end
+
     # Import Section
     resources :imports, only: [:index] do
       collection do
