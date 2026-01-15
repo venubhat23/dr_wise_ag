@@ -364,7 +364,7 @@
           <%= form.select :nominee_relationship,
               options_for_select(@relationships.map { |r| [r, r] }, @renewed_policy.nominee_relationship),
               { prompt: 'Nominee Relationship' },
-              { class: "form-control" } %>
+              { class: "form-control", id: "nominee_relationship_select" } %>
         </div>
         <div class="col-md-4 mb-3">
           <%= form.label :nominee_age, "Age", class: "form-label" %>
@@ -397,7 +397,7 @@
           <%= form.select :account_type,
               options_for_select(@account_types.map { |t| [t, t] }, @renewed_policy.account_type),
               { prompt: 'Account Type' },
-              { class: "form-control" } %>
+              { class: "form-control", id: "account_type_select" } %>
         </div>
         <div class="col-md-4 mb-3">
           <%= form.label :account_number, "Account Number", class: "form-label" %>
@@ -903,6 +903,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  // Pre-load affiliate data if exists
+  var originalAffiliateId = '<%= @renewed_policy.sub_agent_id %>';
+  var originalAffiliateName = '<%= @sub_agents.find { |a| a.id.to_s == @renewed_policy.sub_agent_id.to_s }&.display_name rescue "" %>';
+
   // Initialize Select2 for Affiliate dropdown with AJAX search
   $('#affiliate_select').select2({
     theme: 'bootstrap-5',
@@ -916,9 +920,16 @@ document.addEventListener('DOMContentLoaded', function() {
       url: '/api/v1/public/search_sub_agents',
       dataType: 'json',
       delay: 250,
+      timeout: 10000, // 10 second timeout
       data: function (params) {
         // Get the selected customer ID to filter affiliates
         var selectedCustomerId = $('#customer_select').val();
+
+        console.log('Fetching affiliates with params:', {
+          q: params.term || '',
+          customer_id: selectedCustomerId,
+          limit: params.term ? 20 : 10
+        });
 
         return {
           q: params.term || '', // Send empty query to get default results
@@ -928,14 +939,43 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       processResults: function (data) {
         console.log('Search affiliates response:', data);
+
+        // Handle both array and object responses
+        var results = [];
+        if (data && Array.isArray(data.results)) {
+          results = data.results;
+        } else if (data && Array.isArray(data)) {
+          results = data;
+        } else {
+          console.warn('Unexpected API response format:', data);
+          results = [];
+        }
+
+        console.log('Processed affiliates results:', results);
         return {
-          results: data.results || []
+          results: results
         };
       },
       error: function(xhr, status, error) {
-        console.error('Search affiliates AJAX error:', status, error);
+        console.error('Search affiliates AJAX error:', {
+          status: status,
+          error: error,
+          responseText: xhr.responseText,
+          statusCode: xhr.status
+        });
+
+        // Show more helpful error message
+        var errorMessage = 'Error loading affiliates';
+        if (xhr.status === 0) {
+          errorMessage = 'Network connection error - please check your connection';
+        } else if (xhr.status === 500) {
+          errorMessage = 'Server error - please try again';
+        } else if (xhr.status === 404) {
+          errorMessage = 'Affiliate search endpoint not found';
+        }
+
         return {
-          results: [{id: '', text: 'Error loading affiliates - please try again'}]
+          results: [{id: '', text: errorMessage}]
         };
       },
       cache: false // Disable cache so customer changes refresh the affiliate list
@@ -970,6 +1010,108 @@ document.addEventListener('DOMContentLoaded', function() {
       return markup;
     }
   });
+
+  // Pre-select affiliate immediately after Select2 initialization if it exists
+  if (originalAffiliateId && originalAffiliateId !== '' && originalAffiliateName && originalAffiliateName !== '') {
+    console.log('Pre-selecting affiliate on initialization:', originalAffiliateName, 'ID:', originalAffiliateId);
+
+    // Create and append the option
+    var newOption = new Option(originalAffiliateName, originalAffiliateId, true, true);
+    $('#affiliate_select').append(newOption).trigger('change');
+
+    console.log('Affiliate pre-selected successfully');
+  }
+
+  // Initialize Select2 for Insurance Company dropdown
+  $('#life_insurance_insurance_company_name').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Insurance Company...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    dropdownCssClass: 'select2-dropdown-large',
+    minimumResultsForSearch: 0,
+    closeOnSelect: true
+  });
+
+  // Initialize Select2 for Agency Code dropdown
+  $('#life_insurance_agency_code_id').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Agency Code...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    dropdownCssClass: 'select2-dropdown-large',
+    minimumResultsForSearch: 0,
+    closeOnSelect: true
+  });
+
+  // Initialize Select2 for Nominee Relationship dropdown
+  $('#nominee_relationship_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Relationship...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    minimumResultsForSearch: 0,
+    closeOnSelect: true
+  });
+
+  // Initialize Select2 for Account Type dropdown
+  $('#account_type_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Account Type...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    minimumResultsForSearch: 0,
+    closeOnSelect: true
+  });
+
+  // Initialize Select2 for Policy Holder dropdown
+  $('#policy_holder_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Policy Holder...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    minimumResultsForSearch: 0,
+    closeOnSelect: true
+  });
+
+  // Initialize Select2 for Payment Mode dropdown
+  $('#payment_mode_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Payment Mode...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    minimumResultsForSearch: 0,
+    closeOnSelect: true
+  });
+
+  // Initialize Select2 for Broker Code Type dropdown
+  $('#life_insurance_broker_code_type').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Broker Code...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    minimumResultsForSearch: 0,
+    closeOnSelect: true
+  });
+
+  // Initialize Select2 for Sum Insured dropdown
+  $('#life_insurance_sum_insured').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Sum Insured...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    minimumResultsForSearch: 0,
+    closeOnSelect: true
+  });
+
   // Auto-calculate commission when net premium or percentage changes
   function calculateCommission() {
     const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
@@ -1158,6 +1300,11 @@ document.addEventListener('DOMContentLoaded', function() {
       return Promise.reject('Required elements not found');
     }
 
+    // Destroy Select2 before updating options if it exists
+    if ($(agencyCodeSelect).hasClass('select2-hidden-accessible')) {
+      $(agencyCodeSelect).select2('destroy');
+    }
+
     // Clear existing options and show loading
     agencyCodeSelect.innerHTML = '<option value="">Loading agents...</option>';
     insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
@@ -1207,11 +1354,25 @@ document.addEventListener('DOMContentLoaded', function() {
           option.value = agent.id;
           option.setAttribute('data-agent-name', agent.agent_name);
           option.setAttribute('data-agent-code', agent.code);
+          option.setAttribute('data-company-name', agent.company_name); // Store company name
           // Format: Agent-name (Agency-code)
           option.textContent = `${agent.agent_name} (${agent.code})`;
           agencyCodeSelect.appendChild(option);
         });
         console.log('Loaded', data.agents.length, 'agents for Life insurance');
+
+        // Reinitialize Select2 after loading options
+        $(agencyCodeSelect).select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Select Agency Code...',
+          allowClear: true,
+          width: '100%',
+          dropdownParent: $('body'),
+          dropdownCssClass: 'select2-dropdown-large',
+          minimumResultsForSearch: 0,
+          closeOnSelect: true
+        });
+
         return data.agents;
       } else {
         console.warn('No Life insurance agents found');
@@ -1232,6 +1393,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!agencyCodeSelect || !insuranceCompanySelect) {
       console.error('Required select elements not found');
       return Promise.reject('Required elements not found');
+    }
+
+    // Destroy Select2 before updating options if it exists
+    if ($(agencyCodeSelect).hasClass('select2-hidden-accessible')) {
+      $(agencyCodeSelect).select2('destroy');
     }
 
     // Clear existing options and show loading
@@ -1293,6 +1459,19 @@ document.addEventListener('DOMContentLoaded', function() {
           agencyCodeSelect.appendChild(option);
         });
         console.log('Loaded', brokers.length, 'brokers successfully');
+
+        // Reinitialize Select2 after loading options
+        $(agencyCodeSelect).select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Select Broker...',
+          allowClear: true,
+          width: '100%',
+          dropdownParent: $('body'),
+          dropdownCssClass: 'select2-dropdown-large',
+          minimumResultsForSearch: 0,
+          closeOnSelect: true
+        });
+
         return brokers;
       } else {
         console.warn('No brokers found');
@@ -1307,79 +1486,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Function to load companies for selected agent (Direct mode)
+  // Function to load companies for selected agent (Direct mode) - DEPRECATED
+  // This function is no longer used as we now get the company directly from the agency code
+  // The company name is embedded in the agency code data attribute
+  /*
   function loadCompaniesForAgent(agentName) {
-    if (!insuranceCompanySelect) {
-      console.error('Insurance company select element not found');
-      return;
-    }
-
-    // Show loading message
-    insuranceCompanySelect.innerHTML = '<option value="">Loading companies...</option>';
-
-    if (!agentName) {
-      insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
-      return;
-    }
-
-    console.log('Loading companies for agent:', agentName);
-
-    // Fetch companies from API with timeout
-    const companiesHeaders = {
-      'Accept': 'application/json',
-      'X-Requested-With': 'XMLHttpRequest'
-    };
-
-    if (csrfToken) {
-      companiesHeaders['X-CSRF-Token'] = csrfToken;
-    }
-
-    const fetchPromise = fetch(`/admin/agency_codes/companies_for_agent.json?agent_name=${encodeURIComponent(agentName)}&insurance_type=Life`, {
-      headers: companiesHeaders,
-      credentials: 'same-origin'
-    });
-
-    // Add timeout for faster feedback
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timeout')), 8000)
-    );
-
-    Promise.race([fetchPromise, timeoutPromise])
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log('Companies for agent response:', data);
-
-      // Clear loading message
-      insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
-
-      if (data.success && data.companies && data.companies.length > 0) {
-        data.companies.forEach(company => {
-          const option = document.createElement('option');
-          option.value = company.company_name;
-          option.textContent = company.company_name;
-          insuranceCompanySelect.appendChild(option);
-        });
-        console.log(`Loaded ${data.companies.length} companies for agent`);
-      } else {
-        insuranceCompanySelect.innerHTML = '<option value="">No companies available for this agent</option>';
-        console.log('No companies found for this agent');
-      }
-    })
-    .catch(error => {
-      console.error('Error fetching companies for agent:', error);
-      insuranceCompanySelect.innerHTML = '<option value="">Error loading companies</option>';
-
-      // Show error message for a few seconds then reset
-      setTimeout(() => {
-        insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
-      }, 3000);
-    });
+    // This function has been replaced by direct company selection from agency code data
+    console.log('loadCompaniesForAgent is deprecated - company now comes from agency code data');
   }
+  */
 
   // Function to load all companies for Broking mode (regardless of broker selection)
   function loadAllCompaniesForBroking() {
@@ -1485,16 +1600,30 @@ document.addEventListener('DOMContentLoaded', function() {
     console.warn('Broker code type select element not found');
   }
 
-  // Event listener for agency code selection change
+  // Event listener for agency code selection change - Works with Select2
   if (agencyCodeSelect) {
-    agencyCodeSelect.addEventListener('change', function() {
+    // Use jQuery to bind to both regular change and Select2 events
+    $(agencyCodeSelect).on('select2:select change', function(e) {
       const selectedValue = this.value;
       const selectedOption = this.options[this.selectedIndex];
+
+      console.log('Agency code changed:', selectedValue);
 
       if (!selectedValue) {
         // Clear company dropdown if nothing selected
         if (insuranceCompanySelect) {
+          // Check if Select2 is initialized on insurance company dropdown
+          if ($(insuranceCompanySelect).hasClass('select2-hidden-accessible')) {
+            $(insuranceCompanySelect).select2('destroy');
+          }
           insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
+          // Reinitialize Select2
+          $(insuranceCompanySelect).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select Insurance Company...',
+            allowClear: true,
+            width: '100%'
+          });
         }
         return;
       }
@@ -1502,12 +1631,47 @@ document.addEventListener('DOMContentLoaded', function() {
       const brokerCodeType = brokerCodeTypeSelect ? brokerCodeTypeSelect.value : null;
 
       if (brokerCodeType === 'direct') {
-        // Get agent name from data attribute
+        // Get company name directly from the selected agency code
+        const companyName = selectedOption.getAttribute('data-company-name');
         const agentName = selectedOption.getAttribute('data-agent-name');
-        if (agentName) {
-          currentSelectedAgentName = agentName;
-          loadCompaniesForAgent(agentName);
+
+        console.log('Direct mode - Loading company for agency code:', companyName);
+
+        if (companyName && insuranceCompanySelect) {
+          // Destroy Select2 if initialized
+          if ($(insuranceCompanySelect).hasClass('select2-hidden-accessible')) {
+            $(insuranceCompanySelect).select2('destroy');
+          }
+
+          // Clear and set only the specific company for this agency code
+          insuranceCompanySelect.innerHTML = '';
+
+          const defaultOption = document.createElement('option');
+          defaultOption.value = '';
+          defaultOption.textContent = 'Select Company';
+          insuranceCompanySelect.appendChild(defaultOption);
+
+          const option = document.createElement('option');
+          option.value = companyName;
+          option.textContent = companyName;
+          option.selected = true; // Auto-select the company
+          insuranceCompanySelect.appendChild(option);
+
+          // Reinitialize Select2 with the new option
+          $(insuranceCompanySelect).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select Insurance Company...',
+            allowClear: true,
+            width: '100%'
+          });
+
+          // Trigger change to update the value
+          $(insuranceCompanySelect).val(companyName).trigger('change');
+
+          console.log(`Set company to '${companyName}' for agency code from agent '${agentName}'`);
         }
+
+        currentSelectedAgentName = agentName;
         // Clear broker ID for direct
         if (brokerIdHidden) brokerIdHidden.value = '';
       } else if (brokerCodeType === 'broking') {
@@ -1519,6 +1683,24 @@ document.addEventListener('DOMContentLoaded', function() {
           // Set broker ID in hidden field
           if (brokerIdHidden) brokerIdHidden.value = brokerId;
         }
+      }
+    });
+
+    // Also handle clear event
+    $(agencyCodeSelect).on('select2:clear', function(e) {
+      console.log('Agency code cleared');
+      // Clear company dropdown
+      if (insuranceCompanySelect) {
+        if ($(insuranceCompanySelect).hasClass('select2-hidden-accessible')) {
+          $(insuranceCompanySelect).select2('destroy');
+        }
+        insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
+        $(insuranceCompanySelect).select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Select Insurance Company...',
+          allowClear: true,
+          width: '100%'
+        });
       }
     });
   }
@@ -1541,11 +1723,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // After agents are loaded, pre-select the original agency code
         if (originalAgencyCodeId) {
           console.log('Pre-selecting agency code:', originalAgencyCodeId);
-          agencyCodeSelect.value = originalAgencyCodeId;
 
-          // Trigger change event to load companies for this agent
-          const changeEvent = new Event('change', { bubbles: true });
-          agencyCodeSelect.dispatchEvent(changeEvent);
+          // Use Select2 to set the value and trigger change
+          $(agencyCodeSelect).val(originalAgencyCodeId).trigger('change');
+
+          // This will automatically trigger the change event which loads the company
+          console.log('Triggered change event for agency code');
         }
       }).catch(error => {
         console.error('Error loading agents for Direct mode:', error);
@@ -1560,15 +1743,16 @@ document.addEventListener('DOMContentLoaded', function() {
           console.log('Pre-selecting broker:', originalBrokerId);
           const brokerOption = agencyCodeSelect.querySelector(`option[data-broker-id="${originalBrokerId}"]`);
           if (brokerOption) {
-            agencyCodeSelect.value = brokerOption.value;
+            // Use Select2 to set the value
+            $(agencyCodeSelect).val(brokerOption.value).trigger('change');
             if (brokerIdHidden) brokerIdHidden.value = originalBrokerId;
           }
         }
 
-        // Pre-select insurance company
+        // Pre-select insurance company using Select2
         if (originalInsuranceCompany) {
           console.log('Pre-selecting insurance company:', originalInsuranceCompany);
-          insuranceCompanySelect.value = originalInsuranceCompany;
+          $(insuranceCompanySelect).val(originalInsuranceCompany).trigger('change');
         }
       }).catch(error => {
         console.error('Error loading brokers/companies for Broking mode:', error);
@@ -1602,7 +1786,14 @@ document.addEventListener('DOMContentLoaded', function() {
         url: '/api/v1/public/search_sub_agents',
         dataType: 'json',
         delay: 250,
+        timeout: 10000,
         data: function (params) {
+          console.log('Refreshing with params:', {
+            q: params.term || '',
+            customer_id: selectedCustomerId,
+            limit: params.term ? 20 : 10
+          });
+
           return {
             q: params.term || '',
             customer_id: selectedCustomerId,
@@ -1611,14 +1802,43 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         processResults: function (data) {
           console.log('Refreshed affiliates response:', data);
+
+          // Handle both array and object responses
+          var results = [];
+          if (data && Array.isArray(data.results)) {
+            results = data.results;
+          } else if (data && Array.isArray(data)) {
+            results = data;
+          } else {
+            console.warn('Unexpected refresh API response format:', data);
+            results = [];
+          }
+
+          console.log('Processed refresh results:', results);
           return {
-            results: data.results || []
+            results: results
           };
         },
         error: function(xhr, status, error) {
-          console.error('Search affiliates AJAX error:', status, error);
+          console.error('Refresh affiliates AJAX error:', {
+            status: status,
+            error: error,
+            responseText: xhr.responseText,
+            statusCode: xhr.status
+          });
+
+          // Show more helpful error message
+          var errorMessage = 'Error refreshing affiliates';
+          if (xhr.status === 0) {
+            errorMessage = 'Network error - please check your connection';
+          } else if (xhr.status === 500) {
+            errorMessage = 'Server error - please try again';
+          } else if (xhr.status === 404) {
+            errorMessage = 'Affiliate search endpoint not found';
+          }
+
           return {
-            results: [{id: '', text: 'Error loading affiliates - please try again'}]
+            results: [{id: '', text: errorMessage}]
           };
         },
         cache: false
@@ -1671,40 +1891,27 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Customer cleared, showing all affiliates');
   });
 
-  // Initialize affiliate dropdown after client is selected
+  // Check for customer-specific affiliate loading after a delay
   setTimeout(function() {
     var selectedCustomerId = $('#customer_select').val();
-    var originalAffiliateId = '<%= @renewed_policy.sub_agent_id %>';
+    var currentAffiliateValue = $('#affiliate_select').val();
 
-    console.log('Initializing affiliate dropdown for customer:', selectedCustomerId);
-    console.log('Original affiliate ID:', originalAffiliateId);
+    console.log('Checking affiliate dropdown status for customer:', selectedCustomerId);
+    console.log('Current affiliate value:', currentAffiliateValue);
 
-    // If customer is pre-selected, refresh the affiliate dropdown to load for that customer
-    if (selectedCustomerId) {
-      console.log('Customer is pre-selected, refreshing affiliate dropdown...');
+    // Only refresh if customer is selected but affiliate is not yet set
+    if (selectedCustomerId && !currentAffiliateValue) {
+      console.log('Customer is pre-selected but no affiliate selected, may need to refresh affiliate dropdown');
 
-      // Use the refresh function to reload affiliates for the pre-selected customer
-      refreshAffiliateDropdown();
-
-      // If there was an original affiliate, try to pre-select it after a short delay
-      if (originalAffiliateId && originalAffiliateId !== '') {
-        setTimeout(function() {
-          console.log('Pre-selecting affiliate after refresh:', originalAffiliateId);
-
-          // Create new option with the affiliate data
-          var affiliateName = '<%= @sub_agents.find { |a| a.id.to_s == @renewed_policy.sub_agent_id.to_s }&.display_name rescue "Unknown Affiliate" %>';
-          if (affiliateName && affiliateName !== 'Unknown Affiliate') {
-            // Add the option and select it
-            var newOption = new Option(affiliateName, originalAffiliateId, true, true);
-            $('#affiliate_select').append(newOption).trigger('change');
-            console.log('Successfully pre-selected affiliate:', affiliateName);
-          }
-        }, 1000); // Wait for affiliate dropdown to refresh
-      }
-    } else {
+      // Optional: Force refresh the affiliate dropdown for the specific customer
+      // This is usually not needed since we pre-select the affiliate above
+      // refreshAffiliateDropdown();
+    } else if (currentAffiliateValue) {
+      console.log('Affiliate already pre-selected:', currentAffiliateValue);
+    } else if (!selectedCustomerId) {
       console.log('No customer pre-selected, affiliate dropdown will show all affiliates');
     }
-  }, 2000); // Increased delay to ensure both Select2 dropdowns are initialized
+  }, 2000); // Delay to ensure both Select2 dropdowns are initialized
 
   // Initialize calculations on page load
   calculateAllCommissions();

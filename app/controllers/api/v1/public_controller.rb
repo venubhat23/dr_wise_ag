@@ -11,8 +11,8 @@ class Api::V1::PublicController < ActionController::Base
 
       Rails.logger.info "Public search sub agents called with query: '#{query}', customer_id: #{customer_id}, limit: #{limit}"
 
-      # Start with active sub agents
-      sub_agents_scope = SubAgent.active
+      # Start with truly active sub agents (active and not deactivated)
+      sub_agents_scope = SubAgent.truly_active
 
       # If customer_id is provided, filter to show only the linked affiliate
       if customer_id.present?

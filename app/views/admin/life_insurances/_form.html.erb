@@ -1754,23 +1754,41 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('Company data received:', data);
 
       if (data.success && data.company_name) {
-        // Use Select2 API to update the dropdown
-        if (window.jQuery && jQuery(insuranceCompanySelect).hasClass('select2-hidden-accessible')) {
-          // Clear existing options and add the company option
-          jQuery(insuranceCompanySelect).empty();
-          jQuery(insuranceCompanySelect).append(new Option(data.company_name, data.company_name));
-          // Auto-select the company
-          jQuery(insuranceCompanySelect).val(data.company_name);
-          // Trigger Select2 update
-          jQuery(insuranceCompanySelect).trigger('change');
-          console.log('✅ Company auto-selected via Select2:', data.company_name);
-        } else {
-          // Fallback for non-Select2 dropdowns
-          insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
-          const option = new Option(data.company_name, data.company_name);
-          insuranceCompanySelect.add(option);
-          insuranceCompanySelect.value = data.company_name;
-          console.log('✅ Company auto-selected via DOM:', data.company_name);
+        console.log('🎯 Processing company selection:', data.company_name);
+
+        // Function to update the dropdown - with retry for Select2 timing
+        const updateInsuranceCompany = () => {
+          if (window.jQuery && jQuery(insuranceCompanySelect).hasClass('select2-hidden-accessible')) {
+            console.log('📝 Updating via Select2 API...');
+            // Clear existing options and add the company option
+            jQuery(insuranceCompanySelect).empty();
+            jQuery(insuranceCompanySelect).append(new Option(data.company_name, data.company_name, true, true));
+            // Trigger Select2 update
+            jQuery(insuranceCompanySelect).trigger('change');
+            console.log('✅ Company auto-selected via Select2:', data.company_name);
+            return true;
+          } else if (insuranceCompanySelect) {
+            console.log('📝 Updating via DOM API...');
+            // Fallback for non-Select2 dropdowns
+            insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
+            const option = new Option(data.company_name, data.company_name);
+            insuranceCompanySelect.add(option);
+            insuranceCompanySelect.value = data.company_name;
+            console.log('✅ Company auto-selected via DOM:', data.company_name);
+            return true;
+          }
+          return false;
+        };
+
+        // Try to update immediately
+        if (!updateInsuranceCompany()) {
+          // If failed, wait a bit for Select2 to initialize and retry
+          console.log('⏱️ Select2 not ready, retrying in 500ms...');
+          setTimeout(() => {
+            if (!updateInsuranceCompany()) {
+              console.log('⚠️ Failed to update company dropdown after retry');
+            }
+          }, 500);
         }
       } else {
         console.error('No company found for agency code:', agencyCodeId);
@@ -2060,17 +2078,29 @@ document.addEventListener('DOMContentLoaded', function() {
       const selectedValue = this.value;
       const selectedOption = this.options[this.selectedIndex];
 
+      console.log('🔄 Agency Code changed!');
+      console.log('  - Selected Value:', selectedValue);
+      console.log('  - Selected Text:', selectedOption?.text);
+
       if (!selectedValue) {
+        console.log('  - No value selected, clearing company dropdown');
         // Clear company dropdown if nothing selected
         if (insuranceCompanySelect) {
-          insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
+          if (window.jQuery && jQuery(insuranceCompanySelect).hasClass('select2-hidden-accessible')) {
+            jQuery(insuranceCompanySelect).empty().append('<option value="">Select Company</option>');
+            jQuery(insuranceCompanySelect).trigger('change');
+          } else {
+            insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
+          }
         }
         return;
       }
 
       const brokerCodeType = brokerCodeTypeSelect ? brokerCodeTypeSelect.value : null;
+      console.log('  - Broker Code Type:', brokerCodeType);
 
       if (brokerCodeType === 'direct') {
+        console.log('  - Mode: DIRECT - Loading company for agency code...');
         // Get agency code ID and load the associated company
         const agencyCodeId = selectedValue;
         if (agencyCodeId) {
