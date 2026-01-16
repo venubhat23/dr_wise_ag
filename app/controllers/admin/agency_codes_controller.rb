@@ -35,9 +35,9 @@ class Admin::AgencyCodesController < Admin::ApplicationController
 
         # Statistics (use unfiltered counts for stats cards)
         @total_codes = AgencyCode.count
-        @health_codes = AgencyCode.where(insurance_type: 'Health').count
-        @motor_codes = AgencyCode.where(insurance_type: 'Motor').count
-        @life_codes = AgencyCode.where(insurance_type: 'Life').count
+        @health_codes = AgencyCode.where(insurance_type: 'Health Insurance').count
+        @motor_codes = AgencyCode.where(insurance_type: 'Motor and Other Insurance').count
+        @life_codes = AgencyCode.where(insurance_type: 'Life Insurance').count
       end
 
       format.json do
@@ -64,12 +64,12 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   # GET /admin/agency_codes/new
   def new
     @agency_code = AgencyCode.new
-    @insurance_types = ['Health', 'Life', 'Motor', 'General']
+    @insurance_types = ['Health Insurance', 'Life Insurance', 'Motor and Other Insurance']
   end
 
   # GET /admin/agency_codes/1/edit
   def edit
-    @insurance_types = ['Health', 'Life', 'Motor', 'General']
+    @insurance_types = ['Health Insurance', 'Life Insurance', 'Motor and Other Insurance']
   end
 
   # POST /admin/agency_codes
@@ -79,7 +79,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     if @agency_code.save
       redirect_to admin_agency_codes_path, notice: 'Agency code was successfully created.'
     else
-      @insurance_types = ['Health', 'Life', 'Motor', 'General']
+      @insurance_types = ['Health Insurance', 'Life Insurance', 'Motor and Other Insurance']
       render :new, status: :unprocessable_entity
     end
   end
@@ -89,7 +89,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     if @agency_code.update(agency_code_params)
       redirect_to admin_agency_codes_path, notice: 'Agency code was successfully updated.'
     else
-      @insurance_types = ['Health', 'Life', 'Motor', 'General']
+      @insurance_types = ['Health Insurance', 'Life Insurance', 'Motor and Other Insurance']
       render :edit, status: :unprocessable_entity
     end
   end
@@ -151,7 +151,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
 
   # GET /admin/agency_codes/all_agents - API endpoint for fetching all agent names when Direct is selected
   def all_agents
-    insurance_type = params[:insurance_type] || 'Life'
+    insurance_type = params[:insurance_type] || 'Life Insurance'
 
     # Get all unique agents for the insurance type (PostgreSQL compatible)
     @agency_codes = AgencyCode.where(insurance_type: insurance_type)
@@ -189,7 +189,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   # GET /admin/agency_codes/companies_for_agent - API endpoint for fetching companies for selected agent
   def companies_for_agent
     agent_name = params[:agent_name]
-    insurance_type = params[:insurance_type] || 'Life'
+    insurance_type = params[:insurance_type] || 'Life Insurance'
 
     if agent_name.present?
       # Get all companies for this agent and insurance type (PostgreSQL compatible)
@@ -256,7 +256,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
 
   # GET /admin/agency_codes/all_codes - API endpoint for fetching all unique codes when Direct is selected
   def all_codes
-    insurance_type = params[:insurance_type] || 'Life'
+    insurance_type = params[:insurance_type] || 'Life Insurance'
 
     # Get all unique codes for the insurance type
     @agency_codes = AgencyCode.where(insurance_type: insurance_type)
@@ -292,7 +292,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   # GET /admin/agency_codes/agents_for_code - API endpoint for fetching agents for selected code
   def agents_for_code
     code = params[:code]
-    insurance_type = params[:insurance_type] || 'Life'
+    insurance_type = params[:insurance_type] || 'Life Insurance'
 
     if code.present?
       # Get all agents for this code and insurance type
@@ -334,7 +334,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   # GET /admin/agency_codes/companies_for_broker - API endpoint for fetching companies for selected broker
   def companies_for_broker
     broker_id = params[:broker_id]
-    insurance_type = params[:insurance_type] || 'Life'  # Default to Life if not specified
+    insurance_type = params[:insurance_type] || 'Life Insurance'  # Default to Life if not specified
 
     if broker_id.present?
       # Get all companies for this broker, filtered by insurance type
@@ -369,11 +369,11 @@ class Admin::AgencyCodesController < Admin::ApplicationController
         # If still no companies, fallback to companies from concern based on insurance type
         if companies.empty?
           companies = case insurance_type.to_s.downcase
-                     when 'life'
+                     when 'life insurance', 'life'
                        life_insurance_companies
-                     when 'health'
+                     when 'health insurance', 'health'
                        health_insurance_companies
-                     when 'motor', 'general'
+                     when 'motor and other insurance', 'motor', 'general'
                        motor_insurance_companies
                      else
                        insurance_companies_list
@@ -441,14 +441,12 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     if insurance_type.present?
       # Use the helper method from InsuranceCompanyMethods concern
       companies = case insurance_type.to_s.downcase
-                 when 'health'
+                 when 'health insurance', 'health'
                    health_insurance_companies
-                 when 'life'
+                 when 'life insurance', 'life'
                    life_insurance_companies
-                 when 'motor'
-                   motor_insurance_companies
-                 when 'general'
-                   # For "General" insurance, include both Motor and General companies
+                 when 'motor and other insurance', 'motor', 'general'
+                   # For "Motor and Other Insurance", include both Motor and General companies
                    motor_insurance_companies + general_insurance_companies
                  when 'other'
                    # For "Other", include all types
@@ -547,11 +545,11 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   # Helper method to check if an insurance company matches the insurance type
   def insurance_type_matches?(company_name, insurance_type)
     case insurance_type.to_s.downcase
-    when 'life'
+    when 'life insurance', 'life'
       life_insurance_companies.include?(company_name)
-    when 'health'
+    when 'health insurance', 'health'
       health_insurance_companies.include?(company_name)
-    when 'motor', 'general'
+    when 'motor and other insurance', 'motor', 'general'
       motor_insurance_companies.include?(company_name)
     else
       true # For other types, allow any company

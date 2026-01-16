@@ -11,11 +11,11 @@ class Admin::InsuranceCompaniesController < Admin::ApplicationController
     # Filter by insurance type based on tab
     case @current_tab
     when 'life'
-      @insurance_companies = @insurance_companies.where(insurance_type: 'Life')
+      @insurance_companies = @insurance_companies.where(insurance_type: 'life')
     when 'health'
-      @insurance_companies = @insurance_companies.where(insurance_type: 'Health')
+      @insurance_companies = @insurance_companies.where(insurance_type: 'health')
     when 'general'
-      @insurance_companies = @insurance_companies.where(insurance_type: 'General')
+      @insurance_companies = @insurance_companies.where(insurance_type: 'motor_other')
     else
       # 'all' tab - no additional filtering
     end
@@ -34,9 +34,9 @@ class Admin::InsuranceCompaniesController < Admin::ApplicationController
 
     # Statistics for cards
     @total_companies = InsuranceCompany.count
-    @life_companies = InsuranceCompany.where(insurance_type: 'Life').count
-    @health_companies = InsuranceCompany.where(insurance_type: 'Health').count
-    @general_companies = InsuranceCompany.where(insurance_type: 'General').count
+    @life_companies = InsuranceCompany.where(insurance_type: 'life').count
+    @health_companies = InsuranceCompany.where(insurance_type: 'health').count
+    @general_companies = InsuranceCompany.where(insurance_type: 'motor_other').count
 
   rescue NameError
     # Handle case where InsuranceCompany model doesn't exist yet

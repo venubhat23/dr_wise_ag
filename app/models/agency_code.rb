@@ -5,7 +5,7 @@ class AgencyCode < ApplicationRecord
   belongs_to :broker, optional: true
 
   # Validations
-  validates :insurance_type, presence: true, inclusion: { in: ['Health', 'Motor', 'Life', 'General', 'Other'] }
+  validates :insurance_type, presence: true, inclusion: { in: ['Health Insurance', 'Life Insurance', 'Motor and Other Insurance'] }
   validates :company_name, presence: true
   validates :agent_name, presence: true
   validates :code, presence: true, uniqueness: { scope: [:company_name, :insurance_type] }

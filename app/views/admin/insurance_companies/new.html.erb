@@ -52,9 +52,7 @@
                     ['Select Insurance Type', ''],
                     ['Health Insurance', 'health'],
                     ['Life Insurance', 'life'],
-                    ['Motor Insurance', 'motor'],
-                    ['Travel Insurance', 'travel'],
-                    ['Other Insurance', 'other']
+                    ['Motor and Other Insurance', 'motor_other']
                   ]),
                   {},
                   {
@@ -281,8 +279,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let baseName = companyNameField.value
           .replace(/ Health Insurance$/i, '')
           .replace(/ Life Insurance$/i, '')
-          .replace(/ Motor Insurance$/i, '')
-          .replace(/ Travel Insurance$/i, '')
+          .replace(/ Motor and Other Insurance$/i, '')
           .replace(/ Insurance$/i, '')
           .trim();
 
@@ -349,35 +346,21 @@ document.addEventListener('DOMContentLoaded', function() {
         'PNB MetLife Insurance',
         'Aditya Birla Sun Life Insurance'
       ],
-      'motor': [
-        'HDFC ERGO Motor Insurance',
-        'ICICI Lombard Motor Insurance',
-        'Bajaj Allianz Motor Insurance',
-        'Tata AIG Motor Insurance',
-        'New India Motor Insurance',
-        'United India Motor Insurance',
-        'National Motor Insurance',
-        'Oriental Motor Insurance',
-        'Reliance Motor Insurance',
-        'Bharti AXA Motor Insurance'
-      ],
-      'travel': [
+      'motor_other': [
+        'HDFC ERGO Motor and Other Insurance',
+        'ICICI Lombard Motor and Other Insurance',
+        'Bajaj Allianz Motor and Other Insurance',
+        'Tata AIG Motor and Other Insurance',
+        'New India Motor and Other Insurance',
+        'United India Motor and Other Insurance',
+        'National Motor and Other Insurance',
+        'Oriental Motor and Other Insurance',
+        'Reliance Motor and Other Insurance',
+        'Bharti AXA Motor and Other Insurance',
         'HDFC ERGO Travel Insurance',
-        'ICICI Lombard Travel Insurance',
-        'Bajaj Allianz Travel Insurance',
-        'Tata AIG Travel Insurance',
-        'Religare Travel Insurance',
-        'Apollo Munich Travel Insurance',
-        'Star Health Travel Insurance',
-        'Care Travel Insurance',
-        'Future Generali Travel Insurance',
-        'Universal Sompo Travel Insurance'
-      ],
-      'other': [
         'General Insurance Corporation',
         'Agriculture Insurance Company',
-        'Export Credit Guarantee Corporation',
-        'Miscellaneous Insurance Provider'
+        'Export Credit Guarantee Corporation'
       ]
     };
 
@@ -526,14 +509,8 @@ $(document).ready(function() {
             case 'life':
               icon = '<i class="bi bi-person-check me-2 text-success"></i>';
               break;
-            case 'motor':
+            case 'motor_other':
               icon = '<i class="bi bi-car-front me-2 text-primary"></i>';
-              break;
-            case 'travel':
-              icon = '<i class="bi bi-airplane me-2 text-info"></i>';
-              break;
-            case 'other':
-              icon = '<i class="bi bi-shield-check me-2 text-warning"></i>';
               break;
             default:
               icon = '<i class="bi bi-list-ul me-2 text-muted"></i>';
@@ -557,14 +534,8 @@ $(document).ready(function() {
             case 'life':
               icon = '<i class="bi bi-person-check me-2 text-success"></i>';
               break;
-            case 'motor':
+            case 'motor_other':
               icon = '<i class="bi bi-car-front me-2 text-primary"></i>';
-              break;
-            case 'travel':
-              icon = '<i class="bi bi-airplane me-2 text-info"></i>';
-              break;
-            case 'other':
-              icon = '<i class="bi bi-shield-check me-2 text-warning"></i>';
               break;
           }
 
