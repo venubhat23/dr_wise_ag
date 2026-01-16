@@ -2,8 +2,19 @@ class Lead < ApplicationRecord
   include PgSearch::Model
 
   validates :name, presence: true
-  validates :contact_number, presence: true, uniqueness: { message: "Contact number already exists" }, format: { with: /\A[\+]?[0-9\s\-\(\)]+\z/, message: "Invalid phone number format" }
-  validates :email, uniqueness: { message: "Email already exists" }, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
+  validates :contact_number, presence: true,
+    uniqueness: {
+      scope: [:product_category, :product_subcategory],
+      message: "Contact number already exists for this product combination"
+    },
+    format: { with: /\A[\+]?[0-9\s\-\(\)]+\z/, message: "Invalid phone number format" }
+  validates :email,
+    uniqueness: {
+      scope: [:product_category, :product_subcategory],
+      message: "Email already exists for this product combination"
+    },
+    format: { with: URI::MailTo::EMAIL_REGEXP },
+    allow_blank: true
   validates :current_stage, presence: true, inclusion: { in: ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_successful', 'follow_up_unsuccessful', 'not_interested', 'converted', 're_follow_up', 'lead_closed'] }
   validates :lead_source, presence: true, inclusion: { in: ['online', 'offline', 'agent_referral', 'walk_in', 'tele_calling', 'campaign'] }
   validates :product_category, presence: true, inclusion: { in: ['insurance', 'investments', 'loans', 'taxation'] }

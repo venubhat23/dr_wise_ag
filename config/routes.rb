@@ -356,6 +356,7 @@ Rails.application.routes.draw do
         patch :bulk_update_stage
         get :check_existing_customer
         get :search_sub_agents
+        post :branch_out
       end
     end
 

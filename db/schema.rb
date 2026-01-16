@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_16_021856) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_16_125302) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -99,6 +99,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_16_021856) do
     t.boolean "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "agent_name"
     t.index ["broker_id"], name: "index_broker_codes_on_broker_id"
   end
 
@@ -469,4 +470,223 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_16_021856) do
     t.index ["lead_id"], name: "index_health_insurances_on_lead_id", unique: true
     t.index ["policy_id"], name: "index_health_insurances_on_policy_id"
     t.index ["sub_agent_id"], name: "index_health_insurances_on_sub_agent_id"
+  end
+
+  create_table "indian_locations", force: :cascade do |t|
+    t.string "state", null: false
+    t.string "city", null: false
+    t.string "district"
+    t.string "pincode"
+    t.boolean "is_active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["is_active"], name: "index_indian_locations_on_is_active"
+    t.index ["state", "city"], name: "index_indian_locations_on_state_and_city", unique: true
+    t.index ["state"], name: "index_indian_locations_on_state"
+  end
+
+  create_table "insurance_companies", force: :cascade do |t|
+    t.string "name"
+    t.boolean "status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "code"
+    t.string "contact_person"
+    t.string "email"
+    t.string "mobile"
+    t.text "address"
+    t.string "insurance_type"
+  end
+
+  create_table "investments", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.string "investment_type"
+    t.string "product_name"
+    t.decimal "investment_amount"
+    t.boolean "status"
+    t.date "investment_date"
+    t.date "maturity_date"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_investments_on_customer_id"
+  end
+
+  create_table "investor_documents", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+  end
+
+  create_table "investors", id: :serial, force: :cascade do |t|
+    t.string "first_name", limit: 255
+    t.string "middle_name", limit: 255
+    t.string "last_name", limit: 255
+    t.string "mobile", limit: 255
+    t.string "email", limit: 255
+    t.integer "role_id"
+    t.integer "state_id"
+    t.integer "city_id"
+    t.date "birth_date"
+    t.string "gender", limit: 255
+    t.string "pan_no", limit: 255
+    t.string "gst_no", limit: 255
+    t.string "company_name", limit: 255
+    t.text "address"
+    t.string "bank_name", limit: 255
+    t.string "account_no", limit: 255
+    t.string "ifsc_code", limit: 255
+    t.string "account_holder_name", limit: 255
+    t.string "account_type", limit: 255
+    t.string "upi_id", limit: 255
+    t.integer "status"
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+  end
+
+  create_table "invoices", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "invoice_number"
+    t.string "payout_type"
+    t.integer "payout_id"
+    t.decimal "total_amount", precision: 10, scale: 2
+    t.string "status", default: "pending"
+    t.date "invoice_date"
+    t.date "due_date"
+    t.datetime "paid_at"
+    t.string "recipient_name"
+    t.string "recipient_email"
+    t.text "recipient_address"
+    t.text "notes"
+    t.index ["invoice_date"], name: "index_invoices_on_invoice_date"
+    t.index ["invoice_number"], name: "index_invoices_on_invoice_number", unique: true
+    t.index ["payout_type", "payout_id"], name: "index_invoices_on_payout_type_and_payout_id"
+    t.index ["status"], name: "index_invoices_on_status"
+  end
+
+  create_table "leads", id: :serial, force: :cascade do |t|
+    t.string "name"
+    t.string "contact_number"
+    t.string "email"
+    t.string "referred_by"
+    t.string "product_interest"
+    t.string "current_stage", default: "lead_generated"
+    t.date "created_date"
+    t.text "note"
+    t.string "lead_id"
+    t.text "address"
+    t.string "city"
+    t.string "state"
+    t.string "lead_source"
+    t.string "call_disposition"
+    t.decimal "referral_amount"
+    t.boolean "transferred_amount", default: false
+    t.text "notes"
+    t.text "attachments"
+    t.datetime "stage_updated_at", precision: nil
+    t.integer "converted_customer_id"
+    t.integer "policy_created_id"
+    t.string "product_category"
+    t.string "product_subcategory"
+    t.boolean "is_direct", default: true
+    t.integer "affiliate_id"
+    t.string "customer_type", default: "individual"
+    t.string "first_name"
+    t.string "middle_name"
+    t.string "last_name"
+    t.date "birth_date"
+    t.string "gender"
+    t.string "pan_no"
+    t.string "gst_no"
+    t.string "company_name"
+    t.string "marital_status"
+    t.decimal "height"
+    t.decimal "weight"
+    t.string "birth_place"
+    t.string "education"
+    t.string "business_job"
+    t.string "business_name"
+    t.string "job_name"
+    t.string "occupation"
+    t.string "type_of_duty"
+    t.decimal "annual_income"
+    t.text "additional_information"
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }
+  end
+
+  create_table "life_insurance_bank_details", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+  end
+
+  create_table "life_insurance_documents", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+  end
+
+  create_table "life_insurance_nominees", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+  end
+
+  create_table "life_insurances", id: :serial, force: :cascade do |t|
+    t.integer "customer_id", null: false
+    t.integer "sub_agent_id"
+    t.string "policy_holder", limit: 255, null: false
+    t.string "insured_name", limit: 255
+    t.string "insurance_company_name", limit: 255, null: false
+    t.integer "agency_code_id"
+    t.integer "broker_id"
+    t.string "policy_type", limit: 255, null: false
+    t.string "payment_mode", limit: 255, null: false
+    t.string "policy_number", limit: 255, null: false
+    t.date "policy_booking_date"
+    t.date "policy_start_date", null: false
+    t.date "policy_end_date", null: false
+    t.integer "policy_term", null: false
+    t.integer "premium_payment_term", null: false
+    t.string "plan_name", limit: 255
+    t.decimal "sum_insured", precision: 15, scale: 2, null: false
+    t.decimal "net_premium", precision: 15, scale: 2, null: false
+    t.decimal "total_premium", precision: 15, scale: 2, null: false
+    t.string "nominee_name", limit: 255
+    t.string "nominee_relationship", limit: 255
+    t.integer "nominee_age"
+    t.boolean "active", default: true
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+
+    t.unique_constraint ["policy_number"], name: "life_insurances_policy_number_key"
+  end
+
+  create_table "loans", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+  end
+
+  create_table "motor_insurances", id: :serial, force: :cascade do |t|
+    t.integer "customer_id", null: false
+    t.integer "sub_agent_id"
+    t.string "policy_holder", limit: 255
+    t.string "insurance_company_name", limit: 255
+    t.string "policy_number", limit: 255
+    t.date "policy_booking_date"
+    t.date "policy_start_date"
+    t.date "policy_end_date"
+    t.string "payment_mode", limit: 255
+    t.string "plan_name", limit: 255
+    t.string "vehicle_type", limit: 255
+    t.string "vehicle_make", limit: 255
+    t.string "vehicle_model", limit: 255
+    t.string "vehicle_number", limit: 255
+    t.decimal "sum_insured", precision: 15, scale: 2
+    t.decimal "net_premium", precision: 15, scale: 2
+    t.decimal "total_premium", precision: 15, scale: 2
+    t.string "status", limit: 255
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "policy_type", limit: 255
+
+    t.unique_constraint ["policy_number"], name: "motor_insurances_policy_number_key"
   end

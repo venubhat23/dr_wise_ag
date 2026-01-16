@@ -1,7 +1,23 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-1">Add New Lead</h2>
+    <h2 class="mb-1">
+      <% if session[:branch_out_mode] %>
+        <i class="bi bi-diagram-2 text-success me-2"></i>Branch Out - Add New Lead
+      <% else %>
+        Add New Lead
+      <% end %>
+    </h2>
+    <% if session[:branch_out_mode] && session[:source_lead_id] %>
+      <% source_lead = Lead.find_by(id: session[:source_lead_id]) %>
+      <% if source_lead %>
+        <small class="text-muted">
+          <i class="bi bi-info-circle me-1"></i>
+          Branching from Lead ID: <strong><%= source_lead.lead_id %></strong>
+          (<%= source_lead.product_category&.humanize %>/<%= source_lead.product_subcategory&.humanize %>)
+        </small>
+      <% end %>
+    <% end %>
   </div>
   <div>
     <%= link_to admin_leads_path, class: "btn btn-outline-secondary" do %>
@@ -10,6 +26,17 @@
     <% end %>
   </div>
 </div>
+
+<% if session[:branch_out_mode] %>
+  <!-- Branch Out Info Alert -->
+  <div class="alert alert-info d-flex align-items-center mb-4">
+    <i class="bi bi-diagram-2 me-3 fs-4"></i>
+    <div>
+      <h6 class="mb-1"><strong>Branch Out Mode</strong></h6>
+      <p class="mb-0">You are creating a new lead for a different policy using information from an existing lead. Customer details have been pre-filled for you. Please select the appropriate product category and subcategory for the new policy.</p>
+    </div>
+  </div>
+<% end %>
 
 <%= form_with model: [:admin, @lead || Lead.new], local: true, class: "needs-validation", novalidate: true do |form| %>
 
@@ -886,8 +913,8 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(data => {
       hideLoadingIndicator();
 
-      if (data.exists && data.customers.length > 0) {
-        showExistingCustomerWarning(data.customers);
+      if ((data.exists && data.customers.length > 0) || (data.has_existing_leads && data.leads.length > 0)) {
+        showExistingCustomerWarning(data.customers || [], data.leads || []);
       } else {
         hideExistingCustomerWarning();
       }
@@ -930,7 +957,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Function to show existing customer warning
-  function showExistingCustomerWarning(customers) {
+  function showExistingCustomerWarning(customers, leads) {
     hideLoadingIndicator();
 
     let warningDiv = document.getElementById('existing-customer-warning');
@@ -951,20 +978,55 @@ document.addEventListener('DOMContentLoaded', function() {
     let warningHtml = '<div class="d-flex align-items-start">';
     warningHtml += '<i class="bi bi-exclamation-triangle-fill me-2 text-warning fs-5"></i>';
     warningHtml += '<div class="flex-grow-1">';
-    warningHtml += '<h6 class="mb-2"><strong>Existing Customer Found!</strong></h6>';
-    warningHtml += '<p class="mb-2">We found existing customer(s) with matching information:</p>';
 
-    customers.forEach(customer => {
-      warningHtml += '<div class="border rounded p-2 mb-2 bg-light">';
-      warningHtml += `<div class="fw-bold">${customer.name}</div>`;
-      warningHtml += `<small class="text-muted">`;
-      warningHtml += `Mobile: ${customer.mobile || 'N/A'} | Email: ${customer.email || 'N/A'}`;
-      warningHtml += `<br>Match Type: ${customer.match_type.charAt(0).toUpperCase() + customer.match_type.slice(1)}`;
-      warningHtml += `</small>`;
+    // Show existing customers if any
+    if (customers && customers.length > 0) {
+      warningHtml += '<h6 class="mb-2"><strong>Existing Customer Found!</strong></h6>';
+      warningHtml += '<p class="mb-2">We found existing customer(s) with matching information:</p>';
+
+      customers.forEach(customer => {
+        warningHtml += '<div class="border rounded p-2 mb-2 bg-light">';
+        warningHtml += `<div class="fw-bold">${customer.name}</div>`;
+        warningHtml += `<small class="text-muted">`;
+        warningHtml += `Mobile: ${customer.mobile || 'N/A'} | Email: ${customer.email || 'N/A'}`;
+        warningHtml += `<br>Match Type: ${customer.match_type.charAt(0).toUpperCase() + customer.match_type.slice(1)}`;
+        warningHtml += `</small>`;
+        warningHtml += '</div>';
+      });
+
+      warningHtml += '<p class="mb-2 small"><strong>Note:</strong> Please verify if this is a duplicate before creating a new lead.</p>';
+    }
+
+    // Show existing leads if any
+    if (leads && leads.length > 0) {
+      warningHtml += '<h6 class="mb-2"><strong>Existing Lead Found!</strong></h6>';
+      warningHtml += '<p class="mb-2">We found existing lead(s) with matching information:</p>';
+
+      leads.forEach((lead, index) => {
+        warningHtml += '<div class="border rounded p-2 mb-2 bg-info bg-opacity-10">';
+        warningHtml += `<div class="d-flex justify-content-between align-items-start">`;
+        warningHtml += `<div class="flex-grow-1">`;
+        warningHtml += `<div class="fw-bold">Lead ID: ${lead.lead_id}</div>`;
+        warningHtml += `<div>${lead.name}</div>`;
+        warningHtml += `<small class="text-muted">`;
+        warningHtml += `Mobile: ${lead.contact_number || 'N/A'} | Email: ${lead.email || 'N/A'}`;
+        warningHtml += `<br>Product: ${lead.product_category}/${lead.product_subcategory} | Stage: ${lead.current_stage}`;
+        warningHtml += `<br>Match Type: ${lead.match_type.charAt(0).toUpperCase() + lead.match_type.slice(1)}`;
+        warningHtml += `</small>`;
+        warningHtml += `</div>`;
+        warningHtml += `<button type="button" class="btn btn-success btn-sm ms-2" onclick="branchOutFromLead(${lead.id})" title="Branch out from this lead">`;
+        warningHtml += '<i class="bi bi-diagram-2"></i>';
+        warningHtml += '</button>';
+        warningHtml += `</div>`;
+        warningHtml += '</div>';
+      });
+
+      warningHtml += '<div class="mt-3 p-2 bg-light rounded">';
+      warningHtml += '<p class="mb-2 small"><strong><i class="bi bi-info-circle me-1"></i>Same customer, different policy?</strong></p>';
+      warningHtml += '<p class="mb-2 small text-muted">Click the "Branch Out" button next to any existing lead to create a new lead for the same customer with a different policy type.</p>';
       warningHtml += '</div>';
-    });
+    }
 
-    warningHtml += '<p class="mb-0 small"><strong>Note:</strong> Please verify if this is a duplicate before creating a new lead.</p>';
     warningHtml += '</div></div>';
 
     warningDiv.innerHTML = warningHtml;
@@ -977,6 +1039,46 @@ document.addEventListener('DOMContentLoaded', function() {
     if (warningDiv) {
       warningDiv.style.display = 'none';
     }
+  }
+
+  // Function to handle branch out from existing lead
+  function branchOutFromLead(sourceLeadId) {
+    if (!sourceLeadId) {
+      alert('Invalid lead ID');
+      return;
+    }
+
+    // Show confirmation dialog
+    if (!confirm('This will copy all customer information from the existing lead and create a new lead for a different policy. Continue?')) {
+      return;
+    }
+
+    // Create a form and submit it to trigger branch out
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin/leads/branch_out';
+    form.style.display = 'none';
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'authenticity_token';
+      csrfInput.value = csrfToken;
+      form.appendChild(csrfInput);
+    }
+
+    // Add source lead ID
+    const leadIdInput = document.createElement('input');
+    leadIdInput.type = 'hidden';
+    leadIdInput.name = 'source_lead_id';
+    leadIdInput.value = sourceLeadId;
+    form.appendChild(leadIdInput);
+
+    // Submit form
+    document.body.appendChild(form);
+    form.submit();
   }
 
   // Native HTML5 date picker is now used - no additional formatting needed

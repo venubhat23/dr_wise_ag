@@ -24,6 +24,10 @@ class Policy < ApplicationRecord
   validates :total_premium, presence: true, numericality: { greater_than: 0 }
   validates :status, inclusion: { in: [true, false] }
 
+  # Attribute declarations for enums (required in Rails 8 when no DB column exists)
+  attribute :insurance_type, :string
+  attribute :payment_mode, :string
+
   # Enums
   enum :policy_type, { new_policy: 'new_policy', renewal: 'renewal' }
   enum :insurance_type, { life: 'life', health: 'health', motor: 'motor', other: 'other' }

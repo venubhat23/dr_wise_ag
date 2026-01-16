@@ -97,6 +97,20 @@ class Admin::LeadsController < Admin::ApplicationController
     @lead.created_date = Date.current if @lead.created_date.blank?
 
     if @lead.save
+      # Handle branch out mode
+      if session[:branch_out_mode] && session[:source_lead_id]
+        source_lead = Lead.find_by(id: session[:source_lead_id])
+        if source_lead
+          # Add reference note to both leads
+          @lead.update(notes: "#{@lead.notes}\n\nBranched from: #{source_lead.lead_id} (#{source_lead.product_category}/#{source_lead.product_subcategory})")
+          source_lead.update(notes: "#{source_lead.notes}\n\nBranched to: #{@lead.lead_id} (#{@lead.product_category}/#{@lead.product_subcategory})")
+        end
+
+        # Clear session data
+        session.delete(:source_lead_id)
+        session.delete(:branch_out_mode)
+      end
+
       redirect_to admin_leads_path, notice: 'Lead was successfully created.'
     else
       Rails.logger.error "Lead creation failed: #{@lead.errors.full_messages.join(', ')}"
@@ -574,6 +588,7 @@ class Admin::LeadsController < Admin::ApplicationController
     email = params[:email]
 
     existing_customers = []
+    existing_leads = []
 
     # Check by contact number/mobile
     if contact_number.present?
@@ -585,6 +600,22 @@ class Admin::LeadsController < Admin::ApplicationController
           name: customer_by_mobile.display_name,
           mobile: customer_by_mobile.mobile,
           email: customer_by_mobile.email,
+          match_type: 'mobile'
+        }
+      end
+
+      # Also check for existing leads with same contact number (get all, not just first)
+      leads_by_mobile = Lead.where(contact_number: contact_number)
+      leads_by_mobile.each do |lead|
+        existing_leads << {
+          id: lead.id,
+          lead_id: lead.lead_id,
+          name: lead.display_name,
+          contact_number: lead.contact_number,
+          email: lead.email,
+          product_category: lead.product_category,
+          product_subcategory: lead.product_subcategory,
+          current_stage: lead.current_stage,
           match_type: 'mobile'
         }
       end
@@ -602,11 +633,32 @@ class Admin::LeadsController < Admin::ApplicationController
           match_type: 'email'
         }
       end
+
+      # Also check for existing leads with same email (get all, not just first)
+      leads_by_email = Lead.where(email: email)
+      leads_by_email.each do |lead|
+        # Avoid duplicates if already found by mobile
+        next if existing_leads.any? { |l| l[:id] == lead.id }
+
+        existing_leads << {
+          id: lead.id,
+          lead_id: lead.lead_id,
+          name: lead.display_name,
+          contact_number: lead.contact_number,
+          email: lead.email,
+          product_category: lead.product_category,
+          product_subcategory: lead.product_subcategory,
+          current_stage: lead.current_stage,
+          match_type: 'email'
+        }
+      end
     end
 
     render json: {
       exists: existing_customers.any?,
-      customers: existing_customers
+      customers: existing_customers,
+      has_existing_leads: existing_leads.any?,
+      leads: existing_leads
     }
   end
 
@@ -694,6 +746,40 @@ class Admin::LeadsController < Admin::ApplicationController
     end
 
     render json: { results: affiliates }
+  end
+
+  # POST /admin/leads/branch_out
+  def branch_out
+    source_lead_id = params[:source_lead_id]
+    source_lead = Lead.find_by(id: source_lead_id)
+
+    unless source_lead
+      redirect_to admin_leads_path, alert: 'Source lead not found.'
+      return
+    end
+
+    # Create new lead by copying data from source lead but with different policy category/subcategory
+    @lead = Lead.new(source_lead.attributes.except('id', 'lead_id', 'created_at', 'updated_at',
+                                                   'stage_updated_at', 'converted_customer_id',
+                                                   'policy_created_id'))
+
+    # Set default stage and date for the new lead
+    @lead.current_stage = 'lead_generated'
+    @lead.created_date = Date.current
+
+    # Clear policy-specific fields so user can set new ones
+    @lead.product_category = nil
+    @lead.product_subcategory = nil
+    @lead.notes = "Branched out from lead ID: #{source_lead.lead_id}\n\n" + (@lead.notes || '')
+
+    # Store source lead ID for reference
+    session[:source_lead_id] = source_lead.id
+    session[:branch_out_mode] = true
+
+    render :new
+  rescue => e
+    Rails.logger.error "Branch out failed: #{e.message}"
+    redirect_to admin_leads_path, alert: "Failed to branch out lead: #{e.message}"
   end
 
   private
