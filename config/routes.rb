@@ -45,6 +45,9 @@ Rails.application.routes.draw do
     get 'profile/edit', to: 'profile#edit', as: 'edit_profile'
     patch 'profile', to: 'profile#update'
 
+    # Analytics
+    get 'analytics', to: 'analytics#index'
+
     # Document management
     resources :documents do
       member do

@@ -1,0 +1,534 @@
+<!-- Chart.js for interactive charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+
+<style>
+  .analytics-container {
+    padding: 2rem;
+    background: #f8fafc;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  .analytics-header {
+    margin-bottom: 2rem;
+  }
+
+  .analytics-title {
+    color: #1f2937;
+    font-weight: 700;
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .analytics-subtitle {
+    color: #6b7280;
+    font-size: 1.1rem;
+  }
+
+  /* KPI Cards Grid */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .kpi-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    padding: 1.5rem;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--card-color);
+  }
+
+  .kpi-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 1rem;
+  }
+
+  .kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+    line-height: 1;
+  }
+
+  .kpi-label {
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .kpi-change {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .growth-positive { color: #10b981; }
+  .growth-negative { color: #ef4444; }
+
+  /* Chart containers */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .chart-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .chart-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 1rem;
+  }
+
+  .chart-container {
+    position: relative;
+    height: 300px;
+  }
+
+  /* Tables */
+  .analytics-table {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+  }
+
+  .table-header {
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1rem 1.5rem;
+  }
+
+  .table-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+  }
+
+  .table-responsive {
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    padding: 1rem 1.5rem;
+    text-align: left;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  td {
+    color: #1f2937;
+  }
+
+  tr:hover {
+    background: #f8fafc;
+  }
+
+  /* Color classes */
+  .blue-gradient { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+  .green-gradient { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+  .orange-gradient { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+  .pink-gradient { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); }
+  .purple-gradient { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+  .red-gradient { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+</style>
+
+<div class="analytics-container">
+  <div class="analytics-header">
+    <h1 class="analytics-title">
+      <i class="bi bi-bar-chart-line-fill me-3" style="color: #8b5cf6;"></i>
+      Analytics Dashboard
+    </h1>
+    <p class="analytics-subtitle">Comprehensive insights into your insurance business performance</p>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <!-- Total Customers -->
+    <div class="kpi-card" style="--card-color: #3b82f6;">
+      <div class="kpi-icon blue-gradient">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div class="kpi-value"><%= number_with_delimiter(@total_customers) %></div>
+      <div class="kpi-label">Total Customers</div>
+      <div class="kpi-change <%= @customer_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+        <i class="bi bi-arrow-<%= @customer_growth >= 0 ? 'up' : 'down' %>-right me-1"></i>
+        <%= @customer_growth.abs %>% from last month
+      </div>
+    </div>
+
+    <!-- Total Policies -->
+    <div class="kpi-card" style="--card-color: #10b981;">
+      <div class="kpi-icon green-gradient">
+        <i class="bi bi-file-earmark-text-fill"></i>
+      </div>
+      <div class="kpi-value"><%= number_with_delimiter(@total_policies) %></div>
+      <div class="kpi-label">Total Policies</div>
+      <div class="kpi-change <%= @policy_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+        <i class="bi bi-arrow-<%= @policy_growth >= 0 ? 'up' : 'down' %>-right me-1"></i>
+        <%= @policy_growth.abs %>% from last month
+      </div>
+    </div>
+
+    <!-- Total Premium -->
+    <div class="kpi-card" style="--card-color: #f59e0b;">
+      <div class="kpi-icon orange-gradient">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+      <div class="kpi-value">₹<%= number_with_delimiter((@total_premium / 1_00_000).round(1)) %>L</div>
+      <div class="kpi-label">Total Premium</div>
+      <div class="kpi-change <%= @premium_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+        <i class="bi bi-arrow-<%= @premium_growth >= 0 ? 'up' : 'down' %>-right me-1"></i>
+        <%= @premium_growth.abs %>% from last month
+      </div>
+    </div>
+
+    <!-- Total Affiliates -->
+    <div class="kpi-card" style="--card-color: #ec4899;">
+      <div class="kpi-icon pink-gradient">
+        <i class="bi bi-people"></i>
+      </div>
+      <div class="kpi-value"><%= number_with_delimiter(@total_affiliates) %></div>
+      <div class="kpi-label">Total Affiliates</div>
+      <div class="kpi-change <%= @affiliate_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+        <i class="bi bi-arrow-<%= @affiliate_growth >= 0 ? 'up' : 'down' %>-right me-1"></i>
+        <%= @affiliate_growth.abs %>% from last month
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="charts-grid">
+    <!-- Policy Distribution Chart -->
+    <div class="chart-card">
+      <h3 class="chart-title">Policy Distribution</h3>
+      <div class="chart-container">
+        <canvas id="policyDistributionChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Monthly Trends Chart -->
+    <div class="chart-card">
+      <h3 class="chart-title">Monthly Trends</h3>
+      <div class="chart-container">
+        <canvas id="monthlyTrendsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <!-- Commission Summary Chart -->
+    <div class="chart-card">
+      <h3 class="chart-title">Commission Summary</h3>
+      <div class="chart-container">
+        <canvas id="commissionChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Renewal Analytics Chart -->
+    <div class="chart-card">
+      <h3 class="chart-title">Renewal Analytics</h3>
+      <div class="chart-container">
+        <canvas id="renewalChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tables Section -->
+  <div class="row">
+    <div class="col-lg-6">
+      <!-- Top Affiliates Table -->
+      <div class="analytics-table">
+        <div class="table-header">
+          <h3 class="table-title">Top Performing Affiliates</h3>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Policies</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @top_affiliates.each do |affiliate| %>
+                <tr>
+                  <td><%= "#{affiliate.first_name} #{affiliate.last_name}".strip %></td>
+                  <td><%= affiliate.respond_to?(:policies_count) ? affiliate.policies_count : 0 %></td>
+                  <td>
+                    <span class="badge <%= affiliate.status == 'active' ? 'bg-success' : 'bg-secondary' %>">
+                      <%= affiliate.status&.capitalize || 'Active' %>
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+              <% if @top_affiliates.empty? %>
+                <tr>
+                  <td colspan="3" class="text-center text-muted">No affiliates found</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <!-- Recent Policies Table -->
+      <div class="analytics-table">
+        <div class="table-header">
+          <h3 class="table-title">Recent Policies</h3>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Customer</th>
+                <th>Premium</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @recent_policies.each do |policy| %>
+                <tr>
+                  <td>
+                    <span class="badge bg-primary"><%= policy[:type] %></span>
+                  </td>
+                  <td><%= policy[:customer] %></td>
+                  <td>₹<%= number_with_delimiter(policy[:premium]) %></td>
+                  <td><%= policy[:date].strftime('%d %b %Y') %></td>
+                </tr>
+              <% end %>
+              <% if @recent_policies.empty? %>
+                <tr>
+                  <td colspan="4" class="text-center text-muted">No recent policies found</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Policy Distribution Chart
+  const policyCtx = document.getElementById('policyDistributionChart').getContext('2d');
+  new Chart(policyCtx, {
+    type: 'doughnut',
+    data: {
+      labels: <%= @policy_distribution.keys.to_json.html_safe %>,
+      datasets: [{
+        data: <%= @policy_distribution.values.to_json.html_safe %>,
+        backgroundColor: [
+          '#3b82f6',
+          '#10b981',
+          '#f59e0b',
+          '#ec4899'
+        ],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 20,
+            usePointStyle: true,
+            font: { size: 12 }
+          }
+        }
+      }
+    }
+  });
+
+  // Monthly Trends Chart
+  const trendsCtx = document.getElementById('monthlyTrendsChart').getContext('2d');
+  const monthlyLabels = <%= @monthly_trends.keys.to_json.html_safe %>;
+  const customerData = <%= @monthly_trends.values.map { |v| v[:customers] }.to_json.html_safe %>;
+  const policyData = <%= @monthly_trends.values.map { |v| v[:policies] }.to_json.html_safe %>;
+
+  new Chart(trendsCtx, {
+    type: 'line',
+    data: {
+      labels: monthlyLabels,
+      datasets: [
+        {
+          label: 'Customers',
+          data: customerData,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          tension: 0.4,
+          fill: true
+        },
+        {
+          label: 'Policies',
+          data: policyData,
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          tension: 0.4,
+          fill: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#f1f5f9' }
+        },
+        x: {
+          grid: { color: '#f1f5f9' }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { font: { size: 12 } }
+        }
+      }
+    }
+  });
+
+  // Commission Chart
+  const commissionCtx = document.getElementById('commissionChart').getContext('2d');
+  new Chart(commissionCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Due', 'Paid', 'Affiliate', 'Ambassador'],
+      datasets: [{
+        data: [
+          <%= @commission_summary[:total_commission_due] %>,
+          <%= @commission_summary[:total_commission_paid] %>,
+          <%= @commission_summary[:affiliate_commissions] %>,
+          <%= @commission_summary[:ambassador_commissions] %>
+        ],
+        backgroundColor: [
+          '#ef4444',
+          '#10b981',
+          '#3b82f6',
+          '#ec4899'
+        ],
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#f1f5f9' }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+
+  // Renewal Analytics Chart
+  const renewalCtx = document.getElementById('renewalChart').getContext('2d');
+  new Chart(renewalCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Expiring Soon', 'Expiring Later', 'Expired', 'Renewal Rate %'],
+      datasets: [{
+        data: [
+          <%= @renewal_analytics[:expiring_soon] %>,
+          <%= @renewal_analytics[:expiring_later] %>,
+          <%= @renewal_analytics[:expired] %>,
+          <%= @renewal_analytics[:renewal_rate] %>
+        ],
+        backgroundColor: [
+          '#f59e0b',
+          '#8b5cf6',
+          '#ef4444',
+          '#10b981'
+        ],
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#f1f5f9' }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+});
+</script>

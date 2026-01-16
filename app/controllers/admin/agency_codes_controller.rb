@@ -64,16 +64,12 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   # GET /admin/agency_codes/new
   def new
     @agency_code = AgencyCode.new
-    @insurance_companies = insurance_companies_list
-    @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
-    @brokers = Broker.active.order(:name)
+    @insurance_types = ['Health', 'Life', 'Motor', 'General']
   end
 
   # GET /admin/agency_codes/1/edit
   def edit
-    @insurance_companies = insurance_companies_list
-    @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
-    @brokers = Broker.active.order(:name)
+    @insurance_types = ['Health', 'Life', 'Motor', 'General']
   end
 
   # POST /admin/agency_codes
@@ -83,9 +79,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     if @agency_code.save
       redirect_to admin_agency_codes_path, notice: 'Agency code was successfully created.'
     else
-      @insurance_companies = insurance_companies_list
-      @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
-      @brokers = Broker.active.order(:name)
+      @insurance_types = ['Health', 'Life', 'Motor', 'General']
       render :new, status: :unprocessable_entity
     end
   end
@@ -95,9 +89,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     if @agency_code.update(agency_code_params)
       redirect_to admin_agency_codes_path, notice: 'Agency code was successfully updated.'
     else
-      @insurance_companies = insurance_companies_list
-      @insurance_types = ['Health', 'Motor', 'Life', 'General', 'Other']
-      @brokers = Broker.active.order(:name)
+      @insurance_types = ['Health', 'Life', 'Motor', 'General']
       render :edit, status: :unprocessable_entity
     end
   end
@@ -549,7 +541,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   end
 
   def agency_code_params
-    params.require(:agency_code).permit(:insurance_type, :company_name, :agent_name, :code, :broker_id)
+    params.require(:agency_code).permit(:insurance_type, :company_name, :agent_name, :code)
   end
 
   # Helper method to check if an insurance company matches the insurance type

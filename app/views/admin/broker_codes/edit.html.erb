@@ -38,37 +38,40 @@
       <% end %>
 
       <div class="row">
-        <!-- Agency Code Dropdown (All Agents) -->
+        <!-- Broker Selection -->
         <div class="col-md-6 mb-3">
-          <%= form.label :agency_code_id, "Agency Code (All Agents)*", class: "form-label" %>
-          <%= form.select :agency_code_id,
-              [],
-              { prompt: 'Search and select agency code...' },
+          <%= form.label :broker_id, "Broker Name*", class: "form-label" %>
+          <%= form.select :broker_id,
+              options_for_select(@brokers.map { |b| [b.name, b.id] }, @broker_code.broker_id),
+              { prompt: 'Search and select broker...' },
               {
-                class: "form-control #{'is-invalid' if @broker_code.errors[:agency_code_id].any?}",
+                class: "form-control #{'is-invalid' if @broker_code.errors[:broker_id].any?}",
                 required: true,
-                id: "agency_code_select",
-                data: { placeholder: "Type to search agency codes..." }
+                id: "broker_select",
+                data: { placeholder: "Type to search brokers..." }
               } %>
-          <% if @broker_code.errors[:agency_code_id].any? %>
-            <div class="invalid-feedback"><%= @broker_code.errors[:agency_code_id].first %></div>
+          <% if @broker_code.errors[:broker_id].any? %>
+            <div class="invalid-feedback"><%= @broker_code.errors[:broker_id].first %></div>
           <% end %>
         </div>
 
-        <!-- Agent Name (Auto-filled from agency code) -->
+        <!-- Company Name Dropdown -->
         <div class="col-md-6 mb-3">
-          <%= form.label :agent_name, "Agent Name*", class: "form-label" %>
-          <%= form.text_field :agent_name,
-              class: "form-control #{'is-invalid' if @broker_code.errors[:agent_name].any?}",
-              placeholder: "Will be auto-filled from agency code", readonly: true, required: true %>
-          <% if @broker_code.errors[:agent_name].any? %>
-            <div class="invalid-feedback"><%= @broker_code.errors[:agent_name].first %></div>
+          <%= form.label :company_name, "Insurance Company Name*", class: "form-label" %>
+          <%= form.select :company_name,
+              options_for_select(@companies.map { |c| [c, c] }, @broker_code.company_name),
+              { prompt: 'Search and select company...' },
+              {
+                class: "form-control #{'is-invalid' if @broker_code.errors[:company_name].any?}",
+                required: true,
+                id: "company_select",
+                data: { placeholder: "Type to search companies..." }
+              } %>
+          <% if @broker_code.errors[:company_name].any? %>
+            <div class="invalid-feedback"><%= @broker_code.errors[:company_name].first %></div>
           <% end %>
         </div>
       </div>
-
-      <!-- Hidden field for broker_id (will be set from agency code) -->
-      <%= form.hidden_field :broker_id, id: "broker_id_hidden" %>
 
       <div class="row">
         <!-- Broker Code -->
@@ -82,25 +85,6 @@
           <% end %>
         </div>
 
-        <!-- Company Name Dropdown (Dynamic based on agency code) -->
-        <div class="col-md-6 mb-3">
-          <%= form.label :company_name, "Insurance Company Name*", class: "form-label" %>
-          <%= form.select :company_name,
-              [],
-              { prompt: 'Select agency code first...' },
-              {
-                class: "form-control #{'is-invalid' if @broker_code.errors[:company_name].any?}",
-                required: true,
-                id: "company_select",
-                data: { placeholder: "Will be auto-filled from agency code..." }
-              } %>
-          <% if @broker_code.errors[:company_name].any? %>
-            <div class="invalid-feedback"><%= @broker_code.errors[:company_name].first %></div>
-          <% end %>
-        </div>
-      </div>
-
-      <div class="row">
         <!-- Status -->
         <div class="col-md-6 mb-3">
           <%= form.label :status, "Status", class: "form-label" %>
@@ -282,14 +266,10 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Store existing values for editing
-  var existingAgencyCodeId = '<%= @broker_code.agency_code_id %>';
-  var existingCompanyName = '<%= @broker_code.company_name %>';
-
-  // Initialize Select2 for Agency Code dropdown
-  $('#agency_code_select').select2({
+  // Initialize Select2 for Broker dropdown
+  $('#broker_select').select2({
     theme: 'bootstrap-5',
-    placeholder: 'Search and select agency code...',
+    placeholder: 'Search and select broker...',
     allowClear: true,
     width: '100%',
     dropdownParent: $('body'),
@@ -301,30 +281,25 @@ document.addEventListener('DOMContentLoaded', function() {
         return option.text;
       }
 
-      // Parse agent name and code from the option text
-      var parts = option.text.split(' - ');
-      var agentName = parts[0] || option.text;
-      var agencyCode = parts[1] || '';
-
-      // Generate agent initials
-      var initials = agentName.split(' ').map(function(word) {
+      // Generate broker initials
+      var initials = option.text.split(' ').map(function(word) {
         return word.charAt(0).toUpperCase();
-      }).join('').substring(0, 2);
+      }).join('').substring(0, 3);
 
-      // Custom template for agency options
+      // Custom template for broker options
       var $option = $(
-        '<div class="agency-option">' +
-          '<div class="agency-option-avatar">' + initials + '</div>' +
-          '<div class="agency-option-details">' +
-            '<div class="agency-option-name">' + agentName + '</div>' +
-            '<div class="agency-option-code">Code: ' + agencyCode + '</div>' +
+        '<div class="broker-option">' +
+          '<div class="broker-option-avatar">' + initials + '</div>' +
+          '<div class="broker-option-details">' +
+            '<div class="broker-option-name">' + option.text + '</div>' +
+            '<div class="broker-option-type">Broker</div>' +
           '</div>' +
         '</div>'
       );
       return $option;
     },
     templateSelection: function(option) {
-      return option.text || 'Search and select agency code...';
+      return option.text || 'Search and select broker...';
     },
     escapeMarkup: function(markup) {
       return markup;
@@ -334,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize Select2 for Company dropdown
   $('#company_select').select2({
     theme: 'bootstrap-5',
-    placeholder: 'Select agency code first...',
+    placeholder: 'Search and select company...',
     allowClear: true,
     width: '100%',
     dropdownParent: $('body'),
@@ -364,115 +339,12 @@ document.addEventListener('DOMContentLoaded', function() {
       return $option;
     },
     templateSelection: function(option) {
-      return option.text || 'Select agency code first...';
+      return option.text || 'Search and select company...';
     },
     escapeMarkup: function(markup) {
       return markup;
     }
   });
 
-  // Load all agency codes on page load
-  loadAgencyCodes();
-
-  // Handle agency code selection change
-  $('#agency_code_select').on('change', function() {
-    var agencyCodeId = $(this).val();
-
-    if (agencyCodeId) {
-      // Get the selected agency code data
-      var selectedAgency = window.agencyCodeData.find(function(agency) {
-        return agency.id == agencyCodeId;
-      });
-
-      if (selectedAgency) {
-        // Auto-fill agent name
-        $('#broker_code_agent_name').val(selectedAgency.name.split(' - ')[0]);
-
-        // Set broker_id from agency code data
-        $('#broker_id_hidden').val(selectedAgency.broker_id);
-
-        // Load company for this agency code
-        loadCompaniesForAgencyCode(agencyCodeId);
-      }
-    } else {
-      // Clear dependent fields
-      $('#broker_code_agent_name').val('');
-      $('#broker_id_hidden').val('');
-      clearCompanyDropdown();
-    }
-  });
-
-  // Function to load all agency codes
-  function loadAgencyCodes() {
-    fetch('/admin/broker_codes/all_agency_codes', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      // Store agency data globally for later use
-      window.agencyCodeData = data.agency_codes;
-
-      // Clear and populate agency code dropdown
-      $('#agency_code_select').empty().append('<option value="">Search and select agency code...</option>');
-
-      data.agency_codes.forEach(function(agency) {
-        $('#agency_code_select').append(new Option(agency.name, agency.id));
-      });
-
-      // Set existing agency code if editing
-      if (existingAgencyCodeId) {
-        $('#agency_code_select').val(existingAgencyCodeId).trigger('change');
-      }
-    })
-    .catch(error => {
-      console.error('Error loading agency codes:', error);
-    });
-  }
-
-  // Function to load companies for selected agency code
-  function loadCompaniesForAgencyCode(agencyCodeId) {
-    fetch('/admin/broker_codes/companies_by_agency_code?agency_code_id=' + agencyCodeId, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      // Clear and populate company dropdown
-      $('#company_select').empty().append('<option value="">Select company...</option>');
-
-      if (data.companies && data.companies.length > 0) {
-        data.companies.forEach(function(company) {
-          $('#company_select').append(new Option(company, company));
-        });
-
-        // Enable the company dropdown
-        $('#company_select').prop('disabled', false);
-
-        // Set existing company if editing
-        if (existingCompanyName) {
-          $('#company_select').val(existingCompanyName).trigger('change');
-        }
-      } else {
-        clearCompanyDropdown();
-      }
-    })
-    .catch(error => {
-      console.error('Error loading companies:', error);
-      clearCompanyDropdown();
-    });
-  }
-
-  // Function to clear and disable company dropdown
-  function clearCompanyDropdown() {
-    $('#company_select').empty().append('<option value="">Select agency code first...</option>');
-    $('#company_select').prop('disabled', true);
-  }
 });
 </script>

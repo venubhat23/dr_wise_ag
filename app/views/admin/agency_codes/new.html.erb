@@ -1,14 +1,10 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-1">Add New Broker Code</h2>
-    <p class="text-muted mb-0">Create a new broker code mapping for insurance agents</p>
+    <h2 class="mb-1">Add New Agency Code</h2>
+    <p class="text-muted mb-0">Create a new agency code entry for insurance agents</p>
   </div>
   <div class="d-flex gap-2">
-    <%= link_to admin_brokers_path, class: "btn btn-outline-secondary" do %>
-      <i class="bi bi-arrow-left me-1"></i>
-      Back to Brokers
-    <% end %>
     <%= link_to admin_agency_codes_path, class: "btn btn-secondary" do %>
       <i class="bi bi-list me-1"></i>
       View All Codes
@@ -29,15 +25,27 @@
   <div class="card-body">
     <%= form_with model: [:admin, @agency_code], local: true, class: "row g-4", data: { turbo: false } do |form| %>
 
-      <!-- Broker Name -->
+      <!-- Insurance Type -->
       <div class="col-md-6">
-        <label class="form-label">Broker Name</label>
-        <%= form.select :broker_id,
-            options_from_collection_for_select(@brokers, :id, :name, @agency_code.broker_id),
-            { prompt: 'Select Broker' },
-            { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select broker..." } } %>
-        <% if @agency_code.errors[:broker_id].any? %>
-          <div class="text-danger small mt-1"><%= @agency_code.errors[:broker_id].first %></div>
+        <label class="form-label">Type</label>
+        <%= form.select :insurance_type,
+            options_for_select(@insurance_types.map { |type| [type, type] }, @agency_code.insurance_type),
+            { prompt: 'Select Type' },
+            { class: "form-select searchable-select", required: true, data: { placeholder: "Health, Life, Motor & General..." } } %>
+        <% if @agency_code.errors[:insurance_type].any? %>
+          <div class="text-danger small mt-1"><%= @agency_code.errors[:insurance_type].first %></div>
+        <% end %>
+      </div>
+
+      <!-- Company Name -->
+      <div class="col-md-6">
+        <label class="form-label">Company Name</label>
+        <%= form.select :company_name,
+            [],
+            { prompt: 'Select Company' },
+            { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select company..." } } %>
+        <% if @agency_code.errors[:company_name].any? %>
+          <div class="text-danger small mt-1"><%= @agency_code.errors[:company_name].first %></div>
         <% end %>
       </div>
 
@@ -53,39 +61,15 @@
         <% end %>
       </div>
 
-      <!-- Broker Code -->
+      <!-- Agency Code -->
       <div class="col-md-6">
-        <label class="form-label">Broker Code</label>
+        <label class="form-label">Agency Code</label>
         <%= form.text_field :code,
             class: "form-control",
-            placeholder: "Enter broker code",
+            placeholder: "Enter agency code",
             required: true %>
         <% if @agency_code.errors[:code].any? %>
           <div class="text-danger small mt-1"><%= @agency_code.errors[:code].first %></div>
-        <% end %>
-      </div>
-
-      <!-- Insurance Type -->
-      <div class="col-md-6">
-        <label class="form-label">Insurance Type</label>
-        <%= form.select :insurance_type,
-            options_for_select(@insurance_types.map { |type| [type, type] }, @agency_code.insurance_type),
-            { prompt: 'Select Insurance Type' },
-            { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select type..." } } %>
-        <% if @agency_code.errors[:insurance_type].any? %>
-          <div class="text-danger small mt-1"><%= @agency_code.errors[:insurance_type].first %></div>
-        <% end %>
-      </div>
-
-      <!-- Company Name -->
-      <div class="col-md-12">
-        <label class="form-label">Company Name</label>
-        <%= form.select :company_name,
-            options_for_select(@insurance_companies.map { |company| [company, company] }, @agency_code.company_name),
-            { prompt: 'Select Company' },
-            { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select company..." } } %>
-        <% if @agency_code.errors[:company_name].any? %>
-          <div class="text-danger small mt-1"><%= @agency_code.errors[:company_name].first %></div>
         <% end %>
       </div>
 
@@ -211,12 +195,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to load companies based on insurance type
     function loadCompaniesByType(insuranceType) {
       if (!insuranceType) {
-        // Reset to all companies if no type selected
+        // Reset company dropdown if no type selected
         companySelect.innerHTML = '<option value="">Select Company</option>';
         if ($(companySelect).hasClass('select2-hidden-accessible')) {
           $(companySelect).val(null).trigger('change');
         }
         return;
+      }
+
+      // Show loading state
+      companySelect.innerHTML = '<option value="">Loading companies...</option>';
+      if ($(companySelect).hasClass('select2-hidden-accessible')) {
+        $(companySelect).trigger('change');
       }
 
       // Fetch companies for the selected insurance type
@@ -249,37 +239,41 @@ document.addEventListener('DOMContentLoaded', function() {
           console.log(`Loaded ${data.companies.length} companies for ${insuranceType} insurance`);
         } else {
           console.error('Failed to load companies:', data.message);
+          companySelect.innerHTML = '<option value="">Select Company</option>';
+          if ($(companySelect).hasClass('select2-hidden-accessible')) {
+            $(companySelect).trigger('change');
+          }
         }
       })
       .catch(error => {
         console.error('Error loading companies:', error);
+        companySelect.innerHTML = '<option value="">Error loading companies</option>';
+        if ($(companySelect).hasClass('select2-hidden-accessible')) {
+          $(companySelect).trigger('change');
+        }
       });
     }
 
     // Handle insurance type change
     insuranceTypeSelect.addEventListener('change', function() {
       const selectedType = this.value;
-      console.log('Insurance type changed to:', selectedType);
       loadCompaniesByType(selectedType);
     });
 
     // Handle Select2 change event for insurance type
     $('#agency_code_insurance_type').on('select2:select', function(e) {
       const selectedType = e.params.data.id;
-      console.log('Insurance type changed via Select2 to:', selectedType);
       loadCompaniesByType(selectedType);
     });
 
     // Clear company when insurance type is cleared
     $('#agency_code_insurance_type').on('select2:clear', function() {
-      console.log('Insurance type cleared');
       loadCompaniesByType(null);
     });
 
     // Load companies on page load if insurance type is already selected
     const initialInsuranceType = insuranceTypeSelect.value;
     if (initialInsuranceType) {
-      console.log('Loading companies for initial type:', initialInsuranceType);
       loadCompaniesByType(initialInsuranceType);
     }
   }

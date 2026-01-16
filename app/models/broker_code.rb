@@ -1,8 +1,6 @@
 class BrokerCode < ApplicationRecord
   belongs_to :broker
-  belongs_to :agency_code, optional: true
 
-  validates :agent_name, presence: true, length: { minimum: 2, maximum: 100 }
   validates :broker_code, presence: true, uniqueness: { case_sensitive: false }, length: { minimum: 2, maximum: 50 }
   validates :company_name, presence: true, length: { minimum: 2, maximum: 100 }
   validates :status, inclusion: { in: [true, false] }
@@ -15,7 +13,7 @@ class BrokerCode < ApplicationRecord
   before_validation :set_default_status, on: :create
 
   def display_name
-    "#{agent_name} - #{broker_code}"
+    "#{broker.name} - #{broker_code}"
   end
 
   def status_badge

@@ -408,6 +408,30 @@
   .cyan-gradient { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); }
   .red-gradient { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
   .yellow-gradient { background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); }
+
+  /* Clickable card link styles */
+  .kpi-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: all 0.2s ease;
+  }
+
+  .kpi-card-link:hover {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .kpi-card-link:hover .kpi-card {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
+    cursor: pointer;
+  }
+
+  .kpi-card-link:active .kpi-card {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
 </style>
 
 <div class="dashboard-container">
@@ -415,56 +439,64 @@
   <!-- Main KPI Cards -->
   <div class="kpi-grid">
     <!-- Total Customers -->
-    <div class="kpi-card" style="--card-color: #3b82f6;">
-      <div class="kpi-icon blue-gradient">
-        <i class="bi bi-people-fill"></i>
+    <%= link_to admin_customers_path, class: "kpi-card-link" do %>
+      <div class="kpi-card" style="--card-color: #3b82f6;">
+        <div class="kpi-icon blue-gradient">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="kpi-value"><%= number_with_delimiter(@total_customers) %></div>
+        <div class="kpi-label">Total Customers</div>
+        <div class="kpi-change <%= @customer_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+          <i class="bi bi-arrow-<%= @customer_growth >= 0 ? 'up' : 'down' %>-right"></i>
+          <%= @customer_growth.abs %>% from last month
+        </div>
       </div>
-      <div class="kpi-value"><%= number_with_delimiter(@total_customers) %></div>
-      <div class="kpi-label">Total Customers</div>
-      <div class="kpi-change <%= @customer_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
-        <i class="bi bi-arrow-<%= @customer_growth >= 0 ? 'up' : 'down' %>-right"></i>
-        <%= @customer_growth.abs %>% from last month
-      </div>
-    </div>
+    <% end %>
 
     <!-- Total Affiliates -->
-    <div class="kpi-card" style="--card-color: #10b981;">
-      <div class="kpi-icon green-gradient">
-        <i class="bi bi-people"></i>
+    <%= link_to admin_sub_agents_path, class: "kpi-card-link" do %>
+      <div class="kpi-card" style="--card-color: #10b981;">
+        <div class="kpi-icon green-gradient">
+          <i class="bi bi-people"></i>
+        </div>
+        <div class="kpi-value"><%= number_with_delimiter(@total_affiliates) %></div>
+        <div class="kpi-label">Total Affiliates</div>
+        <div class="kpi-change <%= @affiliate_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+          <i class="bi bi-arrow-<%= @affiliate_growth >= 0 ? 'up' : 'down' %>-right"></i>
+          <%= @affiliate_growth.abs %>% from last month
+        </div>
       </div>
-      <div class="kpi-value"><%= number_with_delimiter(@total_affiliates) %></div>
-      <div class="kpi-label">Total Affiliates</div>
-      <div class="kpi-change <%= @affiliate_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
-        <i class="bi bi-arrow-<%= @affiliate_growth >= 0 ? 'up' : 'down' %>-right"></i>
-        <%= @affiliate_growth.abs %>% from last month
-      </div>
-    </div>
+    <% end %>
 
     <!-- Total Policies -->
-    <div class="kpi-card" style="--card-color: #f59e0b;">
-      <div class="kpi-icon orange-gradient">
-        <i class="bi bi-file-earmark-text"></i>
+    <%= link_to admin_policies_path, class: "kpi-card-link" do %>
+      <div class="kpi-card" style="--card-color: #f59e0b;">
+        <div class="kpi-icon orange-gradient">
+          <i class="bi bi-file-earmark-text"></i>
+        </div>
+        <div class="kpi-value"><%= number_with_delimiter(@total_policies) %></div>
+        <div class="kpi-label">Total Policies</div>
+        <div class="kpi-change <%= @policy_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+          <i class="bi bi-arrow-<%= @policy_growth >= 0 ? 'up' : 'down' %>-right"></i>
+          <%= @policy_growth.abs %>% from last month
+        </div>
       </div>
-      <div class="kpi-value"><%= number_with_delimiter(@total_policies) %></div>
-      <div class="kpi-label">Total Policies</div>
-      <div class="kpi-change <%= @policy_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
-        <i class="bi bi-arrow-<%= @policy_growth >= 0 ? 'up' : 'down' %>-right"></i>
-        <%= @policy_growth.abs %>% from last month
-      </div>
-    </div>
+    <% end %>
 
     <!-- Total Ambassadors -->
-    <div class="kpi-card" style="--card-color: #ec4899;">
-      <div class="kpi-icon pink-gradient">
-        <i class="bi bi-award"></i>
+    <%= link_to admin_distributors_path, class: "kpi-card-link" do %>
+      <div class="kpi-card" style="--card-color: #ec4899;">
+        <div class="kpi-icon pink-gradient">
+          <i class="bi bi-award"></i>
+        </div>
+        <div class="kpi-value"><%= number_with_delimiter(@total_ambassadors) %></div>
+        <div class="kpi-label">Total Ambassadors</div>
+        <div class="kpi-change <%= @ambassador_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+          <i class="bi bi-arrow-<%= @ambassador_growth >= 0 ? 'up' : 'down' %>-right"></i>
+          <%= @ambassador_growth.abs %>% from last month
+        </div>
       </div>
-      <div class="kpi-value"><%= number_with_delimiter(@total_ambassadors) %></div>
-      <div class="kpi-label">Total Ambassadors</div>
-      <div class="kpi-change <%= @ambassador_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
-        <i class="bi bi-arrow-<%= @ambassador_growth >= 0 ? 'up' : 'down' %>-right"></i>
-        <%= @ambassador_growth.abs %>% from last month
-      </div>
-    </div>
+    <% end %>
   </div>
 
 

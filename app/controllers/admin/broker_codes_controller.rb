@@ -13,8 +13,8 @@ class Admin::BrokerCodesController < ApplicationController
     # Apply search if present
     if params[:search].present?
       search_term = "%#{params[:search]}%"
-      @broker_codes = @broker_codes.where(
-        "agent_name ILIKE ? OR broker_code ILIKE ? OR company_name ILIKE ?",
+      @broker_codes = @broker_codes.joins(:broker).where(
+        "broker_code ILIKE ? OR company_name ILIKE ? OR brokers.name ILIKE ?",
         search_term, search_term, search_term
       )
     end
@@ -24,7 +24,7 @@ class Admin::BrokerCodesController < ApplicationController
       @broker_codes = @broker_codes.where(status: params[:status] == 'active')
     end
 
-    @broker_codes = @broker_codes.order(:agent_name)
+    @broker_codes = @broker_codes.joins(:broker).order('brokers.name')
 
     # Get all brokers and companies for dropdowns
     @brokers = Broker.active.order(:name)
@@ -79,33 +79,6 @@ class Admin::BrokerCodesController < ApplicationController
     redirect_to admin_brokers_path(anchor: 'broker-code'), notice: "Broker code #{status_text} successfully!"
   end
 
-  # API endpoint for getting all agency codes
-  def all_agency_codes
-    agency_codes = AgencyCode.includes(:broker).order(:code)
-    render json: {
-      agency_codes: agency_codes.map { |a| {
-        id: a.id,
-        name: "#{a.agent_name} - #{a.code}",
-        company_name: a.company_name,
-        broker_id: a.broker_id
-      } }
-    }
-  end
-
-  # API endpoint for getting companies by agency code
-  def companies_by_agency_code
-    agency_code_id = params[:agency_code_id]
-    companies = []
-
-    if agency_code_id.present?
-      agency_code = AgencyCode.find_by(id: agency_code_id)
-      companies = [agency_code.company_name] if agency_code&.company_name.present?
-    end
-
-    render json: {
-      companies: companies
-    }
-  end
 
   private
 
@@ -122,7 +95,7 @@ class Admin::BrokerCodesController < ApplicationController
   end
 
   def broker_code_params
-    params.require(:broker_code).permit(:broker_id, :agency_code_id, :agent_name, :broker_code, :company_name, :status)
+    params.require(:broker_code).permit(:broker_id, :broker_code, :company_name, :status)
   end
 
   def get_unique_companies

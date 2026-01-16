@@ -5,8 +5,8 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # GET /admin/leads
   def index
-    # Filter out converted leads by default
-    @leads = Lead.where.not(current_stage: 'converted').where(converted_customer_id: nil)
+    # Filter out leads that have been converted to customers (hide leads with customer_id)
+    @leads = Lead.where(converted_customer_id: nil)
 
     # Search functionality
     if params[:search].present?
@@ -45,14 +45,14 @@ class Admin::LeadsController < Admin::ApplicationController
 
     @leads = paginate_records(@leads.order(created_at: :desc).includes(:converted_customer, :created_policy))
 
-    # Statistics for dashboard - updated to reflect active leads only
-    active_leads_scope = Lead.where.not(current_stage: 'converted').where(converted_customer_id: nil)
+    # Statistics for dashboard - updated to reflect active leads only (those without customers)
+    active_leads_scope = Lead.where(converted_customer_id: nil)
     @total_leads = active_leads_scope.count
     @lead_generated_leads = active_leads_scope.lead_generated.count
     @consultation_leads = active_leads_scope.consultation_scheduled.count
     @one_on_one_leads = active_leads_scope.one_on_one.count
     @follow_up_leads = active_leads_scope.follow_up.count
-    @converted_leads = Lead.converted.count
+    @converted_leads = Lead.where.not(converted_customer_id: nil).count
     @lead_closed_leads = active_leads_scope.lead_closed.count
 
     # Conversion rate calculation

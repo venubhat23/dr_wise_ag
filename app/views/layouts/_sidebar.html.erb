@@ -458,7 +458,7 @@
   <!-- Navigation Menu -->
   <nav class="sidebar-nav">
     <!-- Main Menu Section -->
-    <% if show_sidebar_section?(['dashboard', 'customers', 'sub_agents', 'distributors', 'leads']) %>
+    <% if show_sidebar_section?(['dashboard', 'analytics', 'customers', 'sub_agents', 'distributors', 'leads']) %>
     <div class="nav-section">
       <div class="nav-section-title">Main Menu</div>
       <ul class="nav-menu">
@@ -472,6 +472,21 @@
                 </div>
               </div>
               <span class="nav-text">Dashboard</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+
+        <!-- Analytics -->
+        <% if show_sidebar_item?('analytics') %>
+          <li class="nav-item">
+            <%= link_to admin_analytics_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/analytics')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-purple">
+                  <i class="bi bi-bar-chart-line-fill"></i>
+                </div>
+              </div>
+              <span class="nav-text">Analytics</span>
               <div class="nav-indicator"></div>
             <% end %>
           </li>
