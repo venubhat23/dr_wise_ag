@@ -416,7 +416,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       :policy_holder, :insured_name, :insurance_company_name, :policy_type,
       :payment_mode, :policy_number, :policy_booking_date, :policy_start_date,
       :policy_end_date, :risk_start_date, :policy_term, :premium_payment_term,
-      :plan_name, :sum_insured, :net_premium, :first_year_gst_percentage,
+      :plan_name, :sum_insured, :sum_insured_text, :net_premium, :first_year_gst_percentage,
       :second_year_gst_percentage, :third_year_gst_percentage, :total_premium,
       :term_rider_amount, :term_rider_note, :critical_illness_rider_amount,
       :critical_illness_rider_note, :accident_rider_amount, :accident_rider_note,

@@ -62,7 +62,7 @@
               <div class="brand-icon">
                 <i class="fas fa-shield-alt"></i>
               </div>
-              <h1 class="brand-text ms-3 mb-0 d-none d-md-block">Drwise Admin</h1>
+              <h1 class="brand-text ms-3 mb-0 d-none d-md-block">Dr WISE Admin</h1>
             </div>
 
             <!-- Header Actions -->
@@ -73,8 +73,7 @@
                   <span class="d-none d-sm-inline">Admin</span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
-                  <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                  <li><%= link_to admin_profile_path, class: "dropdown-item" do %><i class="fas fa-user me-2"></i>Profile<% end %></li>
                   <li><hr class="dropdown-divider"></li>
                   <li><%= link_to destroy_user_session_path, class: "dropdown-item", data: { turbo_method: :delete } do %>
                     <i class="fas fa-sign-out-alt me-2"></i>Logout

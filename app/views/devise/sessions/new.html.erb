@@ -18,9 +18,9 @@
       <!-- Logo Section -->
       <div class="text-center mb-4">
         <div class="simple-logo">
-          <img src="/logo.jpeg" alt="Drwise" class="login-logo-img" />
+          <img src="/logo.jpeg" alt="Dr WISE" class="login-logo-img" />
         </div>
-        <h2 class="simple-title">drwise</h2>
+        <h2 class="simple-title">Dr WISE</h2>
       </div>
 
       <!-- Login Banners -->
@@ -56,19 +56,10 @@
               <%= f.label :remember_me, "Remember me", class: "form-check-label" %>
             </div>
           <% end %>
-          <%- if devise_mapping.recoverable? && controller_name != 'passwords' && controller_name != 'registrations' %>
-            <%= link_to "Forgot password?", new_password_path(resource_name), class: "text-primary text-decoration-none" %>
-          <% end %>
+
         </div>
 
         <%= f.submit "Sign In", class: "btn btn-primary w-100 py-3 fs-5 fw-semibold" %>
-      <% end %>
-
-      <%- if devise_mapping.registerable? && controller_name != 'registrations' %>
-        <div class="text-center mt-4">
-          <span class="text-muted">Don't have an account? </span>
-          <%= link_to "Create account", new_registration_path(resource_name), class: "text-primary text-decoration-none fw-semibold" %>
-        </div>
       <% end %>
     </div>
   </div>

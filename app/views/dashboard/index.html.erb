@@ -453,16 +453,16 @@
       </div>
     </div>
 
-    <!-- Total Premium -->
+    <!-- Total Ambassadors -->
     <div class="kpi-card" style="--card-color: #ec4899;">
       <div class="kpi-icon pink-gradient">
-        <i class="bi bi-currency-rupee"></i>
+        <i class="bi bi-award"></i>
       </div>
-      <div class="kpi-value">₹<%= (@total_premium_collected / 1000000.0).round(1) %>M</div>
-      <div class="kpi-label">Premium Collected</div>
-      <div class="kpi-change <%= @premium_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
-        <i class="bi bi-arrow-<%= @premium_growth >= 0 ? 'up' : 'down' %>-right"></i>
-        <%= @premium_growth.abs %>% from last month
+      <div class="kpi-value"><%= number_with_delimiter(@total_ambassadors) %></div>
+      <div class="kpi-label">Total Ambassadors</div>
+      <div class="kpi-change <%= @ambassador_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+        <i class="bi bi-arrow-<%= @ambassador_growth >= 0 ? 'up' : 'down' %>-right"></i>
+        <%= @ambassador_growth.abs %>% from last month
       </div>
     </div>
   </div>

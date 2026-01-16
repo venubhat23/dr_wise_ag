@@ -32,8 +32,7 @@
       </button>
       <ul class="dropdown-menu">
         <li><%= link_to "Edit Lead", edit_admin_lead_path(@lead), class: "dropdown-item" %></li>
-        <li><a href="#" class="dropdown-item">Add Notes</a></li>
-        <li><a href="#" class="dropdown-item">Send Email</a></li>
+        <li><%= link_to "Add Notes", edit_admin_lead_path(@lead), class: "dropdown-item" %></li>
         <li><hr class="dropdown-divider"></li>
         <li><%= link_to "Delete Lead", admin_lead_path(@lead), method: :delete, class: "dropdown-item text-danger", data: { confirm: "Are you sure?" } %></li>
       </ul>
@@ -758,7 +757,7 @@
     when 'not_interested' then '🚫 Mark Not Interested'
     when 're_follow_up' then '🔄 Re-Follow Up'
     when 'converted' then '👤 Convert to Customer'
-    when 'lead_closed' then '📁 Close Lead'
+    when 'lead_closed' then '📁 Close Lead - Follow-Up Unsuccessful'
     else stage_key.humanize
     end
   end

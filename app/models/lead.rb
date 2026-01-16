@@ -289,7 +289,7 @@ class Lead < ApplicationRecord
     when 'not_interested' then '🚫 Not Interested'
     when 're_follow_up' then '🔄 Re-Follow Up'
     when 'converted' then '👤 Convert to Customer'
-    when 'lead_closed' then '📁 Lead Closed'
+    when 'lead_closed' then '📁 Lead Close - Follow-Up Unsuccessful'
     else current_stage.humanize
     end
   end
@@ -368,7 +368,7 @@ class Lead < ApplicationRecord
     when 'not_interested' then 'Customer explicitly not interested'
     when 're_follow_up' then 'Additional follow-up attempt'
     when 'converted' then 'Lead converted to customer'
-    when 'lead_closed' then 'Lead process completed'
+    when 'lead_closed' then 'Lead close - Follow-up unsuccessful'
     else 'Unknown stage'
     end
   end

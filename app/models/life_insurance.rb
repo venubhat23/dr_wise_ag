@@ -86,6 +86,9 @@ class LifeInsurance < ApplicationRecord
   after_create :create_commission_payouts
   after_create :create_lead_record
 
+  # Virtual attribute for text-based sum insured input
+  attr_accessor :sum_insured_text
+
   # Instance methods
   def active?
     policy_end_date >= Date.current
@@ -144,6 +147,42 @@ class LifeInsurance < ApplicationRecord
     today = Date.current.to_s
 
     notification_list.select { |notification| notification['date'] == today }
+  end
+
+  # Sum insured text handling methods
+  def sum_insured_display_text
+    return '' if sum_insured.blank?
+
+    amount = sum_insured.to_f
+
+    if amount >= 10000000 # 1 crore or more
+      crores = amount / 10000000
+      if crores == crores.to_i
+        "#{crores.to_i} crore#{crores.to_i == 1 ? '' : 's'}"
+      else
+        "#{crores} crore#{crores == 1.0 ? '' : 's'}"
+      end
+    elsif amount >= 100000 # 1 lakh or more
+      lakhs = amount / 100000
+      if lakhs == lakhs.to_i
+        "#{lakhs.to_i} lakh#{lakhs.to_i == 1 ? '' : 's'}"
+      else
+        "#{lakhs} lakh#{lakhs == 1.0 ? '' : 's'}"
+      end
+    else
+      "₹#{amount.to_i}"
+    end
+  end
+
+  def sum_insured_text=(value)
+    return if value.blank?
+
+    @sum_insured_text = value
+    self.sum_insured = parse_amount_text(value)
+  end
+
+  def sum_insured_text
+    @sum_insured_text || sum_insured_display_text
   end
 
   # DrWise vs Non-DrWise classification
@@ -230,6 +269,30 @@ class LifeInsurance < ApplicationRecord
   end
 
   private
+
+  def parse_amount_text(text)
+    return 0 if text.blank?
+
+    # Clean up the text - remove currency symbols and extra whitespace
+    clean_text = text.to_s.strip.downcase.gsub(/[₹,\s]/, '')
+
+    # Extract numeric part
+    numeric_part = clean_text.match(/[\d.]+/).to_s.to_f
+    return 0 if numeric_part == 0
+
+    # Check for lakhs/lakh
+    if clean_text.match(/(lakhs?|lac)/)
+      return (numeric_part * 100000).to_i
+    end
+
+    # Check for crores/crore
+    if clean_text.match(/(crores?|cr)/)
+      return (numeric_part * 10000000).to_i
+    end
+
+    # If no unit specified, treat as absolute value
+    return numeric_part.to_i
+  end
 
   def calculate_totals
     if net_premium.present?

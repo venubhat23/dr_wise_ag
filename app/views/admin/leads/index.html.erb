@@ -91,7 +91,7 @@
     <%= form_with url: admin_leads_path, method: :get, local: true, class: "filter-form" do |form| %>
       <!-- Single Row: All Filters -->
       <div class="row g-2 align-items-end">
-        <div class="col-lg-3 col-md-6">
+        <div class="col-lg-2 col-md-6">
           <label class="form-label small text-muted mb-1">Search Leads</label>
           <%= form.text_field :search, placeholder: "Search by name, phone, email...", value: params[:search], class: "form-control" %>
         </div>
@@ -108,7 +108,7 @@
             ['Not Interested', 'not_interested'],
             ['Re-Follow Up', 're_follow_up'],
             ['Converted', 'converted'],
-            ['Closed', 'lead_closed']
+            ['Lead Close - Follow-Up Unsuccessful', 'lead_closed']
           ], params[:current_stage]), {}, { class: "form-select stage-filter-dropdown" } %>
         </div>
         <div class="col-lg-2 col-md-6">
@@ -131,7 +131,14 @@
             ['Tele-calling', 'telecalling']
           ], params[:referred_by]), {}, { class: "form-select" } %>
         </div>
-        <div class="col-lg-3 col-md-12">
+        <div class="col-lg-2 col-md-6">
+          <label class="form-label small text-muted mb-1">Show Converted</label>
+          <div class="form-check form-switch">
+            <%= form.check_box :show_converted, { checked: params[:show_converted] == 'true', class: "form-check-input", id: "showConverted" }, "true", "false" %>
+            <%= form.label :show_converted, "Include Converted Leads", class: "form-check-label small", for: "showConverted" %>
+          </div>
+        </div>
+        <div class="col-lg-2 col-md-12">
           <div class="d-flex gap-2">
             <%= form.submit "Apply", class: "btn btn-primary" do %>
               <i class="bi bi-funnel me-1"></i>
@@ -259,7 +266,7 @@
                              { key: 'follow_up_unsuccessful', name: 'Follow-Up Unsuccessful', icon: '❌', color: 'danger', desc: 'Unsuccessful follow-up' },
                              { key: 'not_interested', name: 'Not Interested', icon: '🚫', color: 'dark', desc: 'Lead not interested' },
                              { key: 're_follow_up', name: 'Re-Follow Up', icon: '🔄', color: 'warning', desc: 'Re-attempting follow-up' },
-                             { key: 'lead_closed', name: 'Lead Closed', icon: '📁', color: 'secondary', desc: 'Lead closed' }
+                             { key: 'lead_closed', name: 'Lead Close - Follow-Up Unsuccessful', icon: '📁', color: 'secondary', desc: 'Lead close - Follow-up unsuccessful' }
                            ] %>
 
                         <% all_stages.each_with_index do |stage, index| %>
@@ -650,6 +657,19 @@ document.addEventListener('DOMContentLoaded', function() {
   if (stageFilter) {
     stageFilter.addEventListener('change', function() {
       console.log('Stage filter changed to:', this.value);
+      // Find the form and submit it
+      const form = this.closest('form');
+      if (form) {
+        form.submit();
+      }
+    });
+  }
+
+  // Auto-submit form when show converted switch is toggled
+  const showConvertedSwitch = document.getElementById('showConverted');
+  if (showConvertedSwitch) {
+    showConvertedSwitch.addEventListener('change', function() {
+      console.log('Show converted toggled to:', this.checked);
       // Find the form and submit it
       const form = this.closest('form');
       if (form) {

@@ -92,7 +92,7 @@
           <% end %>
           <%= form.select :role_id,
               options_for_select([
-                ['Agent', 1]
+                ['Affiliate', 1]
               ], @sub_agent.role_id),
               { prompt: 'Select Role' },
               { class: "form-select", required: true } %>
@@ -105,16 +105,16 @@
 
       <div class="row mt-3">
         <div class="col-md-4">
-          <%= form.label :state_id, "State", class: "form-label" %>
-          <%= form.select :state_id,
-              options_for_select(LocationData.states_for_select.map { |name, value| [name, value] }, @sub_agent.state_id),
+          <%= form.label :state, "State", class: "form-label" %>
+          <%= form.select :state,
+              options_for_select(LocationData.states_for_select.map { |name, value| [name, value] }, @sub_agent.state),
               { prompt: 'Search and select state...' },
               { class: "form-select searchable-select", id: "sub_agent_state", data: { placeholder: "Type to search states..." } } %>
         </div>
         <div class="col-md-4">
-          <%= form.label :city_id, "City", class: "form-label" %>
-          <%= form.select :city_id,
-              options_for_select([], @sub_agent.city_id),
+          <%= form.label :city, "City", class: "form-label" %>
+          <%= form.select :city,
+              options_for_select([], @sub_agent.city),
               { prompt: 'Search and select city...' },
               { class: "form-select searchable-select", id: "sub_agent_city", disabled: true, data: { placeholder: "Type to search cities..." } } %>
         </div>
@@ -313,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
     citySelect.innerHTML = '<option value="">Select City</option>';
     cities.forEach(city => {
       const option = document.createElement('option');
-      option.value = city;
+      option.value = city;  // Use city name as value instead of ID
       option.textContent = city;
       citySelect.appendChild(option);
     });

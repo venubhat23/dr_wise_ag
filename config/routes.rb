@@ -40,6 +40,11 @@ Rails.application.routes.draw do
 
   # Admin routes
   namespace :admin do
+    # Admin profile management
+    get 'profile', to: 'profile#show'
+    get 'profile/edit', to: 'profile#edit', as: 'edit_profile'
+    patch 'profile', to: 'profile#update'
+
     # Document management
     resources :documents do
       member do

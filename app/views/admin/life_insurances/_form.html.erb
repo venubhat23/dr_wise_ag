@@ -202,26 +202,21 @@
         </div>
 
         <div class="col-md-4 mb-3">
-          <%= form.label :sum_insured, "Sum Insured", class: "form-label" %>
-          <%= form.select :sum_insured,
-              options_for_select([
-                ['₹5 Lakhs', 500000],
-                ['₹10 Lakhs', 1000000],
-                ['₹15 Lakhs', 1500000],
-                ['₹20 Lakhs', 2000000],
-                ['₹25 Lakhs', 2500000],
-                ['₹50 Lakhs', 5000000],
-                ['₹75 Lakhs', 7500000],
-                ['₹1 Crore', 10000000],
-                ['₹1.5 Crore', 15000000],
-                ['₹2 Crore', 20000000],
-                ['₹5 Crore', 50000000]
-              ], @life_insurance.sum_insured),
-              { prompt: 'Select Sum Insured' },
-              { class: "form-control #{'is-invalid' if @life_insurance.errors[:sum_insured].any?}", required: true } %>
+          <%= form.label :sum_insured_text, "Sum Insured", class: "form-label" %>
+          <%= form.text_field :sum_insured_text,
+              class: "form-control #{'is-invalid' if @life_insurance.errors[:sum_insured].any?}",
+              placeholder: "e.g., 90 lakhs, 5 crores, 1.5 crore",
+              value: @life_insurance.sum_insured_display_text,
+              required: true,
+              id: "sum_insured_text_input" %>
+          <div class="form-text">
+            Enter amount like: 90 lakhs, 5 crores, 1.5 crore, etc.
+            <span id="sum_insured_preview" class="text-primary fw-bold"></span>
+          </div>
           <% if @life_insurance.errors[:sum_insured].any? %>
             <div class="invalid-feedback"><%= @life_insurance.errors[:sum_insured].first %></div>
           <% end %>
+          <%= form.hidden_field :sum_insured %>
         </div>
 
         <div class="col-md-4 mb-3">
@@ -528,6 +523,47 @@
         </div>
       </div>
 
+      <!-- Ambassador Commission -->
+      <hr class="my-4">
+      <h6>Ambassador Commission</h6>
+      <div class="row">
+        <div class="col-md-2 mb-3">
+          <label class="form-label">1st year (%)</label>
+          <%= form.number_field :ambassador_commission_percentage,
+              class: "form-control ambassador-commission-percentage",
+              value: @life_insurance.ambassador_commission_percentage || 2.0,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">Commission Amount</label>
+          <%= form.number_field :ambassador_commission_amount,
+              class: "form-control ambassador-commission-amount",
+              value: @life_insurance.ambassador_commission_amount || 0,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">TDS %</label>
+          <%= form.number_field :ambassador_tds_percentage,
+              class: "form-control ambassador-tds-percentage",
+              value: @life_insurance.ambassador_tds_percentage || 0,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">TDS Amount</label>
+          <%= form.number_field :ambassador_tds_amount,
+              class: "form-control ambassador-tds-amount",
+              value: @life_insurance.ambassador_tds_amount || 0,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">After TDS Value</label>
+          <%= form.number_field :ambassador_after_tds_value,
+              class: "form-control ambassador-after-tds-value",
+              value: @life_insurance.ambassador_after_tds_value || 0,
+              step: 0.01, readonly: true %>
+        </div>
+      </div>
+
       <!-- Company Expenses & Profit Calculation -->
       <hr class="my-4">
       <h6>Company Expenses & Profit Calculation</h6>
@@ -566,7 +602,7 @@
         <h6 class="mb-2">Commission Calculation Summary:</h6>
         <ul class="mb-0">
           <li><strong>Main Agent Commission:</strong> <span id="main-income-display">0%</span> of Net Premium</li>
-          <li><strong>Total Distribution:</strong> <span id="distribution-display">4.0%</span> (Affiliate + Investor)</li>
+          <li><strong>Total Distribution:</strong> <span id="distribution-display">6.0%</span> (Affiliate + Investor + Ambassador)</li>
           <li><strong>Company Expenses:</strong> <span id="expenses-display">2.0%</span> of Net Premium</li>
           <li><strong>Profit:</strong> Main Agent Commission - Total Distribution - Company Expenses</li>
         </ul>
@@ -1183,6 +1219,21 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('.investor-after-tds-value').value = afterTdsValue.toFixed(2);
   }
 
+  // Auto-calculate ambassador commission
+  function calculateAmbassadorCommission() {
+    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+    const commissionPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage').value) || 2.0;
+    const tdsPercentage = parseFloat(document.querySelector('.ambassador-tds-percentage').value) || 0;
+
+    const commissionAmount = netPremium * (commissionPercentage / 100);
+    const tdsAmount = commissionAmount * (tdsPercentage / 100);
+    const afterTdsValue = commissionAmount - tdsAmount;
+
+    document.querySelector('.ambassador-commission-amount').value = commissionAmount.toFixed(2);
+    document.querySelector('.ambassador-tds-amount').value = tdsAmount.toFixed(2);
+    document.querySelector('.ambassador-after-tds-value').value = afterTdsValue.toFixed(2);
+  }
+
   // Calculate company expenses and profit
   function calculateProfitAndExpenses() {
     const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
@@ -1193,8 +1244,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const investorPercentage = parseFloat(document.querySelector('.investor-commission-percentage').value) || 2.0;
     const companyExpensesPercentage = parseFloat(document.querySelector('.company-expenses-percentage').value) || 2.0;
 
-    // Calculate total distribution (removed ambassador)
-    const totalDistributionPercentage = subAgentPercentage + investorPercentage;
+    // Calculate total distribution (including ambassador)
+    const ambassadorPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage').value) || 2.0;
+    const totalDistributionPercentage = subAgentPercentage + investorPercentage + ambassadorPercentage;
 
     // Calculate profit: Main Agent Commission - Affiliate Commission - Investor Portion - Company Expenses
     const profitPercentage = mainAgentCommissionPercentage - totalDistributionPercentage - companyExpensesPercentage;
@@ -1226,6 +1278,7 @@ document.addEventListener('DOMContentLoaded', function() {
     calculateCommission();
     calculateSubAgentCommission();
     calculateInvestorCommission();
+    calculateAmbassadorCommission();
     calculateProfitAndExpenses();
   }
 
@@ -1497,6 +1550,13 @@ document.addEventListener('DOMContentLoaded', function() {
     calculateProfitAndExpenses();
   });
   document.querySelector('.investor-tds-percentage').addEventListener('input', calculateInvestorCommission);
+
+  // Ambassador commission event listeners
+  document.querySelector('.ambassador-commission-percentage').addEventListener('input', function() {
+    calculateAmbassadorCommission();
+    calculateProfitAndExpenses();
+  });
+  document.querySelector('.ambassador-tds-percentage').addEventListener('input', calculateAmbassadorCommission);
 
   // Company expenses event listener
   document.querySelector('.company-expenses-percentage').addEventListener('input', calculateProfitAndExpenses);

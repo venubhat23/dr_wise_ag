@@ -16,6 +16,7 @@ class SubAgent < ApplicationRecord
   # Store plain password for display purposes
   attr_accessor :store_plain_password
   before_save :store_password_if_changed
+  before_save :set_location_ids_from_names
 
   # Associations
   belongs_to :role
@@ -119,6 +120,32 @@ class SubAgent < ApplicationRecord
   end
 
   private
+
+  def set_location_ids_from_names
+    # Set state_id and city_id from names if they are present but IDs are blank
+    if state.present? && state_id.blank?
+      # Find matching state in LocationData using the state name
+      state_key = LocationData::STATES_AND_CITIES.find do |key, state_data|
+        state_data[:name].downcase == state.downcase
+      end&.first
+
+      if state_key
+        # Use a consistent hash of the state key as state_id
+        self.state_id = state_key.hash.abs % 1000
+        Rails.logger.info "Set state_id #{self.state_id} for state '#{state}' (key: #{state_key})"
+      end
+    end
+
+    # Set city_id from city name if city is present but city_id is blank
+    if city.present? && city_id.blank?
+      # Use a consistent hash of the city name as city_id
+      self.city_id = city.hash.abs % 100000
+      Rails.logger.info "Set city_id #{self.city_id} for city '#{city}'"
+    end
+  rescue => e
+    Rails.logger.error "Error setting location IDs: #{e.message}"
+    # Continue saving even if location ID setting fails
+  end
 
   def store_password_if_changed
     if password.present? && (password_digest_changed? || new_record?)

@@ -2,6 +2,7 @@ class Distributor < ApplicationRecord
   include PgSearch::Model
 
   # Associations
+
   has_many :distributor_documents, dependent: :destroy
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
   has_many :distributor_assignments, dependent: :destroy

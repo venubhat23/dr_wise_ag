@@ -5,7 +5,8 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # GET /admin/leads
   def index
-    @leads = Lead.all
+    # Filter out converted leads by default
+    @leads = Lead.where.not(current_stage: 'converted').where(converted_customer_id: nil)
 
     # Search functionality
     if params[:search].present?
@@ -37,16 +38,22 @@ class Admin::LeadsController < Admin::ApplicationController
       @leads = @leads.where("referred_by ILIKE ?", "%#{params[:referred_by]}%")
     end
 
+    # Add option to show converted leads if requested
+    if params[:show_converted] == 'true'
+      @leads = Lead.all
+    end
+
     @leads = paginate_records(@leads.order(created_at: :desc).includes(:converted_customer, :created_policy))
 
-    # Statistics for dashboard
-    @total_leads = Lead.count
-    @lead_generated_leads = Lead.lead_generated.count
-    @consultation_leads = Lead.consultation_scheduled.count
-    @one_on_one_leads = Lead.one_on_one.count
-    @follow_up_leads = Lead.follow_up.count
+    # Statistics for dashboard - updated to reflect active leads only
+    active_leads_scope = Lead.where.not(current_stage: 'converted').where(converted_customer_id: nil)
+    @total_leads = active_leads_scope.count
+    @lead_generated_leads = active_leads_scope.lead_generated.count
+    @consultation_leads = active_leads_scope.consultation_scheduled.count
+    @one_on_one_leads = active_leads_scope.one_on_one.count
+    @follow_up_leads = active_leads_scope.follow_up.count
     @converted_leads = Lead.converted.count
-    @lead_closed_leads = Lead.lead_closed.count
+    @lead_closed_leads = active_leads_scope.lead_closed.count
 
     # Conversion rate calculation
     total_converted = @converted_leads

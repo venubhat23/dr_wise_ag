@@ -85,18 +85,18 @@
 
       <div class="row mt-3">
         <div class="col-md-4">
-          <%= form.label :state_id, "State", class: "form-label" %>
-          <%= form.select :state_id,
-              options_for_select(LocationData.states_for_select, @distributor.state_id),
+          <%= form.label :state, "State", class: "form-label" %>
+          <%= form.select :state,
+              options_for_select(LocationData.states_for_select, @distributor.state),
               { prompt: 'Search and select state...' },
               { class: "form-select searchable-select", id: "distributor_state", data: { placeholder: "Type to search states..." } } %>
         </div>
         <div class="col-md-4">
-          <%= form.label :city_id, "City", class: "form-label" %>
-          <%= form.select :city_id,
-              options_for_select(LocationData.cities_for_state(@distributor.state_id), @distributor.city_id),
+          <%= form.label :city, "City", class: "form-label" %>
+          <%= form.select :city,
+              options_for_select(@distributor.city.present? ? [[@distributor.city, @distributor.city]] : [], @distributor.city),
               { prompt: 'Search and select city...' },
-              { class: "form-select searchable-select", id: "distributor_city", data: { placeholder: "Type to search cities..." } } %>
+              { class: "form-select searchable-select", id: "distributor_city", disabled: @distributor.state.blank?, data: { placeholder: "Type to search cities...", saved_city: @distributor.city } } %>
         </div>
         <div class="col-md-4">
           <%= form.label :gender, "Gender", class: "form-label" %>
@@ -732,9 +732,124 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Load cities if state is pre-selected (for edit page auto-fill)
-  if (stateSelect.value) {
-    // Use the current city ID directly for auto-selection
-    loadCitiesForState(stateSelect.value, currentCityId);
+  const savedState = '<%= @distributor.state %>';
+  const savedCity = '<%= @distributor.city %>';
+
+  console.log('Initializing distributor edit form with saved state:', savedState, 'and city:', savedCity);
+
+  // Initialize properly with saved values
+  setTimeout(() => {
+    console.log('Starting distributor edit form initialization...');
+    console.log('Distributor state select value:', stateSelect.value);
+
+    // If state has a value, load cities
+    if (stateSelect.value || savedState) {
+      const stateToUse = stateSelect.value || savedState;
+      console.log('Loading cities for state:', stateToUse);
+
+      // Set state value if not already set
+      if (!stateSelect.value && savedState) {
+        stateSelect.value = savedState;
+        $('#distributor_state').val(savedState).trigger('change.select2');
+      }
+
+      // Load cities with proper saved city handling
+      loadCitiesForStateWithCity(stateToUse, savedCity);
+    } else if (savedCity) {
+      // If there's a saved city but no state, still show it
+      console.log('Saved city exists without state, adding it manually');
+      const $citySelect = $(citySelect);
+      citySelect.disabled = false;
+
+      // Add the saved city option
+      const option = document.createElement('option');
+      option.value = savedCity;
+      option.textContent = savedCity;
+      option.selected = true;
+      citySelect.appendChild(option);
+
+      // Reinitialize Select2
+      setTimeout(() => {
+        if ($citySelect.hasClass('select2-hidden-accessible')) {
+          $citySelect.select2('destroy');
+        }
+        $citySelect.select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Search and select city...',
+          allowClear: true,
+          width: '100%',
+          minimumResultsForSearch: 0
+        });
+        $citySelect.val(savedCity).trigger('change.select2');
+      }, 100);
+    }
+  }, 200);
+
+  function loadCitiesForStateWithCity(stateValue, selectedCityName = null) {
+    console.log('Loading cities for distributor state:', stateValue, 'with city name:', selectedCityName);
+    if (!stateValue) {
+      populateCityDropdownWithCity([], selectedCityName);
+      citySelect.disabled = true;
+      return;
+    }
+
+    // Get cities for this state from local data
+    let cities = citiesData[stateValue] || [];
+    populateCityDropdownWithCity(cities, selectedCityName);
+  }
+
+  function populateCityDropdownWithCity(cities, selectedCityName = null) {
+    // First destroy Select2 if it exists
+    const $citySelect = $(citySelect);
+    if ($citySelect.hasClass('select2-hidden-accessible')) {
+      $citySelect.select2('destroy');
+    }
+
+    // Clear dropdown and add cities
+    citySelect.innerHTML = '<option value="">Select City</option>';
+
+    let selectedCityFound = false;
+
+    cities.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city.value || city;
+      option.textContent = city.text || city;
+      if (selectedCityName && (city.value || city) === selectedCityName) {
+        option.selected = true;
+        selectedCityFound = true;
+      }
+      citySelect.appendChild(option);
+    });
+
+    // If selected city wasn't found in the list but exists, add it as an option
+    if (selectedCityName && !selectedCityFound) {
+      const option = document.createElement('option');
+      option.value = selectedCityName;
+      option.textContent = selectedCityName;
+      option.selected = true;
+      citySelect.appendChild(option);
+      selectedCityFound = true;
+      console.log('Added saved city as additional option:', selectedCityName);
+    }
+
+    citySelect.disabled = false;
+    console.log(`Loaded ${cities.length} cities for distributor, selected: ${selectedCityName}, found: ${selectedCityFound}`);
+
+    // Reinitialize Select2
+    setTimeout(() => {
+      $citySelect.select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select city...',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0
+      });
+
+      // Set the selected value after Select2 initialization
+      if (selectedCityName && selectedCityFound) {
+        $citySelect.val(selectedCityName).trigger('change.select2');
+      }
+    }, 50);
   }
 
   // Document management

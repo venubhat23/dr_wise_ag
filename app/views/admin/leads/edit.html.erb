@@ -361,7 +361,7 @@
                 ['🚫 Not Interested', 'not_interested'],
                 ['🔄 Re-Follow Up', 're_follow_up'],
                 ['👤 Convert to Customer', 'converted'],
-                ['📁 Lead Closed', 'lead_closed']
+                ['📁 Lead Close - Follow-Up Unsuccessful', 'lead_closed']
               ], @lead.current_stage), { prompt: 'Select Stage' }, { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select stage..." } } %>
               <div class="invalid-feedback">Please select a current stage.</div>
             </div>
@@ -553,9 +553,9 @@
         <div class="stage-item mb-0">
           <div class="d-flex align-items-center">
             <span class="badge <%= @lead.current_stage == 'lead_closed' ? 'bg-dark' : 'bg-light text-dark' %> me-2">🔒</span>
-            <strong>Lead Closed</strong>
+            <strong>Lead Close - Follow-Up Unsuccessful</strong>
           </div>
-          <p class="small text-muted mb-0">Lead closed - Final stage of the process</p>
+          <p class="small text-muted mb-0">Lead close - Follow-up unsuccessful</p>
         </div>
       </div>
     </div>

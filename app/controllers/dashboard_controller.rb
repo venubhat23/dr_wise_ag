@@ -90,6 +90,7 @@ class DashboardController < ApplicationController
     # Summary statistics with real data
     @total_customers = Customer.count
     @total_affiliates = SubAgent.count  # Show all SubAgents (not just active ones)
+    @total_ambassadors = Distributor.count  # Total Ambassadors count from database
     @total_sub_agents = SubAgent.where(status: 'active').count
     @total_policies = policy_counts[:total_count]
 
@@ -624,6 +625,7 @@ class DashboardController < ApplicationController
     current_policies = get_policies_count_for_period(current_month_start, Date.current)
     current_premium = get_premium_for_period(current_month_start, Date.current)
     current_affiliates = SubAgent.where('created_at >= ?', current_month_start).count
+    current_ambassadors = Distributor.where('created_at >= ?', current_month_start).count
     current_leads = Lead.where('created_at >= ?', current_month_start).count
     current_renewals = get_renewals_count_for_period(current_month_start, Date.current)
     current_payouts = get_payouts_for_period(current_month_start, Date.current)
@@ -634,6 +636,7 @@ class DashboardController < ApplicationController
     last_policies = get_policies_count_for_period(last_month_start, last_month_end)
     last_premium = get_premium_for_period(last_month_start, last_month_end)
     last_affiliates = SubAgent.where(created_at: last_month_start..last_month_end).count
+    last_ambassadors = Distributor.where(created_at: last_month_start..last_month_end).count
     last_leads = Lead.where(created_at: last_month_start..last_month_end).count
     last_renewals = get_renewals_count_for_period(last_month_start, last_month_end)
     last_payouts = get_payouts_for_period(last_month_start, last_month_end)
@@ -644,6 +647,7 @@ class DashboardController < ApplicationController
     @policy_growth = calculate_percentage_change(current_policies, last_policies)
     @premium_growth = calculate_percentage_change(current_premium, last_premium)
     @affiliate_growth = calculate_percentage_change(current_affiliates, last_affiliates)
+    @ambassador_growth = calculate_percentage_change(current_ambassadors, last_ambassadors)
     @lead_growth = calculate_percentage_change(current_leads, last_leads)
     @renewal_growth = calculate_percentage_change(current_renewals, last_renewals)
     @payout_growth = calculate_percentage_change(current_payouts, last_payouts)
