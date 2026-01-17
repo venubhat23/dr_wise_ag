@@ -14,7 +14,7 @@ class SubAgent < ApplicationRecord
   end
 
   # Store plain password for display purposes
-  attr_accessor :store_plain_password
+  attr_accessor :store_plain_password, :plain_password, :original_password
   # Virtual attributes for state and city names
   attr_accessor :state, :city
   before_save :store_password_if_changed

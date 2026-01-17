@@ -40,6 +40,121 @@
   </div>
 </div>
 
+<!-- Lead Stages Guide -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <h5 class="card-title mb-4">
+      <i class="bi bi-list-check me-2 text-primary"></i>
+      Lead Stages Guide
+    </h5>
+    <div class="row">
+      <!-- Main Flow Stages -->
+      <div class="col-md-6">
+        <h6 class="text-success mb-3">
+          <i class="bi bi-arrow-right-circle me-1"></i>Main Success Flow
+        </h6>
+        <div class="stage-guide-item mb-3">
+          <div class="d-flex align-items-start">
+            <span class="stage-icon me-2">🟢</span>
+            <div>
+              <h6 class="mb-1">Lead Generated</h6>
+              <small class="text-muted">Initial stage - Lead entry into system</small>
+            </div>
+          </div>
+        </div>
+        <div class="stage-guide-item mb-3">
+          <div class="d-flex align-items-start">
+            <span class="stage-icon me-2">📅</span>
+            <div>
+              <h6 class="mb-1">Consultation Scheduled</h6>
+              <small class="text-muted">Meeting scheduled - Initial contact and requirement gathering</small>
+            </div>
+          </div>
+        </div>
+        <div class="stage-guide-item mb-3">
+          <div class="d-flex align-items-start">
+            <span class="stage-icon me-2">🤝</span>
+            <div>
+              <h6 class="mb-1">One-on-One</h6>
+              <small class="text-muted">Personal meeting - Detailed discussion and product presentation</small>
+            </div>
+          </div>
+        </div>
+        <div class="stage-guide-item mb-3">
+          <div class="d-flex align-items-start">
+            <span class="stage-icon me-2">🔁</span>
+            <div>
+              <h6 class="mb-1">Follow-Up</h6>
+              <small class="text-muted">Following up - Regular contact to maintain engagement</small>
+            </div>
+          </div>
+        </div>
+        <div class="stage-guide-item mb-3">
+          <div class="d-flex align-items-start">
+            <span class="stage-icon me-2">✅</span>
+            <div>
+              <h6 class="mb-1">Follow-Up Successful</h6>
+              <small class="text-muted">Successful follow-up - Positive response received</small>
+            </div>
+          </div>
+        </div>
+        <div class="stage-guide-item mb-3">
+          <div class="d-flex align-items-start">
+            <span class="stage-icon me-2">👤</span>
+            <div>
+              <h6 class="mb-1">Customer Converted</h6>
+              <small class="text-muted">Customer converted - Ready for policy creation</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alternative Flow Stages -->
+      <div class="col-md-6">
+        <h6 class="text-danger mb-3">
+          <i class="bi bi-arrow-down-circle me-1"></i>Alternative Flow
+        </h6>
+        <div class="stage-guide-item mb-3 alternative-stage">
+          <div class="d-flex align-items-start">
+            <span class="stage-icon me-2">❌</span>
+            <div>
+              <h6 class="mb-1">Follow-Up Unsuccessful</h6>
+              <small class="text-muted">Unsuccessful follow-up - No positive response</small>
+            </div>
+          </div>
+        </div>
+        <div class="stage-guide-item mb-3 alternative-stage">
+          <div class="d-flex align-items-start">
+            <span class="stage-icon me-2">🔄</span>
+            <div>
+              <h6 class="mb-1">Re-Follow Up</h6>
+              <small class="text-muted">Re-attempting follow-up - Second attempt to engage</small>
+            </div>
+          </div>
+        </div>
+        <div class="stage-guide-item mb-3 alternative-stage">
+          <div class="d-flex align-items-start">
+            <span class="stage-icon me-2">🚫</span>
+            <div>
+              <h6 class="mb-1">Not Interested</h6>
+              <small class="text-muted">Lead not interested - Customer declined the offer</small>
+            </div>
+          </div>
+        </div>
+        <div class="stage-guide-item mb-3 alternative-stage">
+          <div class="d-flex align-items-start">
+            <span class="stage-icon me-2">📁</span>
+            <div>
+              <h6 class="mb-1">Lead Close - Follow-Up Unsuccessful</h6>
+              <small class="text-muted">Lead close - Follow-up unsuccessful</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Lead Status Timeline -->
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-body">
@@ -50,55 +165,77 @@
     <div class="row">
       <div class="col-md-12">
         <div class="timeline-container">
+          <!-- Flow Legend -->
+          <div class="mb-4 p-3 bg-light rounded">
+            <h6 class="mb-2">
+              <i class="bi bi-info-circle me-1"></i>Lead Flow Guide
+            </h6>
+            <div class="row">
+              <div class="col-md-6">
+                <small class="text-success">
+                  <strong>✅ Success Path:</strong> Lead Generated → Consultation → Discussion → Follow-Up → Success → Converted
+                </small>
+              </div>
+              <div class="col-md-6">
+                <small class="text-danger">
+                  <strong>❌ Alternative Path:</strong> Follow-Up → Unsuccessful → Re-Follow-Up → Not Interested → Closed
+                </small>
+              </div>
+            </div>
+          </div>
+
           <%
-            # Define timeline stages with their order
+            # Define timeline stages with their proper flow
             timeline_stages = [
               { key: 'lead_generated', title: '🟢 Lead Generated', description: 'Initial lead entry into the system' },
               { key: 'consultation_scheduled', title: '📅 Consultation Scheduled', description: 'First contact and consultation setup' },
               { key: 'one_on_one', title: '🤝 One-on-One Discussion', description: 'Detailed discussion about insurance needs' },
               { key: 'follow_up', title: '🔁 Follow-Up', description: 'Follow-up to gauge customer interest' },
-              {
-                key: 'follow_up_decision',
-                title: '🔄 Follow-Up Decision',
-                description: 'Determine follow-up outcome',
-                is_branching: true,
-                branches: [
-                  { key: 'follow_up_successful', title: '✅ Successful', description: 'Customer shows interest' },
-                  { key: 'follow_up_unsuccessful', title: '❌ Not Successful', description: 'Customer not interested' }
-                ]
-              },
-              { key: 'converted', title: '👤 Converted to Customer', description: 'Lead successfully converted to customer' },
-              { key: 're_follow_up', title: '🔄 Re-Follow Up', description: 'Additional follow-up attempt', is_alt_path: true }
+              { key: 'follow_up_successful', title: '✅ Follow-Up Successful', description: 'Customer shows interest and ready to proceed' },
+              { key: 'converted', title: '👤 Converted to Customer', description: 'Lead successfully converted to customer' }
             ]
 
-            # Determine current stage index and flow path
-            stage_mapping = {
-              'lead_generated' => 0,
-              'consultation_scheduled' => 1,
-              'one_on_one' => 2,
-              'follow_up' => 3,
-              'follow_up_successful' => 4,
-              'follow_up_unsuccessful' => 4,
-              'converted' => 5,
-              're_follow_up' => 6
-            }
+            # Define alternative flow stages that branch after follow_up
+            alt_timeline_stages = [
+              { key: 'follow_up_unsuccessful', title: '❌ Follow-Up Unsuccessful', description: 'Customer not interested at this time', is_alt_path: true },
+              { key: 're_follow_up', title: '🔄 Re-Follow Up', description: 'Additional follow-up attempt', is_alt_path: true },
+              { key: 'not_interested', title: '🚫 Not Interested', description: 'Customer explicitly not interested', is_alt_path: true },
+              { key: 'lead_closed', title: '📁 Lead Closed', description: 'Lead closed - Follow-up unsuccessful', is_alt_path: true }
+            ]
 
-            current_stage_index = stage_mapping[@lead.current_stage] || 0
+            # All possible stages in proper order
+            all_timeline_stages = timeline_stages + alt_timeline_stages
 
-            # Define helper functions for stage logic
-            stage_order = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_successful', 'converted']
-            alt_order = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_unsuccessful', 're_follow_up']
+            # Determine which flow path we're on
+            successful_path = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_successful', 'converted']
+            unsuccessful_path = ['follow_up_unsuccessful', 're_follow_up', 'not_interested', 'lead_closed']
+
+            is_on_unsuccessful_path = unsuccessful_path.include?(@lead.current_stage)
+
+            # Always show all stages, but style them differently based on current path
+            display_stages = all_timeline_stages
 
             # Helper function to check if stage came before current stage
             stage_came_before_proc = lambda do |stage_key, current_stage|
-              if alt_order.include?(current_stage)
-                current_index = alt_order.index(current_stage)
-                stage_index = alt_order.index(stage_key)
-              else
-                current_index = stage_order.index(current_stage)
-                stage_index = stage_order.index(stage_key)
+              if successful_path.include?(current_stage)
+                current_index = successful_path.index(current_stage)
+                stage_index = successful_path.index(stage_key)
+                return stage_index && current_index && stage_index < current_index
+              elsif unsuccessful_path.include?(current_stage)
+                # For unsuccessful path, only show stages up to follow_up as completed
+                if stage_key == 'follow_up'
+                  return true
+                elsif successful_path.include?(stage_key)
+                  follow_up_index = successful_path.index('follow_up')
+                  stage_index = successful_path.index(stage_key)
+                  return stage_index && follow_up_index && stage_index <= follow_up_index
+                else
+                  current_index = unsuccessful_path.index(current_stage)
+                  stage_index = unsuccessful_path.index(stage_key)
+                  return stage_index && current_index && stage_index < current_index
+                end
               end
-              stage_index && current_index && stage_index < current_index
+              false
             end
 
             # Helper function to determine completion date
@@ -114,18 +251,10 @@
             end
           %>
 
-          <% timeline_stages.each_with_index do |stage, index| %>
+          <% display_stages.each_with_index do |stage, index| %>
             <%
-              # Skip re-follow-up unless it's in the current path
-              next if stage[:is_alt_path] && !['re_follow_up'].include?(@lead.current_stage)
-
               # Determine status and date for each stage
-              if stage[:is_branching]
-                # Handle branching stage (follow-up decision)
-                status = if @lead.in_follow_up_cycle? then 'active' else 'pending' end
-                date_text = if @lead.in_follow_up_cycle? then 'Decision Point' else 'Pending' end
-                status_class = if @lead.in_follow_up_cycle? then 'text-warning' else 'text-muted' end
-              elsif stage[:key] == @lead.current_stage
+              if stage[:key] == @lead.current_stage
                 # Current active stage
                 status = 'active'
                 if @lead.stage_updated_at.present?
@@ -141,59 +270,84 @@
                 date_text = "Completed on #{date.strftime('%b %d, %Y')}"
                 status_class = 'text-success'
               else
-                # Future/pending stages
+                # Future/pending stages or alternative path stages
                 status = 'pending'
-                date_text = 'Pending'
-                status_class = 'text-muted'
-              end
 
-              # Special handling for unsuccessful follow-up path
-              if stage[:key] == 're_follow_up' && ['follow_up_unsuccessful', 're_follow_up'].include?(@lead.current_stage)
-                status = @lead.current_stage == 're_follow_up' ? 'active' : 'pending'
-                status_class = @lead.current_stage == 're_follow_up' ? 'text-warning' : 'text-danger'
-                date_text = @lead.current_stage == 're_follow_up' ? 'In Progress' : 'Alternative Path'
+                # Handle different types of pending stages
+                if stage[:is_alt_path]
+                  if is_on_unsuccessful_path
+                    # Show as possible next steps in alternative path
+                    date_text = stage[:key] == 'follow_up_unsuccessful' ? 'Alternative Path Starting Point' : 'Alternative Path'
+                    status_class = 'text-danger'
+                  else
+                    # Show as alternative options
+                    date_text = 'Alternative Path (if follow-up unsuccessful)'
+                    status_class = 'text-muted'
+                  end
+                else
+                  # Regular pending stages in main flow
+                  if is_on_unsuccessful_path && successful_path.include?(stage[:key]) && successful_path.index(stage[:key]) > successful_path.index('follow_up')
+                    # These main flow stages are no longer accessible in alternative path
+                    date_text = 'No longer accessible (alternative path taken)'
+                    status_class = 'text-muted'
+                  else
+                    date_text = 'Pending'
+                    status_class = 'text-muted'
+                  end
+                end
               end
             %>
 
-            <% if stage[:is_branching] %>
-              <!-- Branching Decision Point -->
-              <div class="timeline-item <%= status %>">
-                <div class="timeline-marker"></div>
-                <div class="timeline-content">
-                  <h6><%= stage[:title] %></h6>
-                  <p class="text-muted mb-1"><%= stage[:description] %></p>
-                  <small class="<%= status_class %>"><%= date_text %></small>
+            <!-- Timeline Stage -->
+            <div class="timeline-item <%= status %> <%= 'alternative-path' if stage[:is_alt_path] %> <%= 'inaccessible' if is_on_unsuccessful_path && successful_path.include?(stage[:key]) && successful_path.index(stage[:key]) > successful_path.index('follow_up') %> <%= 'branching-point' if stage[:key] == 'follow_up' && is_on_unsuccessful_path %>">
+              <div class="timeline-marker"></div>
+              <div class="timeline-content">
+                <h6><%= stage[:title] %></h6>
+                <p class="text-muted mb-1"><%= stage[:description] %></p>
+                <small class="<%= status_class %>"><%= date_text %></small>
 
-                  <!-- Show branch outcomes -->
-                  <div class="mt-2 ms-3">
-                    <% stage[:branches].each do |branch| %>
-                      <%
-                        branch_status = if branch[:key] == @lead.current_stage then 'text-warning'
-                                       elsif branch[:key] == 'follow_up_successful' && @lead.converted? then 'text-success'
-                                       elsif branch[:key] == 'follow_up_unsuccessful' && ['re_follow_up', 'follow_up_unsuccessful'].include?(@lead.current_stage) then 'text-danger'
-                                       else 'text-muted' end
-                        branch_icon = branch[:key] == 'follow_up_successful' ? '→ 👤' : '→ 🔄'
-                      %>
-                      <div class="d-flex align-items-center mb-1">
-                        <small class="<%= branch_status %>">
-                          <%= branch[:title] %> <%= branch_icon %>
-                        </small>
-                      </div>
-                    <% end %>
+                <!-- Show current path indicator -->
+                <% if stage[:key] == @lead.current_stage %>
+                  <div class="mt-1">
+                    <span class="badge bg-warning text-dark">
+                      <i class="bi bi-geo-alt-fill me-1"></i>Current Stage
+                    </span>
                   </div>
-                </div>
+                <% end %>
+
+                <!-- Show branching indicator for follow-up stage -->
+                <% if stage[:key] == 'follow_up' && (status == 'completed' || status == 'active') %>
+                  <div class="mt-2">
+                    <small class="text-info">
+                      <i class="bi bi-diagram-2 me-1"></i>
+                      <% if is_on_unsuccessful_path %>
+                        Branched to: ❌ Alternative Path
+                      <% elsif @lead.follow_up_successful? || @lead.converted? %>
+                        Branched to: ✅ Success Path
+                      <% else %>
+                        Decision Point: Success ✅ or Alternative ❌ Path
+                      <% end %>
+                    </small>
+                  </div>
+                <% end %>
+
+                <!-- Show flow direction indicators -->
+                <% if stage[:is_alt_path] %>
+                  <div class="mt-1">
+                    <small class="<%= is_on_unsuccessful_path ? 'text-danger' : 'text-muted' %>">
+                      <i class="bi bi-arrow-right me-1"></i>
+                      <%= is_on_unsuccessful_path ? 'Active Alternative Flow' : 'Alternative Option' %>
+                    </small>
+                  </div>
+                <% elsif is_on_unsuccessful_path && successful_path.include?(stage[:key]) && successful_path.index(stage[:key]) > successful_path.index('follow_up') %>
+                  <div class="mt-1">
+                    <small class="text-muted">
+                      <i class="bi bi-x-circle me-1"></i>No longer accessible
+                    </small>
+                  </div>
+                <% end %>
               </div>
-            <% else %>
-              <!-- Regular Stage -->
-              <div class="timeline-item <%= status %> <%= 'alternative-path' if stage[:is_alt_path] %>">
-                <div class="timeline-marker"></div>
-                <div class="timeline-content">
-                  <h6><%= stage[:title] %></h6>
-                  <p class="text-muted mb-1"><%= stage[:description] %></p>
-                  <small class="<%= status_class %>"><%= date_text %></small>
-                </div>
-              </div>
-            <% end %>
+            </div>
           <% end %>
 
         </div>
@@ -566,6 +720,44 @@
               <% end %>
             </div>
           </div>
+
+          <!-- Branch Out Information -->
+          <% if @lead.respond_to?(:is_branch_out) && @lead.is_branch_out? %>
+          <div class="col-md-12 mb-3">
+            <label class="form-label text-muted">Branch Out Information</label>
+            <div>
+              <span class="badge bg-warning text-dark">
+                <i class="bi bi-diagram-2 me-1"></i>Branch Out Lead
+              </span>
+              <% if @lead.respond_to?(:parent_lead) && @lead.parent_lead.present? %>
+                <div class="mt-1">
+                  <small class="text-info">
+                    <i class="bi bi-arrow-up me-1"></i>
+                    Parent Lead:
+                    <%= link_to @lead.parent_lead.lead_id, admin_lead_path(@lead.parent_lead), class: "text-decoration-none" %>
+                    (<%= @lead.parent_lead.product_category&.humanize %> - <%= @lead.parent_lead.product_subcategory&.humanize %>)
+                  </small>
+                </div>
+              <% end %>
+            </div>
+          </div>
+          <% end %>
+
+          <!-- Branch Out Children -->
+          <% if @lead.respond_to?(:branch_out_leads) && @lead.branch_out_leads.any? %>
+          <div class="col-md-12 mb-3">
+            <label class="form-label text-muted">Branch Out Children</label>
+            <div>
+              <% @lead.branch_out_leads.each do |child_lead| %>
+                <span class="badge bg-secondary me-1 mb-1">
+                  <i class="bi bi-diagram-3 me-1"></i>
+                  <%= link_to child_lead.lead_id, admin_lead_path(child_lead), class: "text-white text-decoration-none" %>
+                  (<%= child_lead.product_category&.humanize %> - <%= child_lead.product_subcategory&.humanize %>)
+                </span>
+              <% end %>
+            </div>
+          </div>
+          <% end %>
           <div class="col-md-6 mb-3">
             <label class="form-label text-muted">Created Date</label>
             <div>
@@ -829,17 +1021,55 @@
 }
 
 .timeline-item.alternative-path {
-  margin-left: 20px;
-  opacity: 0.8;
+  margin-left: 30px;
+  opacity: 0.9;
+  border-left: 3px solid #dc3545;
+  padding-left: 15px;
+  background: #fff5f5;
+  border-radius: 8px;
+  margin-bottom: 1rem;
 }
 
 .timeline-item.alternative-path .timeline-marker {
-  background: #fbbf24;
-  border: 3px solid #f59e0b;
+  background: #dc3545;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px #dc3545;
 }
 
 .timeline-item.alternative-path::before {
-  border-left: 2px dashed #f59e0b;
+  background: linear-gradient(to bottom, #dc3545 0%, #dc3545 50%, transparent 50%, transparent 100%);
+  background-size: 2px 8px;
+  left: -22px;
+}
+
+/* Add branching indicator for follow-up stage when on unsuccessful path */
+.timeline-item.branching-point::after {
+  content: '';
+  position: absolute;
+  right: -30px;
+  top: 10px;
+  width: 0;
+  height: 0;
+  border-left: 15px solid #f59e0b;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+}
+
+/* Styling for inaccessible stages */
+.timeline-item.inaccessible {
+  opacity: 0.5;
+}
+
+.timeline-item.inaccessible .timeline-marker {
+  background: #6c757d;
+  border: 3px solid #e9ecef;
+}
+
+.timeline-item.inaccessible .timeline-content {
+  background: #f8f9fa;
+  border-left: 3px solid #6c757d;
+  padding-left: 15px;
+  border-radius: 8px;
 }
 
 .timeline-branching {
@@ -858,6 +1088,34 @@
 
 
 
+
+/* Lead Stages Guide Styling */
+.stage-guide-item {
+  padding: 10px;
+  border-radius: 8px;
+  background: #f8f9fa;
+  border-left: 4px solid #28a745;
+  transition: all 0.3s ease;
+}
+
+.stage-guide-item:hover {
+  background: #e9ecef;
+  transform: translateX(5px);
+}
+
+.stage-guide-item.alternative-stage {
+  border-left-color: #dc3545;
+  background: #fff5f5;
+}
+
+.stage-guide-item.alternative-stage:hover {
+  background: #ffe6e6;
+}
+
+.stage-icon {
+  font-size: 1.2rem;
+  min-width: 30px;
+}
 
 .text-sm {
   font-size: 0.875rem;

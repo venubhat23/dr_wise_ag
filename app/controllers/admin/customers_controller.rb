@@ -635,8 +635,9 @@ class Admin::CustomersController < Admin::ApplicationController
         @customer.gender = @lead.gender
 
         # Map height and weight with correct field names
-        @customer.height_feet = @lead.height_feet.presence || @lead.height
-        @customer.weight_kg = @lead.weight_kg.presence || @lead.weight
+        # Lead only has 'height' and 'weight' fields, map them to Customer's specific fields
+        @customer.height_feet = @lead.height
+        @customer.weight_kg = @lead.weight
 
         @customer.education = @lead.education
         @customer.marital_status = @lead.marital_status

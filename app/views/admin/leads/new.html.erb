@@ -2,7 +2,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h2 class="mb-1">
-      <% if session[:branch_out_mode] %>
+      <% if session[:branch_out_mode] && session[:source_lead_id] %>
         <i class="bi bi-diagram-2 text-success me-2"></i>Branch Out - Add New Lead
       <% else %>
         Add New Lead
@@ -27,7 +27,7 @@
   </div>
 </div>
 
-<% if session[:branch_out_mode] %>
+<% if session[:branch_out_mode] && session[:source_lead_id] %>
   <!-- Branch Out Info Alert -->
   <div class="alert alert-info d-flex align-items-center mb-4">
     <i class="bi bi-diagram-2 me-3 fs-4"></i>
@@ -39,6 +39,13 @@
 <% end %>
 
 <%= form_with model: [:admin, @lead || Lead.new], local: true, class: "needs-validation", novalidate: true do |form| %>
+  <!-- Hidden fields for branch out -->
+  <% if session[:branch_out_mode] && @lead&.respond_to?(:is_branch_out) %>
+    <%= form.hidden_field :is_branch_out, value: true %>
+    <% if session[:source_lead_id] && @lead&.respond_to?(:parent_lead_id) %>
+      <%= form.hidden_field :parent_lead_id, value: session[:source_lead_id] %>
+    <% end %>
+  <% end %>
 
   <!-- 1. Customer Type Selection - Compact Design -->
   <div class="card border-0 shadow-sm mb-4">
@@ -758,6 +765,46 @@
 
 <!-- Form Validation Script -->
 <script>
+// Global function to handle branch out from existing lead
+function branchOutFromLead(sourceLeadId) {
+  if (!sourceLeadId) {
+    alert('Invalid lead ID');
+    return;
+  }
+
+  // Show confirmation dialog
+  if (!confirm('This will copy all customer information from the existing lead and create a new lead for a different policy. Continue?')) {
+    return;
+  }
+
+  // Create a form and submit it to trigger branch out
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/admin/leads/branch_out';
+  form.style.display = 'none';
+
+  // Add CSRF token
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  if (csrfToken) {
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'authenticity_token';
+    csrfInput.value = csrfToken;
+    form.appendChild(csrfInput);
+  }
+
+  // Add source lead ID
+  const leadIdInput = document.createElement('input');
+  leadIdInput.type = 'hidden';
+  leadIdInput.name = 'source_lead_id';
+  leadIdInput.value = sourceLeadId;
+  form.appendChild(leadIdInput);
+
+  // Submit form
+  document.body.appendChild(form);
+  form.submit();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   const form = document.querySelector('form');
   const nameField = form.querySelector('[name="lead[name]"]');
@@ -1041,45 +1088,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Function to handle branch out from existing lead
-  function branchOutFromLead(sourceLeadId) {
-    if (!sourceLeadId) {
-      alert('Invalid lead ID');
-      return;
-    }
-
-    // Show confirmation dialog
-    if (!confirm('This will copy all customer information from the existing lead and create a new lead for a different policy. Continue?')) {
-      return;
-    }
-
-    // Create a form and submit it to trigger branch out
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/admin/leads/branch_out';
-    form.style.display = 'none';
-
-    // Add CSRF token
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    if (csrfToken) {
-      const csrfInput = document.createElement('input');
-      csrfInput.type = 'hidden';
-      csrfInput.name = 'authenticity_token';
-      csrfInput.value = csrfToken;
-      form.appendChild(csrfInput);
-    }
-
-    // Add source lead ID
-    const leadIdInput = document.createElement('input');
-    leadIdInput.type = 'hidden';
-    leadIdInput.name = 'source_lead_id';
-    leadIdInput.value = sourceLeadId;
-    form.appendChild(leadIdInput);
-
-    // Submit form
-    document.body.appendChild(form);
-    form.submit();
-  }
 
   // Native HTML5 date picker is now used - no additional formatting needed
 
@@ -1168,6 +1176,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle affiliate selection visibility on page load
     if (!directCheckbox.checked) {
       affiliateSelection.style.display = 'block';
+      referredByField.style.display = 'block';
       affiliateDropdown.setAttribute('required', 'required');
       handleAffiliateDropdownVisibility();
     }
@@ -1225,28 +1234,89 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeFormState();
 
   // Initialize all searchable dropdowns including Product Category
-  setTimeout(() => {
-    initializeSearchableDropdowns();
-
-    // Explicitly initialize Product Category with Select2 if not already initialized
+  function initializeProductCategoryDropdown() {
     if (typeof $ !== 'undefined' && $.fn.select2) {
       const $productCategory = $('#product_category');
-      if (!$productCategory.hasClass('select2-hidden-accessible')) {
-        $productCategory.select2({
-          theme: 'bootstrap-5',
-          placeholder: 'Search and select category...',
-          allowClear: true,
-          width: '100%',
-          minimumResultsForSearch: 0,
-          dropdownParent: $('body')
-        });
+      const $productSubcategory = $('#product_subcategory');
+
+      // Destroy existing Select2 instances first
+      if ($productCategory.hasClass('select2-hidden-accessible')) {
+        $productCategory.select2('destroy');
       }
+      if ($productSubcategory.hasClass('select2-hidden-accessible')) {
+        $productSubcategory.select2('destroy');
+      }
+
+      // Initialize Product Category dropdown
+      $productCategory.select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select category...',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0,
+        dropdownParent: $('body')
+      });
+
+      // Initialize Product Subcategory dropdown
+      $productSubcategory.select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select product type...',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0,
+        dropdownParent: $('body')
+      });
+
+      console.log('Product dropdowns initialized successfully');
     }
+  }
+
+  setTimeout(() => {
+    initializeSearchableDropdowns();
+    initializeProductCategoryDropdown();
   }, 100);
 
-  // Set Individual as default if no customer type is selected
+  // Get pill toggle elements early for use in initialization
+  const pillOptions = document.querySelectorAll('.pill-option');
+  const pillSlider = document.querySelector('.pill-slider');
+  const individualBadge = document.querySelector('.individual-badge');
+  const corporateBadge = document.querySelector('.corporate-badge');
+
+  // Initialize customer type based on prefilled data or set default
   const selectedRadio = document.querySelector('input[name="lead[customer_type]"]:checked');
-  if (!selectedRadio) {
+  if (selectedRadio) {
+    // Update visual elements for prefilled data
+    const selectedType = selectedRadio.value;
+    console.log('Initializing with prefilled customer type:', selectedType);
+
+    // Update pill toggle visuals
+    pillOptions.forEach(opt => opt.classList.remove('active'));
+    const correspondingPill = document.querySelector(`.pill-option[data-type="${selectedType}"]`);
+    if (correspondingPill) {
+      correspondingPill.classList.add('active');
+    }
+
+    // Update slider position
+    if (pillSlider) {
+      if (selectedType === 'corporate') {
+        pillSlider.classList.add('corporate');
+      } else {
+        pillSlider.classList.remove('corporate');
+      }
+    }
+
+    // Update badges
+    if (individualBadge && corporateBadge) {
+      if (selectedType === 'individual') {
+        individualBadge.classList.add('show');
+        corporateBadge.classList.remove('show');
+      } else {
+        corporateBadge.classList.add('show');
+        individualBadge.classList.remove('show');
+      }
+    }
+  } else {
+    // Set Individual as default if no customer type is selected
     const individualRadio = document.getElementById('customer_type_individual');
     if (individualRadio) {
       individualRadio.checked = true;
@@ -1262,11 +1332,6 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('subcategoryOptions:', subcategoryOptions);
 
   // Handle customer type pill toggle click
-  const pillOptions = document.querySelectorAll('.pill-option');
-  const pillSlider = document.querySelector('.pill-slider');
-  const individualBadge = document.querySelector('.individual-badge');
-  const corporateBadge = document.querySelector('.corporate-badge');
-
   pillOptions.forEach(option => {
     option.addEventListener('click', function(e) {
       e.preventDefault();
@@ -1452,48 +1517,60 @@ document.addEventListener('DOMContentLoaded', function() {
   // Handle product category change
   function handleProductCategoryChange(selectedCategory) {
     console.log('Product category changed to:', selectedCategory);
-    const subcategorySelect = productSubcategoryField;
-    const $subcategorySelect = $(subcategorySelect);
 
-    // Destroy Select2 if it exists
-    if ($subcategorySelect.hasClass('select2-hidden-accessible')) {
-      $subcategorySelect.select2('destroy');
-    }
+    try {
+      const subcategorySelect = productSubcategoryField;
+      if (!subcategorySelect) {
+        console.error('Product subcategory field not found');
+        return;
+      }
 
-    // Clear existing options
-    subcategorySelect.innerHTML = '<option value="">Select Product Type</option>';
+      const $subcategorySelect = $(subcategorySelect);
 
-    if (selectedCategory && subcategoryOptions[selectedCategory]) {
-      console.log('Found subcategory options for:', selectedCategory, subcategoryOptions[selectedCategory]);
+      // Destroy Select2 if it exists
+      if ($subcategorySelect.hasClass('select2-hidden-accessible')) {
+        $subcategorySelect.select2('destroy');
+      }
 
-      // Enable the subcategory dropdown
-      subcategorySelect.disabled = false;
+      // Clear existing options
+      subcategorySelect.innerHTML = '<option value="">Select Product Type</option>';
 
-      // Add new options
-      subcategoryOptions[selectedCategory].forEach(function(option) {
-        const optionElement = document.createElement('option');
-        optionElement.value = option[1];
-        optionElement.textContent = option[0];
-        subcategorySelect.appendChild(optionElement);
-      });
+      if (selectedCategory && subcategoryOptions[selectedCategory]) {
+        console.log('Found subcategory options for:', selectedCategory, subcategoryOptions[selectedCategory]);
 
-      console.log('Added', subcategoryOptions[selectedCategory].length, 'subcategory options');
+        // Enable the subcategory dropdown
+        subcategorySelect.disabled = false;
 
-      // Reinitialize Select2 for the subcategory dropdown
-      setTimeout(() => {
-        $subcategorySelect.select2({
-          theme: 'bootstrap-5',
-          placeholder: 'Search and select product type...',
-          allowClear: true,
-          width: '100%',
-          minimumResultsForSearch: 0,
-          dropdownParent: $('body')
+        // Add new options
+        subcategoryOptions[selectedCategory].forEach(function(option) {
+          const optionElement = document.createElement('option');
+          optionElement.value = option[1];
+          optionElement.textContent = option[0];
+          subcategorySelect.appendChild(optionElement);
         });
-      }, 50);
-    } else {
-      console.log('No subcategory options found for:', selectedCategory);
-      // Disable the subcategory dropdown
-      subcategorySelect.disabled = true;
+
+        console.log('Added', subcategoryOptions[selectedCategory].length, 'subcategory options');
+
+        // Reinitialize Select2 for the subcategory dropdown
+        setTimeout(() => {
+          if (typeof $ !== 'undefined' && $.fn.select2) {
+            $subcategorySelect.select2({
+              theme: 'bootstrap-5',
+              placeholder: 'Search and select product type...',
+              allowClear: true,
+              width: '100%',
+              minimumResultsForSearch: 0,
+              dropdownParent: $('body')
+            });
+          }
+        }, 50);
+      } else {
+        console.log('No subcategory options found for:', selectedCategory);
+        // Disable the subcategory dropdown
+        subcategorySelect.disabled = true;
+      }
+    } catch (error) {
+      console.error('Error in handleProductCategoryChange:', error);
     }
   }
 
@@ -1503,30 +1580,41 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Also handle Select2 change event
-  $('#product_category').on('select2:select', function (e) {
+  $(document).on('select2:select', '#product_category', function (e) {
     const selectedValue = e.params.data.id;
+    console.log('Product Category selected via Select2:', selectedValue);
     handleProductCategoryChange(selectedValue);
+  });
+
+  // Handle Select2 clear event
+  $(document).on('select2:clear', '#product_category', function (e) {
+    console.log('Product Category cleared via Select2');
+    handleProductCategoryChange('');
   });
 
   // Force initialization of product subcategory dropdown
   function forceInitializeProductDropdown() {
     console.log('Force initializing product subcategory...');
 
-    // Check if Insurance is selected and populate accordingly
-    if (productCategoryField && productSubcategoryField) {
-      const currentCategory = productCategoryField.value;
-      console.log('Current category:', currentCategory);
+    try {
+      // Check if Insurance is selected and populate accordingly
+      if (productCategoryField && productSubcategoryField) {
+        const currentCategory = productCategoryField.value;
+        console.log('Current category:', currentCategory);
 
-      if (currentCategory) {
-        handleProductCategoryChange(currentCategory);
-      } else {
-        // If nothing is selected, try to detect if Insurance is pre-selected
-        const insuranceOption = productCategoryField.querySelector('option[value="insurance"][selected]');
-        if (insuranceOption || productCategoryField.value === 'insurance') {
-          console.log('Insurance appears to be selected, forcing subcategory load...');
-          handleProductCategoryChange('insurance');
+        if (currentCategory) {
+          handleProductCategoryChange(currentCategory);
+        } else {
+          // If nothing is selected, try to detect if Insurance is pre-selected
+          const insuranceOption = productCategoryField.querySelector('option[value="insurance"][selected]');
+          if (insuranceOption || productCategoryField.value === 'insurance') {
+            console.log('Insurance appears to be selected, forcing subcategory load...');
+            handleProductCategoryChange('insurance');
+          }
         }
       }
+    } catch (error) {
+      console.error('Error in forceInitializeProductDropdown:', error);
     }
   }
 

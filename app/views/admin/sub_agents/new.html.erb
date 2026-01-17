@@ -92,7 +92,7 @@
           <% end %>
           <%= form.select :role_id,
               options_for_select([
-                ['Affiliate', 1]
+                ['Affiliate', Role.find_by(name: 'sub_agent')&.id]
               ], @sub_agent.role_id),
               { prompt: 'Select Role' },
               { class: "form-select", required: true } %>
@@ -466,6 +466,123 @@ document.addEventListener('DOMContentLoaded', function() {
     documentIndex++;
   });
 
+
+  // Function to setup preview functionality for sub agent documents
+  function setupSubAgentDocumentPreview(index) {
+    const fileInput = document.getElementById(`sub_agent_doc_file_${index}`);
+    const previewContainer = document.getElementById(`sub_agent_doc_preview_${index}`);
+
+    if (!fileInput || !previewContainer) return;
+
+    fileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+
+      if (!file) {
+        previewContainer.style.display = 'none';
+        return;
+      }
+
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        showSubAgentDocError(fileInput, 'File size exceeds 10MB limit');
+        fileInput.value = '';
+        previewContainer.style.display = 'none';
+        return;
+      }
+
+      showSubAgentDocumentPreview(file, previewContainer);
+    });
+
+    // Remove file button
+    previewContainer.querySelector('.remove-file')?.addEventListener('click', function() {
+      fileInput.value = '';
+      previewContainer.style.display = 'none';
+    });
+  }
+
+  function showSubAgentDocumentPreview(file, previewContainer) {
+    const imagePreview = previewContainer.querySelector('.image-preview');
+    const documentPreview = previewContainer.querySelector('.document-preview');
+    const fileNameElement = previewContainer.querySelector('.file-name-detail');
+    const fileSizeElement = previewContainer.querySelector('.file-size-detail');
+
+    // Hide both previews initially
+    imagePreview.style.display = 'none';
+    documentPreview.style.display = 'none';
+
+    // Show preview container
+    previewContainer.style.display = 'block';
+
+    // Update file details
+    if (fileNameElement) fileNameElement.textContent = file.name;
+    if (fileSizeElement) fileSizeElement.textContent = formatSubAgentFileSize(file.size);
+
+    // Check if file is an image
+    if (file.type && file.type.startsWith('image/')) {
+      showSubAgentImagePreview(file, imagePreview);
+    } else {
+      showSubAgentDocPreview(file, documentPreview);
+    }
+
+    // Add smooth animation
+    previewContainer.style.opacity = '0';
+    setTimeout(() => {
+      previewContainer.style.transition = 'opacity 0.3s ease';
+      previewContainer.style.opacity = '1';
+    }, 10);
+  }
+
+  function showSubAgentImagePreview(file, container) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = container.querySelector('.preview-image');
+      img.src = e.target.result;
+      container.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function showSubAgentDocPreview(file, container) {
+    const fileIcon = container.querySelector('.file-icon');
+    const fileName = container.querySelector('.file-name');
+    const fileType = container.querySelector('.file-type');
+
+    fileName.textContent = file.name;
+    fileType.textContent = file.type || 'Unknown type';
+
+    // Set appropriate icon
+    fileIcon.className = 'file-icon bi fs-3 me-2 ' + getSubAgentFileIcon(file.type || file.name);
+
+    container.style.display = 'block';
+  }
+
+  function formatSubAgentFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  function getSubAgentFileIcon(fileType) {
+    if (fileType.includes('pdf')) return 'bi-file-earmark-pdf text-danger';
+    if (fileType.includes('word') || fileType.includes('document')) return 'bi-file-earmark-word text-primary';
+    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'bi-file-earmark-excel text-success';
+    if (fileType.includes('image')) return 'bi-file-earmark-image text-info';
+    return 'bi-file-earmark text-muted';
+  }
+
+  function showSubAgentDocError(inputElement, message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger alert-dismissible fade show mt-2';
+    errorDiv.innerHTML = `
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    inputElement.parentNode.insertBefore(errorDiv, inputElement.nextSibling);
+    setTimeout(() => errorDiv.remove(), 5000);
+  }
 
   // Event delegation for remove buttons
   document.addEventListener('click', function(e) {

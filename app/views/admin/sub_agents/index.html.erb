@@ -169,21 +169,21 @@
                 <td>
                   <% if sub_agent.assigned_distributor.present? %>
                     <div class="d-flex align-items-center">
-                      <div class="avatar-xs bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2">
-                        <i class="bi bi-building text-success"></i>
+                      <div class="avatar-xs bg-primary bg-opacity-15 rounded-circle d-flex align-items-center justify-content-center me-2">
+                        <i class="bi bi-building text-primary"></i>
                       </div>
                       <div>
-                        <small class="fw-medium text-success">
+                        <div class="assigned-ambassador-name">
                           <%= sub_agent.assigned_distributor.display_name %>
-                        </small>
-                        <br>
-                        <small class="text-muted">
+                        </div>
+                        <div class="assigned-ambassador-time">
+                          <i class="bi bi-clock me-1"></i>
                           Assigned <%= time_ago_in_words(sub_agent.distributor_assignment.assigned_at) %> ago
-                        </small>
+                        </div>
                       </div>
                     </div>
                   <% else %>
-                    <span class="badge bg-warning bg-opacity-10 text-warning">
+                    <span class="badge bg-danger bg-opacity-15 text-danger border">
                       <i class="bi bi-exclamation-triangle me-1"></i>
                       Unassigned
                     </span>
@@ -287,6 +287,23 @@
 .avatar-sm {
   width: 38px;
   height: 38px;
+}
+
+.avatar-xs {
+  width: 24px;
+  height: 24px;
+}
+
+/* Ensure assigned ambassador text is clearly visible */
+.assigned-ambassador-name {
+  color: #2c3e50 !important;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.assigned-ambassador-time {
+  color: #6c757d !important;
+  font-size: 0.75rem;
 }
 
 /* Fix dropdown overflow in table */

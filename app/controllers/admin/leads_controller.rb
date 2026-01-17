@@ -82,6 +82,10 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # GET /admin/leads/new
   def new
+    # Clear any existing branch out session data when accessing regular new lead form
+    session.delete(:branch_out_mode)
+    session.delete(:source_lead_id)
+
     @lead = Lead.new
     @lead.created_date = Date.current
     @lead.current_stage = 'lead_generated'
@@ -95,6 +99,12 @@ class Admin::LeadsController < Admin::ApplicationController
   def create
     @lead = Lead.new(lead_params)
     @lead.created_date = Date.current if @lead.created_date.blank?
+
+    # Set is_branch_out flag and parent_lead_id if in branch out mode
+    if session[:branch_out_mode] && session[:source_lead_id]
+      @lead.is_branch_out = true if @lead.respond_to?(:is_branch_out=)
+      @lead.parent_lead_id = session[:source_lead_id] if @lead.respond_to?(:parent_lead_id=)
+    end
 
     if @lead.save
       # Handle branch out mode
@@ -201,14 +211,27 @@ class Admin::LeadsController < Admin::ApplicationController
       return
     end
 
-    # Check if customer already exists with same mobile or email
+    # For branch out leads, first check if parent lead already has a converted customer
     existing_customer = nil
-    if @lead.contact_number.present?
-      existing_customer = Customer.find_by(mobile: @lead.contact_number)
+    if @lead.is_branch_out? && @lead.parent_lead_id.present?
+      parent_lead = Lead.find_by(id: @lead.parent_lead_id)
+      if parent_lead&.converted_customer_id.present?
+        existing_customer = Customer.find_by(id: parent_lead.converted_customer_id)
+        if existing_customer
+          Rails.logger.info "Branch out lead #{@lead.id}: Found existing customer #{existing_customer.id} from parent lead #{parent_lead.id}"
+        end
+      end
     end
 
-    if !existing_customer && @lead.email.present?
-      existing_customer = Customer.find_by(email: @lead.email)
+    # If no existing customer from parent lead, check by mobile/email as before
+    if !existing_customer
+      if @lead.contact_number.present?
+        existing_customer = Customer.find_by(mobile: @lead.contact_number)
+      end
+
+      if !existing_customer && @lead.email.present?
+        existing_customer = Customer.find_by(email: @lead.email)
+      end
     end
 
     if existing_customer
@@ -269,8 +292,15 @@ class Admin::LeadsController < Admin::ApplicationController
         converted_customer_id: existing_customer.id
       )
 
-      redirect_to edit_admin_customer_path(existing_customer),
-                  notice: "Found existing customer and updated with latest lead information. Please review and save the changes."
+      # Custom message for branch out leads
+      if @lead.is_branch_out? && @lead.parent_lead_id.present?
+        notice_message = "Branch out lead converted! Found existing customer from parent lead. Customer record already exists and has been linked."
+      else
+        notice_message = "Found existing customer and updated with latest lead information. Please review and save the changes."
+      end
+
+      redirect_to admin_customer_path(existing_customer),
+                  notice: notice_message
       return
     end
 
@@ -761,7 +791,7 @@ class Admin::LeadsController < Admin::ApplicationController
     # Create new lead by copying data from source lead but with different policy category/subcategory
     @lead = Lead.new(source_lead.attributes.except('id', 'lead_id', 'created_at', 'updated_at',
                                                    'stage_updated_at', 'converted_customer_id',
-                                                   'policy_created_id'))
+                                                   'policy_created_id', 'is_branch_out', 'parent_lead_id'))
 
     # Set default stage and date for the new lead
     @lead.current_stage = 'lead_generated'
@@ -771,6 +801,10 @@ class Admin::LeadsController < Admin::ApplicationController
     @lead.product_category = nil
     @lead.product_subcategory = nil
     @lead.notes = "Branched out from lead ID: #{source_lead.lead_id}\n\n" + (@lead.notes || '')
+
+    # Set branch out flag and parent lead reference
+    @lead.is_branch_out = true if @lead.respond_to?(:is_branch_out=)
+    @lead.parent_lead_id = source_lead.id if @lead.respond_to?(:parent_lead_id=)
 
     # Store source lead ID for reference
     session[:source_lead_id] = source_lead.id
@@ -798,7 +832,7 @@ class Admin::LeadsController < Admin::ApplicationController
       :name, :contact_number, :email, :address, :city, :state,
       :referred_by, :product_category, :product_subcategory, :customer_type, :current_stage, :lead_source,
       :call_disposition, :referral_amount, :notes, :created_date,
-      :note, :is_direct, :affiliate_id,
+      :note, :is_direct, :affiliate_id, :is_branch_out, :parent_lead_id,
       :first_name, :middle_name, :last_name, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :marital_status, :height, :weight, :birth_place,
       :education, :business_job, :business_name, :job_name, :occupation,

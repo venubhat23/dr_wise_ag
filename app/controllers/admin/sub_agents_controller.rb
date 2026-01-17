@@ -162,6 +162,9 @@ class Admin::SubAgentsController < Admin::ApplicationController
 
     @sub_agent = SubAgent.new(sub_agent_params)
 
+    # Force role to be sub_agent regardless of form input
+    @sub_agent.role_id = Role.find_by(name: 'sub_agent')&.id
+
     # Auto-generate password if not provided
     if @sub_agent.password.blank?
       generated_password = generate_affiliate_password
@@ -185,6 +188,9 @@ class Admin::SubAgentsController < Admin::ApplicationController
   def update
     Rails.logger.info "=== SUB AGENT UPDATE PARAMS ==="
     Rails.logger.info "Documents attributes: #{params[:sub_agent][:sub_agent_documents_attributes].inspect}"
+
+    # Force role to be sub_agent regardless of form input
+    params[:sub_agent][:role_id] = Role.find_by(name: 'sub_agent')&.id
 
     if @sub_agent.update(sub_agent_params)
       handle_distributor_assignment(@sub_agent, params[:assigned_distributor_id])

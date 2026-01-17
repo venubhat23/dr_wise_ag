@@ -3,18 +3,14 @@ class Lead < ApplicationRecord
 
   validates :name, presence: true
   validates :contact_number, presence: true,
-    uniqueness: {
-      scope: [:product_category, :product_subcategory],
-      message: "Contact number already exists for this product combination"
-    },
     format: { with: /\A[\+]?[0-9\s\-\(\)]+\z/, message: "Invalid phone number format" }
   validates :email,
-    uniqueness: {
-      scope: [:product_category, :product_subcategory],
-      message: "Email already exists for this product combination"
-    },
     format: { with: URI::MailTo::EMAIL_REGEXP },
     allow_blank: true
+
+  # Custom validations for uniqueness that skip branch out leads
+  validate :unique_contact_for_product_combination, unless: :is_branch_out?
+  validate :unique_email_for_product_combination, unless: :is_branch_out?
   validates :current_stage, presence: true, inclusion: { in: ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_successful', 'follow_up_unsuccessful', 'not_interested', 'converted', 're_follow_up', 'lead_closed'] }
   validates :lead_source, presence: true, inclusion: { in: ['online', 'offline', 'agent_referral', 'walk_in', 'tele_calling', 'campaign'] }
   validates :product_category, presence: true, inclusion: { in: ['insurance', 'investments', 'loans', 'taxation'] }
@@ -44,6 +40,8 @@ class Lead < ApplicationRecord
   belongs_to :converted_customer, class_name: 'Customer', optional: true
   belongs_to :created_policy, class_name: 'Policy', optional: true
   belongs_to :affiliate, class_name: 'SubAgent', optional: true
+  belongs_to :parent_lead, class_name: 'Lead', optional: true
+  has_many :branch_out_leads, class_name: 'Lead', foreign_key: 'parent_lead_id', dependent: :nullify
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
 
   before_create :generate_lead_id
@@ -438,6 +436,41 @@ class Lead < ApplicationRecord
 
   def formatted_created_date
     created_date&.strftime('%d/%m/%Y')
+  end
+
+  # Check if this is a branch out lead
+  def is_branch_out?
+    respond_to?(:is_branch_out) && is_branch_out == true
+  end
+
+  # Custom validation for unique contact number and product combination
+  def unique_contact_for_product_combination
+    return if contact_number.blank? || product_category.blank? || product_subcategory.blank?
+
+    existing_lead = Lead.where(
+      contact_number: contact_number,
+      product_category: product_category,
+      product_subcategory: product_subcategory
+    ).where.not(id: id).first
+
+    if existing_lead
+      errors.add(:contact_number, "Contact number already exists for this product combination")
+    end
+  end
+
+  # Custom validation for unique email and product combination
+  def unique_email_for_product_combination
+    return if email.blank? || product_category.blank? || product_subcategory.blank?
+
+    existing_lead = Lead.where(
+      email: email,
+      product_category: product_category,
+      product_subcategory: product_subcategory
+    ).where.not(id: id).first
+
+    if existing_lead
+      errors.add(:email, "Email already exists for this product combination")
+    end
   end
 
   private

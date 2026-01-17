@@ -77,7 +77,7 @@
           <% end %>
           <%= form.select :role_id,
               options_for_select([
-                ['Agent', 1]
+                ['Affiliate', Role.find_by(name: 'sub_agent')&.id]
               ], @sub_agent.role_id),
               { prompt: 'Select Role' },
               { class: "form-select", required: true } %>
