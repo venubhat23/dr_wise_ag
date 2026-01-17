@@ -166,9 +166,9 @@
                 <td>
                   <span class="badge bg-info">Role <%= sub_agent.role_id %></span>
                 </td>
-                <td>
+                <td class="assigned-ambassador-cell">
                   <% if sub_agent.assigned_distributor.present? %>
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex align-items-center assigned-ambassador-container">
                       <div class="avatar-xs bg-primary bg-opacity-15 rounded-circle d-flex align-items-center justify-content-center me-2">
                         <i class="bi bi-building text-primary"></i>
                       </div>
@@ -294,15 +294,27 @@
   height: 24px;
 }
 
-/* Ensure assigned ambassador text is clearly visible */
+/* Ensure assigned ambassador text is clearly visible with light background */
+.assigned-ambassador-cell {
+  background-color: #f8f9fa !important;
+  padding: 12px !important;
+}
+
+.assigned-ambassador-container {
+  background-color: #ffffff !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  border: 1px solid #e9ecef !important;
+}
+
 .assigned-ambassador-name {
-  color: #2c3e50 !important;
+  color: #212529 !important;
   font-weight: 600;
   font-size: 0.875rem;
 }
 
 .assigned-ambassador-time {
-  color: #6c757d !important;
+  color: #495057 !important;
   font-size: 0.75rem;
 }
 

@@ -212,11 +212,11 @@
                       </li>
                       <li><hr class="dropdown-divider"></li>
                       <li>
-                        <%= link_to admin_insurance_company_path(company), method: :delete,
+                        <%= link_to admin_insurance_company_path(company),
                             class: "dropdown-item text-danger",
-                            confirm: "Are you sure you want to delete this insurance company?",
                             data: {
-                              confirm: "Are you sure you want to delete #{company.name}? This action cannot be undone."
+                              turbo_method: :delete,
+                              turbo_confirm: "Are you sure you want to delete #{company.name}? This action cannot be undone."
                             } do %>
                           <i class="bi bi-trash me-2"></i>
                           Delete Company

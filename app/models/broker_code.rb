@@ -2,7 +2,6 @@ class BrokerCode < ApplicationRecord
   belongs_to :broker
 
   validates :broker_code, presence: true, uniqueness: { case_sensitive: false }, length: { minimum: 2, maximum: 50 }
-  validates :company_name, presence: true, length: { minimum: 2, maximum: 100 }
   validates :status, inclusion: { in: [true, false] }
 
   scope :active, -> { where(status: true) }

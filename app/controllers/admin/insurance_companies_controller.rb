@@ -76,8 +76,11 @@ class Admin::InsuranceCompaniesController < Admin::ApplicationController
   end
 
   def destroy
-    @insurance_company.destroy
-    redirect_to admin_insurance_companies_path, notice: 'Insurance company was successfully deleted.'
+    if @insurance_company.destroy
+      redirect_to admin_insurance_companies_path, notice: 'Insurance company was successfully deleted.'
+    else
+      redirect_to admin_insurance_companies_path, alert: 'Failed to delete insurance company. It may be associated with existing records.'
+    end
   end
 
   private

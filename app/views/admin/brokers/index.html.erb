@@ -251,7 +251,7 @@
         <%= form_with url: admin_brokers_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end", id: "broker_code_search_form" do |form| %>
           <!-- Search -->
           <div class="flex-grow-1 min-width-250">
-            <%= form.text_field :search, placeholder: "Search by broker name, agent name, or broker code... (min 3 characters)",
+            <%= form.text_field :search, placeholder: "Search by broker name or broker code... (min 3 characters)",
                                value: params[:search],
                                class: "form-control",
                                id: "broker_code_search_input",
@@ -278,7 +278,6 @@
               <thead class="bg-light">
                 <tr>
                   <th class="border-0">Broker Name</th>
-                  <th class="border-0">Agent Name</th>
                   <th class="border-0">Broker Code</th>
                   <th class="border-0">Company Name</th>
                   <th class="border-0">Status</th>
@@ -302,9 +301,6 @@
                           </small>
                         </div>
                       </div>
-                    </td>
-                    <td>
-                      <span class="fw-medium text-dark"><%= broker_code.agent_name %></span>
                     </td>
                     <td>
                       <span class="badge bg-secondary">
