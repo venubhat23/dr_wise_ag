@@ -177,10 +177,15 @@
         <tbody>
           <% if @leads.any? %>
             <% @leads.each do |lead| %>
-              <tr class="lead-row" data-id="<%= lead.id %>">
+              <tr class="lead-row <%= 'branch-out-lead' if lead.is_branch_out? %>" data-id="<%= lead.id %>">
                 <td>
                   <div>
                     <span class="badge bg-primary mb-1 d-block"><%= lead.lead_id.presence || "LEAD-#{lead.id}" %></span>
+                    <% if lead.is_branch_out? %>
+                      <span class="badge bg-success mb-1 d-block">
+                        <i class="bi bi-diagram-3 me-1"></i>Branch Out Lead
+                      </span>
+                    <% end %>
                     <h6 class="mb-1"><%= lead.name %></h6>
                     <small class="text-muted"><%= lead.email %></small>
                   </div>
@@ -222,8 +227,20 @@
                     <% end %>
 
                     <% if lead.can_convert_to_customer? %>
-                      <%= link_to new_admin_customer_path(lead_id: lead.id), class: "btn btn-sm btn-success convert-btn", title: "Convert to Customer", data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
-                        <i class="bi bi-person-plus-fill me-1"></i>Convert
+                      <% if lead.is_branch_out && lead.parent_lead_id.present? %>
+                        <button type="button"
+                                class="btn btn-sm btn-success convert-btn branch-out-convert"
+                                title="Convert Branch Out Lead to Customer"
+                                data-lead-id="<%= lead.id %>"
+                                data-parent-lead-id="<%= lead.parent_lead_id %>"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top">
+                          <i class="bi bi-person-plus-fill me-1"></i>Convert
+                        </button>
+                      <% else %>
+                        <%= link_to new_admin_customer_path(lead_id: lead.id), class: "btn btn-sm btn-success convert-btn", title: "Convert to Customer", data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                          <i class="bi bi-person-plus-fill me-1"></i>Convert
+                        <% end %>
                       <% end %>
                     <% elsif lead.converted_customer.present? %>
                       <%= link_to admin_customer_path(lead.converted_customer), class: "btn btn-sm btn-info customer-link",
@@ -401,6 +418,16 @@
 
 .lead-row:hover {
   background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Branch out lead styling */
+.branch-out-lead {
+  background-color: rgba(144, 238, 144, 0.15) !important; /* Light green background */
+  border-left: 4px solid #90EE90; /* Light green left border */
+}
+
+.branch-out-lead:hover {
+  background-color: rgba(144, 238, 144, 0.25) !important; /* Slightly darker on hover */
 }
 
 .badge.bg-purple {
@@ -976,6 +1003,58 @@ document.addEventListener('DOMContentLoaded', function() {
       this.style.transform = 'scale(1)';
     });
   });
+
+  // Handle branch out convert to customer
+  const branchOutConvertButtons = document.querySelectorAll('.branch-out-convert');
+  branchOutConvertButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+
+      const leadId = this.dataset.leadId;
+      const parentLeadId = this.dataset.parentLeadId;
+
+      // Show confirmation alert for branch out lead
+      if (confirm('This is a branch out lead… do you want to proceed with existing customer?')) {
+        handleBranchOutConversion(leadId, parentLeadId);
+      }
+    });
+  });
+
+  // Function to handle branch out conversion
+  function handleBranchOutConversion(leadId, parentLeadId) {
+    // Create form to call conversion endpoint
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/admin/leads/${leadId}/convert_to_customer_branch_out`;
+    form.style.display = 'none';
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'authenticity_token';
+      csrfInput.value = csrfToken.content;
+      form.appendChild(csrfInput);
+    }
+
+    // Add method override for PATCH
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = 'PATCH';
+    form.appendChild(methodInput);
+
+    // Add parent lead id
+    const parentLeadInput = document.createElement('input');
+    parentLeadInput.type = 'hidden';
+    parentLeadInput.name = 'parent_lead_id';
+    parentLeadInput.value = parentLeadId;
+    form.appendChild(parentLeadInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  }
 });
 </script>
 

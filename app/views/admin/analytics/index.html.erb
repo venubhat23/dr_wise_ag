@@ -368,6 +368,339 @@
       </div>
     </div>
   </div>
+
+  <!-- Lead Conversion Funnel -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3 class="chart-title">Lead Conversion Funnel</h3>
+      <div class="chart-container">
+        <canvas id="leadFunnelChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Lead Stage Distribution -->
+    <div class="chart-card">
+      <h3 class="chart-title">Lead Stage Distribution</h3>
+      <div style="margin-top: 1rem;">
+        <%
+          lead_stages = {
+            'New Leads' => Lead.where(current_stage: 'lead_generated').count,
+            'Contacted' => Lead.where(current_stage: ['follow_up', 'follow_up_successful']).count,
+            'Consultation' => Lead.where(current_stage: 'consultation_scheduled').count,
+            'One-on-One' => Lead.where(current_stage: 'one_on_one').count,
+            'Converted' => Lead.where(current_stage: 'converted').count
+          }
+          total_leads = lead_stages.values.sum
+        %>
+        <% lead_stages.each do |stage, count| %>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9;">
+            <span style="font-weight: 500; color: #1a202c;"><%= stage %></span>
+            <div style="text-align: right;">
+              <span style="color: #718096; font-size: 0.875rem;"><%= count %></span>
+              <div style="width: 100px; height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 0.25rem; overflow: hidden;">
+                <div style="width: <%= total_leads > 0 ? (count.to_f / total_leads * 100).round(1) : 0 %>%; height: 100%; background: #3b82f6; border-radius: 4px;"></div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Affiliate Performance -->
+  <div class="analytics-table">
+    <div class="table-header">
+      <h3 class="table-title">Top Affiliate Performance</h3>
+    </div>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Affiliate Name</th>
+            <th>Customers Acquired</th>
+            <th>Premium Generated</th>
+            <th>Commission</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @agent_performance.first(5).each do |affiliate_name, premium| %>
+            <tr>
+              <td style="font-weight: 600;"><%= affiliate_name %></td>
+              <td>
+                <%
+                  sub_agent = SubAgent.find_by("CONCAT(first_name, ' ', last_name) = ?", affiliate_name)
+                  if sub_agent
+                    customer_count = Customer.where(sub_agent_id: sub_agent.id).count
+                    health_customers = HealthInsurance.where(sub_agent_id: sub_agent.id).distinct.count(:customer_id)
+                    life_customers = LifeInsurance.where(sub_agent_id: sub_agent.id).distinct.count(:customer_id)
+                    motor_customers = MotorInsurance.where(sub_agent_id: sub_agent.id).distinct.count(:customer_id)
+                    customer_count = [customer_count, health_customers, life_customers, motor_customers].max
+                  else
+                    customer_count = 0
+                  end
+                %>
+                <%= customer_count %>
+              </td>
+              <td>₹<%= number_with_delimiter(premium.to_i) %></td>
+              <td>
+                <span class="badge bg-success">
+                  ₹<%= number_with_delimiter((premium * 0.05).to_i) %>
+                </span>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Commission Analytics -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3 class="chart-title">Commission Analytics</h3>
+      <div style="margin-top: 1rem;">
+        <%
+          commission_stats = {
+            'Total Commission Due' => { value: @commissions_due, format: 'currency', color: '#ef4444' },
+            'Avg Commission per Policy' => { value: @total_policies > 0 ? (@commissions_due / @total_policies).round(0) : 0, format: 'currency', color: '#3b82f6' },
+            'Commission Conversion Rate' => { value: @conversion_rate, format: 'percentage', color: '#10b981' },
+            'Monthly Payout Target' => { value: (@commissions_due * 0.8).round(0), format: 'currency', color: '#f59e0b' }
+          }
+        %>
+        <% commission_stats.each do |label, data| %>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9;">
+            <span style="font-weight: 500; color: #1a202c; font-size: 0.875rem;"><%= label %></span>
+            <span style="color: <%= data[:color] %>; font-size: 0.875rem; font-weight: 600;">
+              <% if data[:format] == 'currency' %>
+                ₹<%= number_with_delimiter(data[:value]) %>
+              <% elsif data[:format] == 'percentage' %>
+                <%= data[:value] %>%
+              <% else %>
+                <%= data[:value] %>
+              <% end %>
+            </span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Policy Performance Metrics -->
+    <div class="chart-card">
+      <h3 class="chart-title">Policy Performance Metrics</h3>
+      <div style="margin-top: 1rem;">
+        <%
+          policy_metrics = {
+            'Health Insurance' => {
+              count: HealthInsurance.count,
+              premium: HealthInsurance.sum(:total_premium),
+              avg_premium: HealthInsurance.count > 0 ? (HealthInsurance.sum(:total_premium) / HealthInsurance.count).round(0) : 0,
+              color: '#3b82f6'
+            },
+            'Life Insurance' => {
+              count: LifeInsurance.count,
+              premium: LifeInsurance.sum(:total_premium),
+              avg_premium: LifeInsurance.count > 0 ? (LifeInsurance.sum(:total_premium) / LifeInsurance.count).round(0) : 0,
+              color: '#10b981'
+            },
+            'Motor Insurance' => {
+              count: MotorInsurance.count,
+              premium: MotorInsurance.sum(:total_premium),
+              avg_premium: MotorInsurance.count > 0 ? (MotorInsurance.sum(:total_premium) / MotorInsurance.count).round(0) : 0,
+              color: '#f59e0b'
+            }
+          }
+        %>
+        <% policy_metrics.each do |type, data| %>
+          <div style="margin-bottom: 1rem; padding: 0.75rem; background: linear-gradient(135deg, <%= data[:color] %>15 0%, <%= data[:color] %>05 100%); border-radius: 8px; border-left: 3px solid <%= data[:color] %>;">
+            <div style="font-weight: 600; color: #1a202c; margin-bottom: 0.5rem;"><%= type %></div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+              <span>Policies: <strong><%= data[:count] %></strong></span>
+              <span>Premium: <strong>₹<%= number_with_delimiter(data[:premium]) %></strong></span>
+            </div>
+            <div style="font-size: 0.8rem; color: #718096; margin-top: 0.25rem;">
+              Avg Premium: ₹<%= number_with_delimiter(data[:avg_premium]) %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Geographic Distribution -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3 class="chart-title">Customer Geographic Distribution</h3>
+      <div class="chart-container">
+        <canvas id="locationChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Operations Overview -->
+    <div class="chart-card">
+      <h3 class="chart-title">Operations Overview</h3>
+      <div style="margin-top: 1rem;">
+        <%
+          operation_stats = {
+            'Documents Pending' => { value: @docs_pending, icon: 'bi-file-earmark-text', color: '#ef4444' },
+            'Support Tickets Open' => { value: @support_tickets, icon: 'bi-headset', color: '#f59e0b' },
+            'Claims Processing' => { value: @claims_processing, icon: 'bi-shield-check', color: '#8b5cf6' },
+            'Client Requests' => { value: @client_requests_count, icon: 'bi-person-lines-fill', color: '#06b6d4' }
+          }
+        %>
+        <% operation_stats.each do |label, data| %>
+          <div style="display: flex; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: <%= data[:color] %>15; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">
+              <i class="<%= data[:icon] %>" style="color: <%= data[:color] %>; font-size: 0.875rem;"></i>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-weight: 500; color: #1a202c; font-size: 0.875rem;"><%= label %></div>
+            </div>
+            <span style="color: <%= data[:color] %>; font-weight: 700; font-size: 1.125rem;"><%= data[:value] %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Acquisition Trend & Quick Insights -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3 class="chart-title">Customer Acquisition Trend</h3>
+      <div class="chart-container">
+        <canvas id="customerAcquisitionChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Quick Insights -->
+    <div class="chart-card">
+      <h3 class="chart-title">Quick Insights</h3>
+      <div style="margin-top: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="font-weight: 500; color: #1a202c;">Active Customers</span>
+          <span style="color: #22c55e; font-size: 0.875rem; font-weight: 600;"><%= @active_customers %></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="font-weight: 500; color: #1a202c;">Converted Leads</span>
+          <span style="color: #3b82f6; font-size: 0.875rem; font-weight: 600;"><%= @converted_leads %></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="font-weight: 500; color: #1a202c;">New Leads (7 days)</span>
+          <span style="color: #f59e0b; font-size: 0.875rem; font-weight: 600;"><%= @new_leads %></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="font-weight: 500; color: #1a202c;">Support Tickets</span>
+          <span style="color: #ef4444; font-size: 0.875rem; font-weight: 600;"><%= @support_tickets %></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+          <span style="font-weight: 500; color: #1a202c;">Commissions Due</span>
+          <span style="color: #8b5cf6; font-size: 0.875rem; font-weight: 600;">₹<%= (@commissions_due / 1000.0).round(1) %>K</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Lead Activities Table -->
+  <div class="analytics-table">
+    <div class="table-header">
+      <h3 class="table-title">Recent Lead Activities - Last 7 Days</h3>
+    </div>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Lead Info</th>
+            <th>Stage</th>
+            <th>Product Interest</th>
+            <th>Agent</th>
+            <th>Created</th>
+            <th>Priority</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @recent_leads.each do |lead| %>
+            <tr>
+              <td>
+                <div style="font-weight: 600;"><%= lead.first_name %> <%= lead.last_name %></div>
+                <div style="font-size: 0.75rem; color: #9ca3af;"><%= lead.contact_number %></div>
+              </td>
+              <td>
+                <%
+                  stage_colors = {
+                    'new' => 'bg-info',
+                    'contacted' => 'bg-warning',
+                    'consultation' => 'bg-info',
+                    'one_on_one' => 'bg-warning',
+                    'converted' => 'bg-success',
+                    'policy_created' => 'bg-success'
+                  }
+                %>
+                <span class="badge <%= stage_colors[lead.current_stage] || 'bg-info' %>">
+                  <%= lead.current_stage&.humanize || 'New' %>
+                </span>
+              </td>
+              <td>
+                <div style="font-size: 0.875rem; font-weight: 500;">
+                  <%= lead.product_category || 'General' %>
+                </div>
+                <div style="font-size: 0.75rem; color: #9ca3af;">
+                  <%= lead.product_subcategory || 'N/A' %>
+                </div>
+              </td>
+              <td>
+                <div style="font-size: 0.875rem;">
+                  <%= lead.try(:sub_agent) || Customer.find_by(mobile: lead.contact_number)&.sub_agent || 'Self' %>
+                </div>
+              </td>
+              <td>
+                <div style="font-size: 0.875rem;"><%= time_ago_in_words(lead.created_at) %> ago</div>
+              </td>
+              <td>
+                <%
+                  priority = case lead.current_stage
+                  when 'new', 'contacted'
+                    { label: 'High', class: 'bg-danger' }
+                  when 'consultation', 'one_on_one'
+                    { label: 'Medium', class: 'bg-warning' }
+                  else
+                    { label: 'Low', class: 'bg-success' }
+                  end
+                %>
+                <span class="badge <%= priority[:class] %>"><%= priority[:label] %></span>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Bottom Performance KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card" style="--card-color: #667eea;">
+      <div class="kpi-icon blue-gradient">
+        <i class="bi bi-percent"></i>
+      </div>
+      <div class="kpi-value"><%= @conversion_rate %>%</div>
+      <div class="kpi-label">Lead Conversion Rate</div>
+    </div>
+
+    <div class="kpi-card" style="--card-color: #f093fb;">
+      <div class="kpi-icon pink-gradient">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+      <div class="kpi-value">₹<%= (@avg_policy_value / 1000.0).round(0) %>K</div>
+      <div class="kpi-label">Avg Policy Value</div>
+    </div>
+
+    <div class="kpi-card" style="--card-color: #4facfe;">
+      <div class="kpi-icon blue-gradient">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div class="kpi-value"><%= @customer_retention %>%</div>
+      <div class="kpi-label">Customer Retention</div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -527,6 +860,114 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       plugins: {
         legend: { display: false }
+      }
+    }
+  });
+
+  // Lead Funnel Chart
+  const leadFunnelCtx = document.getElementById('leadFunnelChart').getContext('2d');
+  new Chart(leadFunnelCtx, {
+    type: 'bar',
+    data: {
+      labels: <%= @lead_conversion_funnel.keys.to_json.html_safe %>,
+      datasets: [{
+        data: <%= @lead_conversion_funnel.values.to_json.html_safe %>,
+        backgroundColor: [
+          '#3b82f6',
+          '#10b981',
+          '#f59e0b',
+          '#ec4899',
+          '#8b5cf6'
+        ],
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: '#f1f5f9' }
+        },
+        y: {
+          grid: { color: '#f1f5f9' }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+
+  // Customer Geographic Distribution Chart
+  const locationCtx = document.getElementById('locationChart').getContext('2d');
+  new Chart(locationCtx, {
+    type: 'doughnut',
+    data: {
+      labels: <%= @customer_location.keys.to_json.html_safe %>,
+      datasets: [{
+        data: <%= @customer_location.values.to_json.html_safe %>,
+        backgroundColor: [
+          '#3b82f6', '#10b981', '#f59e0b', '#ec4899',
+          '#8b5cf6', '#ef4444', '#06b6d4', '#84cc16'
+        ],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            padding: 15,
+            usePointStyle: true,
+            font: { size: 11 }
+          }
+        }
+      }
+    }
+  });
+
+  // Customer Acquisition Trend Chart
+  const acquisitionCtx = document.getElementById('customerAcquisitionChart').getContext('2d');
+  new Chart(acquisitionCtx, {
+    type: 'line',
+    data: {
+      labels: <%= @customer_acquisition_trend.keys.to_json.html_safe %>,
+      datasets: [{
+        label: 'New Customers',
+        data: <%= @customer_acquisition_trend.values.to_json.html_safe %>,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: '#3b82f6',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#f1f5f9' }
+        },
+        x: {
+          grid: { color: '#f1f5f9' }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        }
       }
     }
   });

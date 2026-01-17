@@ -1,7 +1,7 @@
 class Admin::LeadsController < Admin::ApplicationController
   include LocationData
   include ConfigurablePagination
-  before_action :set_lead, only: [:show, :edit, :update, :destroy, :convert_to_customer, :create_policy, :transfer_referral, :advance_stage, :go_back_stage, :update_stage, :convert_stage, :mark_not_interested, :close_lead]
+  before_action :set_lead, only: [:show, :edit, :update, :destroy, :convert_to_customer, :convert_to_customer_branch_out, :create_policy, :transfer_referral, :advance_stage, :go_back_stage, :update_stage, :convert_stage, :mark_not_interested, :close_lead]
 
   # GET /admin/leads
   def index
@@ -201,6 +201,51 @@ class Admin::LeadsController < Admin::ApplicationController
       rescue => e
         redirect_to admin_leads_path, alert: "Failed to delete lead: #{e.message}"
       end
+    end
+  end
+
+  # PATCH /admin/leads/1/convert_to_customer_branch_out - Special handling for branch out leads
+  def convert_to_customer_branch_out
+    unless @lead.can_convert_to_customer?
+      redirect_to admin_leads_path, alert: 'Lead cannot be converted at this stage.'
+      return
+    end
+
+    unless @lead.is_branch_out? && @lead.parent_lead_id.present?
+      redirect_to admin_leads_path, alert: 'This action is only available for branch out leads.'
+      return
+    end
+
+    # Find parent lead and its converted customer
+    parent_lead = Lead.find_by(id: @lead.parent_lead_id)
+    unless parent_lead
+      redirect_to admin_leads_path, alert: 'Parent lead not found.'
+      return
+    end
+
+    unless parent_lead.converted_customer_id.present?
+      redirect_to admin_leads_path, alert: 'Parent lead has not been converted to customer yet.'
+      return
+    end
+
+    existing_customer = Customer.find_by(id: parent_lead.converted_customer_id)
+    unless existing_customer
+      redirect_to admin_leads_path, alert: 'Customer from parent lead not found.'
+      return
+    end
+
+    begin
+      # Update the branch out lead to mark as converted and link to existing customer
+      @lead.update!(
+        current_stage: 'converted',
+        converted_customer_id: existing_customer.id
+      )
+
+      redirect_to edit_admin_customer_path(existing_customer),
+                  notice: "This is a branch out lead so for this customer already present, we marked lead as converted."
+    rescue => e
+      Rails.logger.error "Branch out lead conversion failed: #{e.message}"
+      redirect_to admin_leads_path, alert: "Failed to convert branch out lead: #{e.message}"
     end
   end
 
