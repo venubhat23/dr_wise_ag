@@ -212,15 +212,14 @@
                       </li>
                       <li><hr class="dropdown-divider"></li>
                       <li>
-                        <%= link_to admin_insurance_company_path(company),
-                            class: "dropdown-item text-danger",
-                            data: {
-                              turbo_method: :delete,
-                              turbo_confirm: "Are you sure you want to delete #{company.name}? This action cannot be undone."
-                            } do %>
+                        <button type="button"
+                            class="dropdown-item text-danger delete-company"
+                            data-url="<%= admin_insurance_company_path(company) %>"
+                            data-company-name="<%= company.name %>"
+                            data-confirm="Are you sure you want to delete <%= company.name %>? This action cannot be undone.">
                           <i class="bi bi-trash me-2"></i>
                           Delete Company
-                        <% end %>
+                        </button>
                       </li>
                     </ul>
                   </div>
@@ -278,5 +277,47 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+
+  // Handle delete functionality with confirmation
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.delete-company')) {
+      e.preventDefault();
+
+      const button = e.target.closest('.delete-company');
+      const url = button.dataset.url;
+      const companyName = button.dataset.companyName;
+      const confirmMessage = button.dataset.confirm;
+
+      // Show confirmation dialog
+      if (confirm(confirmMessage)) {
+        // Create and submit a form for DELETE request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        form.style.display = 'none';
+
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+          const csrfInput = document.createElement('input');
+          csrfInput.type = 'hidden';
+          csrfInput.name = 'authenticity_token';
+          csrfInput.value = csrfToken.content;
+          form.appendChild(csrfInput);
+        }
+
+        // Add method override for DELETE
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        form.appendChild(methodInput);
+
+        // Append form to body and submit
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+  });
 });
 </script>
