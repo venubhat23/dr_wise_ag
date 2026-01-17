@@ -9,7 +9,6 @@
               <th class="border-0">Insurance Type</th>
               <th class="border-0">Company Name</th>
               <th class="border-0">Agent Name</th>
-              <th class="border-0">Broker</th>
               <th class="border-0">Agency Code</th>
               <th class="border-0">Actions</th>
             </tr>
@@ -40,16 +39,6 @@
                 </td>
                 <td>
                   <span class="fw-medium text-dark"><%= agency_code.agent_name %></span>
-                </td>
-                <td>
-                  <% if agency_code.broker.present? %>
-                    <span class="badge bg-primary">
-                      <i class="bi bi-person-badge me-1"></i>
-                      <%= agency_code.broker.name %>
-                    </span>
-                  <% else %>
-                    <span class="text-muted">-</span>
-                  <% end %>
                 </td>
                 <td>
                   <code class="bg-light text-dark px-2 py-1 rounded fs-6"><%= agency_code.code %></code>

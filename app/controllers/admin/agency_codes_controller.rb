@@ -70,6 +70,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   # GET /admin/agency_codes/1/edit
   def edit
     @insurance_types = ['Health Insurance', 'Life Insurance', 'Motor and Other Insurance']
+    @insurance_companies = get_companies_for_insurance_type(@agency_code.insurance_type)
   end
 
   # POST /admin/agency_codes
@@ -90,6 +91,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
       redirect_to admin_agency_codes_path, notice: 'Agency code was successfully updated.'
     else
       @insurance_types = ['Health Insurance', 'Life Insurance', 'Motor and Other Insurance']
+      @insurance_companies = get_companies_for_insurance_type(@agency_code.insurance_type)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -439,27 +441,39 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     insurance_type = params[:insurance_type]
 
     if insurance_type.present?
-      # Use the helper method from InsuranceCompanyMethods concern
-      companies = case insurance_type.to_s.downcase
-                 when 'health insurance', 'health'
-                   health_insurance_companies
-                 when 'life insurance', 'life'
-                   life_insurance_companies
-                 when 'motor and other insurance', 'motor', 'general'
-                   # For "Motor and Other Insurance", include both Motor and General companies
-                   motor_insurance_companies + general_insurance_companies
-                 when 'other'
-                   # For "Other", include all types
-                   insurance_companies_list
-                 else
-                   insurance_companies_list
-                 end
-    else
-      companies = insurance_companies_list
-    end
+      # Map the dropdown values to database values
+      db_insurance_type = case insurance_type.to_s.downcase
+                         when 'health insurance', 'health'
+                           'health'
+                         when 'life insurance', 'life'
+                           'life'
+                         when 'motor and other insurance', 'motor', 'general'
+                           'motor_other'
+                         else
+                           nil
+                         end
 
-    # Remove duplicates and sort
-    companies = companies.uniq.sort
+      # Query InsuranceCompany model directly
+      if db_insurance_type
+        companies = InsuranceCompany.where(insurance_type: db_insurance_type)
+                                   .order(:name)
+                                   .pluck(:name)
+                                   .compact
+                                   .reject(&:blank?)
+      else
+        # If no specific type matched, return all companies
+        companies = InsuranceCompany.order(:name)
+                                   .pluck(:name)
+                                   .compact
+                                   .reject(&:blank?)
+      end
+    else
+      # Return all companies if no type specified
+      companies = InsuranceCompany.order(:name)
+                                 .pluck(:name)
+                                 .compact
+                                 .reject(&:blank?)
+    end
 
     respond_to do |format|
       format.json do
@@ -467,6 +481,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
           success: true,
           companies: companies,
           insurance_type: insurance_type,
+          db_insurance_type: db_insurance_type,
           count: companies.length
         }
       end
@@ -554,5 +569,38 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     else
       true # For other types, allow any company
     end
+  end
+
+  # Helper method to get insurance companies for a specific insurance type
+  def get_companies_for_insurance_type(insurance_type)
+    # Initialize as empty array to ensure it's never nil
+    companies = []
+
+    # If insurance type is provided, load companies for that type
+    if insurance_type.present?
+      # Map the insurance type to database value
+      db_insurance_type = case insurance_type.to_s.downcase
+                         when 'health insurance', 'health'
+                           'health'
+                         when 'life insurance', 'life'
+                           'life'
+                         when 'motor and other insurance', 'motor', 'general'
+                           'motor_other'
+                         else
+                           nil
+                         end
+
+      # Query InsuranceCompany model for the appropriate type
+      if db_insurance_type
+        companies = InsuranceCompany.where(insurance_type: db_insurance_type)
+                                   .order(:name)
+                                   .pluck(:name)
+                                   .compact
+                                   .reject(&:blank?)
+      end
+    end
+
+    # Ensure we always return an array (never nil)
+    companies || []
   end
 end

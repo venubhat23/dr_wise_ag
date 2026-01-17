@@ -8,7 +8,6 @@ class MotorInsurance < ApplicationRecord
   belongs_to :distributor, optional: true
   belongs_to :investor, optional: true
   belongs_to :agency_code, optional: true
-  belongs_to :broker, optional: true
   has_many_attached :documents
   has_many_attached :policy_documents
 

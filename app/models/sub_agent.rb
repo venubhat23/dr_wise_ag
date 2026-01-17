@@ -15,6 +15,8 @@ class SubAgent < ApplicationRecord
 
   # Store plain password for display purposes
   attr_accessor :store_plain_password
+  # Virtual attributes for state and city names
+  attr_accessor :state, :city
   before_save :store_password_if_changed
   before_save :set_location_ids_from_names
 
@@ -119,6 +121,24 @@ class SubAgent < ApplicationRecord
     active? && !deactivated?
   end
 
+  # Virtual attribute getters for state and city names from IDs
+  def state
+    @state || find_state_name_by_id(state_id)
+  end
+
+  def city
+    @city || find_city_name_by_id(city_id)
+  end
+
+  # Virtual attribute setters
+  def state=(value)
+    @state = value
+  end
+
+  def city=(value)
+    @city = value
+  end
+
   private
 
   def set_location_ids_from_names
@@ -154,6 +174,24 @@ class SubAgent < ApplicationRecord
       # Also update original_password on password change if it's blank
       self.original_password = password if self.original_password.blank?
     end
+  end
+
+  def find_state_name_by_id(state_id)
+    return nil unless state_id.present?
+    # Since we generate state_id as hash % 1000, we need to reverse lookup
+    LocationData::STATES_AND_CITIES.each do |key, state_data|
+      if (key.hash.abs % 1000) == state_id
+        return state_data[:name]
+      end
+    end
+    nil
+  end
+
+  def find_city_name_by_id(city_id)
+    return nil unless city_id.present?
+    # This is more complex since city_id is generated from city name hash
+    # For now, return nil since we don't have a reliable reverse lookup
+    nil
   end
 
   def ensure_unique_across_distributors

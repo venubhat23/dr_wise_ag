@@ -28,13 +28,13 @@ class Admin::BrokerCodesController < ApplicationController
 
     # Get all brokers and companies for dropdowns
     @brokers = Broker.active.order(:name)
-    @companies = get_unique_companies
+    @companies = InsuranceCompany.order(:name).pluck(:name)
   end
 
   def new
     @broker_code = @broker ? @broker.broker_codes.build : BrokerCode.new
     @brokers = Broker.active.order(:name)
-    @companies = get_unique_companies
+    @companies = InsuranceCompany.order(:name).pluck(:name)
   end
 
   def create
@@ -45,14 +45,14 @@ class Admin::BrokerCodesController < ApplicationController
       redirect_to admin_brokers_path(anchor: 'broker-code'), notice: "Broker code created successfully!"
     else
       @brokers = Broker.active.order(:name)
-      @companies = get_unique_companies
+      @companies = InsuranceCompany.order(:name).pluck(:name)
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
     @brokers = Broker.active.order(:name)
-    @companies = get_unique_companies
+    @companies = InsuranceCompany.order(:name).pluck(:name)
   end
 
   def update
@@ -61,7 +61,7 @@ class Admin::BrokerCodesController < ApplicationController
       redirect_to admin_brokers_path(anchor: 'broker-code'), notice: "Broker code updated successfully!"
     else
       @brokers = Broker.active.order(:name)
-      @companies = get_unique_companies
+      @companies = InsuranceCompany.order(:name).pluck(:name)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -98,92 +98,4 @@ class Admin::BrokerCodesController < ApplicationController
     params.require(:broker_code).permit(:broker_id, :broker_code, :company_name, :status)
   end
 
-  def get_unique_companies
-    # Get unique company names from various insurance tables
-    companies = []
-
-    # Safely check and get companies from each insurance type
-    begin
-      if defined?(LifeInsurance) && LifeInsurance.column_names.include?('insurance_company_name')
-        companies += LifeInsurance.distinct.pluck(:insurance_company_name).compact
-      end
-    rescue => e
-      Rails.logger.error "Error fetching LifeInsurance companies: #{e.message}"
-    end
-
-    begin
-      if defined?(HealthInsurance) && HealthInsurance.column_names.include?('insurance_company_name')
-        companies += HealthInsurance.distinct.pluck(:insurance_company_name).compact
-      end
-    rescue => e
-      Rails.logger.error "Error fetching HealthInsurance companies: #{e.message}"
-    end
-
-    begin
-      if defined?(MotorInsurance) && MotorInsurance.column_names.include?('insurance_company_name')
-        companies += MotorInsurance.distinct.pluck(:insurance_company_name).compact
-      end
-    rescue => e
-      Rails.logger.error "Error fetching MotorInsurance companies: #{e.message}"
-    end
-
-    begin
-      if defined?(OtherInsurance)
-        # Check what column name OtherInsurance uses for company name
-        if OtherInsurance.column_names.include?('insurance_company_name')
-          companies += OtherInsurance.distinct.pluck(:insurance_company_name).compact
-        elsif OtherInsurance.column_names.include?('company_name')
-          companies += OtherInsurance.distinct.pluck(:company_name).compact
-        elsif OtherInsurance.column_names.include?('insurance_company')
-          companies += OtherInsurance.distinct.pluck(:insurance_company).compact
-        end
-      end
-    rescue => e
-      Rails.logger.error "Error fetching OtherInsurance companies: #{e.message}"
-    end
-
-    # Add some common insurance companies as fallback
-    companies += [
-      'ICICI Lombard',
-      'HDFC ERGO',
-      'Bajaj Allianz',
-      'TATA AIG',
-      'Reliance General',
-      'New India Assurance',
-      'Oriental Insurance',
-      'United India Insurance',
-      'National Insurance',
-      'IFFCO Tokio',
-      'Cholamandalam MS',
-      'Future Generali',
-      'Kotak Mahindra General',
-      'Liberty General',
-      'Raheja QBE',
-      'Royal Sundaram',
-      'SBI General',
-      'Shriram General',
-      'Universal Sompo',
-      'Max Life Insurance',
-      'LIC of India',
-      'SBI Life Insurance',
-      'HDFC Life',
-      'ICICI Prudential Life',
-      'Birla Sun Life',
-      'Kotak Life Insurance',
-      'PNB MetLife',
-      'Aegon Life',
-      'Aviva Life Insurance',
-      'Canara HSBC Life',
-      'Edelweiss Tokio Life',
-      'Exide Life Insurance',
-      'IDBI Federal Life',
-      'IndiaFirst Life',
-      'Pramerica Life',
-      'Sahara India Life',
-      'Star Union Dai-ichi Life',
-      'TATA AIA Life'
-    ]
-
-    companies.uniq.compact.sort
-  end
 end
