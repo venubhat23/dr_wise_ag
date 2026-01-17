@@ -206,7 +206,6 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # PATCH /admin/leads/1/convert_to_customer_branch_out - Special handling for branch out leads
   def convert_to_customer_branch_out
-    debugger
     unless @lead.can_convert_to_customer?
       redirect_to admin_leads_path, alert: 'Lead cannot be converted at this stage.'
       return
