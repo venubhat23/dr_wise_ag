@@ -28,8 +28,8 @@ class Admin::BrokersController < Admin::ApplicationController
         if params[:search].present?
           search_term = "%#{params[:search]}%"
           @broker_codes = @broker_codes.joins(:broker).where(
-            "broker_codes.agent_name ILIKE ? OR broker_codes.broker_code ILIKE ? OR broker_codes.company_name ILIKE ? OR brokers.name ILIKE ?",
-            search_term, search_term, search_term, search_term
+            "broker_codes.broker_code ILIKE ? OR brokers.name ILIKE ?",
+            search_term, search_term
           )
         end
 

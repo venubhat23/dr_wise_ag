@@ -441,29 +441,50 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     insurance_type = params[:insurance_type]
 
     if insurance_type.present?
-      # Get companies from InsuranceCompanyConstants based on insurance type
-      companies = case insurance_type.to_s.downcase
-                 when 'health insurance', 'health'
-                   AgencyCode.health_insurance_companies.map { |company| company[:name] }
-                 when 'life insurance', 'life'
-                   AgencyCode.life_insurance_companies.map { |company| company[:name] }
-                 when 'motor and other insurance', 'motor', 'general'
-                   AgencyCode.general_insurance_companies.map { |company| company[:name] }
-                 else
-                   # If no specific type matched, return all companies
-                   AgencyCode.insurance_company_names
-                 end
+      # Map frontend insurance type to database insurance_type values
+      db_insurance_type = case insurance_type.to_s.downcase
+                         when 'health insurance', 'health'
+                           'health'
+                         when 'life insurance', 'life'
+                           'life'
+                         when 'motor and other insurance', 'motor', 'general'
+                           'motor_other'
+                         else
+                           nil
+                         end
+
+      if db_insurance_type
+        # Get companies from InsuranceCompany model based on insurance_type
+        companies = InsuranceCompany.where(insurance_type: db_insurance_type)
+                                  .where(status: true)
+                                  .order(:name)
+                                  .pluck(:name)
+                                  .compact
+                                  .reject(&:blank?)
+      else
+        # If no specific type matched, return all active companies
+        companies = InsuranceCompany.where(status: true)
+                                  .order(:name)
+                                  .pluck(:name)
+                                  .compact
+                                  .reject(&:blank?)
+      end
     else
-      # Return all companies if no type specified
-      companies = AgencyCode.insurance_company_names
+      # Return all active companies if no type specified
+      companies = InsuranceCompany.where(status: true)
+                                .order(:name)
+                                .pluck(:name)
+                                .compact
+                                .reject(&:blank?)
     end
 
     respond_to do |format|
       format.json do
         render json: {
           success: true,
-          companies: companies.sort,
+          companies: companies,
           insurance_type: insurance_type,
+          db_insurance_type: db_insurance_type,
           count: companies.length
         }
       end

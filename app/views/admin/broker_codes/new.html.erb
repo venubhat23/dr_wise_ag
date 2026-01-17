@@ -61,23 +61,6 @@
             <div class="invalid-feedback"><%= @broker_code.errors[:broker_id].first %></div>
           <% end %>
         </div>
-
-        <!-- Company Name Dropdown -->
-        <div class="col-md-6 mb-3">
-          <%= form.label :company_name, "Insurance Company Name*", class: "form-label" %>
-          <%= form.select :company_name,
-              options_for_select(@companies.map { |c| [c, c] }, @broker_code.company_name),
-              { prompt: 'Search and select company...' },
-              {
-                class: "form-control #{'is-invalid' if @broker_code.errors[:company_name].any?}",
-                required: true,
-                id: "company_select",
-                data: { placeholder: "Type to search companies..." }
-              } %>
-          <% if @broker_code.errors[:company_name].any? %>
-            <div class="invalid-feedback"><%= @broker_code.errors[:company_name].first %></div>
-          <% end %>
-        </div>
       </div>
 
       <div class="row">
