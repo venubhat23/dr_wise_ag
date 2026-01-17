@@ -5,8 +5,13 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # GET /admin/leads
   def index
-    # Filter out leads that have been converted to customers (hide leads with customer_id)
-    @leads = Lead.where(converted_customer_id: nil)
+    # Start with all leads, then apply filters based on user preferences
+    if params[:show_converted] == 'true'
+      @leads = Lead.all
+    else
+      # By default, hide converted leads (those with customer_id)
+      @leads = Lead.where(converted_customer_id: nil)
+    end
 
     # Search functionality
     if params[:search].present?
@@ -36,11 +41,6 @@ class Admin::LeadsController < Admin::ApplicationController
     # Filter by referred by
     if params[:referred_by].present?
       @leads = @leads.where("referred_by ILIKE ?", "%#{params[:referred_by]}%")
-    end
-
-    # Add option to show converted leads if requested
-    if params[:show_converted] == 'true'
-      @leads = Lead.all
     end
 
     @leads = paginate_records(@leads.order(created_at: :desc).includes(:converted_customer, :created_policy))

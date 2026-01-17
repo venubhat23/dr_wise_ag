@@ -199,17 +199,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         <small class="text-success d-block">
                           <i class="bi bi-person-check me-1"></i>User Account: Active
                         </small>
-                        <% if user.plain_password.present? %>
+                        <% if user.encrypted_password.present? %>
                           <small class="text-info d-block">
-                            <i class="bi bi-key me-1"></i>Password: <%= user.plain_password %>
-                          </small>
-                        <% elsif user.original_password.present? %>
-                          <small class="text-info d-block">
-                            <i class="bi bi-key me-1"></i>Password: <%= user.original_password %>
+                            <i class="bi bi-key me-1"></i>Password: Set (Default: Ganesha@123)
                           </small>
                         <% else %>
                           <small class="text-muted d-block">
-                            <i class="bi bi-lock me-1"></i>Password: Not available
+                            <i class="bi bi-lock me-1"></i>Password: Not set
                           </small>
                         <% end %>
                       <% else %>

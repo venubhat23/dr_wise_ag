@@ -123,13 +123,15 @@
         </div>
         <div class="col-lg-2 col-md-6">
           <label class="form-label small text-muted mb-1">Source</label>
-          <%= form.select :referred_by, options_for_select([
+          <%= form.select :lead_source, options_for_select([
             ['All Sources', ''],
-            ['Agent', 'agent'],
             ['Online', 'online'],
-            ['Walk-in', 'walkin'],
-            ['Tele-calling', 'telecalling']
-          ], params[:referred_by]), {}, { class: "form-select" } %>
+            ['Offline', 'offline'],
+            ['Agent Referral', 'agent_referral'],
+            ['Walk-in', 'walk_in'],
+            ['Tele-calling', 'tele_calling'],
+            ['Campaign', 'campaign']
+          ], params[:lead_source]), {}, { class: "form-select" } %>
         </div>
         <div class="col-lg-2 col-md-6">
           <label class="form-label small text-muted mb-1">Show Converted</label>
