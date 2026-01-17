@@ -91,6 +91,55 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     render json: { options: options }
   end
 
+  # API endpoints for dynamic dropdowns
+  def agency_codes_for_broker_type
+    broker_type = params[:broker_type]
+
+    if broker_type == 'direct'
+      # Load agency codes for Health Insurance
+      agency_codes = AgencyCode.where(insurance_type: 'Health Insurance')
+                               .select(:id, :agent_name, :code, :company_name)
+
+      render json: {
+        success: true,
+        data: agency_codes.map { |ac|
+          {
+            id: ac.id,
+            text: "#{ac.agent_name} (#{ac.code})",
+            company_name: ac.company_name
+          }
+        }
+      }
+    elsif broker_type == 'broking'
+      # Load broker codes with associated broker info
+      broker_codes = BrokerCode.includes(:broker).active
+
+      render json: {
+        success: true,
+        data: broker_codes.map { |bc|
+          {
+            id: "broker_#{bc.broker_id}",
+            text: "#{bc.broker.name} (#{bc.broker_code})",
+            broker_id: bc.broker_id
+          }
+        }
+      }
+    else
+      render json: { success: false, message: 'Invalid broker type' }
+    end
+  end
+
+  def insurance_companies_for_type
+    insurance_type = 'Health'  # For health insurance page
+
+    companies = InsuranceCompany.where(insurance_type: insurance_type).pluck(:name)
+
+    render json: {
+      success: true,
+      data: companies.map { |name| { id: name, text: name } }
+    }
+  end
+
   private
 
   def set_health_insurance
@@ -110,7 +159,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
 
   def health_insurance_params
     params.require(:health_insurance).permit(
-      :customer_id, :sub_agent_id, :distributor_id, :investor_id, :agency_code_id, :broker_id,
+      :customer_id, :sub_agent_id, :distributor_id, :investor_id, :agency_code_id, :broker_id, :broker_code_type,
       :policy_holder, :insurance_company_name, :policy_type, :insurance_type,
       :plan_name, :policy_number, :policy_booking_date, :policy_start_date,
       :policy_end_date, :policy_term, :payment_mode, :claim_process,

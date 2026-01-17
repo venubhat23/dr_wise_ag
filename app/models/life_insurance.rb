@@ -5,8 +5,7 @@ class LifeInsurance < ApplicationRecord
   # Associations
   belongs_to :customer, counter_cache: :policies_count
   belongs_to :sub_agent, class_name: 'SubAgent', optional: true
-  belongs_to :distributor, optional: true
-  belongs_to :investor, optional: true
+  belongs_to :distributor
   belongs_to :agency_code, optional: true
   belongs_to :broker, optional: true
   has_many_attached :documents

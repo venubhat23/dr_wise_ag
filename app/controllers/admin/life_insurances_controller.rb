@@ -355,6 +355,55 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     end
   end
 
+  # API endpoints for dynamic dropdowns
+  def agency_codes_for_broker_type
+    broker_type = params[:broker_type]
+
+    if broker_type == 'direct'
+      # Load agency codes for Life Insurance
+      agency_codes = AgencyCode.where(insurance_type: 'Life Insurance')
+                               .select(:id, :agent_name, :code, :company_name)
+
+      render json: {
+        success: true,
+        data: agency_codes.map { |ac|
+          {
+            id: ac.id,
+            text: "#{ac.agent_name} (#{ac.code})",
+            company_name: ac.company_name
+          }
+        }
+      }
+    elsif broker_type == 'broking'
+      # Load broker codes with associated broker info
+      broker_codes = BrokerCode.includes(:broker).active
+
+      render json: {
+        success: true,
+        data: broker_codes.map { |bc|
+          {
+            id: "broker_#{bc.broker_id}",
+            text: "#{bc.broker.name} (#{bc.broker_code})",
+            broker_id: bc.broker_id
+          }
+        }
+      }
+    else
+      render json: { success: false, message: 'Invalid broker type' }
+    end
+  end
+
+  def insurance_companies_for_type
+    insurance_type = 'Life'  # For life insurance page
+
+    companies = InsuranceCompany.where(insurance_type: insurance_type).pluck(:name)
+
+    render json: {
+      success: true,
+      data: companies.map { |name| { id: name, text: name } }
+    }
+  end
+
   private
 
   def set_life_insurance
@@ -412,7 +461,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
   def life_insurance_params
     params.require(:life_insurance).permit(
-      :customer_id, :sub_agent_id, :distributor_id, :investor_id, :agency_code_id, :broker_id, :broker_code_type,
+      :customer_id, :sub_agent_id, :distributor_id, :agency_code_id, :broker_id, :broker_code_type,
       :policy_holder, :insured_name, :insurance_company_name, :policy_type,
       :payment_mode, :policy_number, :policy_booking_date, :policy_start_date,
       :policy_end_date, :risk_start_date, :policy_term, :premium_payment_term,
@@ -436,7 +485,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       :investor_commission_percentage, :investor_commission_amount, :investor_tds_percentage, :investor_tds_amount, :investor_after_tds_value,
       :main_income_percentage, :main_income_amount,
       # Company expenses and profit fields
-      :company_expenses_percentage, :total_distribution_percentage,
+      :company_expenses_percentage, :company_expenses_amount, :total_distribution_percentage,
       :profit_percentage, :profit_amount,
       policy_documents: [], documents: [],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]

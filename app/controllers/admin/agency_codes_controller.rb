@@ -439,18 +439,17 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   # GET /admin/agency_codes/companies_by_type - API endpoint for fetching companies by insurance type
   def companies_by_type
     insurance_type = params[:insurance_type]
-
     if insurance_type.present?
       # Map frontend insurance type to database insurance_type values
       db_insurance_type = case insurance_type.to_s.downcase
-                         when 'health insurance', 'health'
+                         when 'health insurance', 'health', 'Health Insurance'
                            'health'
-                         when 'life insurance', 'life'
+                         when 'life insurance', 'life', 'Life Insurance'
                            'life'
                          when 'motor and other insurance', 'motor', 'general'
                            'motor_other'
                          else
-                           nil
+                           'motor_other'
                          end
 
       if db_insurance_type

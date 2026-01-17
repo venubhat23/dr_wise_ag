@@ -235,6 +235,8 @@ Rails.application.routes.draw do
         get :agency_codes_by_broker
         get :all_agency_codes
         get :all_brokers
+        get :agency_codes_for_broker_type
+        get :insurance_companies_for_type
       end
       member do
         get :commission_details
@@ -248,6 +250,8 @@ Rails.application.routes.draw do
     resources :health_insurances, path: 'insurance/health' do
       collection do
         get :policy_holder_options
+        get :agency_codes_for_broker_type
+        get :insurance_companies_for_type
       end
     end
 

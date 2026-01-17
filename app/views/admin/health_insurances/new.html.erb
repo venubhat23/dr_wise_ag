@@ -102,20 +102,37 @@
     </div>
           <div class="card-body">
             <div class="row">
-              <div class="col-md-6 mb-3">
-                <%= form.label :insurance_company_name, "Insurance Company Name", class: "form-label required" %>
-                <%= form.select :insurance_company_name,
-                    options_for_select([['Select Company', '']] + @insurance_companies.map { |name| [name, name] }),
-                    { prompt: 'Select Company' },
-                    { class: "form-select", required: true } %>
+              <!-- 1st: Broker Code dropdown with Direct/Broking options -->
+              <div class="col-md-4 mb-3">
+                <%= form.label :broker_code_type, "Broker Code", class: "form-label" %>
+                <%= form.select :broker_code_type,
+                    options_for_select([
+                      ['Direct', 'direct'],
+                      ['Broking', 'broking']
+                    ], @health_insurance.broker_code_type),
+                    { prompt: 'Select Broker Code' },
+                    { class: "form-select", id: "health_insurance_broker_code_type" } %>
               </div>
 
-              <div class="col-md-6 mb-3">
-                <%= form.label :agency_code_id, "Agency/Broker Code", class: "form-label" %>
+              <!-- 2nd: Agency Code (shows Agents when Direct selected, Brokers when Broking selected) -->
+              <div class="col-md-4 mb-3">
+                <%= form.label :agency_code_id, "Agency Code (All Agents)*", class: "form-label" %>
                 <%= form.select :agency_code_id,
-                    options_for_select([['Select Code', '']] + @agency_codes.map { |code| [code.display_name, code.id] }),
-                    { prompt: 'Select Code' },
-                    { class: "form-select" } %>
+                    options_for_select([['Select...', '']]),
+                    { prompt: 'Search and select...' },
+                    { class: "form-select", required: true, id: "health_insurance_agency_code_id" } %>
+              </div>
+
+              <!-- Hidden field for broker_id when needed -->
+              <%= form.hidden_field :broker_id, id: "broker_id_hidden" %>
+
+              <!-- 3rd: Insurance Company Name (Dynamic based on Agent/Broker selection) -->
+              <div class="col-md-4 mb-3">
+                <%= form.label :insurance_company_name, "Insurance Company Name*", class: "form-label required" %>
+                <%= form.select :insurance_company_name,
+                    options_for_select([['Select Company', '']]),
+                    { prompt: 'Search and select company...' },
+                    { class: "form-select", required: true, id: "health_insurance_insurance_company_name" } %>
               </div>
 
               <div class="col-md-6 mb-3">
@@ -1195,4 +1212,13 @@ document.addEventListener('DOMContentLoaded', function() {
   calculateTotalPremium();
   calculateAllCommissions();
 });
+</script>
+
+<!-- Dynamic dropdown behavior -->
+<script type="module">
+  import { initializeDynamicDropdowns } from "dynamic_insurance_dropdowns";
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initializeDynamicDropdowns();
+  });
 </script>

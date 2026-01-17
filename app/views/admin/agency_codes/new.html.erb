@@ -31,7 +31,7 @@
         <%= form.select :insurance_type,
             options_for_select(@insurance_types.map { |type| [type, type] }, @agency_code.insurance_type),
             { prompt: 'Select Type' },
-            { class: "form-select searchable-select", required: true, data: { placeholder: "Health, Life, Motor & General..." } } %>
+            { class: "form-select searchable-select", required: true, id: "agency_code_insurance_type", data: { placeholder: "Health, Life, Motor & General..." } } %>
         <% if @agency_code.errors[:insurance_type].any? %>
           <div class="text-danger small mt-1"><%= @agency_code.errors[:insurance_type].first %></div>
         <% end %>
@@ -43,7 +43,7 @@
         <%= form.select :company_name,
             [],
             { prompt: 'Select Company' },
-            { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select company..." } } %>
+            { class: "form-select searchable-select", required: true, id: "agency_code_company_name", data: { placeholder: "Search and select company..." } } %>
         <% if @agency_code.errors[:company_name].any? %>
           <div class="text-danger small mt-1"><%= @agency_code.errors[:company_name].first %></div>
         <% end %>
