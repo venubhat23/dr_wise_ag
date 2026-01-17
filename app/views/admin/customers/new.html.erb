@@ -32,6 +32,9 @@
 
 <%= form_with model: [:admin, @customer], local: true, multipart: true, class: "needs-validation", novalidate: true, data: { turbo: false } do |form| %>
 
+  <!-- Hidden field for lead_id if creating from lead -->
+  <%= form.hidden_field :lead_id if @customer.lead_id.present? %>
+
   <!-- 1. Customer Type Selection -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-transparent border-0 d-flex align-items-center">

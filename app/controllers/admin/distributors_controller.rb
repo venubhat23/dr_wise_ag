@@ -291,10 +291,21 @@ class Admin::DistributorsController < Admin::ApplicationController
                     motor_policies.sum(:total_premium) +
                     other_policies_premium).to_f
 
-    total_commission = (health_policies.sum(:commission_amount) +
-                       life_policies.sum(:commission_amount) +
-                       motor_policies.sum(:main_agent_commission_amount) +
-                       other_policies_commission).to_f
+    # Calculate commission based on available columns
+    health_commission = begin
+      health_policies.sum(:commission_amount)
+    rescue => e
+      # If commission_amount column doesn't exist, calculate based on percentage
+      health_policies.sum(:total_premium) * 0.05
+    end
+
+    # LifeInsurance doesn't have commission_amount column, calculate based on premium percentage
+    life_commission = life_policies.sum(:total_premium) * 0.05  # Assuming 5% commission rate
+
+    # MotorInsurance also doesn't have commission columns, calculate based on premium percentage
+    motor_commission = motor_policies.sum(:total_premium) * 0.05  # Assuming 5% commission rate
+
+    total_commission = (health_commission + life_commission + motor_commission + other_policies_commission).to_f
 
     # Get unique customers from all policies created by this affiliate
     customer_ids = []

@@ -102,8 +102,8 @@ class Admin::LeadsController < Admin::ApplicationController
 
     # Set is_branch_out flag and parent_lead_id if in branch out mode
     if session[:branch_out_mode] && session[:source_lead_id]
-      @lead.is_branch_out = true if @lead.respond_to?(:is_branch_out=)
-      @lead.parent_lead_id = session[:source_lead_id] if @lead.respond_to?(:parent_lead_id=)
+      @lead.is_branch_out = true
+      @lead.parent_lead_id = session[:source_lead_id]
     end
 
     if @lead.save
@@ -206,6 +206,7 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # PATCH /admin/leads/1/convert_to_customer_branch_out - Special handling for branch out leads
   def convert_to_customer_branch_out
+    debugger
     unless @lead.can_convert_to_customer?
       redirect_to admin_leads_path, alert: 'Lead cannot be converted at this stage.'
       return
@@ -222,7 +223,7 @@ class Admin::LeadsController < Admin::ApplicationController
       redirect_to admin_leads_path, alert: 'Parent lead not found.'
       return
     end
-
+    debugger
     unless parent_lead.converted_customer_id.present?
       redirect_to admin_leads_path, alert: 'Parent lead has not been converted to customer yet.'
       return
@@ -848,8 +849,8 @@ class Admin::LeadsController < Admin::ApplicationController
     @lead.notes = "Branched out from lead ID: #{source_lead.lead_id}\n\n" + (@lead.notes || '')
 
     # Set branch out flag and parent lead reference
-    @lead.is_branch_out = true if @lead.respond_to?(:is_branch_out=)
-    @lead.parent_lead_id = source_lead.id if @lead.respond_to?(:parent_lead_id=)
+    @lead.is_branch_out = true
+    @lead.parent_lead_id = source_lead.id
 
     # Store source lead ID for reference
     session[:source_lead_id] = source_lead.id

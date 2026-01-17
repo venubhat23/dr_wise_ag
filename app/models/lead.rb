@@ -30,7 +30,7 @@ class Lead < ApplicationRecord
   # Optional validations
   validates :gender, inclusion: { in: ['male', 'female', 'other'] }, allow_blank: true
   validates :marital_status, inclusion: { in: ['single', 'married', 'divorced', 'widowed'] }, allow_blank: true
-  validates :pan_no, uniqueness: { message: "PAN number already exists" }, format: { with: /\A[A-Z]{5}\d{4}[A-Z]\z/ }, allow_blank: true
+  validates :pan_no, uniqueness: { message: "PAN number already exists" }, format: { with: /\A[A-Z]{5}\d{4}[A-Z]\z/ }, allow_blank: true, unless: :is_branch_out?
   validates :gst_no, format: { with: /\A\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z\d][A-Z\d]\z/ }, allow_blank: true
   validates :height, numericality: { greater_than: 3.5, less_than_or_equal_to: 8.0 }, allow_blank: true
   validates :weight, numericality: { greater_than: 10, less_than_or_equal_to: 300 }, allow_blank: true
@@ -440,7 +440,7 @@ class Lead < ApplicationRecord
 
   # Check if this is a branch out lead
   def is_branch_out?
-    respond_to?(:is_branch_out) && is_branch_out == true
+    is_branch_out == true
   end
 
   # Custom validation for unique contact number and product combination

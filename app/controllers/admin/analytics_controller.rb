@@ -51,6 +51,13 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
     # Renewal analytics
     @renewal_analytics = calculate_renewal_analytics
+
+    # Agent performance analytics
+    @agent_performance = calculate_agent_performance
+
+    # Commission metrics
+    @commissions_due = @commission_summary[:total_commission_due] || 0
+    @conversion_rate = calculate_conversion_rate
   end
 
   def calculate_total_policies
@@ -209,5 +216,53 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
     return 0 if total_eligible == 0
     ((renewed.to_f / total_eligible.to_f) * 100).round(1)
+  end
+
+  def calculate_agent_performance
+    # Calculate agent performance based on premium collected
+    agent_premiums = {}
+
+    # Get performance from health insurance
+    HealthInsurance.joins(:sub_agent)
+                   .group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)")
+                   .sum(:total_premium)
+                   .each do |name, premium|
+      agent_premiums[name] = (agent_premiums[name] || 0) + premium
+    end
+
+    # Get performance from life insurance
+    LifeInsurance.joins(:sub_agent)
+                 .group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)")
+                 .sum(:total_premium)
+                 .each do |name, premium|
+      agent_premiums[name] = (agent_premiums[name] || 0) + premium
+    end
+
+    # Get performance from motor insurance
+    MotorInsurance.joins(:sub_agent)
+                  .group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)")
+                  .sum(:total_premium)
+                  .each do |name, premium|
+      agent_premiums[name] = (agent_premiums[name] || 0) + premium
+    end
+
+    # Sort by premium amount and return hash
+    agent_premiums.sort_by { |name, premium| -premium }.to_h
+  rescue => e
+    # Return empty hash if there's an error
+    Rails.logger.error "Error calculating agent performance: #{e.message}"
+    {}
+  end
+
+  def calculate_conversion_rate
+    # Calculate lead to policy conversion rate
+    total_leads = Lead.count
+    total_policies = @total_policies
+
+    return 0 if total_leads == 0
+    ((total_policies.to_f / total_leads.to_f) * 100).round(1)
+  rescue => e
+    Rails.logger.error "Error calculating conversion rate: #{e.message}"
+    0
   end
 end

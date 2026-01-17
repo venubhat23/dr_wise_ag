@@ -40,9 +40,9 @@
 
 <%= form_with model: [:admin, @lead || Lead.new], local: true, class: "needs-validation", novalidate: true do |form| %>
   <!-- Hidden fields for branch out -->
-  <% if session[:branch_out_mode] && @lead&.respond_to?(:is_branch_out) %>
+  <% if session[:branch_out_mode] %>
     <%= form.hidden_field :is_branch_out, value: true %>
-    <% if session[:source_lead_id] && @lead&.respond_to?(:parent_lead_id) %>
+    <% if session[:source_lead_id] %>
       <%= form.hidden_field :parent_lead_id, value: session[:source_lead_id] %>
     <% end %>
   <% end %>

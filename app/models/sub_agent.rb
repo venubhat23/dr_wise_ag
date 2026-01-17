@@ -15,8 +15,7 @@ class SubAgent < ApplicationRecord
 
   # Store plain password for display purposes
   attr_accessor :store_plain_password, :plain_password, :original_password
-  # Virtual attributes for state and city names
-  attr_accessor :state, :city
+  # Note: state and city are now real database columns, not virtual attributes
   before_save :store_password_if_changed
   before_save :set_location_ids_from_names
 
@@ -121,23 +120,7 @@ class SubAgent < ApplicationRecord
     active? && !deactivated?
   end
 
-  # Virtual attribute getters for state and city names from IDs
-  def state
-    @state || find_state_name_by_id(state_id)
-  end
-
-  def city
-    @city || find_city_name_by_id(city_id)
-  end
-
-  # Virtual attribute setters
-  def state=(value)
-    @state = value
-  end
-
-  def city=(value)
-    @city = value
-  end
+  # Note: state and city are now real database columns, so getters/setters are not needed
 
   private
 
@@ -189,8 +172,16 @@ class SubAgent < ApplicationRecord
 
   def find_city_name_by_id(city_id)
     return nil unless city_id.present?
-    # This is more complex since city_id is generated from city name hash
-    # For now, return nil since we don't have a reliable reverse lookup
+    # Search through all states and cities to find the one with matching city_id
+    LocationData::STATES_AND_CITIES.each do |state_key, state_data|
+      if state_data[:cities].is_a?(Array)
+        state_data[:cities].each do |city_name|
+          if (city_name.hash.abs % 100000) == city_id
+            return city_name
+          end
+        end
+      end
+    end
     nil
   end
 

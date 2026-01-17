@@ -423,7 +423,7 @@
           </tr>
         </thead>
         <tbody>
-          <% @agent_performance.first(5).each do |affiliate_name, premium| %>
+          <% (@agent_performance&.first(5) || {}).each do |affiliate_name, premium| %>
             <tr>
               <td style="font-weight: 600;"><%= affiliate_name %></td>
               <td>

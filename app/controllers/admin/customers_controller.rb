@@ -644,11 +644,11 @@ class Admin::CustomersController < Admin::ApplicationController
         @customer.business_job = @lead.business_job
 
         # Map business/job name with fallbacks
-        @customer.business_name = @lead.business_name.presence || @lead.business_job_name
-        @customer.job_name = @lead.job_name.presence || @lead.business_job_name
+        @customer.business_name = @lead.business_name
+        @customer.job_name = @lead.job_name
         @customer.occupation = @lead.occupation
 
-        @customer.type_of_duty = @lead.type_of_duty.presence || @lead.duty_type
+        @customer.type_of_duty = @lead.type_of_duty
         @customer.annual_income = @lead.annual_income
 
         # Map PAN to both fields for compatibility
@@ -705,6 +705,12 @@ class Admin::CustomersController < Admin::ApplicationController
 
     @customer = Customer.new(customer_params)
 
+    # Handle lead_id parameter - set lead_id from URL parameter if present and not already set
+    if params[:lead_id].present? && @customer.lead_id.blank?
+      @lead = Lead.find(params[:lead_id])
+      @customer.lead_id = @lead.lead_id
+    end
+
     begin
       ActiveRecord::Base.transaction do
         if @customer.save
@@ -736,7 +742,6 @@ class Admin::CustomersController < Admin::ApplicationController
                   mobile: @customer.mobile,
                   password: generated_password,
                   password_confirmation: generated_password,
-                  original_password: generated_password,
                   user_type: 'customer',
                   status: true
                 )
@@ -758,7 +763,6 @@ class Admin::CustomersController < Admin::ApplicationController
                 mobile: @customer.mobile,
                 password: generated_password,
                 password_confirmation: generated_password,
-                original_password: generated_password,
                 user_type: 'customer',
                 status: true
               )
@@ -942,7 +946,7 @@ class Admin::CustomersController < Admin::ApplicationController
       :gender, :occupation, :job_name, :annual_income, :nominee_name, :nominee_relation,
       :nominee_date_of_birth, :status, :birth_place, :height_feet, :weight_kg, :education,
       :marital_status, :business_job, :business_name, :type_of_duty, :additional_information, :additional_info,
-      :added_by, :sub_agent_id, :age,
+      :added_by, :sub_agent_id, :age, :lead_id,
       profile_image: [],
       documents_attributes: [:id, :document_type, :file, :_destroy],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy],
