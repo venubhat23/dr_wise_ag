@@ -67,14 +67,19 @@ class Admin::DistributorsController < Admin::ApplicationController
   def create
     Rails.logger.info "=== DISTRIBUTOR CREATE PARAMS ==="
     Rails.logger.info "Documents attributes: #{params[:distributor][:distributor_documents_attributes].inspect}"
+    Rails.logger.info "Assigned affiliate IDs from params: #{params[:distributor][:assigned_affiliate_ids].inspect}"
 
-    @distributor = Distributor.new(distributor_params)
+    # Extract permitted parameters
+    permitted_params = distributor_params
+    assigned_affiliate_ids = permitted_params.delete(:assigned_affiliate_ids)
+
+    @distributor = Distributor.new(permitted_params)
     @distributor.role_id = 'distributor'
 
     if @distributor.save
       # Create user account for ambassador login (same logic as customers)
       create_ambassador_user_account(@distributor)
-      handle_affiliate_assignments(@distributor, params[:distributor][:assigned_affiliate_ids])
+      handle_affiliate_assignments(@distributor, assigned_affiliate_ids)
       Rails.logger.info "Documents after create: #{@distributor.distributor_documents.count}"
       redirect_to admin_distributors_path, notice: 'Ambassador was successfully created with login credentials.'
     else
@@ -88,11 +93,16 @@ class Admin::DistributorsController < Admin::ApplicationController
   def update
     Rails.logger.info "=== DISTRIBUTOR UPDATE PARAMS ==="
     Rails.logger.info "Documents attributes: #{params[:distributor][:distributor_documents_attributes].inspect}"
+    Rails.logger.info "Assigned affiliate IDs from params: #{params[:distributor][:assigned_affiliate_ids].inspect}"
 
-    if @distributor.update(distributor_params)
-      handle_affiliate_assignments(@distributor, params[:distributor][:assigned_affiliate_ids])
+    # Extract permitted parameters
+    permitted_params = distributor_params
+    assigned_affiliate_ids = permitted_params.delete(:assigned_affiliate_ids)
+
+    if @distributor.update(permitted_params)
+      handle_affiliate_assignments(@distributor, assigned_affiliate_ids)
       Rails.logger.info "Documents after update: #{@distributor.distributor_documents.count}"
-      redirect_to admin_distributors_path, notice: 'Distributor was successfully updated.'
+      redirect_to admin_distributors_path, notice: 'Ambassador was successfully updated.'
     else
       Rails.logger.error "Update errors: #{@distributor.errors.full_messages}"
       @distributor.distributor_documents.build if @distributor.distributor_documents.empty?
@@ -232,22 +242,37 @@ class Admin::DistributorsController < Admin::ApplicationController
       :state_id, :city_id, :state, :city, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
       :account_holder_name, :account_type, :upi_id, :status, :upload_main_document,
+      assigned_affiliate_ids: [],
       distributor_documents_attributes: [:id, :document_type, :document_file, :_destroy],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
     )
   end
 
   def handle_affiliate_assignments(distributor, assigned_affiliate_ids)
-    return unless assigned_affiliate_ids.is_a?(Array)
+    Rails.logger.info "=== AFFILIATE ASSIGNMENT DEBUG ==="
+    Rails.logger.info "assigned_affiliate_ids: #{assigned_affiliate_ids.inspect}"
+    Rails.logger.info "assigned_affiliate_ids class: #{assigned_affiliate_ids.class}"
 
-    # Remove existing assignments
+    # Always remove existing assignments first
+    Rails.logger.info "Removing existing assignments for distributor #{distributor.id}"
     distributor.distributor_assignments.destroy_all
+
+    # Handle the case where no affiliates are selected (unassign all)
+    if assigned_affiliate_ids.nil? || assigned_affiliate_ids.empty?
+      Rails.logger.info "No affiliates selected - all assignments removed"
+      return
+    end
+
+    # Ensure we have an array
+    assigned_affiliate_ids = Array(assigned_affiliate_ids) unless assigned_affiliate_ids.is_a?(Array)
 
     # Create new assignments
     assigned_affiliate_ids.reject(&:blank?).each do |sub_agent_id|
       sub_agent = SubAgent.find_by(id: sub_agent_id)
       if sub_agent
-        # Remove any existing assignment for this sub_agent
+        Rails.logger.info "Assigning affiliate #{sub_agent.display_name} (ID: #{sub_agent.id}) to distributor #{distributor.id}"
+
+        # Remove any existing assignment for this sub_agent to other distributors
         DistributorAssignment.where(sub_agent: sub_agent).destroy_all
 
         # Create new assignment
@@ -255,8 +280,12 @@ class Admin::DistributorsController < Admin::ApplicationController
           sub_agent: sub_agent,
           assigned_at: Time.current
         )
+      else
+        Rails.logger.warn "SubAgent with ID #{sub_agent_id} not found"
       end
     end
+
+    Rails.logger.info "Final assignment count for distributor #{distributor.id}: #{distributor.distributor_assignments.count}"
   end
 
   def calculate_affiliate_stats(affiliate)

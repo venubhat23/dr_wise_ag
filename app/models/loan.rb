@@ -8,16 +8,26 @@ class Loan < ApplicationRecord
   validates :loan_term, presence: true, numericality: { greater_than: 0 }
   validates :loan_date, presence: true
 
-  # Enums
-  enum :status, { active: true, closed: false }
-
   # Scopes
   scope :by_type, ->(type) { where(loan_type: type) }
   scope :active_loans, -> { where(status: true) }
+  scope :closed_loans, -> { where(status: false) }
 
   # Instance methods
   def display_name
     "#{loan_type} Loan - ₹#{loan_amount}"
+  end
+
+  def active?
+    status == true
+  end
+
+  def closed?
+    status == false
+  end
+
+  def status_name
+    status? ? 'Active' : 'Closed'
   end
 
   def calculate_emi
