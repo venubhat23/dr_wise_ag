@@ -222,7 +222,6 @@ class Admin::LeadsController < Admin::ApplicationController
       redirect_to admin_leads_path, alert: 'Parent lead not found.'
       return
     end
-    debugger
     unless parent_lead.converted_customer_id.present?
       redirect_to admin_leads_path, alert: 'Parent lead has not been converted to customer yet.'
       return
