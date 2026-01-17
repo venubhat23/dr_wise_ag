@@ -557,14 +557,14 @@ class Lead < ApplicationRecord
   end
 
   def set_name_from_customer_details
-    if name.blank?
+    if name.blank? || name == 'Placeholder'
       if individual? && first_name.present? && last_name.present?
         self.name = "#{first_name} #{middle_name} #{last_name}".strip.squeeze(' ')
       elsif corporate? && company_name.present?
         self.name = company_name
       else
         # Fallback for cases where customer type isn't set yet
-        self.name = 'Lead' if name.blank?
+        self.name = 'Lead' if name.blank? || name == 'Placeholder'
       end
     end
   end

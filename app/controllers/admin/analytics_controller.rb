@@ -58,6 +58,10 @@ class Admin::AnalyticsController < Admin::ApplicationController
     # Commission metrics
     @commissions_due = @commission_summary[:total_commission_due] || 0
     @conversion_rate = calculate_conversion_rate
+
+    # Additional metrics for KPI cards
+    @avg_policy_value = calculate_avg_policy_value
+    @customer_retention = calculate_customer_retention
   end
 
   def calculate_total_policies
@@ -263,6 +267,37 @@ class Admin::AnalyticsController < Admin::ApplicationController
     ((total_policies.to_f / total_leads.to_f) * 100).round(1)
   rescue => e
     Rails.logger.error "Error calculating conversion rate: #{e.message}"
+    0
+  end
+
+  def calculate_avg_policy_value
+    # Calculate average policy value across all insurance types
+    return 0 if @total_policies == 0
+
+    total_premium = @total_premium || 0
+    (total_premium.to_f / @total_policies.to_f).round(0)
+  rescue => e
+    Rails.logger.error "Error calculating average policy value: #{e.message}"
+    0
+  end
+
+  def calculate_customer_retention
+    # Calculate customer retention rate based on customers with multiple policies
+    total_customers = Customer.count
+    return 0 if total_customers == 0
+
+    # Count customers with more than one policy across all insurance types
+    customers_with_multiple_policies = Customer.joins(
+      "LEFT JOIN health_insurances ON health_insurances.customer_id = customers.id " +
+      "LEFT JOIN life_insurances ON life_insurances.customer_id = customers.id " +
+      "LEFT JOIN motor_insurances ON motor_insurances.customer_id = customers.id"
+    ).group('customers.id')
+     .having('COUNT(health_insurances.id) + COUNT(life_insurances.id) + COUNT(motor_insurances.id) > 1')
+     .count.keys.length
+
+    ((customers_with_multiple_policies.to_f / total_customers.to_f) * 100).round(1)
+  rescue => e
+    Rails.logger.error "Error calculating customer retention: #{e.message}"
     0
   end
 end
