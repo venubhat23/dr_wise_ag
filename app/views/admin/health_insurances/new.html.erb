@@ -111,7 +111,7 @@
                       ['Broking', 'broking']
                     ], @health_insurance.broker_code_type),
                     { prompt: 'Select Broker Code' },
-                    { class: "form-select", id: "health_insurance_broker_code_type" } %>
+                    { class: "form-control", id: "health_insurance_broker_code_type" } %>
               </div>
 
               <!-- 2nd: Agency Code (shows Agents when Direct selected, Brokers when Broking selected) -->
@@ -120,7 +120,7 @@
                 <%= form.select :agency_code_id,
                     options_for_select([['Select...', '']]),
                     { prompt: 'Search and select...' },
-                    { class: "form-select", required: true, id: "health_insurance_agency_code_id" } %>
+                    { class: "form-control", required: true, id: "health_insurance_agency_code_id" } %>
               </div>
 
               <!-- Hidden field for broker_id when needed -->
@@ -132,7 +132,7 @@
                 <%= form.select :insurance_company_name,
                     options_for_select([['Select Company', '']]),
                     { prompt: 'Search and select company...' },
-                    { class: "form-select", required: true, id: "health_insurance_insurance_company_name" } %>
+                    { class: "form-control", required: true, id: "health_insurance_insurance_company_name" } %>
               </div>
 
               <div class="col-md-6 mb-3">

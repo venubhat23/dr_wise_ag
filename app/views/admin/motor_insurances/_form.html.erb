@@ -378,30 +378,38 @@
     </div>
     <div class="card-body">
       <div class="row">
-        <div class="col-md-6 mb-3">
-          <%= form.label :broker_id, "Broker Code", class: "form-label" %>
-          <%= form.select :broker_id,
-              options_for_select(@brokers&.map { |b| [b.name, b.id] } || [], @motor_insurance.broker_id),
+        <!-- 1st: Broker Code dropdown with Direct/Broking options -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :broker_code_type, "Broker Code", class: "form-label" %>
+          <%= form.select :broker_code_type,
+              options_for_select([
+                ['Direct', 'direct'],
+                ['Broking', 'broking']
+              ], @motor_insurance.broker_code_type),
               { prompt: 'Select Broker Code' },
-              { class: "form-control" } %>
+              { class: "form-control", id: "motor_insurance_broker_code_type" } %>
         </div>
 
-        <div class="col-md-6 mb-3">
+        <!-- 2nd: Agency Code (shows Agents when Direct selected, Brokers when Broking selected) -->
+        <div class="col-md-4 mb-3">
           <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
+          <span id="agency_code_label_text"> (All Agents)*</span>
           <%= form.select :agency_code_id,
-              options_for_select(@agency_codes&.map { |a| [a.code, a.id] } || [], @motor_insurance.agency_code_id),
-              { prompt: 'Select Agency Code' },
-              { class: "form-control" } %>
+              options_for_select([['Select...', '']]),
+              { prompt: 'Search and select...' },
+              { class: "form-control", required: true, id: "motor_insurance_agency_code_id" } %>
         </div>
-      </div>
 
-      <div class="row">
-        <div class="col-md-12 mb-3">
+        <!-- Hidden field for broker_id when needed -->
+        <%= form.hidden_field :broker_id, id: "broker_id_hidden" %>
+
+        <!-- 3rd: Insurance Company Name (Dynamic based on Agent/Broker selection) -->
+        <div class="col-md-4 mb-3">
           <%= form.label :insurance_company_name, "Insurance Company Name*", class: "form-label" %>
           <%= form.select :insurance_company_name,
-              options_for_select(@insurance_companies&.map { |c| [c, c] } || [], @motor_insurance.insurance_company_name),
-              { prompt: 'Select Insurance Company' },
-              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:insurance_company_name].any?}", required: true } %>
+              options_for_select([['Select Company', '']]),
+              { prompt: 'Search and select company...' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:insurance_company_name].any?}", required: true, id: "motor_insurance_insurance_company_name" } %>
           <% if @motor_insurance.errors[:insurance_company_name].any? %>
             <div class="invalid-feedback"><%= @motor_insurance.errors[:insurance_company_name].first %></div>
           <% end %>
@@ -860,4 +868,13 @@ document.addEventListener('DOMContentLoaded', function() {
   calculateTotalIDV();
   calculateCommissions();
 });
+</script>
+
+<!-- Dynamic dropdown behavior -->
+<script type="module">
+  import { initializeDynamicDropdowns } from "dynamic_insurance_dropdowns";
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initializeDynamicDropdowns();
+  });
 </script>

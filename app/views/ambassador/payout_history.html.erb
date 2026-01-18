@@ -4,15 +4,11 @@
   <div class="col-12">
     <div class="d-flex justify-content-between align-items-center">
       <div>
-        <h1 class="h3 mb-0 text-gray-800">
-          <i class="bi bi-wallet2 me-2 text-primary"></i>
-          Payout History
-        </h1>
+        <h1 class="h3 mb-0 text-gray-800">Payout History</h1>
         <p class="text-muted mt-1">Track your commission payouts and earnings</p>
       </div>
       <div>
         <%= link_to ambassador_dashboard_path, class: "btn btn-outline-primary" do %>
-          <i class="bi bi-arrow-left me-2"></i>
           Back to Dashboard
         <% end %>
       </div>
@@ -20,328 +16,66 @@
   </div>
 </div>
 
-<!-- Payout Summary Cards -->
-<div class="row g-4 mb-5">
-  <div class="col-xl-3 col-md-6">
-    <div class="card border-left-success shadow h-100 py-2">
-      <div class="card-body">
-        <div class="row no-gutters align-items-center">
-          <div class="col mr-2">
-            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-              Total Earned
-            </div>
-            <div class="h5 mb-0 font-weight-bold text-gray-800">
-              ₹<%= number_with_delimiter(@total_earned.to_i, delimiter: ',') %>
-            </div>
-            <div class="text-success small">
-              <span class="text-success">
-                <i class="bi bi-check-circle"></i>
-                Paid Amount
-              </span>
-            </div>
-          </div>
-          <div class="col-auto">
-            <i class="bi bi-currency-rupee fa-2x text-gray-300"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-xl-3 col-md-6">
-    <div class="card border-left-warning shadow h-100 py-2">
-      <div class="card-body">
-        <div class="row no-gutters align-items-center">
-          <div class="col mr-2">
-            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-              Pending Amount
-            </div>
-            <div class="h5 mb-0 font-weight-bold text-gray-800">
-              ₹<%= number_with_delimiter(@pending_amount.to_i, delimiter: ',') %>
-            </div>
-            <div class="text-warning small">
-              <span class="text-warning">
-                <i class="bi bi-clock"></i>
-                Awaiting Payout
-              </span>
-            </div>
-          </div>
-          <div class="col-auto">
-            <i class="bi bi-hourglass-split fa-2x text-gray-300"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-xl-3 col-md-6">
-    <div class="card border-left-info shadow h-100 py-2">
-      <div class="card-body">
-        <div class="row no-gutters align-items-center">
-          <div class="col mr-2">
-            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-              Total Policies
-            </div>
-            <div class="h5 mb-0 font-weight-bold text-gray-800">
-              <%= @total_policies %>
-            </div>
-            <div class="text-info small">
-              <span class="text-info">
-                <i class="bi bi-file-text"></i>
-                Commission Generated
-              </span>
-            </div>
-          </div>
-          <div class="col-auto">
-            <i class="bi bi-file-text fa-2x text-gray-300"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-xl-3 col-md-6">
-    <div class="card border-left-primary shadow h-100 py-2">
-      <div class="card-body">
-        <div class="row no-gutters align-items-center">
-          <div class="col mr-2">
-            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-              Avg per Payout
-            </div>
-            <div class="h5 mb-0 font-weight-bold text-gray-800">
-              ₹<%= @payouts.count > 0 ? number_with_delimiter(((@total_earned + @pending_amount) / @payouts.count).to_i, delimiter: ',') : '0' %>
-            </div>
-            <div class="text-primary small">
-              <span class="text-primary">
-                <i class="bi bi-calculator"></i>
-                Average Amount
-              </span>
-            </div>
-          </div>
-          <div class="col-auto">
-            <i class="bi bi-calculator fa-2x text-gray-300"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Payout History Table -->
-<div class="card shadow mb-4">
-  <div class="card-header py-3 d-flex justify-content-between align-items-center">
-    <h6 class="m-0 font-weight-bold text-primary">
-      <i class="bi bi-list me-2"></i>
-      Payout Transactions
-    </h6>
-    <div class="dropdown">
-      <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-        <i class="bi bi-funnel me-1"></i>
-        Filter
-      </button>
-      <ul class="dropdown-menu">
-        <li><%= link_to "All", ambassador_payout_history_path, class: "dropdown-item" %></li>
-        <li><%= link_to "Paid", ambassador_payout_history_path(status: 'paid'), class: "dropdown-item" %></li>
-        <li><%= link_to "Pending", ambassador_payout_history_path(status: 'pending'), class: "dropdown-item" %></li>
-        <li><%= link_to "Processing", ambassador_payout_history_path(status: 'processing'), class: "dropdown-item" %></li>
-      </ul>
-    </div>
+<div class="card">
+  <div class="card-header">
+    <h6 class="m-0 font-weight-bold text-primary">Payout History</h6>
   </div>
   <div class="card-body">
     <% if @payouts.any? %>
       <div class="table-responsive">
-        <table class="table table-bordered table-hover">
-          <thead class="table-primary">
+        <table class="table table-striped">
+          <thead>
             <tr>
-              <th>Payout ID</th>
-              <th>Amount</th>
+              <th>Policy Number</th>
+              <th>Customer</th>
+              <th>Type</th>
+              <th>Premium</th>
+              <th>Commission</th>
               <th>Status</th>
-              <th>Created Date</th>
-              <th>Payout Date</th>
-              <th>Processed By</th>
-              <th>Reference</th>
-              <th>Actions</th>
+              <th>Date</th>
             </tr>
           </thead>
           <tbody>
             <% @payouts.each do |payout| %>
+              <%
+                policy = nil
+                case payout.policy_type
+                when 'health'
+                  policy = HealthInsurance.find_by(id: payout.policy_id) if defined?(HealthInsurance)
+                when 'life'
+                  policy = LifeInsurance.find_by(id: payout.policy_id) if defined?(LifeInsurance)
+                when 'motor'
+                  policy = MotorInsurance.find_by(id: payout.policy_id) if defined?(MotorInsurance)
+                end
+              %>
               <tr>
-                <td class="fw-bold">
-                  #<%= payout.id.to_s.rjust(6, '0') %>
-                </td>
-                <td>
-                  <span class="fw-bold text-success">
-                    ₹<%= number_with_delimiter((payout.payout_amount || 0).to_i, delimiter: ',') %>
-                  </span>
-                </td>
+                <td><%= policy&.policy_number || "Policy ##{payout.policy_id}" %></td>
+                <td><%= policy&.customer&.display_name || 'Customer' %></td>
+                <td><%= payout.policy_type.capitalize %></td>
+                <td>₹<%= number_with_delimiter((policy&.total_premium || 0).to_i, delimiter: ',') %></td>
+                <td>₹<%= number_with_delimiter((payout.payout_amount || 0).to_i, delimiter: ',') %></td>
                 <td>
                   <% case payout.status.downcase %>
                   <% when 'paid' %>
-                    <span class="badge bg-success">
-                      <i class="bi bi-check-circle me-1"></i>
-                      Paid
-                    </span>
+                    <span class="badge bg-success">Paid</span>
                   <% when 'pending' %>
-                    <span class="badge bg-warning">
-                      <i class="bi bi-clock me-1"></i>
-                      Pending
-                    </span>
-                  <% when 'processing' %>
-                    <span class="badge bg-info">
-                      <i class="bi bi-arrow-repeat me-1"></i>
-                      Processing
-                    </span>
-                  <% when 'cancelled' %>
-                    <span class="badge bg-danger">
-                      <i class="bi bi-x-circle me-1"></i>
-                      Cancelled
-                    </span>
+                    <span class="badge bg-warning">Pending</span>
                   <% else %>
-                    <span class="badge bg-secondary">
-                      <%= payout.status.humanize %>
-                    </span>
+                    <span class="badge bg-secondary"><%= payout.status.humanize %></span>
                   <% end %>
                 </td>
-                <td>
-                  <%= payout.created_at.strftime("%b %d, %Y") %>
-                  <br><small class="text-muted"><%= payout.created_at.strftime("%I:%M %p") %></small>
-                </td>
-                <td>
-                  <% if payout.payout_date.present? %>
-                    <%= payout.payout_date.strftime("%b %d, %Y") %>
-                  <% else %>
-                    <span class="text-muted">-</span>
-                  <% end %>
-                </td>
-                <td>
-                  <%= payout.processed_by.presence || "-" %>
-                </td>
-                <td>
-                  <%= payout.reference_number.presence || "-" %>
-                </td>
-                <td>
-                  <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#payoutModal<%= payout.id %>" title="View Details">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                    <% if payout.status == 'paid' %>
-                      <a href="#" class="btn btn-outline-success btn-sm" title="Download Receipt">
-                        <i class="bi bi-download"></i>
-                      </a>
-                    <% end %>
-                  </div>
-                </td>
+                <td><%= payout.created_at.strftime("%b %d, %Y") %></td>
               </tr>
-
-              <!-- Payout Detail Modal -->
-              <div class="modal fade" id="payoutModal<%= payout.id %>" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                  <div class="modal-content">
-                    <div class="modal-header">
-                      <h5 class="modal-title">
-                        <i class="bi bi-wallet2 me-2"></i>
-                        Payout Details #<%= payout.id.to_s.rjust(6, '0') %>
-                      </h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                      <div class="row">
-                        <div class="col-md-6">
-                          <h6 class="fw-bold">Payout Information</h6>
-                          <table class="table table-sm">
-                            <tr>
-                              <td class="fw-bold">Amount:</td>
-                              <td class="text-success fw-bold">₹<%= number_with_delimiter((payout.payout_amount || 0).to_i, delimiter: ',') %></td>
-                            </tr>
-                            <tr>
-                              <td class="fw-bold">Status:</td>
-                              <td><%= payout.status.humanize %></td>
-                            </tr>
-                            <tr>
-                              <td class="fw-bold">Created Date:</td>
-                              <td><%= payout.created_at.strftime("%B %d, %Y at %I:%M %p") %></td>
-                            </tr>
-                            <% if payout.payout_date.present? %>
-                              <tr>
-                                <td class="fw-bold">Payout Date:</td>
-                                <td><%= payout.payout_date.strftime("%B %d, %Y") %></td>
-                              </tr>
-                            <% end %>
-                            <% if payout.processed_by.present? %>
-                              <tr>
-                                <td class="fw-bold">Processed By:</td>
-                                <td><%= payout.processed_by %></td>
-                              </tr>
-                            <% end %>
-                            <% if payout.reference_number.present? %>
-                              <tr>
-                                <td class="fw-bold">Reference:</td>
-                                <td><%= payout.reference_number %></td>
-                              </tr>
-                            <% end %>
-                          </table>
-                        </div>
-                        <div class="col-md-6">
-                          <h6 class="fw-bold">Notes</h6>
-                          <% if payout.notes.present? %>
-                            <p class="text-muted"><%= payout.notes %></p>
-                          <% else %>
-                            <p class="text-muted">No additional notes</p>
-                          <% end %>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                      <% if payout.status == 'paid' %>
-                        <button type="button" class="btn btn-success">
-                          <i class="bi bi-download me-1"></i>
-                          Download Receipt
-                        </button>
-                      <% end %>
-                    </div>
-                  </div>
-                </div>
-              </div>
             <% end %>
           </tbody>
         </table>
       </div>
-
-      <!-- Pagination -->
-      <% if @payouts.respond_to?(:total_pages) %>
-        <div class="d-flex justify-content-between align-items-center mt-4">
-          <div class="text-muted">
-            Showing <%= @payouts.offset_value + 1 %> to <%= [@payouts.offset_value + @payouts.limit_value, @payouts.total_count].min %> of <%= @payouts.total_count %> entries
-          </div>
-          <%= paginate @payouts if @payouts.total_pages > 1 %>
-        </div>
-      <% end %>
     <% else %>
-      <div class="text-center text-muted py-5">
-        <i class="bi bi-wallet2 display-1"></i>
-        <h5 class="mt-3">No Payout History</h5>
-        <p>You don't have any payout records yet. Start earning commissions to see your payout history here.</p>
-        <%= link_to ambassador_dashboard_path, class: "btn btn-primary mt-3" do %>
-          <i class="bi bi-arrow-left me-2"></i>
-          Back to Dashboard
-        <% end %>
+      <div class="text-center py-4">
+        <h5>No Payout History</h5>
+        <p>You don't have any payout records yet.</p>
       </div>
     <% end %>
   </div>
 </div>
 
-<style>
-.border-left-primary {
-  border-left: .25rem solid #4e73df!important;
-}
-.border-left-success {
-  border-left: .25rem solid #1cc88a!important;
-}
-.border-left-info {
-  border-left: .25rem solid #36b9cc!important;
-}
-.border-left-warning {
-  border-left: .25rem solid #f6c23e!important;
-}
-</style>

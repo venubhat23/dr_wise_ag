@@ -116,37 +116,40 @@ class AmbassadorController < ApplicationController
                     motor_policies.sum(:total_premium) +
                     other_policies_premium).to_f
 
-    # Calculate commission based on available columns
-    health_commission = begin
-      if health_policies.column_names.include?('ambassador_commission_amount')
-        health_policies.sum(:ambassador_commission_amount)
-      elsif health_policies.column_names.include?('commission_amount')
-        health_policies.sum(:commission_amount)
-      else
-        health_policies.sum(:total_premium) * 0.02  # 2% default commission
+    # Calculate ambassador commission from commission_payouts table
+    health_commission = CommissionPayout.where(
+      policy_type: 'health',
+      policy_id: health_policies.pluck(:id),
+      payout_to: 'ambassador'
+    ).sum(:payout_amount).to_f
+
+    life_commission = CommissionPayout.where(
+      policy_type: 'life',
+      policy_id: life_policies.pluck(:id),
+      payout_to: 'ambassador'
+    ).sum(:payout_amount).to_f
+
+    motor_commission = CommissionPayout.where(
+      policy_type: 'motor',
+      policy_id: motor_policies.pluck(:id),
+      payout_to: 'ambassador'
+    ).sum(:payout_amount).to_f
+
+    other_commission = 0.0
+    if other_policies_count > 0
+      begin
+        other_policy_ids = OtherInsurance.where(sub_agent_id: affiliate.id).pluck(:id)
+        other_commission = CommissionPayout.where(
+          policy_type: 'other',
+          policy_id: other_policy_ids,
+          payout_to: 'ambassador'
+        ).sum(:payout_amount).to_f
+      rescue => e
+        other_commission = 0.0
       end
-    rescue => e
-      0.0
     end
 
-    life_commission = begin
-      if life_policies.column_names.include?('commission_amount')
-        life_policies.sum(:commission_amount)
-      else
-        life_policies.sum(:total_premium) * 0.05  # 5% default commission
-      end
-    rescue => e
-      0.0
-    end
-
-    motor_commission = begin
-      # MotorInsurance doesn't have commission amount columns, calculate basic commission
-      motor_policies.sum(:total_premium) * 0.05  # 5% default commission
-    rescue => e
-      0.0
-    end
-
-    total_commission = (health_commission + life_commission + motor_commission + other_policies_commission).to_f
+    total_commission = (health_commission + life_commission + motor_commission + other_commission).to_f
 
     # Get unique customers from all policies created by this affiliate
     customer_ids = []
@@ -160,9 +163,13 @@ class AmbassadorController < ApplicationController
       total_premium: total_premium,
       total_commission: total_commission,
       health_policies: health_policies.count,
+      health_commission: health_commission,
       life_policies: life_policies.count,
+      life_commission: life_commission,
       motor_policies: motor_policies.count,
+      motor_commission: motor_commission,
       other_policies: other_policies_count,
+      other_commission: other_commission,
       recent_policies: get_recent_policies_for_affiliate(affiliate),
       customers_count: unique_customers_count,
       joined_date: affiliate.created_at
@@ -208,7 +215,7 @@ class AmbassadorController < ApplicationController
         policy_number: policy.policy_number,
         customer: policy.customer&.display_name || 'Unknown',
         premium: policy.total_premium,
-        commission: policy.ambassador_commission_amount || 0,
+        commission: CommissionPayout.where(policy_type: 'health', policy_id: policy.id, payout_to: 'ambassador').sum(:payout_amount),
         created_at: policy.created_at
       }
     end
@@ -224,7 +231,7 @@ class AmbassadorController < ApplicationController
         policy_number: policy.policy_number,
         customer: policy.customer&.display_name || 'Unknown',
         premium: policy.total_premium,
-        commission: policy.commission_amount || 0,
+        commission: CommissionPayout.where(policy_type: 'life', policy_id: policy.id, payout_to: 'ambassador').sum(:payout_amount),
         created_at: policy.created_at
       }
     end
@@ -251,25 +258,40 @@ class AmbassadorController < ApplicationController
 
   def get_recent_commission_activity
     activities = []
+    affiliate_ids = @assigned_affiliates.pluck(:id)
 
-    # Get recent health insurance commissions
-    HealthInsurance.joins(:customer)
-                   .where(sub_agent_id: @assigned_affiliates.pluck(:id))
-                   .where('ambassador_commission_amount > 0')
-                   .order(created_at: :desc)
-                   .limit(10)
-                   .each do |policy|
+    # Get recent ambassador commission payouts for all policies handled by assigned affiliates
+    recent_payouts = CommissionPayout.where(payout_to: 'ambassador')
+                                    .order(payout_date: :desc, created_at: :desc)
+                                    .limit(10)
+
+    recent_payouts.each do |payout|
+      policy = nil
+      case payout.policy_type
+      when 'health'
+        policy = HealthInsurance.joins(:customer).find_by(id: payout.policy_id, sub_agent_id: affiliate_ids)
+        type = 'Health Insurance Commission'
+      when 'life'
+        policy = LifeInsurance.joins(:customer).find_by(id: payout.policy_id, sub_agent_id: affiliate_ids)
+        type = 'Life Insurance Commission'
+      when 'motor'
+        policy = MotorInsurance.joins(:customer).find_by(id: payout.policy_id, sub_agent_id: affiliate_ids)
+        type = 'Motor Insurance Commission'
+      end
+
+      next unless policy
+
       activities << {
-        type: 'Health Insurance Commission',
+        type: type,
         description: "Commission from #{policy.customer.display_name}",
-        amount: policy.ambassador_commission_amount,
+        amount: payout.payout_amount,
         policy_number: policy.policy_number,
-        date: policy.created_at,
-        status: 'earned'
+        date: payout.payout_date || policy.created_at,
+        status: payout.status
       }
     end
 
-    activities.sort_by { |a| a[:date] }.reverse.first(10)
+    activities
   end
 
   def get_monthly_commission_trends
@@ -280,15 +302,38 @@ class AmbassadorController < ApplicationController
 
       monthly_commission = 0
 
-      # Health insurance commissions for this month
-      monthly_commission += HealthInsurance.where(sub_agent_id: @assigned_affiliates.pluck(:id))
-                                          .where(created_at: month.beginning_of_month..month.end_of_month)
-                                          .sum(:ambassador_commission_amount).to_f
+      # Get health insurance policies for this month
+      health_policies = HealthInsurance.where(sub_agent_id: @assigned_affiliates.pluck(:id))
+                                      .where(created_at: month.beginning_of_month..month.end_of_month)
 
-      # Life insurance commissions for this month
-      monthly_commission += LifeInsurance.where(sub_agent_id: @assigned_affiliates.pluck(:id))
-                                        .where(created_at: month.beginning_of_month..month.end_of_month)
-                                        .sum(:commission_amount).to_f
+      # Calculate ambassador commission from commission payouts for health policies
+      monthly_commission += CommissionPayout.where(
+        policy_type: 'health',
+        policy_id: health_policies.pluck(:id),
+        payout_to: 'ambassador'
+      ).sum(:payout_amount).to_f
+
+      # Get life insurance policies for this month
+      life_policies = LifeInsurance.where(sub_agent_id: @assigned_affiliates.pluck(:id))
+                                  .where(created_at: month.beginning_of_month..month.end_of_month)
+
+      # Calculate ambassador commission from commission payouts for life policies
+      monthly_commission += CommissionPayout.where(
+        policy_type: 'life',
+        policy_id: life_policies.pluck(:id),
+        payout_to: 'ambassador'
+      ).sum(:payout_amount).to_f
+
+      # Get motor insurance policies for this month
+      motor_policies = MotorInsurance.where(sub_agent_id: @assigned_affiliates.pluck(:id))
+                                    .where(created_at: month.beginning_of_month..month.end_of_month)
+
+      # Calculate ambassador commission from commission payouts for motor policies
+      monthly_commission += CommissionPayout.where(
+        policy_type: 'motor',
+        policy_id: motor_policies.pluck(:id),
+        payout_to: 'ambassador'
+      ).sum(:payout_amount).to_f
 
       trends[month_key] = {
         month: month.strftime("%B %Y"),

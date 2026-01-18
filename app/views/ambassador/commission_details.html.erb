@@ -144,13 +144,13 @@
                 </td>
                 <td>
                   <div class="text-center">
-                    <div class="fw-bold">₹<%= number_with_delimiter((HealthInsurance.where(sub_agent_id: affiliate.id).sum(:ambassador_commission_amount) || 0).to_i, delimiter: ',') %></div>
+                    <div class="fw-bold">₹<%= number_with_delimiter((stats[:health_commission] || 0).to_i, delimiter: ',') %></div>
                     <small class="text-muted">(<%= stats[:health_policies] %> policies)</small>
                   </div>
                 </td>
                 <td>
                   <div class="text-center">
-                    <div class="fw-bold">₹<%= number_with_delimiter((LifeInsurance.where(sub_agent_id: affiliate.id).sum(:commission_amount) || 0).to_i, delimiter: ',') %></div>
+                    <div class="fw-bold">₹<%= number_with_delimiter((stats[:life_commission] || 0).to_i, delimiter: ',') %></div>
                     <small class="text-muted">(<%= stats[:life_policies] %> policies)</small>
                   </div>
                 </td>
@@ -190,10 +190,10 @@
             <tr class="table-secondary fw-bold">
               <td>Total</td>
               <td class="text-center">
-                ₹<%= number_with_delimiter((@assigned_affiliates || []).sum { |a| HealthInsurance.where(sub_agent_id: a.id).sum(:ambassador_commission_amount) || 0 }.to_i, delimiter: ',') %>
+                ₹<%= number_with_delimiter((@assigned_affiliates || []).sum { |a| @affiliate_stats&.dig(a.id, :health_commission) || 0 }.to_i, delimiter: ',') %>
               </td>
               <td class="text-center">
-                ₹<%= number_with_delimiter((@assigned_affiliates || []).sum { |a| LifeInsurance.where(sub_agent_id: a.id).sum(:commission_amount) || 0 }.to_i, delimiter: ',') %>
+                ₹<%= number_with_delimiter((@assigned_affiliates || []).sum { |a| @affiliate_stats&.dig(a.id, :life_commission) || 0 }.to_i, delimiter: ',') %>
               </td>
               <td class="text-center">
                 ₹<%= number_with_delimiter((@assigned_affiliates || []).sum { |a|
