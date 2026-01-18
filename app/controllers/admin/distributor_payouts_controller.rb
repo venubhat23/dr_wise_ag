@@ -641,7 +641,7 @@ class Admin::DistributorPayoutsController < ApplicationController
     paid_policies.each do |policy|
       # Get commission amount
       payout = Payout.find_by(policy_type: get_policy_type(policy), policy_id: policy.id)
-      commission = payout&.distributor_commission_amount || (policy.net_premium * 0.05)
+      commission = payout&.affiliate_commission_amount || (policy.net_premium * 0.05)
       total_commission += commission
     end
 
@@ -779,7 +779,7 @@ class Admin::DistributorPayoutsController < ApplicationController
       end
     end
 
-    Rails.logger.info "Generated ambassador invoice #{invoice.invoice_number} for distributor #{distributor.name} (#{distributor.id})"
+    Rails.logger.info "Generated ambassador invoice #{invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
   end
 
   def generate_ambassador_invoices_for_leads(lead_ids)
