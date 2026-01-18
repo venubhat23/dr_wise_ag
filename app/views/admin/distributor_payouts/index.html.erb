@@ -86,7 +86,7 @@
                   <div class="d-flex flex-wrap gap-1">
                     <% distributor_data[:leads].each do |lead_data| %>
                       <span class="badge <%= lead_data[:paid] ? 'bg-success' : 'bg-warning' %> text-dark">
-                        <%= lead_data[:lead].lead_id %>: <%= indian_currency(lead_data[:commission].to_i) %>
+                        <%= lead_data[:lead].lead_id %>: <%= indian_currency(lead_data[:commission].round) %>
                         <% if lead_data[:paid] %>
                           <i class="bi bi-check-circle ms-1"></i>
                         <% end %>
@@ -97,12 +97,12 @@
                 </td>
                 <td>
                   <span class="fw-bold text-dark">
-                    <%= indian_currency(distributor_data[:total_amount].to_i) %>
+                    <%= indian_currency(distributor_data[:total_amount].round) %>
                   </span>
                   <br>
                   <small class="text-muted">
-                    Paid: <%= indian_currency(distributor_data[:paid_amount].to_i) %> |
-                    Pending: <%= indian_currency(distributor_data[:pending_amount].to_i) %>
+                    Paid: <%= indian_currency(distributor_data[:paid_amount].round) %> |
+                    Pending: <%= indian_currency(distributor_data[:pending_amount].round) %>
                   </small>
                 </td>
                 <td>
@@ -112,7 +112,7 @@
                         <i class="bi bi-clock me-1"></i>Pending Payment
                       </span>
                       <small class="text-muted">
-                        <%= indian_currency(distributor_data[:pending_amount].to_i) %> pending
+                        <%= indian_currency(distributor_data[:pending_amount].round) %> pending
                       </small>
                     </div>
                   <% else %>
@@ -245,7 +245,7 @@
                 </td>
                 <td>
                   <span class="fw-bold text-success">
-                    <%= indian_currency(record.payout_amount.to_i) %>
+                    <%= indian_currency(record.payout_amount.round) %>
                   </span>
                 </td>
                 <td>

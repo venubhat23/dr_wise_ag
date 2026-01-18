@@ -52,8 +52,8 @@
                 <td><%= policy&.policy_number || "Policy ##{payout.policy_id}" %></td>
                 <td><%= policy&.customer&.display_name || 'Customer' %></td>
                 <td><%= payout.policy_type.capitalize %></td>
-                <td>₹<%= number_with_delimiter((policy&.total_premium || 0).to_i, delimiter: ',') %></td>
-                <td>₹<%= number_with_delimiter((payout.payout_amount || 0).to_i, delimiter: ',') %></td>
+                <td>₹<%= number_with_delimiter((policy&.total_premium || 0).round, delimiter: ',') %></td>
+                <td>₹<%= number_with_delimiter((payout.payout_amount || 0).round, delimiter: ',') %></td>
                 <td>
                   <% case payout.status.downcase %>
                   <% when 'paid' %>

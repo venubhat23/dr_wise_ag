@@ -1,565 +1,146 @@
 <% content_for :page_title, "Commission Details - #{@life_insurance.policy_number}" %>
 
-<div class="page-header">
-  <div class="page-title-wrapper">
-    <h1 class="page-title">
-      <i class="bi bi-graph-up-arrow me-2 text-primary"></i>
-      Commission Configuration
-    </h1>
-    <p class="page-subtitle">
-      <span class="badge bg-primary me-2"><%= @life_insurance.policy_number %></span>
-      <%= @life_insurance.customer&.display_name %> |
-      <span class="text-success fw-bold"><%= indian_currency(@life_insurance.net_premium) %></span>
-    </p>
-  </div>
-  <div class="page-actions">
-    <%= link_to admin_life_insurances_path, class: "btn btn-outline-secondary" do %>
-      <i class="bi bi-arrow-left me-1"></i>
-      Back to Life Insurances
-    <% end %>
-  </div>
-</div>
-
-<div class="row">
-  <div class="col-lg-8">
-    <!-- Policy Overview Card -->
-    <div class="card mb-4 border-0 shadow-sm">
-      <div class="card-header bg-gradient-primary text-white">
-        <h5 class="card-title mb-0">
-          <i class="bi bi-shield-check me-2"></i>
-          Policy Overview
-        </h5>
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="h3 mb-0 text-gray-800">Commission Details</h1>
+        <p class="text-muted mt-1">Track commission breakdown and payments</p>
       </div>
-      <div class="card-body">
-        <div class="row g-4">
-          <div class="col-md-6">
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="bi bi-file-text text-primary"></i>
-              </div>
-              <div class="stat-content">
-                <label class="stat-label">Policy Number</label>
-                <div class="stat-value"><%= @life_insurance.policy_number %></div>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="bi bi-building text-info"></i>
-              </div>
-              <div class="stat-content">
-                <label class="stat-label">Insurance Company</label>
-                <div class="stat-value"><%= @life_insurance.insurance_company_name %></div>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="bi bi-umbrella text-warning"></i>
-              </div>
-              <div class="stat-content">
-                <label class="stat-label">Sum Insured</label>
-                <div class="stat-value text-success"><%= indian_currency(@life_insurance.sum_insured) %></div>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="bi bi-currency-rupee text-success"></i>
-              </div>
-              <div class="stat-content">
-                <label class="stat-label">Net Premium</label>
-                <div class="stat-value fw-bold text-primary"><%= indian_currency(@life_insurance.net_premium) %></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Commission Configuration Card -->
-    <div class="card mb-4 border-0 shadow-sm">
-      <div class="card-header bg-gradient-success text-white">
-        <h5 class="card-title mb-0">
-          <i class="bi bi-calculator-fill me-2"></i>
-          Saved Commission Configuration
-        </h5>
-        <small class="opacity-75">Database values for this policy</small>
-      </div>
-      <div class="card-body">
-
-        <!-- Main Income Configuration -->
-        <div class="commission-section mb-4">
-          <div class="section-header">
-            <h6 class="section-title">
-              <i class="bi bi-wallet2 text-primary"></i>
-              Main Income
-            </h6>
-          </div>
-          <div class="row g-3">
-            <div class="col-md-6">
-              <div class="commission-card bg-primary-light">
-                <div class="commission-label">Percentage</div>
-                <div class="commission-value text-primary">
-                  <span class="value-large"><%= @life_insurance.main_income_percentage&.round(2) || 0 %>%</span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="commission-card bg-success-light">
-                <div class="commission-label">Amount</div>
-                <div class="commission-value text-success">
-                  <span class="value-large">₹<%= number_with_delimiter(@life_insurance.main_income_amount&.round(2) || 0) %></span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Affiliate Commission -->
-        <div class="commission-section mb-4">
-          <div class="section-header">
-            <h6 class="section-title">
-              <i class="bi bi-person-check text-info"></i>
-              Affiliate Commission
-            </h6>
-          </div>
-          <div class="row g-3">
-            <div class="col-md-3">
-              <div class="commission-card bg-info-light">
-                <div class="commission-label">Percentage</div>
-                <div class="commission-value text-info">
-                  <span class="value-medium"><%= @life_insurance.sub_agent_commission_percentage&.round(2) || 0 %>%</span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="commission-card bg-success-light">
-                <div class="commission-label">Amount</div>
-                <div class="commission-value text-success">
-                  <span class="value-medium">₹<%= number_with_delimiter(@life_insurance.sub_agent_commission_amount&.round(2) || 0) %></span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="commission-card bg-warning-light">
-                <div class="commission-label">TDS %</div>
-                <div class="commission-value text-warning">
-                  <span class="value-medium"><%= @life_insurance.sub_agent_tds_percentage&.round(2) || 0 %>%</span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="commission-card bg-success-light">
-                <div class="commission-label">After TDS</div>
-                <div class="commission-value text-success">
-                  <span class="value-medium">₹<%= number_with_delimiter(@life_insurance.sub_agent_after_tds_value&.round(2) || 0) %></span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Ambassador Commission -->
-        <div class="commission-section mb-4">
-          <div class="section-header">
-            <h6 class="section-title">
-              <i class="bi bi-truck text-primary"></i>
-              Ambassador Commission
-            </h6>
-          </div>
-          <div class="row g-3">
-            <div class="col-md-3">
-              <div class="commission-card bg-primary-light">
-                <div class="commission-label">Percentage</div>
-                <div class="commission-value text-primary">
-                  <span class="value-medium"><%= @life_insurance.ambassador_commission_percentage&.round(2) || 0 %>%</span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="commission-card bg-success-light">
-                <div class="commission-label">Amount</div>
-                <div class="commission-value text-success">
-                  <span class="value-medium">₹<%= number_with_delimiter(@life_insurance.ambassador_commission_amount&.round(2) || 0) %></span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="commission-card bg-warning-light">
-                <div class="commission-label">TDS %</div>
-                <div class="commission-value text-warning">
-                  <span class="value-medium"><%= @life_insurance.ambassador_tds_percentage&.round(2) || 0 %>%</span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="commission-card bg-success-light">
-                <div class="commission-label">After TDS</div>
-                <div class="commission-value text-success">
-                  <span class="value-medium">₹<%= number_with_delimiter(@life_insurance.ambassador_after_tds_value&.round(2) || 0) %></span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Investor Commission -->
-        <div class="commission-section mb-4">
-          <div class="section-header">
-            <h6 class="section-title">
-              <i class="bi bi-graph-up-arrow text-warning"></i>
-              Investor Commission
-            </h6>
-          </div>
-          <div class="row g-3">
-            <div class="col-md-3">
-              <div class="commission-card bg-warning-light">
-                <div class="commission-label">Percentage</div>
-                <div class="commission-value text-warning">
-                  <span class="value-medium"><%= @life_insurance.investor_commission_percentage&.round(2) || 0 %>%</span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="commission-card bg-success-light">
-                <div class="commission-label">Amount</div>
-                <div class="commission-value text-success">
-                  <span class="value-medium">₹<%= number_with_delimiter(@life_insurance.investor_commission_amount&.round(2) || 0) %></span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="commission-card bg-warning-light">
-                <div class="commission-label">TDS %</div>
-                <div class="commission-value text-warning">
-                  <span class="value-medium"><%= @life_insurance.investor_tds_percentage&.round(2) || 0 %>%</span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="commission-card bg-success-light">
-                <div class="commission-label">After TDS</div>
-                <div class="commission-value text-success">
-                  <span class="value-medium">₹<%= number_with_delimiter(@life_insurance.investor_after_tds_value&.round(2) || 0) %></span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Company Expenses -->
-        <div class="commission-section mb-4">
-          <div class="section-header">
-            <h6 class="section-title">
-              <i class="bi bi-building text-danger"></i>
-              Company Expenses
-            </h6>
-          </div>
-          <div class="row g-3">
-            <div class="col-md-6">
-              <div class="commission-card bg-danger-light">
-                <div class="commission-label">Percentage</div>
-                <div class="commission-value text-danger">
-                  <span class="value-medium"><%= @life_insurance.company_expenses_percentage&.round(2) || 0 %>%</span>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="commission-card bg-danger-light">
-                <div class="commission-label">Amount</div>
-                <div class="commission-value text-danger">
-                  <span class="value-medium">₹<%= number_with_delimiter(((@life_insurance.net_premium || 0) * (@life_insurance.company_expenses_percentage || 0) / 100).round(2)) %></span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <div class="col-lg-4">
-
-    <!-- Team Information Card -->
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-gradient-info text-white">
-        <h5 class="card-title mb-0">
-          <i class="bi bi-people-fill me-2"></i>
-          Team Members
-        </h5>
-        <small class="opacity-75">Associated with this policy</small>
-      </div>
-      <div class="card-body">
-        <div class="team-member mb-3">
-          <div class="team-icon">
-            <i class="bi bi-person-badge text-info"></i>
-          </div>
-          <div class="team-info">
-            <div class="team-role">Affiliate</div>
-            <div class="team-name">
-              <%= @life_insurance.sub_agent ? @life_insurance.sub_agent.display_name : 'Self' %>
-            </div>
-          </div>
-        </div>
-
-        <div class="team-member mb-3">
-          <div class="team-icon">
-            <i class="bi bi-truck text-primary"></i>
-          </div>
-          <div class="team-info">
-            <div class="team-role">Ambassador</div>
-            <div class="team-name">
-              <%= @life_insurance.distributor ? @life_insurance.distributor.display_name : 'Not Assigned' %>
-            </div>
-          </div>
-        </div>
-
-        <div class="team-member">
-          <div class="team-icon">
-            <i class="bi bi-graph-up text-warning"></i>
-          </div>
-          <div class="team-info">
-            <div class="team-role">Investor</div>
-            <div class="team-name">
-              <% if @life_insurance.respond_to?(:investor_id) && @life_insurance.investor_id.present? %>
-                <% investor = Investor.find_by(id: @life_insurance.investor_id) %>
-                <%= investor ? investor.display_name : 'Not Found' %>
-              <% else %>
-                Commission Distributed
-              <% end %>
-            </div>
-          </div>
-        </div>
+      <div>
+        <%= link_to admin_life_insurances_path, class: "btn btn-outline-primary" do %>
+          Back to Life Insurances
+        <% end %>
       </div>
     </div>
   </div>
 </div>
 
-<style>
-  /* Gradient backgrounds */
-  .bg-gradient-primary {
-    background: linear-gradient(135deg, #007bff, #0056b3);
-  }
+<div class="card">
+  <div class="card-header">
+    <h6 class="m-0 font-weight-bold text-primary">Policy Commission Breakdown</h6>
+  </div>
+  <div class="card-body">
+    <!-- Policy Summary -->
+    <div class="policy-summary mb-4 p-3" style="background-color: #f8f9fa; border-radius: 8px;">
+      <div class="row">
+        <div class="col-md-8">
+          <div class="fw-bold fs-5 text-primary mb-1"><%= @life_insurance.policy_number %></div>
+          <div class="text-muted mb-1">Life</div>
+          <div class="fw-bold mb-1"><%= @life_insurance.customer&.display_name %></div>
+          <div class="text-muted mb-1"><%= @life_insurance.insurance_company_name %></div>
+          <% if @life_insurance.lead_id.present? %>
+            <div class="text-muted mb-2">Lead: <%= @life_insurance.lead_id %></div>
+          <% end %>
+          <div class="fw-bold text-success fs-5">₹<%= number_with_delimiter((@life_insurance.sum_insured || 0).to_i, delimiter: ',') %></div>
+          <div class="fw-bold text-primary fs-5">₹<%= number_with_delimiter((@life_insurance.total_premium || 0).to_i, delimiter: ',') %></div>
+        </div>
+      </div>
+    </div>
 
-  .bg-gradient-success {
-    background: linear-gradient(135deg, #28a745, #20c997);
-  }
+    <!-- Commission Breakdown -->
+    <div class="commission-breakdown">
+      <!-- Main Agent Commission -->
+      <div class="commission-item d-flex justify-content-between align-items-center py-2 border-bottom">
+        <div class="d-flex align-items-center">
+          <span class="fw-bold">Main Agent: ₹<%= number_with_delimiter((@life_insurance.main_income_amount || 0).to_i, delimiter: ',') %></span>
+          <span class="text-muted ms-2">(<%= (@life_insurance.main_income_percentage || 0).round(1) %>%)</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <% if @life_insurance.main_agent_commission_received %>
+            <span class="badge bg-success">Paid</span>
+            <span class="text-muted small">
+              <%= @life_insurance.main_agent_commission_paid_date&.strftime('%b %d') || 'Date not set' %>
+            </span>
+          <% else %>
+            <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#markPaidModal">
+              Mark as Paid
+            </button>
+            <span class="text-muted small">Paid: 0/1</span>
+            <span class="text-muted small">Amount: ₹0</span>
+          <% end %>
+        </div>
+      </div>
 
-  .bg-gradient-warning {
-    background: linear-gradient(135deg, #ffc107, #fd7e14);
-  }
+      <!-- Affiliate Commission -->
+      <div class="commission-item d-flex justify-content-between align-items-center py-2 border-bottom">
+        <span>Affiliate: ₹<%= number_with_delimiter((@life_insurance.sub_agent_commission_amount || 0).to_i, delimiter: ',') %> (<%= (@life_insurance.sub_agent_commission_percentage || 0).round(1) %>%)</span>
+      </div>
 
-  .bg-gradient-info {
-    background: linear-gradient(135deg, #17a2b8, #138496);
-  }
+      <!-- Ambassador Commission -->
+      <div class="commission-item d-flex justify-content-between align-items-center py-2 border-bottom">
+        <span>Ambassador: ₹<%= number_with_delimiter((@life_insurance.ambassador_commission_amount || 0).to_i, delimiter: ',') %> (<%= (@life_insurance.ambassador_commission_percentage || 0).round(1) %>%)</span>
+      </div>
 
-  /* Card styling */
-  .card {
-    transition: all 0.3s ease;
-  }
+      <!-- Investor Commission -->
+      <div class="commission-item d-flex justify-content-between align-items-center py-2 border-bottom">
+        <span>Investor: ₹<%= number_with_delimiter((@life_insurance.investor_commission_amount || 0).to_i, delimiter: ',') %> (<%= (@life_insurance.investor_commission_percentage || 0).round(1) %>%)</span>
+      </div>
 
-  .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1) !important;
-  }
+      <!-- Company Expense -->
+      <div class="commission-item d-flex justify-content-between align-items-center py-2">
+        <span>Company: ₹<%= number_with_delimiter(((@life_insurance.total_premium || 0) * (@life_insurance.company_expenses_percentage || 0) / 100).to_i, delimiter: ',') %> (<%= (@life_insurance.company_expenses_percentage || 0).round(1) %>%)</span>
+      </div>
+    </div>
+  </div>
+</div>
 
-  /* Stat cards in overview */
-  .stat-card {
-    display: flex;
-    align-items: center;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 10px;
-    border-left: 4px solid #007bff;
-    transition: all 0.3s ease;
-  }
-
-  .stat-card:hover {
-    background: #e9ecef;
-    transform: translateX(5px);
-  }
-
-  .stat-icon {
-    margin-right: 1rem;
-  }
-
-  .stat-icon i {
-    font-size: 1.5rem;
-  }
-
-  .stat-label {
-    font-size: 0.8rem;
-    color: #6c757d;
-    margin-bottom: 0.25rem;
-    font-weight: 500;
-  }
-
-  .stat-value {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #212529;
-  }
-
-  /* Commission sections */
-  .commission-section {
-    margin-bottom: 2rem;
-  }
-
-  .section-header {
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #e9ecef;
-  }
-
-  .section-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #495057;
-    margin: 0;
-    display: flex;
-    align-items: center;
-  }
-
-  .section-title i {
-    margin-right: 0.75rem;
-    font-size: 1.25rem;
-  }
-
-  /* Commission cards */
-  .commission-card {
-    padding: 1.25rem;
-    border-radius: 10px;
-    text-align: center;
-    border: 1px solid #e9ecef;
-    transition: all 0.3s ease;
-    height: 100%;
-  }
-
-  .commission-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  }
-
-  .commission-label {
-    font-size: 0.85rem;
-    color: #6c757d;
-    margin-bottom: 0.75rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .commission-value {
-    font-weight: 700;
-    margin: 0;
-  }
-
-  .value-large {
-    font-size: 1.75rem;
-  }
-
-  .value-medium {
-    font-size: 1.25rem;
-  }
-
-  /* Light background variants */
-  .bg-primary-light {
-    background-color: rgba(0, 123, 255, 0.1);
-    border-color: rgba(0, 123, 255, 0.2);
-  }
-
-  .bg-success-light {
-    background-color: rgba(40, 167, 69, 0.1);
-    border-color: rgba(40, 167, 69, 0.2);
-  }
-
-  .bg-info-light {
-    background-color: rgba(23, 162, 184, 0.1);
-    border-color: rgba(23, 162, 184, 0.2);
-  }
-
-  .bg-warning-light {
-    background-color: rgba(255, 193, 7, 0.1);
-    border-color: rgba(255, 193, 7, 0.2);
-  }
-
-  .bg-danger-light {
-    background-color: rgba(220, 53, 69, 0.1);
-    border-color: rgba(220, 53, 69, 0.2);
-  }
+<!-- Mark as Paid Modal -->
+<div class="modal fade" id="markPaidModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Mark Main Agent Commission as Paid</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <%= form_with url: mark_main_agent_commission_received_admin_commission_tracking_path(@life_insurance.id, policy_type: 'life'), method: :patch, local: false, id: 'mark_paid_form' do |form| %>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Transaction ID <span class="text-danger">*</span></label>
+            <%= form.text_field :transaction_id, class: "form-control", required: true, placeholder: "Enter transaction ID" %>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Payment Date</label>
+            <%= form.date_field :paid_date, class: "form-control", value: Date.current %>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Notes</label>
+            <%= form.text_area :notes, class: "form-control", rows: 3, placeholder: "Optional payment notes" %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= form.submit "Mark as Paid", class: "btn btn-success" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
 
 
-  /* Team member styling */
-  .team-member {
-    display: flex;
-    align-items: center;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 10px;
-    border-left: 4px solid #007bff;
-    transition: all 0.3s ease;
-  }
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle Mark as Paid form submission
+    const markPaidForm = document.getElementById('mark_paid_form');
+    if (markPaidForm) {
+        markPaidForm.addEventListener('ajax:success', function(event) {
+            const response = event.detail[0];
+            if (response.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('markPaidModal'));
+                modal.hide();
 
-  .team-member:hover {
-    background: #e9ecef;
-    transform: translateX(5px);
-  }
+                // Show success message and reload page
+                alert('Commission marked as paid successfully!');
+                window.location.reload();
+            } else {
+                alert('Error: ' + (response.message || 'Failed to mark commission as paid'));
+            }
+        });
 
-  .team-icon {
-    margin-right: 1rem;
-  }
-
-  .team-icon i {
-    font-size: 1.5rem;
-  }
-
-  .team-info {
-    flex: 1;
-  }
-
-  .team-role {
-    font-size: 0.8rem;
-    color: #6c757d;
-    margin-bottom: 0.25rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .team-name {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #212529;
-  }
-
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    .commission-card {
-      margin-bottom: 1rem;
+        markPaidForm.addEventListener('ajax:error', function(event) {
+            alert('Error: Failed to mark commission as paid. Please try again.');
+        });
     }
-
-    .profit-step {
-      flex-direction: column;
-      text-align: center;
-    }
-
-    .step-icon {
-      margin: 0 0 1rem 0;
-    }
-
-    .value-large {
-      font-size: 1.5rem;
-    }
-
-    .value-medium {
-      font-size: 1.1rem;
-    }
-  }
-</style>
-
-<!-- No JavaScript needed - displaying static database values -->
+});
+</script>

@@ -86,7 +86,7 @@
               Total Premium
             </div>
             <div class="h5 mb-0 font-weight-bold text-gray-800">
-              ₹<%= number_with_delimiter(@distributor_stats[:total_premium].to_i, delimiter: ',') %>
+              ₹<%= number_with_delimiter(@distributor_stats[:total_premium].round, delimiter: ',') %>
             </div>
             <div class="text-warning small">
               <span class="text-warning">
@@ -113,7 +113,7 @@
               Total Commission
             </div>
             <div class="h5 mb-0 font-weight-bold text-gray-800">
-              ₹<%= number_with_delimiter(@distributor_stats[:total_commission].to_i, delimiter: ',') %>
+              ₹<%= number_with_delimiter(@distributor_stats[:total_commission].round, delimiter: ',') %>
             </div>
             <div class="text-success small">
               <span class="text-success">
@@ -195,11 +195,11 @@
                       </small>
                     </td>
                     <td>
-                      <strong>₹<%= number_with_delimiter(stats[:total_premium].to_i, delimiter: ',') %></strong>
+                      <strong>₹<%= number_with_delimiter(stats[:total_premium].round, delimiter: ',') %></strong>
                     </td>
                     <td>
                       <span class="text-success fw-bold">
-                        ₹<%= number_with_delimiter(stats[:total_commission].to_i, delimiter: ',') %>
+                        ₹<%= number_with_delimiter(stats[:total_commission].round, delimiter: ',') %>
                       </span>
                     </td>
                     <td>
@@ -247,7 +247,7 @@
                 <div class="small font-weight-bold"><%= activity[:type] %></div>
                 <div class="small text-muted"><%= activity[:description] %></div>
                 <div class="small">
-                  <span class="text-success fw-bold">+₹<%= number_with_delimiter(activity[:amount].to_i, delimiter: ',') %></span>
+                  <span class="text-success fw-bold">+₹<%= number_with_delimiter(activity[:amount].round, delimiter: ',') %></span>
                   <span class="text-muted ms-2"><%= activity[:date].strftime("%b %d") %></span>
                 </div>
               </div>

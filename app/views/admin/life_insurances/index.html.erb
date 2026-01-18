@@ -283,7 +283,7 @@
                         class: "btn btn-sm btn-outline-danger",
                         title: "Delete",
                         data: {
-                          confirm: "Are you sure you want to delete this life insurance policy?",
+                          confirm: "⚠️ PERMANENT DELETE WARNING ⚠️\n\nThis will PERMANENTLY delete:\n• Life Insurance Policy: #{policy.policy_number}\n• Customer: #{policy.customer&.display_name}\n• All Commission Payouts (₹#{CommissionPayout.where(policy_type: 'life', policy_id: policy.id).sum(:payout_amount).to_i})\n• All Related Documents\n• All Renewal Relationships\n\nThis action CANNOT be undone!\n\nAre you absolutely sure you want to proceed?",
                           turbo_method: :delete
                         } do %>
                       <i class="bi bi-trash"></i>

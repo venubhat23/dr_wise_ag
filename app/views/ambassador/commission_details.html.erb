@@ -31,7 +31,7 @@
               Total Earned
             </div>
             <div class="h5 mb-0 font-weight-bold text-gray-800">
-              ₹<%= number_with_delimiter((@distributor_stats&.dig(:total_commission) || 0).to_i, delimiter: ',') %>
+              ₹<%= number_with_delimiter((@distributor_stats&.dig(:total_commission) || 0).round, delimiter: ',') %>
             </div>
           </div>
           <div class="col-auto">
@@ -51,7 +51,7 @@
               This Month
             </div>
             <div class="h5 mb-0 font-weight-bold text-gray-800">
-              ₹<%= number_with_delimiter((@monthly_trends&.dig(Date.current.strftime("%Y-%m"), :commission) || 0).to_i, delimiter: ',') %>
+              ₹<%= number_with_delimiter((@monthly_trends&.dig(Date.current.strftime("%Y-%m"), :commission) || 0).round, delimiter: ',') %>
             </div>
           </div>
           <div class="col-auto">
@@ -71,7 +71,7 @@
               Avg per Policy
             </div>
             <div class="h5 mb-0 font-weight-bold text-gray-800">
-              ₹<%= (@distributor_stats&.dig(:total_policies) || 0) > 0 ? number_with_delimiter(((@distributor_stats&.dig(:total_commission) || 0) / (@distributor_stats&.dig(:total_policies) || 1)).to_i, delimiter: ',') : '0' %>
+              ₹<%= (@distributor_stats&.dig(:total_policies) || 0) > 0 ? number_with_delimiter(((@distributor_stats&.dig(:total_commission) || 0) / (@distributor_stats&.dig(:total_policies) || 1)).round, delimiter: ',') : '0' %>
             </div>
           </div>
           <div class="col-auto">
@@ -144,13 +144,13 @@
                 </td>
                 <td>
                   <div class="text-center">
-                    <div class="fw-bold">₹<%= number_with_delimiter((stats[:health_commission] || 0).to_i, delimiter: ',') %></div>
+                    <div class="fw-bold">₹<%= number_with_delimiter((stats[:health_commission] || 0).round, delimiter: ',') %></div>
                     <small class="text-muted">(<%= stats[:health_policies] %> policies)</small>
                   </div>
                 </td>
                 <td>
                   <div class="text-center">
-                    <div class="fw-bold">₹<%= number_with_delimiter((stats[:life_commission] || 0).to_i, delimiter: ',') %></div>
+                    <div class="fw-bold">₹<%= number_with_delimiter((stats[:life_commission] || 0).round, delimiter: ',') %></div>
                     <small class="text-muted">(<%= stats[:life_policies] %> policies)</small>
                   </div>
                 </td>
@@ -163,7 +163,7 @@
                       rescue ActiveRecord::StatementInvalid
                         # Column doesn't exist yet, return 0 until commission structure is implemented
                         0
-                      end.to_i, delimiter: ','
+                      end.round, delimiter: ','
                     ) %></div>
                     <small class="text-muted">(<%= stats[:motor_policies] %> policies)</small>
                   </div>
@@ -171,13 +171,13 @@
                 <td>
                   <div class="text-center">
                     <span class="fw-bold text-success h6">
-                      ₹<%= number_with_delimiter(stats[:total_commission].to_i, delimiter: ',') %>
+                      ₹<%= number_with_delimiter(stats[:total_commission].round, delimiter: ',') %>
                     </span>
                   </div>
                 </td>
                 <td>
                   <div class="text-center">
-                    <div class="fw-bold">₹<%= number_with_delimiter(stats[:total_premium].to_i, delimiter: ',') %></div>
+                    <div class="fw-bold">₹<%= number_with_delimiter(stats[:total_premium].round, delimiter: ',') %></div>
                   </div>
                 </td>
                 <td>
@@ -190,10 +190,10 @@
             <tr class="table-secondary fw-bold">
               <td>Total</td>
               <td class="text-center">
-                ₹<%= number_with_delimiter((@assigned_affiliates || []).sum { |a| @affiliate_stats&.dig(a.id, :health_commission) || 0 }.to_i, delimiter: ',') %>
+                ₹<%= number_with_delimiter((@assigned_affiliates || []).sum { |a| @affiliate_stats&.dig(a.id, :health_commission) || 0 }.round, delimiter: ',') %>
               </td>
               <td class="text-center">
-                ₹<%= number_with_delimiter((@assigned_affiliates || []).sum { |a| @affiliate_stats&.dig(a.id, :life_commission) || 0 }.to_i, delimiter: ',') %>
+                ₹<%= number_with_delimiter((@assigned_affiliates || []).sum { |a| @affiliate_stats&.dig(a.id, :life_commission) || 0 }.round, delimiter: ',') %>
               </td>
               <td class="text-center">
                 ₹<%= number_with_delimiter((@assigned_affiliates || []).sum { |a|
@@ -202,13 +202,13 @@
                   rescue ActiveRecord::StatementInvalid
                     0
                   end
-                }.to_i, delimiter: ',') %>
+                }.round, delimiter: ',') %>
               </td>
               <td class="text-center text-success">
-                ₹<%= number_with_delimiter((@distributor_stats&.dig(:total_commission) || 0).to_i, delimiter: ',') %>
+                ₹<%= number_with_delimiter((@distributor_stats&.dig(:total_commission) || 0).round, delimiter: ',') %>
               </td>
               <td class="text-center">
-                ₹<%= number_with_delimiter((@distributor_stats&.dig(:total_premium) || 0).to_i, delimiter: ',') %>
+                ₹<%= number_with_delimiter((@distributor_stats&.dig(:total_premium) || 0).round, delimiter: ',') %>
               </td>
               <td class="text-center">
                 <span class="badge bg-success">
@@ -268,8 +268,8 @@
                 </td>
                 <td class="fw-bold"><%= policy[:policy_number] %></td>
                 <td><%= policy[:customer] %></td>
-                <td>₹<%= number_with_delimiter(policy[:premium].to_i, delimiter: ',') %></td>
-                <td class="text-success fw-bold">₹<%= number_with_delimiter(policy[:commission].to_i, delimiter: ',') %></td>
+                <td>₹<%= number_with_delimiter(policy[:premium].round, delimiter: ',') %></td>
+                <td class="text-success fw-bold">₹<%= number_with_delimiter(policy[:commission].round, delimiter: ',') %></td>
                 <td><%= policy[:created_at].strftime("%b %d, %Y") %></td>
               </tr>
             <% end %>
