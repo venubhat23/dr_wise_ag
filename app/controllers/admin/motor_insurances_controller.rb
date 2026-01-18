@@ -118,6 +118,33 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     render json: { options: options }
   end
 
+  def agency_codes_for_broker_type
+    broker_type = params[:broker_type]
+    agency_codes = []
+
+    if broker_type == 'direct'
+      agency_codes = AgencyCode.where(broker_type: 'direct')
+    else
+      agency_codes = AgencyCode.where(broker_type: broker_type) if broker_type.present?
+    end
+
+    render json: {
+      success: true,
+      data: agency_codes.map { |code| { id: code.id, text: code.code } }
+    }
+  end
+
+  def insurance_companies_for_type
+    insurance_type = 'Motor'  # For motor insurance page
+
+    companies = InsuranceCompany.where(insurance_type: insurance_type).pluck(:name)
+
+    render json: {
+      success: true,
+      data: companies.map { |name| { id: name, text: name } }
+    }
+  end
+
   private
 
   def set_motor_insurance

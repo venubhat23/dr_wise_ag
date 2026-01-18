@@ -495,26 +495,38 @@ class Admin::CommissionTrackingController < ApplicationController
 
     all_policies = []
 
-    # Just show payouts we have with policy information - recent payouts at top
-    payouts = Payout.order(created_at: :desc)
+    # Use database-level pagination for better performance
+    offset = (page - 1) * per_page
+    payouts = Payout.order(created_at: :desc).limit(per_page).offset(offset)
+    @total_policies_count = Payout.count
+    @total_pages = (@total_policies_count.to_f / per_page).ceil
+
+    # Bulk load all policies and customers to avoid N+1 queries
+    life_policy_ids = payouts.where(policy_type: 'life').pluck(:policy_id)
+    health_policy_ids = payouts.where(policy_type: 'health').pluck(:policy_id)
+    motor_policy_ids = payouts.where(policy_type: 'motor').pluck(:policy_id)
+    other_policy_ids = payouts.where(policy_type: 'other').pluck(:policy_id)
+
+    # Load all policies in bulk with customers
+    life_policies = defined?(LifeInsurance) ? LifeInsurance.includes(:customer).where(id: life_policy_ids).index_by(&:id) : {}
+    health_policies = defined?(HealthInsurance) ? HealthInsurance.includes(:customer).where(id: health_policy_ids).index_by(&:id) : {}
+    motor_policies = defined?(MotorInsurance) ? MotorInsurance.includes(:customer).where(id: motor_policy_ids).index_by(&:id) : {}
+    other_policies = defined?(OtherInsurance) ? OtherInsurance.includes(:customer).where(id: other_policy_ids).index_by(&:id) : {}
 
     payouts.each do |payout|
       begin
         policy = case payout.policy_type
                  when 'health'
-                   HealthInsurance.find_by(id: payout.policy_id)
+                   health_policies[payout.policy_id]
                  when 'life'
-                   LifeInsurance.find_by(id: payout.policy_id)
+                   life_policies[payout.policy_id]
                  when 'motor'
-                   MotorInsurance.find_by(id: payout.policy_id)
+                   motor_policies[payout.policy_id]
                  when 'other'
-                   OtherInsurance.find_by(id: payout.policy_id)
+                   other_policies[payout.policy_id]
                  end
 
-        next unless policy && policy.customer_id
-
-        customer = Customer.find_by(id: policy.customer_id)
-        next unless customer
+        next unless policy && policy.customer
 
         all_policies << {
           policy: OpenStruct.new(
@@ -526,7 +538,7 @@ class Admin::CommissionTrackingController < ApplicationController
             main_agent_commission_received: false,
             main_agent_commission_paid_date: nil,
             created_at: policy.created_at,
-            customer: OpenStruct.new(display_name: customer.display_name || "#{customer.first_name} #{customer.last_name}".strip),
+            customer: OpenStruct.new(display_name: policy.customer.display_name || "#{policy.customer.first_name} #{policy.customer.last_name}".strip),
             try: ->(method) { policy.send(method) rescue nil }
           ),
           type: payout.policy_type,
@@ -540,17 +552,11 @@ class Admin::CommissionTrackingController < ApplicationController
       end
     end
 
-    # Simple pagination
-    offset = (page - 1) * per_page
-    page_policies = all_policies.slice(offset, per_page) || []
-
     # Set pagination info
-    @total_policies_count = all_policies.length
-    @total_pages = (@total_policies_count.to_f / per_page).ceil
     @has_next_page = page < @total_pages
     @has_prev_page = page > 1
 
-    page_policies
+    all_policies
   end
 
   def fetch_policies_with_commission

@@ -102,7 +102,7 @@ class Admin::BrokersController < Admin::ApplicationController
     health_count = @broker.health_insurances.count
     dependent_records << "#{health_count} health insurance #{'policy'.pluralize(health_count)}" if health_count > 0
 
-    motor_count = @broker.motor_insurances.count
+    motor_count = @broker.respond_to?(:motor_insurances) ? @broker.motor_insurances.count : 0
     dependent_records << "#{motor_count} motor insurance #{'policy'.pluralize(motor_count)}" if motor_count > 0
 
     if dependent_records.any?

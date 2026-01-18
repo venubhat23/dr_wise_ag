@@ -4,6 +4,7 @@ class Broker < ApplicationRecord
   has_many :broker_codes, dependent: :destroy
   has_many :life_insurances, dependent: :restrict_with_error
   has_many :health_insurances, dependent: :restrict_with_error
+  has_many :motor_insurances, dependent: :restrict_with_error
 
   validates :name, presence: true, uniqueness: { case_sensitive: false }
   validates :status, inclusion: { in: %w[active inactive] }

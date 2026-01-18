@@ -258,6 +258,8 @@ Rails.application.routes.draw do
     resources :motor_insurances, path: 'insurance/motor' do
       collection do
         get :policy_holder_options
+        get :agency_codes_for_broker_type
+        get :insurance_companies_for_type
       end
     end
 

@@ -1890,7 +1890,7 @@ function getAdditionalPolicyDetails(policy, insuranceType) {
       return `
         <div class="detail-item">
           <div class="detail-label">Sum Assured</div>
-          <div class="detail-value text-info">₹${formatCurrency(policy.additional_info?.sum_assured || 0)}</div>
+          <div class="detail-value text-info">₹${formatCurrency(policy.additional_info?.sum_insured || 0)}</div>
         </div>
         <div class="detail-item">
           <div class="detail-label">Payment Mode</div>
