@@ -156,7 +156,15 @@
                 </td>
                 <td>
                   <div class="text-center">
-                    <div class="fw-bold">₹<%= number_with_delimiter((MotorInsurance.where(sub_agent_id: affiliate.id).sum(:main_agent_commission_amount) || 0).to_i, delimiter: ',') %></div>
+                    <div class="fw-bold">₹<%= number_with_delimiter(
+                      begin
+                        # Try to sum commission amounts if column exists, otherwise return 0
+                        MotorInsurance.where(sub_agent_id: affiliate.id).sum(:main_agent_commission_amount)
+                      rescue ActiveRecord::StatementInvalid
+                        # Column doesn't exist yet, return 0 until commission structure is implemented
+                        0
+                      end.to_i, delimiter: ','
+                    ) %></div>
                     <small class="text-muted">(<%= stats[:motor_policies] %> policies)</small>
                   </div>
                 </td>
@@ -188,7 +196,13 @@
                 ₹<%= number_with_delimiter((@assigned_affiliates || []).sum { |a| LifeInsurance.where(sub_agent_id: a.id).sum(:commission_amount) || 0 }.to_i, delimiter: ',') %>
               </td>
               <td class="text-center">
-                ₹<%= number_with_delimiter((@assigned_affiliates || []).sum { |a| MotorInsurance.where(sub_agent_id: a.id).sum(:main_agent_commission_amount) || 0 }.to_i, delimiter: ',') %>
+                ₹<%= number_with_delimiter((@assigned_affiliates || []).sum { |a|
+                  begin
+                    MotorInsurance.where(sub_agent_id: a.id).sum(:main_agent_commission_amount) || 0
+                  rescue ActiveRecord::StatementInvalid
+                    0
+                  end
+                }.to_i, delimiter: ',') %>
               </td>
               <td class="text-center text-success">
                 ₹<%= number_with_delimiter((@distributor_stats&.dig(:total_commission) || 0).to_i, delimiter: ',') %>

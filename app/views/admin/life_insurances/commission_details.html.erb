@@ -326,7 +326,12 @@
           <div class="team-info">
             <div class="team-role">Investor</div>
             <div class="team-name">
-              <%= @life_insurance.investor ? @life_insurance.investor.display_name : 'Not Assigned' %>
+              <% if @life_insurance.respond_to?(:investor_id) && @life_insurance.investor_id.present? %>
+                <% investor = Investor.find_by(id: @life_insurance.investor_id) %>
+                <%= investor ? investor.display_name : 'Not Found' %>
+              <% else %>
+                Commission Distributed
+              <% end %>
             </div>
           </div>
         </div>

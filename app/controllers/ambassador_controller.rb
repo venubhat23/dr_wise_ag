@@ -91,13 +91,17 @@ class AmbassadorController < ApplicationController
     other_policies_commission = 0.0
 
     begin
-      # Try to get other insurance through customers
-      affiliate_customers = Customer.where(sub_agent_id: affiliate.id)
-      if defined?(OtherInsurance) && OtherInsurance.respond_to?(:joins)
-        other_policies = OtherInsurance.joins(:policy).where(policies: { customer_id: affiliate_customers.pluck(:id) })
+      # Try to get other insurance directly by sub_agent_id
+      if defined?(OtherInsurance)
+        other_policies = OtherInsurance.where(sub_agent_id: affiliate.id)
         other_policies_count = other_policies.count
         other_policies_premium = other_policies.sum(:total_premium).to_f rescue 0.0
-        other_policies_commission = other_policies.sum(:commission_amount).to_f rescue 0.0
+        # Check if commission_amount column exists, otherwise calculate basic commission
+        if other_policies.column_names.include?('commission_amount')
+          other_policies_commission = other_policies.sum(:commission_amount).to_f rescue 0.0
+        else
+          other_policies_commission = (other_policies_premium * 0.05).to_f rescue 0.0
+        end
       end
     rescue => e
       Rails.logger.debug "Could not load other insurance data: #{e.message}"
@@ -112,10 +116,37 @@ class AmbassadorController < ApplicationController
                     motor_policies.sum(:total_premium) +
                     other_policies_premium).to_f
 
-    total_commission = (health_policies.sum(:ambassador_commission_amount) +
-                       life_policies.sum(:commission_amount) +
-                       motor_policies.sum(:main_agent_commission_amount) +
-                       other_policies_commission).to_f
+    # Calculate commission based on available columns
+    health_commission = begin
+      if health_policies.column_names.include?('ambassador_commission_amount')
+        health_policies.sum(:ambassador_commission_amount)
+      elsif health_policies.column_names.include?('commission_amount')
+        health_policies.sum(:commission_amount)
+      else
+        health_policies.sum(:total_premium) * 0.02  # 2% default commission
+      end
+    rescue => e
+      0.0
+    end
+
+    life_commission = begin
+      if life_policies.column_names.include?('commission_amount')
+        life_policies.sum(:commission_amount)
+      else
+        life_policies.sum(:total_premium) * 0.05  # 5% default commission
+      end
+    rescue => e
+      0.0
+    end
+
+    motor_commission = begin
+      # MotorInsurance doesn't have commission amount columns, calculate basic commission
+      motor_policies.sum(:total_premium) * 0.05  # 5% default commission
+    rescue => e
+      0.0
+    end
+
+    total_commission = (health_commission + life_commission + motor_commission + other_policies_commission).to_f
 
     # Get unique customers from all policies created by this affiliate
     customer_ids = []

@@ -46,8 +46,11 @@ class Admin::DistributorsController < Admin::ApplicationController
       @affiliate_stats[affiliate.id] = calculate_affiliate_stats(affiliate)
     end
 
-    # Overall distributor statistics
-    @distributor_stats = calculate_distributor_stats
+    # Get actual distributor payout data
+    @distributor_payout_data = calculate_single_distributor_payouts(@distributor.id)
+
+    # Overall distributor statistics (excluding commission calculation)
+    @distributor_stats = calculate_distributor_stats_basic
   end
 
   # GET /admin/distributors/new
@@ -432,5 +435,108 @@ class Admin::DistributorsController < Admin::ApplicationController
 
     # Sort by creation date and return top 5
     policies.sort_by { |p| p[:created_at] }.reverse.first(5)
+  end
+
+  def calculate_single_distributor_payouts(distributor_id)
+    # Get all commission payouts for this specific distributor
+    ambassador_commission_payouts = CommissionPayout.where(payout_to: 'ambassador').includes(:payout)
+
+    leads = []
+    total_amount = 0.0
+    paid_amount = 0.0
+    pending_amount = 0.0
+
+    ambassador_commission_payouts.each do |commission_payout|
+      # Get policy from commission payout
+      policy = get_policy_from_commission_payout(commission_payout)
+      next unless policy
+
+      # Skip if main agent commission not received
+      next unless policy.respond_to?(:main_agent_commission_received) && policy.main_agent_commission_received
+
+      # Check if this payout belongs to our distributor
+      policy_distributor_id = policy.distributor_id if policy.respond_to?(:distributor_id)
+      next unless policy_distributor_id == distributor_id
+
+      # Get or create lead
+      lead = nil
+      if commission_payout.lead_id.present?
+        lead = Lead.find_by(lead_id: commission_payout.lead_id)
+      end
+
+      # Fallback: try to find lead by policy lead_id
+      if lead.nil? && policy.respond_to?(:lead_id) && policy.lead_id.present?
+        lead = Lead.find_by(lead_id: policy.lead_id)
+      end
+
+      # If no lead found, create a virtual lead object
+      if lead.nil?
+        lead = OpenStruct.new(
+          id: "virtual_#{policy.id}",
+          lead_id: policy.try(:lead_id) || "POLICY-#{policy.id}",
+          created_at: policy.created_at
+        )
+      end
+
+      distributor_commission = commission_payout.payout_amount.to_f
+      already_paid = commission_payout.status == 'paid'
+
+      total_amount += distributor_commission
+
+      if already_paid
+        paid_amount += distributor_commission
+      else
+        pending_amount += distributor_commission
+      end
+
+      leads << {
+        lead: lead,
+        commission: distributor_commission,
+        paid: already_paid
+      }
+    end
+
+    {
+      leads: leads,
+      total_amount: total_amount,
+      paid_amount: paid_amount,
+      pending_amount: pending_amount,
+      lead_count: leads.count
+    }
+  end
+
+  def calculate_distributor_stats_basic
+    total_policies = 0
+    total_premium = 0.0
+    total_customers = 0
+
+    @assigned_affiliates.each do |affiliate|
+      stats = @affiliate_stats[affiliate.id]
+      total_policies += stats[:total_policies]
+      total_premium += stats[:total_premium]
+      total_customers += stats[:customers_count]
+    end
+
+    {
+      total_affiliates: @assigned_affiliates.count,
+      active_affiliates: @assigned_affiliates.active.count,
+      total_policies: total_policies,
+      total_premium: total_premium,
+      total_customers: total_customers,
+      avg_policies_per_affiliate: @assigned_affiliates.count > 0 ? (total_policies.to_f / @assigned_affiliates.count).round(2) : 0
+    }
+  end
+
+  def get_policy_from_commission_payout(commission_payout)
+    case commission_payout.policy_type
+    when 'health'
+      HealthInsurance.find_by(id: commission_payout.policy_id)
+    when 'life'
+      LifeInsurance.find_by(id: commission_payout.policy_id)
+    when 'motor'
+      MotorInsurance.find_by(id: commission_payout.policy_id)
+    when 'other'
+      OtherInsurance.find_by(id: commission_payout.policy_id) if defined?(OtherInsurance)
+    end
   end
 end

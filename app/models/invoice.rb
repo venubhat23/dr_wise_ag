@@ -59,8 +59,25 @@ class Invoice < ApplicationRecord
     end
   end
 
+  def payout_amount
+    payout = payout_record
+    return total_amount unless payout
+
+    case payout.class.name
+    when 'CommissionPayout'
+      payout.payout_amount || total_amount
+    when 'DistributorPayout'
+      payout.payout_amount || total_amount
+    when 'Payout'
+      payout.total_commission_amount || payout.total_amount || total_amount
+    else
+      total_amount
+    end
+  end
+
   def formatted_amount
-    "₹#{total_amount.to_f.round(2).to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"
+    amount = payout_amount
+    "₹#{amount.to_f.round(2).to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"
   end
 
   def overdue?

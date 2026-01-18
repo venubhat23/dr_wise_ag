@@ -154,7 +154,7 @@
                         <small class="text-muted">Customers</small>
                       </div>
                       <div class="col-3 text-center">
-                        <h6 class="text-warning mb-1"><%= indian_currency(stats[:total_commission].to_i) %></h6>
+                        <h6 class="text-secondary mb-1">-</h6>
                         <small class="text-muted">Commission</small>
                       </div>
                     </div>
@@ -267,44 +267,62 @@
       </div>
     </div>
 
-    <!-- Commission Summary -->
+    <!-- Payout Summary -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0">
         <h6 class="mb-0">
-          <i class="bi bi-currency-rupee me-2 text-success"></i>
-          Commission Summary
+          <i class="bi bi-wallet2 me-2 text-success"></i>
+          Commission Payouts
         </h6>
       </div>
       <div class="card-body">
         <div class="row text-center">
           <div class="col-12 mb-3">
-            <h5 class="text-success mb-1"><%= indian_currency(@distributor_stats[:total_commission].to_i) %></h5>
+            <h5 class="text-success mb-1"><%= indian_currency(@distributor_payout_data[:total_amount].to_i) %></h5>
             <small class="text-muted">Total Commission Earned</small>
           </div>
-          <div class="col-6">
-            <h6 class="text-info mb-1"><%= @distributor_stats[:avg_policies_per_affiliate] %></h6>
-            <small class="text-muted">Avg Policies/Affiliate</small>
+          <div class="col-6 mb-3">
+            <h6 class="text-primary mb-1"><%= indian_currency(@distributor_payout_data[:paid_amount].to_i) %></h6>
+            <small class="text-muted">Paid Amount</small>
           </div>
-          <div class="col-6">
-            <h6 class="text-warning mb-1"><%= @distributor_stats[:total_affiliates] > 0 ? ((@distributor_stats[:total_commission] / @distributor_stats[:total_affiliates]).round(0)) : 0 %></h6>
-            <small class="text-muted">Avg Commission/Affiliate</small>
+          <div class="col-6 mb-3">
+            <h6 class="text-warning mb-1"><%= indian_currency(@distributor_payout_data[:pending_amount].to_i) %></h6>
+            <small class="text-muted">Pending Amount</small>
           </div>
         </div>
-        <hr>
-        <div class="row">
-          <div class="col-12">
-            <small class="text-muted d-block mb-1">Performance Calculation</small>
-            <div class="progress" style="height: 8px;">
-              <% if @distributor_stats[:total_premium] > 0 %>
-                <% commission_percentage = ((@distributor_stats[:total_commission] / @distributor_stats[:total_premium]) * 100).round(2) %>
-                <div class="progress-bar bg-success" style="width: <%= [commission_percentage, 100].min %>%"></div>
-              <% end %>
-            </div>
+
+        <% if @distributor_payout_data[:leads].any? %>
+          <hr>
+          <div class="mb-2">
+            <small class="text-muted"><%= @distributor_payout_data[:lead_count] %> leads</small>
+          </div>
+          <div class="d-flex flex-wrap gap-1">
+            <% @distributor_payout_data[:leads].each do |lead_data| %>
+              <span class="badge <%= lead_data[:paid] ? 'bg-success' : 'bg-warning' %> text-dark small">
+                <%= lead_data[:lead].lead_id %>: <%= indian_currency(lead_data[:commission].to_i) %>
+                <% if lead_data[:paid] %>
+                  <i class="bi bi-check-circle ms-1"></i>
+                <% end %>
+              </span>
+            <% end %>
+          </div>
+          <div class="mt-2">
             <small class="text-muted">
-              Commission Rate: <%= @distributor_stats[:total_premium] > 0 ? ((@distributor_stats[:total_commission] / @distributor_stats[:total_premium]) * 100).round(2) : 0 %>%
+              Paid: <%= indian_currency(@distributor_payout_data[:paid_amount].to_i) %> |
+              Pending: <%= indian_currency(@distributor_payout_data[:pending_amount].to_i) %>
             </small>
+            <div class="mt-1">
+              <span class="badge bg-<%= @distributor_payout_data[:pending_amount] > 0 ? 'warning' : 'success' %> small">
+                <%= @distributor_payout_data[:pending_amount] > 0 ? 'Pending Payments' : 'All Paid' %>
+              </span>
+            </div>
           </div>
-        </div>
+        <% else %>
+          <div class="text-center text-muted py-3">
+            <i class="bi bi-wallet2 fs-1 d-block mb-2"></i>
+            <small>No commission payouts yet</small>
+          </div>
+        <% end %>
       </div>
     </div>
 

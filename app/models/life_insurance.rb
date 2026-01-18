@@ -8,6 +8,7 @@ class LifeInsurance < ApplicationRecord
   belongs_to :distributor
   belongs_to :agency_code, optional: true
   belongs_to :broker, optional: true
+  # Note: investor association not needed - commission is collectively distributed
   has_many_attached :documents
   has_many_attached :policy_documents
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
