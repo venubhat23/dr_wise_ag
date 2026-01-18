@@ -1788,18 +1788,81 @@ document.addEventListener('DOMContentLoaded', function() {
     })
     .then(response => {
       console.log('Broker Codes API response status:', response.status);
+      console.log('Response headers:', {
+        'content-type': response.headers.get('content-type'),
+        'x-request-id': response.headers.get('x-request-id')
+      });
+
       if (response.status === 401 || response.status === 403) {
+        console.error('❌ Authentication error. Response:', response);
         throw new Error('Authentication required - please refresh the page');
       }
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.error('❌ HTTP error. Response:', response);
+        throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
       }
-      return response.json();
+
+      return response.text().then(text => {
+        console.log('Raw response text:', text.substring(0, 500) + '...');
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          console.error('❌ JSON parse error:', e);
+          console.error('Response text that failed to parse:', text);
+          throw new Error('Invalid JSON response from server');
+        }
+      });
     })
     .then(data => {
       console.log('Broker Codes API response data:', data);
 
-      // Clear loading message and handle Select2
+      // Use the shared helper function to populate the dropdown
+      populateBrokerCodesDropdown(data);
+    })
+    .catch(error => {
+      console.error('🚨 Error fetching broker codes:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+
+      // Try alternative endpoint as fallback
+      console.log('🔄 Trying alternative endpoint for broker codes...');
+      tryAlternativeBrokerCodesEndpoint()
+        .then(alternativeData => {
+          if (alternativeData && alternativeData.success) {
+            console.log('✅ Alternative endpoint worked!');
+            populateBrokerCodesDropdown(alternativeData);
+          } else {
+            showBrokerCodesError();
+          }
+        })
+        .catch(altError => {
+          console.error('❌ Alternative endpoint also failed:', altError);
+          showBrokerCodesError();
+        });
+    });
+  }
+
+  // Helper function to show error state
+  function showBrokerCodesError() {
+      if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
+        jQuery('#life_insurance_agency_code_id').empty()
+          .append('<option value="">Select Broker</option>')
+          .append('<option value="" disabled>Error loading broker codes - please refresh page</option>');
+        jQuery('#life_insurance_agency_code_id').trigger('change');
+      } else {
+        agencyCodeSelect.innerHTML = '<option value="">Select Broker</option>';
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'Error loading broker codes - please refresh page';
+        option.disabled = true;
+        agencyCodeSelect.appendChild(option);
+      }
+    }
+
+    // Helper function to populate dropdown with data
+    function populateBrokerCodesDropdown(data) {
       if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
         jQuery('#life_insurance_agency_code_id').empty().append('<option value="">Select Broker</option>');
 
@@ -1836,7 +1899,6 @@ document.addEventListener('DOMContentLoaded', function() {
             option.setAttribute('data-broker-code-id', brokerCode.id);
             option.setAttribute('data-broker-name', brokerCode.broker_name);
             option.setAttribute('data-broker-code', brokerCode.broker_code);
-            // Format: Broker-name (Broker-code)
             option.textContent = brokerCode.display_name;
             agencyCodeSelect.appendChild(option);
           });
@@ -1850,29 +1912,45 @@ document.addEventListener('DOMContentLoaded', function() {
           agencyCodeSelect.appendChild(option);
         }
       }
-    })
-    .catch(error => {
-      console.error('🚨 Error fetching broker codes:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack
+    }
+
+    // Alternative endpoint function
+    function tryAlternativeBrokerCodesEndpoint() {
+      console.log('🔄 Trying /admin/brokers/search.json as alternative...');
+
+      return fetch('/admin/brokers/search.json', {
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        },
+        credentials: 'same-origin'
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Alternative endpoint failed: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Transform brokers data to broker_codes format
+        if (data && data.brokers) {
+          const transformedData = {
+            success: true,
+            broker_codes: data.brokers.map(broker => ({
+              id: broker.id,
+              broker_id: broker.id,
+              broker_name: broker.name,
+              broker_code: broker.code || broker.name,
+              display_name: `${broker.name} (${broker.code || broker.name})`
+            }))
+          };
+          return transformedData;
+        }
+        throw new Error('Invalid alternative endpoint response');
       });
-      // Handle error case for both Select2 and regular dropdown
-      if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
-        jQuery('#life_insurance_agency_code_id').empty()
-          .append('<option value="">Select Broker</option>')
-          .append('<option value="" disabled>Error loading broker codes</option>');
-        jQuery('#life_insurance_agency_code_id').trigger('change');
-      } else {
-        agencyCodeSelect.innerHTML = '<option value="">Select Broker</option>';
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = 'Error loading broker codes';
-        option.disabled = true;
-        agencyCodeSelect.appendChild(option);
-      }
-    });
-  }
+    }
 
   // Function to load company for selected agency code (Direct mode) - Fixed for Select2 compatibility
   function loadCompanyForAgencyCode(agencyCodeId) {
