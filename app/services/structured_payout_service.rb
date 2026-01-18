@@ -266,48 +266,37 @@ class StructuredPayoutService
       case commission.payout_to
       when 'main_agent'
         commission_details.merge!(
-          main_agent_commission_id: commission.id,
-          main_agent_commission_amount: commission.payout_amount,
-          main_agent_percentage: get_policy_percentage(:main_agent)
+          main_agent_commission_amount: commission.payout_amount
         )
         commission_summary << "Main Agent: #{get_policy_percentage(:main_agent)}% (₹#{commission.payout_amount})"
 
       when 'affiliate'
         commission_details.merge!(
-          affiliate_commission_id: commission.id,
-          affiliate_commission_amount: commission.payout_amount,
-          affiliate_percentage: get_policy_percentage(:affiliate)
+          affiliate_commission_amount: commission.payout_amount
         )
         commission_summary << "Affiliate: #{get_policy_percentage(:affiliate)}% (₹#{commission.payout_amount})"
 
       when 'ambassador'
         commission_details.merge!(
-          ambassador_commission_id: commission.id,
-          ambassador_commission_amount: commission.payout_amount,
-          ambassador_percentage: get_policy_percentage(:ambassador)
+          ambassador_commission_amount: commission.payout_amount
         )
         commission_summary << "Ambassador: #{get_policy_percentage(:ambassador)}% (₹#{commission.payout_amount})"
 
       when 'investor'
         commission_details.merge!(
-          investor_commission_id: commission.id,
-          investor_commission_amount: commission.payout_amount,
-          investor_percentage: get_policy_percentage(:investor)
+          investor_commission_amount: commission.payout_amount
         )
         commission_summary << "Investor: #{get_policy_percentage(:investor)}% (₹#{commission.payout_amount})"
 
       when 'company_expense'
         commission_details.merge!(
-          company_expense_commission_id: commission.id,
-          company_expense_amount: commission.payout_amount,
-          company_expense_percentage: get_policy_percentage(:company_expense)
+          company_expense_amount: commission.payout_amount
         )
         commission_summary << "Company Expense: #{get_policy_percentage(:company_expense)}% (₹#{commission.payout_amount})"
       end
     end
 
-    # Add commission summary
-    commission_details[:commission_summary] = commission_summary.join(" | ")
+    # Commission summary removed - field doesn't exist in Payout model
 
     # Update main payout with all commission details
     main_payout.update!(commission_details)

@@ -75,7 +75,18 @@
           <% end %>
         </div>
 
+        <!-- Agency Name -->
+        <div class="col-md-6 mb-3">
+          <%= form.label :agent_name, "Agency Name", class: "form-label" %>
+          <%= form.text_field :agent_name,
+              class: "form-control #{'is-invalid' if @broker_code.errors[:agent_name].any?}",
+              placeholder: "Enter agency name" %>
+          <% if @broker_code.errors[:agent_name].any? %>
+            <div class="invalid-feedback"><%= @broker_code.errors[:agent_name].first %></div>
+          <% end %>
+        </div>
       </div>
+
 
       <div class="row">
         <!-- Status -->

@@ -278,6 +278,7 @@
               <thead class="bg-light">
                 <tr>
                   <th class="border-0">Broker Name</th>
+                  <th class="border-0">Agency Name</th>
                   <th class="border-0">Broker Code</th>
                   <th class="border-0">Status</th>
                   <th class="border-0">Actions</th>
@@ -300,6 +301,11 @@
                           </small>
                         </div>
                       </div>
+                    </td>
+                    <td>
+                      <span class="<%= broker_code.agent_name.present? ? 'fw-medium text-dark' : 'text-muted' %>">
+                        <%= broker_code.agent_name.present? ? broker_code.agent_name : '-' %>
+                      </span>
                     </td>
                     <td>
                       <span class="fw-bold text-dark">

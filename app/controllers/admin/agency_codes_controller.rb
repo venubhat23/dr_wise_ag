@@ -457,7 +457,6 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   def companies_by_type
     insurance_type = params[:insurance_type]
     agency_code_id = params[:agency_code_id] # For edit mode, to include current company
-
     if insurance_type.present?
       # Map frontend insurance type to database insurance_type values
       db_insurance_type = case insurance_type.to_s.downcase

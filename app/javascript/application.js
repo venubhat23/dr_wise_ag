@@ -2,6 +2,7 @@
 import "@hotwired/turbo-rails"
 import "controllers"
 import * as bootstrap from "bootstrap"
+import "dynamic_insurance_dropdowns"
 
 // Premium Drwise Admin JavaScript
 window.DrwiseAdmin = {

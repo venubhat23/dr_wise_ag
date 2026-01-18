@@ -117,7 +117,7 @@ class Admin::BrokerCodesController < ApplicationController
   end
 
   def broker_code_params
-    params.require(:broker_code).permit(:broker_id, :broker_code, :company_name, :status)
+    params.require(:broker_code).permit(:broker_id, :broker_code, :agent_name, :company_name, :status)
   end
 
 end
