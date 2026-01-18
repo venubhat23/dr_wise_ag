@@ -129,67 +129,6 @@
       </div>
     </div>
 
-    <!-- Rider Details -->
-    <% if @life_insurance.total_rider_amount > 0 %>
-      <div class="card mb-4">
-        <div class="card-header">
-          <h5 class="mb-0">
-            <i class="bi bi-plus-circle me-2 text-success"></i>
-            Rider Details
-          </h5>
-        </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-bordered">
-              <thead>
-                <tr>
-                  <th>Rider Type</th>
-                  <th>Amount</th>
-                  <th>Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% if @life_insurance.term_rider_amount > 0 %>
-                  <tr>
-                    <td>Term Rider</td>
-                    <td><%= indian_currency(@life_insurance.term_rider_amount) %></td>
-                    <td><%= @life_insurance.term_rider_note %></td>
-                  </tr>
-                <% end %>
-                <% if @life_insurance.critical_illness_rider_amount > 0 %>
-                  <tr>
-                    <td>Critical Illness Rider</td>
-                    <td><%= indian_currency(@life_insurance.critical_illness_rider_amount) %></td>
-                    <td><%= @life_insurance.critical_illness_rider_note %></td>
-                  </tr>
-                <% end %>
-                <% if @life_insurance.accident_rider_amount > 0 %>
-                  <tr>
-                    <td>Accident Rider</td>
-                    <td><%= indian_currency(@life_insurance.accident_rider_amount) %></td>
-                    <td><%= @life_insurance.accident_rider_note %></td>
-                  </tr>
-                <% end %>
-                <% if @life_insurance.pwb_rider_amount > 0 %>
-                  <tr>
-                    <td>PWB (Premium Waiver Benefit)</td>
-                    <td><%= indian_currency(@life_insurance.pwb_rider_amount) %></td>
-                    <td><%= @life_insurance.pwb_rider_note %></td>
-                  </tr>
-                <% end %>
-                <% if @life_insurance.other_rider_amount > 0 %>
-                  <tr>
-                    <td>Others</td>
-                    <td><%= indian_currency(@life_insurance.other_rider_amount) %></td>
-                    <td><%= @life_insurance.other_rider_note %></td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    <% end %>
 
     <!-- Premium & Commission Details -->
     <div class="card mb-4">

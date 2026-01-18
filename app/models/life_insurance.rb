@@ -114,13 +114,8 @@ class LifeInsurance < ApplicationRecord
   end
 
   def total_rider_amount
-    [
-      term_rider_amount,
-      critical_illness_rider_amount,
-      accident_rider_amount,
-      pwb_rider_amount,
-      other_rider_amount
-    ].compact.sum
+    # Rider functionality removed - no rider columns exist in database
+    0
   end
 
   def status
@@ -202,7 +197,7 @@ class LifeInsurance < ApplicationRecord
   end
 
   def has_been_renewed?
-    is_renewed? || renewal_policy.present?
+    is_renewed == true || renewal_policy.present?
   end
 
   def can_be_renewed?

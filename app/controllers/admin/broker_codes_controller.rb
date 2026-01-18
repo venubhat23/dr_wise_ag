@@ -26,9 +26,31 @@ class Admin::BrokerCodesController < ApplicationController
 
     @broker_codes = @broker_codes.joins(:broker).order('brokers.name')
 
-    # Get all brokers and companies for dropdowns
-    @brokers = Broker.active.order(:name)
-    @companies = InsuranceCompany.order(:name).pluck(:name)
+    # Handle different response formats
+    respond_to do |format|
+      format.html do
+        # Get all brokers and companies for dropdowns
+        @brokers = Broker.active.order(:name)
+        @companies = InsuranceCompany.order(:name).pluck(:name)
+      end
+
+      format.json do
+        # For JSON requests, return all active broker codes with broker names
+        render json: {
+          success: true,
+          broker_codes: @broker_codes.where(status: true).map do |broker_code|
+            {
+              id: broker_code.id,
+              broker_id: broker_code.broker_id,
+              broker_name: broker_code.broker.name,
+              broker_code: broker_code.broker_code,
+              company_name: broker_code.company_name,
+              display_name: "#{broker_code.broker.name} (#{broker_code.broker_code})"
+            }
+          end
+        }
+      end
+    end
   end
 
   def new

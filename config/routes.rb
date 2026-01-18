@@ -240,7 +240,6 @@ Rails.application.routes.draw do
       end
       member do
         get :commission_details
-        patch :remove_rider
         get :renew
         post :create_renewal
       end

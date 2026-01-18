@@ -1683,60 +1683,100 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Loading', data.agents.length, 'agents');
 
         // Clear loading message and add proper default option
-        agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
+        if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
+          // Use Select2 API to clear and add options
+          jQuery('#life_insurance_agency_code_id').empty().append('<option value="">Select Agency Code</option>');
 
-        // Add agents to dropdown
-        data.agents.forEach(agent => {
-          const option = document.createElement('option');
-          option.value = agent.id;
-          option.setAttribute('data-agent-name', agent.agent_name);
-          option.setAttribute('data-agent-code', agent.code);
-          // Format: Agent-name (Agency-code)
-          option.textContent = `${agent.agent_name} (${agent.code})`;
-          agencyCodeSelect.appendChild(option);
-        });
+          // Add agents using Select2 API
+          data.agents.forEach(agent => {
+            const newOption = new Option(`${agent.agent_name} (${agent.code})`, agent.id, false, false);
+            newOption.setAttribute('data-agent-name', agent.agent_name);
+            newOption.setAttribute('data-agent-code', agent.code);
+            jQuery('#life_insurance_agency_code_id').append(newOption);
+          });
+
+          // Trigger Select2 to refresh
+          jQuery('#life_insurance_agency_code_id').trigger('change');
+          console.log('✅ Select2 options updated via API');
+        } else {
+          // Fallback for non-Select2 dropdown
+          agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
+
+          data.agents.forEach(agent => {
+            const option = document.createElement('option');
+            option.value = agent.id;
+            option.setAttribute('data-agent-name', agent.agent_name);
+            option.setAttribute('data-agent-code', agent.code);
+            option.textContent = `${agent.agent_name} (${agent.code})`;
+            agencyCodeSelect.appendChild(option);
+          });
+        }
         console.log('Loaded', data.agents.length, 'agents for Life insurance');
       } else {
         console.warn('No Life insurance agents found');
-        // Clear loading message first
-        agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = 'No agents available for Life insurance';
-        option.disabled = true;
-        agencyCodeSelect.appendChild(option);
+        // Handle no agents case for both Select2 and regular dropdown
+        if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
+          jQuery('#life_insurance_agency_code_id').empty()
+            .append('<option value="">Select Agency Code</option>')
+            .append('<option value="" disabled>No agents available for Life insurance</option>');
+          jQuery('#life_insurance_agency_code_id').trigger('change');
+        } else {
+          agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
+          const option = document.createElement('option');
+          option.value = '';
+          option.textContent = 'No agents available for Life insurance';
+          option.disabled = true;
+          agencyCodeSelect.appendChild(option);
+        }
       }
     })
     .catch(error => {
       console.error('Error fetching agency codes:', error);
-      // Clear loading message and show error in dropdown
-      agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
-      const option = document.createElement('option');
-      option.value = '';
-      option.textContent = 'Error loading agents';
-      option.disabled = true;
-      agencyCodeSelect.appendChild(option);
+      // Handle error case for both Select2 and regular dropdown
+      if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
+        jQuery('#life_insurance_agency_code_id').empty()
+          .append('<option value="">Select Agency Code</option>')
+          .append('<option value="" disabled>Error loading agents</option>');
+        jQuery('#life_insurance_agency_code_id').trigger('change');
+      } else {
+        agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'Error loading agents';
+        option.disabled = true;
+        agencyCodeSelect.appendChild(option);
+      }
     });
   }
 
   // Function to load all brokers when "Broking" is selected
   function loadAllBrokersForBroking() {
+    console.log('🚀 loadAllBrokersForBroking() called!');
+
     // Check if elements exist before proceeding
     if (!agencyCodeSelect || !insuranceCompanySelect) {
-      console.error('Required select elements not found');
+      console.error('❌ Required select elements not found');
+      console.log('agencyCodeSelect:', agencyCodeSelect);
+      console.log('insuranceCompanySelect:', insuranceCompanySelect);
       return;
     }
 
-    // Clear existing options and show loading
-    agencyCodeSelect.innerHTML = '<option value="">Loading brokers...</option>';
-    insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
+    console.log('✅ Elements found, proceeding with broker codes loading...');
+
+    // Clear existing options and show loading with Select2 support
+    if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
+      jQuery('#life_insurance_agency_code_id').empty().append('<option value="">Loading brokers...</option>');
+      jQuery('#life_insurance_agency_code_id').trigger('change');
+    } else {
+      agencyCodeSelect.innerHTML = '<option value="">Loading brokers...</option>';
+    }
 
     // Update label
     if (agencyCodeLabelText) {
       agencyCodeLabelText.textContent = ' (All Brokers)';
     }
 
-    console.log('Loading brokers for Broking from /admin/brokers...');
+    console.log('Loading broker codes for Broking from /admin/broker_codes...');
 
     // Use the direct brokers endpoint for faster loading
     const brokersHeaders = {
@@ -1749,12 +1789,12 @@ document.addEventListener('DOMContentLoaded', function() {
       brokersHeaders['X-CSRF-Token'] = csrfToken;
     }
 
-    fetch('/admin/brokers.json', {
+    fetch('/admin/broker_codes.json', {
       headers: brokersHeaders,
       credentials: 'same-origin'
     })
     .then(response => {
-      console.log('Brokers API response status:', response.status);
+      console.log('Broker Codes API response status:', response.status);
       if (response.status === 401 || response.status === 403) {
         throw new Error('Authentication required - please refresh the page');
       }
@@ -1764,46 +1804,80 @@ document.addEventListener('DOMContentLoaded', function() {
       return response.json();
     })
     .then(data => {
-      console.log('Brokers API response data:', data);
+      console.log('Broker Codes API response data:', data);
 
-      // Clear loading message
-      agencyCodeSelect.innerHTML = '<option value="">Select Broker</option>';
+      // Clear loading message and handle Select2
+      if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
+        jQuery('#life_insurance_agency_code_id').empty().append('<option value="">Select Broker</option>');
 
-      // Handle different response formats
-      let brokers = data;
-      if (data && data.brokers) {
-        brokers = data.brokers;
-      }
+        if (data && data.success && data.broker_codes && data.broker_codes.length > 0) {
+          console.log('📦 Processing broker codes response:', data.broker_codes.length, 'items');
 
-      if (brokers && Array.isArray(brokers) && brokers.length > 0) {
-        console.log('Loading', brokers.length, 'brokers');
-        brokers.forEach(broker => {
-          const option = document.createElement('option');
-          option.value = `broker_${broker.id}`;
-          option.setAttribute('data-broker-id', broker.id);
-          // Format: Broker-name (Broker-id)
-          option.textContent = `${broker.name} (${broker.id})`;
-          agencyCodeSelect.appendChild(option);
-        });
-        console.log('Loaded', brokers.length, 'brokers successfully');
+          // Add broker codes using Select2 API
+          data.broker_codes.forEach((brokerCode, index) => {
+            const newOption = new Option(brokerCode.display_name, `broker_${brokerCode.id}`, false, false);
+            newOption.setAttribute('data-broker-id', brokerCode.broker_id);
+            newOption.setAttribute('data-broker-code-id', brokerCode.id);
+            newOption.setAttribute('data-broker-name', brokerCode.broker_name);
+            newOption.setAttribute('data-broker-code', brokerCode.broker_code);
+            jQuery('#life_insurance_agency_code_id').append(newOption);
+            console.log(`  ➕ Added broker code ${index + 1}: ${brokerCode.display_name}`);
+          });
+
+          // Trigger Select2 to refresh
+          jQuery('#life_insurance_agency_code_id').trigger('change');
+          console.log('✅ Select2 broker codes populated successfully!');
+        } else {
+          jQuery('#life_insurance_agency_code_id').append('<option value="" disabled>No broker codes available</option>');
+        }
       } else {
-        console.warn('No brokers found');
-        // Show message in dropdown if no brokers found
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = 'No brokers available';
-        option.disabled = true;
-        agencyCodeSelect.appendChild(option);
+        // Fallback for non-Select2 dropdown
+        agencyCodeSelect.innerHTML = '<option value="">Select Broker</option>';
+
+        if (data && data.success && data.broker_codes && data.broker_codes.length > 0) {
+          console.log('Loading', data.broker_codes.length, 'broker codes');
+          data.broker_codes.forEach(brokerCode => {
+            const option = document.createElement('option');
+            option.value = `broker_${brokerCode.id}`;
+            option.setAttribute('data-broker-id', brokerCode.broker_id);
+            option.setAttribute('data-broker-code-id', brokerCode.id);
+            option.setAttribute('data-broker-name', brokerCode.broker_name);
+            option.setAttribute('data-broker-code', brokerCode.broker_code);
+            // Format: Broker-name (Broker-code)
+            option.textContent = brokerCode.display_name;
+            agencyCodeSelect.appendChild(option);
+          });
+          console.log('Loaded', data.broker_codes.length, 'broker codes successfully');
+        } else {
+          console.warn('No broker codes found');
+          const option = document.createElement('option');
+          option.value = '';
+          option.textContent = 'No broker codes available';
+          option.disabled = true;
+          agencyCodeSelect.appendChild(option);
+        }
       }
     })
     .catch(error => {
-      console.error('Error fetching brokers:', error);
-      // Show error in dropdown
-      const option = document.createElement('option');
-      option.value = '';
-      option.textContent = 'Error loading brokers';
-      option.disabled = true;
-      agencyCodeSelect.appendChild(option);
+      console.error('🚨 Error fetching broker codes:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+      // Handle error case for both Select2 and regular dropdown
+      if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
+        jQuery('#life_insurance_agency_code_id').empty()
+          .append('<option value="">Select Broker</option>')
+          .append('<option value="" disabled>Error loading broker codes</option>');
+        jQuery('#life_insurance_agency_code_id').trigger('change');
+      } else {
+        agencyCodeSelect.innerHTML = '<option value="">Select Broker</option>';
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'Error loading broker codes';
+        option.disabled = true;
+        agencyCodeSelect.appendChild(option);
+      }
     });
   }
 
@@ -2078,8 +2152,13 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    // Show loading message
-    insuranceCompanySelect.innerHTML = '<option value="">Loading all companies...</option>';
+    // Show loading message with Select2 support
+    if (window.jQuery && jQuery('#life_insurance_insurance_company_name').hasClass('select2-hidden-accessible')) {
+      jQuery('#life_insurance_insurance_company_name').empty().append('<option value="">Loading all companies...</option>');
+      jQuery('#life_insurance_insurance_company_name').trigger('change');
+    } else {
+      insuranceCompanySelect.innerHTML = '<option value="">Loading all companies...</option>';
+    }
 
     console.log('Loading all companies for Broking mode...');
 
@@ -2093,7 +2172,15 @@ document.addEventListener('DOMContentLoaded', function() {
       companiesHeaders['X-CSRF-Token'] = csrfToken;
     }
 
-    const fetchPromise = fetch('/admin/agency_codes/companies_by_type.json?insurance_type=life', {
+    // Detect insurance type from URL
+    const currentPath = window.location.pathname;
+    const insuranceType = currentPath.includes('/life') ? 'life' :
+                         currentPath.includes('/health') ? 'health' :
+                         'life'; // default to life
+
+    console.log('Detected insurance type:', insuranceType, 'from path:', currentPath);
+
+    const fetchPromise = fetch(`/admin/agency_codes/companies_by_type.json?insurance_type=${insuranceType}`, {
       headers: companiesHeaders,
       credentials: 'same-origin'
     });
@@ -2113,34 +2200,67 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(data => {
       console.log('All companies response:', data);
 
-      // Clear loading message
-      insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
+      // Clear loading message and handle Select2
+      if (window.jQuery && jQuery('#life_insurance_insurance_company_name').hasClass('select2-hidden-accessible')) {
+        jQuery('#life_insurance_insurance_company_name').empty().append('<option value="">Select Company</option>');
 
-      if (data.success && data.companies && data.companies.length > 0) {
-        data.companies.forEach(company => {
-          const option = document.createElement('option');
-          option.value = company;
-          option.textContent = company;
-          insuranceCompanySelect.appendChild(option);
-        });
-        console.log(`Loaded ${data.companies.length} insurance companies for Broking mode`);
+        if (data.success && data.companies && data.companies.length > 0) {
+          // Add companies using Select2 API
+          data.companies.forEach(company => {
+            const newOption = new Option(company, company, false, false);
+            jQuery('#life_insurance_insurance_company_name').append(newOption);
+          });
+
+          // Trigger Select2 to refresh
+          jQuery('#life_insurance_insurance_company_name').trigger('change');
+          console.log(`✅ Select2 companies updated: ${data.companies.length} companies for ${insuranceType} insurance`);
+        } else {
+          jQuery('#life_insurance_insurance_company_name').append('<option value="" disabled>No companies available</option>');
+          jQuery('#life_insurance_insurance_company_name').trigger('change');
+        }
       } else {
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = 'No companies available';
-        option.disabled = true;
-        insuranceCompanySelect.appendChild(option);
-        console.log('No companies found');
+        // Fallback for non-Select2 dropdown
+        insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
+
+        if (data.success && data.companies && data.companies.length > 0) {
+          data.companies.forEach(company => {
+            const option = document.createElement('option');
+            option.value = company;
+            option.textContent = company;
+            insuranceCompanySelect.appendChild(option);
+          });
+          console.log(`Loaded ${data.companies.length} insurance companies for ${insuranceType} insurance`);
+        } else {
+          const option = document.createElement('option');
+          option.value = '';
+          option.textContent = 'No companies available';
+          option.disabled = true;
+          insuranceCompanySelect.appendChild(option);
+        }
       }
     })
     .catch(error => {
       console.error('Error fetching all companies:', error);
-      insuranceCompanySelect.innerHTML = '<option value="">Error loading companies</option>';
 
-      // Show error message for a few seconds then reset
-      setTimeout(() => {
-        insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
-      }, 3000);
+      // Handle error case for both Select2 and regular dropdown
+      if (window.jQuery && jQuery('#life_insurance_insurance_company_name').hasClass('select2-hidden-accessible')) {
+        jQuery('#life_insurance_insurance_company_name').empty()
+          .append('<option value="">Error loading companies</option>');
+        jQuery('#life_insurance_insurance_company_name').trigger('change');
+
+        // Reset after a few seconds
+        setTimeout(() => {
+          jQuery('#life_insurance_insurance_company_name').empty().append('<option value="">Select Company</option>');
+          jQuery('#life_insurance_insurance_company_name').trigger('change');
+        }, 3000);
+      } else {
+        insuranceCompanySelect.innerHTML = '<option value="">Error loading companies</option>';
+
+        // Show error message for a few seconds then reset
+        setTimeout(() => {
+          insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
+        }, 3000);
+      }
     });
   }
 
@@ -2178,6 +2298,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Event listener for agency code selection change
   if (agencyCodeSelect) {
+    // Regular DOM event listener
     agencyCodeSelect.addEventListener('change', function() {
       const selectedValue = this.value;
       const selectedOption = this.options[this.selectedIndex];
@@ -2226,6 +2347,55 @@ document.addEventListener('DOMContentLoaded', function() {
         // Don't clear this.value so user can see their selection
       }
     });
+
+    // Also add Select2-specific event listener for agency code
+    if (window.jQuery && jQuery('#life_insurance_agency_code_id').length) {
+      jQuery('#life_insurance_agency_code_id').on('change', function() {
+        console.log('🔄 Select2 Agency Code changed!');
+        const selectedValue = this.value;
+        const selectedOption = this.options[this.selectedIndex];
+
+        console.log('  - Selected Value:', selectedValue);
+        console.log('  - Selected Text:', selectedOption?.text);
+
+        if (!selectedValue) {
+          console.log('  - No value selected, clearing company dropdown');
+          // Clear company dropdown if nothing selected
+          if (insuranceCompanySelect) {
+            if (window.jQuery && jQuery(insuranceCompanySelect).hasClass('select2-hidden-accessible')) {
+              jQuery(insuranceCompanySelect).empty().append('<option value="">Select Company</option>');
+              jQuery(insuranceCompanySelect).trigger('change');
+            } else {
+              insuranceCompanySelect.innerHTML = '<option value="">Select Company</option>';
+            }
+          }
+          return;
+        }
+
+        const brokerCodeType = brokerCodeTypeSelect ? brokerCodeTypeSelect.value : null;
+        console.log('  - Broker Code Type:', brokerCodeType);
+
+        if (brokerCodeType === 'direct') {
+          console.log('  - Mode: DIRECT - Loading company for agency code...');
+          // Get agency code ID and load the associated company
+          const agencyCodeId = selectedValue;
+          if (agencyCodeId) {
+            loadCompanyForAgencyCode(agencyCodeId);
+          }
+          // Clear broker ID for direct
+          if (brokerIdHidden) brokerIdHidden.value = '';
+        } else if (brokerCodeType === 'broking') {
+          // Get broker ID from data attribute
+          const brokerId = selectedOption.getAttribute('data-broker-id');
+          if (brokerId) {
+            currentSelectedBrokerId = brokerId;
+            // In Broking mode, ALL companies are already loaded regardless of broker selection
+            // Set broker ID in hidden field
+            if (brokerIdHidden) brokerIdHidden.value = brokerId;
+          }
+        }
+      });
+    }
   }
 
   // Initialize functionality on page load

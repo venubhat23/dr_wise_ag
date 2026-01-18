@@ -191,7 +191,7 @@ class StructuredPayoutService
       status: 'pending',
       payment_mode: 'bank_transfer',
       reference_number: "INV_#{main_payout.id}_#{Time.current.to_i}",
-      notes: "Investor commission for #{@policy_type} policy. Investor ID: #{@policy.investor_id}",
+      notes: "Investor commission for #{@policy_type} policy. Policy Number: #{@policy.policy_number}",
       processed_by: 'system_auto'
     )
   end

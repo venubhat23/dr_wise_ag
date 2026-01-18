@@ -1,6 +1,6 @@
 class Admin::LifeInsurancesController < Admin::ApplicationController
   include ConfigurablePagination
-  before_action :set_life_insurance, only: [:show, :edit, :update, :destroy, :remove_rider, :commission_details, :renew, :create_renewal]
+  before_action :set_life_insurance, only: [:show, :edit, :update, :destroy, :commission_details, :renew, :create_renewal]
 
   # GET /admin/insurance/life
   def index
@@ -180,26 +180,6 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     render json: { options: options }
   end
 
-  # PATCH /admin/insurance/life/1/remove_rider
-  def remove_rider
-    rider_type = params[:rider_type]
-
-    case rider_type
-    when 'term'
-      @life_insurance.update(term_rider_amount: 0, term_rider_note: nil)
-    when 'critical_illness'
-      @life_insurance.update(critical_illness_rider_amount: 0, critical_illness_rider_note: nil)
-    when 'accident'
-      @life_insurance.update(accident_rider_amount: 0, accident_rider_note: nil)
-    when 'pwb'
-      @life_insurance.update(pwb_rider_amount: 0, pwb_rider_note: nil)
-    when 'other'
-      @life_insurance.update(other_rider_amount: 0, other_rider_note: nil)
-    end
-
-    redirect_to edit_admin_life_insurance_path(@life_insurance),
-                notice: "#{rider_type.humanize} rider information removed successfully."
-  end
 
   # GET /admin/insurance/life/1/commission_details
   def commission_details
@@ -460,9 +440,6 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       :policy_end_date, :risk_start_date, :policy_term, :premium_payment_term,
       :plan_name, :sum_insured, :sum_insured_text, :net_premium, :first_year_gst_percentage,
       :second_year_gst_percentage, :third_year_gst_percentage, :total_premium,
-      :term_rider_amount, :term_rider_note, :critical_illness_rider_amount,
-      :critical_illness_rider_note, :accident_rider_amount, :accident_rider_note,
-      :pwb_rider_amount, :pwb_rider_note, :other_rider_amount, :other_rider_note,
       :nominee_name, :nominee_relationship, :nominee_age, :bank_name,
       :account_type, :account_number, :ifsc_code, :account_holder_name,
       :reference_by_name, :broker_name, :bonus, :fund, :extra_note,
