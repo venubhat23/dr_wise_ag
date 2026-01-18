@@ -672,8 +672,6 @@ class Admin::DistributorPayoutsController < ApplicationController
         CommissionPayout.create!(
           policy_type: commission_payout.policy_type,
           policy_id: policy.id,
-          customer_id: policy.customer_id,
-          total_commission_amount: commission_payout.total_commission_amount,
           status: 'paid',
           payout_date: payment_date || Date.current,
           processed_by: current_user&.email || 'system',

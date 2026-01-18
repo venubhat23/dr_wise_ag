@@ -312,6 +312,123 @@
         </div>
       </div>
 
+      <!-- Family Details Section -->
+      <div id="family_details_section" class="card border-0 shadow-sm mb-4" style="display: <%= @customer.individual? ? 'block' : 'none' %>;">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-people me-2 text-primary"></i>
+            <h5 class="mb-0">Family Details</h5>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="add_family_member">
+            <i class="bi bi-plus-lg me-1"></i>
+            Add Family Member
+          </button>
+        </div>
+        <div class="card-body">
+          <div id="family_members_container">
+            <!-- Existing family members -->
+            <% @customer.family_members.each_with_index do |family_member, index| %>
+              <div class="family-member-entry p-3 mb-3 border rounded position-relative" data-index="<%= index %>">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-btn remove-family-member">
+                  <i class="bi bi-trash"></i>
+                </button>
+                <h6 class="mb-3">Family Member <%= index + 1 %></h6>
+
+                <!-- Hidden ID field for existing family members -->
+                <input type="hidden" name="customer[family_members_attributes][<%= index %>][id]" value="<%= family_member.id %>">
+
+                <div class="row">
+                  <div class="col-md-4">
+                    <label class="form-label">First Name <span class="text-danger">*</span></label>
+                    <input type="text" name="customer[family_members_attributes][<%= index %>][first_name]" class="form-control" value="<%= family_member.first_name %>" required>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Middle Name</label>
+                    <input type="text" name="customer[family_members_attributes][<%= index %>][middle_name]" class="form-control" value="<%= family_member.middle_name %>">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                    <input type="text" name="customer[family_members_attributes][<%= index %>][last_name]" class="form-control" value="<%= family_member.last_name %>" required>
+                  </div>
+                </div>
+
+                <div class="row mt-3">
+                  <div class="col-md-4">
+                    <label class="form-label">Mobile</label>
+                    <input type="tel" name="customer[family_members_attributes][<%= index %>][mobile]" class="form-control" value="<%= family_member.mobile %>">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Birth Date</label>
+                    <input type="date" name="customer[family_members_attributes][<%= index %>][birth_date]" class="form-control" value="<%= family_member.birth_date %>">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Age</label>
+                    <input type="text" name="customer[family_members_attributes][<%= index %>][age]" class="form-control" value="<%= family_member.age %>" readonly placeholder="Auto calculated from DOB">
+                  </div>
+                </div>
+
+                <div class="row mt-3">
+                  <div class="col-md-4">
+                    <label class="form-label">Gender</label>
+                    <select name="customer[family_members_attributes][<%= index %>][gender]" class="form-select">
+                      <option value="">Select Gender</option>
+                      <option value="male" <%= 'selected' if family_member.gender == 'male' %>>Male</option>
+                      <option value="female" <%= 'selected' if family_member.gender == 'female' %>>Female</option>
+                      <option value="other" <%= 'selected' if family_member.gender == 'other' %>>Other</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Relationship <span class="text-danger">*</span></label>
+                    <select name="customer[family_members_attributes][<%= index %>][relationship]" class="form-select" required>
+                      <option value="">Select Relationship</option>
+                      <option value="father" <%= 'selected' if family_member.relationship == 'father' %>>Father</option>
+                      <option value="mother" <%= 'selected' if family_member.relationship == 'mother' %>>Mother</option>
+                      <option value="spouse" <%= 'selected' if family_member.relationship == 'spouse' %>>Spouse</option>
+                      <option value="son" <%= 'selected' if family_member.relationship == 'son' %>>Son</option>
+                      <option value="daughter" <%= 'selected' if family_member.relationship == 'daughter' %>>Daughter</option>
+                      <option value="sibling" <%= 'selected' if family_member.relationship == 'sibling' %>>Sibling</option>
+                      <option value="other" <%= 'selected' if family_member.relationship == 'other' %>>Other</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Height (Feet)</label>
+                    <input type="number" name="customer[family_members_attributes][<%= index %>][height_feet]" class="form-control" value="<%= family_member.height_feet %>" placeholder="Enter height" step="0.1" min="3.5" max="8.0">
+                    <small class="form-text text-muted">Range: 3.5 - 8.0 feet</small>
+                  </div>
+                </div>
+
+                <div class="row mt-3">
+                  <div class="col-md-4">
+                    <label class="form-label">Weight (Kg)</label>
+                    <input type="number" name="customer[family_members_attributes][<%= index %>][weight_kg]" class="form-control" value="<%= family_member.weight_kg %>" step="0.1">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">PAN No</label>
+                    <input type="text" name="customer[family_members_attributes][<%= index %>][pan_no]" class="form-control" value="<%= family_member.pan_no %>">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Additional Information</label>
+                    <textarea name="customer[family_members_attributes][<%= index %>][additional_information]" class="form-control" rows="1"><%= family_member.additional_information %></textarea>
+                  </div>
+                </div>
+
+                <!-- Add a delete checkbox for existing family members -->
+                <div class="form-check mt-3">
+                  <input class="form-check-input" type="checkbox" name="customer[family_members_attributes][<%= index %>][_destroy]" id="destroy_family_member_<%= index %>">
+                  <label class="form-check-label text-danger" for="destroy_family_member_<%= index %>">
+                    Delete this family member
+                  </label>
+                </div>
+              </div>
+            <% end %>
+            <!-- New family members will be added here dynamically -->
+          </div>
+          <p class="text-muted mb-0 mt-2">
+            <small>Add family members for insurance purposes</small>
+          </p>
+        </div>
+      </div>
+
       <!-- Current Files -->
       <% if @customer.profile_image.attached? || @customer.documents.any? || @customer.uploaded_documents.any? %>
         <div class="card border-0 shadow-sm mb-4">
@@ -490,6 +607,26 @@
   </div>
 </div>
 
+<style>
+.family-member-entry {
+  background: #f8f9fa;
+  border-radius: 8px;
+  position: relative;
+}
+
+.family-member-entry .remove-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+}
+
+.family-member-entry:hover {
+  background: #e9ecef;
+  transition: background 0.2s ease;
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const customerTypeSelect = document.getElementById('customer_type');
@@ -528,6 +665,21 @@ document.addEventListener('DOMContentLoaded', function() {
   if (customerTypeSelect.value) {
     toggleCustomerType();
   }
+
+  // Update family details section visibility based on customer type
+  function toggleFamilyDetailsSection() {
+    const familyDetailsSection = document.getElementById('family_details_section');
+    const selectedType = customerTypeSelect.value;
+
+    if (selectedType === 'individual') {
+      familyDetailsSection.style.display = 'block';
+    } else {
+      familyDetailsSection.style.display = 'none';
+    }
+  }
+
+  // Add event listener for customer type changes
+  customerTypeSelect.addEventListener('change', toggleFamilyDetailsSection);
 
   // Pincode lookup functionality
   const pincodeField = document.getElementById('customer_pincode');
@@ -592,6 +744,126 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }, 5000);
   }
+
+  // Family Member Management System
+  let familyMemberIndex = <%= @customer.family_members.count %>;
+  const addFamilyMemberBtn = document.getElementById('add_family_member');
+  const familyMembersContainer = document.getElementById('family_members_container');
+
+  addFamilyMemberBtn?.addEventListener('click', function() {
+    const familyMemberHtml = `
+      <div class="family-member-entry p-3 mb-3 border rounded position-relative" data-index="${familyMemberIndex}">
+        <button type="button" class="btn btn-sm btn-outline-danger remove-btn remove-family-member">
+          <i class="bi bi-trash"></i>
+        </button>
+        <h6 class="mb-3">Family Member ${familyMemberIndex + 1}</h6>
+
+        <div class="row">
+          <div class="col-md-4">
+            <label class="form-label">First Name <span class="text-danger">*</span></label>
+            <input type="text" name="customer[family_members_attributes][${familyMemberIndex}][first_name]" class="form-control" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Middle Name</label>
+            <input type="text" name="customer[family_members_attributes][${familyMemberIndex}][middle_name]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Last Name <span class="text-danger">*</span></label>
+            <input type="text" name="customer[family_members_attributes][${familyMemberIndex}][last_name]" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <label class="form-label">Mobile</label>
+            <input type="tel" name="customer[family_members_attributes][${familyMemberIndex}][mobile]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Birth Date</label>
+            <input type="date" name="customer[family_members_attributes][${familyMemberIndex}][birth_date]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Age</label>
+            <input type="text" name="customer[family_members_attributes][${familyMemberIndex}][age]" class="form-control" readonly placeholder="Auto calculated from DOB">
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <label class="form-label">Gender</label>
+            <select name="customer[family_members_attributes][${familyMemberIndex}][gender]" class="form-select">
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Relationship <span class="text-danger">*</span></label>
+            <select name="customer[family_members_attributes][${familyMemberIndex}][relationship]" class="form-select" required>
+              <option value="">Select Relationship</option>
+              <option value="father">Father</option>
+              <option value="mother">Mother</option>
+              <option value="spouse">Spouse</option>
+              <option value="son">Son</option>
+              <option value="daughter">Daughter</option>
+              <option value="sibling">Sibling</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Height (Feet)</label>
+            <input type="number" name="customer[family_members_attributes][${familyMemberIndex}][height_feet]" class="form-control" placeholder="Enter height" step="0.1" min="3.5" max="8.0">
+            <small class="form-text text-muted">Range: 3.5 - 8.0 feet</small>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <label class="form-label">Weight (Kg)</label>
+            <input type="number" name="customer[family_members_attributes][${familyMemberIndex}][weight_kg]" class="form-control" step="0.1">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">PAN No</label>
+            <input type="text" name="customer[family_members_attributes][${familyMemberIndex}][pan_no]" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Additional Information</label>
+            <textarea name="customer[family_members_attributes][${familyMemberIndex}][additional_information]" class="form-control" rows="1"></textarea>
+          </div>
+        </div>
+      </div>
+    `;
+    familyMembersContainer.insertAdjacentHTML('beforeend', familyMemberHtml);
+    familyMemberIndex++;
+  });
+
+  // Event delegation for removing family members
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-family-member')) {
+      e.target.closest('.family-member-entry').remove();
+    }
+  });
+
+  // Auto-calculate family member ages
+  document.addEventListener('change', function(e) {
+    if (e.target.matches('input[name*="birth_date"]') && e.target.closest('.family-member-entry')) {
+      const ageField = e.target.closest('.family-member-entry').querySelector('input[name*="[age]"]');
+
+      if (ageField && e.target.value) {
+        const birthDate = new Date(e.target.value);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+
+        ageField.value = age >= 0 ? age + ' years' : '';
+      }
+    }
+  });
 
   // Customer Document Management System
   let customerDocumentIndex = 0;
