@@ -126,22 +126,22 @@ class User < ApplicationRecord
 
   # Password reset tracking methods
   def password_reset_days
-    return 0 unless password_reset_at
+    return 0 unless respond_to?(:password_reset_at) && password_reset_at
     ((Time.current - password_reset_at) / 1.day).to_i
   end
 
   def password_reset_required?
-    return false unless password_reset_at
+    return false unless respond_to?(:password_reset_at) && password_reset_at
     password_reset_days >= 180
   end
 
   def days_until_password_expires
-    return 0 unless password_reset_at
+    return 180 unless respond_to?(:password_reset_at) && password_reset_at
     [180 - password_reset_days, 0].max
   end
 
   def mark_password_reset!
-    update_column(:password_reset_at, Time.current)
+    update_column(:password_reset_at, Time.current) if respond_to?(:password_reset_at) && User.column_names.include?('password_reset_at')
   end
 
   # Override Devise password update to track reset

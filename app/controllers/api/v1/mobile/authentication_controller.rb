@@ -74,8 +74,8 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
           }
           return
         end
-      elsif user.agent? || user.admin? || user.sub_agent?
-        # Agent/Admin login
+      elsif user.agent? || user.admin? || user.sub_agent? || user.ambassador?
+        # Agent/Admin/Ambassador login
         token = generate_token(user, user.user_type)
         agent_stats = get_agent_statistics(user)
 

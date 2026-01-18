@@ -168,10 +168,9 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   def all_agents
     
     insurance_type = params[:insurance_type] || 'Life Insurance'
-    if insurance_type == "Life"
+    if (insurance_type == "Life") || (insurance_type == "life" )
       insurance_type = "Life Insurance"
     end
-      
     # Get all unique agents for the insurance type (PostgreSQL compatible)
     @agency_codes = AgencyCode.where(insurance_type: insurance_type)
                              .select('agent_name, MIN(id) as id, MIN(code) as code, MIN(company_name) as company_name')
