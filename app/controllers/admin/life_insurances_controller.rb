@@ -108,6 +108,9 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     set_distributor_from_affiliate(@life_insurance)
 
     begin
+      # Ensure distributor is set before saving (double-check)
+      set_distributor_from_affiliate(@life_insurance)
+
       if @life_insurance.save
         redirect_to admin_life_insurances_path,
                     notice: 'Life insurance policy was successfully created.'
@@ -297,12 +300,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     end
 
     # Ensure distributor is set for affiliate
-    if @renewed_policy.sub_agent_id.present? && @renewed_policy.distributor_id.blank?
-      sub_agent = SubAgent.find_by(id: @renewed_policy.sub_agent_id)
-      if sub_agent
-        @renewed_policy.distributor_id = sub_agent.distributor_id || sub_agent.assigned_distributor&.id
-      end
-    end
+    set_distributor_from_affiliate(@renewed_policy)
   end
 
   # POST /admin/insurance/life/:id/create_renewal
@@ -324,12 +322,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     @renewed_policy.is_agent_added = @life_insurance.is_agent_added
 
     # Ensure distributor is set from affiliate before saving
-    if @renewed_policy.sub_agent_id.present? && @renewed_policy.distributor_id.blank?
-      sub_agent = SubAgent.find_by(id: @renewed_policy.sub_agent_id)
-      if sub_agent
-        @renewed_policy.distributor_id = sub_agent.distributor_id || sub_agent.assigned_distributor&.id
-      end
-    end
+    set_distributor_from_affiliate(@renewed_policy)
 
     if @renewed_policy.save
       # Set renewal relationships
@@ -495,16 +488,34 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
   def set_distributor_from_affiliate(insurance_record)
     # If affiliate is selected but distributor is not set, auto-assign distributor
     if insurance_record.sub_agent_id.present? && insurance_record.distributor_id.blank?
-      sub_agent = SubAgent.find(insurance_record.sub_agent_id)
+      sub_agent = SubAgent.find_by(id: insurance_record.sub_agent_id)
 
-      # Use direct distributor relationship first, then fall back to assignment
-      distributor_id = sub_agent.distributor_id || sub_agent.assigned_distributor&.id
+      if sub_agent
+        # Use direct distributor relationship first, then fall back to assignment
+        distributor_id = sub_agent.distributor_id || sub_agent.assigned_distributor&.id
 
-      insurance_record.distributor_id = distributor_id if distributor_id.present?
+        if distributor_id.present?
+          insurance_record.distributor_id = distributor_id
+          Rails.logger.info "Set distributor_id #{distributor_id} from sub_agent #{sub_agent.id}"
+        else
+          Rails.logger.warn "No distributor found for sub_agent #{sub_agent.id} (#{sub_agent.display_name})"
+          # If no distributor is found, use a default one or the first active distributor
+          default_distributor = Distributor.active.first
+          if default_distributor
+            insurance_record.distributor_id = default_distributor.id
+            Rails.logger.info "Using default distributor #{default_distributor.id} for sub_agent #{sub_agent.id}"
+          else
+            Rails.logger.error "No active distributors found in the system"
+          end
+        end
+      else
+        Rails.logger.error "SubAgent with id #{insurance_record.sub_agent_id} not found"
+      end
     end
   rescue StandardError => e
     # Log error but don't fail the form submission
     Rails.logger.error "Failed to set distributor from affiliate: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
   end
 
   def calculate_tab_statistics

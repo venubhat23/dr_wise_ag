@@ -251,7 +251,8 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       // Fetch companies for the selected insurance type
-      fetch(`/admin/agency_codes/companies_by_type?insurance_type=${encodeURIComponent(insuranceType)}`, {
+      const agencyCodeId = '<%= @agency_code.id %>';
+      fetch(`/admin/agency_codes/companies_by_type?insurance_type=${encodeURIComponent(insuranceType)}&agency_code_id=${agencyCodeId}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -261,13 +262,14 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          // Store current value
-          const currentValue = companySelect.value;
+          // Store current value (could be from dropdown or from server-side rendering)
+          const currentValue = companySelect.value || '<%= @agency_code.company_name %>';
 
           // Clear existing options
           companySelect.innerHTML = '<option value="">Select Insurance Company</option>';
 
           // Add new options
+          let hasCurrentValue = false;
           data.companies.forEach(company => {
             const option = document.createElement('option');
             option.value = company;
@@ -275,16 +277,30 @@ document.addEventListener('DOMContentLoaded', function() {
             // Restore selection if it exists in the new list
             if (company === currentValue) {
               option.selected = true;
+              hasCurrentValue = true;
             }
             companySelect.appendChild(option);
           });
 
+          // If the current value wasn't found in the list, add it anyway (for existing data)
+          if (currentValue && !hasCurrentValue && currentValue !== '') {
+            const option = document.createElement('option');
+            option.value = currentValue;
+            option.textContent = currentValue;
+            option.selected = true;
+            companySelect.appendChild(option);
+            console.log('Added missing company option:', currentValue);
+          }
+
           // Update Select2 if it's initialized
           if ($(companySelect).hasClass('select2-hidden-accessible')) {
-            $(companySelect).trigger('change');
+            $(companySelect).val(currentValue).trigger('change');
           }
 
           console.log(`Loaded ${data.companies.length} companies for ${insuranceType} insurance`);
+          if (currentValue) {
+            console.log('Preserved company selection:', currentValue);
+          }
         } else {
           console.error('Failed to load companies:', data.message);
         }
@@ -316,9 +332,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load companies on page load if insurance type is already selected
     const initialInsuranceType = insuranceTypeSelect.value;
+    const initialCompanyName = companySelect.value || '<%= @agency_code.company_name %>';
+
     if (initialInsuranceType) {
       console.log('Loading companies for initial type:', initialInsuranceType);
-      loadCompaniesByType(initialInsuranceType);
+      console.log('Initial company name:', initialCompanyName);
+
+      // Delay the company loading slightly to ensure Select2 is fully initialized
+      setTimeout(() => {
+        loadCompaniesByType(initialInsuranceType);
+
+        // After loading companies, set the initial value
+        setTimeout(() => {
+          if (initialCompanyName) {
+            companySelect.value = initialCompanyName;
+
+            // If Select2 is initialized, trigger change to update the display
+            if ($(companySelect).hasClass('select2-hidden-accessible')) {
+              $(companySelect).val(initialCompanyName).trigger('change');
+            }
+
+            console.log('Restored company selection to:', initialCompanyName);
+          }
+        }, 100);
+      }, 200);
     }
   }
 });

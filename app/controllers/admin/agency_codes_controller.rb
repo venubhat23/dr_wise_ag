@@ -71,6 +71,12 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   def edit
     @insurance_types = ['Health Insurance', 'Life Insurance', 'Motor and Other Insurance']
     @insurance_companies = get_companies_for_insurance_type(@agency_code.insurance_type)
+
+    # Ensure the current company is included in the list even if it's not in the standard list
+    if @agency_code.company_name.present? && !@insurance_companies.include?(@agency_code.company_name)
+      @insurance_companies << @agency_code.company_name
+      @insurance_companies.sort!
+    end
   end
 
   # POST /admin/agency_codes
@@ -92,6 +98,13 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     else
       @insurance_types = ['Health Insurance', 'Life Insurance', 'Motor and Other Insurance']
       @insurance_companies = get_companies_for_insurance_type(@agency_code.insurance_type)
+
+      # Ensure the current company is included in the list even if it's not in the standard list
+      if @agency_code.company_name.present? && !@insurance_companies.include?(@agency_code.company_name)
+        @insurance_companies << @agency_code.company_name
+        @insurance_companies.sort!
+      end
+
       render :edit, status: :unprocessable_entity
     end
   end
@@ -443,6 +456,8 @@ class Admin::AgencyCodesController < Admin::ApplicationController
   # GET /admin/agency_codes/companies_by_type - API endpoint for fetching companies by insurance type
   def companies_by_type
     insurance_type = params[:insurance_type]
+    agency_code_id = params[:agency_code_id] # For edit mode, to include current company
+
     if insurance_type.present?
       # Map frontend insurance type to database insurance_type values
       db_insurance_type = case insurance_type.to_s.downcase
@@ -479,6 +494,15 @@ class Admin::AgencyCodesController < Admin::ApplicationController
                                 .pluck(:name)
                                 .compact
                                 .reject(&:blank?)
+    end
+
+    # If agency_code_id is provided (edit mode), include the current company name
+    if agency_code_id.present?
+      agency_code = AgencyCode.find_by(id: agency_code_id)
+      if agency_code&.company_name.present? && !companies.include?(agency_code.company_name)
+        companies << agency_code.company_name
+        companies.sort!
+      end
     end
 
     respond_to do |format|

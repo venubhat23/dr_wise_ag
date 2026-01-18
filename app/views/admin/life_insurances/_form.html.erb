@@ -263,6 +263,35 @@
           <% end %>
         </div>
       </div>
+
+      <!-- Additional Policy Terms Row -->
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_term, "Policy Term (Y)", class: "form-label" %>
+          <%= form.number_field :policy_term,
+              class: "form-control #{'is-invalid' if @life_insurance.errors[:policy_term].any?}",
+              placeholder: "e.g., 10, 20, 30",
+              min: 1,
+              step: 1 %>
+          <div class="form-text">Enter policy term in years (e.g., 10, 20, 30)</div>
+          <% if @life_insurance.errors[:policy_term].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:policy_term].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :premium_payment_term, "Premium Payment Term", class: "form-label" %>
+          <%= form.number_field :premium_payment_term,
+              class: "form-control #{'is-invalid' if @life_insurance.errors[:premium_payment_term].any?}",
+              placeholder: "e.g., 5, 10, 15",
+              min: 1,
+              step: 1 %>
+          <div class="form-text">Enter premium payment term in years (e.g., 5, 10, 15)</div>
+          <% if @life_insurance.errors[:premium_payment_term].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:premium_payment_term].first %></div>
+          <% end %>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1653,6 +1682,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (data && data.success && data.agents && data.agents.length > 0) {
         console.log('Loading', data.agents.length, 'agents');
 
+        // Clear loading message and add proper default option
+        agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
+
         // Add agents to dropdown
         data.agents.forEach(agent => {
           const option = document.createElement('option');
@@ -1666,6 +1698,8 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Loaded', data.agents.length, 'agents for Life insurance');
       } else {
         console.warn('No Life insurance agents found');
+        // Clear loading message first
+        agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
         const option = document.createElement('option');
         option.value = '';
         option.textContent = 'No agents available for Life insurance';
@@ -1675,7 +1709,8 @@ document.addEventListener('DOMContentLoaded', function() {
     })
     .catch(error => {
       console.error('Error fetching agency codes:', error);
-      // Show error in dropdown
+      // Clear loading message and show error in dropdown
+      agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
       const option = document.createElement('option');
       option.value = '';
       option.textContent = 'Error loading agents';

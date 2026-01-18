@@ -419,7 +419,9 @@ class LifeInsurance < ApplicationRecord
     # Skip validation for customer-added policies (they can input any company name)
     return if is_customer_added?
 
-    unless self.class.insurance_company_names.include?(insurance_company_name)
+    exists = InsuranceCompany.where(name: insurance_company_name).exists?
+
+    unless exists
       errors.add(:insurance_company_name, "must be a valid insurance company")
     end
   end
