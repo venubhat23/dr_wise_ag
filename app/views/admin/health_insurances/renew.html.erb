@@ -129,7 +129,7 @@
 
         <!-- 2nd: Agency Code (shows Agents when Direct selected, Brokers when Broking selected) -->
         <div class="col-md-4 mb-3">
-          <%= form.label :agency_code_id, "Agency Code (All Agents)*", class: "form-label" %>
+          <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
           <span class="dynamic-label" id="agency_code_label_text"></span>
           <%= form.select :agency_code_id,
               options_for_select(@agency_codes.map { |a| ["#{a.agent_name} - #{a.code}", a.id] }, @health_insurance.agency_code_id),
@@ -160,14 +160,11 @@
         <div class="col-md-4 mb-3">
           <%= form.label :policy_type, "Policy Type*", class: "form-label" %>
           <%= form.select :policy_type,
-              options_for_select(HealthInsurance::POLICY_TYPES.map { |type| [type, type] }, @health_insurance.policy_type),
-              { prompt: 'Select Policy Type' },
-              { class: "form-control #{'is-invalid' if @health_insurance.errors[:policy_type].any?}", required: true, id: "policy_type_select" } %>
-          <% if @health_insurance.errors[:policy_type].any? %>
-            <div class="invalid-feedback"><%= @health_insurance.errors[:policy_type].first %></div>
-          <% end %>
+              options_for_select([['Renewal', 'Renewal']], 'Renewal'),
+              {},
+              { class: "form-control", required: true, id: "policy_type_select", readonly: true, style: "background-color: #e9ecef; pointer-events: none;" } %>
           <div class="form-text">
-            <span class="badge bg-success">Renewal</span> This will be automatically set for renewal policies
+            <span class="badge bg-success">Renewal</span> Automatically set for renewal policies
           </div>
         </div>
 
@@ -304,6 +301,377 @@
               { prompt: 'Select Claim Process' },
               { class: "form-control", id: "claim_process_select" } %>
         </div>
+
+        <!-- Additional fields from edit form -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :premium_frequency, "Premium Frequency", class: "form-label" %>
+          <%= form.select :premium_frequency,
+              options_for_select([
+                ['Annual', 'annual'],
+                ['Semi-Annual', 'semi_annual'],
+                ['Quarterly', 'quarterly'],
+                ['Monthly', 'monthly']
+              ], @health_insurance.premium_frequency),
+              { prompt: 'Select Frequency' },
+              { class: "form-control" } %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :status, "Status", class: "form-label" %>
+          <%= form.select :status,
+              options_for_select([
+                ['Active', 'active'],
+                ['Pending', 'pending'],
+                ['Expired', 'expired'],
+                ['Cancelled', 'cancelled']
+              ], @health_insurance.status),
+              { prompt: 'Select Status' },
+              { class: "form-control" } %>
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <%= form.label :additional_details, "Additional Details", class: "form-label" %>
+          <%= form.text_area :additional_details,
+              class: "form-control",
+              rows: 4,
+              placeholder: "Enter any additional policy details, terms, or conditions...",
+              value: @health_insurance.additional_details %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Family/Employee Coverage Section -->
+  <div class="card mb-4" id="family_coverage_section">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-people me-2 text-primary"></i>
+        Family Coverage
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">Family Members</h6>
+        <button type="button" id="add_family_member" class="btn btn-primary">
+          <i class="bi bi-plus me-1"></i>Add Member
+        </button>
+      </div>
+
+      <div id="family_members">
+        <% unless @health_insurance.health_insurance_members.any? %>
+          <div class="text-center py-4 text-muted" id="no_members_message">
+            <i class="bi bi-people display-4 mb-3"></i>
+            <p class="mb-0">No family members added yet.</p>
+          </div>
+        <% end %>
+
+        <%= form.fields_for :health_insurance_members do |member_form| %>
+          <div class="family-member-row border rounded p-3 mb-3 bg-light">
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <%= member_form.label :member_name, "Member Name", class: "form-label" %>
+                <%= member_form.text_field :member_name, class: "form-control", placeholder: "Full Name" %>
+              </div>
+              <div class="col-md-2 mb-3">
+                <%= member_form.label :age, "Age", class: "form-label" %>
+                <%= member_form.number_field :age, class: "form-control", min: 1, max: 120 %>
+              </div>
+              <div class="col-md-3 mb-3">
+                <%= member_form.label :relationship, "Relationship", class: "form-label" %>
+                <%= member_form.select :relationship,
+                    options_for_select(HealthInsuranceMember::RELATIONSHIPS.map { |rel| [rel, rel] }, member_form.object.relationship),
+                    { prompt: 'Select Relationship' },
+                    { class: "form-select" } %>
+              </div>
+              <div class="col-md-3 mb-3">
+                <%= member_form.label :sum_insured, "Sum Insured", class: "form-label" %>
+                <%= member_form.number_field :sum_insured, class: "form-control", step: 0.01 %>
+              </div>
+              <div class="col-md-1 d-flex align-items-end mb-3">
+                <button type="button" class="btn btn-outline-danger remove-member-btn">
+                  <i class="bi bi-trash"></i>
+                </button>
+                <%= member_form.check_box :_destroy, style: "display: none;" %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Commission Detail Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-percent me-2 text-primary"></i>
+        Commission Detail
+      </h5>
+    </div>
+    <div class="card-body">
+      <h6>Main Agent Commission</h6>
+      <div class="row">
+        <div class="col-md-2 mb-3">
+          <label class="form-label">1st year (%)</label>
+          <%= form.number_field :main_agent_commission_percentage,
+              class: "form-control",
+              value: @health_insurance.main_agent_commission_percentage,
+              step: 0.01, id: "commission_percentage" %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <%= form.label :commission_amount, "Commission Amount", class: "form-label" %>
+          <%= form.number_field :commission_amount,
+              class: "form-control",
+              value: @health_insurance.commission_amount,
+              step: 0.01, readonly: true, id: "commission_amount" %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <%= form.label :tds_percentage, "TDS %", class: "form-label" %>
+          <%= form.number_field :tds_percentage,
+              class: "form-control",
+              value: @health_insurance.tds_percentage,
+              step: 0.01, id: "tds_percentage" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :tds_amount, "TDS Amount", class: "form-label" %>
+          <%= form.number_field :tds_amount,
+              class: "form-control",
+              value: @health_insurance.tds_amount,
+              step: 0.01, readonly: true, id: "tds_amount" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :after_tds_value, "After TDS Value", class: "form-label" %>
+          <%= form.number_field :after_tds_value,
+              class: "form-control",
+              value: @health_insurance.after_tds_value,
+              step: 0.01, readonly: true, id: "after_tds_value" %>
+        </div>
+      </div>
+
+      <!-- Affiliate Commission -->
+      <hr class="my-4">
+      <h6>Affiliate Commission</h6>
+      <div class="row">
+        <div class="col-md-2 mb-3">
+          <label class="form-label">1st year (%)</label>
+          <%= form.number_field :sub_agent_commission_percentage,
+              class: "form-control sub-agent-commission-percentage",
+              value: @health_insurance.sub_agent_commission_percentage,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">Commission Amount</label>
+          <%= form.number_field :sub_agent_commission_amount,
+              class: "form-control sub-agent-commission-amount",
+              value: @health_insurance.sub_agent_commission_amount,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">TDS %</label>
+          <%= form.number_field :sub_agent_tds_percentage,
+              class: "form-control sub-agent-tds-percentage",
+              value: @health_insurance.sub_agent_tds_percentage,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">TDS Amount</label>
+          <%= form.number_field :sub_agent_tds_amount,
+              class: "form-control sub-agent-tds-amount",
+              value: @health_insurance.sub_agent_tds_amount,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">After TDS Value</label>
+          <%= form.number_field :sub_agent_after_tds_value,
+              class: "form-control sub-agent-after-tds-value",
+              value: @health_insurance.sub_agent_after_tds_value,
+              step: 0.01, readonly: true %>
+        </div>
+      </div>
+
+      <!-- Investor Commission -->
+      <hr class="my-4">
+      <h6>Investor Commission</h6>
+      <div class="row">
+        <div class="col-md-2 mb-3">
+          <label class="form-label">1st year (%)</label>
+          <%= form.number_field :investor_commission_percentage,
+              class: "form-control investor-commission-percentage",
+              value: @health_insurance.investor_commission_percentage,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">Amount</label>
+          <%= form.number_field :investor_commission_amount,
+              class: "form-control investor-commission-amount",
+              value: @health_insurance.investor_commission_amount,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">TDS %</label>
+          <%= form.number_field :investor_tds_percentage,
+              class: "form-control investor-tds-percentage",
+              value: @health_insurance.investor_tds_percentage,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">TDS Amount</label>
+          <%= form.number_field :investor_tds_amount,
+              class: "form-control investor-tds-amount",
+              value: @health_insurance.investor_tds_amount,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">After TDS Value</label>
+          <%= form.number_field :investor_after_tds_value,
+              class: "form-control investor-after-tds-value",
+              value: @health_insurance.investor_after_tds_value,
+              step: 0.01, readonly: true %>
+        </div>
+      </div>
+
+      <!-- Ambassador Commission -->
+      <hr class="my-4">
+      <h6>Ambassador Commission</h6>
+      <div class="row">
+        <div class="col-md-2 mb-3">
+          <label class="form-label">1st year (%)</label>
+          <%= form.number_field :ambassador_commission_percentage,
+              class: "form-control ambassador-commission-percentage",
+              value: @health_insurance.ambassador_commission_percentage,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">Commission Amount</label>
+          <%= form.number_field :ambassador_commission_amount,
+              class: "form-control ambassador-commission-amount",
+              value: @health_insurance.ambassador_commission_amount,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-5 mb-3">
+          <label class="form-label">TDS %</label>
+          <%= form.number_field :ambassador_tds_percentage,
+              class: "form-control ambassador-tds-percentage",
+              value: @health_insurance.ambassador_tds_percentage,
+              step: 0.01 %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">TDS Amount</label>
+          <%= form.number_field :ambassador_tds_amount,
+              class: "form-control ambassador-tds-amount",
+              value: @health_insurance.ambassador_tds_amount,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">After TDS Value</label>
+          <%= form.number_field :ambassador_after_tds_value,
+              class: "form-control ambassador-after-tds-value",
+              value: @health_insurance.ambassador_after_tds_value,
+              step: 0.01, readonly: true %>
+        </div>
+      </div>
+
+      <!-- Company Expenses & Profit Calculation -->
+      <hr class="my-4">
+      <h6>Company Expenses & Profit Calculation</h6>
+      <div class="row">
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Company Expenses (%)</label>
+          <%= form.number_field :company_expenses_percentage,
+              class: "form-control company-expenses-percentage",
+              value: @health_insurance.company_expenses_percentage,
+              step: 0.01, min: 0, max: 100 %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Total Distribution (%)</label>
+          <%= form.number_field :total_distribution_percentage,
+              class: "form-control total-distribution-percentage",
+              value: @health_insurance.total_distribution_percentage,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Profit (%)</label>
+          <%= form.number_field :profit_percentage,
+              class: "form-control profit-percentage",
+              value: @health_insurance.profit_percentage,
+              step: 0.01, readonly: true %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Profit Amount (₹)</label>
+          <%= form.number_field :profit_amount,
+              class: "form-control profit-amount",
+              value: @health_insurance.profit_amount,
+              step: 0.01, readonly: true %>
+        </div>
+      </div>
+      <div class="alert alert-info mt-3">
+        <h6 class="mb-2">Commission Calculation Summary:</h6>
+        <ul class="mb-0">
+          <li><strong>Main Agent Commission:</strong> <span id="main-income-display"><%= @health_insurance.main_agent_commission_percentage || 10 %>%</span> of Net Premium</li>
+          <li><strong>Total Distribution:</strong> <span id="distribution-display"><%= @health_insurance.total_distribution_percentage || 6.0 %>%</span> (Affiliate + Investor + Ambassador)</li>
+          <li><strong>Company Expenses:</strong> <span id="expenses-display"><%= @health_insurance.company_expenses_percentage || 2.0 %>%</span> of Net Premium</li>
+          <li><strong>Profit:</strong> Main Agent Commission - Total Distribution - Company Expenses</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nominee Information Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-person-heart me-2 text-info"></i>
+        Nominee Information
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :nominee_name, "Nominee Name", class: "form-label" %>
+          <%= form.text_field :nominee_name,
+              class: "form-control",
+              placeholder: "Enter nominee name",
+              value: @health_insurance.nominee_name %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :nominee_relation, "Relationship", class: "form-label" %>
+          <%= form.select :nominee_relation,
+              options_for_select([
+                ['Spouse', 'spouse'],
+                ['Child', 'child'],
+                ['Parent', 'parent'],
+                ['Sibling', 'sibling'],
+                ['Other', 'other']
+              ], @health_insurance.nominee_relation),
+              { prompt: 'Select Relationship' },
+              { class: "form-control" } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Autopay Installment Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-credit-card-2-back me-2 text-success"></i>
+        Autopay Installment
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :installment_autopay_start_date, "Installment Autopay Start Date", class: "form-label" %>
+          <%= form.date_field :installment_autopay_start_date,
+              class: "form-control",
+              value: @health_insurance.installment_autopay_start_date %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :installment_autopay_end_date, "Installment Autopay End Date", class: "form-label" %>
+          <%= form.date_field :installment_autopay_end_date,
+              class: "form-control",
+              value: @health_insurance.installment_autopay_end_date %>
+        </div>
       </div>
     </div>
   </div>
@@ -334,8 +702,7 @@
 
 <% end %>
 
-<!-- Include necessary JavaScript from new form -->
-<%= render 'shared/select2_assets' %>
+<!-- Include Select2 directly instead of using partial -->
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

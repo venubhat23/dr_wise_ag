@@ -105,7 +105,7 @@
 
         <!-- 2nd: Agency Code (shows Agents when Direct selected, Brokers when Broking selected) -->
         <div class="col-md-4 mb-3">
-          <%= form.label :agency_code_id, "Agency Code (All Agents)*", class: "form-label" %>
+          <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
           <span class="dynamic-label" id="agency_code_label_text"></span>
           <%= form.select :agency_code_id,
               options_for_select(@agency_codes.map { |a| ["#{a.agent_name} - #{a.code}", a.id] }, @health_insurance.agency_code_id),

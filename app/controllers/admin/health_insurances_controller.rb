@@ -1,7 +1,7 @@
 class Admin::HealthInsurancesController < Admin::ApplicationController
   include ConfigurablePagination
-  before_action :set_health_insurance, only: [:show, :edit, :update, :destroy]
-  before_action :load_form_data, only: [:new, :edit, :create, :update]
+  before_action :set_health_insurance, only: [:show, :edit, :update, :destroy, :renew, :create_renewal]
+  before_action :load_form_data, only: [:new, :edit, :create, :update, :renew]
   skip_before_action :verify_authenticity_token, only: [:insurance_companies_by_agency]
 
   def index
@@ -405,30 +405,63 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       return
     end
 
-    # Create a new health insurance object with pre-filled data from the original policy
+    # Create a new health insurance object with ALL data from the original policy
     @renewed_policy = @health_insurance.dup
 
-    # Clear fields that should be reset for renewal
-    @renewed_policy.policy_number = nil
-    @renewed_policy.policy_booking_date = nil
-    @renewed_policy.policy_start_date = nil
-    @renewed_policy.policy_end_date = nil
-    @renewed_policy.policy_type = 'Renewal'
+    # Keep all the original policy data but update specific fields for renewal
+    @renewed_policy.id = nil
     @renewed_policy.created_at = nil
     @renewed_policy.updated_at = nil
-    @renewed_policy.id = nil
 
-    # Clear commission tracking fields
+    # Set policy type to Renewal
+    @renewed_policy.policy_type = 'Renewal'
+
+    # Clear policy number (user needs to enter new one)
+    @renewed_policy.policy_number = nil
+
+    # Set booking date to current date
+    @renewed_policy.policy_booking_date = Date.current
+
+    # Calculate new policy dates based on payment mode
+    if @health_insurance.policy_end_date.present?
+      # Start date is day after current policy ends
+      @renewed_policy.policy_start_date = @health_insurance.policy_end_date + 1.day
+
+      # Calculate end date based on payment mode
+      case @health_insurance.payment_mode
+      when 'Yearly', 'Annual'
+        @renewed_policy.policy_end_date = @renewed_policy.policy_start_date + 1.year - 1.day
+      when 'Half Yearly', 'Semi-Annual'
+        @renewed_policy.policy_end_date = @renewed_policy.policy_start_date + 6.months - 1.day
+      when 'Quarterly'
+        @renewed_policy.policy_end_date = @renewed_policy.policy_start_date + 3.months - 1.day
+      when 'Monthly'
+        @renewed_policy.policy_end_date = @renewed_policy.policy_start_date + 1.month - 1.day
+      else
+        # Default to yearly if payment mode is not recognized
+        @renewed_policy.policy_end_date = @renewed_policy.policy_start_date + 1.year - 1.day
+      end
+    end
+
+    # Also update the start_date and end_date fields if they exist
+    @renewed_policy.start_date = @renewed_policy.policy_start_date
+    @renewed_policy.end_date = @renewed_policy.policy_end_date
+
+    # Clear commission tracking fields (these will be recalculated)
     @renewed_policy.main_agent_commission_received = nil
     @renewed_policy.main_agent_commission_transaction_id = nil
     @renewed_policy.main_agent_commission_paid_date = nil
     @renewed_policy.main_agent_commission_notes = nil
 
-    # Clear lead_id for new policy
+    # Clear lead_id and original_policy_id for new policy
     @renewed_policy.lead_id = nil
+    @renewed_policy.original_policy_id = @health_insurance.id
 
     # Clear notification dates
     @renewed_policy.notification_dates = nil
+
+    # Clear renewal flag
+    @renewed_policy.is_renewed = false
 
     # Load form data for the renewal form
     load_form_data
@@ -436,14 +469,19 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     # Set up family members if they exist from original policy
     @customer_family_members = @renewed_policy.customer&.family_members || []
 
-    # Auto-set affiliate if customer has existing affiliate
-    if @renewed_policy.customer.present?
-      if @renewed_policy.customer.sub_agent_id.present?
-        @renewed_policy.sub_agent_id = @renewed_policy.customer.sub_agent_id
-        @auto_select_affiliate = @renewed_policy.customer.sub_agent_id
-      else
-        @auto_select_affiliate = 'self'
-      end
+    # Load existing health insurance members for the form
+    if @health_insurance.health_insurance_members.any?
+      @renewed_policy.health_insurance_members = @health_insurance.health_insurance_members.map(&:dup)
+    end
+
+    # Auto-set affiliate based on original policy or customer
+    if @renewed_policy.sub_agent_id.present?
+      @auto_select_affiliate = @renewed_policy.sub_agent_id
+    elsif @renewed_policy.customer.present? && @renewed_policy.customer.sub_agent_id.present?
+      @renewed_policy.sub_agent_id = @renewed_policy.customer.sub_agent_id
+      @auto_select_affiliate = @renewed_policy.customer.sub_agent_id
+    else
+      @auto_select_affiliate = 'self'
     end
 
     # Assign to instance variable for form

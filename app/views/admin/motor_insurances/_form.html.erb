@@ -27,8 +27,8 @@
           <%= form.label :customer_id, "Client Name*", class: "form-label" %>
           <%= form.select :customer_id,
               options_for_select(@customers.map { |c| [c.display_name, c.id] }, @selected_customer&.id || @motor_insurance.customer_id),
-              { prompt: 'Select Client' },
-              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:customer_id].any?}", required: true, id: "customer_select" } %>
+              { prompt: 'Search and select client...' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:customer_id].any?}", required: true, id: "customer_select", data: { placeholder: "Type to search clients..." } } %>
           <% if @motor_insurance.errors[:customer_id].any? %>
             <div class="invalid-feedback"><%= @motor_insurance.errors[:customer_id].first %></div>
           <% end %>
@@ -46,16 +46,16 @@
           %>
           <%= form.select :policy_holder,
               options_for_select(policy_holder_options, @motor_insurance.policy_holder),
-              { prompt: 'Select Policy Holder' },
-              { class: "form-control", id: "policy_holder_select" } %>
+              {},
+              { class: "form-control", id: "policy_holder_select", data: { placeholder: "Type to search policy holders..." } } %>
         </div>
 
         <div class="col-md-4 mb-3">
           <%= form.label :sub_agent_id, "Affiliate", class: "form-label" %>
           <%= form.select :sub_agent_id,
               options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, (@auto_select_affiliate == 'self' ? '' : @auto_select_affiliate)),
-              { prompt: 'Self' },
-              { class: "form-control", id: "affiliate_select" } %>
+              { prompt: 'Search and select affiliate...' },
+              { class: "form-control", id: "affiliate_select", data: { placeholder: "Type to search affiliates..." } } %>
         </div>
       </div>
 
@@ -867,6 +867,278 @@ document.addEventListener('DOMContentLoaded', function() {
   calculateTotalPremium();
   calculateTotalIDV();
   calculateCommissions();
+});
+</script>
+
+<!-- jQuery (required for Select2) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Select2 CSS & JS for searchable dropdown -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- Custom styling for enhanced Select2 dropdown -->
+<style>
+  .select2-container--bootstrap-5 .select2-selection--single {
+    height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+
+  .select2-container--bootstrap-5 .select2-selection--single:focus-within {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+
+  .select2-container--bootstrap-5 .select2-selection__rendered {
+    color: #495057;
+    padding-left: 12px;
+    padding-top: 5px;
+    line-height: 1.5;
+  }
+
+  .select2-container--bootstrap-5 .select2-results__option {
+    padding: 8px 12px;
+  }
+
+  .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: #0d6efd;
+    color: white;
+  }
+
+  .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    margin-top: 4px;
+  }
+
+  .select2-results__options {
+    max-height: 400px !important;
+    min-height: 200px;
+  }
+
+  .select2-dropdown-large .select2-results__options {
+    max-height: 600px !important;
+    min-height: 400px !important;
+    overflow-y: auto;
+  }
+
+  .select2-dropdown-large {
+    min-width: 100% !important;
+  }
+
+  .select2-dropdown-large .select2-results__option {
+    padding: 8px 12px !important;
+    min-height: 45px;
+    display: flex;
+    align-items: center;
+  }
+
+  .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 6px 12px;
+    font-size: 0.95rem;
+  }
+
+  /* Custom client option styling */
+  .client-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+  }
+
+  .client-option-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 12px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .client-option-details {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .client-option-name {
+    font-weight: 500;
+    color: #212529;
+    font-size: 14px;
+  }
+
+  .client-option-id {
+    font-size: 12px;
+    color: #6c757d;
+  }
+
+  /* Custom affiliate option styling */
+  .affiliate-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+  }
+
+  .affiliate-option-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 12px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .affiliate-option-details {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .affiliate-option-name {
+    font-weight: 500;
+    color: #212529;
+    font-size: 14px;
+  }
+
+  .affiliate-option-id {
+    font-size: 12px;
+    color: #6c757d;
+  }
+</style>
+
+<script>
+$(document).ready(function() {
+  // Initialize Select2 for searchable dropdown
+  $('#customer_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Search and select client...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    dropdownCssClass: 'select2-dropdown-large',
+    minimumResultsForSearch: 0,
+    closeOnSelect: true,
+    templateResult: function(option) {
+      if (!option.id || option.element.value === '') {
+        return option.text;
+      }
+
+      // Generate avatar with initials
+      var initials = option.text.split(' ').map(function(name) {
+        return name.charAt(0).toUpperCase();
+      }).join('').substring(0, 2);
+
+      // Custom template for dropdown options with avatar
+      var $option = $(
+        '<div class="client-option">' +
+          '<div class="client-option-avatar">' + initials + '</div>' +
+          '<div class="client-option-details">' +
+            '<div class="client-option-name">' + option.text + '</div>' +
+            '<div class="client-option-id">Client ID: #' + option.id + '</div>' +
+          '</div>' +
+        '</div>'
+      );
+      return $option;
+    },
+    templateSelection: function(option) {
+      return option.text || 'Search and select client...';
+    },
+    escapeMarkup: function(markup) {
+      return markup;
+    }
+  });
+
+  // Initialize Select2 for Policy Holder dropdown
+  $('#policy_holder_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Search and select policy holder...',
+    allowClear: false,
+    width: '100%',
+    dropdownParent: $('body'),
+    dropdownCssClass: 'select2-dropdown-large',
+    minimumResultsForSearch: 0,
+    closeOnSelect: true
+  });
+
+  // Initialize Select2 for Affiliate dropdown
+  $('#affiliate_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Search and select affiliate...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    dropdownCssClass: 'select2-dropdown-large',
+    minimumResultsForSearch: 0,
+    closeOnSelect: true,
+    templateResult: function(option) {
+      if (!option.id || option.id === '') {
+        return option.text;
+      }
+
+      var initials = option.text.split(' ').map(function(name) {
+        return name.charAt(0).toUpperCase();
+      }).join('').substring(0, 2);
+
+      var $option = $(
+        '<div class="affiliate-option">' +
+          '<div class="affiliate-option-avatar">' + initials + '</div>' +
+          '<div class="affiliate-option-details">' +
+            '<div class="affiliate-option-name">' + option.text + '</div>' +
+            '<div class="affiliate-option-id">Affiliate ID: #' + option.id + '</div>' +
+          '</div>' +
+        '</div>'
+      );
+      return $option;
+    },
+    templateSelection: function(option) {
+      return option.text || 'Search and select affiliate...';
+    },
+    escapeMarkup: function(markup) {
+      return markup;
+    }
+  });
+
+  // Update policy holder options when customer changes (keep existing functionality)
+  $('#customer_select').on('change', function() {
+    var customerId = $(this).val();
+    var policyHolderSelect = $('#policy_holder_select');
+
+    if (customerId) {
+      $.ajax({
+        url: '/admin/insurances/motor/policy_holder_options',
+        data: { customer_id: customerId },
+        success: function(data) {
+          // Clear existing options
+          policyHolderSelect.empty();
+
+          // Add new options
+          $.each(data.options, function(index, option) {
+            policyHolderSelect.append($('<option>', {
+              value: option[1],
+              text: option[0]
+            }));
+          });
+
+          // Reinitialize Select2 to reflect changes
+          policyHolderSelect.trigger('change.select2');
+        }
+      });
+    }
+  });
 });
 </script>
 
