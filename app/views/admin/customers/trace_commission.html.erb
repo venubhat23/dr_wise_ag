@@ -409,6 +409,165 @@
   </div>
 </div>
 
+<!-- Enhanced Comprehensive Product Matrix Table -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="bi bi-grid-3x3-gap text-primary me-2"></i>
+        Comprehensive Product Matrix
+      </h5>
+      <small class="text-muted">Complete product portfolio with attractive visualization</small>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive enhanced-matrix-container">
+      <table class="table enhanced-matrix-table mb-0">
+        <thead>
+          <tr class="table-header">
+            <th class="product-type-header">Product Type</th>
+            <th class="drwise-status-header text-center">DrWise Status</th>
+            <th class="drwise-policies-header text-center">DrWise Policies</th>
+            <th class="drwise-details-header">DrWise Coverage Details</th>
+            <th class="non-drwise-status-header text-center">NonDrWise Status</th>
+            <th class="non-drwise-policies-header text-center">NonDrWise Policies</th>
+            <th class="non-drwise-details-header">NonDrWise Coverage Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%
+            enhanced_products = [
+              { name: 'Life Insurance', icon: 'bi-heart-pulse', key: 'Life Insurance', category: 'insurance' },
+              { name: 'Health Insurance', icon: 'bi-activity', key: 'Health Insurance', category: 'insurance' },
+              { name: 'Motor Insurance', icon: 'bi-car-front', key: 'Motor Insurance', category: 'insurance' }
+            ]
+          %>
+
+          <% enhanced_products.each do |product| %>
+            <%
+              drwise_data = @drwise_policy_status[product[:key]] || @drwise_product_status[product[:key]]
+              non_drwise_data = @non_drwise_policy_status[product[:key]] || @non_drwise_product_status[product[:key]]
+              drwise_opted = drwise_data && drwise_data[:opted]
+              non_drwise_opted = non_drwise_data && non_drwise_data[:opted]
+            %>
+            <tr class="enhanced-product-row">
+              <!-- Product Type -->
+              <td class="product-name-cell">
+                <div class="product-info">
+                  <i class="<%= product[:icon] %> product-icon"></i>
+                  <span class="product-name"><%= product[:name] %></span>
+                </div>
+              </td>
+
+              <!-- DrWise Status -->
+              <td class="status-cell drwise-cell">
+                <% if drwise_opted %>
+                  <div class="status-badge success-badge">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Yes</span>
+                  </div>
+                <% else %>
+                  <div class="status-badge inactive-badge">
+                    <i class="bi bi-x-circle-fill"></i>
+                    <span>No</span>
+                  </div>
+                <% end %>
+              </td>
+
+              <!-- DrWise Policies Count -->
+              <td class="policies-cell drwise-cell">
+                <% if drwise_opted && drwise_data %>
+                  <div class="policies-count success-count">
+                    <span class="count-number"><%= drwise_data[:count] %></span>
+                    <span class="count-label">policies</span>
+                  </div>
+                <% else %>
+                  <div class="policies-count inactive-count">
+                    <span class="count-dash">-</span>
+                  </div>
+                <% end %>
+              </td>
+
+              <!-- DrWise Coverage Details -->
+              <td class="details-cell drwise-cell">
+                <% if drwise_opted && drwise_data %>
+                  <div class="coverage-details">
+                    <div class="premium-info">
+                      <i class="bi bi-currency-rupee text-success"></i>
+                      <span class="premium-amount">Total Premium: <%= indian_currency(drwise_data[:total_premium] || 0) %></span>
+                    </div>
+                    <% if drwise_data[:latest_policy] %>
+                      <div class="latest-info">
+                        <i class="bi bi-clock text-muted"></i>
+                        <span class="latest-date">Latest: <%= drwise_data[:latest_policy].created_at.strftime('%b %d, %Y') %></span>
+                      </div>
+                    <% end %>
+                  </div>
+                <% else %>
+                  <div class="no-coverage">
+                    <span class="no-coverage-text">No DrWise policies found</span>
+                  </div>
+                <% end %>
+              </td>
+
+              <!-- NonDrWise Status -->
+              <td class="status-cell non-drwise-cell">
+                <% if non_drwise_opted %>
+                  <div class="status-badge success-badge">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Yes</span>
+                  </div>
+                <% else %>
+                  <div class="status-badge inactive-badge">
+                    <i class="bi bi-x-circle-fill"></i>
+                    <span>No</span>
+                  </div>
+                <% end %>
+              </td>
+
+              <!-- NonDrWise Policies Count -->
+              <td class="policies-cell non-drwise-cell">
+                <% if non_drwise_opted && non_drwise_data %>
+                  <div class="policies-count warning-count">
+                    <span class="count-number"><%= non_drwise_data[:count] %></span>
+                    <span class="count-label">policies</span>
+                  </div>
+                <% else %>
+                  <div class="policies-count inactive-count">
+                    <span class="count-dash">-</span>
+                  </div>
+                <% end %>
+              </td>
+
+              <!-- NonDrWise Coverage Details -->
+              <td class="details-cell non-drwise-cell">
+                <% if non_drwise_opted && non_drwise_data %>
+                  <div class="coverage-details">
+                    <div class="premium-info">
+                      <i class="bi bi-currency-rupee text-warning"></i>
+                      <span class="premium-amount">Total Premium: <%= indian_currency(non_drwise_data[:total_premium] || 0) %></span>
+                    </div>
+                    <% if non_drwise_data[:latest_policy] %>
+                      <div class="latest-info">
+                        <i class="bi bi-clock text-muted"></i>
+                        <span class="latest-date">Latest: <%= non_drwise_data[:latest_policy].created_at.strftime('%b %d, %Y') %></span>
+                      </div>
+                    <% end %>
+                  </div>
+                <% else %>
+                  <div class="no-coverage">
+                    <span class="no-coverage-text">No Non-DrWise policies found</span>
+                  </div>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- Policy Details Cards -->
 <div class="row mb-4">
   <% @policy_status.each_with_index do |(policy_type, data), index| %>
@@ -1394,6 +1553,343 @@ document.addEventListener('DOMContentLoaded', function() {
 
     .product-row td {
       padding: 0.5rem !important;
+    }
+  }
+
+  /* Enhanced Comprehensive Product Matrix Table Styling */
+  .enhanced-matrix-container {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .enhanced-matrix-table {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    border: none;
+    margin: 0;
+  }
+
+  /* Table Header Styling */
+  .enhanced-matrix-table .table-header {
+    background: linear-gradient(135deg, #343a40 0%, #495057 100%);
+    color: white;
+  }
+
+  .enhanced-matrix-table .table-header th {
+    border: none;
+    padding: 18px 15px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    vertical-align: middle;
+    position: relative;
+  }
+
+  /* Header specific styles */
+  .product-type-header {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+    border-right: 2px solid rgba(255, 255, 255, 0.2) !important;
+  }
+
+  .drwise-status-header,
+  .drwise-policies-header,
+  .drwise-details-header {
+    background: linear-gradient(135deg, #198754 0%, #146c43 100%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .non-drwise-status-header,
+  .non-drwise-policies-header,
+  .non-drwise-details-header {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important;
+    color: #212529 !important;
+    border-right: 1px solid rgba(0, 0, 0, 0.1) !important;
+  }
+
+  /* Row Styling */
+  .enhanced-product-row {
+    transition: all 0.3s ease;
+    border: none;
+    background: white;
+  }
+
+  .enhanced-product-row:hover {
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.02) 0%, rgba(0, 123, 255, 0.01) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  .enhanced-product-row td {
+    padding: 20px 15px;
+    vertical-align: middle;
+    border-top: 1px solid #e9ecef;
+    border-bottom: none;
+    border-left: none;
+    border-right: 2px solid #f1f3f4;
+  }
+
+  /* Product Name Cell */
+  .product-name-cell {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-left: 4px solid #007bff !important;
+  }
+
+  .product-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .product-icon {
+    font-size: 1.5rem;
+    color: #007bff;
+    background: rgba(0, 123, 255, 0.1);
+    padding: 8px;
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .product-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #495057;
+  }
+
+  /* DrWise Cells */
+  .drwise-cell {
+    background: linear-gradient(135deg, rgba(25, 135, 84, 0.03) 0%, rgba(25, 135, 84, 0.01) 100%);
+    border-left: 3px solid rgba(25, 135, 84, 0.2) !important;
+  }
+
+  /* Non-DrWise Cells */
+  .non-drwise-cell {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.03) 0%, rgba(255, 193, 7, 0.01) 100%);
+    border-left: 3px solid rgba(255, 193, 7, 0.2) !important;
+  }
+
+  /* Status Badge Styling */
+  .status-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 15px;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    min-width: 80px;
+  }
+
+  .status-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  }
+
+  .success-badge {
+    background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+    color: white;
+  }
+
+  .success-badge i {
+    font-size: 1rem;
+    color: #d4edda;
+  }
+
+  .inactive-badge {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    color: white;
+  }
+
+  .inactive-badge i {
+    font-size: 1rem;
+    color: #f8f9fa;
+  }
+
+  /* Policies Count Styling */
+  .policies-count {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+
+  .policies-count:hover {
+    transform: scale(1.05);
+  }
+
+  .success-count {
+    background: linear-gradient(135deg, rgba(25, 135, 84, 0.1) 0%, rgba(25, 135, 84, 0.05) 100%);
+    border: 2px solid rgba(25, 135, 84, 0.2);
+  }
+
+  .warning-count {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+    border: 2px solid rgba(255, 193, 7, 0.3);
+  }
+
+  .inactive-count {
+    background: linear-gradient(135deg, rgba(108, 117, 125, 0.1) 0%, rgba(108, 117, 125, 0.05) 100%);
+    border: 2px solid rgba(108, 117, 125, 0.2);
+  }
+
+  .count-number {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #495057;
+  }
+
+  .success-count .count-number {
+    color: #198754;
+  }
+
+  .warning-count .count-number {
+    color: #fd7e14;
+  }
+
+  .count-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .count-dash {
+    font-size: 2rem;
+    font-weight: 300;
+    color: #adb5bd;
+  }
+
+  /* Coverage Details Styling */
+  .coverage-details {
+    padding: 12px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+  }
+
+  .premium-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .premium-info i {
+    font-size: 1.1rem;
+  }
+
+  .premium-amount {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.95rem;
+  }
+
+  .latest-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .latest-info i {
+    font-size: 0.9rem;
+  }
+
+  .latest-date {
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-weight: 500;
+  }
+
+  .no-coverage {
+    padding: 12px;
+    text-align: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    border: 1px dashed #adb5bd;
+  }
+
+  .no-coverage-text {
+    color: #6c757d;
+    font-style: italic;
+    font-size: 0.85rem;
+  }
+
+  /* Responsive Design for Enhanced Matrix */
+  @media (max-width: 1200px) {
+    .enhanced-matrix-container {
+      padding: 1rem;
+      overflow-x: auto;
+    }
+
+    .enhanced-matrix-table {
+      min-width: 1000px;
+      font-size: 0.85rem;
+    }
+
+    .enhanced-matrix-table .table-header th {
+      padding: 15px 10px;
+      font-size: 0.8rem;
+    }
+
+    .enhanced-product-row td {
+      padding: 15px 10px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .enhanced-matrix-container {
+      padding: 0.75rem;
+    }
+
+    .enhanced-matrix-table {
+      min-width: 800px;
+      font-size: 0.8rem;
+    }
+
+    .enhanced-matrix-table .table-header th {
+      padding: 12px 8px;
+      font-size: 0.75rem;
+    }
+
+    .enhanced-product-row td {
+      padding: 12px 8px;
+    }
+
+    .product-icon {
+      width: 32px;
+      height: 32px;
+      font-size: 1.2rem;
+    }
+
+    .product-name {
+      font-size: 1rem;
+    }
+
+    .status-badge {
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      min-width: 70px;
+    }
+
+    .count-number {
+      font-size: 1.5rem;
     }
   }
 </style>

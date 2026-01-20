@@ -2,6 +2,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   include ConfigurablePagination
   before_action :set_health_insurance, only: [:show, :edit, :update, :destroy]
   before_action :load_form_data, only: [:new, :edit, :create, :update]
+  skip_before_action :verify_authenticity_token, only: [:insurance_companies_by_agency]
 
   def index
     @health_insurances = HealthInsurance.includes(:customer, :sub_agent, :agency_code, :broker)
@@ -44,7 +45,8 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   end
 
   def create
-    @health_insurance = HealthInsurance.new(health_insurance_params)
+    processed_params = process_broker_params(health_insurance_params)
+    @health_insurance = HealthInsurance.new(processed_params)
 
     # Set admin tracking fields for policies created from admin panel
     @health_insurance.policy_added_by_admin = true
@@ -57,6 +59,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     if @health_insurance.save
       redirect_to admin_health_insurance_path(@health_insurance), notice: 'Health insurance policy was successfully created.'
     else
+      load_form_data
       render :new, status: :unprocessable_entity
     end
   end
@@ -80,11 +83,15 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   # AJAX endpoint for getting policy holder options based on customer
   def policy_holder_options
     customer = Customer.find(params[:customer_id]) if params[:customer_id].present?
-    options = [['Self', 'Self']]
+
+    options = [{ label: 'Self', value: 'Self' }]
 
     if customer&.family_members&.any?
       customer.family_members.each do |member|
-        options << [member.full_name, member.id.to_s]
+        options << {
+          label: "#{member.name} (#{member.relationship.humanize})",
+          value: member.name
+        }
       end
     end
 
@@ -95,52 +102,240 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   def agency_codes_for_broker_type
     broker_type = params[:broker_type]
 
-    if broker_type == 'direct'
-      # Load agency codes for Health Insurance
+    case broker_type
+    when 'direct'
+      # FLOW 1: Direct mode - Fetch agents for health insurance
+      # API response format: { agent1: company_name_1, agent2: company_name_2 }
       agency_codes = AgencyCode.where(insurance_type: 'Health Insurance')
                                .select(:id, :agent_name, :code, :company_name)
+                               .order(:agent_name)
+
+      # Transform to required format for dropdown
+      agents_data = agency_codes.map { |ac|
+        {
+          id: ac.id,
+          text: ac.agent_name,  # Show only agent name in dropdown
+          agent_name: ac.agent_name,
+          code: ac.code,
+          company_name: ac.company_name
+        }
+      }
+      
+      render json: {
+        success: true,
+        data: agents_data
+      }
+
+    when 'broking'
+      # FLOW 2: Broking mode - Fetch all brokers for health insurance
+      # API response format: { broker1, broker2 }
+      brokers = Broker.active.order(:name)
+
+      brokers_data = brokers.map { |broker|
+        {
+          id: broker.id,
+          text: broker.name,  # Show broker name in dropdown
+          broker_name: broker.name
+        }
+      }
 
       render json: {
         success: true,
-        data: agency_codes.map { |ac|
-          {
-            id: ac.id,
-            text: "#{ac.agent_name} (#{ac.code})",
-            company_name: ac.company_name
-          }
-        }
+        data: brokers_data
       }
-    elsif broker_type == 'broking'
-      # Load broker codes with associated broker info
-      broker_codes = BrokerCode.includes(:broker).active
 
-      render json: {
-        success: true,
-        data: broker_codes.map { |bc|
-          {
-            id: "broker_#{bc.broker_id}",
-            text: "#{bc.broker.name} (#{bc.broker_code})",
-            broker_id: bc.broker_id
-          }
-        }
-      }
     else
-      render json: { success: false, message: 'Invalid broker type' }
+      render json: { success: false, message: 'Invalid broker type. Use "direct" or "broking".' }
     end
   end
 
-  def insurance_companies_for_type
-    insurance_type = 'Health'  # For health insurance page
+  # API endpoint for getting company name by agent selection (Direct mode only)
+  def company_name_by_agent
+    agency_code_id = params[:agency_code_id]
 
-    companies = InsuranceCompany.where(insurance_type: insurance_type).pluck(:name)
+    if agency_code_id.present?
+      agency_code = AgencyCode.find_by(id: agency_code_id)
+
+      if agency_code
+        render json: {
+          success: true,
+          data: {
+            company_name: agency_code.company_name
+          }
+        }
+      else
+        render json: { success: false, message: 'Agency code not found' }
+      end
+    else
+      render json: { success: false, message: 'Agency code ID is required' }
+    end
+  end
+
+  # API endpoint for insurance companies (independent for Broking mode)
+  def insurance_companies_for_type
+    # FLOW 2: Broking mode - Fetch all health insurance companies
+    # API response format: { company1, company2 }
+
+    # For health insurance, use the health insurance companies
+    companies = InsuranceCompany.where(insurance_type: "health").pluck(:name)
+
+    companies_data = companies.map { |name|
+      {
+        id: name,
+        text: name
+      }
+    }
 
     render json: {
       success: true,
-      data: companies.map { |name| { id: name, text: name } }
+      data: companies_data
+    }
+  end
+
+  # API endpoint for getting brokers by insurance company
+  def brokers_by_company
+    company_name = params[:company_name]
+    brokers = if company_name.present?
+                # First get insurance_company by name, then get brokers
+                insurance_company = InsuranceCompany.find_by(name: company_name)
+                if insurance_company
+                  Broker.where(insurance_company: insurance_company).active.order(:name)
+                else
+                  Broker.none
+                end
+              else
+                Broker.none
+              end
+    render json: {
+      brokers: brokers.map { |b| { id: b.id, name: b.name } }
+    }
+  end
+
+  # API endpoint for getting agency codes by broker
+  def agency_codes_by_broker
+    broker_id = params[:broker_id]
+    agency_codes = if broker_id.present?
+                     AgencyCode.where(broker_id: broker_id, insurance_type: 'Health Insurance').order(:code)
+                   else
+                     AgencyCode.none
+                   end
+    render json: {
+      agency_codes: agency_codes.map { |a| { id: a.id, name: "#{a.company_name} - #{a.code}" } }
+    }
+  end
+
+  # API endpoint for getting all agency codes (for Direct selection)
+  def all_agency_codes
+    agency_codes = AgencyCode.where(insurance_type: 'Health Insurance').order(:code)
+    render json: {
+      agency_codes: agency_codes.map { |a| { id: a.id, name: "#{a.company_name} - #{a.code}" } }
+    }
+  end
+
+  # API endpoint for getting all brokers (for Broking selection)
+  def all_brokers
+    brokers = Broker.active.order(:name)
+    render json: {
+      brokers: brokers.map { |b| { id: b.id, name: b.name } }
+    }
+  end
+
+  # API endpoint for getting insurance companies by agency code
+  def insurance_companies_by_agency
+    broker_code = params[:broker_code]
+    agency_code_id = params[:agency_code_id]
+
+    if broker_code.blank? || agency_code_id.blank?
+      render json: {
+        success: false,
+        message: 'Broker code and agency code ID are required'
+      }
+      return
+    end
+
+    companies_data = []
+
+    case broker_code
+    when 'direct'
+      # For direct mode: Get companies mapped to the selected agency
+      company_names = AgencyCode.where(
+        insurance_type: 'Health Insurance',
+        id: agency_code_id
+      ).pluck(:company_name).compact.uniq
+
+      if company_names.any?
+        # Find insurance companies with fuzzy matching
+        all_insurance_companies = InsuranceCompany.where(insurance_type: 'health')
+        matching_companies = []
+
+        company_names.each do |agency_company_name|
+          # Try exact match first
+          exact_match = all_insurance_companies.find_by(name: agency_company_name)
+          if exact_match
+            matching_companies << exact_match
+          else
+            # Try fuzzy matching - look for companies that contain similar words
+            agency_words = agency_company_name.downcase.split.reject { |w| w.length < 4 }
+            fuzzy_matches = all_insurance_companies.select do |company|
+              company_words = company.name.downcase.split.reject { |w| w.length < 4 }
+              # Check if main company words match (require at least 2 significant word matches)
+              common_words = agency_words & company_words
+              common_words.length >= 2 ||
+              (agency_words.include?('star') && company_words.include?('star')) ||
+              (agency_words.include?('tata') && company_words.include?('tata'))
+            end
+            matching_companies.concat(fuzzy_matches)
+          end
+        end
+
+        companies_data = matching_companies.uniq.map do |company|
+          {
+            id: company.id,
+            name: company.name
+          }
+        end
+      end
+
+    when 'broking'
+      # For broking mode: Show all health insurance companies
+      insurance_companies = InsuranceCompany.where(insurance_type: 'health')
+
+      companies_data = insurance_companies.map do |company|
+        {
+          id: company.id,
+          name: company.name
+        }
+      end
+
+    else
+      render json: {
+        success: false,
+        message: 'Invalid broker code. Use "direct" or "broking".'
+      }
+      return
+    end
+
+    render json: {
+      success: true,
+      data: companies_data
     }
   end
 
   private
+
+  def process_broker_params(params)
+    # Handle agency_code_id when it contains broker_X format
+    if params[:agency_code_id].present? && params[:agency_code_id].start_with?('broker_')
+      # Extract broker ID from broker_X format
+      broker_id = params[:agency_code_id].gsub('broker_', '').to_i
+      # Set broker_id and clear agency_code_id for broking type
+      if broker_id > 0
+        params[:broker_id] = broker_id
+        params[:agency_code_id] = nil
+      end
+    end
+    params
+  end
 
   def set_health_insurance
     @health_insurance = HealthInsurance.find(params[:id])
@@ -151,7 +346,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     @sub_agents = SubAgent.active.order(:first_name, :last_name)
     @distributors = Distributor.active.order(:first_name, :last_name)
     @investors = Investor.active.order(:first_name, :last_name)
-    @agency_codes = AgencyCode.where(insurance_type: 'Health')
+    @agency_codes = AgencyCode.where(insurance_type: 'Health Insurance')
     @brokers = Broker.active.order(:name)
     # Load only health insurance companies
     @insurance_companies = HealthInsurance.health_insurance_companies.map { |company| company[:name] }
@@ -167,8 +362,18 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       :main_agent_commission_percentage, :commission_amount, :tds_percentage,
       :tds_amount, :after_tds_value, :reference_by_name,
       :installment_autopay_start_date, :installment_autopay_end_date,
+      # New fields for edit form
+      :premium_frequency, :status, :start_date, :end_date, :additional_details,
+      :nominee_name, :nominee_relation,
+      # Commission details for all stakeholders
+      :sub_agent_commission_percentage, :sub_agent_commission_amount, :sub_agent_tds_percentage, :sub_agent_tds_amount, :sub_agent_after_tds_value,
+      :ambassador_commission_percentage, :ambassador_commission_amount, :ambassador_tds_percentage, :ambassador_tds_amount, :ambassador_after_tds_value,
+      :investor_commission_percentage, :investor_commission_amount, :investor_tds_percentage, :investor_tds_amount, :investor_after_tds_value,
+      # Company expenses and profit fields
+      :company_expenses_percentage, :total_distribution_percentage, :profit_percentage, :profit_amount,
       health_insurance_members_attributes: [:id, :member_name, :age, :relationship, :sum_insured, :_destroy],
-      documents: [], policy_documents: []
+      documents: [], policy_documents: [],
+      uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
     )
   end
 

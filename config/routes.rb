@@ -249,8 +249,14 @@ Rails.application.routes.draw do
     resources :health_insurances, path: 'insurance/health' do
       collection do
         get :policy_holder_options
+        get :brokers_by_company
+        get :agency_codes_by_broker
+        get :all_agency_codes
+        get :all_brokers
         get :agency_codes_for_broker_type
         get :insurance_companies_for_type
+        get :company_name_by_agent
+        post :insurance_companies_by_agency
       end
     end
 

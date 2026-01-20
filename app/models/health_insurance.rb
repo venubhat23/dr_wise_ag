@@ -12,9 +12,11 @@ class HealthInsurance < ApplicationRecord
   has_many :health_insurance_members, dependent: :destroy
   has_many_attached :documents
   has_many_attached :policy_documents
+  has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
 
   # Nested attributes
   accepts_nested_attributes_for :health_insurance_members, allow_destroy: true, reject_if: :all_blank
+  accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations
   validates :policy_holder, presence: true
@@ -32,7 +34,7 @@ class HealthInsurance < ApplicationRecord
   validates :total_premium, presence: true, numericality: { greater_than: 0 }
 
   # Custom validation
-  validate :company_name_must_be_valid
+  # validate :company_name_must_be_valid
 
   # Enums for dropdowns
   POLICY_TYPES = ['New', 'Renewal', 'Porting', 'Migration'].freeze
@@ -214,8 +216,8 @@ class HealthInsurance < ApplicationRecord
   end
 
   def create_commission_payouts
-    # Commission payouts are now handled by StructuredPayoutService in create_structured_payout
-    # This method is kept for backward compatibility but does nothing to avoid duplicates
+    # Create commission payouts using StructuredPayoutService
+    StructuredPayoutService.create_for_policy(self, 'health')
     Rails.logger.info "Commission payouts handled by StructuredPayoutService for health insurance #{id}"
   end
 

@@ -4,9 +4,32 @@ class LeadGeneratorService
     return if insurance.lead_id.present? && Lead.exists?(lead_id: insurance.lead_id)
 
     product_type = determine_product_type(insurance)
+    customer = insurance.customer
 
-    # Generate a unique lead ID for each insurance policy
-    # Each policy needs its own unique lead_id due to unique constraint
+    # Check for existing lead with same contact number and product type
+    existing_lead = Lead.find_by(
+      contact_number: customer.mobile,
+      product_subcategory: product_type
+    )
+
+    if existing_lead
+      # Update existing lead to converted status and link to this policy
+      existing_lead.update!(
+        current_stage: 'converted',
+        converted_customer_id: customer.id,
+        policy_created_id: insurance.id,
+        stage_updated_at: Time.current,
+        notes: existing_lead.notes + "\n\nUpdated: Policy created - #{insurance.policy_number} on #{Date.current}"
+      )
+
+      # Update the insurance with existing lead_id
+      insurance.update_column(:lead_id, existing_lead.lead_id)
+
+      Rails.logger.info "Updated existing lead #{existing_lead.lead_id} for insurance #{insurance.id}"
+      return existing_lead
+    end
+
+    # Generate a unique lead ID for new lead
     generated_lead_id = LeadIdGeneratorService.generate_for_policy(
       insurance.customer,
       insurance.class.name
@@ -37,7 +60,7 @@ class LeadGeneratorService
       email: customer.email,
       product_category: 'insurance',
       product_subcategory: product_type,
-      current_stage: 'policy_created',
+      current_stage: 'converted',
       lead_source: determine_lead_source(insurance),
       customer_type: customer.customer_type,
       converted_customer_id: customer.id,
