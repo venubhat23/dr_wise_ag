@@ -1,3 +1,49 @@
+<!-- Custom styles for renewal button animation -->
+<style>
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+    }
+  }
+
+  .pulse-animation {
+    animation: pulse 1.5s infinite;
+  }
+
+  .btn-success.pulse-animation:hover {
+    animation: none;
+    transform: scale(1.05);
+    transition: transform 0.2s;
+  }
+
+  /* Enhanced button styles */
+  .btn-success:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s;
+  }
+
+  .btn-primary:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s;
+  }
+
+  .btn-warning:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s;
+  }
+
+  /* Renewal badge animation */
+  .badge.bg-warning.expiring-soon {
+    animation: pulse 2s infinite;
+  }
+</style>
+
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
@@ -219,6 +265,31 @@
                     <%= link_to edit_admin_motor_insurance_path(policy), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
                       <i class="bi bi-pencil"></i>
                     <% end %>
+
+                    <!-- Renewal Status -->
+                    <% if policy.has_been_renewed? %>
+                      <!-- Show "Renewed" indicator for renewed policies -->
+                      <span class="btn btn-sm btn-success disabled" title="This policy has been renewed">
+                        <i class="bi bi-check-circle"></i>
+                        <span class="d-none d-md-inline ms-1">Renewed</span>
+                      </span>
+                    <% elsif policy.can_be_renewed? %>
+                      <!-- Show Renew button for eligible policies -->
+                      <% days_to_expiry = (policy.policy_end_date - Date.current).to_i %>
+                      <%= link_to renew_admin_motor_insurance_path(policy),
+                          class: "btn btn-sm btn-success",
+                          title: "Renew Policy (#{days_to_expiry} days to expiry)" do %>
+                        <i class="bi bi-arrow-clockwise"></i>
+                        <span class="d-none d-md-inline ms-1">Renew</span>
+                      <% end %>
+                    <% elsif policy.is_renewal? %>
+                      <!-- Show indicator for renewal policies -->
+                      <span class="btn btn-sm btn-outline-secondary disabled" title="This is a renewal policy">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        <span class="d-none d-md-inline ms-1">Renewal</span>
+                      </span>
+                    <% end %>
+
                     <%= link_to admin_motor_insurance_path(policy), method: :delete,
                         class: "btn btn-sm btn-outline-danger",
                         title: "Delete",

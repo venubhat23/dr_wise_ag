@@ -23,6 +23,11 @@
   }
 
   /* Enhanced button styles */
+  .btn-success:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s;
+  }
+
   .btn-primary:hover {
     transform: scale(1.05);
     transition: transform 0.2s;
@@ -239,14 +244,8 @@
                       <!-- Show Renew button for eligible policies -->
                       <% days_to_expiry = (policy.policy_end_date - Date.current).to_i %>
                       <%
-                        # Color coding based on urgency
-                        button_class = if days_to_expiry <= 7
-                          'btn-danger pulse-animation'  # Red with pulse for urgent (7 days or less)
-                        elsif days_to_expiry <= 30
-                          'btn-warning'  # Orange for soon (30 days or less)
-                        else
-                          'btn-primary'  # Blue for normal (more than 30 days)
-                        end
+                        # Consistent green color for all renewal buttons
+                        button_class = 'btn-success'  # Green for all renewal actions
                       %>
                       <%= link_to renew_admin_health_insurance_path(policy),
                           class: "btn btn-sm #{button_class}",

@@ -75,7 +75,7 @@
           <%= form.select :vehicle_type,
               options_for_select(@vehicle_types.map { |t| [t, t] }, @motor_insurance.vehicle_type),
               { prompt: 'Select Vehicle Type' },
-              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:vehicle_type].any?}", required: true } %>
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:vehicle_type].any?}", required: true, id: "vehicle_type_select" } %>
           <% if @motor_insurance.errors[:vehicle_type].any? %>
             <div class="invalid-feedback"><%= @motor_insurance.errors[:vehicle_type].first %></div>
           <% end %>
@@ -152,7 +152,7 @@
           <%= form.select :class_of_vehicle,
               options_for_select(@class_of_vehicles.map { |t| [t, t] }, @motor_insurance.class_of_vehicle),
               { prompt: 'Select Class of Vehicle' },
-              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:class_of_vehicle].any?}", required: true } %>
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:class_of_vehicle].any?}", required: true, id: "class_of_vehicle_select" } %>
           <% if @motor_insurance.errors[:class_of_vehicle].any? %>
             <div class="invalid-feedback"><%= @motor_insurance.errors[:class_of_vehicle].first %></div>
           <% end %>
@@ -163,7 +163,7 @@
           <%= form.select :policy_type,
               options_for_select(@policy_types.map { |t| [t, t] }, @motor_insurance.policy_type),
               { prompt: 'Select Policy Type' },
-              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:policy_type].any?}", required: true } %>
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:policy_type].any?}", required: true, id: "policy_type_select" } %>
           <% if @motor_insurance.errors[:policy_type].any? %>
             <div class="invalid-feedback"><%= @motor_insurance.errors[:policy_type].first %></div>
           <% end %>
@@ -407,56 +407,6 @@
               class: "form-control",
               rows: 3,
               placeholder: "Enter additional notes or comments..." %>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Broker & Agency Details Section -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="mb-0">
-        <i class="bi bi-building me-2 text-primary"></i>
-        Broker & Agency Details
-      </h5>
-    </div>
-    <div class="card-body">
-      <div class="row">
-        <!-- 1st: Broker Code dropdown with Direct/Broking options -->
-        <div class="col-md-4 mb-3">
-          <%= form.label :broker_code_type, "Broker Code", class: "form-label" %>
-          <%= form.select :broker_code_type,
-              options_for_select([
-                ['Direct', 'direct'],
-                ['Broking', 'broking']
-              ], @motor_insurance.broker_code_type),
-              { prompt: 'Select Broker Code' },
-              { class: "form-control", id: "motor_insurance_broker_code_type" } %>
-        </div>
-
-        <!-- 2nd: Agency Code (shows Agents when Direct selected, Brokers when Broking selected) -->
-        <div class="col-md-4 mb-3">
-          <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
-          <span id="agency_code_label_text"> (All Agents)*</span>
-          <%= form.select :agency_code_id,
-              options_for_select([['Select...', '']]),
-              { prompt: 'Search and select...' },
-              { class: "form-control", required: true, id: "motor_insurance_agency_code_id" } %>
-        </div>
-
-        <!-- Hidden field for broker_id when needed -->
-        <%= form.hidden_field :broker_id, id: "broker_id_hidden" %>
-
-        <!-- 3rd: Insurance Company Name (Dynamic based on Agent/Broker selection) -->
-        <div class="col-md-4 mb-3">
-          <%= form.label :insurance_company_name, "Insurance Company Name*", class: "form-label" %>
-          <%= form.select :insurance_company_name,
-              options_for_select([['Select Company', '']]),
-              { prompt: 'Search and select company...' },
-              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:insurance_company_name].any?}", required: true, id: "motor_insurance_insurance_company_name" } %>
-          <% if @motor_insurance.errors[:insurance_company_name].any? %>
-            <div class="invalid-feedback"><%= @motor_insurance.errors[:insurance_company_name].first %></div>
-          <% end %>
         </div>
       </div>
     </div>
@@ -757,7 +707,7 @@
     <%= link_to admin_motor_insurances_path, class: "btn btn-outline-secondary me-3" do %>
       <i class="bi bi-x-circle me-1"></i>Cancel
     <% end %>
-    <%= form.submit "Create Motor Insurance", class: "btn btn-primary btn-lg px-5" %>
+    <%= form.submit @motor_insurance.persisted? ? "Update Motor Insurance" : "Create Motor Insurance", class: "btn btn-primary btn-lg px-5" %>
   </div>
 
 <% end %>
@@ -1312,41 +1262,532 @@ $(document).ready(function() {
     }
   });
 
-  // Update policy holder options when customer changes (keep existing functionality)
+  // Initialize Select2 for Vehicle Type dropdown
+  $('#vehicle_type_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Vehicle Type',
+    allowClear: false,
+    width: '100%',
+    dropdownParent: $('body'),
+    minimumResultsForSearch: 0,
+    closeOnSelect: true
+  });
+
+
+  // Initialize Select2 for Insurance Type dropdown
+  $('#insurance_type_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Insurance Type',
+    allowClear: false,
+    width: '100%',
+    dropdownParent: $('body'),
+    minimumResultsForSearch: 0,
+    closeOnSelect: true
+  });
+
+  // Initialize Select2 for Class of Vehicle dropdown
+  $('#class_of_vehicle_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Class of Vehicle',
+    allowClear: false,
+    width: '100%',
+    dropdownParent: $('body'),
+    minimumResultsForSearch: 0,
+    closeOnSelect: true
+  });
+
+  // Initialize Select2 for Policy Type dropdown
+  $('#policy_type_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Policy Type',
+    allowClear: false,
+    width: '100%',
+    dropdownParent: $('body'),
+    minimumResultsForSearch: 0,
+    closeOnSelect: true
+  });
+
+  // Update policy holder options and affiliate when customer changes
   $('#customer_select').on('change', function() {
     var customerId = $(this).val();
-    var policyHolderSelect = $('#policy_holder_select');
+    var $policyHolderSelect = $('#policy_holder_select');
+    var $affiliateSelect = $('#affiliate_select');
 
     if (customerId) {
+      // Show loading state for policy holder
+      $policyHolderSelect.empty().append('<option value="">Loading...</option>').trigger('change');
+
+      // Load policy holder options
       $.ajax({
-        url: '/admin/insurances/motor/policy_holder_options',
+        url: '/admin/insurance/motor/policy_holder_options',
+        method: 'GET',
         data: { customer_id: customerId },
         success: function(data) {
           // Clear existing options
-          policyHolderSelect.empty();
+          $policyHolderSelect.empty();
+
+          // Add "Select Policy Holder" option
+          $policyHolderSelect.append('<option value="">Select Policy Holder</option>');
 
           // Add new options
           $.each(data.options, function(index, option) {
-            policyHolderSelect.append($('<option>', {
+            $policyHolderSelect.append($('<option>', {
               value: option[1],
               text: option[0]
             }));
           });
 
-          // Reinitialize Select2 to reflect changes
-          policyHolderSelect.trigger('change.select2');
+          // Trigger change event to update Select2
+          $policyHolderSelect.trigger('change');
+        },
+        error: function(xhr, status, error) {
+          console.error('Error loading policy holder options:', error);
+          $policyHolderSelect.empty().append('<option value="">Error loading options</option>').trigger('change');
         }
       });
+
+      // Load customer affiliate information
+      $.ajax({
+        url: '/admin/insurance/motor/customer_affiliate_info',
+        method: 'GET',
+        data: { customer_id: customerId },
+        success: function(data) {
+          // Destroy existing Select2
+          if ($affiliateSelect.hasClass('select2-hidden-accessible')) {
+            $affiliateSelect.select2('destroy');
+          }
+
+          // Clear existing options
+          $affiliateSelect.empty();
+
+          if (data.affiliate_id && data.affiliate_name) {
+            // Customer has an affiliate - show only that affiliate
+            $affiliateSelect.append('<option value="">Self</option>');
+            $affiliateSelect.append(`<option value="${data.affiliate_id}" selected>${data.affiliate_name}</option>`);
+            console.log('Showing only linked affiliate:', data.affiliate_name);
+          } else {
+            // Customer has no affiliate - show only "Self"
+            $affiliateSelect.append('<option value="" selected>Self</option>');
+            console.log('Customer has no affiliate - showing only Self');
+          }
+
+          // Reinitialize Select2 with the filtered options
+          $affiliateSelect.select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Affiliate',
+            allowClear: false,
+            width: '100%',
+            dropdownParent: $('body'),
+            dropdownCssClass: 'select2-dropdown-large',
+            minimumResultsForSearch: 0,
+            closeOnSelect: true,
+            templateResult: function(option) {
+              if (!option.id || option.id === '') {
+                return option.text;
+              }
+
+              var initials = option.text.split(' ').map(function(name) {
+                return name.charAt(0).toUpperCase();
+              }).join('').substring(0, 2);
+
+              var $option = $(
+                '<div class="affiliate-option">' +
+                  '<div class="affiliate-option-avatar">' + initials + '</div>' +
+                  '<div class="affiliate-option-details">' +
+                    '<div class="affiliate-option-name">' + option.text + '</div>' +
+                    '<div class="affiliate-option-id">Affiliate</div>' +
+                  '</div>' +
+                '</div>'
+              );
+              return $option;
+            },
+            templateSelection: function(option) {
+              return option.text || 'Affiliate';
+            },
+            escapeMarkup: function(markup) {
+              return markup;
+            }
+          });
+        },
+        error: function(xhr, status, error) {
+          console.error('Error loading customer affiliate info:', error);
+
+          // Reset affiliate dropdown on error
+          if ($affiliateSelect.hasClass('select2-hidden-accessible')) {
+            $affiliateSelect.select2('destroy');
+          }
+          $affiliateSelect.empty().append('<option value="" selected>Self</option>');
+          $affiliateSelect.select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Affiliate',
+            allowClear: false,
+            width: '100%',
+            dropdownParent: $('body')
+          });
+        }
+      });
+
+    } else {
+      // Clear options when no customer is selected
+      $policyHolderSelect.empty().append('<option value="">Select Policy Holder</option>').trigger('change');
+      $affiliateSelect.val('').trigger('change');
     }
   });
+
+  // ========================================
+  // MOTOR INSURANCE BROKER CODE FLOW LOGIC
+  // ========================================
+
+  console.log('🚗 Initializing Motor Insurance Broker Flow...');
+
+  // Global variables to track state
+  let motorAgencyCodeEventListenerAttached = false;
+
+  // Initialize broker flow after a short delay to ensure all elements are ready
+  setTimeout(function() {
+    initializeMotorBrokerFlow();
+  }, 1000);
+
+  function initializeMotorBrokerFlow() {
+    console.log('🔧 Setting up Motor Broker Flow...');
+
+    const brokerCodeSelect = document.getElementById('motor_insurance_broker_code_type');
+    const agencyCodeSelect = document.getElementById('motor_insurance_agency_code_id');
+    const insuranceCompanySelect = document.getElementById('motor_insurance_insurance_company_name');
+
+    console.log('🔍 Motor Broker Elements Check:');
+    console.log('- Broker Code:', brokerCodeSelect ? '✅' : '❌');
+    console.log('- Agency Code:', agencyCodeSelect ? '✅' : '❌');
+    console.log('- Insurance Company:', insuranceCompanySelect ? '✅' : '❌');
+
+    if (!brokerCodeSelect) {
+      console.error('❌ Motor broker code select not found!');
+      return;
+    }
+
+    // Clear any existing event listeners and add new one
+    $(brokerCodeSelect).off('change.motorBroker');
+    $(brokerCodeSelect).on('change.motorBroker', function() {
+      const brokerType = this.value;
+      console.log('🔥 MOTOR BROKER CODE CHANGED! Value:', brokerType);
+
+      if (!brokerType) {
+        console.log('⚠️ No broker type selected, skipping API call');
+        return;
+      }
+
+      // Clear and show loading state for dependent dropdowns
+      if (agencyCodeSelect) {
+        $(agencyCodeSelect).select2('destroy');
+        agencyCodeSelect.innerHTML = '<option value="">Loading...</option>';
+        $(agencyCodeSelect).select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Loading...',
+          allowClear: true,
+          width: '100%'
+        });
+      }
+
+      if (insuranceCompanySelect) {
+        $(insuranceCompanySelect).select2('destroy');
+        insuranceCompanySelect.innerHTML = '<option value="">Loading...</option>';
+        $(insuranceCompanySelect).select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Loading...',
+          allowClear: true,
+          width: '100%'
+        });
+      }
+
+      // Update label
+      const labelSpan = document.getElementById('agency_code_label_text');
+      if (labelSpan) {
+        labelSpan.textContent = brokerType === 'direct' ? ' (Agents)*' : ' (Brokers)*';
+      }
+
+      // Call appropriate API
+      if (brokerType === 'direct') {
+        callMotorDirectAPI();
+      } else if (brokerType === 'broking') {
+        callMotorBrokingAPI();
+      }
+    });
+
+    console.log('✅ Motor broker code change listener attached');
+  }
+
+  function callMotorDirectAPI() {
+    console.log('🌐 Calling Motor Direct API...');
+
+    fetch('/admin/insurance/motor/agency_codes_for_broker_type?broker_type=direct', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => {
+      console.log('📡 Motor Direct API Response Status:', response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('📊 Motor Direct API Data:', data);
+
+      if (data.success && data.data) {
+        populateMotorAgencyDropdown(data.data, 'Select Agent...');
+
+        // Clear company dropdown and show placeholder
+        const companySelect = document.getElementById('motor_insurance_insurance_company_name');
+        if (companySelect) {
+          $(companySelect).select2('destroy');
+          companySelect.innerHTML = '<option value="">Select Agent First...</option>';
+          $(companySelect).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select Agent First...',
+            allowClear: true,
+            width: '100%'
+          });
+        }
+      } else {
+        console.error('❌ Motor Direct API returned no data');
+      }
+    })
+    .catch(error => {
+      console.error('❌ Motor Direct API Error:', error);
+    });
+  }
+
+  function callMotorBrokingAPI() {
+    console.log('🌐 Calling Motor Broking API...');
+
+    // First, get brokers for agency dropdown
+    fetch('/admin/insurance/motor/agency_codes_for_broker_type?broker_type=broking', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('📊 Motor Broking API Data:', data);
+
+      if (data.success && data.data) {
+        populateMotorAgencyDropdown(data.data, 'Select Broker...');
+      }
+    })
+    .catch(error => {
+      console.error('❌ Motor Broking API Error:', error);
+    });
+
+    // Second, get all motor insurance companies
+    fetch('/admin/insurance/motor/insurance_companies_for_type', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('📊 Motor Insurance Companies Data:', data);
+
+      if (data.success && data.data) {
+        populateMotorCompanyDropdown(data.data);
+      }
+    })
+    .catch(error => {
+      console.error('❌ Motor Company API Error:', error);
+    });
+  }
+
+  function populateMotorAgencyDropdown(data, placeholder) {
+    const agencySelect = document.getElementById('motor_insurance_agency_code_id');
+    if (!agencySelect) return;
+
+    console.log(`🔧 Populating motor agency dropdown with ${data.length} items...`);
+
+    // Destroy existing Select2
+    $(agencySelect).select2('destroy');
+
+    // Clear and populate options
+    agencySelect.innerHTML = `<option value="">${placeholder}</option>`;
+    data.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.text;
+      agencySelect.appendChild(option);
+    });
+
+    // Reinitialize Select2
+    $(agencySelect).select2({
+      theme: 'bootstrap-5',
+      placeholder: placeholder,
+      allowClear: true,
+      width: '100%',
+      dropdownParent: $('body'),
+      minimumResultsForSearch: 0
+    });
+
+    // Attach change listener for agency selection
+    $(agencySelect).off('change.motorAgency');
+    $(agencySelect).on('change.motorAgency', function() {
+      const selectedId = $(this).val();
+      const brokerType = $('#motor_insurance_broker_code_type').val();
+
+      console.log(`🔥 Motor Agency Selected: ${selectedId}, Broker Type: ${brokerType}`);
+
+      if (brokerType === 'direct' && selectedId) {
+        fetchMotorCompanyByAgent(selectedId);
+      }
+    });
+
+    console.log('✅ Motor agency dropdown populated and events attached');
+  }
+
+  function populateMotorCompanyDropdown(data) {
+    const companySelect = document.getElementById('motor_insurance_insurance_company_name');
+    if (!companySelect) return;
+
+    console.log(`🔧 Populating motor company dropdown with ${data.length} items...`);
+
+    // Destroy existing Select2
+    $(companySelect).select2('destroy');
+
+    // Clear and populate options
+    companySelect.innerHTML = '<option value="">Select Company...</option>';
+    data.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.text;
+      companySelect.appendChild(option);
+    });
+
+    // Reinitialize Select2
+    $(companySelect).select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Select Company...',
+      allowClear: true,
+      width: '100%',
+      dropdownParent: $('body'),
+      minimumResultsForSearch: 0
+    });
+
+    console.log('✅ Motor company dropdown populated');
+  }
+
+  function fetchMotorCompanyByAgent(agentId) {
+    console.log(`🌐 Fetching motor company for agent ID: ${agentId}`);
+
+    const companySelect = document.getElementById('motor_insurance_insurance_company_name');
+    if (!companySelect) return;
+
+    // Show loading state
+    $(companySelect).select2('destroy');
+    companySelect.innerHTML = '<option value="">Loading company...</option>';
+    $(companySelect).select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Loading...',
+      allowClear: false,
+      width: '100%'
+    });
+
+    fetch(`/admin/insurance/motor/company_name_by_agent?agency_code_id=${agentId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('📊 Motor Company by Agent Data:', data);
+
+      if (data.success && data.data) {
+        $(companySelect).select2('destroy');
+
+        if (data.data.company_name) {
+          // Single company - auto-select
+          companySelect.innerHTML = `<option value="${data.data.company_name}" selected>${data.data.company_name}</option>`;
+          companySelect.style.backgroundColor = '#d1edff';
+        } else if (data.data.company_names) {
+          // Multiple companies - populate dropdown
+          companySelect.innerHTML = '<option value="">Select Company...</option>';
+          data.data.company_names.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            companySelect.appendChild(option);
+          });
+        }
+
+        $(companySelect).select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Company auto-filled',
+          allowClear: true,
+          width: '100%'
+        });
+
+        console.log('✅ Motor company auto-filled successfully');
+      }
+    })
+    .catch(error => {
+      console.error('❌ Motor Company Fetch Error:', error);
+      $(companySelect).select2('destroy');
+      companySelect.innerHTML = '<option value="">Error loading company</option>';
+      $(companySelect).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Error',
+        allowClear: true,
+        width: '100%'
+      });
+    });
+  }
+
+  console.log('✅ Motor Insurance Broker Flow script loaded');
+
+  // Initialize form for edit mode
+  <% if @motor_insurance.persisted? %>
+    console.log('🔧 Initializing edit form...');
+
+    // Trigger customer change to load affiliate options
+    const customerSelect = document.getElementById('customer_select');
+    if (customerSelect && customerSelect.value) {
+      $(customerSelect).trigger('change');
+      console.log('Triggered customer change for edit form');
+    }
+
+    // Trigger broker code type change to load agency codes
+    const brokerCodeSelect = document.getElementById('motor_insurance_broker_code_type');
+    if (brokerCodeSelect && brokerCodeSelect.value) {
+      setTimeout(function() {
+        $(brokerCodeSelect).trigger('change');
+        console.log('Triggered broker code type change for edit form');
+      }, 500); // Small delay to allow customer change to complete first
+    }
+  <% end %>
 });
 </script>
 
-<!-- Dynamic dropdown behavior -->
-<script type="module">
-  import { initializeDynamicDropdowns } from "dynamic_insurance_dropdowns";
-
-  document.addEventListener('DOMContentLoaded', function() {
-    initializeDynamicDropdowns();
-  });
-</script>

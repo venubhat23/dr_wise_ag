@@ -24,14 +24,12 @@ class MotorInsurance < ApplicationRecord
   validates :policy_end_date, presence: true
   validates :registration_number, presence: true
   validates :vehicle_idv, presence: true, numericality: { greater_than: 0 }
-  validates :tp_premium, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :net_premium, presence: true, numericality: { greater_than: 0 }
   validates :gst_percentage, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :total_premium, presence: true, numericality: { greater_than: 0 }
 
   # Custom validations
   # validate :company_name_must_be_valid  # Commented out to accept any insurance company name
-  validate :tp_premium_required_for_tp_policy
 
   # Enums for dropdowns
   VEHICLE_TYPES = ['New Vehicle', 'Old Vehicle'].freeze
@@ -127,6 +125,54 @@ class MotorInsurance < ApplicationRecord
     notifications
   end
 
+  # Renewal functionality methods
+  def is_renewal?
+    policy_type == 'Renewal'
+  end
+
+  def can_be_renewed?
+    # Motor insurance can be renewed if:
+    # 1. It's not already a renewal policy (prevent renewal of renewal)
+    # 2. It's expiring within 60 days
+    # 3. It hasn't already been renewed (check for existing renewal)
+    !is_renewal? &&
+    policy_end_date.present? &&
+    policy_end_date <= 60.days.from_now &&
+    !has_been_renewed?
+  end
+
+  def has_been_renewed?
+    # Check if there's already a renewal policy for this customer and vehicle
+    return false unless customer_id.present? && registration_number.present?
+
+    MotorInsurance.where(
+      customer_id: customer_id,
+      registration_number: registration_number,
+      policy_type: 'Renewal'
+    ).where('policy_start_date > ?', policy_end_date).exists?
+  end
+
+  def renewal_status_text
+    if is_renewal?
+      'Renewal Policy'
+    elsif has_been_renewed?
+      'Already Renewed'
+    elsif can_be_renewed?
+      days_to_expiry = (policy_end_date - Date.current).to_i
+      if days_to_expiry <= 0
+        'Expired - Renewal Available'
+      elsif days_to_expiry <= 7
+        "Expires in #{days_to_expiry} days - Urgent Renewal"
+      elsif days_to_expiry <= 30
+        "Expires in #{days_to_expiry} days - Renewal Available"
+      else
+        "Expires in #{days_to_expiry} days - Renewal Available"
+      end
+    else
+      'Not Eligible for Renewal'
+    end
+  end
+
   private
 
   def calculate_totals
@@ -136,12 +182,12 @@ class MotorInsurance < ApplicationRecord
     end
 
     # Calculate main agent commission (legacy fields)
-    if net_premium.present? && main_agent_commission_percent.present?
-      self.main_agent_commission_amount = net_premium * (main_agent_commission_percent / 100.0)
+    if net_premium.present? && main_agent_commission_percentage.present?
+      self.main_agent_commission_amount = net_premium * (main_agent_commission_percentage / 100.0)
     end
 
-    if main_agent_commission_amount.present? && main_agent_tds_percent.present?
-      self.main_agent_tds_amount = main_agent_commission_amount * (main_agent_tds_percent / 100.0)
+    if main_agent_commission_amount.present? && main_agent_tds_percentage.present?
+      self.main_agent_tds_amount = main_agent_commission_amount * (main_agent_tds_percentage / 100.0)
       self.after_tds_value = main_agent_commission_amount - main_agent_tds_amount
     end
 
@@ -289,8 +335,8 @@ class MotorInsurance < ApplicationRecord
   end
 
   def create_commission_payouts
-    # Commission payouts are now handled by StructuredPayoutService in create_structured_payout
-    # This method is kept for backward compatibility but does nothing to avoid duplicates
+    # Create commission payouts using StructuredPayoutService
+    StructuredPayoutService.create_for_policy(self, 'motor')
     Rails.logger.info "Commission payouts handled by StructuredPayoutService for motor insurance #{id}"
   end
 
@@ -304,8 +350,8 @@ class MotorInsurance < ApplicationRecord
   end
 
   def inherit_customer_lead_id
-    return if lead_id.present? || customer.nil?
-
-    self.lead_id = customer.lead_id if customer.lead_id.present?
+    # Don't inherit customer lead_id to avoid unique constraint violations
+    # Let the create_lead_record callback handle lead_id generation
+    return
   end
 end

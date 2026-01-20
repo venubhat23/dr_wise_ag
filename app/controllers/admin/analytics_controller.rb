@@ -62,6 +62,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
     # Additional metrics for KPI cards
     @avg_policy_value = calculate_avg_policy_value
     @customer_retention = calculate_customer_retention
+
+    # Lead conversion funnel
+    @lead_conversion_funnel = calculate_lead_conversion_funnel
   end
 
   def calculate_total_policies
@@ -299,5 +302,25 @@ class Admin::AnalyticsController < Admin::ApplicationController
   rescue => e
     Rails.logger.error "Error calculating customer retention: #{e.message}"
     0
+  end
+
+  def calculate_lead_conversion_funnel
+    # Calculate conversion funnel showing leads at different stages
+    {
+      'Leads Generated' => Lead.count,
+      'Contacted' => Lead.where(current_stage: ['contacted', 'interested', 'quoted', 'policy_created']).count,
+      'Interested' => Lead.where(current_stage: ['interested', 'quoted', 'policy_created']).count,
+      'Quoted' => Lead.where(current_stage: ['quoted', 'policy_created']).count,
+      'Converted' => Lead.where(current_stage: 'policy_created').count
+    }
+  rescue => e
+    Rails.logger.error "Error calculating lead conversion funnel: #{e.message}"
+    {
+      'Leads Generated' => 0,
+      'Contacted' => 0,
+      'Interested' => 0,
+      'Quoted' => 0,
+      'Converted' => 0
+    }
   end
 end

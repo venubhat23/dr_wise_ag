@@ -1,0 +1,51 @@
+class AddMissingColumnsToMotorInsurances < ActiveRecord::Migration[8.0]
+  def change
+    add_column :motor_insurances, :engine_number, :string
+    add_column :motor_insurances, :chassis_number, :string
+    add_column :motor_insurances, :variant, :string
+    add_column :motor_insurances, :mfy, :string
+    add_column :motor_insurances, :seating_capacity, :integer
+    add_column :motor_insurances, :ncb, :decimal
+    add_column :motor_insurances, :discount_loading_percent, :decimal
+    add_column :motor_insurances, :payout_od, :decimal
+    add_column :motor_insurances, :payout_tp, :decimal
+    add_column :motor_insurances, :payout_net, :decimal
+    add_column :motor_insurances, :sub_agent_commission_percentage, :decimal
+    add_column :motor_insurances, :sub_agent_commission_amount, :decimal
+    add_column :motor_insurances, :sub_agent_tds_percentage, :decimal
+    add_column :motor_insurances, :sub_agent_tds_amount, :decimal
+    add_column :motor_insurances, :sub_agent_after_tds_value, :decimal
+    add_column :motor_insurances, :distributor_id, :integer
+    add_column :motor_insurances, :distributor_commission_percentage, :decimal
+    add_column :motor_insurances, :distributor_commission_amount, :decimal
+    add_column :motor_insurances, :distributor_tds_percentage, :decimal
+    add_column :motor_insurances, :distributor_tds_amount, :decimal
+    add_column :motor_insurances, :distributor_after_tds_value, :decimal
+    add_column :motor_insurances, :investor_id, :integer
+    add_column :motor_insurances, :investor_commission_percentage, :decimal
+    add_column :motor_insurances, :investor_commission_amount, :decimal
+    add_column :motor_insurances, :investor_tds_percentage, :decimal
+    add_column :motor_insurances, :investor_tds_amount, :decimal
+    add_column :motor_insurances, :investor_after_tds_value, :decimal
+    add_column :motor_insurances, :ambassador_commission_percentage, :decimal
+    add_column :motor_insurances, :ambassador_commission_amount, :decimal
+    add_column :motor_insurances, :ambassador_tds_percentage, :decimal
+    add_column :motor_insurances, :ambassador_tds_amount, :decimal
+    add_column :motor_insurances, :ambassador_after_tds_value, :decimal
+    add_column :motor_insurances, :total_distribution_percentage, :decimal
+    add_column :motor_insurances, :company_expenses_percentage, :decimal
+    add_column :motor_insurances, :profit_percentage, :decimal
+    add_column :motor_insurances, :profit_amount, :decimal
+    add_column :motor_insurances, :legal_liability, :boolean
+    add_column :motor_insurances, :electrical_accessories, :boolean
+    add_column :motor_insurances, :non_electrical_accessories, :boolean
+    add_column :motor_insurances, :zero_depreciation, :boolean
+    add_column :motor_insurances, :roadside_assistance, :boolean
+    add_column :motor_insurances, :engine_protector, :boolean
+    add_column :motor_insurances, :key_replacement, :boolean
+    add_column :motor_insurances, :return_to_invoice, :boolean
+    add_column :motor_insurances, :consumable_cover, :boolean
+    add_column :motor_insurances, :personal_accident_cover, :boolean
+    add_column :motor_insurances, :financier, :string
+  end
+end

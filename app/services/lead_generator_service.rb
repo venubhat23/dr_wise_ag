@@ -13,20 +13,28 @@ class LeadGeneratorService
     )
 
     if existing_lead
-      # Update existing lead to converted status and link to this policy
-      existing_lead.update!(
-        current_stage: 'converted',
-        converted_customer_id: customer.id,
-        policy_created_id: insurance.id,
-        stage_updated_at: Time.current,
-        notes: existing_lead.notes + "\n\nUpdated: Policy created - #{insurance.policy_number} on #{Date.current}"
-      )
+      # Check if the lead_id is already used by another insurance record of the same type
+      existing_insurance = insurance.class.find_by(lead_id: existing_lead.lead_id)
 
-      # Update the insurance with existing lead_id
-      insurance.update_column(:lead_id, existing_lead.lead_id)
+      if existing_insurance && existing_insurance.id != insurance.id
+        # Lead ID already used by another insurance, create a new lead instead
+        Rails.logger.warn "Lead ID #{existing_lead.lead_id} already used by #{insurance.class.name} #{existing_insurance.id}, creating new lead"
+      else
+        # Safe to use existing lead
+        existing_lead.update!(
+          current_stage: 'converted',
+          converted_customer_id: customer.id,
+          policy_created_id: insurance.id,
+          stage_updated_at: Time.current,
+          notes: existing_lead.notes + "\n\nUpdated: Policy created - #{insurance.policy_number} on #{Date.current}"
+        )
 
-      Rails.logger.info "Updated existing lead #{existing_lead.lead_id} for insurance #{insurance.id}"
-      return existing_lead
+        # Update the insurance with existing lead_id
+        insurance.update_column(:lead_id, existing_lead.lead_id)
+
+        Rails.logger.info "Updated existing lead #{existing_lead.lead_id} for insurance #{insurance.id}"
+        return existing_lead
+      end
     end
 
     # Generate a unique lead ID for new lead

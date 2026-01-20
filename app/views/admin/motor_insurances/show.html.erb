@@ -95,8 +95,8 @@
             <%= @motor_insurance.class_of_vehicle %>
           </div>
           <div class="col-md-6 mb-3">
-            <strong>Registration Date:</strong><br>
-            <%= @motor_insurance.registration_date.strftime("%B %d, %Y") if @motor_insurance.registration_date %>
+            <strong>Policy Booking Date:</strong><br>
+            <%= @motor_insurance.policy_booking_date.strftime("%B %d, %Y") if @motor_insurance.policy_booking_date %>
           </div>
           <% if @motor_insurance.make.present? || @motor_insurance.model.present? %>
             <div class="col-md-6 mb-3">

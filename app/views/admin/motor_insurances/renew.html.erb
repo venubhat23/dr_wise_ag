@@ -1,0 +1,196 @@
+<div class="container-fluid">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <%= link_to "Home", root_path, class: "text-primary text-decoration-none" %>
+      </li>
+      <li class="breadcrumb-item">
+        <%= link_to "Motor Insurance", admin_motor_insurances_path, class: "text-primary text-decoration-none" %>
+      </li>
+      <li class="breadcrumb-item active">Renew Motor Insurance</li>
+    </ol>
+  </nav>
+
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="h3 text-gray-800 mb-2">Renew Motor Insurance Policy</h1>
+          <p class="text-muted">
+            <i class="bi bi-arrow-clockwise text-success me-2"></i>
+            Renewing policy <strong><%= @motor_insurance.policy_number %></strong>
+            for vehicle <strong><%= @motor_insurance.registration_number %></strong>
+            <% if @motor_insurance.policy_end_date.present? %>
+              <span class="badge bg-warning text-dark ms-2">
+                Expires: <%= @motor_insurance.policy_end_date.strftime("%B %d, %Y") %>
+              </span>
+            <% end %>
+          </p>
+        </div>
+        <%= link_to admin_motor_insurances_path, class: "btn btn-outline-secondary" do %>
+          <i class="bi bi-arrow-left me-1"></i>Back to List
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Renewal Info Alert -->
+  <div class="alert alert-info border-0 shadow-sm mb-4">
+    <div class="d-flex align-items-center">
+      <i class="bi bi-info-circle fs-4 me-3"></i>
+      <div>
+        <h5 class="alert-heading mb-1">Renewal Information</h5>
+        <p class="mb-0">
+          This form has been pre-filled with data from the original policy.
+          The new policy will start from <strong><%= @renewed_policy.policy_start_date.strftime("%B %d, %Y") %></strong>
+          and end on <strong><%= @renewed_policy.policy_end_date.strftime("%B %d, %Y") %></strong>.
+          Please review and update the premium amounts and any changed information.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Renewal Form -->
+  <%= form_with model: @renewed_policy, url: create_renewal_admin_motor_insurance_path(@motor_insurance),
+                method: :post, local: true, html: { class: "needs-validation", novalidate: true } do |form| %>
+
+    <% if @renewed_policy.errors.any? %>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <h6 class="alert-heading">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <%= pluralize(@renewed_policy.errors.count, "error") %> prohibited this renewal from being saved:
+        </h6>
+        <ul class="mb-0">
+          <% @renewed_policy.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% end %>
+
+    <!-- Render the existing form partial with renewal context -->
+    <% @motor_insurance = @renewed_policy %>
+    <%= render 'form', form: form %>
+
+  <% end %>
+</div>
+
+<style>
+  /* Highlight renewal-specific fields */
+  .renewal-field {
+    background-color: #f0f8ff;
+    border: 2px solid #0066cc;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+
+  .renewal-field label {
+    color: #0066cc;
+    font-weight: 600;
+  }
+
+  /* Policy Type field styling for renewal */
+  #motor_insurance_policy_type {
+    background-color: #d1edff;
+    font-weight: bold;
+  }
+
+  /* Highlight new policy dates */
+  #motor_insurance_policy_start_date,
+  #motor_insurance_policy_end_date {
+    background-color: #fffacd;
+    border: 2px solid #ffc107;
+  }
+
+  /* Premium fields highlight */
+  #motor_insurance_net_premium,
+  #motor_insurance_total_premium {
+    background-color: #f0fff0;
+    border: 2px solid #28a745;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Set Policy Type to 'Renewal' and make it read-only
+  const policyTypeSelect = document.getElementById('motor_insurance_policy_type') ||
+                           document.getElementById('policy_type_select');
+  if (policyTypeSelect) {
+    policyTypeSelect.value = 'Renewal';
+    policyTypeSelect.setAttribute('readonly', true);
+    policyTypeSelect.style.pointerEvents = 'none';
+    policyTypeSelect.style.backgroundColor = '#d1edff';
+
+    // Add hidden field to ensure policy_type is submitted
+    const hiddenPolicyType = document.createElement('input');
+    hiddenPolicyType.type = 'hidden';
+    hiddenPolicyType.name = 'motor_insurance[policy_type]';
+    hiddenPolicyType.value = 'Renewal';
+    policyTypeSelect.parentNode.appendChild(hiddenPolicyType);
+  }
+
+  // Highlight that this is a renewal
+  const formTitle = document.querySelector('h3.card-title');
+  if (formTitle) {
+    formTitle.innerHTML = '<i class="bi bi-arrow-clockwise text-success me-2"></i>Renewal: Motor Insurance Policy';
+  }
+
+  // Update submit button text
+  const submitButton = document.querySelector('button[type="submit"], input[type="submit"]');
+  if (submitButton) {
+    submitButton.innerHTML = '<i class="bi bi-check-circle me-2"></i>Create Renewal Policy';
+    submitButton.className = 'btn btn-success btn-lg px-5';
+  }
+
+  // Add renewal badge to the form
+  const badge = document.createElement('span');
+  badge.className = 'badge bg-success ms-3';
+  badge.textContent = 'RENEWAL';
+  const cardHeader = document.querySelector('.card-header h5');
+  if (cardHeader) {
+    cardHeader.appendChild(badge);
+  }
+
+  // Show a tooltip on premium fields
+  const premiumFields = ['net_premium', 'total_premium', 'tp_premium', 'vehicle_idv'];
+  premiumFields.forEach(field => {
+    const element = document.getElementById(`motor_insurance_${field}`);
+    if (element) {
+      element.setAttribute('title', 'Please update with current renewal premium');
+      element.setAttribute('data-bs-toggle', 'tooltip');
+      element.setAttribute('data-bs-placement', 'top');
+    }
+  });
+
+  // Initialize Bootstrap tooltips
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+  });
+
+  // Auto-calculate NCB for renewal
+  const ncbField = document.getElementById('motor_insurance_ncb');
+  if (ncbField && ncbField.value) {
+    // Increase NCB by one tier for claim-free renewal
+    const currentNCB = parseFloat(ncbField.value) || 0;
+    let newNCB = 0;
+
+    if (currentNCB === 0) newNCB = 20;
+    else if (currentNCB === 20) newNCB = 25;
+    else if (currentNCB === 25) newNCB = 35;
+    else if (currentNCB === 35) newNCB = 45;
+    else if (currentNCB === 45) newNCB = 50;
+    else if (currentNCB === 50) newNCB = 50; // Max NCB
+
+    // Show NCB suggestion
+    const ncbHelpText = document.createElement('small');
+    ncbHelpText.className = 'form-text text-info';
+    ncbHelpText.innerHTML = `<i class="bi bi-info-circle"></i> Suggested NCB for claim-free renewal: ${newNCB}%`;
+    ncbField.parentElement.appendChild(ncbHelpText);
+  }
+});
+</script>
