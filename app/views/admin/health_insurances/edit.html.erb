@@ -72,8 +72,8 @@
           %>
           <%= form.select :policy_holder,
               options_for_select(policy_holder_options, @health_insurance.policy_holder),
-              { prompt: 'Select Policy Holder' },
-              { class: "form-control", id: "policy_holder_select" } %>
+              {},
+              { class: "form-control", id: "policy_holder_select", data: { placeholder: "Type to search policy holders..." } } %>
         </div>
 
         <div class="col-md-4 mb-3">
@@ -144,7 +144,7 @@
           <%= form.select :policy_type,
               options_for_select(HealthInsurance::POLICY_TYPES.map { |type| [type, type] }, @health_insurance.policy_type),
               { prompt: 'Select Policy Type' },
-              { class: "form-control #{'is-invalid' if @health_insurance.errors[:policy_type].any?}", required: true } %>
+              { class: "form-control #{'is-invalid' if @health_insurance.errors[:policy_type].any?}", required: true, id: "policy_type_select" } %>
           <% if @health_insurance.errors[:policy_type].any? %>
             <div class="invalid-feedback"><%= @health_insurance.errors[:policy_type].first %></div>
           <% end %>
@@ -217,14 +217,21 @@
         </div>
 
         <div class="col-md-4 mb-3">
-          <%= form.label :sum_insured, "Sum Insured*", class: "form-label" %>
-          <%= form.number_field :sum_insured,
+          <%= form.label :sum_insured_text, "Sum Insured*", class: "form-label" %>
+          <%= form.text_field :sum_insured_text,
               class: "form-control #{'is-invalid' if @health_insurance.errors[:sum_insured].any?}",
-              placeholder: "Enter sum insured amount",
-              step: 0.01, required: true %>
+              placeholder: "e.g., 90 lakhs, 5 crores, 1.5 crore",
+              value: @health_insurance.sum_insured_display_text,
+              required: true,
+              id: "sum_insured_text_input" %>
+          <div class="form-text">
+            Enter amount like: 90 lakhs, 5 crores, 1.5 crore, etc.
+            <span id="sum_insured_preview" class="text-primary fw-bold"></span>
+          </div>
           <% if @health_insurance.errors[:sum_insured].any? %>
             <div class="invalid-feedback"><%= @health_insurance.errors[:sum_insured].first %></div>
           <% end %>
+          <%= form.hidden_field :sum_insured %>
         </div>
 
         <div class="col-md-4 mb-3">
@@ -273,7 +280,7 @@
           <%= form.select :claim_process,
               options_for_select(HealthInsurance::CLAIM_PROCESSES.map { |process| [process, process] }, @health_insurance.claim_process),
               { prompt: 'Select Claim Process' },
-              { class: "form-control" } %>
+              { class: "form-control", id: "claim_process_select" } %>
         </div>
 
         <!-- Additional fields from edit form -->
@@ -1183,6 +1190,170 @@ document.addEventListener('DOMContentLoaded', function() {
         return markup;
       }
     });
+
+    // Initialize Select2 for Policy Holder dropdown
+    $('#policy_holder_select').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search and select policy holder...',
+      allowClear: false,
+      width: '100%',
+      dropdownParent: $('body'),
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumResultsForSearch: 0,
+      closeOnSelect: true,
+      templateResult: function(option) {
+        if (!option.id || option.element.value === '') {
+          return option.text;
+        }
+
+        // Generate avatar with initials for policy holder
+        var initials = option.text.split(' ').map(function(name) {
+          return name.charAt(0).toUpperCase();
+        }).join('').substring(0, 2);
+
+        // Custom template for dropdown options with avatar
+        var $option = $(
+          '<div class="client-option">' +
+            '<div class="client-option-avatar">' + initials + '</div>' +
+            '<div class="client-option-details">' +
+              '<div class="client-option-name">' + option.text + '</div>' +
+              '<div class="client-option-id">Policy Holder</div>' +
+            '</div>' +
+          '</div>'
+        );
+        return $option;
+      },
+      templateSelection: function(option) {
+        return option.text || 'Search and select policy holder...';
+      },
+      escapeMarkup: function(markup) {
+        return markup;
+      }
+    });
+
+    // Initialize Select2 for Insurance Type dropdown
+    $('#insurance_type_select').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Select Insurance Type...',
+      allowClear: false,
+      width: '100%',
+      dropdownParent: $('body'),
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumResultsForSearch: -1, // Disable search for small lists
+      closeOnSelect: true
+    });
+
+    // Initialize Select2 for Policy Type dropdown
+    $('#policy_type_select').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Select Policy Type...',
+      allowClear: false,
+      width: '100%',
+      dropdownParent: $('body'),
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumResultsForSearch: -1, // Disable search for small lists
+      closeOnSelect: true
+    });
+
+    // Initialize Select2 for Payment Mode dropdown
+    $('#payment_mode_select').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Select Payment Mode...',
+      allowClear: false,
+      width: '100%',
+      dropdownParent: $('body'),
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumResultsForSearch: -1, // Disable search for small lists
+      closeOnSelect: true
+    });
+
+    // Initialize Select2 for Claim Process dropdown
+    $('#claim_process_select').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Select Claim Process...',
+      allowClear: false,
+      width: '100%',
+      dropdownParent: $('body'),
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumResultsForSearch: -1, // Disable search for small lists
+      closeOnSelect: true
+    });
+
+    // Sum Insured Text Handler
+    function parseIndianAmountText(text) {
+      if (!text) return 0;
+
+      const cleanText = text.toLowerCase().replace(/,/g, '');
+      let amount = 0;
+
+      // Match patterns like "90 lakhs", "1.5 crore", "5 crores"
+      const croreMatch = cleanText.match(/(\d+\.?\d*)\s*crores?/);
+      const lakhMatch = cleanText.match(/(\d+\.?\d*)\s*lakhs?/);
+
+      if (croreMatch) {
+        amount += parseFloat(croreMatch[1]) * 10000000; // 1 crore = 10,000,000
+      }
+      if (lakhMatch) {
+        amount += parseFloat(lakhMatch[1]) * 100000; // 1 lakh = 100,000
+      }
+
+      // If no crore/lakh found, try to parse as plain number
+      if (!croreMatch && !lakhMatch) {
+        const numberMatch = cleanText.match(/(\d+\.?\d*)/);
+        if (numberMatch) {
+          amount = parseFloat(numberMatch[1]);
+        }
+      }
+
+      return amount;
+    }
+
+    function formatPreviewText(amount) {
+      if (amount >= 10000000) {
+        const crores = amount / 10000000;
+        return `(₹${crores === Math.floor(crores) ? crores.toString() : crores.toFixed(1)} crore${crores > 1 ? 's' : ''})`;
+      } else if (amount >= 100000) {
+        const lakhs = amount / 100000;
+        return `(₹${lakhs === Math.floor(lakhs) ? lakhs.toString() : lakhs.toFixed(1)} lakh${lakhs > 1 ? 's' : ''})`;
+      } else if (amount > 0) {
+        return `(₹${amount.toLocaleString()})`;
+      }
+      return '';
+    }
+
+    // Sum insured text input handler
+    if (document.getElementById('sum_insured_text_input')) {
+      document.getElementById('sum_insured_text_input').addEventListener('input', function() {
+        const textValue = this.value;
+        const numericValue = parseIndianAmountText(textValue);
+
+        // Update hidden field
+        const hiddenField = document.querySelector('input[name="health_insurance[sum_insured]"]');
+        if (hiddenField) {
+          hiddenField.value = numericValue;
+        }
+
+        // Update preview
+        const preview = document.getElementById('sum_insured_preview');
+        if (preview) {
+          preview.textContent = formatPreviewText(numericValue);
+        }
+      });
+
+      // Initialize preview on page load if there's already a value
+      const initialValue = document.getElementById('sum_insured_text_input').value;
+      if (initialValue) {
+        const numericValue = parseIndianAmountText(initialValue);
+        const hiddenField = document.querySelector('input[name="health_insurance[sum_insured]"]');
+        if (hiddenField) {
+          hiddenField.value = numericValue;
+        }
+        const preview = document.getElementById('sum_insured_preview');
+        if (preview) {
+          preview.textContent = formatPreviewText(numericValue);
+        }
+      }
+    }
 
     // Auto-calculate total premium
     function calculateTotalPremium() {

@@ -37,7 +37,7 @@ class HealthInsurance < ApplicationRecord
   # validate :company_name_must_be_valid
 
   # Enums for dropdowns
-  POLICY_TYPES = ['New', 'Renewal', 'Porting', 'Migration'].freeze
+  POLICY_TYPES = ['New', 'Renewal', 'Porting'].freeze
   INSURANCE_TYPES = ['Individual', 'Family Floater', 'Group'].freeze
   PAYMENT_MODES = ['Yearly', 'Half Yearly', 'Quarterly', 'Monthly', 'Single'].freeze
   CLAIM_PROCESSES = ['Inhouse', 'TPA'].freeze
@@ -99,6 +99,31 @@ class HealthInsurance < ApplicationRecord
 
   def affiliate_name
     sub_agent ? sub_agent.display_name : 'Self'
+  end
+
+  def sum_insured_display_text
+    return sum_insured_text if sum_insured_text.present?
+    return '' unless sum_insured.present?
+
+    # Convert numeric sum_insured to text format
+    amount = sum_insured.to_f
+    if amount >= 10_000_000 # 1 crore
+      crores = amount / 10_000_000
+      if crores == crores.to_i
+        "#{crores.to_i} crore#{crores > 1 ? 's' : ''}"
+      else
+        "#{crores} crore#{crores > 1 ? 's' : ''}"
+      end
+    elsif amount >= 100_000 # 1 lakh
+      lakhs = amount / 100_000
+      if lakhs == lakhs.to_i
+        "#{lakhs.to_i} lakh#{lakhs > 1 ? 's' : ''}"
+      else
+        "#{lakhs} lakh#{lakhs > 1 ? 's' : ''}"
+      end
+    else
+      amount.to_i.to_s
+    end
   end
 
   def notifications_due_today

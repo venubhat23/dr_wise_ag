@@ -157,12 +157,33 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       agency_code = AgencyCode.find_by(id: agency_code_id)
 
       if agency_code
-        render json: {
-          success: true,
-          data: {
-            company_name: agency_code.company_name
+        # Get all companies for this agent name in health insurance
+        agent_name = agency_code.agent_name
+        company_names = AgencyCode.where(
+          agent_name: agent_name,
+          insurance_type: 'Health Insurance'
+        ).pluck(:company_name).compact.uniq
+
+        if company_names.length == 1
+          # Single company - return as before for compatibility
+          render json: {
+            success: true,
+            data: {
+              company_name: company_names.first,
+              agent_name: agent_name
+            }
           }
-        }
+        else
+          # Multiple companies - return all options
+          render json: {
+            success: true,
+            data: {
+              company_names: company_names,
+              agent_name: agent_name,
+              multiple_companies: true
+            }
+          }
+        end
       else
         render json: { success: false, message: 'Agency code not found' }
       end
@@ -358,7 +379,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       :policy_holder, :insurance_company_name, :policy_type, :insurance_type,
       :plan_name, :policy_number, :policy_booking_date, :policy_start_date,
       :policy_end_date, :policy_term, :payment_mode, :claim_process,
-      :sum_insured, :net_premium, :gst_percentage, :total_premium,
+      :sum_insured, :sum_insured_text, :net_premium, :gst_percentage, :total_premium,
       :main_agent_commission_percentage, :commission_amount, :tds_percentage,
       :tds_amount, :after_tds_value, :reference_by_name,
       :installment_autopay_start_date, :installment_autopay_end_date,
@@ -376,6 +397,103 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
     )
   end
+
+  def renew
+    # Check if policy expires within 60 days
+    if @health_insurance.policy_end_date.blank? || @health_insurance.policy_end_date > 60.days.from_now
+      redirect_to admin_health_insurances_path, alert: "This policy is not eligible for renewal yet."
+      return
+    end
+
+    # Create a new health insurance object with pre-filled data from the original policy
+    @renewed_policy = @health_insurance.dup
+
+    # Clear fields that should be reset for renewal
+    @renewed_policy.policy_number = nil
+    @renewed_policy.policy_booking_date = nil
+    @renewed_policy.policy_start_date = nil
+    @renewed_policy.policy_end_date = nil
+    @renewed_policy.policy_type = 'Renewal'
+    @renewed_policy.created_at = nil
+    @renewed_policy.updated_at = nil
+    @renewed_policy.id = nil
+
+    # Clear commission tracking fields
+    @renewed_policy.main_agent_commission_received = nil
+    @renewed_policy.main_agent_commission_transaction_id = nil
+    @renewed_policy.main_agent_commission_paid_date = nil
+    @renewed_policy.main_agent_commission_notes = nil
+
+    # Clear lead_id for new policy
+    @renewed_policy.lead_id = nil
+
+    # Clear notification dates
+    @renewed_policy.notification_dates = nil
+
+    # Load form data for the renewal form
+    load_form_data
+
+    # Set up family members if they exist from original policy
+    @customer_family_members = @renewed_policy.customer&.family_members || []
+
+    # Auto-set affiliate if customer has existing affiliate
+    if @renewed_policy.customer.present?
+      if @renewed_policy.customer.sub_agent_id.present?
+        @renewed_policy.sub_agent_id = @renewed_policy.customer.sub_agent_id
+        @auto_select_affiliate = @renewed_policy.customer.sub_agent_id
+      else
+        @auto_select_affiliate = 'self'
+      end
+    end
+
+    # Assign to instance variable for form
+    @health_insurance = @renewed_policy
+  end
+
+  def create_renewal
+    # Check if policy expires within 60 days
+    if @health_insurance.policy_end_date.blank? || @health_insurance.policy_end_date > 60.days.from_now
+      redirect_to admin_health_insurances_path, alert: "This policy is not eligible for renewal yet."
+      return
+    end
+
+    # Create new policy with renewal data
+    processed_params = process_broker_params(health_insurance_params)
+    @renewed_policy = HealthInsurance.new(processed_params)
+    @renewed_policy.policy_type = 'Renewal'
+
+    # Set admin added flags for renewal (same as original)
+    @renewed_policy.is_admin_added = @health_insurance.is_admin_added
+    @renewed_policy.is_customer_added = @health_insurance.is_customer_added
+    @renewed_policy.is_agent_added = @health_insurance.is_agent_added
+
+    # Ensure distributor is set from affiliate before saving
+    set_distributor_from_affiliate(@renewed_policy)
+
+    if @renewed_policy.save
+      redirect_to admin_health_insurance_path(@renewed_policy),
+                  notice: 'Health insurance renewal policy was successfully created.'
+    else
+      # Reload form data for error display
+      load_form_data
+      @customer_family_members = @renewed_policy.customer&.family_members || []
+
+      # Set up affiliate selection
+      if @renewed_policy.customer.present?
+        if @renewed_policy.customer.sub_agent_id.present?
+          @auto_select_affiliate = @renewed_policy.customer.sub_agent_id
+        else
+          @auto_select_affiliate = 'self'
+        end
+      end
+
+      # Assign to instance variable for form
+      @health_insurance = @renewed_policy
+      render :renew, status: :unprocessable_entity
+    end
+  end
+
+  private
 
   def set_distributor_from_affiliate(insurance_record)
     # If affiliate is selected but distributor is not set, auto-assign distributor

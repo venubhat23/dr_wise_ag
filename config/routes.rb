@@ -258,6 +258,11 @@ Rails.application.routes.draw do
         get :company_name_by_agent
         post :insurance_companies_by_agency
       end
+      member do
+        get :commission_details
+        get :renew
+        post :create_renewal
+      end
     end
 
     # Motor Insurance
