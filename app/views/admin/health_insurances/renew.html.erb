@@ -1,0 +1,502 @@
+<% content_for :page_title, "Renew Health Insurance Policy" %>
+<% content_for :page_subtitle, "Create renewal policy for #{@health_insurance.policy_number}" %>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">
+      <i class="bi bi-arrow-clockwise me-2 text-warning"></i>
+      Renew Health Insurance Policy
+    </h2>
+    <p class="text-muted mb-0">
+      Creating renewal policy for: <strong><%= @health_insurance.policy_number %></strong>
+      <span class="badge bg-warning text-dark ms-2">
+        <% original_policy = HealthInsurance.find(params[:id]) %>
+        Expires: <%= original_policy.policy_end_date&.strftime('%B %d, %Y') %>
+      </span>
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to admin_health_insurance_path(params[:id]), class: "btn btn-outline-info" do %>
+      <i class="bi bi-eye me-1"></i>
+      View Original Policy
+    <% end %>
+    <%= link_to admin_health_insurances_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Policies
+    <% end %>
+  </div>
+</div>
+
+<!-- Original vs Renewal Comparison -->
+<div class="alert alert-info d-flex align-items-center mb-4">
+  <i class="bi bi-info-circle me-3 fs-4"></i>
+  <div>
+    <h6 class="alert-heading mb-1">Policy Renewal Information</h6>
+    <p class="mb-0">
+      This form is pre-filled with data from the original policy. Please review and update any changes needed for the renewal.
+      The policy type has been automatically set to <strong>"Renewal"</strong>.
+      Please set new policy dates, policy number, and review all details before submitting.
+    </p>
+  </div>
+</div>
+
+<!-- Complete Renewal Form (Same as Create Form) -->
+<%= form_with model: [:admin, @health_insurance], url: create_renewal_admin_health_insurance_path(params[:id]), method: :post, local: true, class: "needs-validation", novalidate: true do |form| %>
+
+  <!-- Client & Agent Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-person me-2 text-primary"></i>
+        Client & Agent Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <% if @health_insurance.errors.any? %>
+        <div class="alert alert-danger alert-dismissible fade show">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Please correct the following errors:</strong>
+          <ul class="mb-0 mt-2">
+            <% @health_insurance.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :customer_id, "Client Name*", class: "form-label" %>
+          <%= form.select :customer_id,
+              options_for_select(@customers.map { |c| [c.display_name, c.id] }, @health_insurance.customer_id),
+              { prompt: 'Search and select client...' },
+              { class: "form-control #{'is-invalid' if @health_insurance.errors[:customer_id].any?}", required: true, id: "customer_select", data: { placeholder: "Type to search clients..." } } %>
+          <% if @health_insurance.errors[:customer_id].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:customer_id].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_holder, "Policy Holder", class: "form-label" %>
+          <%
+            policy_holder_options = [['Self', 'Self']]
+            if @customer_family_members&.any?
+              @customer_family_members.each do |member|
+                policy_holder_options << ["#{member.name} (#{member.relationship.humanize})", "#{member.name}"]
+              end
+            end
+          %>
+          <%= form.select :policy_holder,
+              options_for_select(policy_holder_options, @health_insurance.policy_holder),
+              {},
+              { class: "form-control", id: "policy_holder_select", data: { placeholder: "Type to search policy holders..." } } %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :sub_agent_id, "Affiliate", class: "form-label" %>
+          <%= form.select :sub_agent_id,
+              options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, (@auto_select_affiliate == 'self' ? '' : @auto_select_affiliate)),
+              { prompt: 'Search and select affiliate...' },
+              { class: "form-control", id: "affiliate_select", data: { placeholder: "Type to search affiliates..." } } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Policy Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-file-text me-2 text-primary"></i>
+        Policy Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <!-- 1st: Broker Code dropdown with Direct/Broking options -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :broker_code_type, "Broker Code", class: "form-label" %>
+          <%= form.select :broker_code_type,
+              options_for_select([
+                ['Direct', 'direct'],
+                ['Broking', 'broking']
+              ], @health_insurance.broker_code_type),
+              { prompt: 'Select Broker Code' },
+              { class: "form-control", id: "health_insurance_broker_code_type" } %>
+        </div>
+
+        <!-- 2nd: Agency Code (shows Agents when Direct selected, Brokers when Broking selected) -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :agency_code_id, "Agency Code (All Agents)*", class: "form-label" %>
+          <span class="dynamic-label" id="agency_code_label_text"></span>
+          <%= form.select :agency_code_id,
+              options_for_select(@agency_codes.map { |a| ["#{a.agent_name} - #{a.code}", a.id] }, @health_insurance.agency_code_id),
+              { prompt: 'Search and select agency code...' },
+              { class: "form-control #{'is-invalid' if @health_insurance.errors[:agency_code_id].any?}", required: true, id: "health_insurance_agency_code_id", data: { placeholder: "Type to search agency codes..." } } %>
+          <% if @health_insurance.errors[:agency_code_id].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:agency_code_id].first %></div>
+          <% end %>
+        </div>
+
+        <!-- Hidden field for broker_id when needed -->
+        <%= form.hidden_field :broker_id, id: "broker_id_hidden" %>
+
+        <!-- 3rd: Insurance Company Name (Dynamic based on Agent/Broker selection) -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :insurance_company_name, "Insurance Company Name*", class: "form-label" %>
+          <%= form.select :insurance_company_name,
+              options_for_select(@insurance_companies.map { |c| [c, c] }, @health_insurance.insurance_company_name),
+              { prompt: 'Search and select company...' },
+              { class: "form-control #{'is-invalid' if @health_insurance.errors[:insurance_company_name].any?}", required: true, id: "health_insurance_insurance_company_name", data: { placeholder: "Type to search companies..." } } %>
+          <% if @health_insurance.errors[:insurance_company_name].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:insurance_company_name].first %></div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_type, "Policy Type*", class: "form-label" %>
+          <%= form.select :policy_type,
+              options_for_select(HealthInsurance::POLICY_TYPES.map { |type| [type, type] }, @health_insurance.policy_type),
+              { prompt: 'Select Policy Type' },
+              { class: "form-control #{'is-invalid' if @health_insurance.errors[:policy_type].any?}", required: true, id: "policy_type_select" } %>
+          <% if @health_insurance.errors[:policy_type].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:policy_type].first %></div>
+          <% end %>
+          <div class="form-text">
+            <span class="badge bg-success">Renewal</span> This will be automatically set for renewal policies
+          </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :insurance_type, "Insurance Type*", class: "form-label" %>
+          <%= form.select :insurance_type,
+              options_for_select(HealthInsurance::INSURANCE_TYPES.map { |type| [type, type] }, @health_insurance.insurance_type),
+              { prompt: 'Select Insurance Type' },
+              { class: "form-control #{'is-invalid' if @health_insurance.errors[:insurance_type].any?}", required: true, id: "insurance_type_select" } %>
+          <% if @health_insurance.errors[:insurance_type].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:insurance_type].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :payment_mode, "Payment Mode*", class: "form-label" %>
+          <%= form.select :payment_mode,
+              options_for_select(HealthInsurance::PAYMENT_MODES.map { |mode| [mode, mode] }, @health_insurance.payment_mode),
+              { prompt: 'Select Payment Mode' },
+              { class: "form-control #{'is-invalid' if @health_insurance.errors[:payment_mode].any?}", required: true, id: "payment_mode_select" } %>
+          <% if @health_insurance.errors[:payment_mode].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:payment_mode].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_number, "Policy Number*", class: "form-label" %>
+          <%= form.text_field :policy_number,
+              class: "form-control #{'is-invalid' if @health_insurance.errors[:policy_number].any?}",
+              placeholder: "Enter new policy number for renewal", required: true %>
+          <% if @health_insurance.errors[:policy_number].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:policy_number].first %></div>
+          <% end %>
+          <div class="form-text">Enter a unique policy number for the renewal</div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_booking_date, "Policy Booking Date", class: "form-label" %>
+          <%= form.date_field :policy_booking_date,
+              class: "form-control",
+              value: Date.current %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_start_date, "Policy Start Date*", class: "form-label" %>
+          <%= form.date_field :policy_start_date,
+              class: "form-control #{'is-invalid' if @health_insurance.errors[:policy_start_date].any?}",
+              required: true, id: "start_date" %>
+          <% if @health_insurance.errors[:policy_start_date].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:policy_start_date].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_end_date, "Policy End Date*", class: "form-label" %>
+          <%= form.date_field :policy_end_date,
+              class: "form-control #{'is-invalid' if @health_insurance.errors[:policy_end_date].any?}",
+              required: true, id: "end_date" %>
+          <% if @health_insurance.errors[:policy_end_date].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:policy_end_date].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :plan_name, "Plan Name", class: "form-label" %>
+          <%= form.text_field :plan_name,
+              class: "form-control",
+              placeholder: "Enter plan name" %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :sum_insured_text, "Sum Insured*", class: "form-label" %>
+          <%= form.text_field :sum_insured_text,
+              class: "form-control #{'is-invalid' if @health_insurance.errors[:sum_insured].any?}",
+              placeholder: "e.g., 90 lakhs, 5 crores, 1.5 crore",
+              value: @health_insurance.sum_insured_display_text,
+              required: true,
+              id: "sum_insured_text_input" %>
+          <div class="form-text">
+            Enter amount like: 90 lakhs, 5 crores, 1.5 crore, etc.
+            <span id="sum_insured_preview" class="text-primary fw-bold"></span>
+          </div>
+          <% if @health_insurance.errors[:sum_insured].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:sum_insured].first %></div>
+          <% end %>
+          <%= form.hidden_field :sum_insured %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :net_premium, "Net Premium*", class: "form-label" %>
+          <%= form.number_field :net_premium,
+              class: "form-control #{'is-invalid' if @health_insurance.errors[:net_premium].any?}",
+              placeholder: "0", step: 0.01, required: true, id: "net_premium" %>
+          <% if @health_insurance.errors[:net_premium].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:net_premium].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :gst_percentage, "GST %*", class: "form-label" %>
+          <%= form.number_field :gst_percentage,
+              class: "form-control",
+              value: @health_insurance.gst_percentage,
+              step: 0.01, id: "gst_percentage" %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :total_premium, "Total Premium*", class: "form-label" %>
+          <%= form.number_field :total_premium,
+              class: "form-control #{'is-invalid' if @health_insurance.errors[:total_premium].any?}",
+              placeholder: "0", step: 0.01, required: true, readonly: true, id: "total_premium" %>
+          <% if @health_insurance.errors[:total_premium].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:total_premium].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_term, "Policy Term (Years)", class: "form-label" %>
+          <%= form.number_field :policy_term,
+              class: "form-control #{'is-invalid' if @health_insurance.errors[:policy_term].any?}",
+              placeholder: "e.g., 1, 2, 3",
+              min: 1,
+              step: 1 %>
+          <div class="form-text">Enter policy term in years (e.g., 1, 2, 3)</div>
+          <% if @health_insurance.errors[:policy_term].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:policy_term].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :claim_process, "Claim Process", class: "form-label" %>
+          <%= form.select :claim_process,
+              options_for_select(HealthInsurance::CLAIM_PROCESSES.map { |process| [process, process] }, @health_insurance.claim_process),
+              { prompt: 'Select Claim Process' },
+              { class: "form-control", id: "claim_process_select" } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Renewal Actions -->
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <%= link_to admin_health_insurances_path, class: "btn btn-outline-secondary" do %>
+            <i class="bi bi-x-lg me-2"></i>
+            Cancel Renewal
+          <% end %>
+        </div>
+        <div class="d-flex gap-2">
+          <%= link_to admin_health_insurance_path(params[:id]), class: "btn btn-outline-info" do %>
+            <i class="bi bi-eye me-1"></i>
+            View Original
+          <% end %>
+          <%= form.submit "Create Renewal Policy", class: "btn btn-warning btn-lg" do %>
+            <i class="bi bi-arrow-clockwise me-2"></i>
+            Create Renewal Policy
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<% end %>
+
+<!-- Include necessary JavaScript from new form -->
+<%= render 'shared/select2_assets' %>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    // Initialize Select2 for searchable dropdowns (similar to new form)
+    $('#customer_select').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search and select client...',
+      allowClear: true,
+      width: '100%',
+      dropdownParent: $('body'),
+      minimumResultsForSearch: 0
+    });
+
+    $('#affiliate_select').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search and select affiliate...',
+      allowClear: true,
+      width: '100%',
+      dropdownParent: $('body')
+    });
+
+    $('#health_insurance_insurance_company_name').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search and select company...',
+      allowClear: true,
+      width: '100%',
+      dropdownParent: $('body')
+    });
+
+    $('#health_insurance_agency_code_id').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search and select agency code...',
+      allowClear: true,
+      width: '100%',
+      dropdownParent: $('body')
+    });
+
+    $('#policy_holder_select').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search and select policy holder...',
+      allowClear: false,
+      width: '100%',
+      dropdownParent: $('body')
+    });
+
+    // Initialize Select2 for basic dropdowns
+    $('#insurance_type_select, #policy_type_select, #payment_mode_select, #claim_process_select').select2({
+      theme: 'bootstrap-5',
+      allowClear: false,
+      width: '100%',
+      dropdownParent: $('body'),
+      minimumResultsForSearch: -1
+    });
+
+    // Sum Insured Text Handler
+    function parseIndianAmountText(text) {
+      if (!text) return 0;
+      const cleanText = text.toLowerCase().replace(/,/g, '');
+      let amount = 0;
+      const croreMatch = cleanText.match(/(\d+\.?\d*)\s*crores?/);
+      const lakhMatch = cleanText.match(/(\d+\.?\d*)\s*lakhs?/);
+      if (croreMatch) {
+        amount += parseFloat(croreMatch[1]) * 10000000;
+      }
+      if (lakhMatch) {
+        amount += parseFloat(lakhMatch[1]) * 100000;
+      }
+      if (!croreMatch && !lakhMatch) {
+        const numberMatch = cleanText.match(/(\d+\.?\d*)/);
+        if (numberMatch) {
+          amount = parseFloat(numberMatch[1]);
+        }
+      }
+      return amount;
+    }
+
+    function formatPreviewText(amount) {
+      if (amount >= 10000000) {
+        const crores = amount / 10000000;
+        return `(₹${crores === Math.floor(crores) ? crores.toString() : crores.toFixed(1)} crore${crores > 1 ? 's' : ''})`;
+      } else if (amount >= 100000) {
+        const lakhs = amount / 100000;
+        return `(₹${lakhs === Math.floor(lakhs) ? lakhs.toString() : lakhs.toFixed(1)} lakh${lakhs > 1 ? 's' : ''})`;
+      } else if (amount > 0) {
+        return `(₹${amount.toLocaleString()})`;
+      }
+      return '';
+    }
+
+    // Sum insured text input handler
+    if (document.getElementById('sum_insured_text_input')) {
+      document.getElementById('sum_insured_text_input').addEventListener('input', function() {
+        const textValue = this.value;
+        const numericValue = parseIndianAmountText(textValue);
+        const hiddenField = document.querySelector('input[name="health_insurance[sum_insured]"]');
+        if (hiddenField) {
+          hiddenField.value = numericValue;
+        }
+        const preview = document.getElementById('sum_insured_preview');
+        if (preview) {
+          preview.textContent = formatPreviewText(numericValue);
+        }
+      });
+
+      // Initialize preview on page load
+      const initialValue = document.getElementById('sum_insured_text_input').value;
+      if (initialValue) {
+        const numericValue = parseIndianAmountText(initialValue);
+        const hiddenField = document.querySelector('input[name="health_insurance[sum_insured]"]');
+        if (hiddenField) {
+          hiddenField.value = numericValue;
+        }
+        const preview = document.getElementById('sum_insured_preview');
+        if (preview) {
+          preview.textContent = formatPreviewText(numericValue);
+        }
+      }
+    }
+
+    // Auto-calculate total premium
+    function calculateTotalPremium() {
+      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
+      const gstPercentage = parseFloat(document.getElementById('gst_percentage')?.value) || 0;
+      const gstAmount = netPremium * (gstPercentage / 100);
+      const totalPremium = netPremium + gstAmount;
+      if (document.getElementById('total_premium')) {
+        document.getElementById('total_premium').value = totalPremium.toFixed(2);
+      }
+    }
+
+    // Auto-calculate end date
+    function calculateEndDate() {
+      const startDate = document.getElementById('start_date')?.value;
+      if (startDate) {
+        const start = new Date(startDate);
+        const end = new Date(start);
+        end.setFullYear(end.getFullYear() + 1);
+        end.setDate(end.getDate() - 1);
+        if (document.getElementById('end_date')) {
+          document.getElementById('end_date').value = end.toISOString().split('T')[0];
+        }
+      }
+    }
+
+    // Event listeners
+    if (document.getElementById('net_premium')) {
+      document.getElementById('net_premium').addEventListener('input', calculateTotalPremium);
+    }
+    if (document.getElementById('gst_percentage')) {
+      document.getElementById('gst_percentage').addEventListener('input', calculateTotalPremium);
+    }
+    if (document.getElementById('start_date')) {
+      document.getElementById('start_date').addEventListener('change', calculateEndDate);
+    }
+
+    // Initialize calculations
+    calculateTotalPremium();
+
+  } catch (error) {
+    console.warn('Health insurance renewal form initialization error:', error.message);
+  }
+});
+</script>

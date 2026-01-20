@@ -461,6 +461,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     processed_params = process_broker_params(health_insurance_params)
     @renewed_policy = HealthInsurance.new(processed_params)
     @renewed_policy.policy_type = 'Renewal'
+    @renewed_policy.original_policy_id = @health_insurance.id
 
     # Set admin added flags for renewal (same as original)
     @renewed_policy.is_admin_added = @health_insurance.is_admin_added
@@ -471,6 +472,9 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     set_distributor_from_affiliate(@renewed_policy)
 
     if @renewed_policy.save
+      # Mark original policy as renewed
+      @health_insurance.update_column(:is_renewed, true)
+
       redirect_to admin_health_insurance_path(@renewed_policy),
                   notice: 'Health insurance renewal policy was successfully created.'
     else

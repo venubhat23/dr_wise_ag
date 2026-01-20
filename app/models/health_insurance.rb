@@ -14,6 +14,10 @@ class HealthInsurance < ApplicationRecord
   has_many_attached :policy_documents
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
 
+  # Renewal relationships
+  belongs_to :original_policy, class_name: 'HealthInsurance', foreign_key: 'original_policy_id', optional: true
+  has_one :renewal_policy, class_name: 'HealthInsurance', foreign_key: 'original_policy_id', dependent: :destroy
+
   # Nested attributes
   accepts_nested_attributes_for :health_insurance_members, allow_destroy: true, reject_if: :all_blank
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
@@ -123,6 +127,35 @@ class HealthInsurance < ApplicationRecord
       end
     else
       amount.to_i.to_s
+    end
+  end
+
+  def is_renewal?
+    policy_type == 'Renewal' || original_policy_id.present?
+  end
+
+  def has_been_renewed?
+    is_renewed == true || renewal_policy.present?
+  end
+
+  def can_be_renewed?
+    return false if is_renewal? # Renewal policies cannot be renewed again
+    return false if has_been_renewed? # Already renewed policies cannot be renewed again
+    return false if policy_end_date.blank? # Cannot renew without end date
+
+    # Can renew if policy expires within 60 days
+    policy_end_date <= 60.days.from_now
+  end
+
+  def renewal_status_text
+    if has_been_renewed?
+      'Renewed'
+    elsif can_be_renewed?
+      'Can Renew'
+    elsif is_renewal?
+      'Renewal Policy'
+    else
+      'Not Eligible'
     end
   end
 
