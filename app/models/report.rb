@@ -12,8 +12,63 @@ class Report < ApplicationRecord
     sessions: 'sessions'
   }
 
+  belongs_to :created_by, class_name: 'User', foreign_key: 'created_by_id', optional: true
+
   scope :active, -> { where(status: true) }
   scope :recent, -> { order(created_at: :desc) }
+
+  serialize :filters, coder: JSON
+  serialize :report_data, coder: JSON
+
+  def self.generate_detailed_commission_report(filters = {})
+    # Build the base query
+    payouts = CommissionPayout.includes(:customer, :sub_agent, :distributor, :investor)
+
+    # Apply filters
+    if filters[:start_date].present?
+      payouts = payouts.where('commission_payouts.created_at >= ?', filters[:start_date])
+    end
+
+    if filters[:end_date].present?
+      payouts = payouts.where('commission_payouts.created_at <= ?', filters[:end_date])
+    end
+
+    if filters[:payout_to].present?
+      payouts = payouts.where(payout_to: filters[:payout_to])
+    end
+
+    if filters[:policy_type].present?
+      payouts = payouts.where(policy_type: filters[:policy_type])
+    end
+
+    if filters[:status].present?
+      payouts = payouts.where(status: filters[:status])
+    end
+
+    # Calculate statistics
+    total_commission = payouts.sum(:payout_amount) || 0
+    total_tds = payouts.to_a.sum { |payout| payout.tds_amount || 0 }
+
+    {
+      payouts: payouts.to_a,
+      statistics: {
+        total_records: payouts.count,
+        total_commission: total_commission,
+        total_tds: total_tds,
+        net_payout: total_commission - total_tds,
+        by_type: payouts.group(:payout_to).sum(:payout_amount),
+        by_policy_type: payouts.group(:policy_type).sum(:payout_amount),
+        by_status: payouts.group(:status).count,
+        date_range: {
+          start_date: filters[:start_date] || 1.month.ago.to_date,
+          end_date: filters[:end_date] || Date.current
+        }
+      }
+    }
+  rescue => e
+    Rails.logger.error "Error generating detailed commission report: #{e.message}"
+    { payouts: [], statistics: { total_records: 0, total_commission: 0, total_tds: 0, net_payout: 0 } }
+  end
 
   def self.generate_commission_report(date_range = '30_days')
     start_date = case date_range

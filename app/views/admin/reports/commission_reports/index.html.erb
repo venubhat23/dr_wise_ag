@@ -1,0 +1,286 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Commission Report</h2>
+    <p class="text-muted mb-0">Track commission payouts and affiliate performance</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to generate_admin_reports_commission_reports_path,
+                class: "btn btn-primary" do %>
+      <i class="bi bi-plus-lg me-1"></i>Generate Report
+    <% end %>
+    <%= link_to saved_reports_admin_reports_commission_reports_path,
+                class: "btn btn-info" do %>
+      <i class="bi bi-folder-open me-1"></i>Saved Reports
+    <% end %>
+    <%= link_to admin_reports_commission_reports_path(format: :csv, **params.permit!),
+                class: "btn btn-success" do %>
+      <i class="bi bi-file-earmark-excel me-1"></i>Export CSV
+    <% end %>
+  </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Commission</h6>
+            <h3 class="mb-0 text-success">₹<%= number_with_delimiter(@statistics[:total_commission] || 0) %></h3>
+          </div>
+          <div class="bg-success bg-opacity-10 rounded p-3">
+            <i class="bi bi-currency-rupee text-success fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total TDS</h6>
+            <h3 class="mb-0 text-warning">₹<%= number_with_delimiter(@statistics[:total_tds] || 0) %></h3>
+          </div>
+          <div class="bg-warning bg-opacity-10 rounded p-3">
+            <i class="bi bi-calculator text-warning fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Net Payout</h6>
+            <h3 class="mb-0 text-info">₹<%= number_with_delimiter(@statistics[:net_payout] || 0) %></h3>
+          </div>
+          <div class="bg-info bg-opacity-10 rounded p-3">
+            <i class="bi bi-wallet text-info fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Records</h6>
+            <h3 class="mb-0 text-primary"><%= number_with_delimiter(@statistics[:total_records] || 0) %></h3>
+          </div>
+          <div class="bg-primary bg-opacity-10 rounded p-3">
+            <i class="bi bi-list-check text-primary fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters and Search -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <%= form_with url: admin_reports_commission_reports_path, method: :get, local: true,
+                 class: "d-flex flex-wrap gap-3 align-items-end", id: "search_form" do |form| %>
+
+      <!-- Search -->
+      <div class="flex-grow-1 min-width-250">
+        <%= form.text_field :search, placeholder: "Search by customer name, email...",
+                           value: params[:search], class: "form-control", id: "search_input" %>
+      </div>
+
+      <!-- Date Range -->
+      <div>
+        <%= form.date_field :start_date, value: params[:start_date],
+                           class: "form-control", placeholder: "Start Date" %>
+      </div>
+      <div>
+        <%= form.date_field :end_date, value: params[:end_date],
+                           class: "form-control", placeholder: "End Date" %>
+      </div>
+
+      <!-- Payout To Filter -->
+      <div>
+        <%= form.select :payout_to,
+                       options_for_select([
+                         ['All Recipients', ''],
+                         ['Sub Agent', 'sub_agent'],
+                         ['Distributor', 'distributor'],
+                         ['Investor', 'investor'],
+                         ['Ambassador', 'ambassador']
+                       ], params[:payout_to]),
+                       {}, { class: "form-select" } %>
+      </div>
+
+      <!-- Policy Type Filter -->
+      <div>
+        <%= form.select :policy_type,
+                       options_for_select([
+                         ['All Types', ''],
+                         ['Health', 'health'],
+                         ['Motor', 'motor'],
+                         ['Life', 'life']
+                       ], params[:policy_type]),
+                       {}, { class: "form-select" } %>
+      </div>
+
+      <!-- Status Filter -->
+      <div>
+        <%= form.select :status,
+                       options_for_select([
+                         ['All Status', ''],
+                         ['Pending', 'pending'],
+                         ['Paid', 'paid'],
+                         ['Processing', 'processing']
+                       ], params[:status]),
+                       {}, { class: "form-select" } %>
+      </div>
+
+      <!-- Actions -->
+      <div class="d-flex gap-2">
+        <%= form.submit "Filter", class: "btn btn-primary" %>
+        <%= link_to "Clear", admin_reports_commission_reports_path, class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Commission List -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0">
+    <h5 class="mb-0">Commission Payouts</h5>
+  </div>
+  <div class="card-body p-0">
+    <% if @commission_payouts.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0">Policy Details</th>
+              <th class="border-0">Customer</th>
+              <th class="border-0">Recipient</th>
+              <th class="border-0">Commission</th>
+              <th class="border-0">TDS</th>
+              <th class="border-0">Net Amount</th>
+              <th class="border-0">Status</th>
+              <th class="border-0">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @commission_payouts.each do |payout| %>
+              <tr>
+                <td>
+                  <div>
+                    <h6 class="mb-1"><%= payout.policy_number || 'Unknown' %></h6>
+                    <small class="text-muted">
+                      <span class="badge bg-<%= payout.policy_type == 'health' ? 'success' : (payout.policy_type == 'motor' ? 'warning' : 'info') %>">
+                        <%= payout.policy_type.humanize %>
+                      </span>
+                    </small>
+                  </div>
+                </td>
+                <td>
+                  <div>
+                    <h6 class="mb-1"><%= payout.customer_name %></h6>
+                    <small class="text-muted d-block">
+                      <%= payout.customer&.email || 'No email' %>
+                    </small>
+                  </div>
+                </td>
+                <td>
+                  <div>
+                    <h6 class="mb-1"><%= payout.payout_to.humanize %></h6>
+                    <small class="text-muted">
+                      <%= payout.recipient_name %>
+                    </small>
+                  </div>
+                </td>
+                <td>
+                  <strong class="text-success">₹<%= number_with_delimiter(payout.payout_amount || 0) %></strong>
+                  <small class="text-muted d-block">
+                    <%= payout.payout_percentage %>%
+                  </small>
+                </td>
+                <td>
+                  <span class="text-warning">₹<%= number_with_delimiter(payout.tds_amount || 0) %></span>
+                  <small class="text-muted d-block">
+                    <%= payout.tds_percentage %>%
+                  </small>
+                </td>
+                <td>
+                  <strong class="text-info">₹<%= number_with_delimiter(payout.net_amount || 0) %></strong>
+                </td>
+                <td>
+                  <span class="badge bg-<%= payout.status == 'paid' ? 'success' : (payout.status == 'processing' ? 'warning' : 'secondary') %>">
+                    <%= payout.status.humanize %>
+                  </span>
+                </td>
+                <td>
+                  <small class="text-muted">
+                    <%= payout.created_at.strftime('%d %b %Y') if payout.created_at %>
+                  </small>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="card-footer bg-transparent border-0">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+          <small class="text-muted mb-2 mb-md-0">
+            <% if @commission_payouts.respond_to?(:total_count) %>
+              Showing <%= @commission_payouts.current_page == 1 ? 1 : ((@commission_payouts.current_page - 1) * @commission_payouts.limit_value + 1) %>
+              to <%= [@commission_payouts.current_page * @commission_payouts.limit_value, @commission_payouts.total_count].min %>
+              of <%= number_with_delimiter(@commission_payouts.total_count) %> commission payouts
+            <% end %>
+          </small>
+
+          <% if @commission_payouts.respond_to?(:total_pages) && @commission_payouts.total_pages > 1 %>
+            <div class="pagination-wrapper">
+              <%= paginate @commission_payouts %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% else %>
+      <div class="text-center py-5">
+        <i class="bi bi-currency-rupee fs-1 text-muted d-block mb-3"></i>
+        <h5 class="text-muted">No commission records found</h5>
+        <p class="text-muted mb-3">
+          <% if params[:search].present? || params[:start_date].present? || params[:end_date].present? %>
+            Try adjusting your search criteria.
+          <% else %>
+            Commission payouts will appear here once policies are created.
+          <% end %>
+        </p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<style>
+.min-width-250 { min-width: 250px; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const searchForm = document.getElementById('search_form');
+  const filterSelects = searchForm.querySelectorAll('select');
+
+  filterSelects.forEach(select => {
+    select.addEventListener('change', () => searchForm.submit());
+  });
+});
+</script>

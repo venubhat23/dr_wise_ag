@@ -393,14 +393,51 @@ Rails.application.routes.draw do
       end
     end
 
-    # Reports
-    get 'reports/commission', to: 'reports#commission'
-    get 'reports/expired_insurance', to: 'reports#expired_insurance'
-    get 'reports/payment_due', to: 'reports#payment_due'
-    get 'reports/upcoming_renewal', to: 'reports#upcoming_renewal'
-    get 'reports/upcoming_payment', to: 'reports#upcoming_payment'
-    get 'reports/leads', to: 'reports#leads'
-    get 'reports/sessions', to: 'reports#sessions'
+    # Reports namespace
+    namespace :reports do
+      resources :commission_reports, only: [:index] do
+        collection do
+          get :export
+          get :generate
+          post :create_report
+          get :saved, to: :saved_reports
+        end
+        member do
+          get :show_saved, to: :show_saved_report
+          delete :destroy_saved, to: :destroy_saved_report
+        end
+      end
+      resources :expired_insurance_reports, only: [:index] do
+        collection do
+          get :export
+        end
+      end
+      resources :payment_due_reports, only: [:index] do
+        collection do
+          get :export
+        end
+      end
+      resources :upcoming_renewal_reports, only: [:index] do
+        collection do
+          get :export
+        end
+      end
+      resources :upcoming_payment_reports, only: [:index] do
+        collection do
+          get :export
+        end
+      end
+      resources :leads_reports, only: [:index] do
+        collection do
+          get :export
+        end
+      end
+      resources :session_reports, only: [:index] do
+        collection do
+          get :export
+        end
+      end
+    end
 
     # AI Reports
     resources :ai_reports, only: [] do

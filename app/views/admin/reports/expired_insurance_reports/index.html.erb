@@ -1,0 +1,266 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Expired Insurance</h2>
+    <p class="text-muted mb-0">Track expired insurance policies for renewal opportunities</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to admin_reports_expired_insurance_reports_path(format: :csv, **params.permit!),
+                class: "btn btn-success" do %>
+      <i class="bi bi-file-earmark-excel me-1"></i>Export CSV
+    <% end %>
+  </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Expired</h6>
+            <h3 class="mb-0 text-danger"><%= number_with_delimiter(@statistics[:total_expired] || 0) %></h3>
+          </div>
+          <div class="bg-danger bg-opacity-10 rounded p-3">
+            <i class="bi bi-clock-history text-danger fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Premium Value Lost</h6>
+            <h3 class="mb-0 text-warning">₹<%= number_with_delimiter(@statistics[:total_premium_lost] || 0) %></h3>
+          </div>
+          <div class="bg-warning bg-opacity-10 rounded p-3">
+            <i class="bi bi-currency-rupee text-warning fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Last 30 Days</h6>
+            <h3 class="mb-0 text-info"><%= @statistics[:expiry_ranges]['Last 30 days'] || 0 %></h3>
+          </div>
+          <div class="bg-info bg-opacity-10 rounded p-3">
+            <i class="bi bi-calendar-x text-info fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">More than 1 Year</h6>
+            <h3 class="mb-0 text-secondary"><%= @statistics[:expiry_ranges]['More than 1 year'] || 0 %></h3>
+          </div>
+          <div class="bg-secondary bg-opacity-10 rounded p-3">
+            <i class="bi bi-hourglass text-secondary fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters and Search -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <%= form_with url: admin_reports_expired_insurance_reports_path, method: :get, local: true,
+                 class: "d-flex flex-wrap gap-3 align-items-end", id: "search_form" do |form| %>
+
+      <!-- Search -->
+      <div class="flex-grow-1 min-width-250">
+        <%= form.text_field :search, placeholder: "Search by customer, policy number...",
+                           value: params[:search], class: "form-control", id: "search_input" %>
+      </div>
+
+      <!-- Insurance Type Filter -->
+      <div>
+        <%= form.select :insurance_type,
+                       options_for_select([
+                         ['All Types', ''],
+                         ['Health', 'Health'],
+                         ['Motor', 'Motor'],
+                         ['Life', 'Life']
+                       ], params[:insurance_type]),
+                       {}, { class: "form-select" } %>
+      </div>
+
+      <!-- Expiry Range Filter -->
+      <div>
+        <%= form.select :expiry_range,
+                       options_for_select([
+                         ['All Periods', ''],
+                         ['Last 30 days', 'last_30_days'],
+                         ['Last 90 days', 'last_90_days'],
+                         ['Last year', 'last_year'],
+                         ['More than 1 year', 'more_than_year']
+                       ], params[:expiry_range]),
+                       {}, { class: "form-select" } %>
+      </div>
+
+      <!-- Actions -->
+      <div class="d-flex gap-2">
+        <%= form.submit "Filter", class: "btn btn-primary" %>
+        <%= link_to "Clear", admin_reports_expired_insurance_reports_path, class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Expired Policies List -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0">
+    <h5 class="mb-0">Expired Insurance Policies</h5>
+  </div>
+  <div class="card-body p-0">
+    <% if @expired_policies.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0">Policy Details</th>
+              <th class="border-0">Customer</th>
+              <th class="border-0">Expiry Date</th>
+              <th class="border-0">Days Expired</th>
+              <th class="border-0">Premium Value</th>
+              <th class="border-0">Coverage</th>
+              <th class="border-0">Affiliate</th>
+              <th class="border-0">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @expired_policies.each do |policy| %>
+              <tr>
+                <td>
+                  <div>
+                    <h6 class="mb-1"><%= policy[:policy_number] %></h6>
+                    <span class="badge bg-<%= policy[:insurance_type] == 'Health' ? 'success' : (policy[:insurance_type] == 'Motor' ? 'warning' : 'info') %>">
+                      <%= policy[:insurance_type] %>
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <div>
+                    <h6 class="mb-1"><%= policy[:customer_name] %></h6>
+                    <small class="text-muted d-block">
+                      <%= policy[:customer_email] %>
+                    </small>
+                    <small class="text-muted d-block">
+                      <%= policy[:customer_mobile] %>
+                    </small>
+                  </div>
+                </td>
+                <td>
+                  <span class="text-danger">
+                    <%= policy[:policy_end_date].strftime('%d %b %Y') if policy[:policy_end_date] %>
+                  </span>
+                </td>
+                <td>
+                  <span class="badge bg-<%= policy[:days_expired] <= 30 ? 'warning' : (policy[:days_expired] <= 90 ? 'info' : 'secondary') %>">
+                    <%= policy[:days_expired] %> days
+                  </span>
+                </td>
+                <td>
+                  <strong class="text-primary">₹<%= number_with_delimiter(policy[:total_premium] || 0) %></strong>
+                </td>
+                <td>
+                  <span class="text-info">₹<%= number_with_delimiter(policy[:sum_insured] || 0) %></span>
+                </td>
+                <td>
+                  <small class="text-muted">
+                    <%= policy[:affiliate] %>
+                  </small>
+                </td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <% case policy[:insurance_type] %>
+                    <% when 'Health' %>
+                      <%= link_to admin_health_insurance_path(policy[:id]), class: "btn btn-sm btn-outline-primary", title: "View" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% when 'Motor' %>
+                      <%= link_to admin_motor_insurance_path(policy[:id]), class: "btn btn-sm btn-outline-primary", title: "View" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% when 'Life' %>
+                      <%= link_to admin_life_insurance_path(policy[:id]), class: "btn btn-sm btn-outline-primary", title: "View" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% end %>
+                    <button class="btn btn-sm btn-outline-success" title="Contact for Renewal">
+                      <i class="bi bi-telephone"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="card-footer bg-transparent border-0">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+          <small class="text-muted mb-2 mb-md-0">
+            <% if @expired_policies.respond_to?(:total_count) %>
+              Showing <%= @expired_policies.current_page == 1 ? 1 : ((@expired_policies.current_page - 1) * @expired_policies.limit_value + 1) %>
+              to <%= [@expired_policies.current_page * @expired_policies.limit_value, @expired_policies.total_count].min %>
+              of <%= number_with_delimiter(@expired_policies.total_count) %> expired policies
+            <% end %>
+          </small>
+
+          <% if @expired_policies.respond_to?(:total_pages) && @expired_policies.total_pages > 1 %>
+            <div class="pagination-wrapper">
+              <%= paginate @expired_policies %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% else %>
+      <div class="text-center py-5">
+        <i class="bi bi-clock-history fs-1 text-muted d-block mb-3"></i>
+        <h5 class="text-muted">No expired policies found</h5>
+        <p class="text-muted mb-3">
+          <% if params[:search].present? || params[:insurance_type].present? %>
+            Try adjusting your search criteria.
+          <% else %>
+            No insurance policies have expired yet.
+          <% end %>
+        </p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<style>
+.min-width-250 { min-width: 250px; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const searchForm = document.getElementById('search_form');
+  const filterSelects = searchForm.querySelectorAll('select');
+
+  filterSelects.forEach(select => {
+    select.addEventListener('change', () => searchForm.submit());
+  });
+});
+</script>

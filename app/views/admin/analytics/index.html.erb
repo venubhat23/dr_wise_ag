@@ -9,21 +9,6 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
-  .analytics-header {
-    margin-bottom: 2rem;
-  }
-
-  .analytics-title {
-    color: #1f2937;
-    font-weight: 700;
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .analytics-subtitle {
-    color: #6b7280;
-    font-size: 1.1rem;
-  }
 
   /* KPI Cards Grid */
   .kpi-grid {
@@ -251,51 +236,43 @@
 </style>
 
 <div class="analytics-container">
-  <div class="analytics-header">
-    <div class="d-flex justify-content-between align-items-start">
-      <div>
-        <h1 class="analytics-title">
-          <i class="bi bi-bar-chart-line-fill me-3" style="color: #8b5cf6;"></i>
-          Analytics Dashboard
-        </h1>
-        <p class="analytics-subtitle">Comprehensive insights into your insurance business performance</p>
+  <!-- Cache Status at Top -->
+  <div class="d-flex justify-content-end align-items-center mb-3">
+    <div class="d-flex flex-column align-items-end">
+      <!-- Refresh Button -->
+      <div class="mb-2">
+        <%= button_to admin_analytics_refresh_path, method: :post,
+                      class: "btn btn-outline-primary d-flex align-items-center",
+                      id: "refresh-analytics-btn",
+                      data: {
+                        confirm: "This will refresh all analytics data. Continue?",
+                        disable_with: '<i class="bi bi-arrow-repeat spin-animation me-2"></i>Refreshing...'
+                      } do %>
+          <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
+        <% end %>
       </div>
-      <div class="d-flex flex-column align-items-end">
-        <!-- Refresh Button -->
-        <div class="mb-2">
-          <%= button_to admin_analytics_refresh_path, method: :post,
-                        class: "btn btn-outline-primary d-flex align-items-center",
-                        id: "refresh-analytics-btn",
-                        data: {
-                          confirm: "This will refresh all analytics data. Continue?",
-                          disable_with: '<i class="bi bi-arrow-repeat spin-animation me-2"></i>Refreshing...'
-                        } do %>
-            <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
-          <% end %>
-        </div>
 
-        <!-- Cache Status -->
-        <div class="cache-status-info">
-          <% if @data_is_cached && @cache_last_updated %>
-            <div class="d-flex align-items-center">
-              <span class="badge bg-success me-2">
-                <i class="bi bi-database-fill me-1"></i>Cached
-              </span>
-              <small class="text-muted">
-                Updated <%= time_ago_in_words(@cache_last_updated) %> ago
-              </small>
-            </div>
-          <% else %>
-            <div class="d-flex align-items-center">
-              <span class="badge bg-warning me-2">
-                <i class="bi bi-lightning-fill me-1"></i>Fresh
-              </span>
-              <small class="text-muted">
-                Just calculated
-              </small>
-            </div>
-          <% end %>
-        </div>
+      <!-- Cache Status -->
+      <div class="cache-status-info">
+        <% if @data_is_cached && @cache_last_updated %>
+          <div class="d-flex align-items-center">
+            <span class="badge bg-success me-2">
+              <i class="bi bi-database-fill me-1"></i>Cached
+            </span>
+            <small class="text-muted">
+              Updated <%= time_ago_in_words(@cache_last_updated) %> ago
+            </small>
+          </div>
+        <% else %>
+          <div class="d-flex align-items-center">
+            <span class="badge bg-warning me-2">
+              <i class="bi bi-lightning-fill me-1"></i>Fresh
+            </span>
+            <small class="text-muted">
+              Just calculated
+            </small>
+          </div>
+        <% end %>
       </div>
     </div>
   </div>
@@ -456,7 +433,7 @@
                   </td>
                   <td><%= policy[:customer] %></td>
                   <td>₹<%= number_with_delimiter(policy[:premium]) %></td>
-                  <td><%= policy[:date].strftime('%d %b %Y') %></td>
+                  <td><%= policy[:date]&.strftime('%d %b %Y') || 'N/A' %></td>
                 </tr>
               <% end %>
               <% if @recent_policies.empty? %>
@@ -562,11 +539,16 @@
       <h3 class="chart-title">Commission Analytics</h3>
       <div style="margin-top: 1rem;">
         <%
+          # Ensure numeric values for calculations
+          commissions_due_safe = (@commissions_due.to_f rescue 0)
+          total_policies_safe = (@total_policies.to_i rescue 0)
+          conversion_rate_safe = (@conversion_rate.to_f rescue 0)
+
           commission_stats = {
-            'Total Commission Due' => { value: @commissions_due, format: 'currency', color: '#ef4444' },
-            'Avg Commission per Policy' => { value: @total_policies > 0 ? (@commissions_due.to_f / @total_policies.to_f).round(0) : 0, format: 'currency', color: '#3b82f6' },
-            'Commission Conversion Rate' => { value: @conversion_rate, format: 'percentage', color: '#10b981' },
-            'Monthly Payout Target' => { value: (@commissions_due * 0.8).round(0), format: 'currency', color: '#f59e0b' }
+            'Total Commission Due' => { value: commissions_due_safe, format: 'currency', color: '#ef4444' },
+            'Avg Commission per Policy' => { value: total_policies_safe > 0 ? (commissions_due_safe / total_policies_safe.to_f).round(0) : 0, format: 'currency', color: '#3b82f6' },
+            'Commission Conversion Rate' => { value: conversion_rate_safe, format: 'percentage', color: '#10b981' },
+            'Monthly Payout Target' => { value: (commissions_due_safe * 0.8).round(0), format: 'currency', color: '#f59e0b' }
           }
         %>
         <% commission_stats.each do |label, data| %>

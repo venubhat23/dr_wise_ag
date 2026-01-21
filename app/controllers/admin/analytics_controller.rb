@@ -96,8 +96,8 @@ class Admin::AnalyticsController < Admin::ApplicationController
     @agent_performance = calculate_agent_performance
 
     # Commission metrics
-    @commissions_due = @commission_summary[:total_commission_due] || 0
-    @conversion_rate = calculate_conversion_rate
+    @commissions_due = (@commission_summary[:total_commission_due] || 0).to_f
+    @conversion_rate = calculate_conversion_rate.to_f
 
     # Additional metrics for KPI cards
     @avg_policy_value = calculate_avg_policy_value
@@ -108,6 +108,20 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
     # Customer location analytics
     @customer_location = calculate_customer_location
+
+    # Customer acquisition trend (last 12 months)
+    @customer_acquisition_trend = calculate_customer_acquisition_trend
+
+    # Quick Insights data
+    @active_customers = calculate_active_customers
+    @converted_leads = calculate_converted_leads
+    @new_leads = calculate_new_leads
+    @support_tickets = calculate_support_tickets
+
+    # Operations Overview data
+    @docs_pending = calculate_docs_pending
+    @claims_processing = calculate_claims_processing
+    @client_requests_count = calculate_client_requests_count
 
     # Cache the calculated data
     analytics_data = {
@@ -137,7 +151,15 @@ class Admin::AnalyticsController < Admin::ApplicationController
       avg_policy_value: @avg_policy_value,
       customer_retention: @customer_retention,
       lead_conversion_funnel: @lead_conversion_funnel,
-      customer_location: @customer_location
+      customer_location: @customer_location,
+      customer_acquisition_trend: @customer_acquisition_trend,
+      active_customers: @active_customers,
+      converted_leads: @converted_leads,
+      new_leads: @new_leads,
+      support_tickets: @support_tickets,
+      docs_pending: @docs_pending,
+      claims_processing: @claims_processing,
+      client_requests_count: @client_requests_count
     }
 
     AnalyticsCache.cache_analytics_data(cache_identifier, analytics_data)
@@ -169,16 +191,28 @@ class Admin::AnalyticsController < Admin::ApplicationController
     end
 
     @recent_policies = cached_data['recent_policies']
-    @recent_leads = cached_data['recent_leads']
+
+    # Convert recent leads back to objects for view compatibility
+    @recent_leads = (cached_data['recent_leads'] || []).map do |lead_hash|
+      OpenStruct.new(lead_hash)
+    end
     @commission_summary = cached_data['commission_summary']
     @renewal_analytics = cached_data['renewal_analytics']
     @agent_performance = cached_data['agent_performance']
-    @commissions_due = cached_data['commissions_due']
-    @conversion_rate = cached_data['conversion_rate']
+    @commissions_due = (cached_data['commissions_due'] || 0).to_f
+    @conversion_rate = (cached_data['conversion_rate'] || 0).to_f
     @avg_policy_value = cached_data['avg_policy_value']
     @customer_retention = cached_data['customer_retention']
     @lead_conversion_funnel = cached_data['lead_conversion_funnel']
     @customer_location = cached_data['customer_location']
+    @customer_acquisition_trend = cached_data['customer_acquisition_trend']
+    @active_customers = cached_data['active_customers'] || 0
+    @converted_leads = cached_data['converted_leads'] || 0
+    @new_leads = cached_data['new_leads'] || 0
+    @support_tickets = cached_data['support_tickets'] || 0
+    @docs_pending = cached_data['docs_pending'] || 0
+    @claims_processing = cached_data['claims_processing'] || 0
+    @client_requests_count = cached_data['client_requests_count'] || 0
   end
 
   def set_cache_info(cache_identifier)
@@ -499,5 +533,136 @@ class Admin::AnalyticsController < Admin::ApplicationController
   rescue => e
     Rails.logger.error "Error calculating customer location: #{e.message}"
     { 'Unknown' => Customer.count }
+  end
+
+  def calculate_customer_acquisition_trend
+    # Calculate customer acquisition trend for last 12 months
+    trend_data = {}
+
+    12.times do |i|
+      month_date = (Date.current - i.months).beginning_of_month
+      month_name = month_date.strftime('%b %Y')
+
+      customer_count = Customer.where(created_at: month_date..(month_date.end_of_month)).count
+      trend_data[month_name] = customer_count
+    end
+
+    # Return in chronological order (oldest to newest)
+    trend_data.to_a.reverse.to_h
+  rescue => e
+    Rails.logger.error "Error calculating customer acquisition trend: #{e.message}"
+    {
+      'Jan 2024' => 0,
+      'Feb 2024' => 0,
+      'Mar 2024' => 0,
+      'Apr 2024' => 0,
+      'May 2024' => 0,
+      'Jun 2024' => 0,
+      'Jul 2024' => 0,
+      'Aug 2024' => 0,
+      'Sep 2024' => 0,
+      'Oct 2024' => 0,
+      'Nov 2024' => 0,
+      'Dec 2024' => 0
+    }
+  end
+
+  def calculate_active_customers
+    # Count customers who have made policies in the last 6 months or are marked as active
+    recent_policy_customers = Customer.joins(
+      "LEFT JOIN health_insurances ON health_insurances.customer_id = customers.id " +
+      "LEFT JOIN life_insurances ON life_insurances.customer_id = customers.id " +
+      "LEFT JOIN motor_insurances ON motor_insurances.customer_id = customers.id"
+    ).where(
+      "health_insurances.created_at > ? OR life_insurances.created_at > ? OR motor_insurances.created_at > ? OR customers.status = true",
+      6.months.ago, 6.months.ago, 6.months.ago
+    ).distinct.count
+
+    recent_policy_customers
+  rescue => e
+    Rails.logger.error "Error calculating active customers: #{e.message}"
+    Customer.where(status: true).count rescue Customer.count
+  end
+
+  def calculate_converted_leads
+    # Count leads that have been converted to customers with policies
+    Lead.where(current_stage: ['policy_created', 'converted']).count
+  rescue => e
+    Rails.logger.error "Error calculating converted leads: #{e.message}"
+    0
+  end
+
+  def calculate_new_leads
+    # Count leads created in the last 7 days
+    Lead.where('created_at >= ?', 7.days.ago).count
+  rescue => e
+    Rails.logger.error "Error calculating new leads: #{e.message}"
+    0
+  end
+
+  def calculate_support_tickets
+    # Count open support tickets (assuming you have a helpdesk model)
+    if defined?(Helpdesk)
+      Helpdesk.where(status: ['open', 'in_progress']).count
+    elsif defined?(ClientRequest)
+      ClientRequest.where(status: ['pending', 'in_progress']).count
+    else
+      # Default fallback
+      0
+    end
+  rescue => e
+    Rails.logger.error "Error calculating support tickets: #{e.message}"
+    0
+  end
+
+  def calculate_docs_pending
+    # Count pending documents across different models
+    pending_count = 0
+
+    # Check if Document model exists and count pending documents
+    if defined?(Document)
+      pending_count += Document.where(status: 'pending').count rescue 0
+    end
+
+    # Alternative: count policies without required documents
+    # This is a placeholder - adjust based on your document requirements
+    health_without_docs = HealthInsurance.left_joins(:documents).where(documents: { id: nil }).count rescue 0
+    life_without_docs = LifeInsurance.left_joins(:documents).where(documents: { id: nil }).count rescue 0
+    motor_without_docs = MotorInsurance.left_joins(:documents).where(documents: { id: nil }).count rescue 0
+
+    pending_count + health_without_docs + life_without_docs + motor_without_docs
+  rescue => e
+    Rails.logger.error "Error calculating docs pending: #{e.message}"
+    0
+  end
+
+  def calculate_claims_processing
+    # Count claims being processed (assuming you have a claims model)
+    if defined?(Claim)
+      Claim.where(status: ['submitted', 'under_review', 'processing']).count
+    else
+      # Alternative: count policies with recent claims activity
+      # This is a placeholder - adjust based on your claims system
+      0
+    end
+  rescue => e
+    Rails.logger.error "Error calculating claims processing: #{e.message}"
+    0
+  end
+
+  def calculate_client_requests_count
+    # Count active client requests
+    if defined?(ClientRequest)
+      ClientRequest.where(status: ['pending', 'in_progress']).count
+    elsif defined?(Helpdesk)
+      Helpdesk.where(status: ['open', 'in_progress']).count
+    else
+      # Alternative: count recent customer communications
+      # This is a placeholder - adjust based on your system
+      5
+    end
+  rescue => e
+    Rails.logger.error "Error calculating client requests: #{e.message}"
+    0
   end
 end

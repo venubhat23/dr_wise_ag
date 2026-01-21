@@ -96,7 +96,9 @@ class CommissionPayout < ApplicationRecord
     when 'distributor'
       Distributor.find_by(id: policy&.distributor_id)
     when 'investor'
-      Investor.find_by(id: policy&.investor_id)
+      # Use try since not all insurance models have investor_id
+      investor_id = policy&.try(:investor_id)
+      investor_id ? Investor.find_by(id: investor_id) : nil
     when 'agent'
       User.find_by(id: policy&.try(:agent_id)) # if there's an agent field
     end
@@ -104,6 +106,76 @@ class CommissionPayout < ApplicationRecord
 
   def recipient_name
     recipient&.display_name || recipient&.full_name || 'Unknown'
+  end
+
+  def tds_percentage
+    return 0 unless policy
+
+    case payout_to
+    when 'sub_agent'
+      policy.try(:sub_agent_tds_percentage) || 0
+    when 'distributor'
+      policy.try(:distributor_tds_percentage) || 0
+    when 'investor'
+      policy.try(:investor_tds_percentage) || 0
+    when 'ambassador'
+      policy.try(:ambassador_tds_percentage) || 0
+    when 'main_agent'
+      policy.try(:main_agent_tds_percent) || policy.try(:main_agent_tds_percentage) || 0
+    else
+      0
+    end
+  end
+
+  def tds_amount
+    return 0 unless policy && payout_amount
+
+    case payout_to
+    when 'sub_agent'
+      policy.try(:sub_agent_tds_amount) || calculate_tds_from_percentage
+    when 'distributor'
+      policy.try(:distributor_tds_amount) || calculate_tds_from_percentage
+    when 'investor'
+      policy.try(:investor_tds_amount) || calculate_tds_from_percentage
+    when 'ambassador'
+      policy.try(:ambassador_tds_amount) || calculate_tds_from_percentage
+    when 'main_agent'
+      policy.try(:main_agent_tds_amount) || calculate_tds_from_percentage
+    else
+      0
+    end
+  end
+
+  def net_amount
+    (payout_amount || 0) - (tds_amount || 0)
+  end
+
+  def payout_percentage
+    return 0 unless policy
+
+    case payout_to
+    when 'sub_agent'
+      policy.try(:sub_agent_commission_percentage) || 0
+    when 'distributor'
+      policy.try(:distributor_commission_percentage) || 0
+    when 'investor'
+      policy.try(:investor_commission_percentage) || 0
+    when 'ambassador'
+      policy.try(:ambassador_commission_percentage) || 0
+    when 'main_agent'
+      policy.try(:main_agent_commission_percentage) || 0
+    else
+      0
+    end
+  end
+
+  private
+
+  def calculate_tds_from_percentage
+    percentage = tds_percentage
+    return 0 if percentage.zero?
+
+    (payout_amount * percentage / 100.0).round(2)
   end
 
   def mark_as_paid!(payment_details = {})

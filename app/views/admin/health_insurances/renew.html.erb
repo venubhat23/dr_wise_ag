@@ -412,7 +412,7 @@
       <h6>Main Agent Commission</h6>
       <div class="row">
         <div class="col-md-2 mb-3">
-          <label class="form-label">1st year (%)</label>
+          <label class="form-label">Commission (%)</label>
           <%= form.number_field :main_agent_commission_percentage,
               class: "form-control",
               value: @health_insurance.main_agent_commission_percentage,
@@ -453,7 +453,7 @@
       <h6>Affiliate Commission</h6>
       <div class="row">
         <div class="col-md-2 mb-3">
-          <label class="form-label">1st year (%)</label>
+          <label class="form-label">Commission (%)</label>
           <%= form.number_field :sub_agent_commission_percentage,
               class: "form-control sub-agent-commission-percentage",
               value: @health_insurance.sub_agent_commission_percentage,
@@ -494,7 +494,7 @@
       <h6>Investor Commission</h6>
       <div class="row">
         <div class="col-md-2 mb-3">
-          <label class="form-label">1st year (%)</label>
+          <label class="form-label">Commission (%)</label>
           <%= form.number_field :investor_commission_percentage,
               class: "form-control investor-commission-percentage",
               value: @health_insurance.investor_commission_percentage,
@@ -535,7 +535,7 @@
       <h6>Ambassador Commission</h6>
       <div class="row">
         <div class="col-md-2 mb-3">
-          <label class="form-label">1st year (%)</label>
+          <label class="form-label">Commission (%)</label>
           <%= form.number_field :ambassador_commission_percentage,
               class: "form-control ambassador-commission-percentage",
               value: @health_insurance.ambassador_commission_percentage,
@@ -823,6 +823,83 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
 
+    // Family member functionality
+    let memberIndex = 1000; // Start with high number to avoid conflicts
+
+    function toggleNoMembersMessage() {
+      const memberRows = document.querySelectorAll('.family-member-row');
+      const noMembersMsg = document.getElementById('no_members_message');
+      if (noMembersMsg) {
+        if (memberRows.length === 0) {
+          noMembersMsg.style.display = 'block';
+        } else {
+          noMembersMsg.style.display = 'none';
+        }
+      }
+    }
+
+    // Add family member functionality
+    if (document.getElementById('add_family_member')) {
+      document.getElementById('add_family_member').addEventListener('click', function() {
+        const memberTemplate = `
+          <div class="family-member-row border rounded p-3 mb-3 bg-light">
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Member Name</label>
+                <input type="text" name="health_insurance[health_insurance_members_attributes][${memberIndex}][member_name]" class="form-control" placeholder="Full Name">
+              </div>
+              <div class="col-md-2 mb-3">
+                <label class="form-label">Age</label>
+                <input type="number" name="health_insurance[health_insurance_members_attributes][${memberIndex}][age]" class="form-control" min="1" max="120">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Relationship</label>
+                <select name="health_insurance[health_insurance_members_attributes][${memberIndex}][relationship]" class="form-select">
+                  <option value="">Select Relationship</option>
+                  <option value="Self">Self</option>
+                  <option value="Spouse">Spouse</option>
+                  <option value="Son">Son</option>
+                  <option value="Daughter">Daughter</option>
+                  <option value="Father">Father</option>
+                  <option value="Mother">Mother</option>
+                  <option value="Brother">Brother</option>
+                  <option value="Sister">Sister</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Sum Insured</label>
+                <input type="number" name="health_insurance[health_insurance_members_attributes][${memberIndex}][sum_insured]" class="form-control" step="0.01">
+              </div>
+              <div class="col-md-1 d-flex align-items-end mb-3">
+                <button type="button" class="btn btn-outline-danger remove-member-btn">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        document.getElementById('family_members').insertAdjacentHTML('beforeend', memberTemplate);
+        memberIndex++;
+        toggleNoMembersMessage();
+      });
+    }
+
+    // Remove family member
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.remove-member-btn')) {
+        const memberRow = e.target.closest('.family-member-row');
+        const destroyInput = memberRow.querySelector('input[name*="_destroy"]');
+        if (destroyInput) {
+          destroyInput.value = '1';
+          memberRow.style.display = 'none';
+        } else {
+          memberRow.remove();
+        }
+        toggleNoMembersMessage();
+      }
+    });
+
     // Auto-calculate total premium
     function calculateTotalPremium() {
       const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
@@ -831,6 +908,155 @@ document.addEventListener('DOMContentLoaded', function() {
       const totalPremium = netPremium + gstAmount;
       if (document.getElementById('total_premium')) {
         document.getElementById('total_premium').value = totalPremium.toFixed(2);
+      }
+    }
+
+    // Auto-calculate commission amounts
+    function calculateCommission() {
+      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
+      const commissionPercentage = parseFloat(document.getElementById('commission_percentage')?.value) || 0;
+      const tdsPercentage = parseFloat(document.getElementById('tds_percentage')?.value) || 0;
+
+      const commissionAmount = netPremium * (commissionPercentage / 100);
+      const tdsAmount = commissionAmount * (tdsPercentage / 100);
+      const afterTdsValue = commissionAmount - tdsAmount;
+
+      if (document.getElementById('commission_amount')) {
+        document.getElementById('commission_amount').value = commissionAmount.toFixed(2);
+      }
+      if (document.getElementById('tds_amount')) {
+        document.getElementById('tds_amount').value = tdsAmount.toFixed(2);
+      }
+      if (document.getElementById('after_tds_value')) {
+        document.getElementById('after_tds_value').value = afterTdsValue.toFixed(2);
+      }
+    }
+
+    // Auto-calculate sub-agent commission
+    function calculateSubAgentCommission() {
+      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
+      const commissionPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage')?.value) || 2.0;
+      const tdsPercentage = parseFloat(document.querySelector('.sub-agent-tds-percentage')?.value) || 0;
+
+      const commissionAmount = netPremium * (commissionPercentage / 100);
+      const tdsAmount = commissionAmount * (tdsPercentage / 100);
+      const afterTdsValue = commissionAmount - tdsAmount;
+
+      if (document.querySelector('.sub-agent-commission-amount')) {
+        document.querySelector('.sub-agent-commission-amount').value = commissionAmount.toFixed(2);
+      }
+      if (document.querySelector('.sub-agent-tds-amount')) {
+        document.querySelector('.sub-agent-tds-amount').value = tdsAmount.toFixed(2);
+      }
+      if (document.querySelector('.sub-agent-after-tds-value')) {
+        document.querySelector('.sub-agent-after-tds-value').value = afterTdsValue.toFixed(2);
+      }
+    }
+
+    // Auto-calculate investor commission
+    function calculateInvestorCommission() {
+      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
+      const commissionPercentage = parseFloat(document.querySelector('.investor-commission-percentage')?.value) || 2.0;
+      const tdsPercentage = parseFloat(document.querySelector('.investor-tds-percentage')?.value) || 0;
+
+      const commissionAmount = netPremium * (commissionPercentage / 100);
+      const tdsAmount = commissionAmount * (tdsPercentage / 100);
+      const afterTdsValue = commissionAmount - tdsAmount;
+
+      if (document.querySelector('.investor-commission-amount')) {
+        document.querySelector('.investor-commission-amount').value = commissionAmount.toFixed(2);
+      }
+      if (document.querySelector('.investor-tds-amount')) {
+        document.querySelector('.investor-tds-amount').value = tdsAmount.toFixed(2);
+      }
+      if (document.querySelector('.investor-after-tds-value')) {
+        document.querySelector('.investor-after-tds-value').value = afterTdsValue.toFixed(2);
+      }
+    }
+
+    // Auto-calculate ambassador commission
+    function calculateAmbassadorCommission() {
+      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
+      const commissionPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage')?.value) || 2.0;
+      const tdsPercentage = parseFloat(document.querySelector('.ambassador-tds-percentage')?.value) || 0;
+
+      const commissionAmount = netPremium * (commissionPercentage / 100);
+      const tdsAmount = commissionAmount * (tdsPercentage / 100);
+      const afterTdsValue = commissionAmount - tdsAmount;
+
+      if (document.querySelector('.ambassador-commission-amount')) {
+        document.querySelector('.ambassador-commission-amount').value = commissionAmount.toFixed(2);
+      }
+      if (document.querySelector('.ambassador-tds-amount')) {
+        document.querySelector('.ambassador-tds-amount').value = tdsAmount.toFixed(2);
+      }
+      if (document.querySelector('.ambassador-after-tds-value')) {
+        document.querySelector('.ambassador-after-tds-value').value = afterTdsValue.toFixed(2);
+      }
+    }
+
+    // Calculate company expenses and profit
+    function calculateProfitAndExpenses() {
+      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
+      const mainAgentCommissionPercentage = parseFloat(document.getElementById('commission_percentage')?.value) || 0;
+
+      const subAgentPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage')?.value) || 2.0;
+      const investorPercentage = parseFloat(document.querySelector('.investor-commission-percentage')?.value) || 2.0;
+      const companyExpensesPercentage = parseFloat(document.querySelector('.company-expenses-percentage')?.value) || 2.0;
+      const ambassadorPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage')?.value) || 2.0;
+
+      const totalDistributionPercentage = subAgentPercentage + investorPercentage + ambassadorPercentage;
+      const profitPercentage = mainAgentCommissionPercentage - totalDistributionPercentage - companyExpensesPercentage;
+      const profitAmount = netPremium * (profitPercentage / 100);
+
+      if (document.querySelector('.total-distribution-percentage')) {
+        document.querySelector('.total-distribution-percentage').value = totalDistributionPercentage.toFixed(2);
+      }
+      if (document.querySelector('.profit-percentage')) {
+        document.querySelector('.profit-percentage').value = profitPercentage.toFixed(2);
+      }
+      if (document.querySelector('.profit-amount')) {
+        document.querySelector('.profit-amount').value = profitAmount.toFixed(2);
+      }
+    }
+
+    // Calculate all commissions when net premium changes
+    function calculateAllCommissions() {
+      calculateCommission();
+      calculateSubAgentCommission();
+      calculateInvestorCommission();
+      calculateAmbassadorCommission();
+      calculateProfitAndExpenses();
+    }
+
+    // Auto-calculate autopay end date based on payment mode
+    function calculateAutopayEndDate() {
+      const paymentMode = document.getElementById('payment_mode_select')?.value;
+      const startDate = document.getElementById('autopay_start_date')?.value;
+
+      if (startDate && paymentMode) {
+        const start = new Date(startDate);
+        const end = new Date(start);
+
+        switch (paymentMode) {
+          case 'Yearly':
+            end.setFullYear(end.getFullYear() + 1);
+            break;
+          case 'Half-Yearly':
+            end.setMonth(end.getMonth() + 6);
+            break;
+          case 'Quarterly':
+            end.setMonth(end.getMonth() + 3);
+            break;
+          case 'Monthly':
+            end.setMonth(end.getMonth() + 1);
+            break;
+        }
+
+        end.setDate(end.getDate() - 1);
+        if (document.getElementById('autopay_end_date')) {
+          document.getElementById('autopay_end_date').value = end.toISOString().split('T')[0];
+        }
       }
     }
 
@@ -850,17 +1076,50 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Event listeners
     if (document.getElementById('net_premium')) {
-      document.getElementById('net_premium').addEventListener('input', calculateTotalPremium);
+      document.getElementById('net_premium').addEventListener('input', function() {
+        calculateTotalPremium();
+        calculateAllCommissions();
+      });
     }
     if (document.getElementById('gst_percentage')) {
       document.getElementById('gst_percentage').addEventListener('input', calculateTotalPremium);
+    }
+    if (document.getElementById('commission_percentage')) {
+      document.getElementById('commission_percentage').addEventListener('input', function() {
+        calculateCommission();
+        calculateProfitAndExpenses();
+      });
+    }
+    if (document.getElementById('tds_percentage')) {
+      document.getElementById('tds_percentage').addEventListener('input', calculateCommission);
     }
     if (document.getElementById('start_date')) {
       document.getElementById('start_date').addEventListener('change', calculateEndDate);
     }
 
+    // Autopay date calculation event listeners
+    if (document.getElementById('payment_mode_select')) {
+      document.getElementById('payment_mode_select').addEventListener('change', calculateAutopayEndDate);
+    }
+    if (document.getElementById('autopay_start_date')) {
+      document.getElementById('autopay_start_date').addEventListener('change', calculateAutopayEndDate);
+    }
+
+    // Sub-agent commission event listeners
+    if (document.querySelector('.sub-agent-commission-percentage')) {
+      document.querySelector('.sub-agent-commission-percentage').addEventListener('input', function() {
+        calculateSubAgentCommission();
+        calculateProfitAndExpenses();
+      });
+    }
+    if (document.querySelector('.sub-agent-tds-percentage')) {
+      document.querySelector('.sub-agent-tds-percentage').addEventListener('input', calculateSubAgentCommission);
+    }
+
     // Initialize calculations
     calculateTotalPremium();
+    calculateAllCommissions();
+    calculateAutopayEndDate();
 
   } catch (error) {
     console.warn('Health insurance renewal form initialization error:', error.message);

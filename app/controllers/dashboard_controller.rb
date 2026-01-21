@@ -135,6 +135,7 @@ class DashboardController < ApplicationController
     thirty_days_from_now = Date.current + 30.days
     results[:renewal_due_count] = get_renewal_due_count(thirty_days_from_now)
     results[:expired_policies_count] = get_expired_policies_count
+    results[:renewal_status] = get_renewal_status_counts
 
     # Payout data
     payout_data = get_optimized_payout_data
@@ -147,6 +148,10 @@ class DashboardController < ApplicationController
     # Calculate growth metrics
     growth_metrics = calculate_growth_metrics_data(results)
     results.merge!(growth_metrics)
+
+    # Add recent activities data
+    results[:recent_policies] = get_recent_policies
+    results[:recent_leads] = get_recent_leads
 
     results
   end
@@ -301,6 +306,7 @@ class DashboardController < ApplicationController
     avg_policy_value = results[:total_policies] > 0 ? (results[:total_premium_collected] / results[:total_policies]).round(0) : 0
     customer_retention = calculate_customer_retention_rate
     monthly_recurring_revenue = (results[:total_premium_collected] / 12.0).round(0)
+    commissions_due = results[:pending_payouts] || 0
 
     {
       customer_growth: customer_growth,
@@ -315,7 +321,8 @@ class DashboardController < ApplicationController
       conversion_rate: conversion_rate,
       avg_policy_value: avg_policy_value,
       customer_retention: customer_retention,
-      monthly_recurring_revenue: monthly_recurring_revenue
+      monthly_recurring_revenue: monthly_recurring_revenue,
+      commissions_due: commissions_due
     }
   end
 
@@ -373,6 +380,86 @@ class DashboardController < ApplicationController
     active_old_customers = Customer.where('created_at < ?', two_months_ago).where(status: true).count
 
     old_customers > 0 ? ((active_old_customers.to_f / old_customers.to_f) * 100).round(1) : 0
+  end
+
+  def get_renewal_status_counts
+    # Get renewal counts for current month
+    current_month_start = Date.current.beginning_of_month
+
+    # Count renewed policies this month (policies with policy_type = 'Renewal')
+    renewed_count = 0
+
+    begin
+      renewed_count += HealthInsurance.where('created_at >= ?', current_month_start)
+                                     .where(policy_type: 'Renewal').count
+      renewed_count += LifeInsurance.where('created_at >= ?', current_month_start)
+                                   .where(policy_type: 'Renewal').count
+      renewed_count += (MotorInsurance.where('created_at >= ?', current_month_start)
+                                     .where(policy_type: 'Renewal').count rescue 0)
+    rescue => e
+      Rails.logger.error "Error calculating renewal status: #{e.message}"
+      renewed_count = 0
+    end
+
+    {
+      'Renewed' => renewed_count,
+      'Pending' => get_renewal_due_count(Date.current + 30.days),
+      'Expired' => get_expired_policies_count
+    }
+  end
+
+  def get_recent_policies
+    policies = []
+
+    # Get recent health insurance policies
+    HealthInsurance.includes(:customer).order(created_at: :desc).limit(3).each do |policy|
+      policies << {
+        type: 'Health Insurance',
+        customer: policy.customer&.display_name || 'Unknown',
+        policy_number: policy.policy_number,
+        premium: policy.total_premium,
+        date: policy.created_at
+      }
+    end
+
+    # Get recent life insurance policies
+    LifeInsurance.includes(:customer).order(created_at: :desc).limit(3).each do |policy|
+      policies << {
+        type: 'Life Insurance',
+        customer: policy.customer&.display_name || 'Unknown',
+        policy_number: policy.policy_number,
+        premium: policy.total_premium,
+        date: policy.created_at
+      }
+    end
+
+    # Get recent motor insurance policies
+    begin
+      MotorInsurance.includes(:customer).order(created_at: :desc).limit(2).each do |policy|
+        policies << {
+          type: 'Motor Insurance',
+          customer: policy.customer&.display_name || 'Unknown',
+          policy_number: policy.policy_number,
+          premium: policy.total_premium,
+          date: policy.created_at
+        }
+      end
+    rescue => e
+      Rails.logger.error "Error fetching motor insurance: #{e.message}"
+    end
+
+    # Sort by date and return most recent
+    policies.sort_by { |p| p[:date] }.reverse.first(10)
+  rescue => e
+    Rails.logger.error "Error fetching recent policies: #{e.message}"
+    []
+  end
+
+  def get_recent_leads
+    Lead.order(created_at: :desc).limit(10)
+  rescue => e
+    Rails.logger.error "Error fetching recent leads: #{e.message}"
+    []
   end
 
 end

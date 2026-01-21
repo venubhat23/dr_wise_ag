@@ -1,0 +1,290 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1"><%= @report.name %></h2>
+    <p class="text-muted mb-0">
+      Generated on <%= @report.generated_at&.strftime('%d %b %Y at %I:%M %p') || @report.created_at.strftime('%d %b %Y at %I:%M %p') %>
+      by <%= @report.created_by&.first_name %> <%= @report.created_by&.last_name %>
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to saved_reports_admin_reports_commission_reports_path,
+                class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>Back to Saved Reports
+    <% end %>
+    <%= link_to destroy_saved_report_admin_reports_commission_report_path(@report),
+                method: :delete,
+                class: "btn btn-outline-danger",
+                data: {
+                  confirm: "Are you sure you want to delete this report? This action cannot be undone.",
+                  turbo_method: :delete
+                } do %>
+      <i class="bi bi-trash me-1"></i>Delete Report
+    <% end %>
+  </div>
+</div>
+
+<!-- Report Filters Applied -->
+<% if @report.filters&.any? %>
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <h6 class="mb-3">
+        <i class="bi bi-funnel me-2 text-primary"></i>
+        Filters Applied
+      </h6>
+      <div class="row">
+        <% if @report.filters['start_date'] || @report.filters['end_date'] %>
+          <div class="col-md-3 mb-2">
+            <small class="text-muted d-block">Date Range</small>
+            <span class="fw-medium">
+              <%= Date.parse(@report.filters['start_date']).strftime('%d %b %Y') rescue 'N/A' %> -
+              <%= Date.parse(@report.filters['end_date']).strftime('%d %b %Y') rescue 'N/A' %>
+            </span>
+          </div>
+        <% end %>
+
+        <% if @report.filters['payout_to'].present? %>
+          <div class="col-md-3 mb-2">
+            <small class="text-muted d-block">Recipient Type</small>
+            <span class="badge bg-secondary"><%= @report.filters['payout_to'].humanize %></span>
+          </div>
+        <% end %>
+
+        <% if @report.filters['policy_type'].present? %>
+          <div class="col-md-3 mb-2">
+            <small class="text-muted d-block">Policy Type</small>
+            <span class="badge bg-info"><%= @report.filters['policy_type'].humanize %></span>
+          </div>
+        <% end %>
+
+        <% if @report.filters['status'].present? %>
+          <div class="col-md-3 mb-2">
+            <small class="text-muted d-block">Payment Status</small>
+            <span class="badge bg-warning"><%= @report.filters['status'].humanize %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<!-- Statistics Cards -->
+<% if @statistics %>
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="text-muted mb-2">Total Commission</h6>
+              <h3 class="mb-0 text-success">₹<%= number_with_delimiter(@statistics['total_commission'] || 0) %></h3>
+            </div>
+            <div class="bg-success bg-opacity-10 rounded p-3">
+              <i class="bi bi-currency-rupee text-success fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="text-muted mb-2">Total TDS</h6>
+              <h3 class="mb-0 text-warning">₹<%= number_with_delimiter(@statistics['total_tds'] || 0) %></h3>
+            </div>
+            <div class="bg-warning bg-opacity-10 rounded p-3">
+              <i class="bi bi-calculator text-warning fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="text-muted mb-2">Net Payout</h6>
+              <h3 class="mb-0 text-info">₹<%= number_with_delimiter(@statistics['net_payout'] || 0) %></h3>
+            </div>
+            <div class="bg-info bg-opacity-10 rounded p-3">
+              <i class="bi bi-wallet text-info fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="text-muted mb-2">Total Records</h6>
+              <h3 class="mb-0 text-primary"><%= number_with_delimiter(@statistics['total_records'] || 0) %></h3>
+            </div>
+            <div class="bg-primary bg-opacity-10 rounded p-3">
+              <i class="bi bi-list-check text-primary fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<!-- Commission Payouts Data -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0">
+    <h5 class="mb-0">Commission Payouts</h5>
+  </div>
+  <div class="card-body p-0">
+    <% if @payouts&.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0">Policy Details</th>
+              <th class="border-0">Customer</th>
+              <th class="border-0">Recipient</th>
+              <th class="border-0">Commission</th>
+              <th class="border-0">TDS</th>
+              <th class="border-0">Net Amount</th>
+              <th class="border-0">Status</th>
+              <th class="border-0">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @payouts.first(100).each do |payout| %>
+              <% if payout.is_a?(Hash) %>
+                <tr>
+                  <td>
+                    <div>
+                      <h6 class="mb-1"><%= payout['policy_number'] || 'Unknown' %></h6>
+                      <small class="text-muted">
+                        <span class="badge bg-<%= payout['policy_type'] == 'health' ? 'success' : (payout['policy_type'] == 'motor' ? 'warning' : 'info') %>">
+                          <%= payout['policy_type']&.humanize %>
+                        </span>
+                      </small>
+                    </div>
+                  </td>
+                  <td>
+                    <div>
+                      <h6 class="mb-1"><%= payout['customer_name'] %></h6>
+                    </div>
+                  </td>
+                  <td>
+                    <div>
+                      <h6 class="mb-1"><%= payout['payout_to']&.humanize %></h6>
+                      <small class="text-muted">
+                        <%= payout['recipient_name'] %>
+                      </small>
+                    </div>
+                  </td>
+                  <td>
+                    <strong class="text-success">₹<%= number_with_delimiter(payout['payout_amount'] || 0) %></strong>
+                    <small class="text-muted d-block">
+                      <%= payout['payout_percentage'] %>%
+                    </small>
+                  </td>
+                  <td>
+                    <span class="text-warning">₹<%= number_with_delimiter(payout['tds_amount'] || 0) %></span>
+                    <small class="text-muted d-block">
+                      <%= payout['tds_percentage'] %>%
+                    </small>
+                  </td>
+                  <td>
+                    <strong class="text-info">₹<%= number_with_delimiter(payout['net_amount'] || 0) %></strong>
+                  </td>
+                  <td>
+                    <span class="badge bg-<%= payout['status'] == 'paid' ? 'success' : (payout['status'] == 'processing' ? 'warning' : 'secondary') %>">
+                      <%= payout['status']&.humanize %>
+                    </span>
+                  </td>
+                  <td>
+                    <small class="text-muted">
+                      <%= Date.parse(payout['created_at']).strftime('%d %b %Y') rescue 'N/A' if payout['created_at'] %>
+                    </small>
+                  </td>
+                </tr>
+              <% else %>
+                <!-- Handle ActiveRecord objects if needed -->
+                <tr>
+                  <td>
+                    <div>
+                      <h6 class="mb-1"><%= payout.policy_number || 'Unknown' %></h6>
+                      <small class="text-muted">
+                        <span class="badge bg-<%= payout.policy_type == 'health' ? 'success' : (payout.policy_type == 'motor' ? 'warning' : 'info') %>">
+                          <%= payout.policy_type.humanize %>
+                        </span>
+                      </small>
+                    </div>
+                  </td>
+                  <td>
+                    <div>
+                      <h6 class="mb-1"><%= payout.customer_name %></h6>
+                    </div>
+                  </td>
+                  <td>
+                    <div>
+                      <h6 class="mb-1"><%= payout.payout_to.humanize %></h6>
+                      <small class="text-muted">
+                        <%= payout.recipient_name %>
+                      </small>
+                    </div>
+                  </td>
+                  <td>
+                    <strong class="text-success">₹<%= number_with_delimiter(payout.payout_amount || 0) %></strong>
+                    <small class="text-muted d-block">
+                      <%= payout.payout_percentage %>%
+                    </small>
+                  </td>
+                  <td>
+                    <span class="text-warning">₹<%= number_with_delimiter(payout.tds_amount || 0) %></span>
+                    <small class="text-muted d-block">
+                      <%= payout.tds_percentage %>%
+                    </small>
+                  </td>
+                  <td>
+                    <strong class="text-info">₹<%= number_with_delimiter(payout.net_amount || 0) %></strong>
+                  </td>
+                  <td>
+                    <span class="badge bg-<%= payout.status == 'paid' ? 'success' : (payout.status == 'processing' ? 'warning' : 'secondary') %>">
+                      <%= payout.status.humanize %>
+                    </span>
+                  </td>
+                  <td>
+                    <small class="text-muted">
+                      <%= payout.created_at.strftime('%d %b %Y') if payout.created_at %>
+                    </small>
+                  </td>
+                </tr>
+              <% end %>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <% if @payouts.length > 100 %>
+        <div class="card-footer bg-transparent border-0">
+          <small class="text-muted">
+            <i class="bi bi-info-circle me-1"></i>
+            Showing first 100 records. Full report contains <%= number_with_delimiter(@payouts.length) %> records.
+          </small>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="text-center py-5">
+        <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+        <h5 class="text-muted">No commission records found</h5>
+        <p class="text-muted mb-3">
+          This report contains no commission payout data based on the applied filters.
+        </p>
+      </div>
+    <% end %>
+  </div>
+</div>

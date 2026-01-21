@@ -1,0 +1,245 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Generate Commission Report</h2>
+    <p class="text-muted mb-0">Create a custom commission report with filters and save it for later reference</p>
+  </div>
+  <div>
+    <%= link_to admin_reports_commission_reports_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>Back to Reports
+    <% end %>
+  </div>
+</div>
+
+<!-- Report Generation Form -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0">
+    <h5 class="mb-0">
+      <i class="bi bi-gear-fill me-2 text-primary"></i>
+      Report Configuration
+    </h5>
+  </div>
+  <div class="card-body">
+    <%= form_with url: create_report_admin_reports_commission_reports_path, method: :post, local: true,
+                  class: "row g-3", id: "generate_report_form" do |form| %>
+
+      <!-- Report Name -->
+      <div class="col-12">
+        <label for="report_name" class="form-label">Report Name</label>
+        <%= form.text_field :report_name,
+                            placeholder: "Commission Report #{Date.current.strftime('%d %b %Y')}",
+                            class: "form-control",
+                            value: "Commission Report #{Date.current.strftime('%d %b %Y')}" %>
+        <div class="form-text">Give your report a descriptive name for easy identification</div>
+      </div>
+
+      <!-- Date Range -->
+      <div class="col-md-6">
+        <label for="start_date" class="form-label">Start Date</label>
+        <%= form.date_field :start_date,
+                            value: 1.month.ago.to_date,
+                            class: "form-control" %>
+      </div>
+      <div class="col-md-6">
+        <label for="end_date" class="form-label">End Date</label>
+        <%= form.date_field :end_date,
+                            value: Date.current,
+                            class: "form-control" %>
+      </div>
+
+      <!-- Quick Date Range Buttons -->
+      <div class="col-12">
+        <label class="form-label">Quick Date Range</label>
+        <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-primary btn-sm" data-days="7">Last 7 Days</button>
+          <button type="button" class="btn btn-outline-primary btn-sm" data-days="30">Last 30 Days</button>
+          <button type="button" class="btn btn-outline-primary btn-sm" data-days="90">Last 3 Months</button>
+          <button type="button" class="btn btn-outline-primary btn-sm" data-days="180">Last 6 Months</button>
+          <button type="button" class="btn btn-outline-primary btn-sm" data-days="365">Last Year</button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="col-md-4">
+        <label for="payout_to" class="form-label">Recipient Type</label>
+        <%= form.select :payout_to,
+                       options_for_select([
+                         ['All Recipients', ''],
+                         ['Sub Agent', 'sub_agent'],
+                         ['Distributor', 'distributor'],
+                         ['Investor', 'investor'],
+                         ['Ambassador', 'ambassador']
+                       ]),
+                       {}, { class: "form-select" } %>
+      </div>
+
+      <div class="col-md-4">
+        <label for="policy_type" class="form-label">Policy Type</label>
+        <%= form.select :policy_type,
+                       options_for_select([
+                         ['All Types', ''],
+                         ['Health', 'health'],
+                         ['Motor', 'motor'],
+                         ['Life', 'life'],
+                         ['Other', 'other']
+                       ]),
+                       {}, { class: "form-select" } %>
+      </div>
+
+      <div class="col-md-4">
+        <label for="status" class="form-label">Payment Status</label>
+        <%= form.select :status,
+                       options_for_select([
+                         ['All Status', ''],
+                         ['Pending', 'pending'],
+                         ['Paid', 'paid'],
+                         ['Processing', 'processing']
+                       ]),
+                       {}, { class: "form-select" } %>
+      </div>
+
+      <!-- Preview Section -->
+      <div class="col-12">
+        <hr class="my-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="mb-1">Report Preview</h6>
+            <small class="text-muted">Click "Preview" to see a summary of the data that will be included</small>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-info" id="preview_btn">
+              <i class="bi bi-eye me-1"></i>Preview
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-1"></i>Generate & Save Report
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview Results (Hidden by default) -->
+      <div class="col-12" id="preview_section" style="display: none;">
+        <div class="card bg-light border-0">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="mb-0">Preview Results</h6>
+              <small class="text-muted" id="preview_loading" style="display: none;">
+                <i class="bi bi-spinner-border spinner-border-sm me-1"></i>Loading...
+              </small>
+            </div>
+            <div class="row" id="preview_stats">
+              <!-- Preview stats will be populated here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <% end %>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('generate_report_form');
+  const startDateInput = document.querySelector('input[name="start_date"]');
+  const endDateInput = document.querySelector('input[name="end_date"]');
+  const previewBtn = document.getElementById('preview_btn');
+  const previewSection = document.getElementById('preview_section');
+  const previewLoading = document.getElementById('preview_loading');
+  const previewStats = document.getElementById('preview_stats');
+
+  // Quick date range buttons
+  document.querySelectorAll('[data-days]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const days = parseInt(this.getAttribute('data-days'));
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - days);
+
+      startDateInput.value = startDate.toISOString().split('T')[0];
+      endDateInput.value = endDate.toISOString().split('T')[0];
+
+      // Remove active class from other buttons and add to current
+      document.querySelectorAll('[data-days]').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  // Preview functionality
+  previewBtn.addEventListener('click', function() {
+    previewLoading.style.display = 'inline-block';
+    previewSection.style.display = 'block';
+
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+
+    // Add form data to params
+    for (let [key, value] of formData.entries()) {
+      if (value) params.append(key, value);
+    }
+
+    // Simple preview - in a real app, you'd make an AJAX call to get preview data
+    setTimeout(() => {
+      previewLoading.style.display = 'none';
+      previewStats.innerHTML = `
+        <div class="col-md-3">
+          <div class="text-center p-3 bg-white rounded">
+            <h5 class="mb-1 text-primary">~</h5>
+            <small class="text-muted">Records Found</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-center p-3 bg-white rounded">
+            <h5 class="mb-1 text-success">₹~</h5>
+            <small class="text-muted">Total Commission</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-center p-3 bg-white rounded">
+            <h5 class="mb-1 text-warning">₹~</h5>
+            <small class="text-muted">Total TDS</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-center p-3 bg-white rounded">
+            <h5 class="mb-1 text-info">₹~</h5>
+            <small class="text-muted">Net Payout</small>
+          </div>
+        </div>
+        <div class="col-12 mt-2">
+          <small class="text-muted">
+            <i class="bi bi-info-circle me-1"></i>
+            This is a preview. Actual values will be calculated when you generate the report.
+          </small>
+        </div>
+      `;
+    }, 1000);
+  });
+
+  // Form validation
+  form.addEventListener('submit', function(e) {
+    const startDate = new Date(startDateInput.value);
+    const endDate = new Date(endDateInput.value);
+
+    if (startDate > endDate) {
+      e.preventDefault();
+      alert('Start date cannot be later than end date');
+      return false;
+    }
+
+    if (!startDateInput.value || !endDateInput.value) {
+      e.preventDefault();
+      alert('Please select both start and end dates');
+      return false;
+    }
+  });
+});
+</script>
+
+<style>
+.btn[data-days].active {
+  background-color: var(--bs-primary);
+  color: white;
+  border-color: var(--bs-primary);
+}
+</style>

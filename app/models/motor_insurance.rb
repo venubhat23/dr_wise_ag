@@ -35,7 +35,7 @@ class MotorInsurance < ApplicationRecord
   VEHICLE_TYPES = ['New Vehicle', 'Old Vehicle'].freeze
   CLASS_OF_VEHICLES = ['Private Car', 'Two Wheeler', 'Goods Vehicle', 'Taxi', 'Bus'].freeze
   INSURANCE_TYPES = ['Comprehensive', 'Third Party', 'Own Damage'].freeze
-  POLICY_TYPES = ['New', 'Renewal'].freeze
+  POLICY_TYPES = ['New', 'Renewal', 'Rollover'].freeze
   PAYOUT_OPTIONS = ['OD', 'TP', 'Net'].freeze
 
   # Scopes

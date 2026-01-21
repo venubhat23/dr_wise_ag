@@ -605,8 +605,11 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @investors = Investor.active.order(:first_name, :last_name)
     @agency_codes = AgencyCode.where(insurance_type: 'Motor Insurance')
     @brokers = Broker.active.order(:name)
-    # Load only motor/general insurance companies
-    @insurance_companies = MotorInsurance.general_insurance_companies.map { |company| company[:name] }
+    # Load all insurance companies for motor insurance
+    @insurance_companies = InsuranceCompany.where('insurance_type ILIKE ? OR insurance_type ILIKE ?', '%general%', '%motor%')
+                                          .order(:name)
+                                          .pluck(:name)
+                                          .uniq
     @vehicle_types = MotorInsurance::VEHICLE_TYPES
     @class_of_vehicles = MotorInsurance::CLASS_OF_VEHICLES
     @insurance_types = MotorInsurance::INSURANCE_TYPES

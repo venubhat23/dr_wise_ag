@@ -468,7 +468,6 @@
             <%= link_to root_path, class: "nav-link-modern #{'active' if current_page?(root_path)}" do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-blue">
-                  <i class="bi bi-grid-3x3-gap-fill"></i>
                 </div>
               </div>
               <span class="nav-text">Dashboard</span>
@@ -881,7 +880,7 @@
         <!-- Commission Report -->
         <% if show_sidebar_item?('reports') %>
         <li class="nav-item">
-          <%= link_to admin_reports_commission_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/commission')}" do %>
+          <%= link_to admin_reports_commission_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/commission')}" do %>
             <div class="nav-icon-modern">
               <div class="icon-bg gradient-green">
                 <i class="bi bi-currency-dollar"></i>
@@ -894,7 +893,7 @@
 
         <!-- Expired Insurance -->
         <li class="nav-item">
-          <%= link_to admin_reports_expired_insurance_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/expired')}" do %>
+          <%= link_to admin_reports_expired_insurance_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/expired')}" do %>
             <div class="nav-icon-modern">
               <div class="icon-bg gradient-red">
                 <i class="bi bi-clock-history"></i>
@@ -907,7 +906,7 @@
 
         <!-- Payment Due -->
         <li class="nav-item">
-          <%= link_to admin_reports_payment_due_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/payment_due')}" do %>
+          <%= link_to admin_reports_payment_due_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/payment_due')}" do %>
             <div class="nav-icon-modern">
               <div class="icon-bg gradient-orange">
                 <i class="bi bi-exclamation-triangle"></i>
@@ -920,7 +919,7 @@
 
         <!-- Upcoming Renewal -->
         <li class="nav-item">
-          <%= link_to admin_reports_upcoming_renewal_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/renewal')}" do %>
+          <%= link_to admin_reports_upcoming_renewal_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/renewal')}" do %>
             <div class="nav-icon-modern">
               <div class="icon-bg gradient-blue">
                 <i class="bi bi-arrow-repeat"></i>
@@ -933,7 +932,7 @@
 
         <!-- Upcoming Payment -->
         <li class="nav-item">
-          <%= link_to admin_reports_upcoming_payment_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/payment')}" do %>
+          <%= link_to admin_reports_upcoming_payment_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/payment')}" do %>
             <div class="nav-icon-modern">
               <div class="icon-bg gradient-purple">
                 <i class="bi bi-calendar-check"></i>
@@ -946,7 +945,7 @@
 
         <!-- Leads Report -->
         <li class="nav-item">
-          <%= link_to admin_reports_leads_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/leads')}" do %>
+          <%= link_to admin_reports_leads_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/leads')}" do %>
             <div class="nav-icon-modern">
               <div class="icon-bg gradient-pink">
                 <i class="bi bi-funnel"></i>
@@ -959,7 +958,7 @@
 
         <!-- Session Report -->
         <li class="nav-item">
-          <%= link_to admin_reports_sessions_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/sessions')}" do %>
+          <%= link_to admin_reports_session_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/sessions')}" do %>
             <div class="nav-icon-modern">
               <div class="icon-bg gradient-cyan">
                 <i class="bi bi-activity"></i>
