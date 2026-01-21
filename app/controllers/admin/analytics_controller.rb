@@ -95,6 +95,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
     # Agent performance analytics
     @agent_performance = calculate_agent_performance
 
+    # Agent customer data for affiliate performance table
+    @agent_customer_data = calculate_agent_customer_data
+
     # Commission metrics
     @commissions_due = (@commission_summary[:total_commission_due] || 0).to_f
     @conversion_rate = calculate_conversion_rate.to_f
@@ -105,6 +108,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
     # Lead conversion funnel
     @lead_conversion_funnel = calculate_lead_conversion_funnel
+
+    # Lead stage distribution for analytics view
+    @lead_stage_distribution = calculate_lead_stage_distribution
 
     # Customer location analytics
     @customer_location = calculate_customer_location
@@ -146,11 +152,13 @@ class Admin::AnalyticsController < Admin::ApplicationController
       commission_summary: @commission_summary,
       renewal_analytics: @renewal_analytics,
       agent_performance: @agent_performance,
+      agent_customer_data: @agent_customer_data,
       commissions_due: @commissions_due,
       conversion_rate: @conversion_rate,
       avg_policy_value: @avg_policy_value,
       customer_retention: @customer_retention,
       lead_conversion_funnel: @lead_conversion_funnel,
+      lead_stage_distribution: @lead_stage_distribution,
       customer_location: @customer_location,
       customer_acquisition_trend: @customer_acquisition_trend,
       active_customers: @active_customers,
@@ -199,11 +207,13 @@ class Admin::AnalyticsController < Admin::ApplicationController
     @commission_summary = cached_data['commission_summary']
     @renewal_analytics = cached_data['renewal_analytics']
     @agent_performance = cached_data['agent_performance']
+    @agent_customer_data = cached_data['agent_customer_data']
     @commissions_due = (cached_data['commissions_due'] || 0).to_f
     @conversion_rate = (cached_data['conversion_rate'] || 0).to_f
     @avg_policy_value = cached_data['avg_policy_value']
     @customer_retention = cached_data['customer_retention']
     @lead_conversion_funnel = cached_data['lead_conversion_funnel']
+    @lead_stage_distribution = cached_data['lead_stage_distribution']
     @customer_location = cached_data['customer_location']
     @customer_acquisition_trend = cached_data['customer_acquisition_trend']
     @active_customers = cached_data['active_customers'] || 0
@@ -443,6 +453,34 @@ class Admin::AnalyticsController < Admin::ApplicationController
     {}
   end
 
+  def calculate_agent_customer_data
+    # Calculate customer counts for each agent to avoid DB calls in view
+    agent_customers = {}
+
+    # Process each sub agent and calculate their customer metrics
+    SubAgent.includes(:customers, :health_insurances, :life_insurances, :motor_insurances).each do |sub_agent|
+      agent_name = "#{sub_agent.first_name} #{sub_agent.last_name}"
+
+      # Direct customer count
+      customer_count = sub_agent.customers.count
+
+      # Unique customers from each insurance type
+      health_customers = sub_agent.health_insurances.distinct.count(:customer_id)
+      life_customers = sub_agent.life_insurances.distinct.count(:customer_id)
+      motor_customers = sub_agent.motor_insurances.distinct.count(:customer_id)
+
+      # Use the maximum as the customer count (accounts for overlap)
+      max_customers = [customer_count, health_customers, life_customers, motor_customers].max
+
+      agent_customers[agent_name] = max_customers if max_customers > 0
+    end
+
+    agent_customers
+  rescue => e
+    Rails.logger.error "Error calculating agent customer data: #{e.message}"
+    {}
+  end
+
   def calculate_conversion_rate
     # Calculate lead to policy conversion rate
     total_leads = Lead.count
@@ -502,6 +540,26 @@ class Admin::AnalyticsController < Admin::ApplicationController
       'Contacted' => 0,
       'Interested' => 0,
       'Quoted' => 0,
+      'Converted' => 0
+    }
+  end
+
+  def calculate_lead_stage_distribution
+    # Calculate lead distribution by current stage for analytics view
+    {
+      'New Leads' => Lead.where(current_stage: 'lead_generated').count,
+      'Contacted' => Lead.where(current_stage: ['follow_up', 'follow_up_successful']).count,
+      'Consultation' => Lead.where(current_stage: 'consultation_scheduled').count,
+      'One-on-One' => Lead.where(current_stage: 'one_on_one').count,
+      'Converted' => Lead.where(current_stage: 'converted').count
+    }
+  rescue => e
+    Rails.logger.error "Error calculating lead stage distribution: #{e.message}"
+    {
+      'New Leads' => 0,
+      'Contacted' => 0,
+      'Consultation' => 0,
+      'One-on-One' => 0,
       'Converted' => 0
     }
   end

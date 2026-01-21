@@ -178,17 +178,17 @@ class MotorInsurance < ApplicationRecord
   def calculate_totals
     if net_premium.present? && gst_percentage.present?
       gst_amount = net_premium * (gst_percentage / 100.0)
-      self.total_premium = net_premium + gst_amount
+      self.total_premium = (net_premium + gst_amount).round(2)
     end
 
     # Calculate main agent commission (legacy fields)
     if net_premium.present? && main_agent_commission_percentage.present?
-      self.main_agent_commission_amount = net_premium * (main_agent_commission_percentage / 100.0)
+      self.main_agent_commission_amount = (net_premium * (main_agent_commission_percentage / 100.0)).round(2)
     end
 
     if main_agent_commission_amount.present? && main_agent_tds_percentage.present?
-      self.main_agent_tds_amount = main_agent_commission_amount * (main_agent_tds_percentage / 100.0)
-      self.after_tds_value = main_agent_commission_amount - main_agent_tds_amount
+      self.main_agent_tds_amount = (main_agent_commission_amount * (main_agent_tds_percentage / 100.0)).round(2)
+      self.after_tds_value = (main_agent_commission_amount - main_agent_tds_amount).round(2)
     end
 
     # Calculate enhanced commission structure

@@ -310,7 +310,7 @@
       <div class="kpi-icon orange-gradient">
         <i class="bi bi-currency-dollar"></i>
       </div>
-      <div class="kpi-value">₹<%= number_with_delimiter((@total_premium.to_f / 1_00_000).round(1)) %>L</div>
+      <div class="kpi-value"><%= indian_currency(@total_premium || 0) %></div>
       <div class="kpi-label">Total Premium</div>
       <div class="kpi-change <%= @premium_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
         <i class="bi bi-arrow-<%= @premium_growth >= 0 ? 'up' : 'down' %>-right me-1"></i>
@@ -432,7 +432,7 @@
                     <span class="badge bg-primary"><%= policy[:type] %></span>
                   </td>
                   <td><%= policy[:customer] %></td>
-                  <td>₹<%= number_with_delimiter(policy[:premium]) %></td>
+                  <td><%= indian_currency(policy[:premium] || 0) %></td>
                   <td><%= policy[:date]&.strftime('%d %b %Y') || 'N/A' %></td>
                 </tr>
               <% end %>
@@ -462,12 +462,12 @@
       <h3 class="chart-title">Lead Stage Distribution</h3>
       <div style="margin-top: 1rem;">
         <%
-          lead_stages = {
-            'New Leads' => Lead.where(current_stage: 'lead_generated').count,
-            'Contacted' => Lead.where(current_stage: ['follow_up', 'follow_up_successful']).count,
-            'Consultation' => Lead.where(current_stage: 'consultation_scheduled').count,
-            'One-on-One' => Lead.where(current_stage: 'one_on_one').count,
-            'Converted' => Lead.where(current_stage: 'converted').count
+          lead_stages = @lead_stage_distribution || {
+            'New Leads' => 0,
+            'Contacted' => 0,
+            'Consultation' => 0,
+            'One-on-One' => 0,
+            'Converted' => 0
           }
           total_leads = lead_stages.values.sum
         %>
@@ -506,24 +506,12 @@
             <tr>
               <td style="font-weight: 600;"><%= affiliate_name %></td>
               <td>
-                <%
-                  sub_agent = SubAgent.find_by("CONCAT(first_name, ' ', last_name) = ?", affiliate_name)
-                  if sub_agent
-                    customer_count = Customer.where(sub_agent_id: sub_agent.id).count
-                    health_customers = HealthInsurance.where(sub_agent_id: sub_agent.id).distinct.count(:customer_id)
-                    life_customers = LifeInsurance.where(sub_agent_id: sub_agent.id).distinct.count(:customer_id)
-                    motor_customers = MotorInsurance.where(sub_agent_id: sub_agent.id).distinct.count(:customer_id)
-                    customer_count = [customer_count, health_customers, life_customers, motor_customers].max
-                  else
-                    customer_count = 0
-                  end
-                %>
-                <%= customer_count %>
+                <%= (@agent_customer_data&.dig(affiliate_name) || 0) %>
               </td>
-              <td>₹<%= number_with_delimiter(premium.to_i) %></td>
+              <td><%= indian_currency(premium || 0) %></td>
               <td>
                 <span class="badge bg-success">
-                  ₹<%= number_with_delimiter((premium * 0.05).to_i) %>
+                  <%= indian_currency((premium * 0.05) || 0) %>
                 </span>
               </td>
             </tr>
@@ -556,7 +544,7 @@
             <span style="font-weight: 500; color: #1a202c; font-size: 0.875rem;"><%= label %></span>
             <span style="color: <%= data[:color] %>; font-size: 0.875rem; font-weight: 600;">
               <% if data[:format] == 'currency' %>
-                ₹<%= number_with_delimiter(data[:value]) %>
+                <%= indian_currency(data[:value] || 0) %>
               <% elsif data[:format] == 'percentage' %>
                 <%= data[:value] %>%
               <% else %>
@@ -599,10 +587,10 @@
             <div style="font-weight: 600; color: #1a202c; margin-bottom: 0.5rem;"><%= type %></div>
             <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
               <span>Policies: <strong><%= data[:count] %></strong></span>
-              <span>Premium: <strong>₹<%= number_with_delimiter(data[:premium]) %></strong></span>
+              <span>Premium: <strong><%= indian_currency(data[:premium] || 0) %></strong></span>
             </div>
             <div style="font-size: 0.8rem; color: #718096; margin-top: 0.25rem;">
-              Avg Premium: ₹<%= number_with_delimiter(data[:avg_premium]) %>
+              Avg Premium: <%= indian_currency(data[:avg_premium] || 0) %>
             </div>
           </div>
         <% end %>
@@ -677,7 +665,7 @@
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
           <span style="font-weight: 500; color: #1a202c;">Commissions Due</span>
-          <span style="color: #8b5cf6; font-size: 0.875rem; font-weight: 600;">₹<%= (@commissions_due.to_f / 1000.0).round(1) %>K</span>
+          <span style="color: #8b5cf6; font-size: 0.875rem; font-weight: 600;"><%= indian_currency(@commissions_due || 0) %></span>
         </div>
       </div>
     </div>

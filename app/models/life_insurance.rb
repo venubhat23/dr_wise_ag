@@ -297,16 +297,16 @@ class LifeInsurance < ApplicationRecord
       third_year_gst = net_premium * (third_year_gst_percentage.to_f / 100.0)
 
       # Total premium calculation (for first year)
-      self.total_premium = net_premium + first_year_gst
+      self.total_premium = (net_premium + first_year_gst).round(2)
 
       # Commission calculations
       if main_agent_commission_percentage.present?
-        self.commission_amount = net_premium * (main_agent_commission_percentage.to_f / 100.0)
+        self.commission_amount = (net_premium * (main_agent_commission_percentage.to_f / 100.0)).round(2)
       end
 
       if commission_amount.present? && tds_percentage.present?
-        self.tds_amount = commission_amount * (tds_percentage.to_f / 100.0)
-        self.after_tds_value = commission_amount - tds_amount
+        self.tds_amount = (commission_amount * (tds_percentage.to_f / 100.0)).round(2)
+        self.after_tds_value = (commission_amount - tds_amount).round(2)
       end
 
       # Calculate new commission structure
@@ -322,74 +322,75 @@ class LifeInsurance < ApplicationRecord
 
     # Main income calculation (10% default)
     self.main_income_percentage ||= 10.0
-    self.main_income_amount = net_premium * (main_income_percentage / 100.0)
+    self.main_income_amount = (net_premium * (main_income_percentage / 100.0)).round(2)
 
     # Sub-agent commission (now Affiliate)
     self.sub_agent_commission_percentage ||= 2.0
-    self.sub_agent_commission_amount = net_premium * (sub_agent_commission_percentage / 100.0)
+    self.sub_agent_commission_amount = (net_premium * (sub_agent_commission_percentage / 100.0)).round(2)
     calculate_tds_for_sub_agent
 
     # Ambassador commission
     self.ambassador_commission_percentage ||= 2.0
-    self.ambassador_commission_amount = net_premium * (ambassador_commission_percentage / 100.0)
+    self.ambassador_commission_amount = (net_premium * (ambassador_commission_percentage / 100.0)).round(2)
     calculate_tds_for_ambassador
 
     # Distributor commission
     self.distributor_commission_percentage ||= 1.0
-    self.distributor_commission_amount = net_premium * (distributor_commission_percentage / 100.0)
+    self.distributor_commission_amount = (net_premium * (distributor_commission_percentage / 100.0)).round(2)
     calculate_tds_for_distributor
 
     # Investor commission
     self.investor_commission_percentage ||= 2.0
-    self.investor_commission_amount = net_premium * (investor_commission_percentage / 100.0)
+    self.investor_commission_amount = (net_premium * (investor_commission_percentage / 100.0)).round(2)
     calculate_tds_for_investor
 
     # Total distribution percentage
-    self.total_distribution_percentage =
+    self.total_distribution_percentage = (
       sub_agent_commission_percentage +
       ambassador_commission_percentage +
       distributor_commission_percentage +
       investor_commission_percentage
+    ).round(2)
 
     # Profit calculation
     remaining_percentage = main_income_percentage - total_distribution_percentage
-    self.profit_percentage = remaining_percentage - company_expenses_percentage
-    self.profit_amount = net_premium * (profit_percentage / 100.0)
+    self.profit_percentage = (remaining_percentage - company_expenses_percentage).round(2)
+    self.profit_amount = (net_premium * (profit_percentage / 100.0)).round(2)
   end
 
   def calculate_tds_for_sub_agent
     if sub_agent_commission_amount.present? && sub_agent_tds_percentage.present?
-      self.sub_agent_tds_amount = sub_agent_commission_amount * (sub_agent_tds_percentage / 100.0)
-      self.sub_agent_after_tds_value = sub_agent_commission_amount - sub_agent_tds_amount
+      self.sub_agent_tds_amount = (sub_agent_commission_amount * (sub_agent_tds_percentage / 100.0)).round(2)
+      self.sub_agent_after_tds_value = (sub_agent_commission_amount - sub_agent_tds_amount).round(2)
     else
-      self.sub_agent_after_tds_value = sub_agent_commission_amount
+      self.sub_agent_after_tds_value = sub_agent_commission_amount&.round(2)
     end
   end
 
   def calculate_tds_for_ambassador
     if ambassador_commission_amount.present? && ambassador_tds_percentage.present?
-      self.ambassador_tds_amount = ambassador_commission_amount * (ambassador_tds_percentage / 100.0)
-      self.ambassador_after_tds_value = ambassador_commission_amount - ambassador_tds_amount
+      self.ambassador_tds_amount = (ambassador_commission_amount * (ambassador_tds_percentage / 100.0)).round(2)
+      self.ambassador_after_tds_value = (ambassador_commission_amount - ambassador_tds_amount).round(2)
     else
-      self.ambassador_after_tds_value = ambassador_commission_amount
+      self.ambassador_after_tds_value = ambassador_commission_amount&.round(2)
     end
   end
 
   def calculate_tds_for_distributor
     if distributor_commission_amount.present? && distributor_tds_percentage.present?
-      self.distributor_tds_amount = distributor_commission_amount * (distributor_tds_percentage / 100.0)
-      self.distributor_after_tds_value = distributor_commission_amount - distributor_tds_amount
+      self.distributor_tds_amount = (distributor_commission_amount * (distributor_tds_percentage / 100.0)).round(2)
+      self.distributor_after_tds_value = (distributor_commission_amount - distributor_tds_amount).round(2)
     else
-      self.distributor_after_tds_value = distributor_commission_amount
+      self.distributor_after_tds_value = distributor_commission_amount&.round(2)
     end
   end
 
   def calculate_tds_for_investor
     if investor_commission_amount.present? && investor_tds_percentage.present?
-      self.investor_tds_amount = investor_commission_amount * (investor_tds_percentage / 100.0)
-      self.investor_after_tds_value = investor_commission_amount - investor_tds_amount
+      self.investor_tds_amount = (investor_commission_amount * (investor_tds_percentage / 100.0)).round(2)
+      self.investor_after_tds_value = (investor_commission_amount - investor_tds_amount).round(2)
     else
-      self.investor_after_tds_value = investor_commission_amount
+      self.investor_after_tds_value = investor_commission_amount&.round(2)
     end
   end
 

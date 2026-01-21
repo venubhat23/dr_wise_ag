@@ -37,6 +37,47 @@
     transform: scale(1.05);
     transition: transform 0.2s;
   }
+
+  /* Enhanced renewal button styles */
+  .btn-success.text-white.fw-bold {
+    background-color: #198754 !important;
+    border-color: #198754 !important;
+    color: white !important;
+    font-weight: bold !important;
+  }
+
+  .btn-warning.text-dark.fw-bold {
+    background-color: #ffc107 !important;
+    border-color: #ffc107 !important;
+    color: #212529 !important;
+    font-weight: bold !important;
+  }
+
+  .btn-danger {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: white !important;
+    font-weight: bold !important;
+  }
+
+  /* Hover effects for renewal buttons */
+  .btn-success.text-white.fw-bold:hover {
+    background-color: #157347 !important;
+    border-color: #146c43 !important;
+    transform: scale(1.05);
+  }
+
+  .btn-warning.text-dark.fw-bold:hover {
+    background-color: #ffcd39 !important;
+    border-color: #ffc720 !important;
+    transform: scale(1.05);
+  }
+
+  .btn-danger:hover {
+    background-color: #bb2d3b !important;
+    border-color: #b02a37 !important;
+    transform: scale(1.05);
+  }
 </style>
 
 <!-- Page Header -->
@@ -244,12 +285,19 @@
                       <!-- Show Renew button for eligible policies -->
                       <% days_to_expiry = (policy.policy_end_date - Date.current).to_i %>
                       <%
-                        # Consistent green color for all renewal buttons
-                        button_class = 'btn-success'  # Green for all renewal actions
+                        # Bright, high-contrast colors based on urgency for better visibility
+                        if days_to_expiry <= 7
+                          button_class = 'btn-danger'  # Red for urgent (7 days or less)
+                        elsif days_to_expiry <= 30
+                          button_class = 'btn-warning text-dark fw-bold'  # Yellow with dark bold text for medium urgency
+                        else
+                          button_class = 'btn-success text-white fw-bold'  # Green with white bold text for normal
+                        end
                       %>
                       <%= link_to renew_admin_health_insurance_path(policy),
                           class: "btn btn-sm #{button_class}",
-                          title: "Renew Policy (#{days_to_expiry} days to expiry)" do %>
+                          title: "Renew Policy (#{days_to_expiry} days to expiry)",
+                          style: "min-width: 70px;" do %>
                         <i class="bi bi-arrow-clockwise"></i>
                         <span class="d-none d-md-inline ms-1">Renew</span>
                       <% end %>

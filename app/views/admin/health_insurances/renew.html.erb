@@ -81,10 +81,15 @@
         <div class="col-md-4 mb-3">
           <%= form.label :policy_holder, "Policy Holder", class: "form-label" %>
           <%
+            # Build policy holder options with family members
             policy_holder_options = [['Self', 'Self']]
-            if @customer_family_members&.any?
-              @customer_family_members.each do |member|
-                policy_holder_options << ["#{member.name} (#{member.relationship.humanize})", "#{member.name}"]
+            customer_family_members = @customer_family_members || []
+
+            if customer_family_members.any?
+              customer_family_members.each do |member|
+                option_text = "#{member.name} (#{member.relationship.humanize})"
+                option_value = member.name
+                policy_holder_options << [option_text, option_value]
               end
             end
           %>
@@ -92,13 +97,19 @@
               options_for_select(policy_holder_options, @health_insurance.policy_holder),
               {},
               { class: "form-control", id: "policy_holder_select", data: { placeholder: "Type to search policy holders..." } } %>
+          <div class="form-text text-muted mt-1">
+            <small>Current selection: <strong><%= @health_insurance.policy_holder %></strong></small>
+            <% if customer_family_members.any? %>
+              <br><small class="text-info">Family members loaded: <%= customer_family_members.count %></small>
+            <% end %>
+          </div>
         </div>
 
         <div class="col-md-4 mb-3">
           <%= form.label :sub_agent_id, "Affiliate", class: "form-label" %>
           <%= form.select :sub_agent_id,
-              options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, (@auto_select_affiliate == 'self' ? '' : @auto_select_affiliate)),
-              { prompt: 'Search and select affiliate...' },
+              options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, @health_insurance.sub_agent_id || (@auto_select_affiliate == 'self' ? '' : @auto_select_affiliate)),
+              {},
               { class: "form-control", id: "affiliate_select", data: { placeholder: "Type to search affiliates..." } } %>
         </div>
       </div>
@@ -198,7 +209,9 @@
           <% if @health_insurance.errors[:policy_number].any? %>
             <div class="invalid-feedback"><%= @health_insurance.errors[:policy_number].first %></div>
           <% end %>
-          <div class="form-text">Enter a unique policy number for the renewal</div>
+          <div class="form-text text-muted">
+            <i class="bi bi-info-circle"></i> Original Policy: <strong><%= @original_policy_number %></strong> | Enter new policy number for renewal
+          </div>
         </div>
 
         <div class="col-md-4 mb-3">
@@ -358,12 +371,10 @@
       </div>
 
       <div id="family_members">
-        <% unless @health_insurance.health_insurance_members.any? %>
-          <div class="text-center py-4 text-muted" id="no_members_message">
-            <i class="bi bi-people display-4 mb-3"></i>
-            <p class="mb-0">No family members added yet.</p>
-          </div>
-        <% end %>
+        <div class="text-center py-4 text-muted" id="no_members_message" <%= @health_insurance.health_insurance_members.any? ? 'style="display: none;"' : '' %>>
+          <i class="bi bi-people display-4 mb-3"></i>
+          <p class="mb-0">No family members added yet.</p>
+        </div>
 
         <%= form.fields_for :health_insurance_members do |member_form| %>
           <div class="family-member-row border rounded p-3 mb-3 bg-light">
@@ -691,7 +702,7 @@
             <i class="bi bi-eye me-1"></i>
             View Original
           <% end %>
-          <%= form.submit "Create Renewal Policy", class: "btn btn-warning btn-lg" do %>
+          <%= form.submit "Create Renewal Policy", class: "btn btn-primary btn-lg fw-bold text-white shadow", style: "background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); border: none; min-width: 200px;" do %>
             <i class="bi bi-arrow-clockwise me-2"></i>
             Create Renewal Policy
           <% end %>
@@ -702,61 +713,568 @@
 
 <% end %>
 
-<!-- Include Select2 directly instead of using partial -->
+<!-- jQuery (required for Select2) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Select2 CSS & JS for searchable dropdown -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- Custom styling for enhanced Select2 dropdown -->
+<style>
+  .select2-container--bootstrap-5 .select2-selection--single {
+    height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+
+  .select2-container--bootstrap-5 .select2-selection--single:focus-within {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+
+  .select2-container--bootstrap-5 .select2-selection__rendered {
+    color: #495057;
+    padding-left: 12px;
+    padding-right: 20px;
+    line-height: 36px;
+  }
+
+  .select2-container--bootstrap-5 .select2-results__option {
+    padding: 8px 12px;
+  }
+
+  .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: #0d6efd;
+    color: white;
+  }
+
+  .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  }
+
+  .select2-results__options {
+    max-height: 400px !important;
+    min-height: 200px;
+  }
+
+  .select2-dropdown-large .select2-results__options {
+    max-height: 600px !important;
+    min-height: 400px !important;
+    overflow-y: auto;
+  }
+
+  .select2-dropdown-large {
+    min-width: 100% !important;
+  }
+
+  .select2-dropdown-large .select2-results__option {
+    padding: 8px 12px !important;
+    min-height: 45px;
+    display: flex;
+    align-items: center;
+  }
+
+  .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 6px 12px;
+  }
+
+  .client-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    min-height: 45px;
+  }
+
+  .client-option-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #0d6efd, #6f42c1);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 10px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .client-option-details {
+    flex: 1;
+  }
+
+  .client-option-name {
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 2px;
+  }
+
+  .client-option-id {
+    font-size: 11px;
+    color: #6c757d;
+  }
+
+  /* Affiliate option styling */
+  .affiliate-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    min-height: 45px;
+  }
+
+  .affiliate-option-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 10px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .affiliate-option-details {
+    flex: 1;
+  }
+
+  .affiliate-option-name {
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 2px;
+  }
+
+  .affiliate-option-id {
+    font-size: 11px;
+    color: #6c757d;
+  }
+
+  /* Company option styling */
+  .company-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    min-height: 45px;
+  }
+
+  .company-option-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(45deg, #dc3545, #fd7e14);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 10px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .company-option-details {
+    flex: 1;
+  }
+
+  .company-option-name {
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 2px;
+  }
+
+  .company-option-type {
+    font-size: 11px;
+    color: #6c757d;
+  }
+
+  /* Agency Code option styling */
+  .agency-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    min-height: 45px;
+  }
+
+  .agency-option-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(45deg, #6f42c1, #e83e8c);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 10px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .agency-option-details {
+    flex: 1;
+  }
+
+  .agency-option-name {
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 2px;
+  }
+
+  .agency-option-code {
+    font-size: 11px;
+    color: #6c757d;
+  }
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   try {
-    // Initialize Select2 for searchable dropdowns (similar to new form)
+    // Initialize Select2 for searchable dropdown
     $('#customer_select').select2({
       theme: 'bootstrap-5',
       placeholder: 'Search and select client...',
       allowClear: true,
       width: '100%',
       dropdownParent: $('body'),
-      minimumResultsForSearch: 0
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumResultsForSearch: 0,
+      closeOnSelect: true,
+      templateResult: function(option) {
+        if (!option.id || option.element.value === '') {
+          return option.text;
+        }
+
+        // Generate avatar with initials
+        var initials = option.text.split(' ').map(function(name) {
+          return name.charAt(0).toUpperCase();
+        }).join('').substring(0, 2);
+
+        // Custom template for dropdown options with avatar
+        var $option = $(
+          '<div class="client-option">' +
+            '<div class="client-option-avatar">' + initials + '</div>' +
+            '<div class="client-option-details">' +
+              '<div class="client-option-name">' + option.text + '</div>' +
+              '<div class="client-option-id">Client ID: #' + option.id + '</div>' +
+            '</div>' +
+          '</div>'
+        );
+        return $option;
+      },
+      templateSelection: function(option) {
+        return option.text || 'Search and select client...';
+      },
+      escapeMarkup: function(markup) {
+        return markup;
+      }
     });
 
+    // Initialize Select2 for Affiliate dropdown with AJAX search
     $('#affiliate_select').select2({
       theme: 'bootstrap-5',
       placeholder: 'Search and select affiliate...',
       allowClear: true,
       width: '100%',
-      dropdownParent: $('body')
+      dropdownParent: $('body'),
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumInputLength: 0,
+      ajax: {
+        url: '/api/v1/public/search_sub_agents',
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          var selectedCustomerId = $('#customer_select').val();
+
+          return {
+            q: params.term || '',
+            customer_id: selectedCustomerId,
+            limit: params.term ? 20 : 10
+          };
+        },
+        processResults: function (data) {
+          return {
+            results: data.results || []
+          };
+        },
+        error: function(xhr, status, error) {
+          console.error('Search affiliates AJAX error:', status, error);
+          return {
+            results: [{id: '', text: 'Error loading affiliates - please try again'}]
+          };
+        },
+        cache: false
+      },
+      templateResult: function(option) {
+        if (option.loading) return option.text;
+        if (!option.id || option.id === '') {
+          return option.text;
+        }
+
+        var initials = option.text.split(' ').map(function(name) {
+          return name.charAt(0).toUpperCase();
+        }).join('').substring(0, 2);
+
+        var $option = $(
+          '<div class="affiliate-option">' +
+            '<div class="affiliate-option-avatar">' + initials + '</div>' +
+            '<div class="affiliate-option-details">' +
+              '<div class="affiliate-option-name">' + option.text + '</div>' +
+              '<div class="affiliate-option-id">Affiliate ID: #' + option.id + '</div>' +
+            '</div>' +
+          '</div>'
+        );
+        return $option;
+      },
+      templateSelection: function(option) {
+        return option.text || 'Search and select affiliate...';
+      },
+      escapeMarkup: function(markup) {
+        return markup;
+      }
     });
 
+    // Initialize Select2 for Insurance Company dropdown
     $('#health_insurance_insurance_company_name').select2({
       theme: 'bootstrap-5',
       placeholder: 'Search and select company...',
       allowClear: true,
       width: '100%',
-      dropdownParent: $('body')
+      dropdownParent: $('body'),
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumResultsForSearch: 0,
+      closeOnSelect: true,
+      templateResult: function(option) {
+        if (!option.id || option.element.value === '') {
+          return option.text;
+        }
+
+        var initials = option.text.split(' ').map(function(word) {
+          return word.charAt(0).toUpperCase();
+        }).join('').substring(0, 3);
+
+        var $option = $(
+          '<div class="company-option">' +
+            '<div class="company-option-avatar">' + initials + '</div>' +
+            '<div class="company-option-details">' +
+              '<div class="company-option-name">' + option.text + '</div>' +
+              '<div class="company-option-type">Insurance Company</div>' +
+            '</div>' +
+          '</div>'
+        );
+        return $option;
+      },
+      templateSelection: function(option) {
+        return option.text || 'Search and select company...';
+      },
+      escapeMarkup: function(markup) {
+        return markup;
+      }
     });
 
+    // Initialize Select2 for Agency Code dropdown
     $('#health_insurance_agency_code_id').select2({
       theme: 'bootstrap-5',
       placeholder: 'Search and select agency code...',
       allowClear: true,
       width: '100%',
-      dropdownParent: $('body')
+      dropdownParent: $('body'),
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumResultsForSearch: 0,
+      closeOnSelect: true,
+      templateResult: function(option) {
+        if (!option.id || option.element.value === '') {
+          return option.text;
+        }
+
+        var parts = option.text.split(' - ');
+        var agentName = parts[0] || option.text;
+        var agencyCode = parts[1] || '';
+
+        var initials = agentName.split(' ').map(function(word) {
+          return word.charAt(0).toUpperCase();
+        }).join('').substring(0, 2);
+
+        var $option = $(
+          '<div class="agency-option">' +
+            '<div class="agency-option-avatar">' + initials + '</div>' +
+            '<div class="agency-option-details">' +
+              '<div class="agency-option-name">' + agentName + '</div>' +
+              '<div class="agency-option-code">Code: ' + agencyCode + '</div>' +
+            '</div>' +
+          '</div>'
+        );
+        return $option;
+      },
+      templateSelection: function(option) {
+        return option.text || 'Search and select agency code...';
+      },
+      escapeMarkup: function(markup) {
+        return markup;
+      }
     });
 
+    // Initialize Select2 for Policy Holder dropdown
     $('#policy_holder_select').select2({
       theme: 'bootstrap-5',
       placeholder: 'Search and select policy holder...',
       allowClear: false,
       width: '100%',
-      dropdownParent: $('body')
+      dropdownParent: $('body'),
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumResultsForSearch: 0,
+      closeOnSelect: true,
+      templateResult: function(option) {
+        if (!option.id || option.element.value === '') {
+          return option.text;
+        }
+
+        // Generate avatar with initials for policy holder
+        var initials = option.text.split(' ').map(function(name) {
+          return name.charAt(0).toUpperCase();
+        }).join('').substring(0, 2);
+
+        // Custom template for dropdown options with avatar
+        var $option = $(
+          '<div class="client-option">' +
+            '<div class="client-option-avatar">' + initials + '</div>' +
+            '<div class="client-option-details">' +
+              '<div class="client-option-name">' + option.text + '</div>' +
+              '<div class="client-option-id">Policy Holder</div>' +
+            '</div>' +
+          '</div>'
+        );
+        return $option;
+      },
+      templateSelection: function(option) {
+        return option.text || 'Search and select policy holder...';
+      },
+      escapeMarkup: function(markup) {
+        return markup;
+      }
     });
 
-    // Initialize Select2 for basic dropdowns
-    $('#insurance_type_select, #policy_type_select, #payment_mode_select, #claim_process_select').select2({
+    // Initialize Select2 for Insurance Type dropdown
+    $('#insurance_type_select').select2({
       theme: 'bootstrap-5',
+      placeholder: 'Select Insurance Type...',
       allowClear: false,
       width: '100%',
       dropdownParent: $('body'),
-      minimumResultsForSearch: -1
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumResultsForSearch: -1, // Disable search for small lists
+      closeOnSelect: true
     });
+
+    // Initialize Select2 for Policy Type dropdown
+    $('#policy_type_select').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Select Policy Type...',
+      allowClear: false,
+      width: '100%',
+      dropdownParent: $('body'),
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumResultsForSearch: -1, // Disable search for small lists
+      closeOnSelect: true
+    });
+
+    // Initialize Select2 for Payment Mode dropdown
+    $('#payment_mode_select').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Select Payment Mode...',
+      allowClear: false,
+      width: '100%',
+      dropdownParent: $('body'),
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumResultsForSearch: -1, // Disable search for small lists
+      closeOnSelect: true
+    });
+
+    // Initialize Select2 for Claim Process dropdown
+    $('#claim_process_select').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Select Claim Process...',
+      allowClear: false,
+      width: '100%',
+      dropdownParent: $('body'),
+      dropdownCssClass: 'select2-dropdown-large',
+      minimumResultsForSearch: -1, // Disable search for small lists
+      closeOnSelect: true
+    });
+
+    // Load policy holder options when customer changes (simplified like edit page)
+    function loadPolicyHolderOptions() {
+      const customerId = document.getElementById('customer_select').value;
+      const policyHolderSelect = document.getElementById('policy_holder_select');
+
+      if (customerId) {
+        // Clear current options and show loading
+        policyHolderSelect.innerHTML = '<option value="">Loading...</option>';
+
+        fetch(`/admin/insurance/health/policy_holder_options?customer_id=${customerId}`)
+          .then(response => response.json())
+          .then(data => {
+            policyHolderSelect.innerHTML = '<option value="">Select Policy Holder</option>';
+            data.options.forEach(option => {
+              const optionElement = new Option(option.label, option.value);
+              policyHolderSelect.add(optionElement);
+            });
+          })
+          .catch(error => {
+            console.error('Error loading policy holder options:', error);
+            policyHolderSelect.innerHTML = '<option value="">Error loading options</option>';
+          });
+      } else {
+        // If no customer selected, show default options
+        policyHolderSelect.innerHTML = '<option value="">Select Policy Holder</option><option value="Self">Self</option>';
+      }
+    }
+
+    // Use Select2 event listener instead of native event
+    $('#customer_select').on('select2:select', function(e) {
+      loadPolicyHolderOptions();
+      $('#affiliate_select').val(null).trigger('change');
+      var selectedCustomerId = this.value;
+      if (selectedCustomerId) {
+        console.log('Customer selected, filtering affiliates for customer ID:', selectedCustomerId);
+      }
+    });
+
+    // Handle customer clearing
+    $('#customer_select').on('select2:clear', function(e) {
+      $('#affiliate_select').val(null).trigger('change');
+      console.log('Customer cleared, showing all affiliates');
+    });
+
+    // Set initial policy holder value after Select2 initialization
+    setTimeout(function() {
+      console.log('🚀 Setting initial policy holder value...');
+      <% if @health_insurance.policy_holder.present? %>
+        const policyHolderValue = '<%= @health_insurance.policy_holder %>';
+        console.log('Setting policy holder to:', policyHolderValue);
+
+        // Check if the option exists in the dropdown
+        const optionExists = $('#policy_holder_select option[value="' + policyHolderValue + '"]').length > 0;
+        console.log('Policy holder option exists:', optionExists);
+
+        if (optionExists) {
+          $('#policy_holder_select').val(policyHolderValue).trigger('change');
+          console.log('✅ Policy holder value set successfully');
+        } else {
+          console.warn('Policy holder option not found in dropdown');
+        }
+      <% end %>
+    }, 500); // Shorter delay since options are pre-loaded
 
     // Sum Insured Text Handler
     function parseIndianAmountText(text) {
@@ -823,24 +1341,551 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
 
-    // Family member functionality
-    let memberIndex = 1000; // Start with high number to avoid conflicts
+    } else {
+      console.log('⚠️  jQuery or Select2 not available, using basic dropdown functionality');
+      console.log('   Enhanced dropdowns will not be initialized');
+    }
 
-    function toggleNoMembersMessage() {
-      const memberRows = document.querySelectorAll('.family-member-row');
-      const noMembersMsg = document.getElementById('no_members_message');
-      if (noMembersMsg) {
-        if (memberRows.length === 0) {
-          noMembersMsg.style.display = 'block';
-        } else {
-          noMembersMsg.style.display = 'none';
+
+    // Auto-fill autopay dates based on policy dates
+    function autoFillAutopayDates() {
+      const policyStartDate = document.getElementById('start_date')?.value;
+      const policyEndDate = document.getElementById('end_date')?.value;
+
+      const autopayStartField = document.querySelector('input[name="health_insurance[installment_autopay_start_date]"]');
+      const autopayEndField = document.querySelector('input[name="health_insurance[installment_autopay_end_date]"]');
+
+      if (policyStartDate && autopayStartField) {
+        autopayStartField.value = policyStartDate;
+        console.log('Auto-filled autopay start date:', policyStartDate);
+      }
+
+      if (policyEndDate && autopayEndField) {
+        autopayEndField.value = policyEndDate;
+        console.log('Auto-filled autopay end date:', policyEndDate);
+      }
+    }
+
+    // Auto-calculate total premium
+    function calculateTotalPremium() {
+      const netPremiumField = document.getElementById('net_premium');
+      const gstField = document.getElementById('gst_percentage');
+      const totalPremiumField = document.getElementById('total_premium');
+
+      console.log('calculateTotalPremium called');
+      console.log('Net Premium field:', netPremiumField);
+      console.log('GST field:', gstField);
+      console.log('Total Premium field:', totalPremiumField);
+
+      if (!netPremiumField || !gstField || !totalPremiumField) {
+        console.error('One or more required fields not found!');
+        return;
+      }
+
+      const netPremium = parseFloat(netPremiumField.value) || 0;
+      // Default GST to 18% if field is empty
+      let gstPercentage = parseFloat(gstField.value);
+      if (isNaN(gstPercentage) || gstField.value === '') {
+        gstPercentage = 18.0;
+        gstField.value = '18.0';
+      }
+
+      console.log('Net Premium value:', netPremium);
+      console.log('GST Percentage:', gstPercentage);
+
+      const gstAmount = netPremium * (gstPercentage / 100);
+      const totalPremium = netPremium + gstAmount;
+
+      console.log('GST Amount:', gstAmount);
+      console.log('Total Premium:', totalPremium);
+
+      // Force update the readonly field
+      totalPremiumField.readOnly = false;
+      totalPremiumField.value = totalPremium.toFixed(2);
+      totalPremiumField.readOnly = true;
+
+      console.log('Total Premium field updated to:', totalPremium.toFixed(2));
+    }
+
+    // Auto-calculate commission amounts
+    function calculateCommission() {
+      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
+      const commissionPercentage = parseFloat(document.getElementById('commission_percentage')?.value) || 0;
+      const tdsPercentage = parseFloat(document.getElementById('tds_percentage')?.value) || 0;
+
+      const commissionAmount = netPremium * (commissionPercentage / 100);
+      const tdsAmount = commissionAmount * (tdsPercentage / 100);
+      const afterTdsValue = commissionAmount - tdsAmount;
+
+      const commissionField = document.getElementById('commission_amount');
+      if (commissionField) {
+        commissionField.removeAttribute('readonly');
+        commissionField.value = commissionAmount.toFixed(2);
+        commissionField.setAttribute('readonly', true);
+      }
+
+      const tdsField = document.getElementById('tds_amount');
+      if (tdsField) {
+        tdsField.removeAttribute('readonly');
+        tdsField.value = tdsAmount.toFixed(2);
+        tdsField.setAttribute('readonly', true);
+      }
+
+      const afterTdsField = document.getElementById('after_tds_value');
+      if (afterTdsField) {
+        afterTdsField.removeAttribute('readonly');
+        afterTdsField.value = afterTdsValue.toFixed(2);
+        afterTdsField.setAttribute('readonly', true);
+      }
+    }
+
+    // Auto-calculate sub-agent commission
+    function calculateSubAgentCommission() {
+      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
+      const commissionPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage')?.value) || 0;
+      const tdsPercentage = parseFloat(document.querySelector('.sub-agent-tds-percentage')?.value) || 0;
+
+      const commissionAmount = netPremium * (commissionPercentage / 100);
+      const tdsAmount = commissionAmount * (tdsPercentage / 100);
+      const afterTdsValue = commissionAmount - tdsAmount;
+
+      const commissionField = document.querySelector('.sub-agent-commission-amount');
+      if (commissionField) {
+        commissionField.removeAttribute('readonly');
+        commissionField.value = commissionAmount.toFixed(2);
+        commissionField.setAttribute('readonly', true);
+      }
+      const tdsField = document.querySelector('.sub-agent-tds-amount');
+      if (tdsField) {
+        tdsField.removeAttribute('readonly');
+        tdsField.value = tdsAmount.toFixed(2);
+        tdsField.setAttribute('readonly', true);
+      }
+      const afterTdsField = document.querySelector('.sub-agent-after-tds-value');
+      if (afterTdsField) {
+        afterTdsField.removeAttribute('readonly');
+        afterTdsField.value = afterTdsValue.toFixed(2);
+        afterTdsField.setAttribute('readonly', true);
+      }
+    }
+
+    // Auto-calculate investor commission
+    function calculateInvestorCommission() {
+      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
+      const commissionPercentage = parseFloat(document.querySelector('.investor-commission-percentage')?.value) || 0;
+      const tdsPercentage = parseFloat(document.querySelector('.investor-tds-percentage')?.value) || 0;
+
+      const commissionAmount = netPremium * (commissionPercentage / 100);
+      const tdsAmount = commissionAmount * (tdsPercentage / 100);
+      const afterTdsValue = commissionAmount - tdsAmount;
+
+      const commissionField = document.querySelector('.investor-commission-amount');
+      if (commissionField) {
+        commissionField.removeAttribute('readonly');
+        commissionField.value = commissionAmount.toFixed(2);
+        commissionField.setAttribute('readonly', true);
+      }
+      const tdsField = document.querySelector('.investor-tds-amount');
+      if (tdsField) {
+        tdsField.removeAttribute('readonly');
+        tdsField.value = tdsAmount.toFixed(2);
+        tdsField.setAttribute('readonly', true);
+      }
+      const afterTdsField = document.querySelector('.investor-after-tds-value');
+      if (afterTdsField) {
+        afterTdsField.removeAttribute('readonly');
+        afterTdsField.value = afterTdsValue.toFixed(2);
+        afterTdsField.setAttribute('readonly', true);
+      }
+    }
+
+    // Auto-calculate ambassador commission
+    function calculateAmbassadorCommission() {
+      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
+      const commissionPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage')?.value) || 0;
+      const tdsPercentage = parseFloat(document.querySelector('.ambassador-tds-percentage')?.value) || 0;
+
+      const commissionAmount = netPremium * (commissionPercentage / 100);
+      const tdsAmount = commissionAmount * (tdsPercentage / 100);
+      const afterTdsValue = commissionAmount - tdsAmount;
+
+      const commissionField = document.querySelector('.ambassador-commission-amount');
+      if (commissionField) {
+        commissionField.removeAttribute('readonly');
+        commissionField.value = commissionAmount.toFixed(2);
+        commissionField.setAttribute('readonly', true);
+      }
+      const tdsField = document.querySelector('.ambassador-tds-amount');
+      if (tdsField) {
+        tdsField.removeAttribute('readonly');
+        tdsField.value = tdsAmount.toFixed(2);
+        tdsField.setAttribute('readonly', true);
+      }
+      const afterTdsField = document.querySelector('.ambassador-after-tds-value');
+      if (afterTdsField) {
+        afterTdsField.removeAttribute('readonly');
+        afterTdsField.value = afterTdsValue.toFixed(2);
+        afterTdsField.setAttribute('readonly', true);
+      }
+    }
+
+    // Calculate company expenses and profit
+    function calculateProfitAndExpenses() {
+      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
+      const mainAgentCommissionPercentage = parseFloat(document.getElementById('commission_percentage')?.value) || 0;
+
+      const subAgentPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage')?.value) || 2.0;
+      const investorPercentage = parseFloat(document.querySelector('.investor-commission-percentage')?.value) || 2.0;
+      const companyExpensesPercentage = parseFloat(document.querySelector('.company-expenses-percentage')?.value) || 2.0;
+      const ambassadorPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage')?.value) || 2.0;
+
+      const totalDistributionPercentage = subAgentPercentage + investorPercentage + ambassadorPercentage;
+      const profitPercentage = mainAgentCommissionPercentage - totalDistributionPercentage - companyExpensesPercentage;
+      const profitAmount = netPremium * (profitPercentage / 100);
+
+      if (document.querySelector('.total-distribution-percentage')) {
+        document.querySelector('.total-distribution-percentage').value = totalDistributionPercentage.toFixed(2);
+      }
+      if (document.querySelector('.profit-percentage')) {
+        document.querySelector('.profit-percentage').value = profitPercentage.toFixed(2);
+      }
+      if (document.querySelector('.profit-amount')) {
+        document.querySelector('.profit-amount').value = profitAmount.toFixed(2);
+      }
+    }
+
+    // Calculate all commissions when net premium changes
+    function calculateAllCommissions() {
+      console.log('Calculating all commissions for net premium:', document.getElementById('net_premium')?.value);
+      calculateCommission();
+      calculateSubAgentCommission();
+      calculateInvestorCommission();
+      calculateAmbassadorCommission();
+      calculateProfitAndExpenses();
+    }
+
+    // Enhanced auto-calculation for renewal dates based on payment mode
+    function formatDateForInput(date) {
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${month}/${day}/${year}`;
+    }
+
+    function parseInputDate(dateString) {
+      if (!dateString) return null;
+      // Handle MM/DD/YYYY format
+      if (dateString.includes('/')) {
+        return new Date(dateString);
+      }
+      // Handle YYYY-MM-DD format
+      return new Date(dateString);
+    }
+
+    function calculateRenewalDates() {
+      console.log('🔄 Calculating renewal dates...');
+
+      // Get the original policy end date (from the renewal form data)
+      const originalEndDate = document.getElementById('health_insurance_policy_end_date')?.value;
+      const paymentMode = document.getElementById('payment_mode_select')?.value ||
+                         document.getElementById('health_insurance_payment_mode')?.value;
+
+      console.log('Original end date:', originalEndDate);
+      console.log('Payment mode:', paymentMode);
+
+      if (!originalEndDate) {
+        console.warn('No original end date found');
+        return;
+      }
+
+      // Calculate Policy Start Date (day after original policy ends)
+      const endDate = parseInputDate(originalEndDate);
+      if (!endDate) {
+        console.warn('Could not parse original end date:', originalEndDate);
+        return;
+      }
+
+      const startDate = new Date(endDate);
+      startDate.setDate(startDate.getDate() + 1);
+
+      // Set Policy Start Date
+      const startDateField = document.getElementById('health_insurance_policy_start_date') ||
+                            document.getElementById('start_date');
+      if (startDateField) {
+        startDateField.value = formatDateForInput(startDate);
+        console.log('✅ Policy Start Date set to:', formatDateForInput(startDate));
+      }
+
+      // Calculate Policy End Date based on Payment Mode
+      const newEndDate = new Date(startDate);
+
+      switch(paymentMode) {
+        case 'Yearly':
+        case 'Annual':
+          newEndDate.setFullYear(newEndDate.getFullYear() + 1);
+          newEndDate.setDate(newEndDate.getDate() - 1);
+          break;
+        case 'Half Yearly':
+        case 'Semi-Annual':
+          newEndDate.setMonth(newEndDate.getMonth() + 6);
+          newEndDate.setDate(newEndDate.getDate() - 1);
+          break;
+        case 'Quarterly':
+          newEndDate.setMonth(newEndDate.getMonth() + 3);
+          newEndDate.setDate(newEndDate.getDate() - 1);
+          break;
+        case 'Monthly':
+          newEndDate.setMonth(newEndDate.getMonth() + 1);
+          newEndDate.setDate(newEndDate.getDate() - 1);
+          break;
+        default:
+          // Default to yearly
+          newEndDate.setFullYear(newEndDate.getFullYear() + 1);
+          newEndDate.setDate(newEndDate.getDate() - 1);
+          console.log('Using default yearly calculation for payment mode:', paymentMode);
+      }
+
+      // Set Policy End Date
+      const endDateField = document.getElementById('health_insurance_policy_end_date') ||
+                          document.getElementById('end_date');
+      if (endDateField) {
+        endDateField.value = formatDateForInput(newEndDate);
+        console.log('✅ Policy End Date set to:', formatDateForInput(newEndDate));
+      }
+
+      // Set default Autopay Start Date to today
+      setDefaultAutopayStartDate();
+
+      // Calculate Autopay End Date
+      calculateAutopayEndDate();
+    }
+
+    function setDefaultAutopayStartDate() {
+      const autopayStartField = document.getElementById('health_insurance_installment_autopay_start_date') ||
+                               document.getElementById('autopay_start_date');
+
+      if (autopayStartField && !autopayStartField.value) {
+        const today = new Date();
+        autopayStartField.value = formatDateForInput(today);
+        console.log('✅ Autopay Start Date set to today:', formatDateForInput(today));
+      }
+    }
+
+    function calculateAutopayEndDate() {
+      const autopayStartField = document.getElementById('health_insurance_installment_autopay_start_date') ||
+                               document.getElementById('autopay_start_date');
+      const autopayEndField = document.getElementById('health_insurance_installment_autopay_end_date') ||
+                             document.getElementById('autopay_end_date');
+      const paymentMode = document.getElementById('payment_mode_select')?.value ||
+                         document.getElementById('health_insurance_payment_mode')?.value;
+
+      if (!autopayStartField?.value || !paymentMode || !autopayEndField) {
+        return;
+      }
+
+      console.log('🔄 Calculating autopay end date...');
+      console.log('Autopay start:', autopayStartField.value);
+      console.log('Payment mode:', paymentMode);
+
+      const startDate = parseInputDate(autopayStartField.value);
+      if (!startDate) return;
+
+      const endDate = new Date(startDate);
+
+      // Calculate autopay end date based on payment frequency
+      switch(paymentMode) {
+        case 'Yearly':
+        case 'Annual':
+          endDate.setFullYear(endDate.getFullYear() + 1);
+          break;
+        case 'Half Yearly':
+        case 'Semi-Annual':
+          endDate.setMonth(endDate.getMonth() + 6);
+          break;
+        case 'Quarterly':
+          endDate.setMonth(endDate.getMonth() + 3);
+          break;
+        case 'Monthly':
+          endDate.setMonth(endDate.getMonth() + 1);
+          break;
+        default:
+          endDate.setFullYear(endDate.getFullYear() + 1);
+      }
+
+      autopayEndField.value = formatDateForInput(endDate);
+      console.log('✅ Autopay End Date set to:', formatDateForInput(endDate));
+    }
+
+    // Auto-calculate end date (legacy function for backward compatibility)
+    function calculateEndDate() {
+      const startDate = document.getElementById('start_date')?.value;
+      if (startDate) {
+        const start = new Date(startDate);
+        const end = new Date(start);
+        end.setFullYear(end.getFullYear() + 1);
+        end.setDate(end.getDate() - 1);
+        if (document.getElementById('end_date')) {
+          document.getElementById('end_date').value = end.toISOString().split('T')[0];
         }
       }
     }
 
-    // Add family member functionality
-    if (document.getElementById('add_family_member')) {
-      document.getElementById('add_family_member').addEventListener('click', function() {
+    // Event listeners
+    const netPremiumInput = document.getElementById('net_premium');
+    console.log('Setting up Net Premium event listener...');
+    console.log('Net Premium input field:', netPremiumInput);
+
+    if (netPremiumInput) {
+      // Use both input and change events to ensure it works
+      netPremiumInput.addEventListener('input', function(e) {
+        console.log('Net Premium input event triggered, value:', e.target.value);
+        calculateTotalPremium();
+        calculateAllCommissions();
+      });
+
+      netPremiumInput.addEventListener('change', function(e) {
+        console.log('Net Premium change event triggered, value:', e.target.value);
+        calculateTotalPremium();
+        calculateAllCommissions();
+      });
+
+      console.log('Event listeners attached to net_premium field');
+    } else {
+      console.error('net_premium field not found - cannot attach event listeners!');
+    }
+    if (document.getElementById('gst_percentage')) {
+      document.getElementById('gst_percentage').addEventListener('input', calculateTotalPremium);
+    }
+    if (document.getElementById('commission_percentage')) {
+      document.getElementById('commission_percentage').addEventListener('input', function() {
+        calculateCommission();
+        calculateProfitAndExpenses();
+      });
+    }
+    if (document.getElementById('tds_percentage')) {
+      document.getElementById('tds_percentage').addEventListener('input', calculateCommission);
+    }
+    if (document.getElementById('start_date')) {
+      document.getElementById('start_date').addEventListener('change', calculateEndDate);
+    }
+
+    // Auto-fill autopay dates when policy dates change
+    if (document.getElementById('start_date')) {
+      document.getElementById('start_date').addEventListener('change', autoFillAutopayDates);
+    }
+    if (document.getElementById('end_date')) {
+      document.getElementById('end_date').addEventListener('change', autoFillAutopayDates);
+    }
+
+    // Initial auto-fill of autopay dates on page load
+    autoFillAutopayDates();
+
+    // Enhanced Payment Mode change listeners (for both regular and Select2 dropdowns)
+    function setupPaymentModeListeners() {
+      const paymentModeSelect = document.getElementById('payment_mode_select') ||
+                               document.getElementById('health_insurance_payment_mode');
+
+      if (paymentModeSelect) {
+        // Regular dropdown change event
+        paymentModeSelect.addEventListener('change', function() {
+          console.log('Payment Mode changed to:', this.value);
+          setTimeout(() => {
+            calculateRenewalDates();
+          }, 100);
+        });
+
+        // Select2 specific events
+        if (typeof $ !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
+          $(paymentModeSelect).on('select2:select', function() {
+            console.log('Payment Mode changed via Select2 to:', this.value);
+            setTimeout(() => {
+              calculateRenewalDates();
+            }, 100);
+          });
+        }
+
+        console.log('✅ Payment Mode event listeners attached');
+      }
+    }
+
+    // Autopay start date change listeners
+    function setupAutopayStartDateListeners() {
+      const autopayStartFields = [
+        'health_insurance_installment_autopay_start_date',
+        'autopay_start_date'
+      ];
+
+      autopayStartFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+          field.addEventListener('change', function() {
+            console.log('Autopay Start Date changed to:', this.value);
+            calculateAutopayEndDate();
+          });
+          console.log(`✅ Autopay Start Date listener attached to ${fieldId}`);
+        }
+      });
+    }
+
+    // Setup all date calculation event listeners
+    setupPaymentModeListeners();
+    setupAutopayStartDateListeners();
+
+    // Sub-agent commission event listeners
+    if (document.querySelector('.sub-agent-commission-percentage')) {
+      document.querySelector('.sub-agent-commission-percentage').addEventListener('input', function() {
+        calculateSubAgentCommission();
+        calculateProfitAndExpenses();
+      });
+    }
+    if (document.querySelector('.sub-agent-tds-percentage')) {
+      document.querySelector('.sub-agent-tds-percentage').addEventListener('input', calculateSubAgentCommission);
+    }
+
+    // Investor commission event listeners
+    if (document.querySelector('.investor-commission-percentage')) {
+      document.querySelector('.investor-commission-percentage').addEventListener('input', function() {
+        calculateInvestorCommission();
+        calculateProfitAndExpenses();
+      });
+    }
+    if (document.querySelector('.investor-tds-percentage')) {
+      document.querySelector('.investor-tds-percentage').addEventListener('input', calculateInvestorCommission);
+    }
+
+    // Ambassador commission event listeners
+    if (document.querySelector('.ambassador-commission-percentage')) {
+      document.querySelector('.ambassador-commission-percentage').addEventListener('input', function() {
+        calculateAmbassadorCommission();
+        calculateProfitAndExpenses();
+      });
+    }
+    if (document.querySelector('.ambassador-tds-percentage')) {
+      document.querySelector('.ambassador-tds-percentage').addEventListener('input', calculateAmbassadorCommission);
+    }
+
+    // Family Members Management (copied from working edit page)
+    let memberIndex = <%= @health_insurance.health_insurance_members.length %>;
+    console.log('Family Members - Initial memberIndex:', memberIndex);
+
+    function toggleNoMembersMessage() {
+      const memberRows = document.querySelectorAll('.family-member-row');
+      const noMembersMsg = document.getElementById('no_members_message');
+
+      if (memberRows.length === 0 || Array.from(memberRows).every(row => row.style.display === 'none')) {
+        if (noMembersMsg) noMembersMsg.style.display = 'block';
+      } else {
+        if (noMembersMsg) noMembersMsg.style.display = 'none';
+      }
+    }
+
+    // Add Family Member functionality (copied from working edit page)
+    const addFamilyBtn = document.getElementById('add_family_member');
+    console.log('ADD MEMBER button found:', addFamilyBtn);
+
+    if (addFamilyBtn) {
+      addFamilyBtn.addEventListener('click', function() {
+        console.log('✅ ADD MEMBER button clicked! Current memberIndex:', memberIndex);
         const memberTemplate = `
           <div class="family-member-row border rounded p-3 mb-3 bg-light">
             <div class="row">
@@ -879,10 +1924,14 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
           </div>
         `;
+
         document.getElementById('family_members').insertAdjacentHTML('beforeend', memberTemplate);
         memberIndex++;
         toggleNoMembersMessage();
+        console.log('✅ Family member added, new memberIndex:', memberIndex);
       });
+    } else {
+      console.error('❌ ADD MEMBER button not found!');
     }
 
     // Remove family member
@@ -890,6 +1939,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (e.target.closest('.remove-member-btn')) {
         const memberRow = e.target.closest('.family-member-row');
         const destroyInput = memberRow.querySelector('input[name*="_destroy"]');
+
         if (destroyInput) {
           destroyInput.value = '1';
           memberRow.style.display = 'none';
@@ -897,229 +1947,29 @@ document.addEventListener('DOMContentLoaded', function() {
           memberRow.remove();
         }
         toggleNoMembersMessage();
+        console.log('✅ Family member removed');
       }
     });
 
-    // Auto-calculate total premium
-    function calculateTotalPremium() {
-      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
-      const gstPercentage = parseFloat(document.getElementById('gst_percentage')?.value) || 0;
-      const gstAmount = netPremium * (gstPercentage / 100);
-      const totalPremium = netPremium + gstAmount;
-      if (document.getElementById('total_premium')) {
-        document.getElementById('total_premium').value = totalPremium.toFixed(2);
-      }
-    }
+    // Initialize calculations after a short delay to ensure DOM is ready
+    setTimeout(function() {
+      console.log('🚀 Running initial renewal form calculations...');
 
-    // Auto-calculate commission amounts
-    function calculateCommission() {
-      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
-      const commissionPercentage = parseFloat(document.getElementById('commission_percentage')?.value) || 0;
-      const tdsPercentage = parseFloat(document.getElementById('tds_percentage')?.value) || 0;
+      // Set default autopay start date first
+      setDefaultAutopayStartDate();
 
-      const commissionAmount = netPremium * (commissionPercentage / 100);
-      const tdsAmount = commissionAmount * (tdsPercentage / 100);
-      const afterTdsValue = commissionAmount - tdsAmount;
+      // Calculate renewal dates based on original policy
+      calculateRenewalDates();
 
-      if (document.getElementById('commission_amount')) {
-        document.getElementById('commission_amount').value = commissionAmount.toFixed(2);
-      }
-      if (document.getElementById('tds_amount')) {
-        document.getElementById('tds_amount').value = tdsAmount.toFixed(2);
-      }
-      if (document.getElementById('after_tds_value')) {
-        document.getElementById('after_tds_value').value = afterTdsValue.toFixed(2);
-      }
-    }
+      // Calculate financial amounts
+      calculateTotalPremium();
+      calculateAllCommissions();
 
-    // Auto-calculate sub-agent commission
-    function calculateSubAgentCommission() {
-      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
-      const commissionPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage')?.value) || 2.0;
-      const tdsPercentage = parseFloat(document.querySelector('.sub-agent-tds-percentage')?.value) || 0;
+      console.log('✅ Initial calculations completed');
+    }, 500); // Increased delay to ensure DOM and Select2 are ready
 
-      const commissionAmount = netPremium * (commissionPercentage / 100);
-      const tdsAmount = commissionAmount * (tdsPercentage / 100);
-      const afterTdsValue = commissionAmount - tdsAmount;
-
-      if (document.querySelector('.sub-agent-commission-amount')) {
-        document.querySelector('.sub-agent-commission-amount').value = commissionAmount.toFixed(2);
-      }
-      if (document.querySelector('.sub-agent-tds-amount')) {
-        document.querySelector('.sub-agent-tds-amount').value = tdsAmount.toFixed(2);
-      }
-      if (document.querySelector('.sub-agent-after-tds-value')) {
-        document.querySelector('.sub-agent-after-tds-value').value = afterTdsValue.toFixed(2);
-      }
-    }
-
-    // Auto-calculate investor commission
-    function calculateInvestorCommission() {
-      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
-      const commissionPercentage = parseFloat(document.querySelector('.investor-commission-percentage')?.value) || 2.0;
-      const tdsPercentage = parseFloat(document.querySelector('.investor-tds-percentage')?.value) || 0;
-
-      const commissionAmount = netPremium * (commissionPercentage / 100);
-      const tdsAmount = commissionAmount * (tdsPercentage / 100);
-      const afterTdsValue = commissionAmount - tdsAmount;
-
-      if (document.querySelector('.investor-commission-amount')) {
-        document.querySelector('.investor-commission-amount').value = commissionAmount.toFixed(2);
-      }
-      if (document.querySelector('.investor-tds-amount')) {
-        document.querySelector('.investor-tds-amount').value = tdsAmount.toFixed(2);
-      }
-      if (document.querySelector('.investor-after-tds-value')) {
-        document.querySelector('.investor-after-tds-value').value = afterTdsValue.toFixed(2);
-      }
-    }
-
-    // Auto-calculate ambassador commission
-    function calculateAmbassadorCommission() {
-      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
-      const commissionPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage')?.value) || 2.0;
-      const tdsPercentage = parseFloat(document.querySelector('.ambassador-tds-percentage')?.value) || 0;
-
-      const commissionAmount = netPremium * (commissionPercentage / 100);
-      const tdsAmount = commissionAmount * (tdsPercentage / 100);
-      const afterTdsValue = commissionAmount - tdsAmount;
-
-      if (document.querySelector('.ambassador-commission-amount')) {
-        document.querySelector('.ambassador-commission-amount').value = commissionAmount.toFixed(2);
-      }
-      if (document.querySelector('.ambassador-tds-amount')) {
-        document.querySelector('.ambassador-tds-amount').value = tdsAmount.toFixed(2);
-      }
-      if (document.querySelector('.ambassador-after-tds-value')) {
-        document.querySelector('.ambassador-after-tds-value').value = afterTdsValue.toFixed(2);
-      }
-    }
-
-    // Calculate company expenses and profit
-    function calculateProfitAndExpenses() {
-      const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
-      const mainAgentCommissionPercentage = parseFloat(document.getElementById('commission_percentage')?.value) || 0;
-
-      const subAgentPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage')?.value) || 2.0;
-      const investorPercentage = parseFloat(document.querySelector('.investor-commission-percentage')?.value) || 2.0;
-      const companyExpensesPercentage = parseFloat(document.querySelector('.company-expenses-percentage')?.value) || 2.0;
-      const ambassadorPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage')?.value) || 2.0;
-
-      const totalDistributionPercentage = subAgentPercentage + investorPercentage + ambassadorPercentage;
-      const profitPercentage = mainAgentCommissionPercentage - totalDistributionPercentage - companyExpensesPercentage;
-      const profitAmount = netPremium * (profitPercentage / 100);
-
-      if (document.querySelector('.total-distribution-percentage')) {
-        document.querySelector('.total-distribution-percentage').value = totalDistributionPercentage.toFixed(2);
-      }
-      if (document.querySelector('.profit-percentage')) {
-        document.querySelector('.profit-percentage').value = profitPercentage.toFixed(2);
-      }
-      if (document.querySelector('.profit-amount')) {
-        document.querySelector('.profit-amount').value = profitAmount.toFixed(2);
-      }
-    }
-
-    // Calculate all commissions when net premium changes
-    function calculateAllCommissions() {
-      calculateCommission();
-      calculateSubAgentCommission();
-      calculateInvestorCommission();
-      calculateAmbassadorCommission();
-      calculateProfitAndExpenses();
-    }
-
-    // Auto-calculate autopay end date based on payment mode
-    function calculateAutopayEndDate() {
-      const paymentMode = document.getElementById('payment_mode_select')?.value;
-      const startDate = document.getElementById('autopay_start_date')?.value;
-
-      if (startDate && paymentMode) {
-        const start = new Date(startDate);
-        const end = new Date(start);
-
-        switch (paymentMode) {
-          case 'Yearly':
-            end.setFullYear(end.getFullYear() + 1);
-            break;
-          case 'Half-Yearly':
-            end.setMonth(end.getMonth() + 6);
-            break;
-          case 'Quarterly':
-            end.setMonth(end.getMonth() + 3);
-            break;
-          case 'Monthly':
-            end.setMonth(end.getMonth() + 1);
-            break;
-        }
-
-        end.setDate(end.getDate() - 1);
-        if (document.getElementById('autopay_end_date')) {
-          document.getElementById('autopay_end_date').value = end.toISOString().split('T')[0];
-        }
-      }
-    }
-
-    // Auto-calculate end date
-    function calculateEndDate() {
-      const startDate = document.getElementById('start_date')?.value;
-      if (startDate) {
-        const start = new Date(startDate);
-        const end = new Date(start);
-        end.setFullYear(end.getFullYear() + 1);
-        end.setDate(end.getDate() - 1);
-        if (document.getElementById('end_date')) {
-          document.getElementById('end_date').value = end.toISOString().split('T')[0];
-        }
-      }
-    }
-
-    // Event listeners
-    if (document.getElementById('net_premium')) {
-      document.getElementById('net_premium').addEventListener('input', function() {
-        calculateTotalPremium();
-        calculateAllCommissions();
-      });
-    }
-    if (document.getElementById('gst_percentage')) {
-      document.getElementById('gst_percentage').addEventListener('input', calculateTotalPremium);
-    }
-    if (document.getElementById('commission_percentage')) {
-      document.getElementById('commission_percentage').addEventListener('input', function() {
-        calculateCommission();
-        calculateProfitAndExpenses();
-      });
-    }
-    if (document.getElementById('tds_percentage')) {
-      document.getElementById('tds_percentage').addEventListener('input', calculateCommission);
-    }
-    if (document.getElementById('start_date')) {
-      document.getElementById('start_date').addEventListener('change', calculateEndDate);
-    }
-
-    // Autopay date calculation event listeners
-    if (document.getElementById('payment_mode_select')) {
-      document.getElementById('payment_mode_select').addEventListener('change', calculateAutopayEndDate);
-    }
-    if (document.getElementById('autopay_start_date')) {
-      document.getElementById('autopay_start_date').addEventListener('change', calculateAutopayEndDate);
-    }
-
-    // Sub-agent commission event listeners
-    if (document.querySelector('.sub-agent-commission-percentage')) {
-      document.querySelector('.sub-agent-commission-percentage').addEventListener('input', function() {
-        calculateSubAgentCommission();
-        calculateProfitAndExpenses();
-      });
-    }
-    if (document.querySelector('.sub-agent-tds-percentage')) {
-      document.querySelector('.sub-agent-tds-percentage').addEventListener('input', calculateSubAgentCommission);
-    }
-
-    // Initialize calculations
-    calculateTotalPremium();
-    calculateAllCommissions();
-    calculateAutopayEndDate();
+    // Initialize the no members message state (must be after DOM is ready)
+    toggleNoMembersMessage();
 
   } catch (error) {
     console.warn('Health insurance renewal form initialization error:', error.message);

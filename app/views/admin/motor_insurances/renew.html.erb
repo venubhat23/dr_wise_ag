@@ -329,56 +329,90 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('🔧 Initializing renewal form broker/agency selection...');
 
   // Store the original policy values for renewal
-  const originalAgencyCodeId = '<%= @motor_insurance.agency_code_id %>';
-  const originalBrokerId = '<%= @motor_insurance.broker_id %>';
-  const originalBrokerCodeType = '<%= @motor_insurance.broker_code_type %>';
+  const originalAgencyCodeId = '<%= @renewed_policy.agency_code_id %>';
+  const originalBrokerId = '<%= @renewed_policy.broker_id %>';
+  const originalBrokerCodeType = '<%= @renewed_policy.broker_code_type %>';
+  const originalInsuranceCompany = '<%= @renewed_policy.insurance_company_name %>';
 
-  console.log('Original policy values:', {
+  console.log('Renewal policy values:', {
     agencyCodeId: originalAgencyCodeId,
     brokerId: originalBrokerId,
-    brokerCodeType: originalBrokerCodeType
+    brokerCodeType: originalBrokerCodeType,
+    insuranceCompany: originalInsuranceCompany
   });
 
-  // Trigger broker code type change to load agency codes
-  const brokerCodeSelect = document.getElementById('motor_insurance_broker_code_type');
-  if (brokerCodeSelect && originalBrokerCodeType) {
-    // Set the broker code type
-    brokerCodeSelect.value = originalBrokerCodeType;
+  // Initialize the broker flow for renewal
+  setTimeout(function() {
+    // Make sure motor broker flow is initialized first
+    if (typeof initializeMotorBrokerFlow === 'function') {
+      initializeMotorBrokerFlow();
+      console.log('✅ Motor broker flow initialized');
+    }
 
-    // Trigger change event to load appropriate agency/broker options
-    setTimeout(function() {
-      $(brokerCodeSelect).trigger('change');
-      console.log('Triggered broker code type change for renewal:', originalBrokerCodeType);
+    // Set broker code type first
+    const brokerCodeSelect = document.getElementById('motor_insurance_broker_code_type');
+    if (brokerCodeSelect && originalBrokerCodeType) {
+      brokerCodeSelect.value = originalBrokerCodeType;
+      console.log('✅ Set broker code type:', originalBrokerCodeType);
 
-      // Listen for dropdown populated event to select existing values
-      $('#motor_insurance_agency_code_id').on('dropdown:populated', function() {
-        console.log('Agency dropdown populated for renewal, selecting original value...');
-        const agencySelect = this;
+      // Trigger broker code change to populate agency dropdown
+      setTimeout(function() {
+        $(brokerCodeSelect).trigger('change');
+        console.log('✅ Triggered broker code change');
 
-        // For direct mode, select the agency_code_id
-        if (originalBrokerCodeType === 'direct' && originalAgencyCodeId) {
-          const optionExists = Array.from(agencySelect.options).some(opt => opt.value === originalAgencyCodeId);
-          if (optionExists) {
-            $(agencySelect).val(originalAgencyCodeId).trigger('change');
-            console.log('✅ Selected original agency code:', originalAgencyCodeId);
-          } else {
-            console.log('❌ Agency code option not found:', originalAgencyCodeId);
-          }
-        }
-        // For broking mode, select the broker (which should be in broker_X format)
-        else if (originalBrokerCodeType === 'broking' && originalBrokerId) {
-          const brokerValue = 'broker_' + originalBrokerId;
-          const optionExists = Array.from(agencySelect.options).some(opt => opt.value === brokerValue);
-          if (optionExists) {
-            $(agencySelect).val(brokerValue).trigger('change');
-            console.log('✅ Selected original broker:', brokerValue);
-          } else {
-            console.log('❌ Broker option not found:', brokerValue);
-          }
-        }
-      });
-    }, 1500); // Delay to allow form to fully load
-  }
+        // Listen for agency dropdown population
+        $('#motor_insurance_agency_code_id').on('dropdown:populated', function() {
+          console.log('🎯 Agency dropdown populated for renewal');
+          const agencySelect = this;
+
+          setTimeout(function() {
+            // Select the appropriate value based on broker type
+            if (originalBrokerCodeType === 'direct' && originalAgencyCodeId) {
+              // For direct mode, select agency code
+              const optionExists = Array.from(agencySelect.options).some(opt => opt.value === originalAgencyCodeId);
+              if (optionExists) {
+                $(agencySelect).val(originalAgencyCodeId).trigger('change');
+                console.log('✅ Selected original agency code:', originalAgencyCodeId);
+
+                // Auto-select insurance company after agency selection
+                setTimeout(function() {
+                  const companySelect = document.getElementById('motor_insurance_insurance_company_name');
+                  if (companySelect && originalInsuranceCompany) {
+                    const companyOptionExists = Array.from(companySelect.options).some(opt => opt.text === originalInsuranceCompany);
+                    if (companyOptionExists) {
+                      $(companySelect).val(originalInsuranceCompany).trigger('change');
+                      console.log('✅ Auto-selected insurance company:', originalInsuranceCompany);
+                    }
+                  }
+                }, 1000);
+              }
+            }
+            else if (originalBrokerCodeType === 'broking' && originalBrokerId) {
+              // For broking mode, select broker in broker_X format
+              const brokerValue = 'broker_' + originalBrokerId;
+              const optionExists = Array.from(agencySelect.options).some(opt => opt.value === brokerValue);
+              if (optionExists) {
+                $(agencySelect).val(brokerValue).trigger('change');
+                console.log('✅ Selected original broker:', brokerValue);
+
+                // Auto-select insurance company
+                setTimeout(function() {
+                  const companySelect = document.getElementById('motor_insurance_insurance_company_name');
+                  if (companySelect && originalInsuranceCompany) {
+                    const companyOptionExists = Array.from(companySelect.options).some(opt => opt.text === originalInsuranceCompany);
+                    if (companyOptionExists) {
+                      $(companySelect).val(originalInsuranceCompany).trigger('change');
+                      console.log('✅ Auto-selected insurance company:', originalInsuranceCompany);
+                    }
+                  }
+                }, 1000);
+              }
+            }
+          }, 500);
+        });
+      }, 1000);
+    }
+  }, 2000); // Initial delay to ensure all form scripts are loaded
 
   // Initial commission calculation after page load
   setTimeout(calculateCommissions, 1000);

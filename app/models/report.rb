@@ -22,7 +22,7 @@ class Report < ApplicationRecord
 
   def self.generate_detailed_commission_report(filters = {})
     # Build the base query
-    payouts = CommissionPayout.includes(:customer, :sub_agent, :distributor, :investor)
+    payouts = CommissionPayout.includes(:payout)
 
     # Apply filters
     if filters[:start_date].present?
@@ -30,7 +30,7 @@ class Report < ApplicationRecord
     end
 
     if filters[:end_date].present?
-      payouts = payouts.where('commission_payouts.created_at <= ?', filters[:end_date])
+      payouts = payouts.where('commission_payouts.created_at <= ?', filters[:end_date].end_of_day)
     end
 
     if filters[:payout_to].present?

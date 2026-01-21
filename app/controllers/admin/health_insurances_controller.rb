@@ -416,6 +416,9 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     # Set policy type to Renewal
     @renewed_policy.policy_type = 'Renewal'
 
+    # Store original policy number for display
+    @original_policy_number = @health_insurance.policy_number
+
     # Clear policy number (user needs to enter new one)
     @renewed_policy.policy_number = nil
 
@@ -447,6 +450,12 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     @renewed_policy.start_date = @renewed_policy.policy_start_date
     @renewed_policy.end_date = @renewed_policy.policy_end_date
 
+    # Auto-fill installment autopay dates based on new policy dates
+    if @renewed_policy.policy_start_date.present? && @renewed_policy.policy_end_date.present?
+      @renewed_policy.installment_autopay_start_date = @renewed_policy.policy_start_date
+      @renewed_policy.installment_autopay_end_date = @renewed_policy.policy_end_date
+    end
+
     # Clear commission tracking fields (these will be recalculated)
     @renewed_policy.main_agent_commission_received = nil
     @renewed_policy.main_agent_commission_transaction_id = nil
@@ -466,13 +475,14 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     # Load form data for the renewal form
     load_form_data
 
-    # Set up family members if they exist from original policy
-    @customer_family_members = @renewed_policy.customer&.family_members || []
-
-    # Load existing health insurance members for the form
-    if @health_insurance.health_insurance_members.any?
-      @renewed_policy.health_insurance_members = @health_insurance.health_insurance_members.map(&:dup)
+    # Set up family members for Policy Holder dropdown
+    @customer_family_members = []
+    if @health_insurance.customer.present?
+      @customer_family_members = @health_insurance.customer.family_members.includes(:customer).to_a
     end
+
+    # Store original insurance members before reassignment
+    original_members = @health_insurance.health_insurance_members.to_a
 
     # Auto-set affiliate based on original policy or customer
     if @renewed_policy.sub_agent_id.present?
@@ -484,8 +494,24 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       @auto_select_affiliate = 'self'
     end
 
-    # Assign to instance variable for form
+    # Assign to instance variable for form FIRST
     @health_insurance = @renewed_policy
+
+    # Now build the members on the @health_insurance object that the form will use
+    if original_members.any?
+      # Build the members using the association's build method
+      original_members.each do |original_member|
+        @health_insurance.health_insurance_members.build(
+          member_name: original_member.member_name,
+          age: original_member.age,
+          relationship: original_member.relationship,
+          sum_insured: original_member.sum_insured
+        )
+      end
+    else
+      # Build at least one empty member for the form if no members exist
+      @health_insurance.health_insurance_members.build
+    end
   end
 
   def create_renewal

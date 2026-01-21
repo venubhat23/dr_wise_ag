@@ -1406,30 +1406,42 @@ document.addEventListener('DOMContentLoaded', function() {
 
       if (startDate && paymentMode) {
         const start = new Date(startDate);
-        const end = new Date(start);
+        let end = new Date(start);
 
         switch (paymentMode) {
           case 'Yearly':
             end.setFullYear(end.getFullYear() + 1);
+            end.setDate(end.getDate() - 1); // Subtract 1 day for proper end date
             break;
-          case 'Half-Yearly':
+          case 'Half Yearly': // Fixed: Changed from 'Half-Yearly' to 'Half Yearly'
             end.setMonth(end.getMonth() + 6);
+            end.setDate(end.getDate() - 1); // Subtract 1 day for proper end date
             break;
           case 'Quarterly':
             end.setMonth(end.getMonth() + 3);
+            end.setDate(end.getDate() - 1); // Subtract 1 day for proper end date
             break;
           case 'Monthly':
             end.setMonth(end.getMonth() + 1);
+            end.setDate(end.getDate() - 1); // Subtract 1 day for proper end date
             break;
           case 'Single':
+            // For single payment, end date is same as start date
             end.setTime(start.getTime());
             break;
           default:
+            // Default to yearly if unknown payment mode
             end.setFullYear(end.getFullYear() + 1);
+            end.setDate(end.getDate() - 1);
             break;
         }
 
-        document.getElementById('autopay_end_date').value = end.toISOString().split('T')[0];
+        // Format and set the end date
+        const endDateField = document.getElementById('autopay_end_date');
+        if (endDateField) {
+          endDateField.value = end.toISOString().split('T')[0];
+          console.log('✅ Autopay end date calculated:', endDateField.value, 'for payment mode:', paymentMode);
+        }
       }
     }
 
@@ -1578,10 +1590,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Autopay date calculation event listeners
     if (document.getElementById('payment_mode_select')) {
+      // Native change listener (backup)
       document.getElementById('payment_mode_select').addEventListener('change', calculateAutopayEndDate);
+
+      // Select2 change listener (primary)
+      $('#payment_mode_select').on('select2:select', function(e) {
+        calculateAutopayEndDate();
+      });
+
+      // Calculate on page load if payment mode is already selected
+      if (document.getElementById('payment_mode_select').value) {
+        calculateAutopayEndDate();
+      }
     }
+
     if (document.getElementById('autopay_start_date')) {
       document.getElementById('autopay_start_date').addEventListener('change', calculateAutopayEndDate);
+
+      // Calculate on page load if start date exists
+      if (document.getElementById('autopay_start_date').value && document.getElementById('payment_mode_select').value) {
+        calculateAutopayEndDate();
+      }
     }
 
     // Insurance type change listener
