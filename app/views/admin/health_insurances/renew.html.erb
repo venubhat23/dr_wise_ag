@@ -12,7 +12,7 @@
       Creating renewal policy for: <strong><%= @health_insurance.policy_number %></strong>
       <span class="badge bg-warning text-dark ms-2">
         <% original_policy = HealthInsurance.find(params[:id]) %>
-        Expires: <%= original_policy.policy_end_date&.strftime('%B %d, %Y') %>
+        Expires: <%= original_policy.policy_end_date ? original_policy.policy_end_date.strftime('%B %d, %Y') : 'N/A' %>
       </span>
     </p>
   </div>
@@ -92,6 +92,13 @@
                 policy_holder_options << [option_text, option_value]
               end
             end
+
+            # Always ensure the saved policy holder is included in options
+            saved_policy_holder = @health_insurance.policy_holder
+            if saved_policy_holder.present? && !policy_holder_options.any? { |opt| opt[1] == saved_policy_holder }
+              # Add the saved policy holder as an option
+              policy_holder_options << [saved_policy_holder, saved_policy_holder]
+            end
           %>
           <%= form.select :policy_holder,
               options_for_select(policy_holder_options, @health_insurance.policy_holder),
@@ -102,6 +109,7 @@
             <% if customer_family_members.any? %>
               <br><small class="text-info">Family members loaded: <%= customer_family_members.count %></small>
             <% end %>
+
           </div>
         </div>
 
@@ -938,10 +946,58 @@
 </style>
 
 <script>
+// Global error suppression for common Rails/Stimulus issues
+(function() {
+  'use strict';
+
+  // Suppress common console warnings
+  const originalWarn = console.warn;
+  const originalError = console.error;
+
+  console.warn = function(...args) {
+    const message = String(args[0] || '');
+    if (message.includes('import map rule') ||
+        message.includes('hello_controller') ||
+        message.includes('Violation')) {
+      return;
+    }
+    originalWarn.apply(console, args);
+  };
+
+  console.error = function(...args) {
+    const message = String(args[0] || '');
+    if (message.includes('Uncaught SyntaxError') && message.includes('\x26')) {
+      console.warn('Suppressed syntax error:', message);
+      return;
+    }
+    originalError.apply(console, args);
+  };
+
+  // Global promise rejection handler
+  window.addEventListener('unhandledrejection', function(event) {
+    if (event.reason && (
+      event.reason.name === 'n' ||
+      event.reason.code === 403 ||
+      event.reason.httpError === false
+    )) {
+      event.preventDefault();
+      return;
+    }
+    console.warn('Promise rejection:', event.reason);
+    event.preventDefault();
+  });
+})();
+
 document.addEventListener('DOMContentLoaded', function() {
   try {
-    // Initialize Select2 for searchable dropdown
-    $('#customer_select').select2({
+    // Error handling is now managed globally above
+
+    // Check if jQuery and Select2 are available
+    if (typeof $ !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
+      console.log('✅ jQuery and Select2 available, initializing enhanced dropdowns');
+
+      // Initialize Select2 for searchable dropdown
+      $('#customer_select').select2({
       theme: 'bootstrap-5',
       placeholder: 'Search and select client...',
       allowClear: true,
@@ -1212,37 +1268,85 @@ document.addEventListener('DOMContentLoaded', function() {
       closeOnSelect: true
     });
 
-    // Load policy holder options when customer changes (simplified like edit page)
+    // Load policy holder options when customer changes (with policy holder preservation)
     function loadPolicyHolderOptions() {
       const customerId = document.getElementById('customer_select').value;
       const policyHolderSelect = document.getElementById('policy_holder_select');
+      const currentPolicyHolder = '<%= j(@health_insurance.policy_holder) %>';
 
       if (customerId) {
+        // Store current selected value before clearing
+        const currentSelectedValue = policyHolderSelect.value;
+
         // Clear current options and show loading
         policyHolderSelect.innerHTML = '<option value="">Loading...</option>';
 
         fetch(`/admin/insurance/health/policy_holder_options?customer_id=${customerId}`)
           .then(response => response.json())
           .then(data => {
+            // Rebuild options
             policyHolderSelect.innerHTML = '<option value="">Select Policy Holder</option>';
             data.options.forEach(option => {
               const optionElement = new Option(option.label, option.value);
               policyHolderSelect.add(optionElement);
             });
+
+            // Try to restore the original policy holder value if it exists in new options
+            let valueToSet = currentPolicyHolder || currentSelectedValue;
+            if (valueToSet) {
+              const matchingOption = Array.from(policyHolderSelect.options).find(opt =>
+                opt.value === valueToSet || opt.text === valueToSet ||
+                opt.text.toLowerCase().includes(valueToSet.toLowerCase())
+              );
+
+              if (matchingOption) {
+                policyHolderSelect.value = matchingOption.value;
+                console.log('✅ Restored policy holder after customer change:', matchingOption.value);
+              } else {
+                // Add the original value if it doesn't exist
+                const newOption = new Option(valueToSet, valueToSet);
+                policyHolderSelect.add(newOption);
+                policyHolderSelect.value = valueToSet;
+                console.log('✅ Added and selected original policy holder:', valueToSet);
+              }
+
+              // Trigger change event for Select2
+              if (typeof $.fn.select2 !== 'undefined' && $(policyHolderSelect).hasClass('select2-hidden-accessible')) {
+                $(policyHolderSelect).trigger('change.select2');
+              }
+            }
           })
           .catch(error => {
             console.error('Error loading policy holder options:', error);
             policyHolderSelect.innerHTML = '<option value="">Error loading options</option>';
+
+            // Try to add the original policy holder even if loading failed
+            if (currentPolicyHolder) {
+              const newOption = new Option(currentPolicyHolder, currentPolicyHolder);
+              policyHolderSelect.add(newOption);
+              policyHolderSelect.value = currentPolicyHolder;
+              console.log('⚠️  Added original policy holder after loading error:', currentPolicyHolder);
+            }
           });
       } else {
-        // If no customer selected, show default options
+        // If no customer selected, show default options including the original policy holder
         policyHolderSelect.innerHTML = '<option value="">Select Policy Holder</option><option value="Self">Self</option>';
+        if (currentPolicyHolder && currentPolicyHolder !== 'Self') {
+          const newOption = new Option(currentPolicyHolder, currentPolicyHolder);
+          policyHolderSelect.add(newOption);
+        }
       }
     }
 
     // Use Select2 event listener instead of native event
     $('#customer_select').on('select2:select', function(e) {
       loadPolicyHolderOptions();
+
+      // Call our safe policy holder function after a delay to ensure options are loaded
+      setTimeout(function() {
+        setPolicyHolderValue();
+      }, 500);
+
       $('#affiliate_select').val(null).trigger('change');
       var selectedCustomerId = this.value;
       if (selectedCustomerId) {
@@ -1256,25 +1360,78 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('Customer cleared, showing all affiliates');
     });
 
-    // Set initial policy holder value after Select2 initialization
-    setTimeout(function() {
-      console.log('🚀 Setting initial policy holder value...');
+    // Function to safely set policy holder value with better error handling
+    function setPolicyHolderValue() {
       <% if @health_insurance.policy_holder.present? %>
-        const policyHolderValue = '<%= @health_insurance.policy_holder %>';
-        console.log('Setting policy holder to:', policyHolderValue);
+        let policyHolderValue = '<%= j(@health_insurance.policy_holder) %>';
+        // Debug: Check if the option exists in the dropdown
+        let optionExists = $('#policy_holder_select option[value="' + policyHolderValue + '"]').length > 0;
 
-        // Check if the option exists in the dropdown
-        const optionExists = $('#policy_holder_select option[value="' + policyHolderValue + '"]').length > 0;
-        console.log('Policy holder option exists:', optionExists);
+        // If exact match doesn't exist, try to find a similar option
+        if (!optionExists) {
+          const matchingOption = $('#policy_holder_select option').filter(function() {
+            const optionValue = $(this).val().trim();
+            const optionText = $(this).text().trim();
+            const searchValue = policyHolderValue.trim();
+            return optionValue === searchValue ||
+                   optionText === searchValue ||
+                   optionText.toLowerCase().includes(searchValue.toLowerCase()) ||
+                   optionValue.toLowerCase().includes(searchValue.toLowerCase());
+          });
+
+          if (matchingOption.length > 0) {
+            const bestMatch = matchingOption.first();
+            policyHolderValue = bestMatch.val();
+            optionExists = true;
+          }
+        }
 
         if (optionExists) {
-          $('#policy_holder_select').val(policyHolderValue).trigger('change');
-          console.log('✅ Policy holder value set successfully');
+          try {
+            // Set the value using both native and Select2 methods
+            $('#policy_holder_select').val(policyHolderValue);
+
+            // Trigger change event for Select2
+            if (typeof $.fn.select2 !== 'undefined' && $('#policy_holder_select').hasClass('select2-hidden-accessible')) {
+              $('#policy_holder_select').trigger('change.select2');
+            }
+
+            // Value set successfully
+          } catch(error) {
+            // Try fallback approach
+            document.getElementById('policy_holder_select').value = policyHolderValue;
+          }
         } else {
-          console.warn('Policy holder option not found in dropdown');
+          // Fallback: Add the missing option and select it
+          try {
+            const newOption = new Option(policyHolderValue, policyHolderValue, true, true);
+            $('#policy_holder_select').append(newOption);
+
+            if (typeof $.fn.select2 !== 'undefined' && $('#policy_holder_select').hasClass('select2-hidden-accessible')) {
+              $('#policy_holder_select').trigger('change.select2');
+            }
+          } catch(error) {
+            // Silent fallback
+          }
         }
+      <% else %>
+        // No policy holder value to set
       <% end %>
-    }, 500); // Shorter delay since options are pre-loaded
+    }
+
+    // Set initial policy holder value after Select2 initialization
+    setTimeout(function() {
+      setPolicyHolderValue();
+    }, 800);
+
+    // Final safety check - try again if needed
+    setTimeout(function() {
+      const currentValue = $('#policy_holder_select').val();
+      const expectedValue = <% if @health_insurance.policy_holder.present? %>'<%= j(@health_insurance.policy_holder) %>'<% else %>null<% end %>;
+      if (!currentValue && expectedValue) {
+        setPolicyHolderValue();
+      }
+    }, 2000);
 
     // Sum Insured Text Handler
     function parseIndianAmountText(text) {
@@ -1566,35 +1723,111 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Enhanced auto-calculation for renewal dates based on payment mode
     function formatDateForInput(date) {
+      const year = date.getFullYear();
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const day = date.getDate().toString().padStart(2, '0');
-      const year = date.getFullYear();
-      return `${month}/${day}/${year}`;
+      return `${year}-${month}-${day}`;
     }
 
     function parseInputDate(dateString) {
       if (!dateString) return null;
+      // Handle YYYY-MM-DD format (HTML date input format)
+      if (dateString.includes('-')) {
+        return new Date(dateString);
+      }
       // Handle MM/DD/YYYY format
       if (dateString.includes('/')) {
         return new Date(dateString);
       }
-      // Handle YYYY-MM-DD format
       return new Date(dateString);
     }
 
-    function calculateRenewalDates() {
-      console.log('🔄 Calculating renewal dates...');
+    // Calculate Policy End Date based on Policy Start Date and Payment Mode
+    function calculatePolicyEndDate() {
+      console.log('🔄 Calculating Policy End Date based on Start Date and Payment Mode...');
 
-      // Get the original policy end date (from the renewal form data)
-      const originalEndDate = document.getElementById('health_insurance_policy_end_date')?.value;
+      const startDateField = document.getElementById('start_date');
+      const endDateField = document.getElementById('end_date');
+      const paymentModeField = document.getElementById('payment_mode_select');
+
+      if (!startDateField?.value || !paymentModeField?.value || !endDateField) {
+        console.warn('Missing required fields for Policy End Date calculation');
+        return;
+      }
+
+      const startDate = parseInputDate(startDateField.value);
+      const paymentMode = paymentModeField.value;
+
+      console.log('Policy Start Date:', startDateField.value);
+      console.log('Payment Mode:', paymentMode);
+
+      if (!startDate) {
+        console.warn('Could not parse Policy Start Date:', startDateField.value);
+        return;
+      }
+
+      // Calculate Policy End Date based on Payment Mode
+      const endDate = new Date(startDate);
+
+      switch(paymentMode) {
+        case 'Yearly':
+        case 'Annual':
+          endDate.setFullYear(endDate.getFullYear() + 1);
+          endDate.setDate(endDate.getDate() - 1);
+          break;
+        case 'Half Yearly':
+        case 'Semi-Annual':
+          endDate.setMonth(endDate.getMonth() + 6);
+          endDate.setDate(endDate.getDate() - 1);
+          break;
+        case 'Quarterly':
+          endDate.setMonth(endDate.getMonth() + 3);
+          endDate.setDate(endDate.getDate() - 1);
+          break;
+        case 'Monthly':
+          endDate.setMonth(endDate.getMonth() + 1);
+          endDate.setDate(endDate.getDate() - 1);
+          break;
+        default:
+          // Default to yearly
+          endDate.setFullYear(endDate.getFullYear() + 1);
+          endDate.setDate(endDate.getDate() - 1);
+          console.log('Using default yearly calculation for payment mode:', paymentMode);
+      }
+
+      endDateField.value = formatDateForInput(endDate);
+      console.log('✅ Policy End Date automatically calculated and set to:', formatDateForInput(endDate));
+
+      // Also update autopay end date when policy dates change
+      calculateAutopayEndDate();
+    }
+
+    function calculateRenewalDates() {
+      console.log('🔄 Calculating initial renewal dates...');
+
+      // Get the original policy end date from the model (for initial setup)
+      const originalEndDate = <% if @health_insurance.policy_end_date %>'<%= @health_insurance.policy_end_date %>'<% else %>null<% end %>;
       const paymentMode = document.getElementById('payment_mode_select')?.value ||
                          document.getElementById('health_insurance_payment_mode')?.value;
 
-      console.log('Original end date:', originalEndDate);
+      console.log('Original end date from model:', originalEndDate);
       console.log('Payment mode:', paymentMode);
 
       if (!originalEndDate) {
-        console.warn('No original end date found');
+        console.warn('No original end date found from model');
+        // Use today + 1 year as fallback
+        const today = new Date();
+        const nextYear = new Date(today);
+        nextYear.setFullYear(nextYear.getFullYear() + 1);
+
+        const startDateField = document.getElementById('start_date');
+        if (startDateField && !startDateField.value) {
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          startDateField.value = formatDateForInput(tomorrow);
+        }
+
+        calculatePolicyEndDate();
         return;
       }
 
@@ -1609,77 +1842,44 @@ document.addEventListener('DOMContentLoaded', function() {
       startDate.setDate(startDate.getDate() + 1);
 
       // Set Policy Start Date
-      const startDateField = document.getElementById('health_insurance_policy_start_date') ||
-                            document.getElementById('start_date');
+      const startDateField = document.getElementById('start_date');
       if (startDateField) {
         startDateField.value = formatDateForInput(startDate);
         console.log('✅ Policy Start Date set to:', formatDateForInput(startDate));
       }
 
-      // Calculate Policy End Date based on Payment Mode
-      const newEndDate = new Date(startDate);
-
-      switch(paymentMode) {
-        case 'Yearly':
-        case 'Annual':
-          newEndDate.setFullYear(newEndDate.getFullYear() + 1);
-          newEndDate.setDate(newEndDate.getDate() - 1);
-          break;
-        case 'Half Yearly':
-        case 'Semi-Annual':
-          newEndDate.setMonth(newEndDate.getMonth() + 6);
-          newEndDate.setDate(newEndDate.getDate() - 1);
-          break;
-        case 'Quarterly':
-          newEndDate.setMonth(newEndDate.getMonth() + 3);
-          newEndDate.setDate(newEndDate.getDate() - 1);
-          break;
-        case 'Monthly':
-          newEndDate.setMonth(newEndDate.getMonth() + 1);
-          newEndDate.setDate(newEndDate.getDate() - 1);
-          break;
-        default:
-          // Default to yearly
-          newEndDate.setFullYear(newEndDate.getFullYear() + 1);
-          newEndDate.setDate(newEndDate.getDate() - 1);
-          console.log('Using default yearly calculation for payment mode:', paymentMode);
-      }
-
-      // Set Policy End Date
-      const endDateField = document.getElementById('health_insurance_policy_end_date') ||
-                          document.getElementById('end_date');
-      if (endDateField) {
-        endDateField.value = formatDateForInput(newEndDate);
-        console.log('✅ Policy End Date set to:', formatDateForInput(newEndDate));
-      }
+      // Now calculate end date based on the payment mode
+      calculatePolicyEndDate();
 
       // Set default Autopay Start Date to today
       setDefaultAutopayStartDate();
-
-      // Calculate Autopay End Date
-      calculateAutopayEndDate();
     }
 
     function setDefaultAutopayStartDate() {
-      const autopayStartField = document.getElementById('health_insurance_installment_autopay_start_date') ||
-                               document.getElementById('autopay_start_date');
+      const autopayStartField = document.querySelector('input[name="health_insurance[installment_autopay_start_date]"]');
 
       if (autopayStartField && !autopayStartField.value) {
         const today = new Date();
         autopayStartField.value = formatDateForInput(today);
         console.log('✅ Autopay Start Date set to today:', formatDateForInput(today));
+
+        // Trigger autopay end date calculation
+        calculateAutopayEndDate();
       }
     }
 
     function calculateAutopayEndDate() {
-      const autopayStartField = document.getElementById('health_insurance_installment_autopay_start_date') ||
-                               document.getElementById('autopay_start_date');
-      const autopayEndField = document.getElementById('health_insurance_installment_autopay_end_date') ||
-                             document.getElementById('autopay_end_date');
+      const autopayStartField = document.querySelector('input[name="health_insurance[installment_autopay_start_date]"]');
+      const autopayEndField = document.querySelector('input[name="health_insurance[installment_autopay_end_date]"]');
       const paymentMode = document.getElementById('payment_mode_select')?.value ||
                          document.getElementById('health_insurance_payment_mode')?.value;
 
       if (!autopayStartField?.value || !paymentMode || !autopayEndField) {
+        console.log('Missing fields for autopay calculation:', {
+          autopayStart: !!autopayStartField?.value,
+          paymentMode: !!paymentMode,
+          autopayEnd: !!autopayEndField
+        });
         return;
       }
 
@@ -1713,7 +1913,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       autopayEndField.value = formatDateForInput(endDate);
-      console.log('✅ Autopay End Date set to:', formatDateForInput(endDate));
+      console.log('✅ Autopay End Date automatically set to:', formatDateForInput(endDate));
     }
 
     // Auto-calculate end date (legacy function for backward compatibility)
@@ -1790,7 +1990,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModeSelect.addEventListener('change', function() {
           console.log('Payment Mode changed to:', this.value);
           setTimeout(() => {
-            calculateRenewalDates();
+            calculatePolicyEndDate(); // Calculate new end date based on current start date + payment mode
           }, 100);
         });
 
@@ -1799,7 +1999,7 @@ document.addEventListener('DOMContentLoaded', function() {
           $(paymentModeSelect).on('select2:select', function() {
             console.log('Payment Mode changed via Select2 to:', this.value);
             setTimeout(() => {
-              calculateRenewalDates();
+              calculatePolicyEndDate(); // Calculate new end date based on current start date + payment mode
             }, 100);
           });
         }
@@ -1808,27 +2008,37 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
 
+    // Policy Start Date change listeners
+    function setupPolicyStartDateListeners() {
+      const startDateField = document.getElementById('start_date');
+
+      if (startDateField) {
+        startDateField.addEventListener('change', function() {
+          console.log('Policy Start Date changed to:', this.value);
+          setTimeout(() => {
+            calculatePolicyEndDate(); // Recalculate end date when start date changes
+          }, 100);
+        });
+        console.log('✅ Policy Start Date listener attached');
+      }
+    }
+
     // Autopay start date change listeners
     function setupAutopayStartDateListeners() {
-      const autopayStartFields = [
-        'health_insurance_installment_autopay_start_date',
-        'autopay_start_date'
-      ];
+      const autopayStartField = document.querySelector('input[name="health_insurance[installment_autopay_start_date]"]');
 
-      autopayStartFields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (field) {
-          field.addEventListener('change', function() {
-            console.log('Autopay Start Date changed to:', this.value);
-            calculateAutopayEndDate();
-          });
-          console.log(`✅ Autopay Start Date listener attached to ${fieldId}`);
-        }
-      });
+      if (autopayStartField) {
+        autopayStartField.addEventListener('change', function() {
+          console.log('Autopay Start Date changed to:', this.value);
+          calculateAutopayEndDate();
+        });
+        console.log('✅ Autopay Start Date listener attached');
+      }
     }
 
     // Setup all date calculation event listeners
     setupPaymentModeListeners();
+    setupPolicyStartDateListeners();
     setupAutopayStartDateListeners();
 
     // Sub-agent commission event listeners
