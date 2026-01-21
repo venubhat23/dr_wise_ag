@@ -89,261 +89,6 @@ class DashboardController < ApplicationController
     end
   end
 
-      # Add SubAgent name and premium if there's business or sample data
-      if total_premium > 0
-        @agent_performance[affiliate_name] = total_premium
-      end
-    end
-
-    # Sort by premium and take top 7
-    @agent_performance = @agent_performance.sort_by { |_, v| -v }.first(7).to_h
-
-    # Ensure we always have some data to display
-    if @agent_performance.empty?
-      # Create demonstration data if no real data exists
-      @agent_performance = {
-        "Rajesh Kumar" => 450000,
-        "Priya Sharma" => 380000,
-        "Amit Patel" => 320000,
-        "Sunita Verma" => 275000,
-        "Vikram Singh" => 225000,
-        "Neha Gupta" => 180000,
-        "Arjun Reddy" => 150000
-      }
-    end
-
-    # Renewal status overview
-    expired_policies = HealthInsurance.where('policy_end_date < ?', Date.current).count +
-                      LifeInsurance.where('policy_end_date < ?', Date.current).count +
-                      MotorInsurance.where('policy_end_date < ?', Date.current).count +
-                      OtherInsurance.where('policy_end_date < ?', Date.current).count
-
-    renewed_policies = HealthInsurance.where(policy_type: 'renewal').count +
-                      LifeInsurance.where(policy_type: 'renewal').count +
-                      MotorInsurance.where(policy_type: 'renewal').count
-                      # OtherInsurance doesn't have policy_type column
-
-    @renewal_status = {
-      'Renewed' => renewed_policies,
-      'Pending' => @renewal_due_count,
-      'Expired' => expired_policies
-    }
-
-    # Referral settlement status
-    @referral_status = {
-      'Paid' => Lead.where(transferred_amount: true).count,
-      'Pending' => Lead.where(current_stage: 'converted', transferred_amount: false).count,
-      'In-Process' => Lead.where(current_stage: 'converted', transferred_amount: false).count
-    }
-
-    # Commission summary by month
-    @commission_summary = {
-      'main_agent' => {},
-      'sub_agent' => {},
-      'tds' => {}
-    }
-
-    12.times do |i|
-      month_date = (Date.current - i.months).beginning_of_month
-      month_name = month_date.strftime('%b')
-
-      # Get commission data from commission payouts
-      main_commission = CommissionPayout.where(
-        created_at: month_date..(month_date.end_of_month),
-        payout_to: 'main_agent'
-      ).sum(:payout_amount)
-
-      sub_commission = CommissionPayout.where(
-        created_at: month_date..(month_date.end_of_month),
-        payout_to: 'sub_agent'
-      ).sum(:payout_amount)
-
-      # Calculate TDS (assuming 10% for demonstration)
-      total_commission = main_commission + sub_commission
-      tds_amount = total_commission * 0.1
-
-      @commission_summary['main_agent'][month_name] = main_commission
-      @commission_summary['sub_agent'][month_name] = sub_commission
-      @commission_summary['tds'][month_name] = tds_amount
-    end
-
-    # Customer geographic distribution
-    @customer_location = Customer.group(:state).count.sort_by { |_, v| -v }.first(8).to_h
-
-    # Customer acquisition trend (last 6 months)
-    @customer_acquisition_trend = {}
-    6.times do |i|
-      month_date = (Date.current - i.months).beginning_of_month
-      month_name = month_date.strftime('%b')
-      monthly_customers = Customer.where(created_at: month_date..(month_date.end_of_month)).count
-      @customer_acquisition_trend[month_name] = monthly_customers
-    end
-    @customer_acquisition_trend = @customer_acquisition_trend.to_a.reverse.to_h
-
-    # Calculate growth percentages (real-time data)
-    calculate_growth_metrics
-
-    # Recent activities for display
-    @recent_policies = []
-    recent_health = HealthInsurance.includes(:customer).order(created_at: :desc).limit(2)
-    recent_life = LifeInsurance.includes(:customer).order(created_at: :desc).limit(2)
-    recent_motor = MotorInsurance.includes(:customer).order(created_at: :desc).limit(1)
-
-    @recent_policies = (recent_health + recent_life + recent_motor).sort_by(&:created_at).reverse.first(5)
-
-    @recent_customers = Customer.order(created_at: :desc).limit(5)
-    @recent_leads = Lead.order(created_at: :desc).limit(5)
-
-    # Policies expiring soon for renewal section
-    @renewal_policies = []
-    health_renewals = HealthInsurance.includes(:customer)
-                                    .where('policy_end_date BETWEEN ? AND ?', Date.current, thirty_days_from_now)
-                                    .order(:policy_end_date)
-                                    .limit(5)
-    life_renewals = LifeInsurance.includes(:customer)
-                                 .where('policy_end_date BETWEEN ? AND ?', Date.current, thirty_days_from_now)
-                                 .order(:policy_end_date)
-                                 .limit(5)
-    motor_renewals = MotorInsurance.includes(:customer)
-                                   .where('policy_end_date BETWEEN ? AND ?', Date.current, thirty_days_from_now)
-                                   .order(:policy_end_date)
-                                   .limit(5)
-
-    @renewal_policies = (health_renewals + life_renewals + motor_renewals).sort_by(&:policy_end_date).first(10)
-
-    # Expired policies for expired section
-    @expired_policies = []
-    health_expired = HealthInsurance.includes(:customer)
-                                   .where('policy_end_date < ?', Date.current)
-                                   .order(policy_end_date: :desc)
-                                   .limit(5)
-    life_expired = LifeInsurance.includes(:customer)
-                                .where('policy_end_date < ?', Date.current)
-                                .order(policy_end_date: :desc)
-                                .limit(5)
-    motor_expired = MotorInsurance.includes(:customer)
-                                  .where('policy_end_date < ?', Date.current)
-                                  .order(policy_end_date: :desc)
-                                  .limit(5)
-
-    @expired_policies = (health_expired + life_expired + motor_expired).sort_by(&:policy_end_date).reverse.first(10)
-
-    # Client requests count - using Leads as proxy for client requests
-    @client_requests_count = Lead.where(created_at: 30.days.ago..Date.current).count
-
-    # Additional quick access metrics
-    # Claims processing - count policies expiring soon as proxy for potential claims
-    @claims_processing = HealthInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, 30.days.from_now).count +
-                        LifeInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, 30.days.from_now).count +
-                        (MotorInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, 30.days.from_now).count rescue 0)
-
-    # Count pending documents from customers and recent policies
-    pending_docs = 0
-
-    # Count customers missing critical documents
-    pending_docs += Customer.where('pan_no IS NULL OR pan_no = ?', '').count
-
-    # Count recent insurance policies (last 30 days) as potentially needing document verification
-    pending_docs += HealthInsurance.where(created_at: 30.days.ago..Date.current).count
-    pending_docs += LifeInsurance.where(created_at: 30.days.ago..Date.current).count
-    pending_docs += MotorInsurance.where(created_at: 30.days.ago..Date.current).count
-
-    @docs_pending = pending_docs
-    @commissions_due = CommissionPayout.where(status: 'pending').sum(:payout_amount) || 0
-    @new_leads = Lead.where('created_at >= ?', 7.days.ago).count
-
-    # Support tickets - use leads in follow-up stages as proxy for support tickets
-    @support_tickets = Lead.where(current_stage: ['follow_up', 'consultation_scheduled', 'follow_up_unsuccessful']).count
-
-    # Upcoming Renewals with Due Premium - Get policies expiring in next 60 days
-    @upcoming_renewals = []
-
-    health_renewals = HealthInsurance.includes(:customer)
-                                     .where('policy_end_date BETWEEN ? AND ?', Date.current, 60.days.from_now)
-                                     .order(:policy_end_date)
-                                     .limit(10)
-
-    life_renewals = LifeInsurance.includes(:customer)
-                                  .where('policy_end_date BETWEEN ? AND ?', Date.current, 60.days.from_now)
-                                  .order(:policy_end_date)
-                                  .limit(10)
-
-    motor_renewals = MotorInsurance.includes(:customer)
-                                    .where('policy_end_date BETWEEN ? AND ?', Date.current, 60.days.from_now)
-                                    .order(:policy_end_date)
-                                    .limit(10)
-
-    @upcoming_renewals = (health_renewals + life_renewals + motor_renewals).sort_by(&:policy_end_date).first(10)
-
-    # Upcoming Birthdays - Get customers and their family members with birthdays in next 30 days
-    @upcoming_birthdays = []
-
-    # Get customer birthdays
-    current_month = Date.current.month
-    next_month = (Date.current + 1.month).month
-
-    Customer.where("EXTRACT(MONTH FROM birth_date) IN (?) OR EXTRACT(MONTH FROM birth_date) = ?", current_month, next_month)
-            .each do |customer|
-      next unless customer.birth_date
-
-      # Calculate this year's birthday
-      this_year_birthday = Date.new(Date.current.year, customer.birth_date.month, customer.birth_date.day) rescue nil
-      next_year_birthday = Date.new(Date.current.year + 1, customer.birth_date.month, customer.birth_date.day) rescue nil if this_year_birthday
-
-      # Use this year's birthday if it's in the future, otherwise next year's
-      upcoming_birthday = if this_year_birthday && this_year_birthday >= Date.current
-                           this_year_birthday
-                         elsif next_year_birthday
-                           next_year_birthday
-                         else
-                           nil
-                         end
-
-      if upcoming_birthday && upcoming_birthday <= 30.days.from_now
-        age = Date.current.year - customer.birth_date.year
-        age += 1 if upcoming_birthday.year > Date.current.year
-
-        @upcoming_birthdays << {
-          id: customer.id,
-          name: customer.display_name || "#{customer.first_name} #{customer.last_name}",
-          relationship: 'Self',
-          birth_date: upcoming_birthday,
-          age: age,
-          customer: customer
-        }
-      end
-    end
-
-    # Add some sample family member birthdays for demonstration
-    # In a real system, you might have a separate FamilyMembers table
-    sample_family_birthdays = [
-      { name: "Nikhat Shabana", relationship: "WIFE of KHALID SAYEED", birth_date: Date.new(Date.current.year, 1, 16), age: 47 },
-      { name: "VYSHNAVI VINAY", relationship: "WIFE of VINAY AMARNATH", birth_date: Date.new(Date.current.year, 1, 16), age: 40 },
-      { name: "ASHA R", relationship: "WIFE of MADHUSUDHANA C", birth_date: Date.new(Date.current.year, 1, 23), age: 40 },
-      { name: "Lalitha B S", relationship: "HUSBAND of GURURAJ T N", birth_date: Date.new(Date.current.year, 2, 1), age: 32 },
-      { name: "GAYATRI R", relationship: "Self", birth_date: Date.new(Date.current.year, 2, 5), age: 44 }
-    ]
-
-    sample_family_birthdays.each_with_index do |member, index|
-      # Only add if the birthday is within next 30 days
-      days_until = (member[:birth_date] - Date.current).to_i
-
-      if days_until >= 0 && days_until <= 30
-        @upcoming_birthdays << {
-          id: 1000 + index, # Use high IDs for sample data
-          name: member[:name],
-          relationship: member[:relationship],
-          birth_date: member[:birth_date],
-          age: member[:age],
-          customer: nil
-        }
-      end
-    end
-
-    # Sort birthdays by date
-    @upcoming_birthdays = @upcoming_birthdays.sort_by { |b| b[:birth_date] }.first(10)
-  end
-
   # Optimized helper methods to avoid N+1 queries
 
   def get_all_dashboard_data
@@ -360,8 +105,8 @@ class DashboardController < ApplicationController
       converted_leads: -> { Lead.where(current_stage: 'converted').count },
       health_count: -> { HealthInsurance.count },
       life_count: -> { LifeInsurance.count },
-      motor_count: -> { MotorInsurance.count rescue 0 },
-      other_count: -> { OtherInsurance.count rescue 0 }
+      motor_count: -> { (MotorInsurance.count rescue 0) },
+      other_count: -> { (OtherInsurance.count rescue 0) }
     }
 
     # Execute count queries
@@ -407,8 +152,8 @@ class DashboardController < ApplicationController
     {
       health_count: HealthInsurance.count,
       life_count: LifeInsurance.count,
-      motor_count: MotorInsurance.count rescue 0,
-      other_count: OtherInsurance.count rescue 0,
+      motor_count: (MotorInsurance.count rescue 0),
+      other_count: (OtherInsurance.count rescue 0),
       total_count: HealthInsurance.count + LifeInsurance.count + (MotorInsurance.count rescue 0) + (OtherInsurance.count rescue 0)
     }
   end
@@ -559,8 +304,8 @@ class DashboardController < ApplicationController
   def get_policies_count_for_period(start_date, end_date)
     health = HealthInsurance.where(created_at: start_date..end_date).count
     life = LifeInsurance.where(created_at: start_date..end_date).count
-    motor = MotorInsurance.where(created_at: start_date..end_date).count rescue 0
-    other = OtherInsurance.where(created_at: start_date..end_date).count rescue 0
+    motor = (MotorInsurance.where(created_at: start_date..end_date).count rescue 0)
+    other = (OtherInsurance.where(created_at: start_date..end_date).count rescue 0)
     health + life + motor + other
   end
 
@@ -577,8 +322,8 @@ class DashboardController < ApplicationController
                            .where('policy_end_date BETWEEN ? AND ?', end_date, thirty_days_ahead).count
     life = LifeInsurance.where(created_at: start_date..end_date)
                         .where('policy_end_date BETWEEN ? AND ?', end_date, thirty_days_ahead).count
-    motor = MotorInsurance.where(created_at: start_date..end_date)
-                          .where('policy_end_date BETWEEN ? AND ?', end_date, thirty_days_ahead).count rescue 0
+    motor = (MotorInsurance.where(created_at: start_date..end_date)
+                          .where('policy_end_date BETWEEN ? AND ?', end_date, thirty_days_ahead).count rescue 0)
     health + life + motor
   end
 

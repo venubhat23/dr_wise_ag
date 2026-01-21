@@ -69,6 +69,9 @@
                   "data-turbo": "false"
                 } do |form| %>
 
+    <!-- Add explicit CSRF token to ensure it's fresh -->
+    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+
     <% if @renewed_policy.errors.any? %>
       <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <h6 class="alert-heading">
@@ -129,6 +132,29 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // CSRF Token Refresh Function
+  function refreshCSRFToken() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const hiddenTokenField = document.querySelector('input[name="authenticity_token"]');
+
+    if (csrfToken && hiddenTokenField) {
+      hiddenTokenField.value = csrfToken;
+      console.log('✅ CSRF token refreshed for renewal form');
+    }
+  }
+
+  // Refresh CSRF token on page load and before form submission
+  refreshCSRFToken();
+
+  // Add form submission handler to refresh token one more time
+  const renewalForm = document.querySelector('form');
+  if (renewalForm) {
+    renewalForm.addEventListener('submit', function(e) {
+      refreshCSRFToken();
+      console.log('✅ CSRF token refreshed before form submission');
+    });
+  }
+
   // Set Policy Type to 'Renewal' and make it read-only
   const policyTypeSelect = document.getElementById('motor_insurance_policy_type') ||
                            document.getElementById('policy_type_select');

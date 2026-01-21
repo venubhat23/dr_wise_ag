@@ -160,9 +160,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
     @affiliate_growth = cached_data['affiliate_growth']
     @policy_distribution = cached_data['policy_distribution']
     @monthly_trends = cached_data['monthly_trends']
-    @top_affiliates = cached_data['top_affiliates']&.map { |attrs| SubAgent.new(attrs) }
+    @top_affiliates = cached_data['top_affiliates']
     @recent_policies = cached_data['recent_policies']
-    @recent_leads = cached_data['recent_leads']&.map { |attrs| Lead.new(attrs) }
+    @recent_leads = cached_data['recent_leads']
     @commission_summary = cached_data['commission_summary']
     @renewal_analytics = cached_data['renewal_analytics']
     @agent_performance = cached_data['agent_performance']

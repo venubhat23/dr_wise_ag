@@ -47,7 +47,7 @@ Rails.application.routes.draw do
 
     # Analytics
     get 'analytics', to: 'analytics#index'
-    post 'analytics/refresh', to: 'analytics#refresh', as: 'refresh_analytics'
+    post 'analytics/refresh', to: 'analytics#refresh'
 
     # Document management
     resources :documents do
