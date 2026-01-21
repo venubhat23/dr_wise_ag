@@ -16,7 +16,7 @@ module ExceptionHandler
     rescue_from ExceptionHandler::ExpiredSignature, with: :four_ninety_eight
 
     rescue_from ActiveRecord::RecordNotFound do |e|
-      json_response({ message: e.message }, :not_found)
+      render json: { message: e.message }, status: :not_found
     end
   end
 
@@ -34,6 +34,6 @@ module ExceptionHandler
 
   # JSON response with message; Status code 498 - Invalid token
   def four_ninety_eight(e)
-    json_response({ message: e.message }, 498)
+    render json: { message: e.message }, status: 498
   end
 end

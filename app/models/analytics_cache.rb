@@ -5,10 +5,16 @@ class AnalyticsCache < ApplicationRecord
 
   # Cache analytics data with identifier
   def self.cache_analytics_data(identifier, data)
-    record = find_or_initialize_by(cache_identifier: identifier)
-    record.cache_data = data
-    record.last_updated = Time.current
-    record.save!
+    record = find_by(cache_identifier: identifier)
+    if record
+      record.update!(cache_data: data, last_updated: Time.current)
+    else
+      record = create!(
+        cache_identifier: identifier,
+        cache_data: data,
+        last_updated: Time.current
+      )
+    end
     record
   end
 
