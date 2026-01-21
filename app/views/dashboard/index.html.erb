@@ -146,25 +146,33 @@
       </div>
     </div>
 
-    <!-- Today's Tasks -->
+    <!-- Policy Alerts -->
     <div class="col-xl-3 col-lg-6 mb-3">
       <div class="card h-100 border-0 shadow-sm">
         <div class="card-body">
           <h5 class="card-title d-flex align-items-center mb-3">
-            <i class="bi bi-list-task text-primary me-2"></i>
-            Today's Tasks
+            <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+            Policy Alerts
           </h5>
+          <%
+            # Calculate renewal alerts
+            expiring_soon = HealthInsurance.where(policy_end_date: Date.current..30.days.from_now).count rescue 0
+            expired_policies = HealthInsurance.where(policy_end_date: Date.current.beginning_of_month..Date.current).count rescue 0
+            pending_renewals = HealthInsurance.joins("LEFT JOIN health_insurances hi2 ON hi2.policy_type = 'Renewal' AND hi2.customer_id = health_insurances.customer_id")
+                                             .where(policy_end_date: 30.days.ago..Date.current)
+                                             .where("hi2.id IS NULL").count rescue 0
+          %>
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="text-muted">New leads to follow up</span>
-            <span class="badge bg-primary"><%= @new_leads %></span>
+            <span class="text-muted">Policies expiring soon</span>
+            <span class="badge bg-warning text-dark"><%= expiring_soon %></span>
           </div>
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="text-muted">Documents pending</span>
-            <span class="badge bg-warning text-dark"><%= @docs_pending %></span>
+            <span class="text-muted">Expired this month</span>
+            <span class="badge bg-danger"><%= expired_policies %></span>
           </div>
           <div class="d-flex justify-content-between align-items-center">
-            <span class="text-muted">Support requests</span>
-            <span class="badge bg-danger"><%= @support_tickets %></span>
+            <span class="text-muted">Renewal opportunities</span>
+            <span class="badge bg-success"><%= pending_renewals %></span>
           </div>
         </div>
       </div>
