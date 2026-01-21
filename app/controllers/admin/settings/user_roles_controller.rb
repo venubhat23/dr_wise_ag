@@ -79,52 +79,117 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
 
   def get_sidebar_options
     {
-      'Main Menu' => [
+      'Dashboard' => [
         { key: 'dashboard', name: 'Dashboard' },
+        { key: 'analytics', name: 'Analytics' }
+      ],
+      'Customer Management' => [
         { key: 'customers', name: 'Customers' },
-        { key: 'sub_agents', name: 'Affiliate' },
-        { key: 'distributors', name: 'Ambassadors' },
-        { key: 'investors', name: 'Investors' }
+        { key: 'customer_documents', name: 'Customer Documents' },
+        { key: 'customer_family', name: 'Family Members' },
+        { key: 'customer_communication', name: 'Customer Communication' }
       ],
-      'Payouts & Commission' => [
-        { key: 'affiliate_payouts', name: 'Affiliate Payouts' },
-        { key: 'distributor_payouts', name: 'Ambassador Payouts' },
-        { key: 'payouts', name: 'Payout' }
-      ],
-      'Business Partners' => [
-        { key: 'brokers', name: 'Brokers' },
-        { key: 'agency_codes', name: 'Agency Code' },
-        { key: 'leads', name: 'Leads' }
+      'Lead Management' => [
+        { key: 'leads', name: 'Leads' },
+        { key: 'lead_sources', name: 'Lead Sources' },
+        { key: 'lead_tracking', name: 'Lead Tracking' },
+        { key: 'lead_conversion', name: 'Lead Conversion' },
+        { key: 'follow_ups', name: 'Follow-ups' }
       ],
       'Insurance Products' => [
-        { key: 'life_insurance', name: 'Life Insurance' },
         { key: 'health_insurance', name: 'Health Insurance' },
         { key: 'motor_insurance', name: 'Motor Insurance' },
-        { key: 'other_insurance', name: 'Other Insurance' }
+        { key: 'life_insurance', name: 'Life Insurance' },
+        { key: 'other_insurance', name: 'Other Insurance' },
+        { key: 'insurance_comparison', name: 'Insurance Comparison' },
+        { key: 'policy_renewals', name: 'Policy Renewals' }
+      ],
+      'Business Partners' => [
+        { key: 'sub_agents', name: 'Affiliates' },
+        { key: 'distributors', name: 'Ambassadors' },
+        { key: 'investors', name: 'Investors' },
+        { key: 'brokers', name: 'Brokers' },
+        { key: 'agency_codes', name: 'Agency Codes' },
+        { key: 'insurance_companies', name: 'Insurance Companies' }
+      ],
+      'Commission & Payouts' => [
+        { key: 'commission_structure', name: 'Commission Structure' },
+        { key: 'affiliate_payouts', name: 'Affiliate Payouts' },
+        { key: 'distributor_payouts', name: 'Ambassador Payouts' },
+        { key: 'investor_payouts', name: 'Investor Payouts' },
+        { key: 'commission_calculations', name: 'Commission Calculations' },
+        { key: 'payout_reports', name: 'Payout Reports' },
+        { key: 'tds_management', name: 'TDS Management' }
+      ],
+      'Financial Management' => [
+        { key: 'invoices', name: 'Invoices' },
+        { key: 'payments', name: 'Payments' },
+        { key: 'payment_tracking', name: 'Payment Tracking' },
+        { key: 'outstanding_payments', name: 'Outstanding Payments' },
+        { key: 'financial_reports', name: 'Financial Reports' },
+        { key: 'expense_management', name: 'Expense Management' }
       ],
       'Reports & Analytics' => [
-        { key: 'commission_report', name: 'Commission Report' },
-        { key: 'expired_insurance', name: 'Expired Insurance' },
-        { key: 'payment_due', name: 'Payment Due' },
-        { key: 'upcoming_renewal', name: 'Upcoming Renewal' },
-        { key: 'upcoming_payment', name: 'Upcoming Payment' },
-        { key: 'leads_report', name: 'Leads Report' },
-        { key: 'session_report', name: 'Session Report' }
+        { key: 'sales_reports', name: 'Sales Reports' },
+        { key: 'commission_reports', name: 'Commission Reports' },
+        { key: 'performance_analytics', name: 'Performance Analytics' },
+        { key: 'customer_analytics', name: 'Customer Analytics' },
+        { key: 'business_insights', name: 'Business Insights' },
+        { key: 'expired_policies', name: 'Expired Policies' },
+        { key: 'upcoming_renewals', name: 'Upcoming Renewals' },
+        { key: 'payment_due_reports', name: 'Payment Due Reports' },
+        { key: 'leads_reports', name: 'Leads Reports' },
+        { key: 'conversion_analytics', name: 'Conversion Analytics' }
       ],
-      'Management' => [
+      'Communication' => [
+        { key: 'notifications', name: 'Notifications' },
+        { key: 'sms_management', name: 'SMS Management' },
+        { key: 'email_campaigns', name: 'Email Campaigns' },
+        { key: 'whatsapp_integration', name: 'WhatsApp Integration' },
+        { key: 'communication_logs', name: 'Communication Logs' }
+      ],
+      'Document Management' => [
+        { key: 'document_templates', name: 'Document Templates' },
+        { key: 'policy_documents', name: 'Policy Documents' },
+        { key: 'customer_documents', name: 'Customer Documents' },
+        { key: 'compliance_documents', name: 'Compliance Documents' },
+        { key: 'document_verification', name: 'Document Verification' }
+      ],
+      'Administration' => [
+        { key: 'user_management', name: 'User Management' },
+        { key: 'roles_permissions', name: 'Roles & Permissions' },
+        { key: 'system_settings', name: 'System Settings' },
+        { key: 'audit_logs', name: 'Audit Logs' },
+        { key: 'backup_restore', name: 'Backup & Restore' },
+        { key: 'system_maintenance', name: 'System Maintenance' }
+      ],
+      'Marketing & Sales' => [
+        { key: 'campaigns', name: 'Marketing Campaigns' },
+        { key: 'promotional_banners', name: 'Promotional Banners' },
+        { key: 'referral_program', name: 'Referral Program' },
+        { key: 'loyalty_program', name: 'Loyalty Program' },
+        { key: 'sales_targets', name: 'Sales Targets' },
+        { key: 'incentive_management', name: 'Incentive Management' }
+      ],
+      'Data Management' => [
+        { key: 'data_imports', name: 'Data Imports' },
+        { key: 'data_exports', name: 'Data Exports' },
+        { key: 'data_validation', name: 'Data Validation' },
+        { key: 'data_cleanup', name: 'Data Cleanup' },
+        { key: 'bulk_operations', name: 'Bulk Operations' }
+      ],
+      'Integration & API' => [
+        { key: 'api_management', name: 'API Management' },
+        { key: 'third_party_integrations', name: 'Third Party Integrations' },
+        { key: 'webhook_management', name: 'Webhook Management' },
+        { key: 'sync_operations', name: 'Sync Operations' }
+      ],
+      'Support & Help' => [
+        { key: 'help_desk', name: 'Help Desk' },
         { key: 'client_requests', name: 'Client Requests' },
-        { key: 'insurance_companies', name: 'Companies' },
-        { key: 'agency_brokers', name: 'Agency/Broker' },
-        { key: 'banners', name: 'Banner Management' },
-        { key: 'imports', name: 'Imports' },
-        { key: 'roles_permissions', name: 'Roles & Permissions' }
-      ],
-      'Invoice' => [
-        { key: 'invoices', name: 'Invoices' }
-      ],
-      'Settings' => [
-        { key: 'user_roles', name: 'User Roles' },
-        { key: 'system_settings', name: 'System Settings' }
+        { key: 'support_tickets', name: 'Support Tickets' },
+        { key: 'knowledge_base', name: 'Knowledge Base' },
+        { key: 'training_materials', name: 'Training Materials' }
       ]
     }
   end

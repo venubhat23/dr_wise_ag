@@ -24,12 +24,12 @@ module ExceptionHandler
 
   # JSON response with message; Status code 422 - unprocessable entity
   def four_twenty_two(e)
-    json_response({ message: e.message }, :unprocessable_entity)
+    render json: { message: e.message }, status: :unprocessable_entity
   end
 
   # JSON response with message; Status code 401 - Unauthorized
   def unauthorized_request(e)
-    json_response({ message: e.message }, :unauthorized)
+    render json: { message: e.message }, status: :unauthorized
   end
 
   # JSON response with message; Status code 498 - Invalid token

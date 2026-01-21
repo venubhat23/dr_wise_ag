@@ -333,7 +333,7 @@
       <div class="kpi-icon orange-gradient">
         <i class="bi bi-currency-dollar"></i>
       </div>
-      <div class="kpi-value">₹<%= number_with_delimiter((@total_premium / 1_00_000).round(1)) %>L</div>
+      <div class="kpi-value">₹<%= number_with_delimiter((@total_premium.to_f / 1_00_000).round(1)) %>L</div>
       <div class="kpi-label">Total Premium</div>
       <div class="kpi-change <%= @premium_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
         <i class="bi bi-arrow-<%= @premium_growth >= 0 ? 'up' : 'down' %>-right me-1"></i>
@@ -564,7 +564,7 @@
         <%
           commission_stats = {
             'Total Commission Due' => { value: @commissions_due, format: 'currency', color: '#ef4444' },
-            'Avg Commission per Policy' => { value: @total_policies > 0 ? (@commissions_due / @total_policies).round(0) : 0, format: 'currency', color: '#3b82f6' },
+            'Avg Commission per Policy' => { value: @total_policies > 0 ? (@commissions_due.to_f / @total_policies.to_f).round(0) : 0, format: 'currency', color: '#3b82f6' },
             'Commission Conversion Rate' => { value: @conversion_rate, format: 'percentage', color: '#10b981' },
             'Monthly Payout Target' => { value: (@commissions_due * 0.8).round(0), format: 'currency', color: '#f59e0b' }
           }
@@ -695,7 +695,7 @@
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
           <span style="font-weight: 500; color: #1a202c;">Commissions Due</span>
-          <span style="color: #8b5cf6; font-size: 0.875rem; font-weight: 600;">₹<%= (@commissions_due / 1000.0).round(1) %>K</span>
+          <span style="color: #8b5cf6; font-size: 0.875rem; font-weight: 600;">₹<%= (@commissions_due.to_f / 1000.0).round(1) %>K</span>
         </div>
       </div>
     </div>
@@ -790,7 +790,7 @@
       <div class="kpi-icon pink-gradient">
         <i class="bi bi-currency-dollar"></i>
       </div>
-      <div class="kpi-value">₹<%= (@avg_policy_value / 1000.0).round(0) %>K</div>
+      <div class="kpi-value">₹<%= (@avg_policy_value.to_f / 1000.0).round(0) %>K</div>
       <div class="kpi-label">Avg Policy Value</div>
     </div>
 

@@ -203,9 +203,9 @@
       </div>
       <div class="kpi-value"><%= number_with_delimiter(@total_customers) %></div>
       <div class="kpi-label">Total Customers</div>
-      <div class="kpi-change <%= @customer_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
-        <i class="bi bi-arrow-<%= @customer_growth >= 0 ? 'up' : 'down' %>-right"></i>
-        <%= @customer_growth.abs %>% from last month
+      <div class="kpi-change <%= (@customer_growth || 0) >= 0 ? 'growth-positive' : 'growth-negative' %>">
+        <i class="bi bi-arrow-<%= (@customer_growth || 0) >= 0 ? 'up' : 'down' %>-right"></i>
+        <%= (@customer_growth || 0).abs %>% from last month
       </div>
     </div>
 
@@ -216,9 +216,9 @@
       </div>
       <div class="kpi-value"><%= number_with_delimiter(@total_policies) %></div>
       <div class="kpi-label">Active Policies</div>
-      <div class="kpi-change <%= @policy_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
-        <i class="bi bi-arrow-<%= @policy_growth >= 0 ? 'up' : 'down' %>-right"></i>
-        <%= @policy_growth.abs %>% from last month
+      <div class="kpi-change <%= (@policy_growth || 0) >= 0 ? 'growth-positive' : 'growth-negative' %>">
+        <i class="bi bi-arrow-<%= (@policy_growth || 0) >= 0 ? 'up' : 'down' %>-right"></i>
+        <%= (@policy_growth || 0).abs %>% from last month
       </div>
     </div>
 
@@ -227,11 +227,11 @@
       <div class="kpi-icon orange-gradient">
         <i class="bi bi-currency-dollar"></i>
       </div>
-      <div class="kpi-value">₹<%= number_with_delimiter((@total_premium_collected / 1_00_000).round(1)) %>L</div>
+      <div class="kpi-value">₹<%= number_with_delimiter(((@total_premium_collected || 0) / 1_00_000).round(1)) %>L</div>
       <div class="kpi-label">Total Premium</div>
-      <div class="kpi-change <%= @premium_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
-        <i class="bi bi-arrow-<%= @premium_growth >= 0 ? 'up' : 'down' %>-right"></i>
-        <%= @premium_growth.abs %>% from last month
+      <div class="kpi-change <%= (@premium_growth || 0) >= 0 ? 'growth-positive' : 'growth-negative' %>">
+        <i class="bi bi-arrow-<%= (@premium_growth || 0) >= 0 ? 'up' : 'down' %>-right"></i>
+        <%= (@premium_growth || 0).abs %>% from last month
       </div>
     </div>
 
@@ -242,9 +242,9 @@
       </div>
       <div class="kpi-value"><%= number_with_delimiter(@pending_leads) %></div>
       <div class="kpi-label">Active Leads</div>
-      <div class="kpi-change <%= @lead_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
-        <i class="bi bi-arrow-<%= @lead_growth >= 0 ? 'up' : 'down' %>-right"></i>
-        <%= @lead_growth.abs %>% from last month
+      <div class="kpi-change <%= (@lead_growth || 0) >= 0 ? 'growth-positive' : 'growth-negative' %>">
+        <i class="bi bi-arrow-<%= (@lead_growth || 0) >= 0 ? 'up' : 'down' %>-right"></i>
+        <%= (@lead_growth || 0).abs %>% from last month
       </div>
     </div>
   </div>

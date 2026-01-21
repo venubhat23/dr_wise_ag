@@ -1,3 +1,5 @@
+require 'ostruct'
+
 class Admin::AnalyticsController < Admin::ApplicationController
   def index
     # Check for refresh parameter
@@ -124,7 +126,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
       affiliate_growth: @affiliate_growth,
       policy_distribution: @policy_distribution,
       monthly_trends: @monthly_trends,
-      top_affiliates: @top_affiliates.map(&:attributes),
+      top_affiliates: @top_affiliates.map(&:to_h),
       recent_policies: @recent_policies,
       recent_leads: @recent_leads.map(&:attributes),
       commission_summary: @commission_summary,
@@ -149,18 +151,23 @@ class Admin::AnalyticsController < Admin::ApplicationController
     @last_month = cached_data['last_month']&.to_date
     @current_year = cached_data['current_year']&.to_date
     @last_year = cached_data['last_year']&.to_date
-    @total_customers = cached_data['total_customers']
-    @total_policies = cached_data['total_policies']
-    @total_premium = cached_data['total_premium']
-    @total_affiliates = cached_data['total_affiliates']
-    @total_ambassadors = cached_data['total_ambassadors']
-    @customer_growth = cached_data['customer_growth']
-    @policy_growth = cached_data['policy_growth']
-    @premium_growth = cached_data['premium_growth']
-    @affiliate_growth = cached_data['affiliate_growth']
+    @total_customers = cached_data['total_customers'].to_i
+    @total_policies = cached_data['total_policies'].to_i
+    @total_premium = cached_data['total_premium'].to_f
+    @total_affiliates = cached_data['total_affiliates'].to_i
+    @total_ambassadors = cached_data['total_ambassadors'].to_i
+    @customer_growth = cached_data['customer_growth'].to_f
+    @policy_growth = cached_data['policy_growth'].to_f
+    @premium_growth = cached_data['premium_growth'].to_f
+    @affiliate_growth = cached_data['affiliate_growth'].to_f
     @policy_distribution = cached_data['policy_distribution']
     @monthly_trends = cached_data['monthly_trends']
-    @top_affiliates = cached_data['top_affiliates']
+
+    # Convert Hash objects back to OpenStruct for compatibility with view
+    @top_affiliates = (cached_data['top_affiliates'] || []).map do |affiliate_hash|
+      OpenStruct.new(affiliate_hash)
+    end
+
     @recent_policies = cached_data['recent_policies']
     @recent_leads = cached_data['recent_leads']
     @commission_summary = cached_data['commission_summary']
@@ -249,15 +256,36 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_top_affiliates
-    # Get top 10 affiliates by policies created
-    SubAgent.joins(
-      "LEFT JOIN health_insurances ON health_insurances.sub_agent_id = sub_agents.id " +
-      "LEFT JOIN life_insurances ON life_insurances.sub_agent_id = sub_agents.id " +
-      "LEFT JOIN motor_insurances ON motor_insurances.sub_agent_id = sub_agents.id"
-    ).group('sub_agents.id, sub_agents.first_name, sub_agents.last_name')
-     .select('sub_agents.*, COUNT(*) as policies_count')
-     .order('policies_count DESC')
-     .limit(10)
+    # Simplified approach to get top affiliates by policy count
+    affiliate_data = []
+
+    # Get all sub agents and calculate their policies manually
+    SubAgent.limit(50).each do |agent|
+      health_count = HealthInsurance.where(sub_agent_id: agent.id).count
+      life_count = LifeInsurance.where(sub_agent_id: agent.id).count
+      motor_count = MotorInsurance.where(sub_agent_id: agent.id).count
+      total_policies = health_count + life_count + motor_count
+
+      if total_policies > 0
+        affiliate_data << {
+          id: agent.id,
+          first_name: agent.first_name,
+          last_name: agent.last_name,
+          status: agent.status || 'active',
+          policies_count: total_policies
+        }
+      end
+    end
+
+    # Sort by policies count and take top 10
+    top_affiliates_data = affiliate_data.sort_by { |a| -a[:policies_count] }.first(10)
+
+    # Convert to OpenStruct objects for compatibility
+    top_affiliates_data.map { |data| OpenStruct.new(data) }
+  rescue => e
+    # Return empty array if there's an error
+    Rails.logger.error "Error calculating top affiliates: #{e.message}"
+    []
   end
 
   def get_recent_policies

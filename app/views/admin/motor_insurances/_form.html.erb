@@ -857,9 +857,13 @@
             <% end %>
           <% else %>
             <div class="col-12">
+              <h6 class="text-primary mb-3">
+                <i class="bi bi-files me-2"></i>
+                <%= is_renewal_mode ? "Original Policy Documents (Reference Only)" : "Existing Policy Documents" %>
+              </h6>
               <div class="alert alert-info">
                 <i class="bi bi-info-circle me-2"></i>
-                No documents have been uploaded for this policy yet.
+                No documents have been uploaded for this policy yet. You can upload documents below.
               </div>
             </div>
           <% end %>

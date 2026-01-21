@@ -144,6 +144,10 @@ class DashboardController < ApplicationController
       total_payouts: payout_data[:total_amount]
     )
 
+    # Calculate growth metrics
+    growth_metrics = calculate_growth_metrics_data(results)
+    results.merge!(growth_metrics)
+
     results
   end
 
@@ -253,7 +257,7 @@ class DashboardController < ApplicationController
     }
   end
 
-  def calculate_growth_metrics
+  def calculate_growth_metrics_data(results)
     # Get data for current month and last month
     current_month_start = Date.current.beginning_of_month
     last_month_start = 1.month.ago.beginning_of_month
@@ -282,21 +286,37 @@ class DashboardController < ApplicationController
     last_sum_insured = get_sum_insured_for_period(last_month_start, last_month_end)
 
     # Calculate growth percentages
-    @customer_growth = calculate_percentage_change(current_customers, last_customers)
-    @policy_growth = calculate_percentage_change(current_policies, last_policies)
-    @premium_growth = calculate_percentage_change(current_premium, last_premium)
-    @affiliate_growth = calculate_percentage_change(current_affiliates, last_affiliates)
-    @ambassador_growth = calculate_percentage_change(current_ambassadors, last_ambassadors)
-    @lead_growth = calculate_percentage_change(current_leads, last_leads)
-    @renewal_growth = calculate_percentage_change(current_renewals, last_renewals)
-    @payout_growth = calculate_percentage_change(current_payouts, last_payouts)
-    @sum_insured_growth = calculate_percentage_change(current_sum_insured, last_sum_insured)
+    customer_growth = calculate_percentage_change(current_customers, last_customers)
+    policy_growth = calculate_percentage_change(current_policies, last_policies)
+    premium_growth = calculate_percentage_change(current_premium, last_premium)
+    affiliate_growth = calculate_percentage_change(current_affiliates, last_affiliates)
+    ambassador_growth = calculate_percentage_change(current_ambassadors, last_ambassadors)
+    lead_growth = calculate_percentage_change(current_leads, last_leads)
+    renewal_growth = calculate_percentage_change(current_renewals, last_renewals)
+    payout_growth = calculate_percentage_change(current_payouts, last_payouts)
+    sum_insured_growth = calculate_percentage_change(current_sum_insured, last_sum_insured)
 
     # Additional metrics
-    @conversion_rate = @total_leads > 0 ? ((@converted_leads.to_f / @total_leads) * 100).round(1) : 0
-    @avg_policy_value = @total_policies > 0 ? (@total_premium_collected / @total_policies).round(0) : 0
-    @customer_retention = calculate_customer_retention_rate
-    @monthly_recurring_revenue = calculate_monthly_recurring_revenue
+    conversion_rate = results[:total_leads] > 0 ? ((results[:converted_leads].to_f / results[:total_leads]) * 100).round(1) : 0
+    avg_policy_value = results[:total_policies] > 0 ? (results[:total_premium_collected] / results[:total_policies]).round(0) : 0
+    customer_retention = calculate_customer_retention_rate
+    monthly_recurring_revenue = (results[:total_premium_collected] / 12.0).round(0)
+
+    {
+      customer_growth: customer_growth,
+      policy_growth: policy_growth,
+      premium_growth: premium_growth,
+      affiliate_growth: affiliate_growth,
+      ambassador_growth: ambassador_growth,
+      lead_growth: lead_growth,
+      renewal_growth: renewal_growth,
+      payout_growth: payout_growth,
+      sum_insured_growth: sum_insured_growth,
+      conversion_rate: conversion_rate,
+      avg_policy_value: avg_policy_value,
+      customer_retention: customer_retention,
+      monthly_recurring_revenue: monthly_recurring_revenue
+    }
   end
 
   private
@@ -312,7 +332,7 @@ class DashboardController < ApplicationController
   def get_premium_for_period(start_date, end_date)
     health = HealthInsurance.where(created_at: start_date..end_date).sum(:total_premium) || 0
     life = LifeInsurance.where(created_at: start_date..end_date).sum(:total_premium) || 0
-    motor = MotorInsurance.where(created_at: start_date..end_date).sum(:total_premium) rescue 0
+    motor = (MotorInsurance.where(created_at: start_date..end_date).sum(:total_premium) rescue 0)
     health + life + motor
   end
 
@@ -329,14 +349,14 @@ class DashboardController < ApplicationController
 
   def get_payouts_for_period(start_date, end_date)
     commission = CommissionPayout.where(created_at: start_date..end_date, status: 'pending').sum(:payout_amount) || 0
-    distributor = DistributorPayout.where(created_at: start_date..end_date, status: 'pending').sum(:payout_amount) rescue 0
+    distributor = (DistributorPayout.where(created_at: start_date..end_date, status: 'pending').sum(:payout_amount) rescue 0)
     commission + distributor
   end
 
   def get_sum_insured_for_period(start_date, end_date)
     health = HealthInsurance.where(created_at: start_date..end_date).sum(:sum_insured) || 0
     life = LifeInsurance.where(created_at: start_date..end_date).sum(:sum_insured) || 0
-    motor = MotorInsurance.where(created_at: start_date..end_date).sum(:sum_insured) rescue 0
+    motor = (MotorInsurance.where(created_at: start_date..end_date).sum(:sum_insured) rescue 0)
     health + life + motor
   end
 
@@ -355,9 +375,4 @@ class DashboardController < ApplicationController
     old_customers > 0 ? ((active_old_customers.to_f / old_customers.to_f) * 100).round(1) : 0
   end
 
-  def calculate_monthly_recurring_revenue
-    # Estimate based on average premium per month
-    monthly_premium = @total_premium_collected / 12.0
-    monthly_premium.round(0)
-  end
 end
