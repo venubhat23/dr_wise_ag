@@ -400,11 +400,11 @@ Rails.application.routes.draw do
           get :export
           get :generate
           post :create_report
-          get :saved, to: :saved_reports
+          get :saved_reports
         end
         member do
-          get :show_saved, to: :show_saved_report
-          delete :destroy_saved, to: :destroy_saved_report
+          get :show_saved_report
+          delete :destroy_saved_report
         end
       end
       resources :expired_insurance_reports, only: [:index] do
