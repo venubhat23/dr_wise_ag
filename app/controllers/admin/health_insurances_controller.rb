@@ -342,6 +342,53 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     }
   end
 
+  def create_renewal
+    # Check if policy expires within 60 days
+    if @health_insurance.policy_end_date.blank? || @health_insurance.policy_end_date > 60.days.from_now
+      redirect_to admin_health_insurances_path, alert: "This policy is not eligible for renewal yet."
+      return
+    end
+
+    # Create new policy with renewal data
+    processed_params = process_broker_params(health_insurance_params)
+    @renewed_policy = HealthInsurance.new(processed_params)
+    @renewed_policy.policy_type = 'Renewal'
+    @renewed_policy.original_policy_id = @health_insurance.id
+
+    # Set admin added flags for renewal (same as original)
+    @renewed_policy.is_admin_added = @health_insurance.is_admin_added
+    @renewed_policy.is_customer_added = @health_insurance.is_customer_added
+    @renewed_policy.is_agent_added = @health_insurance.is_agent_added
+
+    # Ensure distributor is set from affiliate before saving
+    set_distributor_from_affiliate(@renewed_policy)
+
+    if @renewed_policy.save
+      # Mark original policy as renewed
+      @health_insurance.update_column(:is_renewed, true)
+
+      redirect_to admin_health_insurance_path(@renewed_policy),
+                  notice: 'Health insurance renewal policy was successfully created.'
+    else
+      # Reload form data for error display
+      load_form_data
+      @customer_family_members = @renewed_policy.customer&.family_members || []
+
+      # Set up affiliate selection
+      if @renewed_policy.customer.present?
+        if @renewed_policy.customer.sub_agent_id.present?
+          @auto_select_affiliate = @renewed_policy.customer.sub_agent_id
+        else
+          @auto_select_affiliate = 'self'
+        end
+      end
+
+      # Assign to instance variable for form
+      @health_insurance = @renewed_policy
+      render :renew, status: :unprocessable_entity
+    end
+  end
+
   private
 
   def process_broker_params(params)
@@ -511,53 +558,6 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     else
       # Build at least one empty member for the form if no members exist
       @health_insurance.health_insurance_members.build
-    end
-  end
-
-  def create_renewal
-    # Check if policy expires within 60 days
-    if @health_insurance.policy_end_date.blank? || @health_insurance.policy_end_date > 60.days.from_now
-      redirect_to admin_health_insurances_path, alert: "This policy is not eligible for renewal yet."
-      return
-    end
-
-    # Create new policy with renewal data
-    processed_params = process_broker_params(health_insurance_params)
-    @renewed_policy = HealthInsurance.new(processed_params)
-    @renewed_policy.policy_type = 'Renewal'
-    @renewed_policy.original_policy_id = @health_insurance.id
-
-    # Set admin added flags for renewal (same as original)
-    @renewed_policy.is_admin_added = @health_insurance.is_admin_added
-    @renewed_policy.is_customer_added = @health_insurance.is_customer_added
-    @renewed_policy.is_agent_added = @health_insurance.is_agent_added
-
-    # Ensure distributor is set from affiliate before saving
-    set_distributor_from_affiliate(@renewed_policy)
-
-    if @renewed_policy.save
-      # Mark original policy as renewed
-      @health_insurance.update_column(:is_renewed, true)
-
-      redirect_to admin_health_insurance_path(@renewed_policy),
-                  notice: 'Health insurance renewal policy was successfully created.'
-    else
-      # Reload form data for error display
-      load_form_data
-      @customer_family_members = @renewed_policy.customer&.family_members || []
-
-      # Set up affiliate selection
-      if @renewed_policy.customer.present?
-        if @renewed_policy.customer.sub_agent_id.present?
-          @auto_select_affiliate = @renewed_policy.customer.sub_agent_id
-        else
-          @auto_select_affiliate = 'self'
-        end
-      end
-
-      # Assign to instance variable for form
-      @health_insurance = @renewed_policy
-      render :renew, status: :unprocessable_entity
     end
   end
 
