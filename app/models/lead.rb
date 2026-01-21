@@ -445,6 +445,7 @@ class Lead < ApplicationRecord
 
   # Custom validation for unique contact number and product combination
   def unique_contact_for_product_combination
+    debugger
     return if contact_number.blank? || product_category.blank? || product_subcategory.blank?
 
     existing_lead = Lead.where(
@@ -453,9 +454,9 @@ class Lead < ApplicationRecord
       product_subcategory: product_subcategory
     ).where.not(id: id).first
 
-    if existing_lead
-      errors.add(:contact_number, "Contact number already exists for this product combination")
-    end
+    # if existing_lead
+    #   errors.add(:contact_number, "Contact number already exists for this product combination")
+    # end
   end
 
   # Custom validation for unique email and product combination
