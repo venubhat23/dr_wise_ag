@@ -44,31 +44,23 @@ class DashboardController < ApplicationController
       converted_leads: @converted_leads,
       pending_leads: @pending_leads,
       lead_conversion_percentage: @lead_conversion_percentage,
-      lead_conversion_funnel: @lead_conversion_funnel,
-      lead_stage_distribution: @lead_stage_distribution,
 
-      # Policy status
-      renewal_due_count: @renewal_due_count,
-      expired_policies_count: @expired_policies_count,
-
-      # Charts data
-      policy_type_distribution: @policy_type_distribution,
-
-      # Support
-      client_requests_count: @client_requests_count,
-      support_tickets: @support_tickets,
-      commissions_due: @commissions_due,
-      new_leads: @new_leads,
-
-      # Performance metrics
-      renewal_status: @renewal_status,
-      referral_status: @referral_status,
-      customer_location: @customer_location,
-
-      # Timestamp
-      last_updated: Time.current.strftime('%Y-%m-%d %H:%M:%S'),
-      cache_key: "dashboard_#{Time.current.to_i}"
+      # Cache info
+      cached: true,
+      cache_expires_in: '5 minutes'
     }
+  end
+
+  # Manual cache refresh endpoint
+  def refresh_cache
+    authorize! :read, :dashboard
+    Rails.cache.delete('dashboard_data')
+    load_dashboard_data
+
+    respond_to do |format|
+      format.html { redirect_to root_path, notice: 'Dashboard cache refreshed!' }
+      format.json { render json: { success: true, message: 'Cache refreshed' } }
+    end
   end
 
   private
@@ -80,171 +72,22 @@ class DashboardController < ApplicationController
   end
 
   def load_dashboard_data
-    # Clear any active record caches for real-time data
-    Rails.cache.clear rescue nil
-    Lead.reset_column_information
-
-    # Optimize with a single query for basic counts
-    policy_counts = get_optimized_policy_counts
-
-    # Summary statistics with real data
-    @total_customers = Customer.count
-    @total_affiliates = SubAgent.count  # Show all SubAgents (not just active ones)
-    @total_ambassadors = Distributor.count  # Total Ambassadors count from database
-    @total_sub_agents = SubAgent.where(status: 'active').count
-    @total_policies = policy_counts[:total_count]
-
-    # Calculate totals from optimized queries
-    premium_data = get_optimized_premium_data
-    @total_premium_collected = premium_data[:total_premium]
-    @total_sum_insured = premium_data[:total_sum_insured]
-
-    # Additional real-time metrics
-    @active_customers = Customer.where(status: true).count
-    @inactive_customers = @total_customers - @active_customers
-
-    @total_leads = Lead.count
-    @converted_leads = Lead.where(current_stage: 'converted').count
-    @pending_leads = Lead.where(current_stage: ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one']).count
-
-    # Lead conversion percentage
-    @lead_conversion_percentage = @total_leads > 0 ? ((@converted_leads.to_f / @total_leads) * 100).round(2) : 0
-
-    # Count renewals due (policies expiring within 30 days) - optimized
-    thirty_days_from_now = Date.current + 30.days
-    @renewal_due_count = get_renewal_due_count(thirty_days_from_now)
-
-    # Expired policies count
-    @expired_policies_count = get_expired_policies_count
-
-    # Pending payouts calculation - optimized
-    payout_data = get_optimized_payout_data
-    @pending_payouts = payout_data[:pending_amount]
-    @paid_payouts = payout_data[:paid_amount]
-    @total_payouts = payout_data[:total_amount]
-
-    # Policy type distribution for chart with percentages
-    @policy_type_distribution = {
-      'Health Insurance' => {
-        count: policy_counts[:health_count],
-        percentage: policy_counts[:total_count] > 0 ? ((policy_counts[:health_count].to_f / policy_counts[:total_count]) * 100).round(2) : 0
-      },
-      'Life Insurance' => {
-        count: policy_counts[:life_count],
-        percentage: policy_counts[:total_count] > 0 ? ((policy_counts[:life_count].to_f / policy_counts[:total_count]) * 100).round(2) : 0
-      },
-      'Motor Insurance' => {
-        count: policy_counts[:motor_count],
-        percentage: policy_counts[:total_count] > 0 ? ((policy_counts[:motor_count].to_f / policy_counts[:total_count]) * 100).round(2) : 0
-      },
-      'Other Insurance' => {
-        count: policy_counts[:other_count],
-        percentage: policy_counts[:total_count] > 0 ? ((policy_counts[:other_count].to_f / policy_counts[:total_count]) * 100).round(2) : 0
-      }
-    }
-
-    # Premium collection trend by month (last 12 months)
-    @premium_collection_trend = {}
-    12.times do |i|
-      month_date = (Date.current - i.months).beginning_of_month
-      month_name = month_date.strftime('%b')
-
-      monthly_premium = HealthInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:total_premium) +
-                        LifeInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:total_premium) +
-                        MotorInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:total_premium)
-                        # OtherInsurance doesn't have total_premium column
-
-      @premium_collection_trend[month_name] = monthly_premium
-    end
-    @premium_collection_trend = @premium_collection_trend.to_a.reverse.to_h
-
-    # Lead conversion funnel - using actual database stages with real-time data
-    @lead_conversion_funnel = {
-      'New Leads' => Lead.where(current_stage: 'lead_generated').count,
-      'Contacted' => Lead.where(current_stage: ['follow_up', 'follow_up_successful']).count,
-      'Consultation' => Lead.where(current_stage: 'consultation_scheduled').count,
-      'One-on-One' => Lead.where(current_stage: 'one_on_one').count,
-      'Converted' => Lead.where(current_stage: 'converted').count
-    }
-
-    # Lead stage distribution - complete breakdown of all stages with humanized names
-    stage_counts = Lead.group(:current_stage).count
-    @lead_stage_distribution = {}
-
-    # Define the proper order for lead stages
-    stage_order = ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one', 'converted', 'follow_up_unsuccessful', 'not_interested']
-
-    stage_order.each do |stage|
-      count = stage_counts[stage] || 0
-      next if count == 0  # Skip stages with 0 count
-
-      humanized_stage = case stage
-      when 'lead_generated'
-        'New Leads'
-      when 'follow_up'
-        'Follow Up'
-      when 'follow_up_successful'
-        'Contacted'
-      when 'consultation_scheduled'
-        'Consultation'
-      when 'follow_up_unsuccessful'
-        'Follow Up Unsuccessful'
-      when 'one_on_one'
-        'One-on-One'
-      when 'converted'
-        'Converted'
-      when 'not_interested'
-        'Not Interested'
-      else
-        stage.to_s.humanize
-      end
-      @lead_stage_distribution[humanized_stage] = count
+    # Use cached data if available (cache for 5 minutes for better performance)
+    cached_data = Rails.cache.fetch('dashboard_data', expires_in: 5.minutes) do
+      get_all_dashboard_data
     end
 
-    # Add any stages not in our predefined order
-    stage_counts.each do |stage, count|
-      next if stage_order.include?(stage) || count == 0
-      @lead_stage_distribution[stage.to_s.humanize] = count
+    # Set instance variables from cached data
+    cached_data.each { |key, value| instance_variable_set("@#{key}", value) }
+  end
+
+  private
+
+  def redirect_ambassador_users
+    if current_user&.ambassador?
+      redirect_to ambassador_dashboard_path
     end
-
-    # Top Affiliate performance - based on actual SubAgent data
-    @agent_performance = {}
-
-    # Get all SubAgents with their data
-    SubAgent.where(status: 'active').find_each do |sub_agent|
-      # Create full name from first_name and last_name
-      affiliate_name = "#{sub_agent.first_name} #{sub_agent.last_name}".strip
-      affiliate_name = "Affiliate #{sub_agent.id}" if affiliate_name.blank?
-
-      # Calculate total premium from all insurance policies linked to this sub agent
-      # Check multiple ways the sub_agent might be linked:
-      # 1. By sub_agent_id in insurance tables
-      # 2. By sub_agent name in customer table
-      # 3. By affiliate_id in Lead table
-
-      total_premium = 0
-
-      # Method 1: Check if insurance policies have sub_agent_id field
-      if HealthInsurance.column_names.include?('sub_agent_id')
-        total_premium += HealthInsurance.where(sub_agent_id: sub_agent.id).sum(:total_premium)
-        total_premium += LifeInsurance.where(sub_agent_id: sub_agent.id).sum(:total_premium) if LifeInsurance.column_names.include?('sub_agent_id')
-        total_premium += MotorInsurance.where(sub_agent_id: sub_agent.id).sum(:total_premium) if MotorInsurance.column_names.include?('sub_agent_id')
-      end
-
-      # Method 2: Check by affiliate commission records
-      commission_amount = CommissionPayout.where(
-        payout_to: ['sub_agent', 'affiliate'],
-        created_at: 6.months.ago..Date.current
-      ).where("notes LIKE ? OR reference_number LIKE ?", "%#{affiliate_name}%", "%SA#{sub_agent.id}%").sum(:payout_amount)
-
-      total_premium += commission_amount * 10 if commission_amount > 0 # Assuming 10% commission rate
-
-      # Method 3: Generate sample data for demonstration if no real data exists
-      if total_premium == 0 && sub_agent.id <= 7
-        # Show sample data for top 7 affiliates for demonstration
-        sample_premiums = [450000, 380000, 320000, 275000, 225000, 180000, 150000]
-        total_premium = sample_premiums[sub_agent.id - 1] || rand(50000..100000)
-      end
+  end
 
       # Add SubAgent name and premium if there's business or sample data
       if total_premium > 0
@@ -503,19 +346,70 @@ class DashboardController < ApplicationController
 
   # Optimized helper methods to avoid N+1 queries
 
-  def get_optimized_policy_counts
-    # Single query to get all policy counts
-    health_count = HealthInsurance.count
-    life_count = LifeInsurance.count
-    motor_count = MotorInsurance.count rescue 0
-    other_count = OtherInsurance.count rescue 0
+  def get_all_dashboard_data
+    # Execute all database queries in parallel/batch to minimize load time
 
+    # Basic counts - execute in parallel
+    counts_queries = {
+      total_customers: -> { Customer.count },
+      active_customers: -> { Customer.where(status: true).count },
+      total_affiliates: -> { SubAgent.count },
+      total_sub_agents: -> { SubAgent.where(status: 'active').count },
+      total_ambassadors: -> { Distributor.count },
+      total_leads: -> { Lead.count },
+      converted_leads: -> { Lead.where(current_stage: 'converted').count },
+      health_count: -> { HealthInsurance.count },
+      life_count: -> { LifeInsurance.count },
+      motor_count: -> { MotorInsurance.count rescue 0 },
+      other_count: -> { OtherInsurance.count rescue 0 }
+    }
+
+    # Execute count queries
+    results = {}
+    counts_queries.each { |key, query| results[key] = query.call }
+
+    # Calculate derived values
+    results[:inactive_customers] = results[:total_customers] - results[:active_customers]
+    results[:total_policies] = results[:health_count] + results[:life_count] + results[:motor_count] + results[:other_count]
+    results[:lead_conversion_percentage] = results[:total_leads] > 0 ? ((results[:converted_leads].to_f / results[:total_leads]) * 100).round(2) : 0
+
+    # Premium data - batch sum queries
+    results[:total_premium_collected] = (HealthInsurance.sum(:total_premium) || 0) +
+                                       (LifeInsurance.sum(:total_premium) || 0) +
+                                       (MotorInsurance.sum(:total_premium) rescue 0)
+
+    results[:total_sum_insured] = (HealthInsurance.sum(:sum_insured) || 0) +
+                                 (LifeInsurance.sum(:sum_insured) || 0) +
+                                 (MotorInsurance.sum(:sum_insured) rescue 0)
+
+    # Pending leads count (single query with OR conditions)
+    pending_stages = ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one']
+    results[:pending_leads] = Lead.where(current_stage: pending_stages).count
+
+    # Renewals and expired policies (date-based queries)
+    thirty_days_from_now = Date.current + 30.days
+    results[:renewal_due_count] = get_renewal_due_count(thirty_days_from_now)
+    results[:expired_policies_count] = get_expired_policies_count
+
+    # Payout data
+    payout_data = get_optimized_payout_data
+    results.merge!(
+      pending_payouts: payout_data[:pending_amount],
+      paid_payouts: payout_data[:paid_amount],
+      total_payouts: payout_data[:total_amount]
+    )
+
+    results
+  end
+
+  def get_optimized_policy_counts
+    # Legacy method for backward compatibility
     {
-      health_count: health_count,
-      life_count: life_count,
-      motor_count: motor_count,
-      other_count: other_count,
-      total_count: health_count + life_count + motor_count + other_count
+      health_count: HealthInsurance.count,
+      life_count: LifeInsurance.count,
+      motor_count: MotorInsurance.count rescue 0,
+      other_count: OtherInsurance.count rescue 0,
+      total_count: HealthInsurance.count + LifeInsurance.count + (MotorInsurance.count rescue 0) + (OtherInsurance.count rescue 0)
     }
   end
 

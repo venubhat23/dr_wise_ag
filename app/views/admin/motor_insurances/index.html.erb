@@ -50,16 +50,7 @@
     <h2 class="mb-1">Motor Insurance Policies</h2>
     <p class="text-muted mb-0">Manage vehicle insurance policies and view policy details</p>
   </div>
-  <div class="d-flex gap-2">
-    <div class="dropdown">
-      <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-        <i class="bi bi-download me-1"></i>
-        Export
-      </button>
-      <ul class="dropdown-menu">
-        <li><%= link_to "Export as CSV", admin_motor_insurances_path(format: :csv), class: "dropdown-item" %></li>
-      </ul>
-    </div>
+  <div>
     <%= link_to new_admin_motor_insurance_path, class: "btn btn-primary" do %>
       <i class="bi bi-plus-lg me-1"></i>
       Add New Motor Policy
@@ -107,7 +98,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Coverage</h6>
-            <h3 class="mb-0 text-info"><%= indian_currency(@motor_insurances.sum { |m| m.sum_insured.to_f }.to_i) %></h3>
+            <h3 class="mb-0 text-info"><%= indian_currency(@motor_insurances.sum { |m| m.total_idv.to_f }.to_i) %></h3>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">
             <i class="bi bi-shield-check text-info fs-4"></i>
@@ -228,8 +219,8 @@
                 </td>
                 <td>
                   <div>
-                    <h6 class="mb-1 text-warning"><%= indian_currency(policy.sum_insured.to_f.to_i) %></h6>
-                    <small class="text-muted">Sum Insured</small>
+                    <h6 class="mb-1 text-warning"><%= indian_currency(policy.total_idv.to_f.to_i) %></h6>
+                    <small class="text-muted">Total IDV</small>
                     <% if policy.policy_end_date %>
                       <br><small class="text-muted">
                         <i class="bi bi-calendar me-1"></i>

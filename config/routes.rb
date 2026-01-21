@@ -47,6 +47,7 @@ Rails.application.routes.draw do
 
     # Analytics
     get 'analytics', to: 'analytics#index'
+    post 'analytics/refresh', to: 'analytics#refresh', as: 'refresh_analytics'
 
     # Document management
     resources :documents do
@@ -278,6 +279,7 @@ Rails.application.routes.draw do
       member do
         get :renew
         post :create_renewal
+        delete :delete_document
       end
     end
 

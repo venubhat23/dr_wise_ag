@@ -1,12 +1,50 @@
 class Admin::AnalyticsController < Admin::ApplicationController
   def index
-    # Analytics dashboard data
+    # Check for refresh parameter
+    if params[:refresh] == 'true'
+      refresh_analytics_cache
+    end
+
+    # Load analytics data (cached or fresh)
     load_analytics_data
+  end
+
+  def refresh
+    refresh_analytics_cache
+    redirect_to admin_analytics_path, notice: 'Analytics data has been refreshed!'
   end
 
   private
 
+  def refresh_analytics_cache
+    Rails.logger.info "🔄 Refreshing analytics cache..."
+    AnalyticsCache.clear_cache('main_analytics')
+    load_fresh_analytics_data
+  end
+
   def load_analytics_data
+    cache_identifier = 'main_analytics'
+
+    # Try to get cached data first
+    if AnalyticsCache.cache_fresh?(cache_identifier, 1.hour)
+      Rails.logger.info "📊 Loading analytics from cache..."
+      cached_data = AnalyticsCache.get_cached_data(cache_identifier)
+      load_data_from_cache(cached_data) if cached_data
+    else
+      Rails.logger.info "🔄 Cache miss or stale, loading fresh analytics data..."
+      load_fresh_analytics_data
+    end
+
+    # Set cache info for UI
+    set_cache_info(cache_identifier)
+  end
+
+  def load_fresh_analytics_data
+    cache_identifier = 'main_analytics'
+    start_time = Time.current
+
+    Rails.logger.info "🔄 Starting fresh analytics calculation..."
+
     # Time ranges
     @current_month = Date.current.beginning_of_month
     @last_month = 1.month.ago.beginning_of_month
@@ -65,6 +103,88 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
     # Lead conversion funnel
     @lead_conversion_funnel = calculate_lead_conversion_funnel
+
+    # Customer location analytics
+    @customer_location = calculate_customer_location
+
+    # Cache the calculated data
+    analytics_data = {
+      current_month: @current_month,
+      last_month: @last_month,
+      current_year: @current_year,
+      last_year: @last_year,
+      total_customers: @total_customers,
+      total_policies: @total_policies,
+      total_premium: @total_premium,
+      total_affiliates: @total_affiliates,
+      total_ambassadors: @total_ambassadors,
+      customer_growth: @customer_growth,
+      policy_growth: @policy_growth,
+      premium_growth: @premium_growth,
+      affiliate_growth: @affiliate_growth,
+      policy_distribution: @policy_distribution,
+      monthly_trends: @monthly_trends,
+      top_affiliates: @top_affiliates.map(&:attributes),
+      recent_policies: @recent_policies,
+      recent_leads: @recent_leads.map(&:attributes),
+      commission_summary: @commission_summary,
+      renewal_analytics: @renewal_analytics,
+      agent_performance: @agent_performance,
+      commissions_due: @commissions_due,
+      conversion_rate: @conversion_rate,
+      avg_policy_value: @avg_policy_value,
+      customer_retention: @customer_retention,
+      lead_conversion_funnel: @lead_conversion_funnel,
+      customer_location: @customer_location
+    }
+
+    AnalyticsCache.cache_analytics_data(cache_identifier, analytics_data)
+
+    calculation_time = (Time.current - start_time).round(2)
+    Rails.logger.info "✅ Fresh analytics calculated and cached in #{calculation_time}s"
+  end
+
+  def load_data_from_cache(cached_data)
+    @current_month = cached_data['current_month']&.to_date
+    @last_month = cached_data['last_month']&.to_date
+    @current_year = cached_data['current_year']&.to_date
+    @last_year = cached_data['last_year']&.to_date
+    @total_customers = cached_data['total_customers']
+    @total_policies = cached_data['total_policies']
+    @total_premium = cached_data['total_premium']
+    @total_affiliates = cached_data['total_affiliates']
+    @total_ambassadors = cached_data['total_ambassadors']
+    @customer_growth = cached_data['customer_growth']
+    @policy_growth = cached_data['policy_growth']
+    @premium_growth = cached_data['premium_growth']
+    @affiliate_growth = cached_data['affiliate_growth']
+    @policy_distribution = cached_data['policy_distribution']
+    @monthly_trends = cached_data['monthly_trends']
+    @top_affiliates = cached_data['top_affiliates']&.map { |attrs| SubAgent.new(attrs) }
+    @recent_policies = cached_data['recent_policies']
+    @recent_leads = cached_data['recent_leads']&.map { |attrs| Lead.new(attrs) }
+    @commission_summary = cached_data['commission_summary']
+    @renewal_analytics = cached_data['renewal_analytics']
+    @agent_performance = cached_data['agent_performance']
+    @commissions_due = cached_data['commissions_due']
+    @conversion_rate = cached_data['conversion_rate']
+    @avg_policy_value = cached_data['avg_policy_value']
+    @customer_retention = cached_data['customer_retention']
+    @lead_conversion_funnel = cached_data['lead_conversion_funnel']
+    @customer_location = cached_data['customer_location']
+  end
+
+  def set_cache_info(cache_identifier)
+    cache_record = AnalyticsCache.find_by(cache_identifier: cache_identifier)
+    if cache_record
+      @cache_last_updated = cache_record.last_updated
+      @cache_age_minutes = cache_record.cache_age_minutes
+      @data_is_cached = true
+    else
+      @cache_last_updated = nil
+      @cache_age_minutes = 0
+      @data_is_cached = false
+    end
   end
 
   def calculate_total_policies
@@ -322,5 +442,34 @@ class Admin::AnalyticsController < Admin::ApplicationController
       'Quoted' => 0,
       'Converted' => 0
     }
+  end
+
+  def calculate_customer_location
+    # Calculate customer distribution by location (city/state)
+    location_data = {}
+
+    # Group customers by city or state, whichever is available
+    Customer.group(:city).count.each do |city, count|
+      next if city.blank?
+      location_data[city.to_s.titleize] = count
+    end
+
+    # If no city data, try state
+    if location_data.empty?
+      Customer.group(:state).count.each do |state, count|
+        next if state.blank?
+        location_data[state.to_s.titleize] = count
+      end
+    end
+
+    # If still no data, provide a default
+    if location_data.empty?
+      location_data = { 'Unknown' => Customer.count }
+    end
+
+    location_data
+  rescue => e
+    Rails.logger.error "Error calculating customer location: #{e.message}"
+    { 'Unknown' => Customer.count }
   end
 end

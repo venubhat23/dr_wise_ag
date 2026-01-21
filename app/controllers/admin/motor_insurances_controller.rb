@@ -1,7 +1,11 @@
 class Admin::MotorInsurancesController < Admin::ApplicationController
   include ConfigurablePagination
-  before_action :set_motor_insurance, only: [:show, :edit, :update, :destroy]
-  before_action :load_form_data, only: [:new, :edit, :create, :update]
+
+  # Ensure CSRF protection
+  protect_from_forgery with: :exception
+
+  before_action :set_motor_insurance, only: [:show, :edit, :update, :destroy, :delete_document, :renew, :create_renewal]
+  before_action :load_form_data, only: [:new, :edit, :create, :update, :renew, :create_renewal]
 
   def index
     @motor_insurances = MotorInsurance.includes(:customer, :sub_agent, :agency_code, :broker)
@@ -71,6 +75,31 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   end
 
   def edit
+    # Load customer family members for policy holder options
+    @customer_family_members = @motor_insurance.customer&.family_members&.includes(:customer)
+
+    # Set selected customer for form
+    @selected_customer = @motor_insurance.customer
+
+    # Set auto-select affiliate based on existing sub_agent
+    if @motor_insurance.sub_agent_id.present?
+      @auto_select_affiliate = @motor_insurance.sub_agent_id
+    else
+      @auto_select_affiliate = 'self'
+    end
+
+    # Convert policy holder ID to name for proper form display
+    if @customer_family_members&.any? && @motor_insurance.policy_holder.present?
+      # If policy_holder is stored as family member ID, find the corresponding name
+      member = @customer_family_members.find { |m| m.id.to_s == @motor_insurance.policy_holder }
+      if member
+        @selected_policy_holder = member.name
+      else
+        @selected_policy_holder = @motor_insurance.policy_holder
+      end
+    else
+      @selected_policy_holder = @motor_insurance.policy_holder.presence || 'Self'
+    end
   end
 
   def create
@@ -82,6 +111,9 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @motor_insurance.is_admin_added = true
     @motor_insurance.is_customer_added = false
     @motor_insurance.is_agent_added = false
+
+    # Set default commission percentages if empty
+    set_default_commissions(@motor_insurance)
 
     set_distributor_from_affiliate(@motor_insurance)
 
@@ -111,6 +143,35 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     redirect_to admin_motor_insurances_path, notice: 'Motor insurance policy was successfully deleted.'
   end
 
+  def delete_document
+    begin
+      document_id = params[:document_id]
+      document_type = params[:document_type]
+
+      # Find the specific document attachment
+      document = nil
+      case document_type
+      when 'policy_documents'
+        document = @motor_insurance.policy_documents.find(document_id)
+      when 'documents'
+        document = @motor_insurance.documents.find(document_id)
+      else
+        raise "Invalid document type: #{document_type}"
+      end
+
+      if document
+        document.purge
+        render json: { success: true, message: 'Document deleted successfully' }
+      else
+        render json: { success: false, error: 'Document not found' }
+      end
+
+    rescue => e
+      Rails.logger.error "Failed to delete document: #{e.message}"
+      render json: { success: false, error: e.message }
+    end
+  end
+
   def renew
     @motor_insurance = MotorInsurance.find(params[:id])
 
@@ -132,16 +193,106 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @renewed_policy.id = nil
     @renewed_policy.created_at = nil
     @renewed_policy.updated_at = nil
+    @renewed_policy.lead_id = nil
 
-    # Copy over vehicle details
+    # Copy all important fields from original policy
+
+    # Customer & Agent Details (already copied by dup)
+    # @renewed_policy.customer_id = @motor_insurance.customer_id
+    # @renewed_policy.policy_holder = @motor_insurance.policy_holder
+    # @renewed_policy.sub_agent_id = @motor_insurance.sub_agent_id
+    # @renewed_policy.distributor_id = @motor_insurance.distributor_id
+    # @renewed_policy.investor_id = @motor_insurance.investor_id
+
+    # Vehicle Details
     @renewed_policy.registration_number = @motor_insurance.registration_number
-    @renewed_policy.engine_number = @motor_insurance.engine_number
-    @renewed_policy.chassis_number = @motor_insurance.chassis_number
-    @renewed_policy.vehicle_idv = @motor_insurance.vehicle_idv
+    @renewed_policy.vehicle_type = @motor_insurance.vehicle_type
+    @renewed_policy.class_of_vehicle = @motor_insurance.class_of_vehicle
     @renewed_policy.make = @motor_insurance.make
     @renewed_policy.model = @motor_insurance.model
     @renewed_policy.variant = @motor_insurance.variant
     @renewed_policy.mfy = @motor_insurance.mfy
+    @renewed_policy.engine_number = @motor_insurance.engine_number
+    @renewed_policy.chassis_number = @motor_insurance.chassis_number
+    @renewed_policy.seating_capacity = @motor_insurance.seating_capacity
+
+    # Policy Details
+    @renewed_policy.insurance_company_name = @motor_insurance.insurance_company_name
+    @renewed_policy.insurance_type = @motor_insurance.insurance_type
+    @renewed_policy.broker_id = @motor_insurance.broker_id
+    @renewed_policy.broker_code_type = @motor_insurance.broker_code_type
+    @renewed_policy.agency_code_id = @motor_insurance.agency_code_id
+
+    # Vehicle Values
+    @renewed_policy.vehicle_idv = @motor_insurance.vehicle_idv
+    @renewed_policy.cng_idv = @motor_insurance.cng_idv
+    @renewed_policy.total_idv = @motor_insurance.total_idv
+    @renewed_policy.ncb = @motor_insurance.ncb
+    @renewed_policy.discount_loading_percent = @motor_insurance.discount_loading_percent
+
+    # Premium Details
+    @renewed_policy.net_premium = @motor_insurance.net_premium
+    @renewed_policy.tp_premium = @motor_insurance.tp_premium
+    @renewed_policy.gst_percentage = @motor_insurance.gst_percentage
+    @renewed_policy.total_premium = @motor_insurance.total_premium
+
+    # Commission Details
+    @renewed_policy.main_agent_commission_percentage = @motor_insurance.main_agent_commission_percentage
+    @renewed_policy.commission_amount = @motor_insurance.commission_amount
+    @renewed_policy.tds_percentage = @motor_insurance.tds_percentage
+    @renewed_policy.tds_amount = @motor_insurance.tds_amount
+    @renewed_policy.after_tds_value = @motor_insurance.after_tds_value
+
+    # Sub Agent Commission
+    @renewed_policy.sub_agent_commission_percentage = @motor_insurance.sub_agent_commission_percentage
+    @renewed_policy.sub_agent_commission_amount = @motor_insurance.sub_agent_commission_amount
+    @renewed_policy.sub_agent_tds_percentage = @motor_insurance.sub_agent_tds_percentage
+    @renewed_policy.sub_agent_tds_amount = @motor_insurance.sub_agent_tds_amount
+    @renewed_policy.sub_agent_after_tds_value = @motor_insurance.sub_agent_after_tds_value
+
+    # Distributor Commission
+    @renewed_policy.distributor_commission_percentage = @motor_insurance.distributor_commission_percentage
+    @renewed_policy.distributor_commission_amount = @motor_insurance.distributor_commission_amount
+    @renewed_policy.distributor_tds_percentage = @motor_insurance.distributor_tds_percentage
+    @renewed_policy.distributor_tds_amount = @motor_insurance.distributor_tds_amount
+    @renewed_policy.distributor_after_tds_value = @motor_insurance.distributor_after_tds_value
+
+    # Investor Commission
+    @renewed_policy.investor_commission_percentage = @motor_insurance.investor_commission_percentage
+    @renewed_policy.investor_commission_amount = @motor_insurance.investor_commission_amount
+    @renewed_policy.investor_tds_percentage = @motor_insurance.investor_tds_percentage
+    @renewed_policy.investor_tds_amount = @motor_insurance.investor_tds_amount
+    @renewed_policy.investor_after_tds_value = @motor_insurance.investor_after_tds_value
+
+    # Ambassador Commission
+    @renewed_policy.ambassador_commission_percentage = @motor_insurance.ambassador_commission_percentage
+    @renewed_policy.ambassador_commission_amount = @motor_insurance.ambassador_commission_amount
+    @renewed_policy.ambassador_tds_percentage = @motor_insurance.ambassador_tds_percentage
+    @renewed_policy.ambassador_tds_amount = @motor_insurance.ambassador_tds_amount
+    @renewed_policy.ambassador_after_tds_value = @motor_insurance.ambassador_after_tds_value
+
+    # Company & Profit
+    @renewed_policy.company_expenses_percentage = @motor_insurance.company_expenses_percentage
+    @renewed_policy.total_distribution_percentage = @motor_insurance.total_distribution_percentage
+    @renewed_policy.profit_percentage = @motor_insurance.profit_percentage
+    @renewed_policy.profit_amount = @motor_insurance.profit_amount
+
+    # Optional Covers
+    @renewed_policy.zero_depreciation = @motor_insurance.zero_depreciation
+    @renewed_policy.roadside_assistance = @motor_insurance.roadside_assistance
+    @renewed_policy.engine_protector = @motor_insurance.engine_protector
+    @renewed_policy.key_replacement = @motor_insurance.key_replacement
+    @renewed_policy.return_to_invoice = @motor_insurance.return_to_invoice
+    @renewed_policy.consumable_cover = @motor_insurance.consumable_cover
+    @renewed_policy.personal_accident_cover = @motor_insurance.personal_accident_cover
+    @renewed_policy.legal_liability = @motor_insurance.legal_liability
+    @renewed_policy.electrical_accessories = @motor_insurance.electrical_accessories
+    @renewed_policy.non_electrical_accessories = @motor_insurance.non_electrical_accessories
+
+    # Additional Details
+    @renewed_policy.financier = @motor_insurance.financier
+    @renewed_policy.reference_by_name = @motor_insurance.reference_by_name
+    @renewed_policy.extra_note = @motor_insurance.extra_note
 
     # Load form data for the view
     load_form_data
@@ -150,11 +301,20 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @selected_customer = @motor_insurance.customer
     @customer_family_members = @selected_customer&.family_members&.includes(:customer)
 
+    # Set auto-select affiliate based on existing sub_agent
+    if @motor_insurance.sub_agent_id.present?
+      @auto_select_affiliate = @motor_insurance.sub_agent_id
+    else
+      @auto_select_affiliate = 'self'
+    end
+
     render :renew
   end
 
   def create_renewal
-    @renewed_policy = MotorInsurance.new(motor_insurance_params)
+    # Process broker params if needed
+    processed_params = process_broker_params(motor_insurance_params)
+    @renewed_policy = MotorInsurance.new(processed_params)
 
     # Set admin tracking fields for renewal policies
     @renewed_policy.policy_added_by_admin = true
@@ -163,15 +323,27 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @renewed_policy.is_agent_added = false
     @renewed_policy.policy_type = 'Renewal'
 
+    # Set default commission percentages if empty
+    set_default_commissions(@renewed_policy)
+
     set_distributor_from_affiliate(@renewed_policy)
 
     if @renewed_policy.save
       redirect_to admin_motor_insurance_path(@renewed_policy),
                   notice: 'Motor insurance renewal policy was successfully created.'
     else
-      load_form_data
+      # Set original policy for error recovery
+      @motor_insurance = MotorInsurance.find(params[:id]) if params[:id].present?
       @selected_customer = @renewed_policy.customer
       @customer_family_members = @selected_customer&.family_members&.includes(:customer)
+
+      # Set auto-select affiliate
+      if @renewed_policy.sub_agent_id.present?
+        @auto_select_affiliate = @renewed_policy.sub_agent_id
+      else
+        @auto_select_affiliate = 'self'
+      end
+
       render :renew, status: :unprocessable_entity
     end
   end
@@ -307,7 +479,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     # API response format: { company1, company2 }
 
     # For motor insurance, use the motor/general insurance companies
-    companies = InsuranceCompany.where('insurance_type ILIKE ?', '%general%').pluck(:name)
+    companies = InsuranceCompany.where(insurance_type: "motor_other").pluck(:name)
 
     companies_data = companies.map { |name|
       {
@@ -477,8 +649,41 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       # Legal Liability & Optional Covers
       :legal_liability, :electrical_accessories, :non_electrical_accessories,
       :zero_depreciation, :roadside_assistance, :engine_protector, :key_replacement,
-      :return_to_invoice, :consumable_cover, :personal_accident_cover, :financier
+      :return_to_invoice, :consumable_cover, :personal_accident_cover, :financier,
+
+      # File Uploads
+      policy_documents: [], documents: []
     )
+  end
+
+  def set_default_commissions(insurance_record)
+    # Set default commission percentages if they are empty or zero
+    commission_fields = {
+      ambassador_commission_percentage: 2.0,
+      investor_commission_percentage: 2.0,
+      distributor_commission_percentage: 2.0,
+      company_expenses_percentage: 2.0
+    }
+
+    commission_fields.each do |field, default_value|
+      current_value = insurance_record.send(field)
+      if current_value.blank? || current_value.to_f == 0.0
+        insurance_record.send("#{field}=", default_value)
+      end
+    end
+
+    # Ensure main agent commission has a minimum default
+    if insurance_record.main_agent_commission_percentage.blank? || insurance_record.main_agent_commission_percentage.to_f == 0.0
+      insurance_record.main_agent_commission_percentage = 15.0
+    end
+
+    # Ensure sub agent commission has a minimum default
+    if insurance_record.sub_agent_commission_percentage.blank? || insurance_record.sub_agent_commission_percentage.to_f == 0.0
+      insurance_record.sub_agent_commission_percentage = 3.0
+    end
+  rescue StandardError => e
+    # Log error but don't fail the form submission
+    Rails.logger.error "Failed to set default commissions: #{e.message}"
   end
 
   def set_distributor_from_affiliate(insurance_record)

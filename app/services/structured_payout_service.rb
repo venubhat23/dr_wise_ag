@@ -158,7 +158,7 @@ class StructuredPayoutService
 
   def create_ambassador_commission(main_payout)
     amount = calculate_ambassador_amount
-    return nil if amount <= 0 || !@policy.respond_to?(:distributor_id) || !@policy.distributor_id
+    return nil if amount <= 0
 
     CommissionPayout.create!(
       payout_id: main_payout.id,
@@ -171,7 +171,7 @@ class StructuredPayoutService
       status: 'pending',
       payment_mode: 'bank_transfer',
       reference_number: "AMB_#{main_payout.id}_#{Time.current.to_i}",
-      notes: "Ambassador commission for #{@policy_type} policy. Distributor ID: #{@policy.distributor_id}",
+      notes: "Ambassador commission for #{@policy_type} policy#{@policy.distributor_id ? ". Distributor ID: #{@policy.distributor_id}" : ""}",
       processed_by: 'system_auto'
     )
   end

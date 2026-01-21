@@ -187,15 +187,117 @@
   .pink-gradient { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); }
   .purple-gradient { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
   .red-gradient { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+
+  /* Cache status and refresh button styling */
+  .cache-status-info {
+    font-size: 0.875rem;
+  }
+
+  .cache-status-info .badge {
+    font-size: 0.75rem;
+    padding: 0.4em 0.6em;
+  }
+
+  /* Spin animation for refresh button */
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .spin-animation {
+    animation: spin 1s linear infinite;
+  }
+
+  /* Refresh button hover effects */
+  #refresh-analytics-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  #refresh-analytics-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  /* Loading overlay for refresh */
+  .analytics-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(248, 250, 252, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+  }
+
+  .loading-spinner {
+    text-align: center;
+    color: #8b5cf6;
+  }
+
+  .loading-spinner .spinner {
+    width: 3rem;
+    height: 3rem;
+    border: 0.3em solid #e2e8f0;
+    border-top: 0.3em solid #8b5cf6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+  }
 </style>
 
 <div class="analytics-container">
   <div class="analytics-header">
-    <h1 class="analytics-title">
-      <i class="bi bi-bar-chart-line-fill me-3" style="color: #8b5cf6;"></i>
-      Analytics Dashboard
-    </h1>
-    <p class="analytics-subtitle">Comprehensive insights into your insurance business performance</p>
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h1 class="analytics-title">
+          <i class="bi bi-bar-chart-line-fill me-3" style="color: #8b5cf6;"></i>
+          Analytics Dashboard
+        </h1>
+        <p class="analytics-subtitle">Comprehensive insights into your insurance business performance</p>
+      </div>
+      <div class="d-flex flex-column align-items-end">
+        <!-- Refresh Button -->
+        <div class="mb-2">
+          <%= button_to admin_refresh_analytics_path, method: :post,
+                        class: "btn btn-outline-primary d-flex align-items-center",
+                        id: "refresh-analytics-btn",
+                        data: {
+                          confirm: "This will refresh all analytics data. Continue?",
+                          disable_with: '<i class="bi bi-arrow-repeat spin-animation me-2"></i>Refreshing...'
+                        } do %>
+            <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
+          <% end %>
+        </div>
+
+        <!-- Cache Status -->
+        <div class="cache-status-info">
+          <% if @data_is_cached && @cache_last_updated %>
+            <div class="d-flex align-items-center">
+              <span class="badge bg-success me-2">
+                <i class="bi bi-database-fill me-1"></i>Cached
+              </span>
+              <small class="text-muted">
+                Updated <%= time_ago_in_words(@cache_last_updated) %> ago
+              </small>
+            </div>
+          <% else %>
+            <div class="d-flex align-items-center">
+              <span class="badge bg-warning me-2">
+                <i class="bi bi-lightning-fill me-1"></i>Fresh
+              </span>
+              <small class="text-muted">
+                Just calculated
+              </small>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- KPI Cards -->
