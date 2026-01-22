@@ -410,6 +410,17 @@ Rails.application.routes.draw do
           get :export_pdf
         end
       end
+
+      resources :lead_reports, only: [:index, :new, :create] do
+        collection do
+          post :preview
+        end
+        member do
+          get :show_saved_report
+          delete :destroy_saved_report
+          get :export_csv
+        end
+      end
       resources :expired_insurance_reports, only: [:index] do
         collection do
           get :export
@@ -432,6 +443,15 @@ Rails.application.routes.draw do
       resources :upcoming_renewal_reports, only: [:index] do
         collection do
           get :export
+          get :generate
+          post :create_report
+          post :preview
+          get :saved_reports
+        end
+        member do
+          get :show_saved_report
+          delete :destroy_saved_report
+          get :export_csv
         end
       end
       resources :upcoming_payment_reports, only: [:index] do
