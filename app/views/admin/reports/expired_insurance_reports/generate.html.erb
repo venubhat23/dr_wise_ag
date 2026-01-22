@@ -3,20 +3,20 @@
 
 <!-- Page Header -->
 <div class="mb-4">
-  <h2 class="mb-1">Generate Commission Report</h2>
-  <p class="text-muted mb-0">Create a custom commission report with filters and save it for later reference</p>
+  <h2 class="mb-1">Generate Expired Insurance Report</h2>
+  <p class="text-muted mb-0">Generate a report of policies that have expired or will expire within a selected period</p>
 </div>
 
 <!-- Report Configuration Form -->
 <div class="card border-0 shadow-sm">
   <div class="card-body">
-    <%= form_with url: create_report_admin_reports_commission_reports_path, local: true, id: "report_form" do |form| %>
+    <%= form_with url: create_report_admin_reports_expired_insurance_reports_path, local: true, id: "report_form" do |form| %>
 
       <!-- Report Name -->
       <div class="mb-4">
         <%= form.label :report_name, "Report Name", class: "form-label" %>
         <%= form.text_field :report_name,
-                           value: "Commission Report #{Date.current.strftime('%d %b %Y')}",
+                           value: "Expired Insurance Report #{Date.current.strftime('%d %b %Y')}",
                            class: "form-control",
                            placeholder: "Enter report name" %>
         <small class="form-text text-muted">
@@ -29,7 +29,7 @@
         <div class="col-md-6 mb-4">
           <%= form.label :start_date, "Start Date", class: "form-label" %>
           <%= form.date_field :start_date,
-                             value: 1.month.ago.to_date,
+                             value: 30.days.ago.to_date,
                              class: "form-control" %>
         </div>
 
@@ -47,10 +47,10 @@
         <%= form.label :quick_range, "Quick Date Range", class: "form-label" %>
         <select id="quick_range" class="form-select">
           <option value="">Custom Range</option>
-          <option value="today">Today</option>
-          <option value="this_week">This Week</option>
           <option value="this_month">This Month</option>
           <option value="last_month">Last Month</option>
+          <option value="next_1_month">Next 1 Month</option>
+          <option value="next_3_months">Next 3 Months</option>
           <option value="last_3_months">Last 3 Months</option>
           <option value="this_year">This Year</option>
         </select>
@@ -64,14 +64,26 @@
                          options_for_select([
                            ['All Types', ''],
                            ['Health', 'health'],
-                           ['Life', 'life'],
-                           ['Motor', 'motor']
+                           ['Motor', 'motor'],
+                           ['Life', 'life']
+                         ]),
+                         {},
+                         { class: "form-select" } %>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="col-md-6 mb-4">
+          <%= form.label :status, "Policy Status", class: "form-label" %>
+          <%= form.select :status,
+                         options_for_select([
+                           ['All Status', ''],
+                           ['Expired', 'expired'],
+                           ['Expiring Soon', 'expiring_soon']
                          ]),
                          {},
                          { class: "form-select" } %>
         </div>
       </div>
-
 
       <!-- Export Format Selection -->
       <div class="card bg-light border-0 mb-4">
@@ -117,7 +129,7 @@
         <button type="submit" name="commit" value="generate" class="btn btn-success">
           <i class="bi bi-check-circle me-1"></i>Generate Report
         </button>
-        <%= link_to "Cancel", admin_reports_commission_reports_path, class: "btn btn-outline-secondary" %>
+        <%= link_to "Cancel", admin_reports_expired_insurance_reports_path, class: "btn btn-outline-secondary" %>
       </div>
     <% end %>
   </div>
@@ -232,15 +244,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set appropriate messages
     if (isPreview) {
       progressTitle.textContent = 'Generating Preview...';
-      progressMessage.textContent = 'Loading report data for preview';
+      progressMessage.textContent = 'Loading expired insurance data for preview';
     } else {
       progressTitle.textContent = 'Generating Report...';
-      progressMessage.textContent = 'Processing commission data and preparing download';
+      progressMessage.textContent = 'Processing expired insurance data and preparing download';
     }
 
     const statuses = isPreview ?
-      ['Fetching policies...', 'Loading commission data...', 'Calculating totals...', 'Generating preview...', 'Almost done...'] :
-      ['Validating data...', 'Processing commissions...', 'Calculating statistics...', 'Saving to database...', 'Finalizing...'];
+      ['Fetching policies...', 'Loading policy data...', 'Calculating statistics...', 'Generating preview...', 'Almost done...'] :
+      ['Validating data...', 'Processing expired policies...', 'Calculating statistics...', 'Saving to database...', 'Finalizing...'];
 
     const interval = setInterval(() => {
       if (progress < 90) {
@@ -295,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
               // Redirect to index page after 2 seconds
               setTimeout(() => {
-                window.location.href = '<%= admin_reports_commission_reports_path %>';
+                window.location.href = '<%= admin_reports_expired_insurance_reports_path %>';
               }, 2000);
 
               // Reset progress bar for next use
@@ -323,13 +335,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let start, end;
 
     switch(this.value) {
-      case 'today':
-        start = end = today;
-        break;
-      case 'this_week':
-        start = new Date(today.setDate(today.getDate() - today.getDay()));
-        end = new Date();
-        break;
       case 'this_month':
         start = new Date(today.getFullYear(), today.getMonth(), 1);
         end = new Date();
@@ -337,6 +342,14 @@ document.addEventListener('DOMContentLoaded', function() {
       case 'last_month':
         start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         end = new Date(today.getFullYear(), today.getMonth(), 0);
+        break;
+      case 'next_1_month':
+        start = new Date();
+        end = new Date(today.setMonth(today.getMonth() + 1));
+        break;
+      case 'next_3_months':
+        start = new Date();
+        end = new Date(today.setMonth(today.getMonth() + 3));
         break;
       case 'last_3_months':
         start = new Date(today.setMonth(today.getMonth() - 3));
@@ -367,7 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Simulate progress and make request
     simulateProgress(() => {
-      return fetch('<%= preview_admin_reports_commission_reports_path %>', {
+      return fetch('<%= preview_admin_reports_expired_insurance_reports_path %>', {
         method: 'POST',
         body: formData,
         headers: {
@@ -404,10 +417,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
       if (exportFormat === 'csv') {
         progressTitle.textContent = 'Generating CSV Report...';
-        progressMessage.textContent = 'Processing commission data and preparing CSV download';
+        progressMessage.textContent = 'Processing expired insurance data and preparing CSV download';
       } else {
         progressTitle.textContent = 'Generating Report...';
-        progressMessage.textContent = 'Processing commission data and saving to database';
+        progressMessage.textContent = 'Processing expired insurance data and saving to database';
       }
 
       // Start progress animation that stops at 90%
@@ -427,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update status message based on progress
         if (progress < 20) progressStatus.textContent = 'Validating data...';
-        else if (progress < 40) progressStatus.textContent = 'Processing commissions...';
+        else if (progress < 40) progressStatus.textContent = 'Processing expired policies...';
         else if (progress < 60) progressStatus.textContent = 'Calculating statistics...';
         else if (progress < 80) progressStatus.textContent = 'Saving to database...';
         else progressStatus.textContent = 'Finalizing...';
@@ -453,7 +466,7 @@ document.addEventListener('DOMContentLoaded', function() {
               const a = document.createElement('a');
               a.style.display = 'none';
               a.href = url;
-              a.download = `commission-report-${new Date().toISOString().slice(0,10)}.csv`;
+              a.download = `expired-insurance-report-${new Date().toISOString().slice(0,10)}.csv`;
               document.body.appendChild(a);
               a.click();
               window.URL.revokeObjectURL(url);
@@ -501,7 +514,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Redirect to index page
       setTimeout(() => {
-        window.location.href = '<%= admin_reports_commission_reports_path %>';
+        window.location.href = '<%= admin_reports_expired_insurance_reports_path %>';
       }, 1500);
     }, 800);
   }

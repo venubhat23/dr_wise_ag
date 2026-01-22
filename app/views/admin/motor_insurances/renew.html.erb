@@ -374,17 +374,52 @@ document.addEventListener('DOMContentLoaded', function() {
                 $(agencySelect).val(originalAgencyCodeId).trigger('change');
                 console.log('✅ Selected original agency code:', originalAgencyCodeId);
 
-                // Auto-select insurance company after agency selection
-                setTimeout(function() {
+                // Auto-select insurance company after agency selection with retry logic
+                function selectInsuranceCompany() {
                   const companySelect = document.getElementById('motor_insurance_insurance_company_name');
                   if (companySelect && originalInsuranceCompany) {
-                    const companyOptionExists = Array.from(companySelect.options).some(opt => opt.text === originalInsuranceCompany);
-                    if (companyOptionExists) {
-                      $(companySelect).val(originalInsuranceCompany).trigger('change');
-                      console.log('✅ Auto-selected insurance company:', originalInsuranceCompany);
+                    console.log('Attempting to select insurance company:', originalInsuranceCompany);
+                    console.log('Available options:', Array.from(companySelect.options).map(opt => opt.text));
+
+                    // Try multiple selection methods
+                    let companySelected = false;
+
+                    // Method 1: Match by text content
+                    const exactMatch = Array.from(companySelect.options).find(opt => opt.text.trim() === originalInsuranceCompany.trim());
+                    if (exactMatch) {
+                      $(companySelect).val(exactMatch.value).trigger('change');
+                      console.log('✅ Auto-selected insurance company (exact match):', originalInsuranceCompany);
+                      companySelected = true;
+                    } else {
+                      // Method 2: Match by value
+                      const valueMatch = Array.from(companySelect.options).find(opt => opt.value.trim() === originalInsuranceCompany.trim());
+                      if (valueMatch) {
+                        $(companySelect).val(valueMatch.value).trigger('change');
+                        console.log('✅ Auto-selected insurance company (value match):', originalInsuranceCompany);
+                        companySelected = true;
+                      } else {
+                        // Method 3: Partial/fuzzy match
+                        const partialMatch = Array.from(companySelect.options).find(opt =>
+                          opt.text.toLowerCase().includes(originalInsuranceCompany.toLowerCase()) ||
+                          originalInsuranceCompany.toLowerCase().includes(opt.text.toLowerCase())
+                        );
+                        if (partialMatch) {
+                          $(companySelect).val(partialMatch.value).trigger('change');
+                          console.log('✅ Auto-selected insurance company (partial match):', partialMatch.text);
+                          companySelected = true;
+                        }
+                      }
+                    }
+
+                    if (!companySelected) {
+                      console.log('❌ Failed to auto-select insurance company:', originalInsuranceCompany);
                     }
                   }
-                }, 1000);
+                }
+
+                setTimeout(selectInsuranceCompany, 1000);
+                setTimeout(selectInsuranceCompany, 2000); // Retry after 2 seconds
+                setTimeout(selectInsuranceCompany, 3000); // Final retry after 3 seconds
               }
             }
             else if (originalBrokerCodeType === 'broking' && originalBrokerId) {
@@ -395,17 +430,52 @@ document.addEventListener('DOMContentLoaded', function() {
                 $(agencySelect).val(brokerValue).trigger('change');
                 console.log('✅ Selected original broker:', brokerValue);
 
-                // Auto-select insurance company
-                setTimeout(function() {
+                // Auto-select insurance company with retry logic
+                function selectInsuranceCompanyBroking() {
                   const companySelect = document.getElementById('motor_insurance_insurance_company_name');
                   if (companySelect && originalInsuranceCompany) {
-                    const companyOptionExists = Array.from(companySelect.options).some(opt => opt.text === originalInsuranceCompany);
-                    if (companyOptionExists) {
-                      $(companySelect).val(originalInsuranceCompany).trigger('change');
-                      console.log('✅ Auto-selected insurance company:', originalInsuranceCompany);
+                    console.log('Attempting to select insurance company (broking):', originalInsuranceCompany);
+                    console.log('Available options:', Array.from(companySelect.options).map(opt => opt.text));
+
+                    // Try multiple selection methods
+                    let companySelected = false;
+
+                    // Method 1: Match by text content
+                    const exactMatch = Array.from(companySelect.options).find(opt => opt.text.trim() === originalInsuranceCompany.trim());
+                    if (exactMatch) {
+                      $(companySelect).val(exactMatch.value).trigger('change');
+                      console.log('✅ Auto-selected insurance company (exact match):', originalInsuranceCompany);
+                      companySelected = true;
+                    } else {
+                      // Method 2: Match by value
+                      const valueMatch = Array.from(companySelect.options).find(opt => opt.value.trim() === originalInsuranceCompany.trim());
+                      if (valueMatch) {
+                        $(companySelect).val(valueMatch.value).trigger('change');
+                        console.log('✅ Auto-selected insurance company (value match):', originalInsuranceCompany);
+                        companySelected = true;
+                      } else {
+                        // Method 3: Partial/fuzzy match
+                        const partialMatch = Array.from(companySelect.options).find(opt =>
+                          opt.text.toLowerCase().includes(originalInsuranceCompany.toLowerCase()) ||
+                          originalInsuranceCompany.toLowerCase().includes(opt.text.toLowerCase())
+                        );
+                        if (partialMatch) {
+                          $(companySelect).val(partialMatch.value).trigger('change');
+                          console.log('✅ Auto-selected insurance company (partial match):', partialMatch.text);
+                          companySelected = true;
+                        }
+                      }
+                    }
+
+                    if (!companySelected) {
+                      console.log('❌ Failed to auto-select insurance company (broking):', originalInsuranceCompany);
                     }
                   }
-                }, 1000);
+                }
+
+                setTimeout(selectInsuranceCompanyBroking, 1000);
+                setTimeout(selectInsuranceCompanyBroking, 2000); // Retry after 2 seconds
+                setTimeout(selectInsuranceCompanyBroking, 3000); // Final retry after 3 seconds
               }
             }
           }, 500);

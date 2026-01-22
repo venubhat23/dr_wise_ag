@@ -27,7 +27,6 @@ class HealthInsurance < ApplicationRecord
   validates :insurance_company_name, presence: true
   validates :policy_type, presence: true, inclusion: { in: ['New', 'Renewal', 'Porting', 'Migration'] }
   validates :insurance_type, presence: true, inclusion: { in: ['Individual', 'Family Floater', 'Group'] }
-  validates :policy_number, presence: true, uniqueness: true
   validates :policy_booking_date, presence: true
   validates :policy_start_date, presence: true
   validates :policy_end_date, presence: true

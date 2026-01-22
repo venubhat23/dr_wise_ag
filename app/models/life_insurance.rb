@@ -32,7 +32,6 @@ class LifeInsurance < ApplicationRecord
   validates :policy_holder, presence: true
   validates :insurance_company_name, presence: true
   validates :policy_type, presence: true, inclusion: { in: ['New', 'Renewal'] }
-  validates :policy_number, presence: true, uniqueness: { message: 'has already been taken. Each policy must have a unique policy number.' }
   validates :policy_booking_date, presence: true
   validates :policy_start_date, presence: true
   validates :policy_end_date, presence: true

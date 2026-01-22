@@ -9,6 +9,13 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
     # Load analytics data (cached or fresh)
     load_analytics_data
+
+    # Handle AJAX requests for chart data
+    if request.xhr? && params[:chart].present?
+      chart_name = params[:chart]
+      render json: get_chart_data(chart_name)
+      return
+    end
   end
 
   def refresh
@@ -17,6 +24,42 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   private
+
+  def get_chart_data(chart_name)
+    case chart_name
+    when 'policyDistribution'
+      {
+        labels: @policy_distribution.keys,
+        data: @policy_distribution.values
+      }
+    when 'monthlyTrends'
+      {
+        labels: @monthly_trends.keys,
+        datasets: [
+          {
+            label: 'Customers',
+            data: @monthly_trends.values.map { |v| v[:customers] }
+          },
+          {
+            label: 'Policies',
+            data: @monthly_trends.values.map { |v| v[:policies] }
+          }
+        ]
+      }
+    when 'leadConversion'
+      {
+        labels: @lead_conversion_funnel.keys,
+        data: @lead_conversion_funnel.values
+      }
+    when 'leadStage'
+      {
+        labels: @lead_stage_distribution.keys,
+        data: @lead_stage_distribution.values
+      }
+    else
+      { error: 'Chart not found' }
+    end
+  end
 
   def refresh_analytics_cache
     Rails.logger.info "🔄 Refreshing analytics cache..."
@@ -118,6 +161,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
     # Customer acquisition trend (last 12 months)
     @customer_acquisition_trend = calculate_customer_acquisition_trend
 
+    # Premium Revenue Trend (last 12 months)
+    @premium_revenue_trend = calculate_premium_revenue_trend
+
     # Quick Insights data
     @active_customers = calculate_active_customers
     @converted_leads = calculate_converted_leads
@@ -161,6 +207,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
       lead_stage_distribution: @lead_stage_distribution,
       customer_location: @customer_location,
       customer_acquisition_trend: @customer_acquisition_trend,
+      premium_revenue_trend: @premium_revenue_trend,
       active_customers: @active_customers,
       converted_leads: @converted_leads,
       new_leads: @new_leads,
@@ -216,6 +263,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     @lead_stage_distribution = cached_data['lead_stage_distribution']
     @customer_location = cached_data['customer_location']
     @customer_acquisition_trend = cached_data['customer_acquisition_trend']
+    @premium_revenue_trend = cached_data['premium_revenue_trend']
     @active_customers = cached_data['active_customers'] || 0
     @converted_leads = cached_data['converted_leads'] || 0
     @new_leads = cached_data['new_leads'] || 0
@@ -623,6 +671,30 @@ class Admin::AnalyticsController < Admin::ApplicationController
       'Nov 2024' => 0,
       'Dec 2024' => 0
     }
+  end
+
+  def calculate_premium_revenue_trend
+    # Calculate premium revenue trend for last 12 months
+    trend_data = {}
+
+    12.times do |i|
+      month_date = (Date.current - i.months).beginning_of_month
+      month_name = month_date.strftime('%b %Y')
+
+      # Calculate total premium for the month across all insurance types
+      health_premium = HealthInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:total_premium)
+      life_premium = LifeInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:total_premium)
+      motor_premium = MotorInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:total_premium)
+
+      total_premium = health_premium + life_premium + motor_premium
+      trend_data[month_name] = total_premium.round(0)
+    end
+
+    # Return in chronological order (oldest to newest)
+    trend_data.to_a.reverse.to_h
+  rescue => e
+    Rails.logger.error "Error calculating premium revenue trend: #{e.message}"
+    {}
   end
 
   def calculate_active_customers

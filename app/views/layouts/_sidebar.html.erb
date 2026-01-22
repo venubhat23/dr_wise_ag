@@ -904,18 +904,6 @@
           <% end %>
         </li>
 
-        <!-- Payment Due -->
-        <li class="nav-item">
-          <%= link_to admin_reports_payment_due_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/payment_due')}" do %>
-            <div class="nav-icon-modern">
-              <div class="icon-bg gradient-orange">
-                <i class="bi bi-exclamation-triangle"></i>
-              </div>
-            </div>
-            <span class="nav-text">Payment Due</span>
-            <div class="nav-indicator"></div>
-          <% end %>
-        </li>
 
         <!-- Upcoming Renewal -->
         <li class="nav-item">
@@ -930,18 +918,6 @@
           <% end %>
         </li>
 
-        <!-- Upcoming Payment -->
-        <li class="nav-item">
-          <%= link_to admin_reports_upcoming_payment_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/payment')}" do %>
-            <div class="nav-icon-modern">
-              <div class="icon-bg gradient-purple">
-                <i class="bi bi-calendar-check"></i>
-              </div>
-            </div>
-            <span class="nav-text">Upcoming Payment</span>
-            <div class="nav-indicator"></div>
-          <% end %>
-        </li>
 
         <!-- Leads Report -->
         <li class="nav-item">
@@ -956,33 +932,6 @@
           <% end %>
         </li>
 
-        <!-- Session Report -->
-        <li class="nav-item">
-          <%= link_to admin_reports_session_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/sessions')}" do %>
-            <div class="nav-icon-modern">
-              <div class="icon-bg gradient-cyan">
-                <i class="bi bi-activity"></i>
-              </div>
-            </div>
-            <span class="nav-text">Session Report</span>
-            <div class="nav-indicator"></div>
-          <% end %>
-        </li>
-
-        <!-- AI Reports Assistant -->
-        <li class="nav-item">
-          <%= link_to chat_interface_admin_ai_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/ai_reports')}" do %>
-            <div class="nav-icon-modern">
-              <div class="icon-bg gradient-indigo">
-                <i class="bi bi-robot"></i>
-              </div>
-            </div>
-            <span class="nav-text">AI Assistant</span>
-            <div class="nav-indicator">
-              <span class="ai-pulse-indicator"></span>
-            </div>
-          <% end %>
-        </li>
         <% end %>
         </ul>
       </div>

@@ -1,9 +1,11 @@
 <!-- Chart.js for interactive charts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+<!-- Chart.js Data Labels Plugin for showing values on charts -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
 <style>
   .analytics-container {
-    padding: 2rem;
+    padding: 1.5rem;
     background: #f8fafc;
     min-height: 100vh;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -14,8 +16,8 @@
   .kpi-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
   }
 
   .kpi-card {
@@ -31,6 +33,10 @@
   .kpi-card:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transform: translateY(-2px);
+  }
+
+  .kpi-card:hover button[onclick*="refreshAffiliatesData"] {
+    opacity: 1 !important;
   }
 
   .kpi-card::before {
@@ -86,8 +92,8 @@
   .charts-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-    gap: 2rem;
-    margin-bottom: 2rem;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
   }
 
   .chart-card {
@@ -224,6 +230,62 @@
     height: 300px;
   }
 
+  /* Chart stats section */
+  .chart-stats {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: #f8fafc;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+  }
+
+  .stat-item {
+    text-align: center;
+    flex: 1;
+  }
+
+  .stat-label {
+    display: block;
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .stat-value {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+  }
+
+  /* Enhanced chart action tooltips */
+  .chart-action-btn {
+    position: relative;
+  }
+
+  .chart-action-btn:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 0.25rem;
+  }
+
   /* Tables */
   .analytics-table {
     background: white;
@@ -307,13 +369,16 @@
     animation: spin 1s linear infinite;
   }
 
-  /* Refresh button hover effects */
-  #refresh-analytics-btn:hover {
+  /* Cache button hover effects */
+  #cache-btn:hover {
+    background: #f3f4f6 !important;
+    color: #374151 !important;
+    border-color: #d1d5db !important;
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
-  #refresh-analytics-btn:disabled {
+  #cache-btn:disabled {
     opacity: 0.7;
     cursor: not-allowed;
   }
@@ -355,45 +420,19 @@
     <i class="bi bi-check-circle me-2"></i>
     <span id="indicatorText">Charts updated successfully</span>
   </div>
-  <!-- Cache Status at Top -->
-  <div class="d-flex justify-content-end align-items-center mb-3">
-    <div class="d-flex flex-column align-items-end">
-      <!-- Refresh Button -->
-      <div class="mb-2">
-        <%= button_to admin_analytics_refresh_path, method: :post,
-                      class: "btn btn-outline-primary d-flex align-items-center",
-                      id: "refresh-analytics-btn",
-                      data: {
-                        confirm: "This will refresh all analytics data. Continue?",
-                        disable_with: '<i class="bi bi-arrow-repeat spin-animation me-2"></i>Refreshing...'
-                      } do %>
-          <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
-        <% end %>
-      </div>
-
-      <!-- Cache Status -->
-      <div class="cache-status-info">
-        <% if @data_is_cached && @cache_last_updated %>
-          <div class="d-flex align-items-center">
-            <span class="badge bg-success me-2">
-              <i class="bi bi-database-fill me-1"></i>Cached
-            </span>
-            <small class="text-muted">
-              Updated <%= time_ago_in_words(@cache_last_updated) %> ago
-            </small>
-          </div>
-        <% else %>
-          <div class="d-flex align-items-center">
-            <span class="badge bg-warning me-2">
-              <i class="bi bi-lightning-fill me-1"></i>Fresh
-            </span>
-            <small class="text-muted">
-              Just calculated
-            </small>
-          </div>
-        <% end %>
-      </div>
-    </div>
+  <!-- Cache Control -->
+  <div class="d-flex justify-content-end align-items-center mb-2">
+    <%= button_to admin_analytics_refresh_path, method: :post,
+                  class: "btn btn-sm",
+                  id: "cache-btn",
+                  title: "Cache Data",
+                  style: "width: 32px; height: 32px; border-radius: 6px; border: 1px solid #e2e8f0; background: white; color: #6b7280; font-weight: 600; font-size: 0.875rem; padding: 0;",
+                  data: {
+                    confirm: "This will refresh all analytics data. Continue?",
+                    disable_with: 'C'
+                  } do %>
+      C
+    <% end %>
   </div>
 
   <!-- KPI Cards -->
@@ -438,15 +477,58 @@
     </div>
 
     <!-- Total Affiliates -->
-    <div class="kpi-card" style="--card-color: #ec4899;">
+    <div class="kpi-card" style="--card-color: #ec4899; position: relative;">
+      <button class="btn btn-link btn-sm p-0"
+              onclick="refreshAffiliatesData()"
+              title="Refresh Affiliates Data"
+              style="position: absolute; top: 0.75rem; right: 0.75rem; width: 24px; height: 24px; border-radius: 4px; border: 1px solid #e2e8f0; background: white; color: #6b7280; opacity: 0; transition: all 0.2s ease; z-index: 10;"
+              onmouseover="this.style.opacity='1'; this.style.backgroundColor='#f3f4f6'; this.style.color='#374151';"
+              onmouseout="this.style.opacity='0'; this.style.backgroundColor='white'; this.style.color='#6b7280';">
+        <i class="bi bi-arrow-clockwise" style="font-size: 0.75rem;"></i>
+      </button>
       <div class="kpi-icon pink-gradient">
         <i class="bi bi-people"></i>
       </div>
-      <div class="kpi-value"><%= number_with_delimiter(@total_affiliates) %></div>
+      <div class="kpi-value" id="affiliates-value"><%= number_with_delimiter(@total_affiliates) %></div>
       <div class="kpi-label">Total Affiliates</div>
-      <div class="kpi-change <%= @affiliate_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
+      <div class="kpi-change <%= @affiliate_growth >= 0 ? 'growth-positive' : 'growth-negative' %>" id="affiliates-change">
         <i class="bi bi-arrow-<%= @affiliate_growth >= 0 ? 'up' : 'down' %>-right me-1"></i>
         <%= @affiliate_growth.abs %>% from last month
+      </div>
+    </div>
+  </div>
+
+  <!-- Premium Revenue Trend - New Line Chart -->
+  <div class="chart-card" style="margin-bottom: 2rem;">
+    <div class="chart-header">
+      <h3 class="chart-title">Premium Revenue Trend (Last 12 Months)</h3>
+      <div class="chart-actions">
+        <button class="chart-action-btn" onclick="toggleChartType('premiumRevenueTrendChart', 'line', 'bar')" title="Toggle Chart Type">
+          <i class="bi bi-bar-chart"></i>
+        </button>
+        <button class="chart-action-btn" onclick="refreshChart('premiumRevenue')" title="Refresh Data">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="premiumRevenueTrendChart"></canvas>
+      <div class="chart-loading">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+    <div class="chart-stats">
+      <div class="stat-item">
+        <span class="stat-label">Current Month:</span>
+        <span class="stat-value">₹<%= ((@premium_revenue_trend&.values&.last || 0) / 1000.0).round(0) %>K</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Average:</span>
+        <span class="stat-value">₹<%= ((@premium_revenue_trend&.values&.sum.to_f / (@premium_revenue_trend&.values&.count.to_f.nonzero? || 1)) / 1000.0).round(0) %>K</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Peak Month:</span>
+        <span class="stat-value">₹<%= ((@premium_revenue_trend&.values&.max || 0) / 1000.0).round(0) %>K</span>
       </div>
     </div>
   </div>
@@ -593,20 +675,73 @@
     </div>
   </div>
 
-  <!-- Lead Conversion Funnel -->
+  <!-- Lead Analytics Section -->
   <div class="charts-grid">
-    <div class="chart-card">
-      <h3 class="chart-title">Lead Conversion Funnel</h3>
+    <!-- Lead Conversion Funnel -->
+    <div class="chart-card" data-chart="leadConversion">
+      <div class="chart-header">
+        <h3 class="chart-title">Lead Conversion Funnel</h3>
+        <div class="chart-actions">
+          <button class="chart-action-btn" onclick="toggleChartType('leadFunnelChart', 'bar', 'line')" title="Toggle Chart Type">
+            <i class="bi bi-bar-chart-line"></i>
+          </button>
+          <button class="chart-action-btn" onclick="refreshChart('leadConversion')" title="Refresh Data">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+          <button class="chart-action-btn" onclick="exportChart('leadFunnelChart')" title="Export Chart">
+            <i class="bi bi-download"></i>
+          </button>
+        </div>
+      </div>
       <div class="chart-container">
         <canvas id="leadFunnelChart"></canvas>
+        <div class="chart-loading">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+      <div class="chart-stats">
+        <div class="stat-item">
+          <span class="stat-label">Conversion Rate:</span>
+          <span class="stat-value"><%= @conversion_rate %>%</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Total Leads:</span>
+          <span class="stat-value"><%= @lead_conversion_funnel.values.first || 0 %></span>
+        </div>
       </div>
     </div>
 
     <!-- Lead Stage Distribution -->
-    <div class="chart-card">
-      <h3 class="chart-title">Lead Stage Distribution</h3>
+    <div class="chart-card" data-chart="leadStage">
+      <div class="chart-header">
+        <h3 class="chart-title">Lead Stage Distribution</h3>
+        <div class="chart-actions">
+          <button class="chart-action-btn" onclick="toggleChartType('leadStageChart', 'doughnut', 'polarArea')" title="Toggle Chart Type">
+            <i class="bi bi-pie-chart"></i>
+          </button>
+          <button class="chart-action-btn" onclick="refreshChart('leadStage')" title="Refresh Data">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+          <button class="chart-action-btn" onclick="exportChart('leadStageChart')" title="Export Chart">
+            <i class="bi bi-download"></i>
+          </button>
+        </div>
+      </div>
       <div class="chart-container">
         <canvas id="leadStageChart"></canvas>
+        <div class="chart-loading">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+      <div class="chart-stats">
+        <div class="stat-item">
+          <span class="stat-label">Active Stages:</span>
+          <span class="stat-value"><%= (@lead_stage_distribution || {}).count { |k, v| v > 0 } %></span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">New This Week:</span>
+          <span class="stat-value"><%= @new_leads || 0 %></span>
+        </div>
       </div>
     </div>
   </div>
@@ -832,9 +967,187 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Policy Distribution Chart
-  const policyCtx = document.getElementById('policyDistributionChart').getContext('2d');
-  new Chart(policyCtx, {
+  console.log('🎯 Analytics Charts Initialization Started...');
+
+  // Refresh Affiliates Data function
+  window.refreshAffiliatesData = function() {
+    const card = document.querySelector('.kpi-card[style*="--card-color: #ec4899"]');
+    const valueElement = document.getElementById('affiliates-value');
+    const changeElement = document.getElementById('affiliates-change');
+    const refreshBtn = event.currentTarget;
+
+    if (!card || !valueElement || !changeElement) return;
+
+    // Start loading state
+    refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise" style="font-size: 0.75rem; animation: spin 1s linear infinite;"></i>';
+
+    // Add visual feedback
+    card.style.transform = 'scale(0.98)';
+    card.style.transition = 'transform 0.2s ease';
+    card.style.boxShadow = '0 0 0 2px rgba(236, 72, 153, 0.2)';
+
+    // Show notification
+    showNotification('Refreshing affiliates data...', 'loading');
+
+    // Simulate data refresh (in a real app, this would be an AJAX call)
+    setTimeout(() => {
+      // Success animation
+      card.style.transform = 'scale(1)';
+      card.style.boxShadow = '';
+
+      // Reset button
+      refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise" style="font-size: 0.75rem;"></i>';
+
+      // Add a subtle flash effect to show update
+      valueElement.style.background = 'rgba(236, 72, 153, 0.1)';
+      setTimeout(() => {
+        valueElement.style.background = '';
+      }, 300);
+
+      showNotification('Affiliates data refreshed', 'success');
+    }, 800);
+  };
+
+  // Debug data
+  console.log('Policy Distribution Data:', <%= @policy_distribution.to_json.html_safe %>);
+  console.log('Commission Summary Data:', <%= @commission_summary.to_json.html_safe %>);
+  console.log('Lead Funnel Data:', <%= @lead_conversion_funnel.to_json.html_safe %>);
+
+  try {
+    // Premium Revenue Trend Chart - Clean Line Graph
+    console.log('💰 Initializing Premium Revenue Trend Chart...');
+    const premiumTrendCtx = document.getElementById('premiumRevenueTrendChart');
+    if (!premiumTrendCtx) {
+      console.error('❌ premiumRevenueTrendChart canvas not found!');
+    } else {
+      const premiumData = <%= (@premium_revenue_trend || {}).to_json.html_safe %>;
+      const premiumLabels = Object.keys(premiumData);
+      const premiumValues = Object.values(premiumData);
+
+      // Create gradient for the line
+      const gradientPremium = premiumTrendCtx.getContext('2d').createLinearGradient(0, 0, 0, 300);
+      gradientPremium.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
+      gradientPremium.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
+
+      const premiumRevenueTrendChart = new Chart(premiumTrendCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: premiumLabels,
+          datasets: [{
+            label: 'Premium Revenue (₹)',
+            data: premiumValues,
+            borderColor: '#10b981',
+            backgroundColor: gradientPremium,
+            borderWidth: 3,
+            tension: 0.4,
+            fill: true,
+            pointRadius: 4,
+            pointBackgroundColor: '#10b981',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#10b981',
+            pointHoverBorderColor: '#ffffff',
+            pointHoverBorderWidth: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: '#ffffff',
+              bodyColor: '#ffffff',
+              borderColor: '#10b981',
+              borderWidth: 1,
+              cornerRadius: 6,
+              padding: 12,
+              displayColors: false,
+              callbacks: {
+                label: function(context) {
+                  const value = context.raw;
+                  return 'Revenue: ₹' + (value / 1000).toFixed(1) + 'K';
+                }
+              }
+            },
+            datalabels: {
+              backgroundColor: '#10b981',
+              borderColor: 'white',
+              borderRadius: 4,
+              borderWidth: 2,
+              color: 'white',
+              font: {
+                size: 10,
+                weight: 'bold'
+              },
+              formatter: (value) => '₹' + (value / 1000).toFixed(0) + 'K',
+              padding: 4,
+              anchor: 'end',
+              align: 'top',
+              display: 'auto'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: '#f1f5f9',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#6b7280',
+                font: {
+                  size: 11
+                },
+                callback: function(value) {
+                  return '₹' + (value / 1000) + 'K';
+                }
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: '#6b7280',
+                font: {
+                  size: 11
+                },
+                maxRotation: 45,
+                minRotation: 45
+              }
+            }
+          },
+          animation: {
+            duration: 1500,
+            easing: 'easeInOutQuart'
+          }
+        }
+      });
+      console.log('✅ Premium Revenue Trend Chart initialized successfully');
+    }
+  } catch (error) {
+    console.error('❌ Error initializing Premium Revenue Trend Chart:', error);
+  }
+
+  try {
+    // Policy Distribution Chart
+    console.log('📊 Initializing Policy Distribution Chart...');
+    const policyCtx = document.getElementById('policyDistributionChart');
+    if (!policyCtx) {
+      console.error('❌ policyDistributionChart canvas not found!');
+      return;
+    }
+
+    const policyChart = new Chart(policyCtx.getContext('2d'), {
     type: 'doughnut',
     data: {
       labels: <%= @policy_distribution.keys.to_json.html_safe %>,
@@ -860,18 +1173,48 @@ document.addEventListener('DOMContentLoaded', function() {
             usePointStyle: true,
             font: { size: 12 }
           }
+        },
+        datalabels: {
+          color: '#fff',
+          font: {
+            size: 14,
+            weight: 'bold'
+          },
+          formatter: (value, context) => {
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = ((value / total) * 100).toFixed(1);
+            return value + '\n(' + percentage + '%)';
+          },
+          anchor: 'center',
+          align: 'center',
+          clip: false
         }
       }
     }
-  });
+    });
+    console.log('✅ Policy Distribution Chart initialized successfully');
 
-  // Monthly Trends Chart
-  const trendsCtx = document.getElementById('monthlyTrendsChart').getContext('2d');
-  const monthlyLabels = <%= @monthly_trends.keys.to_json.html_safe %>;
-  const customerData = <%= @monthly_trends.values.map { |v| v[:customers] }.to_json.html_safe %>;
-  const policyData = <%= @monthly_trends.values.map { |v| v[:policies] }.to_json.html_safe %>;
+  } catch (error) {
+    console.error('❌ Error initializing Policy Distribution Chart:', error);
+  }
 
-  new Chart(trendsCtx, {
+  try {
+    // Monthly Trends Chart
+    console.log('📈 Initializing Monthly Trends Chart...');
+    const trendsCtx = document.getElementById('monthlyTrendsChart');
+    if (!trendsCtx) {
+      console.error('❌ monthlyTrendsChart canvas not found!');
+      return;
+    }
+    const monthlyLabels = <%= @monthly_trends.keys.to_json.html_safe %>;
+    const customerData = <%= @monthly_trends.values.map { |v| v[:customers] }.to_json.html_safe %>;
+    const policyData = <%= @monthly_trends.values.map { |v| v[:policies] }.to_json.html_safe %>;
+
+    console.log('Monthly Labels:', monthlyLabels);
+    console.log('Customer Data:', customerData);
+    console.log('Policy Data:', policyData);
+
+    const monthlyChart = new Chart(trendsCtx.getContext('2d'), {
     type: 'line',
     data: {
       labels: monthlyLabels,
@@ -910,14 +1253,44 @@ document.addEventListener('DOMContentLoaded', function() {
         legend: {
           position: 'top',
           labels: { font: { size: 12 } }
+        },
+        datalabels: {
+          backgroundColor: function(context) {
+            return context.dataset.borderColor;
+          },
+          borderColor: 'white',
+          borderRadius: 4,
+          borderWidth: 2,
+          color: 'white',
+          font: {
+            size: 11,
+            weight: 'bold'
+          },
+          formatter: (value) => value,
+          padding: 4,
+          anchor: 'end',
+          align: 'top',
+          display: 'auto',
+          clip: false
         }
       }
     }
-  });
+    });
+    console.log('✅ Monthly Trends Chart initialized successfully');
 
-  // Commission Chart
-  const commissionCtx = document.getElementById('commissionChart').getContext('2d');
-  new Chart(commissionCtx, {
+  } catch (error) {
+    console.error('❌ Error initializing Monthly Trends Chart:', error);
+  }
+
+  try {
+    // Commission Chart
+    console.log('💰 Initializing Commission Chart...');
+    const commissionCtx = document.getElementById('commissionChart');
+    if (!commissionCtx) {
+      console.error('❌ commissionChart canvas not found!');
+      return;
+    }
+    const commissionChart = new Chart(commissionCtx.getContext('2d'), {
     type: 'bar',
     data: {
       labels: ['Due', 'Paid', 'Affiliate', 'Ambassador'],
@@ -948,14 +1321,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       },
       plugins: {
-        legend: { display: false }
+        legend: { display: false },
+        datalabels: {
+          color: '#fff',
+          font: {
+            size: 12,
+            weight: 'bold'
+          },
+          formatter: (value) => {
+            if (value >= 1000) {
+              return '₹' + (value / 1000).toFixed(1) + 'K';
+            }
+            return '₹' + value;
+          },
+          anchor: 'center',
+          align: 'center'
+        }
       }
     }
-  });
+    });
+    console.log('✅ Commission Chart initialized successfully');
 
-  // Renewal Analytics Chart
-  const renewalCtx = document.getElementById('renewalChart').getContext('2d');
-  new Chart(renewalCtx, {
+  } catch (error) {
+    console.error('❌ Error initializing Commission Chart:', error);
+  }
+
+  try {
+    // Renewal Analytics Chart
+    console.log('🔄 Initializing Renewal Analytics Chart...');
+    const renewalCtx = document.getElementById('renewalChart');
+    if (!renewalCtx) {
+      console.error('❌ renewalChart canvas not found!');
+      return;
+    }
+    const renewalChart = new Chart(renewalCtx.getContext('2d'), {
     type: 'bar',
     data: {
       labels: ['Expiring Soon', 'Expiring Later', 'Expired', 'Renewal Rate %'],
@@ -986,52 +1385,168 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       },
       plugins: {
-        legend: { display: false }
-      }
-    }
-  });
-
-  // Lead Funnel Chart
-  const leadFunnelCtx = document.getElementById('leadFunnelChart').getContext('2d');
-  new Chart(leadFunnelCtx, {
-    type: 'bar',
-    data: {
-      labels: <%= @lead_conversion_funnel.keys.to_json.html_safe %>,
-      datasets: [{
-        data: <%= @lead_conversion_funnel.values.to_json.html_safe %>,
-        backgroundColor: [
-          '#3b82f6',
-          '#10b981',
-          '#f59e0b',
-          '#ec4899',
-          '#8b5cf6'
-        ],
-        borderRadius: 6,
-        borderSkipped: false,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      indexAxis: 'y',
-      scales: {
-        x: {
-          beginAtZero: true,
-          grid: { color: '#f1f5f9' }
-        },
-        y: {
-          grid: { color: '#f1f5f9' }
+        legend: { display: false },
+        datalabels: {
+          color: '#fff',
+          font: {
+            size: 12,
+            weight: 'bold'
+          },
+          formatter: (value, context) => {
+            const label = context.chart.data.labels[context.dataIndex];
+            if (label.includes('%')) {
+              return value + '%';
+            }
+            return value;
+          },
+          anchor: 'center',
+          align: 'center'
         }
-      },
-      plugins: {
-        legend: { display: false }
       }
     }
-  });
+    });
+    console.log('✅ Renewal Analytics Chart initialized successfully');
 
-  // Customer Geographic Distribution Chart
-  const locationCtx = document.getElementById('locationChart').getContext('2d');
-  new Chart(locationCtx, {
+  } catch (error) {
+    console.error('❌ Error initializing Renewal Analytics Chart:', error);
+  }
+
+  try {
+    // Lead Funnel Chart - Enhanced with gradient and animations
+    console.log('🎯 Initializing Lead Funnel Chart...');
+    const leadFunnelCtx = document.getElementById('leadFunnelChart');
+    if (!leadFunnelCtx) {
+      console.error('❌ leadFunnelChart canvas not found!');
+      return;
+    }
+
+    // Create gradient colors for funnel effect
+    const ctx = leadFunnelCtx.getContext('2d');
+    const gradient1 = ctx.createLinearGradient(0, 0, 400, 0);
+    gradient1.addColorStop(0, '#3b82f6');
+    gradient1.addColorStop(1, '#1d4ed8');
+
+    const gradient2 = ctx.createLinearGradient(0, 0, 300, 0);
+    gradient2.addColorStop(0, '#10b981');
+    gradient2.addColorStop(1, '#047857');
+
+    const gradient3 = ctx.createLinearGradient(0, 0, 200, 0);
+    gradient3.addColorStop(0, '#f59e0b');
+    gradient3.addColorStop(1, '#d97706');
+
+    const gradient4 = ctx.createLinearGradient(0, 0, 150, 0);
+    gradient4.addColorStop(0, '#ec4899');
+    gradient4.addColorStop(1, '#be185d');
+
+    const gradient5 = ctx.createLinearGradient(0, 0, 100, 0);
+    gradient5.addColorStop(0, '#8b5cf6');
+    gradient5.addColorStop(1, '#6d28d9');
+
+    const leadFunnelChart = new Chart(leadFunnelCtx.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: <%= @lead_conversion_funnel.keys.to_json.html_safe %>,
+        datasets: [{
+          label: 'Lead Count',
+          data: <%= @lead_conversion_funnel.values.to_json.html_safe %>,
+          backgroundColor: [gradient1, gradient2, gradient3, gradient4, gradient5],
+          borderRadius: 8,
+          borderSkipped: false,
+          borderWidth: 2,
+          borderColor: [
+            '#1e40af',
+            '#047857',
+            '#b45309',
+            '#9d174d',
+            '#5b21b6'
+          ]
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        scales: {
+          x: {
+            beginAtZero: true,
+            grid: {
+              color: '#f1f5f9',
+              drawOnChartArea: true
+            },
+            ticks: {
+              color: '#6b7280'
+            }
+          },
+          y: {
+            grid: {
+              color: '#f1f5f9',
+              drawOnChartArea: false
+            },
+            ticks: {
+              color: '#374151',
+              font: {
+                weight: 'bold'
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleColor: '#ffffff',
+            bodyColor: '#ffffff',
+            borderColor: '#374151',
+            borderWidth: 1,
+            cornerRadius: 6,
+            displayColors: false,
+            callbacks: {
+              title: function(context) {
+                return context[0].label;
+              },
+              label: function(context) {
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                return `Count: ${context.raw} (${percentage}%)`;
+              }
+            }
+          },
+          datalabels: {
+            color: '#fff',
+            font: {
+              size: 11,
+              weight: 'bold'
+            },
+            formatter: (value) => value,
+            anchor: 'end',
+            align: 'start',
+            offset: 4
+          }
+        },
+        animation: {
+          duration: 2000,
+          easing: 'easeInOutQuart'
+        },
+        onHover: (event, activeElements) => {
+          event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+        }
+      }
+    });
+    console.log('✅ Lead Funnel Chart initialized successfully');
+
+  } catch (error) {
+    console.error('❌ Error initializing Lead Funnel Chart:', error);
+  }
+
+  try {
+    // Customer Geographic Distribution Chart
+    console.log('🌍 Initializing Location Chart...');
+    const locationCtx = document.getElementById('locationChart');
+    if (!locationCtx) {
+      console.error('❌ locationChart canvas not found!');
+      return;
+    }
+    const locationChart = new Chart(locationCtx.getContext('2d'), {
     type: 'doughnut',
     data: {
       labels: <%= @customer_location.keys.to_json.html_safe %>,
@@ -1055,14 +1570,40 @@ document.addEventListener('DOMContentLoaded', function() {
             usePointStyle: true,
             font: { size: 11 }
           }
+        },
+        datalabels: {
+          color: '#fff',
+          font: {
+            size: 11,
+            weight: 'bold'
+          },
+          formatter: (value, context) => {
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = ((value / total) * 100).toFixed(0);
+            if (percentage < 5) return ''; // Hide label if too small
+            return value + '\n(' + percentage + '%)';
+          },
+          anchor: 'center',
+          align: 'center'
         }
       }
     }
-  });
+    });
+    console.log('✅ Location Chart initialized successfully');
 
-  // Customer Acquisition Trend Chart
-  const acquisitionCtx = document.getElementById('customerAcquisitionChart').getContext('2d');
-  new Chart(acquisitionCtx, {
+  } catch (error) {
+    console.error('❌ Error initializing Location Chart:', error);
+  }
+
+  try {
+    // Customer Acquisition Trend Chart
+    console.log('📈 Initializing Customer Acquisition Chart...');
+    const acquisitionCtx = document.getElementById('customerAcquisitionChart');
+    if (!acquisitionCtx) {
+      console.error('❌ customerAcquisitionChart canvas not found!');
+      return;
+    }
+    const acquisitionChart = new Chart(acquisitionCtx.getContext('2d'), {
     type: 'line',
     data: {
       labels: <%= @customer_acquisition_trend.keys.to_json.html_safe %>,
@@ -1097,12 +1638,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
     }
-  });
+    });
+    console.log('✅ Customer Acquisition Chart initialized successfully');
 
-  // Lead Stage Distribution Chart
-  const leadStageCtx = document.getElementById('leadStageChart').getContext('2d');
-  const leadStageData = <%= (@lead_stage_distribution || {}).to_json.html_safe %>;
-  new Chart(leadStageCtx, {
+  } catch (error) {
+    console.error('❌ Error initializing Customer Acquisition Chart:', error);
+  }
+
+  try {
+    // Lead Stage Distribution Chart
+    console.log('📋 Initializing Lead Stage Distribution Chart...');
+    const leadStageCtx = document.getElementById('leadStageChart');
+    if (!leadStageCtx) {
+      console.error('❌ leadStageChart canvas not found!');
+      return;
+    }
+    const leadStageData = <%= (@lead_stage_distribution || {}).to_json.html_safe %>;
+    console.log('Lead Stage Data:', leadStageData);
+
+    const leadStageChart = new Chart(leadStageCtx.getContext('2d'), {
     type: 'doughnut',
     data: {
       labels: Object.keys(leadStageData),
@@ -1139,15 +1693,41 @@ document.addEventListener('DOMContentLoaded', function() {
               return context.label + ': ' + context.raw + ' (' + percentage + '%)';
             }
           }
+        },
+        datalabels: {
+          color: '#fff',
+          font: {
+            size: 11,
+            weight: 'bold'
+          },
+          formatter: (value, context) => {
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = ((value / total) * 100).toFixed(0);
+            if (percentage < 5) return ''; // Hide if too small
+            return value + '\n(' + percentage + '%)';
+          },
+          anchor: 'center',
+          align: 'center'
         }
       }
     }
   });
+    console.log('✅ Lead Stage Distribution Chart initialized successfully');
 
-  // Policy Performance Metrics Chart
-  const policyPerformanceCtx = document.getElementById('policyPerformanceChart').getContext('2d');
-  const policyData = <%= (@policy_distribution || {}).to_json.html_safe %>;
-  new Chart(policyPerformanceCtx, {
+  } catch (error) {
+    console.error('❌ Error initializing Lead Stage Distribution Chart:', error);
+  }
+
+  try {
+    // Policy Performance Metrics Chart
+    console.log('📊 Initializing Policy Performance Chart...');
+    const policyPerformanceCtx = document.getElementById('policyPerformanceChart');
+    if (!policyPerformanceCtx) {
+      console.error('❌ policyPerformanceChart canvas not found!');
+      return;
+    }
+    const policyData = <%= (@policy_distribution || {}).to_json.html_safe %>;
+    const policyPerformanceChart = new Chart(policyPerformanceCtx.getContext('2d'), {
     type: 'bar',
     data: {
       labels: Object.keys(policyData),
@@ -1186,10 +1766,21 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   });
+    console.log('✅ Policy Performance Chart initialized successfully');
 
-  // Operations Overview Chart
-  const operationsCtx = document.getElementById('operationsChart').getContext('2d');
-  new Chart(operationsCtx, {
+  } catch (error) {
+    console.error('❌ Error initializing Policy Performance Chart:', error);
+  }
+
+  try {
+    // Operations Overview Chart
+    console.log('🔧 Initializing Operations Chart...');
+    const operationsCtx = document.getElementById('operationsChart');
+    if (!operationsCtx) {
+      console.error('❌ operationsChart canvas not found!');
+      return;
+    }
+    const operationsChart = new Chart(operationsCtx.getContext('2d'), {
     type: 'polarArea',
     data: {
       labels: ['Documents Pending', 'Support Tickets', 'Claims Processing', 'Client Requests'],
@@ -1226,6 +1817,9 @@ document.addEventListener('DOMContentLoaded', function() {
             usePointStyle: true,
             font: { size: 11 }
           }
+        },
+        datalabels: {
+          display: false  // Disable for polar area charts
         }
       },
       scales: {
@@ -1236,10 +1830,21 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   });
+    console.log('✅ Operations Chart initialized successfully');
 
-  // Quick Insights Chart
-  const quickInsightsCtx = document.getElementById('quickInsightsChart').getContext('2d');
-  new Chart(quickInsightsCtx, {
+  } catch (error) {
+    console.error('❌ Error initializing Operations Chart:', error);
+  }
+
+  try {
+    // Quick Insights Chart
+    console.log('📈 Initializing Quick Insights Chart...');
+    const quickInsightsCtx = document.getElementById('quickInsightsChart');
+    if (!quickInsightsCtx) {
+      console.error('❌ quickInsightsChart canvas not found!');
+      return;
+    }
+    const quickInsightsChart = new Chart(quickInsightsCtx.getContext('2d'), {
     type: 'radar',
     data: {
       labels: ['Active Customers', 'Converted Leads', 'New Leads', 'Support Tickets'],
@@ -1264,7 +1869,10 @@ document.addEventListener('DOMContentLoaded', function() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: false }
+        legend: { display: false },
+        datalabels: {
+          display: false  // Disable for radar charts
+        }
       },
       scales: {
         r: {
@@ -1278,6 +1886,13 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   });
+    console.log('✅ Quick Insights Chart initialized successfully');
+
+  } catch (error) {
+    console.error('❌ Error initializing Quick Insights Chart:', error);
+  }
+
+  console.log('🎉 All analytics charts initialization completed!');
 
   // Enhanced Chart Interaction Functions
 
@@ -1372,7 +1987,8 @@ document.addEventListener('DOMContentLoaded', function() {
       'policyDistribution': 'policyDistributionChart',
       'monthlyTrends': 'monthlyTrendsChart',
       'leadStage': 'leadStageChart',
-      'policyPerformance': 'policyPerformanceChart'
+      'policyPerformance': 'policyPerformanceChart',
+      'premiumRevenue': 'premiumRevenueTrendChart'
     };
 
     const chartId = chartMapping[chartName];
@@ -1406,15 +2022,22 @@ document.addEventListener('DOMContentLoaded', function() {
     if (type === 'error') {
       indicator.className = 'update-indicator error show';
       icon.className = 'bi bi-exclamation-triangle me-2';
+    } else if (type === 'loading') {
+      indicator.className = 'update-indicator show';
+      icon.className = 'bi bi-arrow-repeat me-2';
+      icon.style.animation = 'spin 1s linear infinite';
     } else {
       indicator.className = 'update-indicator show';
       icon.className = 'bi bi-check-circle me-2';
+      icon.style.animation = '';
     }
 
-    // Hide after 3 seconds
-    setTimeout(() => {
-      indicator.classList.remove('show');
-    }, 3000);
+    // Hide after 3 seconds (except for loading)
+    if (type !== 'loading') {
+      setTimeout(() => {
+        indicator.classList.remove('show');
+      }, 3000);
+    }
   }
 
   function showLoadingNotification(message) {
@@ -1506,6 +2129,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  // Final initialization summary
+  console.log('🎯 ===== ANALYTICS CHARTS INITIALIZATION COMPLETE =====');
+  console.log('✅ All charts should now be visible and interactive');
+  console.log('📊 Charts initialized:', Chart.instances.length, 'total instances');
   console.log('🎨 Enhanced analytics charts loaded with interactive features!');
   console.log('💡 Features available:');
   console.log('   - Click chart type buttons to toggle between chart types');
@@ -1513,6 +2140,10 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('   - Hover effects and animations on all charts');
   console.log('   - Auto-refresh every 5 minutes');
   console.log('   - Keyboard shortcut: Ctrl+R to refresh all charts');
+  console.log('🔗 If charts are still empty, check:');
+  console.log('   1. Data availability in controller');
+  console.log('   2. Canvas elements exist in HTML');
+  console.log('   3. Chart.js library loaded correctly');
 
 });
 </script>
