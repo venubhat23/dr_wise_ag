@@ -48,7 +48,6 @@ gem "roo"
 # gem "rubyXL"  # Commented out temporarily due to network issues
 
 # PDF generation
-gem "prawn"
 
 # Phone number validation
 gem "phonelib"
