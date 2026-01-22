@@ -10,10 +10,10 @@ module ApplicationHelper
   def show_sidebar_item?(module_name, action = 'read')
     return false unless current_user
 
-    # Admin users get full access
-    return true if current_user.admin? || current_user.user_type == 'admin'
+    # Only admin@drwise.com gets full access, all other users are restricted to their sidebar permissions
+    return true if current_user.email == 'admin@drwise.com'
 
-    # For other users, check specific sidebar permissions
+    # For all other users (including user_type admin), check specific sidebar permissions
     current_user.has_sidebar_permission?(module_name)
   end
 
@@ -21,10 +21,10 @@ module ApplicationHelper
   def show_sidebar_section?(section_items)
     return false unless current_user
 
-    # Admin users get full access
-    return true if current_user.admin? || current_user.user_type == 'admin'
+    # Only admin@drwise.com gets full access, all other users are restricted to their sidebar permissions
+    return true if current_user.email == 'admin@drwise.com'
 
-    # For other users, check if they have any permission for items in this section
+    # For all other users (including user_type admin), check if they have any permission for items in this section
     section_items.any? { |item| current_user.has_sidebar_permission?(item) }
   end
 

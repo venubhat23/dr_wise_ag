@@ -411,6 +411,16 @@ Rails.application.routes.draw do
         end
       end
 
+      resources :all_policy_reports, only: [:index, :new, :create, :show, :destroy] do
+        collection do
+          post :preview
+          get :export_csv
+        end
+        member do
+          get :export_csv
+        end
+      end
+
       resources :lead_reports, only: [:index, :new, :create] do
         collection do
           post :preview

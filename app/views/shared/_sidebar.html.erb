@@ -235,6 +235,19 @@
             <% end %>
           </li>
 
+          <!-- All Policy Reports -->
+          <li class="nav-item">
+            <%= link_to admin_reports_all_policy_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/all_policy_reports')}" do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-indigo">
+                  <i class="bi bi-file-text-fill"></i>
+                </div>
+              </div>
+              <span class="nav-text">All Policy Reports</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+
           <!-- Expired Insurance -->
           <li class="nav-item">
             <%= link_to admin_reports_expired_insurance_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/expired')}" do %>
@@ -395,20 +408,6 @@
             </li>
           <% end %>
 
-          <!-- Roles & Permissions -->
-          <% if show_sidebar_item?('roles') %>
-            <li class="nav-item">
-              <%= link_to admin_roles_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/roles') || request.path.include?('/admin/permissions')}" do %>
-                <div class="nav-icon-modern">
-                  <div class="icon-bg gradient-cyan">
-                    <i class="bi bi-shield-check"></i>
-                  </div>
-                </div>
-                <span class="nav-text">Roles & Permissions</span>
-                <div class="nav-indicator"></div>
-              <% end %>
-            </li>
-          <% end %>
         </ul>
       </div>
     <% end %>
@@ -418,18 +417,6 @@
       <div class="nav-section">
         <div class="nav-section-title">Settings</div>
         <ul class="nav-menu">
-          <!-- User Roles Configuration -->
-          <li class="nav-item">
-            <%= link_to admin_settings_user_roles_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/settings/user_roles')}" do %>
-              <div class="nav-icon-modern">
-                <div class="icon-bg gradient-teal">
-                  <i class="bi bi-person-gear"></i>
-                </div>
-              </div>
-              <span class="nav-text">User Roles</span>
-              <div class="nav-indicator"></div>
-            <% end %>
-          </li>
 
           <!-- System Settings -->
           <li class="nav-item">

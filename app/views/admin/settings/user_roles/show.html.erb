@@ -19,38 +19,26 @@
 <div class="row">
   <div class="col-lg-8">
     <!-- Login Credentials (if recently created) -->
-    <% if flash[:user_created] && @user.original_password.present? %>
+    <% if flash[:user_created] %>
       <div class="card border-primary shadow-sm mb-4">
         <div class="card-header bg-primary bg-opacity-10 border-0">
           <h5 class="mb-0 text-primary">
             <i class="bi bi-key me-2"></i>
-            Login Credentials
+            User Created Successfully
           </h5>
         </div>
         <div class="card-body">
-          <div class="alert alert-info mb-3">
-            <i class="bi bi-info-circle me-2"></i>
-            <strong>User created successfully!</strong> Please share these login credentials with the user.
+          <div class="alert alert-success mb-3">
+            <i class="bi bi-check-circle me-2"></i>
+            <strong>User created successfully!</strong> The user can now login with their credentials.
           </div>
 
           <div class="row">
-            <div class="col-md-6 mb-3">
+            <div class="col-12 mb-3">
               <label class="form-label text-muted">Username/Email</label>
               <div class="input-group">
                 <input type="text" class="form-control fw-bold" value="<%= @user.email %>" readonly>
                 <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('<%= @user.email %>')">
-                  <i class="bi bi-copy"></i>
-                </button>
-              </div>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label text-muted">Password</label>
-              <div class="input-group">
-                <input type="password" id="passwordField" class="form-control fw-bold" value="<%= @user.original_password %>" readonly>
-                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
-                  <i class="bi bi-eye" id="passwordToggleIcon"></i>
-                </button>
-                <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('<%= @user.original_password %>')">
                   <i class="bi bi-copy"></i>
                 </button>
               </div>
@@ -60,20 +48,20 @@
           <div class="row">
             <div class="col-12">
               <div class="p-3 bg-light rounded">
-                <h6 class="mb-2">Share these credentials with the user:</h6>
+                <h6 class="mb-2">Login Information:</h6>
                 <div class="small">
                   <strong>Login URL:</strong> <%= request.base_url %>/users/sign_in<br>
                   <strong>Username:</strong> <%= @user.email %><br>
-                  <strong>Password:</strong> <span class="text-primary"><%= @user.original_password %></span>
+                  <strong>Note:</strong> <span class="text-primary">The user should use the password they provided during creation.</span>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="mt-3">
-            <div class="alert alert-warning small mb-0">
-              <i class="bi bi-exclamation-triangle me-2"></i>
-              <strong>Important:</strong> This information will not be shown again. Make sure to securely share these credentials with the user.
+            <div class="alert alert-info small mb-0">
+              <i class="bi bi-info-circle me-2"></i>
+              <strong>Note:</strong> Please inform the user to securely store their login credentials.
             </div>
           </div>
         </div>
