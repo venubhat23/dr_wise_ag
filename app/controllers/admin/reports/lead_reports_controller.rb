@@ -2,52 +2,17 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
   include ActionView::Helpers::NumberHelper
 
   def index
-    # Check for pending download and trigger it
-    if session[:pending_download].present?
-      download_data = session[:pending_download]
-      session.delete(:pending_download)
-
-      # Generate the file data
-      case download_data['format']
-      when 'csv'
-        csv_data = generate_csv_from_data(download_data['report_data'], download_data['report_name'], download_data['filters'])
-
-        respond_to do |format|
-          format.html do
-            send_data csv_data,
-              filename: "#{download_data['report_name'].parameterize}_#{Date.current.strftime('%Y%m%d')}.csv",
-              type: 'text/csv',
-              disposition: 'attachment'
-          end
-        end
-        return
-
-      when 'pdf'
-        pdf_data = generate_pdf_from_data(download_data['report_data'], download_data['report_name'], download_data['filters'])
-
-        respond_to do |format|
-          format.html do
-            send_data pdf_data,
-              filename: "#{download_data['report_name'].parameterize}_#{Date.current.strftime('%Y%m%d')}.pdf",
-              type: 'application/pdf',
-              disposition: 'attachment'
-          end
-        end
-        return
-      end
-    end
-
-    # Normal index page rendering
+    # Normal index page rendering (removed session-based download handling)
     # Get saved reports for the listing
-    @saved_reports = Report.where(report_type: 'lead')
+    @saved_reports = Report.where(report_type: 'leads')
                            .includes(:created_by)
                            .order(created_at: :desc)
                            .page(params[:page])
                            .per(10)
 
     # Calculate statistics
-    @total_reports = Report.where(report_type: 'lead').count
-    @this_month_reports = Report.where(report_type: 'lead')
+    @total_reports = Report.where(report_type: 'leads').count
+    @this_month_reports = Report.where(report_type: 'leads')
                                 .where(created_at: Date.current.beginning_of_month..Date.current.end_of_month)
                                 .count
 
@@ -83,15 +48,25 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
       report_data = build_report_data(filters)
       report = save_report_to_database(report_data, filters)
 
-      # Set up download for next request
-      session[:pending_download] = {
-        'report_data' => report_data,
-        'report_name' => filters[:report_name],
-        'format' => download_format,
-        'filters' => filters
-      }
+      # Generate download immediately instead of storing in session
+      case download_format
+      when 'csv'
+        csv_data = generate_csv_from_data(report_data, filters[:report_name], filters)
+        send_data csv_data,
+          filename: "#{filters[:report_name].parameterize}_#{Date.current.strftime('%Y%m%d')}.csv",
+          type: 'text/csv',
+          disposition: 'attachment'
+        return
+      when 'pdf'
+        pdf_data = generate_pdf_from_data(report_data, filters[:report_name], filters)
+        send_data pdf_data,
+          filename: "#{filters[:report_name].parameterize}_#{Date.current.strftime('%Y%m%d')}.pdf",
+          type: 'application/pdf',
+          disposition: 'attachment'
+        return
+      end
 
-      redirect_to admin_reports_lead_reports_path
+      redirect_to admin_reports_lead_reports_path, notice: 'Lead report saved successfully!'
     elsif params[:save_to_database].present?
       # Only save to database
       report_data = build_report_data(filters)
@@ -143,11 +118,24 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
       disposition: 'attachment'
   end
 
+  def preview
+    filters = {
+      start_date: params[:start_date].to_s,
+      end_date: params[:end_date].to_s,
+      current_stage: params[:current_stage].to_s,
+      product_category: params[:product_category].to_s
+    }.reject { |k, v| v.blank? }
+
+    @preview_data = generate_preview_data(filters)
+
+    render partial: 'preview_table', layout: false
+  end
+
 
   private
 
   def report_params
-    params.permit(:report_name, :start_date, :end_date, :current_stage, :product_category)
+    params.permit(:report_name, :start_date, :end_date, :current_stage, :product_category, :save_to_database, :download_format)
   end
 
   def load_form_data
@@ -199,6 +187,29 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
     query.includes(:affiliate).order(:created_date)
   end
 
+  def build_statistics_query(filters)
+    query = Lead.all
+
+    # Apply date filters
+    if filters[:start_date].present? && filters[:end_date].present?
+      start_date = Date.parse(filters[:start_date])
+      end_date = Date.parse(filters[:end_date])
+      query = query.where(created_date: start_date..end_date)
+    end
+
+    # Apply stage filter
+    if filters[:current_stage].present?
+      query = query.where(current_stage: filters[:current_stage])
+    end
+
+    # Apply product category filter
+    if filters[:product_category].present?
+      query = query.where(product_category: filters[:product_category])
+    end
+
+    query
+  end
+
   def build_report_data(filters)
     leads = build_lead_query(filters)
 
@@ -216,14 +227,17 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
       }
     end
 
+    # Build fresh query without order for statistics to avoid GROUP BY issues
+    stats_query = build_statistics_query(filters)
+
     # Calculate statistics
     statistics = {
-      'total_leads' => leads.count,
-      'leads_by_stage' => leads.group(:current_stage).count,
-      'leads_by_source' => leads.group(:lead_source).count,
-      'leads_by_product' => leads.group(:product_category).count,
-      'converted_leads' => leads.where(current_stage: 'converted').count,
-      'active_leads' => leads.where.not(current_stage: ['converted', 'lead_closed', 'not_interested']).count
+      'total_leads' => stats_query.count,
+      'leads_by_stage' => stats_query.group(:current_stage).count,
+      'leads_by_source' => stats_query.group(:lead_source).count,
+      'leads_by_product' => stats_query.group(:product_category).count,
+      'converted_leads' => stats_query.where(current_stage: 'converted').count,
+      'active_leads' => stats_query.where.not(current_stage: ['converted', 'lead_closed', 'not_interested']).count
     }
 
     {
@@ -235,7 +249,7 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
 
   def save_report_to_database(report_data, filters)
     Report.create!(
-      report_type: 'lead',
+      report_type: 'leads',
       name: filters[:report_name],
       report_data: report_data,
       filters: filters.to_h,
@@ -263,7 +277,7 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
   end
 
   def calculate_total_leads_from_reports
-    reports = Report.where(report_type: 'lead')
+    reports = Report.where(report_type: 'leads')
     total = 0
     reports.each do |report|
       lead_count = report.report_data&.dig('statistics', 'total_leads')
@@ -315,5 +329,18 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
         ]
       end
     end
+  end
+
+  def generate_pdf_from_data(report_data, report_name, filters)
+    # Simple PDF generation - you can enhance this with a proper PDF library like Prawn
+    # For now, return a basic text-based PDF content
+    require 'csv'
+
+    # Generate CSV content first, then convert to PDF-like format
+    csv_content = generate_csv_from_data(report_data, report_name, filters)
+
+    # This is a placeholder - in production you'd use a proper PDF library
+    # For now, return the CSV content as plain text
+    csv_content
   end
 end

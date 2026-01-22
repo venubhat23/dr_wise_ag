@@ -969,6 +969,22 @@
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🎯 Analytics Charts Initialization Started...');
 
+  // Register the datalabels plugin globally
+  Chart.register(ChartDataLabels);
+
+  // Set global defaults for data labels
+  Chart.defaults.plugins.datalabels = {
+    display: true,
+    color: '#fff',
+    font: {
+      size: 11,
+      weight: 'bold'
+    },
+    formatter: (value) => value,
+    anchor: 'center',
+    align: 'center'
+  };
+
   // Refresh Affiliates Data function
   window.refreshAffiliatesData = function() {
     const card = document.querySelector('.kpi-card[style*="--card-color: #ec4899"]');
@@ -1008,10 +1024,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 800);
   };
 
-  // Debug data
-  console.log('Policy Distribution Data:', <%= @policy_distribution.to_json.html_safe %>);
-  console.log('Commission Summary Data:', <%= @commission_summary.to_json.html_safe %>);
-  console.log('Lead Funnel Data:', <%= @lead_conversion_funnel.to_json.html_safe %>);
+  // Debug data with fallbacks
+  const policyDistributionData = <%= (@policy_distribution || {}).to_json.html_safe %>;
+  const commissionSummaryData = <%= (@commission_summary || {}).to_json.html_safe %>;
+  const leadFunnelData = <%= (@lead_conversion_funnel || {}).to_json.html_safe %>;
+  const monthlyTrendsData = <%= (@monthly_trends || {}).to_json.html_safe %>;
+  const leadStageData = <%= (@lead_stage_distribution || {}).to_json.html_safe %>;
+  const renewalAnalyticsData = <%= (@renewal_analytics || {}).to_json.html_safe %>;
+  const customerLocationData = <%= (@customer_location || {}).to_json.html_safe %>;
+  const customerAcquisitionData = <%= (@customer_acquisition_trend || {}).to_json.html_safe %>;
+  const premiumRevenueData = <%= (@premium_revenue_trend || {}).to_json.html_safe %>;
+
+  console.log('Policy Distribution Data:', policyDistributionData);
+  console.log('Commission Summary Data:', commissionSummaryData);
+  console.log('Lead Funnel Data:', leadFunnelData);
+  console.log('Monthly Trends Data:', monthlyTrendsData);
+  console.log('Lead Stage Data:', leadStageData);
+  console.log('Renewal Analytics Data:', renewalAnalyticsData);
 
   try {
     // Premium Revenue Trend Chart - Clean Line Graph
@@ -1020,9 +1049,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!premiumTrendCtx) {
       console.error('❌ premiumRevenueTrendChart canvas not found!');
     } else {
-      const premiumData = <%= (@premium_revenue_trend || {}).to_json.html_safe %>;
-      const premiumLabels = Object.keys(premiumData);
-      const premiumValues = Object.values(premiumData);
+      const premiumLabels = Object.keys(premiumRevenueData);
+      const premiumValues = Object.values(premiumRevenueData);
+
+      if (premiumLabels.length === 0) {
+        console.warn('No premium revenue data available');
+        return;
+      }
 
       // Create gradient for the line
       const gradientPremium = premiumTrendCtx.getContext('2d').createLinearGradient(0, 0, 0, 300);
@@ -1031,6 +1064,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       const premiumRevenueTrendChart = new Chart(premiumTrendCtx.getContext('2d'), {
         type: 'line',
+        plugins: [ChartDataLabels],
         data: {
           labels: premiumLabels,
           datasets: [{
@@ -1147,12 +1181,21 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
+    const policyLabels = Object.keys(policyDistributionData);
+    const policyValues = Object.values(policyDistributionData);
+
+    if (policyLabels.length === 0) {
+      console.warn('No policy distribution data available');
+      return;
+    }
+
     const policyChart = new Chart(policyCtx.getContext('2d'), {
     type: 'doughnut',
+    plugins: [ChartDataLabels],
     data: {
-      labels: <%= @policy_distribution.keys.to_json.html_safe %>,
+      labels: policyLabels,
       datasets: [{
-        data: <%= @policy_distribution.values.to_json.html_safe %>,
+        data: policyValues,
         backgroundColor: [
           '#3b82f6',
           '#10b981',
@@ -1206,9 +1249,15 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('❌ monthlyTrendsChart canvas not found!');
       return;
     }
-    const monthlyLabels = <%= @monthly_trends.keys.to_json.html_safe %>;
-    const customerData = <%= @monthly_trends.values.map { |v| v[:customers] }.to_json.html_safe %>;
-    const policyData = <%= @monthly_trends.values.map { |v| v[:policies] }.to_json.html_safe %>;
+    const monthlyLabels = Object.keys(monthlyTrendsData);
+    const monthlyValues = Object.values(monthlyTrendsData);
+    const customerData = monthlyValues.map(v => v.customers || 0);
+    const policyData = monthlyValues.map(v => v.policies || 0);
+
+    if (monthlyLabels.length === 0) {
+      console.warn('No monthly trends data available');
+      return;
+    }
 
     console.log('Monthly Labels:', monthlyLabels);
     console.log('Customer Data:', customerData);
@@ -1216,6 +1265,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const monthlyChart = new Chart(trendsCtx.getContext('2d'), {
     type: 'line',
+    plugins: [ChartDataLabels],
     data: {
       labels: monthlyLabels,
       datasets: [
@@ -1292,14 +1342,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     const commissionChart = new Chart(commissionCtx.getContext('2d'), {
     type: 'bar',
+    plugins: [ChartDataLabels],
     data: {
       labels: ['Due', 'Paid', 'Affiliate', 'Ambassador'],
       datasets: [{
         data: [
-          <%= @commission_summary[:total_commission_due] %>,
-          <%= @commission_summary[:total_commission_paid] %>,
-          <%= @commission_summary[:affiliate_commissions] %>,
-          <%= @commission_summary[:ambassador_commissions] %>
+          commissionSummaryData.total_commission_due || 0,
+          commissionSummaryData.total_commission_paid || 0,
+          commissionSummaryData.affiliate_commissions || 0,
+          commissionSummaryData.ambassador_commissions || 0
         ],
         backgroundColor: [
           '#ef4444',
@@ -1356,14 +1407,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     const renewalChart = new Chart(renewalCtx.getContext('2d'), {
     type: 'bar',
+    plugins: [ChartDataLabels],
     data: {
       labels: ['Expiring Soon', 'Expiring Later', 'Expired', 'Renewal Rate %'],
       datasets: [{
         data: [
-          <%= @renewal_analytics[:expiring_soon] %>,
-          <%= @renewal_analytics[:expiring_later] %>,
-          <%= @renewal_analytics[:expired] %>,
-          <%= @renewal_analytics[:renewal_rate] %>
+          renewalAnalyticsData.expiring_soon || 0,
+          renewalAnalyticsData.expiring_later || 0,
+          renewalAnalyticsData.expired || 0,
+          renewalAnalyticsData.renewal_rate || 0
         ],
         backgroundColor: [
           '#f59e0b',
@@ -1444,11 +1496,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const leadFunnelChart = new Chart(leadFunnelCtx.getContext('2d'), {
       type: 'bar',
+      plugins: [ChartDataLabels],
       data: {
-        labels: <%= @lead_conversion_funnel.keys.to_json.html_safe %>,
+        labels: Object.keys(leadFunnelData),
         datasets: [{
           label: 'Lead Count',
-          data: <%= @lead_conversion_funnel.values.to_json.html_safe %>,
+          data: Object.values(leadFunnelData),
           backgroundColor: [gradient1, gradient2, gradient3, gradient4, gradient5],
           borderRadius: 8,
           borderSkipped: false,
@@ -1548,10 +1601,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     const locationChart = new Chart(locationCtx.getContext('2d'), {
     type: 'doughnut',
+    plugins: [ChartDataLabels],
     data: {
-      labels: <%= @customer_location.keys.to_json.html_safe %>,
+      labels: Object.keys(customerLocationData),
       datasets: [{
-        data: <%= @customer_location.values.to_json.html_safe %>,
+        data: Object.values(customerLocationData),
         backgroundColor: [
           '#3b82f6', '#10b981', '#f59e0b', '#ec4899',
           '#8b5cf6', '#ef4444', '#06b6d4', '#84cc16'
@@ -1605,11 +1659,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     const acquisitionChart = new Chart(acquisitionCtx.getContext('2d'), {
     type: 'line',
+    plugins: [ChartDataLabels],
     data: {
-      labels: <%= @customer_acquisition_trend.keys.to_json.html_safe %>,
+      labels: Object.keys(customerAcquisitionData),
       datasets: [{
         label: 'New Customers',
-        data: <%= @customer_acquisition_trend.values.to_json.html_safe %>,
+        data: Object.values(customerAcquisitionData),
         borderColor: '#3b82f6',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         tension: 0.4,
@@ -1653,15 +1708,22 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('❌ leadStageChart canvas not found!');
       return;
     }
-    const leadStageData = <%= (@lead_stage_distribution || {}).to_json.html_safe %>;
+    const leadStageLabels = Object.keys(leadStageData);
+    const leadStageValues = Object.values(leadStageData);
     console.log('Lead Stage Data:', leadStageData);
+
+    if (leadStageLabels.length === 0) {
+      console.warn('No lead stage data available');
+      return;
+    }
 
     const leadStageChart = new Chart(leadStageCtx.getContext('2d'), {
     type: 'doughnut',
+    plugins: [ChartDataLabels],
     data: {
-      labels: Object.keys(leadStageData),
+      labels: leadStageLabels,
       datasets: [{
-        data: Object.values(leadStageData),
+        data: leadStageValues,
         backgroundColor: [
           '#3b82f6',
           '#10b981',
@@ -1726,14 +1788,22 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('❌ policyPerformanceChart canvas not found!');
       return;
     }
-    const policyData = <%= (@policy_distribution || {}).to_json.html_safe %>;
+    const policyPerformanceLabels = Object.keys(policyDistributionData);
+    const policyPerformanceValues = Object.values(policyDistributionData);
+
+    if (policyPerformanceLabels.length === 0) {
+      console.warn('No policy performance data available');
+      return;
+    }
+
     const policyPerformanceChart = new Chart(policyPerformanceCtx.getContext('2d'), {
     type: 'bar',
+    plugins: [ChartDataLabels],
     data: {
-      labels: Object.keys(policyData),
+      labels: policyPerformanceLabels,
       datasets: [{
         label: 'Number of Policies',
-        data: Object.values(policyData),
+        data: policyPerformanceValues,
         backgroundColor: [
           '#3b82f6',
           '#10b981',
@@ -1782,14 +1852,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     const operationsChart = new Chart(operationsCtx.getContext('2d'), {
     type: 'polarArea',
+    plugins: [ChartDataLabels],
     data: {
       labels: ['Documents Pending', 'Support Tickets', 'Claims Processing', 'Client Requests'],
       datasets: [{
         data: [
-          <%= @docs_pending || 0 %>,
-          <%= @support_tickets || 0 %>,
-          <%= @claims_processing || 0 %>,
-          <%= @client_requests_count || 0 %>
+          <%= (@docs_pending || 0) %>,
+          <%= (@support_tickets || 0) %>,
+          <%= (@claims_processing || 0) %>,
+          <%= (@client_requests_count || 0) %>
         ],
         backgroundColor: [
           'rgba(239, 68, 68, 0.7)',
@@ -1846,15 +1917,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     const quickInsightsChart = new Chart(quickInsightsCtx.getContext('2d'), {
     type: 'radar',
+    plugins: [ChartDataLabels],
     data: {
       labels: ['Active Customers', 'Converted Leads', 'New Leads', 'Support Tickets'],
       datasets: [{
         label: 'Business Metrics',
         data: [
-          <%= @active_customers || 0 %>,
-          <%= @converted_leads || 0 %>,
-          <%= @new_leads || 0 %>,
-          <%= @support_tickets || 0 %>
+          <%= (@active_customers || 0) %>,
+          <%= (@converted_leads || 0) %>,
+          <%= (@new_leads || 0) %>,
+          <%= (@support_tickets || 0) %>
         ],
         borderColor: '#3b82f6',
         backgroundColor: 'rgba(59, 130, 246, 0.2)',

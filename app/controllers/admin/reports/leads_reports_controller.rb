@@ -1,6 +1,6 @@
 class Admin::Reports::LeadsReportsController < Admin::Reports::BaseController
   def index
-    @leads = Lead.includes(:customer, :sub_agent)
+    @leads = Lead.includes(:converted_customer, :affiliate)
 
     # Apply filters
     @leads = apply_date_filters(@leads, :created_date)
@@ -38,6 +38,22 @@ class Admin::Reports::LeadsReportsController < Admin::Reports::BaseController
 
   private
 
+  def calculate_affiliate_performance(leads)
+    # Get leads with affiliates and count them by affiliate
+    affiliate_counts = {}
+
+    leads.includes(:affiliate).where.not(affiliate_id: nil).find_each do |lead|
+      affiliate_name = lead.affiliate.display_name if lead.affiliate
+      next unless affiliate_name
+
+      affiliate_counts[affiliate_name] ||= 0
+      affiliate_counts[affiliate_name] += 1
+    end
+
+    # Sort by count (descending) and take top 10
+    affiliate_counts.sort_by { |k, v| -v }.first(10).to_h
+  end
+
   def calculate_lead_statistics(leads)
     total_leads = leads.count
 
@@ -51,18 +67,13 @@ class Admin::Reports::LeadsReportsController < Admin::Reports::BaseController
         'Affiliate' => leads.where(is_direct: false).count
       },
       conversion_stats: {
-        converted: leads.where(current_stage: 'policy_created').count,
-        in_progress: leads.where.not(current_stage: ['policy_created', 'lost', 'cancelled']).count,
-        lost: leads.where(current_stage: 'lost').count,
-        cancelled: leads.where(current_stage: 'cancelled').count
+        converted: leads.where(current_stage: 'converted').count,
+        in_progress: leads.where.not(current_stage: ['converted', 'not_interested', 'lead_closed']).count,
+        not_interested: leads.where(current_stage: 'not_interested').count,
+        closed: leads.where(current_stage: 'lead_closed').count
       },
       monthly_trend: leads.group_by_month(:created_date, last: 12).count,
-      affiliate_performance: leads.joins(:sub_agent)
-                                .group('sub_agents.display_name')
-                                .count
-                                .sort_by { |k, v| -v }
-                                .first(10)
-                                .to_h
+      affiliate_performance: calculate_affiliate_performance(leads)
     }
   end
 end
