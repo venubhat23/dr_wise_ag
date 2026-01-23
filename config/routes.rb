@@ -1,10 +1,12 @@
 Rails.application.routes.draw do
   get "dashboard/index"
-  devise_for :users
+  devise_for :users, controllers: {
+    sessions: 'users/sessions'
+  }
 
   # Custom sign_out route to handle GET requests
   devise_scope :user do
-    get '/users/sign_out' => 'devise/sessions#destroy'
+    get '/users/sign_out' => 'users/sessions#destroy'
   end
 
   # Root route
