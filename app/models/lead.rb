@@ -445,7 +445,6 @@ class Lead < ApplicationRecord
 
   # Custom validation for unique contact number and product combination
   def unique_contact_for_product_combination
-    debugger
     return if contact_number.blank? || product_category.blank? || product_subcategory.blank?
 
     existing_lead = Lead.where(

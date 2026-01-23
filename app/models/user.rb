@@ -34,6 +34,21 @@ class User < ApplicationRecord
         end
       end
 
+      # If not found by email or mobile, try PAN number (case-insensitive)
+      unless user
+        user = where(conditions.to_hash).where(["upper(pan_number) = :value", { :value => login.upcase }]).first
+      end
+
+      # Also check in Customer table for login with mobile/PAN/email
+      unless user
+        customer = Customer.where(["lower(email) = :value OR mobile = :value OR upper(pan_number) = :value",
+                                  { :value => login.downcase }]).first
+        if customer
+          # Find associated user by email or create one
+          user = where(email: customer.email).first if customer.email.present?
+        end
+      end
+
       user
     else
       if conditions.has_key?(:email)

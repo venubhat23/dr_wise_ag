@@ -27,16 +27,17 @@
       <%= display_banners('login') %>
 
       <!-- Simple Login Form -->
-      <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+      <%= form_for(resource, as: resource_name, url: session_path(resource_name), html: { authenticity_token: true }) do |f| %>
+        <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
         <div class="mb-3">
-          <%= f.label :login, "Email Address or Mobile Number", class: "form-label" %>
+          <%= f.label :login, "Email / Mobile / PAN", class: "form-label" %>
           <div class="input-group">
             <span class="input-group-text">
               <i class="fas fa-user"></i>
             </span>
-            <%= f.text_field :login, autofocus: true, autocomplete: "username", class: "form-control", placeholder: "pramodbha8@gmail.com or 44444 44444" %>
+            <%= f.text_field :login, autofocus: true, autocomplete: "username", class: "form-control", placeholder: "email@example.com / 9876543210 / ABCDE1234F" %>
           </div>
-          <small class="text-muted">You can login with email or mobile number (with or without +91)</small>
+          <small class="text-muted">You can login with email, mobile number (with or without +91), or PAN number</small>
         </div>
 
         <div class="mb-3">
