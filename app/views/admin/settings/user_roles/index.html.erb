@@ -148,18 +148,28 @@
                       </small>
                     </div>
                     <div class="mb-1">
-                      <% if user.encrypted_password.present? %>
+                      <% if user.original_password.present? %>
                         <small class="text-info d-flex align-items-center">
                           <i class="bi bi-key me-1"></i>
                           <span>Password: </span>
-                          <span class="password-field ms-1 me-2" id="password-<%= user.id %>">
+                          <span class="password-field ms-1 me-2" data-password="<%= user.original_password %>" id="password-<%= user.id %>">
                             ********
                           </span>
-                          <small class="text-muted">(Encrypted)</small>
+                          <button class="btn btn-sm btn-outline-info btn-xs me-1 toggle-password-btn"
+                                  data-target="password-<%= user.id %>"
+                                  data-password="<%= user.original_password %>"
+                                  title="Show/Hide Password">
+                            <i class="bi bi-eye"></i>
+                          </button>
+                          <button class="btn btn-sm btn-outline-success btn-xs copy-password-btn"
+                                  data-password="<%= user.original_password %>"
+                                  title="Copy Password">
+                            <i class="bi bi-copy"></i>
+                          </button>
                         </small>
                       <% else %>
                         <small class="text-muted">
-                          <i class="bi bi-lock me-1"></i>Password: Not set
+                          <i class="bi bi-lock me-1"></i>Password: Not available
                         </small>
                       <% end %>
                     </div>
@@ -318,6 +328,72 @@ document.addEventListener('DOMContentLoaded', function() {
   const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
   const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
+
+  // Password toggle functionality
+  document.querySelectorAll('.toggle-password-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const targetId = this.dataset.target;
+      const password = this.dataset.password;
+      const passwordField = document.getElementById(targetId);
+      const icon = this.querySelector('i');
+
+      if (passwordField.textContent.includes('*')) {
+        // Show password
+        passwordField.textContent = password;
+        icon.className = 'bi bi-eye-slash';
+        this.title = 'Hide Password';
+      } else {
+        // Hide password
+        passwordField.textContent = '*'.repeat(8);
+        icon.className = 'bi bi-eye';
+        this.title = 'Show Password';
+      }
+    });
+  });
+
+  // Copy password functionality
+  document.querySelectorAll('.copy-password-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const password = this.dataset.password;
+      const originalIcon = this.querySelector('i');
+      const originalClass = originalIcon.className;
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(password).then(() => {
+        // Visual feedback
+        this.classList.add('copy-success');
+        originalIcon.className = 'bi bi-check';
+        this.title = 'Copied!';
+
+        // Reset after 2 seconds
+        setTimeout(() => {
+          this.classList.remove('copy-success');
+          originalIcon.className = originalClass;
+          this.title = 'Copy Password';
+        }, 2000);
+      }).catch(err => {
+        console.error('Failed to copy password: ', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = password;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        // Visual feedback
+        this.classList.add('copy-success');
+        originalIcon.className = 'bi bi-check';
+        this.title = 'Copied!';
+
+        setTimeout(() => {
+          this.classList.remove('copy-success');
+          originalIcon.className = originalClass;
+          this.title = 'Copy Password';
+        }, 2000);
+      });
+    });
   });
 
 });

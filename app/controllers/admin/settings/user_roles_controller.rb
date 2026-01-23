@@ -29,9 +29,8 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
     plain_password = @user.password
 
     if @user.save
-      # Store the original password for showing on the user details page
-      # Note: original_password column doesn't exist in the database
-      # @user.update_column(:original_password, plain_password) if plain_password.present?
+      # Store the original password for showing on the user management page
+      @user.update_column(:original_password, plain_password) if plain_password.present?
 
       # Set special flash to indicate user was just created
       flash[:user_created] = true
@@ -68,7 +67,7 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
   end
 
   def user_params
-    permitted_params = params.require(:user).permit(:first_name, :last_name, :email, :mobile, :password, :password_confirmation, :role_name, sidebar_permissions: [])
+    permitted_params = params.require(:user).permit(:first_name, :last_name, :email, :mobile, :password, :password_confirmation, :role_name, :original_password, sidebar_permissions: [])
 
     # Convert sidebar_permissions array to JSON string for storage
     if permitted_params[:sidebar_permissions].present?

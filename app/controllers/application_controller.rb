@@ -12,6 +12,9 @@ class ApplicationController < ActionController::Base
   before_action :authenticate_user!
   before_action :configure_permitted_parameters, if: :devise_controller?
 
+  # Ahoy session tracking
+  after_action :track_ahoy_visit
+
   # Use devise layout for devise controllers
   layout :layout_by_resource
 
@@ -65,5 +68,15 @@ class ApplicationController < ActionController::Base
     else
       "application"
     end
+  end
+
+  def track_ahoy_visit
+    # Track page views automatically
+    if current_user
+      ahoy.track "$view", page: request.path, controller: controller_name, action: action_name
+    end
+  rescue => e
+    # Silently fail if Ahoy is not available
+    Rails.logger.debug "Ahoy tracking failed: #{e.message}"
   end
 end

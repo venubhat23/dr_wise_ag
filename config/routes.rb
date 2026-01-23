@@ -431,6 +431,16 @@ Rails.application.routes.draw do
           get :export_csv
         end
       end
+
+      # Session Reports
+      resources :sessions, only: [:index] do
+        collection do
+          get :export
+          post :filter
+          get :realtime_data
+        end
+      end
+
       resources :expired_insurance_reports, only: [:index] do
         collection do
           get :export
