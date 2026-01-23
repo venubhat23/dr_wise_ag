@@ -7,17 +7,17 @@ module Admin
         # Set timezone to India
         Time.zone = 'Asia/Kolkata'
 
-        # Active users (sessions within last 30 minutes)
-        @active_users = Ahoy::Visit.where("started_at > ?", 30.minutes.ago).count
+        # Active users (unique users with sessions within last 30 minutes)
+        @active_users = Ahoy::Visit.where("started_at > ?", 30.minutes.ago).distinct.count(:user_id)
 
-        # Today's sessions (India time)
-        @today_sessions = Ahoy::Visit.where(started_at: Time.zone.now.beginning_of_day..Time.zone.now.end_of_day).count
+        # Today's unique users (India time)
+        @today_sessions = Ahoy::Visit.where(started_at: Time.zone.now.beginning_of_day..Time.zone.now.end_of_day).distinct.count(:user_id)
 
-        # This week's sessions
-        @week_sessions = Ahoy::Visit.where(started_at: 1.week.ago..Time.zone.now).count
+        # This week's unique users
+        @week_sessions = Ahoy::Visit.where(started_at: 1.week.ago..Time.zone.now).distinct.count(:user_id)
 
-        # This month's sessions
-        @month_sessions = Ahoy::Visit.where(started_at: 1.month.ago..Time.zone.now).count
+        # This month's unique users
+        @month_sessions = Ahoy::Visit.where(started_at: 1.month.ago..Time.zone.now).distinct.count(:user_id)
 
         # Sessions over time (last 30 days)
         @sessions_over_time = Ahoy::Visit
@@ -122,8 +122,8 @@ module Admin
         Time.zone = 'Asia/Kolkata'
 
         data = {
-          active_users: Ahoy::Visit.where("started_at > ?", 30.minutes.ago).count,
-          today_sessions: Ahoy::Visit.where(started_at: Time.zone.now.beginning_of_day..Time.zone.now.end_of_day).count,
+          active_users: Ahoy::Visit.where("started_at > ?", 30.minutes.ago).distinct.count(:user_id),
+          today_sessions: Ahoy::Visit.where(started_at: Time.zone.now.beginning_of_day..Time.zone.now.end_of_day).distinct.count(:user_id),
           current_time: Time.zone.now.strftime("%B %d, %Y %I:%M:%S %p IST"),
           recent_sessions: Ahoy::Visit.includes(:user)
                             .order(started_at: :desc)
