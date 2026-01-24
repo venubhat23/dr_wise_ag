@@ -1085,7 +1085,20 @@ document.addEventListener('DOMContentLoaded', function() {
           // Extract policy information
           const policy = leadData.policy || {};
           const policyNumber = policy.policy_number || 'N/A';
-          const policyType = policy.constructor?.name?.replace('Insurance', '') || 'N/A';
+
+          // Debug log to check what we're getting
+          console.log('Policy data:', policy);
+          console.log('Policy class_name:', policy.class_name);
+
+          let policyType = 'Unknown';
+          if (policy.class_name && typeof policy.class_name === 'string') {
+            policyType = policy.class_name.replace('Insurance', '');
+          } else if (policy.class_name) {
+            // If class_name exists but is not a string, convert it
+            policyType = String(policy.class_name).replace('Insurance', '');
+          }
+
+          console.log('Final policy type:', policyType);
 
           // Extract customer information from policy
           const customer = policy.customer || {};
