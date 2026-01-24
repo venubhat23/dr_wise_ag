@@ -104,7 +104,8 @@ class User < ApplicationRecord
   end
 
   # Role-based permission methods
-  def role_name
+  # Note: role_name is also an attribute (column), this method provides association fallback
+  def role_display_name_from_association
     role&.name
   end
 
@@ -172,15 +173,52 @@ class User < ApplicationRecord
   def sidebar_permissions_array
     return [] if sidebar_permissions.blank?
 
-    if sidebar_permissions.is_a?(String)
-      JSON.parse(sidebar_permissions)
-    elsif sidebar_permissions.is_a?(Array)
-      sidebar_permissions
-    else
+    begin
+      parsed = if sidebar_permissions.is_a?(String)
+        JSON.parse(sidebar_permissions)
+      elsif sidebar_permissions.is_a?(Array)
+        sidebar_permissions
+      else
+        []
+      end
+
+      # If it's the new CRUD format (hash), extract the keys
+      if parsed.is_a?(Hash)
+        parsed.keys
+      else
+        # Old format (array)
+        parsed
+      end
+    rescue JSON::ParserError
       []
     end
-  rescue JSON::ParserError
-    []
+  end
+
+  # Get permissions in CRUD format (for compatibility)
+  def sidebar_permissions_hash
+    return {} if sidebar_permissions.blank?
+
+    begin
+      parsed = if sidebar_permissions.is_a?(String)
+        JSON.parse(sidebar_permissions)
+      else
+        sidebar_permissions
+      end
+
+      # If it's already a hash (CRUD format), return it
+      if parsed.is_a?(Hash)
+        parsed
+      else
+        # Convert old array format to CRUD format (view-only)
+        result = {}
+        parsed.each do |permission|
+          result[permission] = { 'view' => true, 'create' => false, 'edit' => false, 'delete' => false }
+        end
+        result
+      end
+    rescue JSON::ParserError
+      {}
+    end
   end
 
   def has_sidebar_permission?(permission_key)

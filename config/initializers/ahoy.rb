@@ -1,28 +1,47 @@
 class Ahoy::Store < Ahoy::DatabaseStore
+  # Minimal visit tracking - only essential data for login/logout
+  def visit_data
+    data = super
+
+    # Only track minimal essential data
+    {
+      visit_token: data[:visit_token],
+      visitor_token: data[:visitor_token],
+      user_id: data[:user_id],
+      started_at: data[:started_at]
+    }
+  end
+
+  # Don't track any events - only basic login/logout visits
+  def track_event(data)
+    nil
+  end
 end
 
-# set to true for JavaScript tracking
+# Disable JavaScript tracking to prevent excessive data collection
 Ahoy.api = false
 
-# set to true for geocoding (and add the geocoder gem to your Gemfile)
-# we recommend configuring local geocoding as well
-# see https://github.com/ankane/ahoy#geocoding
+# Disable geocoding - no need for location tracking
 Ahoy.geocode = false
 
-# Track visits immediately (server-side tracking)
+# Track visits only when explicitly needed (login/logout)
 Ahoy.server_side_visits = :when_needed
 
-# Track bot visits
+# Don't track bot visits
 Ahoy.track_bots = false
 
-# Cookie settings
+# Minimal cookie settings
 Ahoy.cookie_domain = :all
-Ahoy.cookie_options = { httponly: true }
+Ahoy.cookie_options = { httponly: true, secure: Rails.env.production? }
 
-# Visit duration (30 minutes default)
-Ahoy.visit_duration = 30.minutes
+# Short visit duration to keep sessions minimal
+Ahoy.visit_duration = 1.hour
 
-# Exclude tracking for certain paths
+# Only track login/logout - skip all other requests
 Ahoy.exclude_method = lambda do |controller, request|
-  request.path.start_with?('/assets', '/admin/imports')
+  # Only track authentication related paths for login/logout
+  auth_paths = ['/users/sign_in', '/users/sign_out']
+
+  # Skip tracking unless it's a login/logout path
+  !auth_paths.any? { |path| request.path == path }
 end

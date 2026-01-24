@@ -1,8 +1,7 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-1">User Management</h2>
-    <p class="text-muted mb-0">Manage system users and their permissions</p>
+    <h2 class="mb-0">User Management</h2>
   </div>
   <div class="d-flex gap-2">
     <%= link_to new_admin_settings_user_role_path, class: "btn btn-primary" do %>
@@ -112,6 +111,7 @@
             <tr>
               <th class="border-0">User Details</th>
               <th class="border-0">Login Credentials</th>
+              <th class="border-0">Password</th>
               <th class="border-0">Role</th>
               <th class="border-0">User Type</th>
               <th class="border-0">Sidebar Permissions</th>
@@ -147,37 +147,34 @@
                         <i class="bi bi-person-check me-1"></i>Username: <%= user.email %>
                       </small>
                     </div>
-                    <div class="mb-1">
-                      <% if user.original_password.present? %>
-                        <small class="text-info d-flex align-items-center">
-                          <i class="bi bi-key me-1"></i>
-                          <span>Password: </span>
-                          <span class="password-field ms-1 me-2" data-password="<%= user.original_password %>" id="password-<%= user.id %>">
-                            ********
-                          </span>
-                          <button class="btn btn-sm btn-outline-info btn-xs me-1 toggle-password-btn"
-                                  data-target="password-<%= user.id %>"
-                                  data-password="<%= user.original_password %>"
-                                  title="Show/Hide Password">
-                            <i class="bi bi-eye"></i>
-                          </button>
-                          <button class="btn btn-sm btn-outline-success btn-xs copy-password-btn"
-                                  data-password="<%= user.original_password %>"
-                                  title="Copy Password">
-                            <i class="bi bi-copy"></i>
-                          </button>
-                        </small>
-                      <% else %>
-                        <small class="text-muted">
-                          <i class="bi bi-lock me-1"></i>Password: Not available
-                        </small>
-                      <% end %>
-                    </div>
                     <div>
                       <small class="text-muted">
                         <i class="bi bi-telephone me-1"></i><%= user.mobile %>
                       </small>
                     </div>
+                  </div>
+                </td>
+                <td>
+                  <div>
+                    <% if user.original_password.present? %>
+                      <span class="badge bg-info-subtle text-info border">
+                        <i class="bi bi-key me-1"></i>
+                        <%= user.original_password %>
+                      </span>
+                      <div class="mt-1">
+                        <small class="text-muted">
+                          <i class="bi bi-shield-check me-1"></i>Original password
+                        </small>
+                      </div>
+                    <% else %>
+                      <span class="badge bg-secondary-subtle text-secondary">
+                        <i class="bi bi-lock me-1"></i>
+                        Encrypted
+                      </span>
+                      <div class="mt-1">
+                        <small class="text-muted">Password hidden</small>
+                      </div>
+                    <% end %>
                   </div>
                 </td>
                 <td>
@@ -290,19 +287,6 @@
   border-radius: 0.2rem;
 }
 
-.password-field {
-  font-family: 'Courier New', monospace;
-  font-weight: bold;
-  color: #0d6efd;
-  min-width: 80px;
-  display: inline-block;
-}
-
-.copy-success {
-  background-color: #28a745 !important;
-  border-color: #28a745 !important;
-  color: white !important;
-}
 </style>
 
 <script>
@@ -328,72 +312,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
   const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl);
-  });
-
-  // Password toggle functionality
-  document.querySelectorAll('.toggle-password-btn').forEach(button => {
-    button.addEventListener('click', function() {
-      const targetId = this.dataset.target;
-      const password = this.dataset.password;
-      const passwordField = document.getElementById(targetId);
-      const icon = this.querySelector('i');
-
-      if (passwordField.textContent.includes('*')) {
-        // Show password
-        passwordField.textContent = password;
-        icon.className = 'bi bi-eye-slash';
-        this.title = 'Hide Password';
-      } else {
-        // Hide password
-        passwordField.textContent = '*'.repeat(8);
-        icon.className = 'bi bi-eye';
-        this.title = 'Show Password';
-      }
-    });
-  });
-
-  // Copy password functionality
-  document.querySelectorAll('.copy-password-btn').forEach(button => {
-    button.addEventListener('click', function() {
-      const password = this.dataset.password;
-      const originalIcon = this.querySelector('i');
-      const originalClass = originalIcon.className;
-
-      // Copy to clipboard
-      navigator.clipboard.writeText(password).then(() => {
-        // Visual feedback
-        this.classList.add('copy-success');
-        originalIcon.className = 'bi bi-check';
-        this.title = 'Copied!';
-
-        // Reset after 2 seconds
-        setTimeout(() => {
-          this.classList.remove('copy-success');
-          originalIcon.className = originalClass;
-          this.title = 'Copy Password';
-        }, 2000);
-      }).catch(err => {
-        console.error('Failed to copy password: ', err);
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = password;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-
-        // Visual feedback
-        this.classList.add('copy-success');
-        originalIcon.className = 'bi bi-check';
-        this.title = 'Copied!';
-
-        setTimeout(() => {
-          this.classList.remove('copy-success');
-          originalIcon.className = originalClass;
-          this.title = 'Copy Password';
-        }, 2000);
-      });
-    });
   });
 
 });

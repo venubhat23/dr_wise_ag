@@ -440,6 +440,7 @@ Rails.application.routes.draw do
           get :export
           post :filter
           get :realtime_data
+          get :active_users_details
         end
       end
 

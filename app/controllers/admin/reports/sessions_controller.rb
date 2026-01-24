@@ -7,114 +7,80 @@ module Admin
         # Set timezone to India
         Time.zone = 'Asia/Kolkata'
 
-        # Active users (unique users with sessions within last 30 minutes)
-        @active_users = Ahoy::Visit.where("started_at > ?", 30.minutes.ago).distinct.count(:user_id)
+        # Handle date range filter
+        @date_range = params[:date_range] || '30_days'
 
-        # Today's unique users (India time)
-        @today_sessions = Ahoy::Visit.where(started_at: Time.zone.now.beginning_of_day..Time.zone.now.end_of_day).distinct.count(:user_id)
+        date_from = case @date_range
+                    when '7_days'
+                      7.days.ago
+                    when '30_days'
+                      30.days.ago
+                    when '3_months'
+                      3.months.ago
+                    when '6_months'
+                      6.months.ago
+                    when '1_year'
+                      1.year.ago
+                    else
+                      30.days.ago
+                    end
 
-        # This week's unique users
-        @week_sessions = Ahoy::Visit.where(started_at: 1.week.ago..Time.zone.now).distinct.count(:user_id)
+        # Simple login session statistics - only basic counts
+        @total_logins = Ahoy::Visit.where(started_at: date_from..Time.zone.now).count
+        @unique_users = Ahoy::Visit.where(started_at: date_from..Time.zone.now).distinct.count(:user_id)
+        @today_logins = Ahoy::Visit.where(started_at: Time.zone.now.beginning_of_day..Time.zone.now.end_of_day).count
 
-        # This month's unique users
-        @month_sessions = Ahoy::Visit.where(started_at: 1.month.ago..Time.zone.now).distinct.count(:user_id)
-
-        # Sessions over time (last 30 days)
-        @sessions_over_time = Ahoy::Visit
-          .where(started_at: 30.days.ago..Time.zone.now)
-          .group_by_day(:started_at, time_zone: 'Asia/Kolkata')
-          .count
-
-        # Device breakdown
-        @device_breakdown = Ahoy::Visit
-          .where(started_at: 30.days.ago..Time.zone.now)
-          .group(:device_type)
-          .count
-
-        # Browser breakdown
-        @browser_breakdown = Ahoy::Visit
-          .where(started_at: 30.days.ago..Time.zone.now)
-          .group(:browser)
-          .count
-
-        # Operating System breakdown
-        @os_breakdown = Ahoy::Visit
-          .where(started_at: 30.days.ago..Time.zone.now)
-          .group(:os)
-          .count
-
-        # Top pages (most visited)
-        @top_pages = Ahoy::Event
-          .where(name: ["Viewed page", "$view"])
-          .where(time: 30.days.ago..Time.zone.now)
-          .group("properties->>'page'")
-          .count
-          .sort_by(&:last)
-          .reverse
-          .first(10) rescue []
-
-        # Sessions by country
-        @sessions_by_country = Ahoy::Visit
-          .where(started_at: 7.days.ago..Time.zone.now)
-          .where.not(country: nil)
-          .group(:country)
-          .count rescue {}
-
-        # Recent sessions
-        @recent_sessions = Ahoy::Visit
+        # Recent login events (simplified list)
+        @recent_logins = Ahoy::Visit
           .includes(:user)
+          .where(started_at: date_from..Time.zone.now)
           .order(started_at: :desc)
-          .limit(20) rescue []
+          .limit(50)
 
-        # User sessions (for logged in users)
-        if params[:user_id].present?
-          @user = User.find(params[:user_id])
-          @user_sessions = Ahoy::Visit.where(user_id: @user.id).order(started_at: :desc)
+        # Logins by user type
+        @logins_by_role = Ahoy::Visit
+                          .joins(:user)
+                          .where(started_at: date_from..Time.zone.now)
+                          .group('users.user_type')
+                          .count
+
+        # Handle JSON requests for unique users modal
+        respond_to do |format|
+          format.html
+          format.json do
+            if params[:unique_users] == 'true'
+              unique_users_data = Ahoy::Visit
+                .joins(:user)
+                .where(started_at: date_from..Time.zone.now)
+                .group(:user_id)
+                .includes(:user)
+                .map do |visit|
+                  user = visit.user
+                  session_count = Ahoy::Visit.where(user_id: user.id, started_at: date_from..Time.zone.now).count
+                  last_login = Ahoy::Visit.where(user_id: user.id).order(started_at: :desc).first&.started_at
+
+                  role_color = case user.user_type
+                              when 'admin' then 'danger'
+                              when 'agent' then 'primary'
+                              when 'customer' then 'success'
+                              when 'sub_agent' then 'info'
+                              else 'secondary'
+                              end
+
+                  {
+                    name: "#{user.first_name} #{user.last_name}".strip.presence || user.email,
+                    email: user.email,
+                    role: user.user_type.humanize,
+                    role_color: role_color,
+                    session_count: session_count,
+                    last_login: last_login ? last_login.in_time_zone('Asia/Kolkata').strftime('%b %d, %Y %I:%M %p') : 'Never'
+                  }
+                end.uniq { |u| u[:email] }.sort_by { |u| -u[:session_count] }
+
+              render json: { unique_users: unique_users_data }
+            end
+          end
         end
-
-        # Hourly distribution (last 24 hours)
-        @hourly_distribution = Ahoy::Visit
-          .where(started_at: 24.hours.ago..Time.zone.now)
-          .group_by_hour(:started_at, time_zone: 'Asia/Kolkata')
-          .count rescue {}
-
-        # Average session duration
-        sessions_with_events = Ahoy::Visit
-          .joins(:events)
-          .where(started_at: 30.days.ago..Time.zone.now)
-          .group("ahoy_visits.id")
-          .pluck(Arel.sql("ahoy_visits.id, MAX(ahoy_events.time) - ahoy_visits.started_at as duration")) rescue []
-
-        if sessions_with_events.any?
-          durations = sessions_with_events.map { |s| s[1].to_i }.compact.select { |d| d > 0 }
-          @avg_session_duration = durations.any? ? (durations.sum / durations.size.to_f).round : 0
-        else
-          @avg_session_duration = 0
-        end
-
-        # Bounce rate calculation
-        total_visits = Ahoy::Visit.where(started_at: 30.days.ago..Time.zone.now).count rescue 0
-        if total_visits > 0
-          single_page_visits = Ahoy::Visit
-            .joins(:events)
-            .where(started_at: 30.days.ago..Time.zone.now)
-            .group("ahoy_visits.id")
-            .having("COUNT(ahoy_events.id) = 1")
-            .count.keys.count rescue 0
-          @bounce_rate = ((single_page_visits.to_f / total_visits) * 100).round(2)
-        else
-          @bounce_rate = 0
-        end
-
-        # Referrer sources
-        @referrer_sources = Ahoy::Visit
-          .where(started_at: 7.days.ago..Time.zone.now)
-          .where.not(referrer: nil)
-          .group(:referrer)
-          .count
-          .sort_by(&:last)
-          .reverse
-          .first(10) rescue []
       end
 
       # API endpoint for real-time data
@@ -122,18 +88,15 @@ module Admin
         Time.zone = 'Asia/Kolkata'
 
         data = {
-          active_users: Ahoy::Visit.where("started_at > ?", 30.minutes.ago).distinct.count(:user_id),
-          today_sessions: Ahoy::Visit.where(started_at: Time.zone.now.beginning_of_day..Time.zone.now.end_of_day).distinct.count(:user_id),
+          today_logins: Ahoy::Visit.where(started_at: Time.zone.now.beginning_of_day..Time.zone.now.end_of_day).count,
           current_time: Time.zone.now.strftime("%B %d, %Y %I:%M:%S %p IST"),
-          recent_sessions: Ahoy::Visit.includes(:user)
-                            .order(started_at: :desc)
-                            .limit(5)
-                            .map do |session|
+          recent_logins: Ahoy::Visit.includes(:user)
+                         .order(started_at: :desc)
+                         .limit(5)
+                         .map do |visit|
             {
-              user: session.user ? "#{session.user.first_name} #{session.user.last_name}".strip.presence || session.user.email : "Guest",
-              started_at: session.started_at.in_time_zone('Asia/Kolkata').strftime("%I:%M %p"),
-              device: session.device_type || 'Unknown',
-              country: session.country || 'Unknown'
+              user: visit.user ? "#{visit.user.first_name} #{visit.user.last_name}".strip.presence || visit.user.email : "Guest",
+              logged_in_at: visit.started_at.in_time_zone('Asia/Kolkata').strftime("%I:%M %p")
             }
           end
         }

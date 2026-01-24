@@ -1,594 +1,381 @@
-<style>
-  .session-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 15px;
-    padding: 20px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
-  }
-
-  .session-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
-  }
-
-  .metric-card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-    border: 1px solid #e2e8f0;
-    transition: all 0.3s ease;
-  }
-
-  .metric-card:hover {
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-    transform: translateY(-3px);
-  }
-
-  .metric-value {
-    font-size: 2.5rem;
-    font-weight: bold;
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .metric-label {
-    color: #64748b;
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .chart-container {
-    background: white;
-    border-radius: 12px;
-    padding: 25px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-    border: 1px solid #e2e8f0;
-  }
-
-  .chart-title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 20px;
-  }
-
-  .session-table {
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-  }
-
-  .session-table thead {
-    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-  }
-
-  .session-table th {
-    font-weight: 600;
-    color: #475569;
-    padding: 15px;
-    font-size: 0.875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .session-table td {
-    padding: 12px 15px;
-    color: #64748b;
-  }
-
-  .session-table tr:hover {
-    background-color: #f8fafc;
-  }
-
-  .device-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-
-  .device-badge.desktop {
-    background: #dbeafe;
-    color: #1e40af;
-  }
-
-  .device-badge.mobile {
-    background: #dcfce7;
-    color: #166534;
-  }
-
-  .device-badge.tablet {
-    background: #fef3c7;
-    color: #92400e;
-  }
-
-  .status-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 8px;
-  }
-
-  .status-indicator.active {
-    background: #10b981;
-    animation: pulse 2s infinite;
-  }
-
-  .status-indicator.inactive {
-    background: #6b7280;
-  }
-
-  @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-    }
-    70% {
-      box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-    }
-  }
-
-  .gradient-active {
-    background: linear-gradient(135deg, #10b981, #34d399);
-  }
-
-  .gradient-today {
-    background: linear-gradient(135deg, #3b82f6, #60a5fa);
-  }
-
-  .gradient-week {
-    background: linear-gradient(135deg, #8b5cf6, #a78bfa);
-  }
-
-  .gradient-month {
-    background: linear-gradient(135deg, #f59e0b, #fbbf24);
-  }
-</style>
-
-<div class="container-fluid">
-  <!-- Header -->
-  <div class="mb-4">
-    <h1 class="h2 mb-3">Session Analytics Dashboard</h1>
-    <p class="text-muted">Real-time insights into user sessions and behavior</p>
-    <p class="text-success" id="current-time">Loading time...</p>
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Session Reports</h2>
+    <p class="text-muted mb-0">Track user session activities and login/logout events</p>
   </div>
+  <div>
+    <button class="btn btn-primary" onclick="refreshData()">
+      <i class="bi bi-arrow-clockwise me-1"></i>
+      Refresh Data
+    </button>
+  </div>
+</div>
 
-  <!-- Key Metrics Row -->
-  <div class="row mb-4">
-    <div class="col-md-3">
-      <div class="metric-card">
-        <div class="d-flex justify-content-between align-items-start mb-3">
+<!-- Statistics Cards -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
           <div>
-            <div class="metric-label">Active Users</div>
-            <div class="metric-value" id="active-users-count"><%= @active_users %></div>
+            <h6 class="text-muted mb-2">Total Sessions</h6>
+            <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_logins) %></h3>
           </div>
-          <div class="session-card gradient-active p-2 rounded">
-            <i class="bi bi-people-fill text-white"></i>
+          <div class="bg-primary bg-opacity-10 rounded p-3">
+            <i class="bi bi-activity text-primary fs-4"></i>
           </div>
         </div>
-        <small class="text-muted">Last 30 minutes</small>
       </div>
     </div>
+  </div>
 
-    <div class="col-md-3">
-      <div class="metric-card">
-        <div class="d-flex justify-content-between align-items-start mb-3">
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm" style="cursor: pointer;" onclick="showUniqueUsersModal()">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
           <div>
-            <div class="metric-label">Today's Unique Users</div>
-            <div class="metric-value" id="today-sessions-count"><%= @today_sessions %></div>
+            <h6 class="text-muted mb-2">Unique Users</h6>
+            <h3 class="mb-0 text-info"><%= number_with_delimiter(@unique_users) %></h3>
           </div>
-          <div class="session-card gradient-today p-2 rounded">
-            <i class="bi bi-calendar-day text-white"></i>
+          <div class="bg-info bg-opacity-10 rounded p-3">
+            <i class="bi bi-people text-info fs-4"></i>
           </div>
         </div>
-        <small class="text-muted">Since midnight</small>
       </div>
     </div>
+  </div>
 
-    <div class="col-md-3">
-      <div class="metric-card">
-        <div class="d-flex justify-content-between align-items-start mb-3">
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
           <div>
-            <div class="metric-label">Week's Unique Users</div>
-            <div class="metric-value"><%= @week_sessions %></div>
+            <h6 class="text-muted mb-2">Today's Sessions</h6>
+            <h3 class="mb-0 text-success" id="today-logins-count"><%= number_with_delimiter(@today_logins) %></h3>
           </div>
-          <div class="session-card gradient-week p-2 rounded">
-            <i class="bi bi-calendar-week text-white"></i>
+          <div class="bg-success bg-opacity-10 rounded p-3">
+            <i class="bi bi-calendar-day text-success fs-4"></i>
           </div>
         </div>
-        <small class="text-muted">Last 7 days</small>
       </div>
     </div>
+  </div>
 
-    <div class="col-md-3">
-      <div class="metric-card">
-        <div class="d-flex justify-content-between align-items-start mb-3">
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
           <div>
-            <div class="metric-label">Month's Unique Users</div>
-            <div class="metric-value"><%= @month_sessions %></div>
+            <h6 class="text-muted mb-2">Last Activity</h6>
+            <p class="mb-0 text-warning">
+              <% if @recent_logins && @recent_logins.any? %>
+                <%= time_ago_in_words(@recent_logins.first.started_at) %> ago
+              <% else %>
+                Never
+              <% end %>
+            </p>
           </div>
-          <div class="session-card gradient-month p-2 rounded">
-            <i class="bi bi-calendar-month text-white"></i>
+          <div class="bg-warning bg-opacity-10 rounded p-3">
+            <i class="bi bi-clock-history text-warning fs-4"></i>
           </div>
         </div>
-        <small class="text-muted">Last 30 days</small>
-      </div>
-    </div>
-  </div>
-
-  <!-- Additional Metrics Row -->
-  <div class="row mb-4">
-    <div class="col-md-4">
-      <div class="metric-card">
-        <div class="metric-label">Avg Session Duration</div>
-        <div class="d-flex align-items-baseline">
-          <div class="metric-value"><%= (@avg_session_duration / 60.0).round(1) %></div>
-          <span class="ms-2 text-muted">minutes</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="metric-card">
-        <div class="metric-label">Bounce Rate</div>
-        <div class="d-flex align-items-baseline">
-          <div class="metric-value"><%= @bounce_rate %></div>
-          <span class="ms-2 text-muted">%</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="metric-card">
-        <div class="metric-label">Total Pages Viewed</div>
-        <div class="metric-value"><%= @top_pages.sum { |page, count| count } %></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Charts Row -->
-  <div class="row mb-4">
-    <!-- Sessions Over Time Chart -->
-    <div class="col-md-8">
-      <div class="chart-container">
-        <h5 class="chart-title">Sessions Over Time (Last 30 Days)</h5>
-        <%= line_chart @sessions_over_time,
-            height: "300px",
-            colors: ["#3b82f6"],
-            curve: true,
-            points: false,
-            library: {
-              chart: {
-                toolbar: { show: false },
-                animations: { enabled: true }
-              },
-              grid: { borderColor: '#f1f5f9' },
-              xaxis: {
-                labels: { style: { colors: '#64748b' } }
-              },
-              yaxis: {
-                labels: { style: { colors: '#64748b' } }
-              }
-            } %>
-      </div>
-    </div>
-
-    <!-- Hourly Distribution -->
-    <div class="col-md-4">
-      <div class="chart-container">
-        <h5 class="chart-title">24-Hour Activity</h5>
-        <%= column_chart @hourly_distribution,
-            height: "300px",
-            colors: ["#8b5cf6"],
-            library: {
-              chart: {
-                toolbar: { show: false },
-                animations: { enabled: true }
-              },
-              plotOptions: {
-                bar: {
-                  borderRadius: 4,
-                  columnWidth: '70%'
-                }
-              }
-            } %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Device and Browser Stats -->
-  <div class="row mb-4">
-    <!-- Device Breakdown -->
-    <div class="col-md-4">
-      <div class="chart-container">
-        <h5 class="chart-title">Device Types</h5>
-        <%= pie_chart @device_breakdown,
-            donut: true,
-            height: "250px",
-            colors: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"],
-            library: {
-              chart: { animations: { enabled: true } },
-              plotOptions: {
-                pie: {
-                  donut: { size: '65%' }
-                }
-              },
-              legend: {
-                position: 'bottom'
-              }
-            } %>
-      </div>
-    </div>
-
-    <!-- Browser Breakdown -->
-    <div class="col-md-4">
-      <div class="chart-container">
-        <h5 class="chart-title">Browsers</h5>
-        <%= pie_chart @browser_breakdown,
-            donut: true,
-            height: "250px",
-            colors: ["#8b5cf6", "#ec4899", "#06b6d4", "#10b981", "#f59e0b"],
-            library: {
-              chart: { animations: { enabled: true } },
-              plotOptions: {
-                pie: {
-                  donut: { size: '65%' }
-                }
-              },
-              legend: {
-                position: 'bottom'
-              }
-            } %>
-      </div>
-    </div>
-
-    <!-- OS Breakdown -->
-    <div class="col-md-4">
-      <div class="chart-container">
-        <h5 class="chart-title">Operating Systems</h5>
-        <%= pie_chart @os_breakdown,
-            donut: true,
-            height: "250px",
-            colors: ["#14b8a6", "#a855f7", "#f97316", "#6366f1"],
-            library: {
-              chart: { animations: { enabled: true } },
-              plotOptions: {
-                pie: {
-                  donut: { size: '65%' }
-                }
-              },
-              legend: {
-                position: 'bottom'
-              }
-            } %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Top Pages and Referrers -->
-  <div class="row mb-4">
-    <!-- Top Pages -->
-    <div class="col-md-6">
-      <div class="chart-container">
-        <h5 class="chart-title">Most Visited Pages</h5>
-        <% if @top_pages.any? %>
-          <%= bar_chart @top_pages.first(10).to_h,
-              height: "300px",
-              colors: ["#3b82f6"],
-              library: {
-                chart: {
-                  toolbar: { show: false },
-                  animations: { enabled: true }
-                },
-                plotOptions: {
-                  bar: {
-                    borderRadius: 4,
-                    horizontal: true
-                  }
-                },
-                xaxis: {
-                  labels: { style: { colors: '#64748b' } }
-                },
-                yaxis: {
-                  labels: {
-                    style: { colors: '#64748b' },
-                    maxWidth: 200
-                  }
-                }
-              } %>
-        <% else %>
-          <p class="text-muted">No page data available</p>
-        <% end %>
-      </div>
-    </div>
-
-    <!-- Geographic Distribution -->
-    <div class="col-md-6">
-      <div class="chart-container">
-        <h5 class="chart-title">Sessions by Country</h5>
-        <% if @sessions_by_country.any? %>
-          <%= geo_chart @sessions_by_country,
-              height: "300px",
-              colors: ["#e2e8f0", "#3b82f6"],
-              library: {
-                chart: { animations: { enabled: true } }
-              } %>
-        <% else %>
-          <p class="text-muted">No geographic data available</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Recent Sessions Table -->
-  <div class="row">
-    <div class="col-12">
-      <div class="session-table">
-        <table class="table table-hover mb-0">
-          <thead>
-            <tr>
-              <th>Status</th>
-              <th>User</th>
-              <th>Started At</th>
-              <th>Device</th>
-              <th>Browser</th>
-              <th>OS</th>
-              <th>Country</th>
-              <th>IP Address</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @recent_sessions.each do |session| %>
-              <tr>
-                <td>
-                  <% if session.started_at > 30.minutes.ago %>
-                    <span class="status-indicator active"></span>Active
-                  <% else %>
-                    <span class="status-indicator inactive"></span>Inactive
-                  <% end %>
-                </td>
-                <td>
-                  <% if session.user %>
-                    <strong><%= "#{session.user.first_name} #{session.user.last_name}".strip.presence || session.user.email %></strong>
-                  <% else %>
-                    <span class="text-muted">Guest</span>
-                  <% end %>
-                </td>
-                <td>
-                  <%= session.started_at.in_time_zone('Asia/Kolkata').strftime("%b %d, %I:%M %p IST") %>
-                </td>
-                <td>
-                  <span class="device-badge <%= (session.device_type || 'unknown').downcase %>">
-                    <%= session.device_type || 'Unknown' %>
-                  </span>
-                </td>
-                <td><%= session.browser || 'Unknown' %></td>
-                <td><%= session.os || 'Unknown' %></td>
-                <td>
-                  <% if session.country %>
-                    <i class="bi bi-geo-alt-fill text-primary"></i>
-                    <%= session.country %>
-                  <% else %>
-                    <span class="text-muted">-</span>
-                  <% end %>
-                </td>
-                <td class="text-muted">
-                  <%= session.ip || 'N/A' %>
-                </td>
-              </tr>
-            <% end %>
-            <% if @recent_sessions.empty? %>
-              <tr>
-                <td colspan="8" class="text-center text-muted py-4">
-                  No session data available yet. Sessions will appear once users start visiting the application.
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Filter Section -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0">
+    <h5 class="mb-0">Filter Options</h5>
+  </div>
+  <div class="card-body">
+    <%= form_with url: admin_reports_sessions_path, method: :get, local: true, class: "row g-3 align-items-end" do |form| %>
+      <div class="col-md-4">
+        <%= form.label :date_range, "Time Period", class: "form-label fw-semibold" %>
+        <%= form.select :date_range,
+            options_for_select([
+              ['Last 7 Days', '7_days'],
+              ['Last 30 Days', '30_days'],
+              ['Last 3 Months', '3_months'],
+              ['Last 6 Months', '6_months'],
+              ['Last Year', '1_year']
+            ], @date_range),
+            {},
+            { class: "form-select" } %>
+      </div>
+      <div class="col-md-3">
+        <%= form.submit "Apply Filter", class: "btn btn-primary" %>
+        <button type="button" class="btn btn-outline-secondary" onclick="window.location.href='<%= admin_reports_sessions_path %>'">Clear</button>
+      </div>
+      <div class="col-md-5 text-end">
+        <small class="text-muted">
+          <i class="bi bi-info-circle me-1"></i>
+          Showing session data for
+          <strong><%= case @date_range
+              when '7_days' then 'last 7 days'
+              when '30_days' then 'last 30 days'
+              when '3_months' then 'last 3 months'
+              when '6_months' then 'last 6 months'
+              when '1_year' then 'last year'
+              else 'last 30 days'
+              end %></strong>
+        </small>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Recent Session Events -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Session Activities</h5>
+      <small class="text-muted" id="current-time">
+        <i class="bi bi-clock me-1"></i>
+        <%= Time.zone.now.strftime("%B %d, %Y %I:%M:%S %p IST") %>
+      </small>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <% if @recent_logins && @recent_logins.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0">User</th>
+              <th class="border-0">Role</th>
+              <th class="border-0">Activity Type</th>
+              <th class="border-0">Time</th>
+              <th class="border-0">Session Status</th>
+            </tr>
+          </thead>
+        <tbody>
+          <% @recent_logins.each do |session| %>
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="avatar-sm bg-primary bg-opacity-10 rounded-circle me-2 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-person text-primary"></i>
+                  </div>
+                  <div>
+                    <div class="fw-medium">
+                      <%= session.user ? "#{session.user.first_name} #{session.user.last_name}".strip.presence || session.user.email : "Guest" %>
+                    </div>
+                    <small class="text-muted"><%= session.user&.email %></small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <% if session.user %>
+                  <%
+                    role = session.user.user_type
+                    role_color = case role
+                                when 'admin' then 'danger'
+                                when 'agent' then 'primary'
+                                when 'customer' then 'success'
+                                when 'sub_agent' then 'info'
+                                else 'secondary'
+                                end
+                  %>
+                  <span class="badge bg-<%= role_color %>"><%= role.humanize %></span>
+                <% else %>
+                  <span class="badge bg-secondary">Guest</span>
+                <% end %>
+              </td>
+              <td>
+                <span class="badge bg-success">
+                  <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                </span>
+              </td>
+              <td>
+                <div>
+                  <div class="fw-medium"><%= session.started_at.in_time_zone('Asia/Kolkata').strftime("%I:%M %p") %></div>
+                  <small class="text-muted"><%= session.started_at.in_time_zone('Asia/Kolkata').strftime("%b %d, %Y") %></small>
+                </div>
+              </td>
+              <td>
+                <%
+                  is_recent = session.started_at > 30.minutes.ago
+                  status_class = is_recent ? 'success' : 'secondary'
+                  status_text = is_recent ? 'Active' : 'Ended'
+                  status_icon = is_recent ? 'circle-fill' : 'circle'
+                %>
+                <span class="badge bg-<%= status_class %>">
+                  <i class="bi bi-<%= status_icon %> me-1"></i><%= status_text %>
+                </span>
+                <% if is_recent %>
+                  <br><small class="text-success">Started <%= time_ago_in_words(session.started_at) %> ago</small>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+    <% else %>
+      <div class="text-center py-5">
+        <i class="bi bi-activity fs-1 text-muted mb-3 d-block"></i>
+        <h5 class="text-muted">No session activities found</h5>
+        <p class="text-muted mb-3">
+          Session activities will appear here when users login/logout.
+        </p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
 <script>
-// Real-time data update script
-(function() {
-  // Update data every 10 seconds
-  const UPDATE_INTERVAL = 10000;
-
-  // Function to format time in IST
-  function formatTime(date) {
-    return new Intl.DateTimeFormat('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    }).format(date) + ' IST';
-  }
-
-  // Function to update real-time data
-  function updateRealTimeData() {
-    fetch('/admin/reports/sessions/realtime_data.json')
-      .then(response => response.json())
-      .then(data => {
-        // Update active users count
-        const activeUsersEl = document.getElementById('active-users-count');
-        if (activeUsersEl) {
-          activeUsersEl.textContent = data.active_users;
+// Simple data refresh
+function refreshData() {
+    fetch('<%= realtime_data_admin_reports_sessions_path %>', {
+        headers: {
+            'Accept': 'application/json'
         }
-
-        // Update today's sessions count
-        const todaySessionsEl = document.getElementById('today-sessions-count');
-        if (todaySessionsEl) {
-          todaySessionsEl.textContent = data.today_sessions;
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update today's logins count
+        const todayLoginsEl = document.getElementById('today-logins-count');
+        if (todayLoginsEl) {
+            todayLoginsEl.textContent = data.today_logins.toLocaleString();
         }
 
         // Update current time
         const currentTimeEl = document.getElementById('current-time');
         if (currentTimeEl) {
-          currentTimeEl.textContent = 'Last updated: ' + data.current_time;
+            currentTimeEl.innerHTML = '<i class="bi bi-clock me-1"></i>' + data.current_time;
         }
+    })
+    .catch(error => console.error('Error fetching real-time data:', error));
+}
 
-        // Add subtle animation to show update
-        [activeUsersEl, todaySessionsEl].forEach(el => {
-          if (el) {
-            el.style.transition = 'color 0.3s';
-            el.style.color = '#10b981';
-            setTimeout(() => {
-              el.style.color = '';
-            }, 500);
-          }
-        });
-      })
-      .catch(error => {
-        console.error('Error fetching real-time data:', error);
-      });
-  }
+// Auto-refresh every 30 seconds
+setInterval(refreshData, 30000);
 
-  // Initial update
-  document.addEventListener('DOMContentLoaded', function() {
-    // Set initial time
-    const currentTimeEl = document.getElementById('current-time');
-    if (currentTimeEl) {
-      currentTimeEl.textContent = 'Last updated: ' + formatTime(new Date());
-    }
+// Unique Users Modal Function
+function showUniqueUsersModal() {
+    const modal = new bootstrap.Modal(document.getElementById('uniqueUsersModal'));
+    modal.show();
+    loadUniqueUsersData();
+}
 
-    // Start real-time updates
-    updateRealTimeData();
-    setInterval(updateRealTimeData, UPDATE_INTERVAL);
-  });
+function loadUniqueUsersData() {
+    const tbody = document.getElementById('uniqueUsersTableBody');
+    const loader = document.getElementById('uniqueUsersLoader');
+    const content = document.getElementById('uniqueUsersContent');
 
-  // Configure all charts to use IST timezone
-  if (typeof Chartkick !== 'undefined') {
-    Chartkick.options = {
-      ...Chartkick.options,
-      library: {
-        ...Chartkick.options?.library,
-        scales: {
-          x: {
-            time: {
-              timezone: 'Asia/Kolkata'
+    loader.classList.remove('d-none');
+    content.classList.add('d-none');
+
+    fetch('<%= admin_reports_sessions_path %>?format=json&unique_users=true')
+        .then(response => response.json())
+        .then(data => {
+            loader.classList.add('d-none');
+            content.classList.remove('d-none');
+
+            tbody.innerHTML = '';
+
+            if (data.unique_users && data.unique_users.length > 0) {
+                data.unique_users.forEach(user => {
+                    const row = `
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                                        ${user.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <strong>${user.name}</strong>
+                                        <br><small class="text-muted">${user.email}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-${user.role_color}">${user.role}</span>
+                            </td>
+                            <td>
+                                <strong>${user.session_count}</strong>
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    ${user.last_login}
+                                </small>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No unique users found</td></tr>';
             }
-          }
-        }
-      }
-    };
-  }
-})();
+        })
+        .catch(error => {
+            console.error('Error loading unique users:', error);
+            loader.classList.add('d-none');
+            content.classList.remove('d-none');
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-danger">Error loading data</td></tr>';
+        });
+}
 </script>
+
+<style>
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Unique Users Card Hover Effect */
+.card[onclick*="showUniqueUsersModal"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+    transition: all 0.3s ease;
+}
+</style>
+
+<!-- Unique Users Modal -->
+<div class="modal fade" id="uniqueUsersModal" tabindex="-1" aria-labelledby="uniqueUsersModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-gradient-primary">
+        <h5 class="modal-title text-white" id="uniqueUsersModalLabel">
+          <i class="bi bi-people me-2"></i>Unique Users - Session Details
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="uniqueUsersLoader" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2 text-muted">Loading unique users...</p>
+        </div>
+        <div id="uniqueUsersContent" class="d-none">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th>Session Count</th>
+                  <th>Last Login</th>
+                </tr>
+              </thead>
+              <tbody id="uniqueUsersTableBody">
+                <!-- Dynamic content -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

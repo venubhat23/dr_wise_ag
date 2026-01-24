@@ -67,10 +67,36 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
   end
 
   def user_params
-    permitted_params = params.require(:user).permit(:first_name, :last_name, :email, :mobile, :password, :password_confirmation, :role_name, :original_password, sidebar_permissions: [])
+    permitted_params = params.require(:user).permit(:first_name, :last_name, :email, :mobile, :password, :password_confirmation, :role_name, :original_password, sidebar_permissions: [], crud_permissions: {})
 
-    # Convert sidebar_permissions array to JSON string for storage
-    if permitted_params[:sidebar_permissions].present?
+    # Handle CRUD permissions - store as JSON in sidebar_permissions field
+    if params[:user][:crud_permissions].present?
+      # Process CRUD permissions into a structured format
+      crud_data = {}
+      params[:user][:crud_permissions].each do |module_key, permissions|
+        if permissions['all_access'] == '1'
+          # For modules with "All Access" checked, grant all permissions
+          crud_data[module_key] = {
+            'view' => true,
+            'create' => true,
+            'edit' => true,
+            'delete' => true
+          }
+        else
+          # For modules with individual CRUD permissions
+          crud_data[module_key] = {
+            'view' => permissions['view'] == '1',
+            'create' => permissions['create'] == '1',
+            'edit' => permissions['edit'] == '1',
+            'delete' => permissions['delete'] == '1'
+          }
+        end
+      end
+
+      # Store CRUD permissions as JSON in sidebar_permissions field
+      permitted_params[:sidebar_permissions] = crud_data.to_json
+    elsif permitted_params[:sidebar_permissions].present?
+      # Legacy format - convert array to JSON string for storage
       permitted_params[:sidebar_permissions] = permitted_params[:sidebar_permissions].compact_blank.to_json
     end
 

@@ -8,6 +8,10 @@ class ApplicationController < ActionController::Base
   # Include exception handler for API
   include ExceptionHandler
 
+  # Include permissions helper for CRUD access control
+  helper PermissionsHelper
+  include PermissionsHelper
+
   # Devise authentication
   before_action :authenticate_user!
   before_action :configure_permitted_parameters, if: :devise_controller?
