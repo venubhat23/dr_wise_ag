@@ -118,6 +118,15 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
 
     # Check sub-agent login
     sub_agent = SubAgent.find_by(email: login_field)
+
+    # Try PAN number if not found by email
+    unless sub_agent
+      if login_field.match?(/\A[A-Za-z]{5}\d{4}[A-Za-z]\z/)
+        sub_agent = SubAgent.where("UPPER(pan_number) = ?", login_field.upcase).first
+      end
+    end
+
+    # Try mobile number if not found by email or PAN
     unless sub_agent
       formatted_mobile = format_mobile_number(login_field)
       if formatted_mobile
