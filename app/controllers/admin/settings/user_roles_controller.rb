@@ -83,18 +83,20 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
             'delete' => true
           }
         else
-          # For modules with individual CRUD permissions
+          # For modules with individual CRUD permissions (handle both "1" and "on" values)
           crud_data[module_key] = {
-            'view' => permissions['view'] == '1',
-            'create' => permissions['create'] == '1',
-            'edit' => permissions['edit'] == '1',
-            'delete' => permissions['delete'] == '1'
+            'view' => ['1', 'on'].include?(permissions['view']),
+            'create' => ['1', 'on'].include?(permissions['create']),
+            'edit' => ['1', 'on'].include?(permissions['edit']),
+            'delete' => ['1', 'on'].include?(permissions['delete'])
           }
         end
       end
 
       # Store CRUD permissions as JSON in sidebar_permissions field
       permitted_params[:sidebar_permissions] = crud_data.to_json
+      # Clear the crud_permissions field to avoid confusion
+      permitted_params[:crud_permissions] = nil
     elsif permitted_params[:sidebar_permissions].present?
       # Legacy format - convert array to JSON string for storage
       permitted_params[:sidebar_permissions] = permitted_params[:sidebar_permissions].compact_blank.to_json

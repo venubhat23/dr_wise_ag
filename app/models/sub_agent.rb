@@ -14,8 +14,9 @@ class SubAgent < ApplicationRecord
   end
 
   # Store plain password for display purposes
-  attr_accessor :store_plain_password, :plain_password, :original_password
+  attr_accessor :store_plain_password, :plain_password
   # Note: state and city are now real database columns, not virtual attributes
+  before_validation :set_default_password, on: :create
   before_save :store_password_if_changed
   before_save :set_location_ids_from_names
 
@@ -124,6 +125,14 @@ class SubAgent < ApplicationRecord
 
   private
 
+  def set_default_password
+    if self.password.blank?
+      self.password = 'admin123'
+      self.password_confirmation = 'admin123'
+      self.original_password = 'admin123'
+    end
+  end
+
   def set_location_ids_from_names
     # Set state_id and city_id from names if they are present but IDs are blank
     if state.present? && state_id.blank?
@@ -153,9 +162,8 @@ class SubAgent < ApplicationRecord
   def store_password_if_changed
     if password.present? && (password_digest_changed? || new_record?)
       self.plain_password = password
-      self.original_password = password if new_record?
-      # Also update original_password on password change if it's blank
-      self.original_password = password if self.original_password.blank?
+      # Always update original_password when password changes
+      self.original_password = password
     end
   end
 

@@ -83,20 +83,28 @@
                   </div>
                 </td>
                 <td>
-                  <div class="d-flex align-items-center">
-                    <span class="badge bg-info text-white me-2">
-                      <i class="bi bi-list-ul me-1"></i><%= affiliate_data[:leads].count %> leads
-                    </span>
-                    <a href="javascript:void(0)"
-                       onclick="openLeadsModal(<%= affiliate_data[:affiliate].id %>, `<%= j(affiliate_data[:affiliate].display_name) %>`, <%= affiliate_data[:leads].to_json.html_safe %>)"
-                       class="btn btn-sm btn-outline-primary text-decoration-none">
-                      <i class="bi bi-eye me-1"></i>View Details
-                    </a>
-                  </div>
-                  <small class="text-muted mt-1 d-block">
-                    <i class="bi bi-currency-rupee me-1"></i>
-                    Total Commission: <%= indian_currency(affiliate_data[:total_amount].to_i) %>
+                  <button type="button"
+                          class="btn btn-info btn-sm text-white mb-2"
+                          onclick="showLeadsDetails('<%= affiliate_data[:affiliate].id %>')"
+                          style="border-radius: 20px;">
+                    <i class="bi bi-list-ul me-1"></i><%= affiliate_data[:leads].count %> leads
+                  </button>
+                  <br>
+                  <small class="text-muted mt-1">
+                    Total Commission: ₹<%= affiliate_data[:leads].sum { |lead| lead[:commission] }.to_i.to_s.gsub(/\B(?=(\d{3})+(?!\d))/, ',') %>
                   </small>
+
+                  <!-- Store affiliate data for JavaScript -->
+                  <script type="application/json" id="affiliate-data-<%= affiliate_data[:affiliate].id %>">
+                    {
+                      "affiliate": {
+                        "id": <%= affiliate_data[:affiliate].id %>,
+                        "name": "<%= j(affiliate_data[:affiliate].display_name) %>",
+                        "email": "<%= affiliate_data[:affiliate].email %>"
+                      },
+                      "leads": <%= affiliate_data[:leads].to_json.html_safe %>
+                    }
+                  </script>
                 </td>
                 <td>
                   <span class="fw-bold text-dark">
@@ -148,7 +156,7 @@
             <% end %>
           <% else %>
             <tr>
-              <td colspan="5" class="text-center py-4">
+              <td colspan="6" class="text-center py-4">
                 <div class="text-center py-5">
                   <div class="mb-3">
                     <i class="bi bi-people display-1 text-muted"></i>
@@ -706,7 +714,17 @@ body.modal-open {
 document.addEventListener('DOMContentLoaded', function() {
   // Removed old checkbox functionality - no longer needed
   // Table now shows clear paid/pending status without checkboxes
-  console.log('Affiliate payouts page loaded');
+  console.log('✅ Affiliate payouts page loaded');
+
+  // Verify modal elements exist
+  const leadsModal = document.getElementById('leadsModal');
+  const modalTitle = document.getElementById('modalAffiliateNameDisplay');
+  const tableBody = document.getElementById('leadsTableBody');
+
+  console.log('🔍 Modal elements check:');
+  console.log('   Leads Modal:', leadsModal ? '✅ Found' : '❌ Missing');
+  console.log('   Modal Title:', modalTitle ? '✅ Found' : '❌ Missing');
+  console.log('   Table Body:', tableBody ? '✅ Found' : '❌ Missing');
 
   // Mark All as Paid Modal Function
   window.openMarkAllModal = function(affiliateId, affiliateName, amount, leadCount, leadIds) {
@@ -982,112 +1000,131 @@ document.addEventListener('DOMContentLoaded', function() {
     modal.show();
   };
 
-  // Leads Modal Function
-  window.openLeadsModal = function(affiliateId, affiliateName, leadsData) {
-    console.log('🔍 Opening leads modal for:', affiliateName);
-    console.log('📊 Leads data received:', leadsData);
+  // New simplified leads modal function
+  window.showLeadsDetails = function(affiliateId) {
+    console.log('🔍 Opening leads modal for affiliate ID:', affiliateId);
 
-    // Set modal title
-    document.getElementById('modalAffiliateNameDisplay').textContent = affiliateName;
-
-    // Parse leads data if it's a string
-    let leads;
     try {
-      leads = typeof leadsData === 'string' ? JSON.parse(leadsData) : leadsData;
-    } catch (e) {
-      console.error('Error parsing leads data:', e);
-      leads = [];
-    }
+      // Get affiliate data from the embedded JSON
+      const dataElement = document.getElementById(`affiliate-data-${affiliateId}`);
+      if (!dataElement) {
+        console.error('Affiliate data not found for ID:', affiliateId);
+        alert('Error: Affiliate data not found. Please refresh the page and try again.');
+        return;
+      }
 
-    // Calculate totals
-    const totalLeads = leads.length;
-    const totalCommission = leads.reduce((sum, lead) => sum + (parseFloat(lead.commission) || 0), 0);
+      const affiliateData = JSON.parse(dataElement.textContent);
+      console.log('📊 Affiliate data loaded:', affiliateData);
 
-    // Update summary
-    document.getElementById('totalLeadsCount').textContent = totalLeads;
-    document.getElementById('totalCommissionAmount').textContent = '₹' + totalCommission.toLocaleString();
+      // Set modal title
+      const titleElement = document.getElementById('modalAffiliateNameDisplay');
+      if (!titleElement) {
+        console.error('Modal title element not found!');
+        return;
+      }
+      titleElement.textContent = affiliateData.affiliate.name;
 
-    // Generate table rows
-    const tableBody = document.getElementById('leadsTableBody');
-    tableBody.innerHTML = '';
+      // Calculate totals
+      const leads = affiliateData.leads || [];
+      const totalLeads = leads.length;
+      const totalCommission = leads.reduce((sum, lead) => sum + (parseFloat(lead.commission) || 0), 0);
 
-    if (leads.length === 0) {
-      tableBody.innerHTML = `
-        <tr>
-          <td colspan="7" class="text-center py-4">
-            <i class="bi bi-info-circle text-muted fs-1"></i>
-            <p class="mt-2 text-muted">No leads found for this affiliate</p>
-          </td>
-        </tr>
-      `;
-    } else {
-      leads.forEach((leadData, index) => {
-        const lead = leadData.lead || leadData;
-        const commission = leadData.commission || 0;
-        const paid = leadData.paid || false;
-        const policyType = leadData.policy_type || 'N/A';
-        const policyNumber = leadData.policy_number || 'N/A';
-        const customerName = leadData.customer_name || 'N/A';
-        const createdDate = leadData.created_date || leadData.created_at || 'N/A';
+      // Update summary
+      document.getElementById('totalLeadsCount').textContent = totalLeads;
+      document.getElementById('totalCommissionAmount').textContent = '₹' + totalCommission.toLocaleString();
 
-        // Format date
-        let formattedDate = 'N/A';
-        if (createdDate && createdDate !== 'N/A') {
-          try {
-            const date = new Date(createdDate);
-            formattedDate = date.toLocaleDateString('en-IN', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric'
-            });
-          } catch (e) {
-            formattedDate = createdDate;
-          }
-        }
+      // Generate table rows
+      const tableBody = document.getElementById('leadsTableBody');
+      tableBody.innerHTML = '';
 
-        const statusBadge = paid
-          ? '<span class="badge status-badge-paid"><i class="bi bi-check-circle me-1"></i>Paid</span>'
-          : '<span class="badge status-badge-pending"><i class="bi bi-clock me-1"></i>Pending</span>';
-
-        const row = `
-          <tr class="${paid ? 'table-success' : 'table-warning'}" style="opacity: ${paid ? '0.8' : '1'}">
-            <td>
-              <span class="badge bg-primary">${lead.lead_id || lead.id}</span>
-            </td>
-            <td>
-              <div>
-                <strong>${customerName}</strong>
-                ${leadData.customer_email ? '<br><small class="text-muted">' + leadData.customer_email + '</small>' : ''}
-              </div>
-            </td>
-            <td>
-              <span class="text-monospace">${policyNumber}</span>
-            </td>
-            <td>
-              <span class="badge bg-info text-white">${policyType}</span>
-            </td>
-            <td>
-              <span class="fw-bold text-success">₹${parseFloat(commission).toLocaleString()}</span>
-            </td>
-            <td>
-              ${statusBadge}
-            </td>
-            <td>
-              <small class="text-muted">${formattedDate}</small>
+      if (leads.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-4">
+              <i class="bi bi-info-circle text-muted fs-1"></i>
+              <p class="mt-2 text-muted">No leads found for this affiliate</p>
             </td>
           </tr>
         `;
-        tableBody.innerHTML += row;
-      });
-    }
+      } else {
+        leads.forEach((leadData, index) => {
+          const commission = leadData.commission || 0;
+          const paid = leadData.paid || false;
+          const policyType = leadData.policy_type || 'N/A';
+          const policyNumber = leadData.policy_number || 'N/A';
+          const customerName = leadData.customer_name || 'N/A';
+          const createdDate = leadData.created_date || leadData.created_at || 'N/A';
 
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('leadsModal'), {
-      backdrop: true,
-      keyboard: true,
-      focus: true
-    });
-    modal.show();
+          // Format date
+          let formattedDate = 'N/A';
+          if (createdDate && createdDate !== 'N/A') {
+            try {
+              const date = new Date(createdDate);
+              formattedDate = date.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+              });
+            } catch (e) {
+              formattedDate = createdDate;
+            }
+          }
+
+          const statusBadge = paid
+            ? '<span class="badge status-badge-paid"><i class="bi bi-check-circle me-1"></i>Paid</span>'
+            : '<span class="badge status-badge-pending"><i class="bi bi-clock me-1"></i>Pending</span>';
+
+          const row = `
+            <tr class="${paid ? 'table-success' : 'table-warning'}" style="opacity: ${paid ? '0.8' : '1'}">
+              <td>
+                <span class="badge bg-primary">${leadData.lead_id || leadData.id}</span>
+              </td>
+              <td>
+                <div>
+                  <strong>${customerName}</strong>
+                  ${leadData.customer_email ? '<br><small class="text-muted">' + leadData.customer_email + '</small>' : ''}
+                </div>
+              </td>
+              <td>
+                <span class="text-monospace">${policyNumber}</span>
+              </td>
+              <td>
+                <span class="badge bg-info text-white">${policyType}</span>
+              </td>
+              <td>
+                <span class="fw-bold text-success">₹${parseFloat(commission).toLocaleString()}</span>
+              </td>
+              <td>
+                ${statusBadge}
+              </td>
+              <td>
+                <small class="text-muted">${formattedDate}</small>
+              </td>
+            </tr>
+          `;
+          tableBody.innerHTML += row;
+        });
+      }
+
+      // Show modal
+      const modalElement = document.getElementById('leadsModal');
+      if (!modalElement) {
+        console.error('Leads modal element not found!');
+        return;
+      }
+
+      const modal = new bootstrap.Modal(modalElement, {
+        backdrop: true,
+        keyboard: true,
+        focus: true
+      });
+      modal.show();
+      console.log('✅ Modal shown successfully');
+
+    } catch (error) {
+      console.error('❌ Error in showLeadsDetails:', error);
+      alert('Error opening leads details: ' + error.message);
+    }
   };
 
   // Define global functions outside of document ready to ensure they're accessible
@@ -1284,34 +1321,37 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   // Payment Processing
-  document.getElementById('bulkProcessPayment').addEventListener('click', function() {
-    const transactionId = document.getElementById('bulkTransactionId').value;
-    const paymentDate = document.getElementById('bulkPaymentDate').value;
-    const notes = document.getElementById('bulkNotes').value;
+  const bulkProcessPaymentBtn = document.getElementById('bulkProcessPayment');
+  if (bulkProcessPaymentBtn) {
+    bulkProcessPaymentBtn.addEventListener('click', function() {
+      const transactionId = document.getElementById('bulkTransactionId').value;
+      const paymentDate = document.getElementById('bulkPaymentDate').value;
+      const notes = document.getElementById('bulkNotes').value;
 
-    if (!transactionId.trim()) {
-      showNotification('Please enter a transaction ID', 'warning');
-      document.getElementById('bulkTransactionId').focus();
-      return;
-    }
+      if (!transactionId.trim()) {
+        showNotification('Please enter a transaction ID', 'warning');
+        document.getElementById('bulkTransactionId').focus();
+        return;
+      }
 
-    const selectedLeads = document.querySelectorAll('.lead-modal-checkbox:checked');
-    if (selectedLeads.length === 0) {
-      showNotification('Please select at least one lead to process payment', 'warning');
-      return;
-    }
+      const selectedLeads = document.querySelectorAll('.lead-modal-checkbox:checked');
+      if (selectedLeads.length === 0) {
+        showNotification('Please select at least one lead to process payment', 'warning');
+        return;
+      }
 
-    // Show confirmation
-    const totalAmount = Array.from(selectedLeads).reduce((sum, lead) => {
-      return sum + parseFloat(lead.dataset.commission || 0);
-    }, 0);
+      // Show confirmation
+      const totalAmount = Array.from(selectedLeads).reduce((sum, lead) => {
+        return sum + parseFloat(lead.dataset.commission || 0);
+      }, 0);
 
-    const confirmMessage = `Process payment for ${selectedLeads.length} leads?\n\nTotal Amount: ₹${totalAmount.toLocaleString()}\nTransaction ID: ${transactionId}`;
+      const confirmMessage = `Process payment for ${selectedLeads.length} leads?\n\nTotal Amount: ₹${totalAmount.toLocaleString()}\nTransaction ID: ${transactionId}`;
 
-    if (confirm(confirmMessage)) {
-      processBulkPayment(selectedLeads, transactionId, paymentDate, notes);
-    }
-  });
+      if (confirm(confirmMessage)) {
+        processBulkPayment(selectedLeads, transactionId, paymentDate, notes);
+      }
+    });
+  }
 
   function processBulkPayment(selectedLeads, transactionId, paymentDate, notes) {
     // Show processing indicator

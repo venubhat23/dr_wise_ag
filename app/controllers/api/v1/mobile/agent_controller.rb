@@ -43,13 +43,14 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                   # For SubAgents, show only customers from their policies (matching dashboard logic)
                   sub_agent_health_policies = HealthInsurance.where(sub_agent_id: agent.id)
                   sub_agent_life_policies = LifeInsurance.where(sub_agent_id: agent.id)
-                  policy_customer_ids = (sub_agent_health_policies.pluck(:customer_id) + sub_agent_life_policies.pluck(:customer_id)).uniq
+                  sub_agent_motor_policies = MotorInsurance.where(sub_agent_id: agent.id)
+                  policy_customer_ids = (sub_agent_health_policies.pluck(:customer_id) + sub_agent_life_policies.pluck(:customer_id) + sub_agent_motor_policies.pluck(:customer_id)).uniq
 
                   # Only show customers with policies to match dashboard statistics
                   Customer.where(id: policy_customer_ids)
                 else
                   # For regular User agents, show only customers from their policies (matching dashboard logic)
-                  _, _, agent_customer_ids = get_agent_policies(agent)
+                  _, _, _, agent_customer_ids = get_agent_policies(agent)
                   Customer.where(id: agent_customer_ids)
                 end
 
@@ -378,7 +379,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     commission_payouts = CommissionPayout.where(payout_to: payout_to_value).index_by { |cp| "#{cp.policy_type}:#{cp.policy_id}" }
 
     # Get agent's policies using the helper method
-    agent_health_policies, agent_life_policies, _ = get_agent_policies(agent)
+    agent_health_policies, agent_life_policies, agent_motor_policies, _ = get_agent_policies(agent)
 
     # Get health insurance policies
     if policy_type.blank? || policy_type == 'health' || policy_type == 'all'
@@ -409,9 +410,9 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # Get motor insurance policies
     if policy_type.blank? || policy_type == 'motor' || policy_type == 'all'
       motor_policies = if is_admin?(agent)
-                         Policy.where(insurance_type: 'motor')
+                         MotorInsurance.all
                        else
-                         Policy.where(insurance_type: 'motor', user: agent)
+                         agent_motor_policies
                        end
 
       motor_policies.includes(:customer, documents_attachments: :blob).each do |policy|
@@ -1566,6 +1567,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         policies_count: sub_agent_stats[:total_policies],
         health_policies_count: sub_agent_stats[:health_count],
         life_policies_count: sub_agent_stats[:life_count],
+        motor_policies_count: sub_agent_stats[:motor_count],
         total_premium: sub_agent_stats[:total_premium],
         total_sum_insured: sub_agent_stats[:total_sum_insured],
         commission_earned: sub_agent_stats[:commission_earned],
@@ -1574,7 +1576,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         this_month_customers: sub_agent_stats[:monthly_customers],
         policy_distribution: {
           health: { count: sub_agent_stats[:health_count], percentage: sub_agent_stats[:health_percentage] },
-          life: { count: sub_agent_stats[:life_count], percentage: sub_agent_stats[:life_percentage] }
+          life: { count: sub_agent_stats[:life_count], percentage: sub_agent_stats[:life_percentage] },
+          motor: { count: sub_agent_stats[:motor_count], percentage: sub_agent_stats[:motor_percentage] }
         },
         performance_metrics: {
           conversion_rate: sub_agent_stats[:conversion_rate],
@@ -1614,11 +1617,13 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       # For SubAgents, get their policies directly
       recent_health = HealthInsurance.where(sub_agent_id: agent.id).order(created_at: :desc).limit(5)
       recent_life = LifeInsurance.where(sub_agent_id: agent.id).order(created_at: :desc).limit(5)
+      recent_motor = MotorInsurance.where(sub_agent_id: agent.id).order(created_at: :desc).limit(5)
     else
       # For User agents, use the cross-reference helper to get their policies
-      agent_health_policies, agent_life_policies, _ = get_agent_policies(agent)
+      agent_health_policies, agent_life_policies, agent_motor_policies, _ = get_agent_policies(agent)
       recent_health = agent_health_policies.order(created_at: :desc).limit(5)
       recent_life = agent_life_policies.order(created_at: :desc).limit(5)
+      recent_motor = agent_motor_policies.order(created_at: :desc).limit(5)
     end
 
     recent_health.each do |policy|
@@ -1639,17 +1644,31 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       }
     end
 
+    # Add motor insurance activities if recent_motor is defined
+    if defined?(recent_motor) && recent_motor
+      recent_motor.each do |policy|
+        activities << {
+          type: 'policy_created',
+          message: "Motor insurance policy #{policy.policy_number} created for #{policy.customer&.display_name || 'Customer'}",
+          timestamp: policy.created_at,
+          policy_type: 'Motor'
+        }
+      end
+    end
+
     activities.sort_by { |a| a[:timestamp] }.reverse.first(10)
   end
 
   def get_customer_policies_count(customer)
     HealthInsurance.where(customer: customer).count +
-    LifeInsurance.where(customer: customer).count
+    LifeInsurance.where(customer: customer).count +
+    MotorInsurance.where(customer: customer).count
   end
 
   def get_customer_total_premium(customer)
     HealthInsurance.where(customer: customer).sum(:total_premium) +
-    LifeInsurance.where(customer: customer).sum(:total_premium)
+    LifeInsurance.where(customer: customer).sum(:total_premium) +
+    MotorInsurance.where(customer: customer).sum(:total_premium)
   end
 
   def format_policy_data(policy, type)
@@ -1802,20 +1821,22 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     start_date = Date.current.beginning_of_month
     end_date = Date.current.end_of_month
 
-    agent_health_policies, agent_life_policies, _ = get_agent_policies(agent)
+    agent_health_policies, agent_life_policies, agent_motor_policies, _ = get_agent_policies(agent)
 
     agent_health_policies.where(created_at: start_date..end_date).count +
-    agent_life_policies.where(created_at: start_date..end_date).count
+    agent_life_policies.where(created_at: start_date..end_date).count +
+    agent_motor_policies.where(created_at: start_date..end_date).count
   end
 
   def get_this_month_premium_for_agent(agent)
     start_date = Date.current.beginning_of_month
     end_date = Date.current.end_of_month
 
-    agent_health_policies, agent_life_policies, _ = get_agent_policies(agent)
+    agent_health_policies, agent_life_policies, agent_motor_policies, _ = get_agent_policies(agent)
 
     agent_health_policies.where(created_at: start_date..end_date).sum(:total_premium) +
-    agent_life_policies.where(created_at: start_date..end_date).sum(:total_premium)
+    agent_life_policies.where(created_at: start_date..end_date).sum(:total_premium) +
+    agent_motor_policies.where(created_at: start_date..end_date).sum(:total_premium)
   end
 
   def get_this_month_policies_count_for_sub_agent(sub_agent)
@@ -1849,24 +1870,28 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         # If there's a matching SubAgent, use that for policy lookup
         agent_health_policies = HealthInsurance.where(sub_agent_id: sub_agent.id)
         agent_life_policies = LifeInsurance.where(sub_agent_id: sub_agent.id)
+        agent_motor_policies = MotorInsurance.where(sub_agent_id: sub_agent.id)
       else
         # If no matching SubAgent, use the User ID directly
         agent_health_policies = HealthInsurance.where(sub_agent_id: agent.id)
         agent_life_policies = LifeInsurance.where(sub_agent_id: agent.id)
+        agent_motor_policies = MotorInsurance.where(sub_agent_id: agent.id)
       end
     elsif agent.is_a?(SubAgent)
       # For SubAgent model, use ID directly
       agent_health_policies = HealthInsurance.where(sub_agent_id: agent.id)
       agent_life_policies = LifeInsurance.where(sub_agent_id: agent.id)
+      agent_motor_policies = MotorInsurance.where(sub_agent_id: agent.id)
     else
       # Fallback: empty relations
       agent_health_policies = HealthInsurance.none
       agent_life_policies = LifeInsurance.none
+      agent_motor_policies = MotorInsurance.none
     end
 
-    agent_customer_ids = (agent_health_policies.pluck(:customer_id) + agent_life_policies.pluck(:customer_id)).uniq
+    agent_customer_ids = (agent_health_policies.pluck(:customer_id) + agent_life_policies.pluck(:customer_id) + agent_motor_policies.pluck(:customer_id)).uniq
 
-    [agent_health_policies, agent_life_policies, agent_customer_ids]
+    [agent_health_policies, agent_life_policies, agent_motor_policies, agent_customer_ids]
   end
 
   def generate_demo_password(customer)
@@ -1891,11 +1916,12 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                       # For SubAgents, only count customers from their policies
                       sub_agent_health_policies = HealthInsurance.where(sub_agent_id: agent.id)
                       sub_agent_life_policies = LifeInsurance.where(sub_agent_id: agent.id)
-                      policy_customer_ids = (sub_agent_health_policies.pluck(:customer_id) + sub_agent_life_policies.pluck(:customer_id)).uniq
+                      sub_agent_motor_policies = MotorInsurance.where(sub_agent_id: agent.id)
+                      policy_customer_ids = (sub_agent_health_policies.pluck(:customer_id) + sub_agent_life_policies.pluck(:customer_id) + sub_agent_motor_policies.pluck(:customer_id)).uniq
                       Customer.where(id: policy_customer_ids)
                     else
                       # For regular User agents, only count customers from their policies
-                      _, _, agent_customer_ids = get_agent_policies(agent)
+                      _, _, _, agent_customer_ids = get_agent_policies(agent)
                       Customer.where(id: agent_customer_ids)
                     end
 
@@ -2587,35 +2613,44 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # Use simple queries like the original method
     health_policies = HealthInsurance.where(sub_agent_id: agent.id)
     life_policies = LifeInsurance.where(sub_agent_id: agent.id)
+    motor_policies = MotorInsurance.where(sub_agent_id: agent.id)
 
     # Get counts
     health_count = health_policies.count
     life_count = life_policies.count
-    total_policies = health_count + life_count
+    motor_count = motor_policies.count
+    total_policies = health_count + life_count + motor_count
 
     # Get sums
     health_premium = health_policies.sum(:total_premium) || 0
     life_premium = life_policies.sum(:total_premium) || 0
+    motor_premium = motor_policies.sum(:total_premium) || 0
     health_sum_insured = health_policies.sum(:sum_insured) || 0
     life_sum_insured = life_policies.sum(:sum_insured) || 0
+    motor_sum_insured = motor_policies.sum(:sum_insured) || 0
 
     # Commission
     health_commission = health_policies.sum(:sub_agent_commission_amount) || 0
     life_commission = life_policies.sum(:sub_agent_commission_amount) || 0
-    total_commission = health_commission + life_commission
+    motor_commission = motor_policies.sum(:sub_agent_commission_amount) || 0
+    total_commission = health_commission + life_commission + motor_commission
 
     # Monthly data
     monthly_health_count = health_policies.where(created_at: current_month_start..current_month_end).count
     monthly_life_count = life_policies.where(created_at: current_month_start..current_month_end).count
+    monthly_motor_count = motor_policies.where(created_at: current_month_start..current_month_end).count
     monthly_health_premium = health_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
     monthly_life_premium = life_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
+    monthly_motor_premium = motor_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
     monthly_commission = (health_policies.where(created_at: current_month_start..current_month_end).sum(:sub_agent_commission_amount) || 0) +
-                        (life_policies.where(created_at: current_month_start..current_month_end).sum(:sub_agent_commission_amount) || 0)
+                        (life_policies.where(created_at: current_month_start..current_month_end).sum(:sub_agent_commission_amount) || 0) +
+                        (motor_policies.where(created_at: current_month_start..current_month_end).sum(:sub_agent_commission_amount) || 0)
 
     # Get unique customer IDs for real-time count
-    customer_ids = (health_policies.pluck(:customer_id) + life_policies.pluck(:customer_id)).uniq
+    customer_ids = (health_policies.pluck(:customer_id) + life_policies.pluck(:customer_id) + motor_policies.pluck(:customer_id)).uniq
     monthly_customer_ids = (health_policies.where(created_at: current_month_start..current_month_end).pluck(:customer_id) +
-                           life_policies.where(created_at: current_month_start..current_month_end).pluck(:customer_id)).uniq
+                           life_policies.where(created_at: current_month_start..current_month_end).pluck(:customer_id) +
+                           motor_policies.where(created_at: current_month_start..current_month_end).pluck(:customer_id)).uniq
 
     # Calculate target achievement
     monthly_target = 50000.0
@@ -2625,24 +2660,26 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       customers_count: customer_ids.count,
       health_count: health_count,
       life_count: life_count,
+      motor_count: motor_count,
       total_policies: total_policies,
-      total_premium: health_premium + life_premium,
-      total_sum_insured: health_sum_insured + life_sum_insured,
+      total_premium: health_premium + life_premium + motor_premium,
+      total_sum_insured: health_sum_insured + life_sum_insured + motor_sum_insured,
       commission_earned: total_commission,
-      monthly_policies: monthly_health_count + monthly_life_count,
-      monthly_premium: monthly_health_premium + monthly_life_premium,
+      monthly_policies: monthly_health_count + monthly_life_count + monthly_motor_count,
+      monthly_premium: monthly_health_premium + monthly_life_premium + monthly_motor_premium,
       monthly_customers: monthly_customer_ids.count,
       commission_this_month: monthly_commission,
       target_achievement: target_achievement,
       conversion_rate: customer_ids.count > 0 && total_policies > 0 ? ((total_policies.to_f / customer_ids.count) * 100).round(2) : 0,
       health_percentage: total_policies > 0 ? ((health_count.to_f / total_policies) * 100).round(2) : 0,
-      life_percentage: total_policies > 0 ? ((life_count.to_f / total_policies) * 100).round(2) : 0
+      life_percentage: total_policies > 0 ? ((life_count.to_f / total_policies) * 100).round(2) : 0,
+      motor_percentage: total_policies > 0 ? ((motor_count.to_f / total_policies) * 100).round(2) : 0
     }
   end
 
   def get_optimized_agent_stats(agent)
     # Get agent policies using existing method but optimize queries
-    agent_health_policies, agent_life_policies, agent_customer_ids = get_agent_policies(agent)
+    agent_health_policies, agent_life_policies, agent_motor_policies, agent_customer_ids = get_agent_policies(agent)
 
     # Also include customers added by the agent through mobile API
     agent_added_customers = Customer.where("added_by LIKE ?", "%agent_mobile_api_#{agent.id}%")
@@ -2654,20 +2691,23 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
     monthly_health = agent_health_policies.where(created_at: current_month_start..current_month_end)
     monthly_life = agent_life_policies.where(created_at: current_month_start..current_month_end)
+    monthly_motor = agent_motor_policies.where(created_at: current_month_start..current_month_end)
 
-    total_policies = agent_health_policies.count + agent_life_policies.count
+    total_policies = agent_health_policies.count + agent_life_policies.count + agent_motor_policies.count
 
     {
       customers_count: all_agent_customers.active.count,
       health_count: agent_health_policies.count,
       life_count: agent_life_policies.count,
+      motor_count: agent_motor_policies.count,
       total_policies: total_policies,
-      total_premium: agent_health_policies.sum(:total_premium) + agent_life_policies.sum(:total_premium),
-      commission_earned: (agent_health_policies.sum(:sub_agent_after_tds_value) + agent_life_policies.sum(:sub_agent_after_tds_value)),
-      monthly_policies: monthly_health.count + monthly_life.count,
-      monthly_premium: monthly_health.sum(:total_premium) + monthly_life.sum(:total_premium),
+      total_premium: agent_health_policies.sum(:total_premium) + agent_life_policies.sum(:total_premium) + agent_motor_policies.sum(:total_premium),
+      commission_earned: (agent_health_policies.sum(:sub_agent_after_tds_value) + agent_life_policies.sum(:sub_agent_after_tds_value) + agent_motor_policies.sum(:sub_agent_after_tds_value)),
+      monthly_policies: monthly_health.count + monthly_life.count + monthly_motor.count,
+      monthly_premium: monthly_health.sum(:total_premium) + monthly_life.sum(:total_premium) + monthly_motor.sum(:total_premium),
       health_percentage: total_policies > 0 ? ((agent_health_policies.count.to_f / total_policies) * 100).round(2) : 0,
-      life_percentage: total_policies > 0 ? ((agent_life_policies.count.to_f / total_policies) * 100).round(2) : 0
+      life_percentage: total_policies > 0 ? ((agent_life_policies.count.to_f / total_policies) * 100).round(2) : 0,
+      motor_percentage: total_policies > 0 ? ((agent_motor_policies.count.to_f / total_policies) * 100).round(2) : 0
     }
   end
 end

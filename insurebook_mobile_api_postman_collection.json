@@ -1,0 +1,778 @@
+{
+  "info": {
+    "name": "InsureBook Mobile API Collection",
+    "description": "Complete API collection for InsureBook mobile application",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://dr-wise-ag.onrender.com",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.success && jsonData.data.token) {",
+                  "        pm.environment.set('token', jsonData.data.token);",
+                  "        pm.environment.set('user_id', jsonData.data.user_id);",
+                  "        pm.environment.set('role', jsonData.data.role);",
+                  "        if (jsonData.data.customer_id) {",
+                  "            pm.environment.set('customer_id', jsonData.data.customer_id);",
+                  "        }",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"admin@drwise.com\",\n    \"password\": \"Test@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login with Mobile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"mobile\": \"9876543210\",\n    \"password\": \"Test@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"role\": \"customer\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"mobile\": \"9876543210\",\n    \"password\": \"SecurePass@123\",\n    \"password_confirmation\": \"SecurePass@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Register Agent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"role\": \"agent\",\n    \"first_name\": \"Jane\",\n    \"last_name\": \"Smith\",\n    \"email\": \"jane.smith@example.com\",\n    \"mobile\": \"9876543211\",\n    \"password\": \"SecurePass@123\",\n    \"password_confirmation\": \"SecurePass@123\",\n    \"pan_no\": \"ABCDE1234F\",\n    \"address\": \"123 Main Street\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"gender\": \"Female\",\n    \"occupation\": \"Insurance Agent\",\n    \"annual_income\": \"500000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/auth/forgot_password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "auth", "forgot_password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer APIs",
+      "item": [
+        {
+          "name": "Get Portfolio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/customer/portfolio",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "customer", "portfolio"]
+            }
+          }
+        },
+        {
+          "name": "Get Upcoming Installments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/customer/upcoming_installments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "customer", "upcoming_installments"]
+            }
+          }
+        },
+        {
+          "name": "Get Upcoming Renewals",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/customer/upcoming_renewals",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "customer", "upcoming_renewals"]
+            }
+          }
+        },
+        {
+          "name": "Add Policy Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"insurance_type\": \"health\",\n    \"plan_name\": \"Family Health Plan\",\n    \"sum_insured\": 500000,\n    \"premium_amount\": 25000,\n    \"renewal_date\": \"2025-01-15\",\n    \"policy_number\": \"POL123456\",\n    \"insurance_company\": \"HDFC ERGO\",\n    \"remarks\": \"Need coverage for family of 4\",\n    \"product_through_dr\": true,\n    \"family_members\": [\"Spouse\", \"Child 1\", \"Child 2\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/customer/add_policy",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "customer", "add_policy"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agent APIs",
+      "item": [
+        {
+          "name": "Agent Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Get Customers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/customers?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "customers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "john",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"customer_type\": \"individual\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"email\": \"john.new@example.com\",\n    \"mobile\": \"9876543212\",\n    \"pan_number\": \"ABCDE1234G\",\n    \"aadhar_number\": \"123456789012\",\n    \"date_of_birth\": \"1990-01-15\",\n    \"gender\": \"Male\",\n    \"address\": \"123 Main Street\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"pincode\": \"400001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/customers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "customers"]
+            }
+          }
+        },
+        {
+          "name": "Get Policies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies?type=health&status=active",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "policies"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "health",
+                  "description": "health, life, motor, other"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "active, expired, pending"
+                },
+                {
+                  "key": "customer_id",
+                  "value": "123",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Health Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"customer_id\": 123,\n    \"policy_holder\": \"Self\",\n    \"plan_name\": \"Family Floater\",\n    \"insurance_company_name\": \"HDFC ERGO\",\n    \"insurance_type\": \"Family Floater\",\n    \"policy_type\": \"New\",\n    \"policy_number\": \"HDFC123456\",\n    \"policy_booking_date\": \"2024-01-15\",\n    \"policy_start_date\": \"2024-01-15\",\n    \"policy_end_date\": \"2025-01-14\",\n    \"payment_mode\": \"Yearly\",\n    \"sum_insured\": 500000,\n    \"net_premium\": 21186,\n    \"gst_percentage\": 18,\n    \"total_premium\": 25000,\n    \"main_agent_commission_percentage\": 20,\n    \"sub_agent_commission_percentage\": 3,\n    \"family_members\": [\n        {\n            \"name\": \"Jane Doe\",\n            \"relationship\": \"Spouse\",\n            \"age\": 35,\n            \"date_of_birth\": \"1989-05-20\"\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "policies", "health"]
+            }
+          }
+        },
+        {
+          "name": "Add Life Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"customer_id\": 123,\n    \"policy_holder\": \"Self\",\n    \"plan_name\": \"Term Life Plan\",\n    \"insurance_company_name\": \"LIC\",\n    \"policy_type\": \"New\",\n    \"policy_number\": \"LIC789012\",\n    \"policy_booking_date\": \"2024-01-15\",\n    \"policy_start_date\": \"2024-01-15\",\n    \"policy_end_date\": \"2044-01-14\",\n    \"payment_mode\": \"Yearly\",\n    \"policy_term\": 20,\n    \"premium_payment_term\": 15,\n    \"sum_insured\": 5000000,\n    \"net_premium\": 42373,\n    \"first_year_gst_percentage\": 18,\n    \"total_premium\": 50000,\n    \"nominee_name\": \"Jane Doe\",\n    \"nominee_relationship\": \"Spouse\",\n    \"nominee_age\": 35\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies/life",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "policies", "life"]
+            }
+          }
+        },
+        {
+          "name": "Add Motor Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"customer_id\": 123,\n    \"policy_holder\": \"Self\",\n    \"insurance_company_name\": \"Bajaj Allianz\",\n    \"policy_type\": \"New\",\n    \"policy_number\": \"BAJ456789\",\n    \"vehicle_number\": \"MH01AB1234\",\n    \"vehicle_make\": \"Honda\",\n    \"vehicle_model\": \"City\",\n    \"vehicle_type\": \"Car\",\n    \"engine_number\": \"ENG123456\",\n    \"chassis_number\": \"CHS789012\",\n    \"mfy\": \"2020\",\n    \"seating_capacity\": 5,\n    \"policy_start_date\": \"2024-01-15\",\n    \"policy_end_date\": \"2025-01-14\",\n    \"idv_amount\": 500000,\n    \"net_od_premium\": 8475,\n    \"net_tp_premium\": 3000,\n    \"gst_percentage\": 18,\n    \"total_premium\": 13500,\n    \"ncb\": 20,\n    \"zero_depreciation\": true,\n    \"roadside_assistance\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies/motor",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "policies", "motor"]
+            }
+          }
+        },
+        {
+          "name": "Add Other Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"customer_id\": 123,\n    \"policy_type\": \"Travel\",\n    \"policy_holder\": \"Self\",\n    \"insurance_company_name\": \"ICICI Lombard\",\n    \"policy_number\": \"TRV123456\",\n    \"policy_start_date\": \"2024-02-01\",\n    \"policy_end_date\": \"2024-02-15\",\n    \"sum_insured\": 100000,\n    \"premium\": 2500,\n    \"destination\": \"Europe\",\n    \"trip_duration\": \"14 days\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies/other",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "policies", "other"]
+            }
+          }
+        },
+        {
+          "name": "Get Form Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/form_data",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "form_data"]
+            }
+          }
+        },
+        {
+          "name": "Get Insurance Companies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/insurance_companies?type=health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "insurance_companies"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "health",
+                  "description": "health, life, motor"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Motor Insurance Companies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/motor_insurance_companies",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "motor_insurance_companies"]
+            }
+          }
+        },
+        {
+          "name": "Get Leads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/leads?status=new&priority=hot",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "leads"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "new",
+                  "description": "new, contacted, qualified, converted, lost"
+                },
+                {
+                  "key": "priority",
+                  "value": "hot",
+                  "description": "hot, warm, cold"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Lead",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"John Doe\",\n    \"mobile\": \"9876543213\",\n    \"email\": \"john.lead@example.com\",\n    \"product_category\": \"insurance\",\n    \"product_subcategory\": \"health\",\n    \"priority\": \"hot\",\n    \"notes\": \"Looking for family health insurance, budget 25k\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/leads",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "leads"]
+            }
+          }
+        },
+        {
+          "name": "Get Commission Distribution",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/commission_distribution",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "commission_distribution"]
+            }
+          }
+        },
+        {
+          "name": "Get Commission Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/commission_summary?from_date=2024-01-01&to_date=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "agent", "commission_summary"],
+              "query": [
+                {
+                  "key": "from_date",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "to_date",
+                  "value": "2024-12-31"
+                },
+                {
+                  "key": "insurance_type",
+                  "value": "health",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Settings APIs",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/settings/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "settings", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe Updated\",\n    \"mobile\": \"9876543210\",\n    \"address\": \"456 New Street\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"pincode\": \"400002\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/settings/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "settings", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"current_password\": \"Test@123\",\n    \"new_password\": \"NewSecure@456\",\n    \"password_confirmation\": \"NewSecure@456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/settings/change_password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "settings", "change_password"]
+            }
+          }
+        },
+        {
+          "name": "Get Terms and Conditions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/settings/terms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "settings", "terms"]
+            }
+          }
+        },
+        {
+          "name": "Contact Us",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/settings/contact",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "settings", "contact"]
+            }
+          }
+        },
+        {
+          "name": "Submit Helpdesk Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"subject\": \"Unable to view policy document\",\n    \"category\": \"technical\",\n    \"priority\": \"high\",\n    \"description\": \"I cannot download my health insurance policy document\",\n    \"policy_number\": \"POL123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/settings/helpdesk",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "settings", "helpdesk"]
+            }
+          }
+        },
+        {
+          "name": "Get Notification Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/settings/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "settings", "notifications"]
+            }
+          }
+        },
+        {
+          "name": "Update Notification Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email_notifications\": true,\n    \"sms_notifications\": false,\n    \"push_notifications\": true,\n    \"notification_types\": {\n        \"policy_expiry\": true,\n        \"payment_reminders\": true,\n        \"promotional\": false,\n        \"newsletter\": false\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/settings/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mobile", "settings", "notifications"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

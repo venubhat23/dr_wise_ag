@@ -21,11 +21,29 @@ class Users::SessionsController < Devise::SessionsController
       end
     end
 
-    super
+    super do |user|
+      # Track login activity if user successfully signed in
+      if user && user.persisted?
+        begin
+          SessionActivity.track_login(user, request)
+        rescue => e
+          Rails.logger.error "Failed to track login activity: #{e.message}"
+        end
+      end
+    end
   end
 
   # DELETE /resource/sign_out
   def destroy
+    # Track logout activity before destroying the session
+    if current_user
+      begin
+        SessionActivity.track_logout(current_user, request)
+      rescue => e
+        Rails.logger.error "Failed to track logout activity: #{e.message}"
+      end
+    end
+
     super
   end
 

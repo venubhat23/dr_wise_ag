@@ -4,9 +4,11 @@
     <h2 class="mb-1">Affiliate Management</h2>
   </div>
   <div class="d-flex gap-2">
-    <%= link_to new_admin_sub_agent_path, class: "btn btn-primary" do %>
-      <i class="bi bi-plus-lg me-1"></i>
-      Create Affiliate
+    <% if can_create?('sub_agents') %>
+      <%= link_to new_admin_sub_agent_path, class: "btn btn-primary" do %>
+        <i class="bi bi-plus-lg me-1"></i>
+        Create Affiliate
+      <% end %>
     <% end %>
   </div>
 </div>
@@ -204,44 +206,65 @@
                   </small>
                 </td>
                 <td>
-                  <div class="dropdown">
-                    <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="bi bi-three-dots"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                      <li><%= link_to "View", admin_sub_agent_path(sub_agent), class: "dropdown-item" %></li>
-                      <li><%= link_to "Edit", edit_admin_sub_agent_path(sub_agent), class: "dropdown-item" %></li>
-                      <li><hr class="dropdown-divider"></li>
-                      <% if sub_agent.deactivated? %>
-                        <li>
-                          <a href="javascript:void(0)"
-                             class="dropdown-item text-success"
-                             onclick="handleDeactivationAction('<%= activate_admin_sub_agent_path(sub_agent) %>', 'PATCH', 'Are you sure you want to activate this affiliate?'); return false;">
-                            <i class="bi bi-check-circle text-success me-2"></i>Activate
-                          </a>
-                        </li>
-                      <% else %>
-                        <li>
-                          <a href="javascript:void(0)"
-                             class="dropdown-item text-warning"
-                             onclick="handleDeactivationAction('<%= deactivate_admin_sub_agent_path(sub_agent) %>', 'PATCH', 'Are you sure you want to deactivate this affiliate?'); return false;">
-                            <i class="bi bi-x-circle text-warning me-2"></i>Deactivate
-                          </a>
-                        </li>
-                      <% end %>
-                      <li><hr class="dropdown-divider"></li>
-                      <li>
-                        <%= link_to "#",
-                                   class: "dropdown-item text-danger delete-sub-agent-btn",
-                                   data: {
-                                     "sub-agent-id": sub_agent.id,
-                                     "sub-agent-name": sub_agent.display_name,
-                                     "delete-url": admin_sub_agent_path(sub_agent)
-                                   } do %>
-                          <i class="bi bi-trash text-danger me-2"></i>Delete
+                  <%
+                    has_view = can_view?('sub_agents')
+                    has_edit = can_edit?('sub_agents')
+                    has_delete = can_delete?('sub_agents')
+                    has_any_action = has_view || has_edit || has_delete
+                  %>
+                  <% if has_any_action %>
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <% if has_view %>
+                          <li><%= link_to "View", admin_sub_agent_path(sub_agent), class: "dropdown-item" %></li>
                         <% end %>
-                      </li>
-                    </ul>
+                        <% if has_edit %>
+                          <li><%= link_to "Edit", edit_admin_sub_agent_path(sub_agent), class: "dropdown-item" %></li>
+                        <% end %>
+                        <% if has_edit && (has_view || has_edit) %>
+                          <li><hr class="dropdown-divider"></li>
+                        <% end %>
+                        <% if has_edit %>
+                          <% if sub_agent.deactivated? %>
+                            <li>
+                              <a href="javascript:void(0)"
+                                 class="dropdown-item text-success"
+                                 onclick="handleDeactivationAction('<%= activate_admin_sub_agent_path(sub_agent) %>', 'PATCH', 'Are you sure you want to activate this affiliate?'); return false;">
+                                <i class="bi bi-check-circle text-success me-2"></i>Activate
+                              </a>
+                            </li>
+                          <% else %>
+                            <li>
+                              <a href="javascript:void(0)"
+                                 class="dropdown-item text-warning"
+                                 onclick="handleDeactivationAction('<%= deactivate_admin_sub_agent_path(sub_agent) %>', 'PATCH', 'Are you sure you want to deactivate this affiliate?'); return false;">
+                                <i class="bi bi-x-circle text-warning me-2"></i>Deactivate
+                              </a>
+                            </li>
+                          <% end %>
+                        <% end %>
+                        <% if has_delete %>
+                          <li><hr class="dropdown-divider"></li>
+                          <li>
+                            <%= link_to "#",
+                                       class: "dropdown-item text-danger delete-sub-agent-btn",
+                                       data: {
+                                         "sub-agent-id": sub_agent.id,
+                                         "sub-agent-name": sub_agent.display_name,
+                                         "delete-url": admin_sub_agent_path(sub_agent)
+                                       } do %>
+                              <i class="bi bi-trash text-danger me-2"></i>Delete
+                            <% end %>
+                          </li>
+                        <% end %>
+                      </ul>
+                    </div>
+                  <% else %>
+                    <span class="text-muted">-</span>
+                  <% end %>
                   </div>
                 </td>
               </tr>
