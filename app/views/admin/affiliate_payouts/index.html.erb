@@ -102,7 +102,31 @@
                         "name": "<%= j(affiliate_data[:affiliate].display_name) %>",
                         "email": "<%= affiliate_data[:affiliate].email %>"
                       },
-                      "leads": <%= affiliate_data[:leads].to_json.html_safe %>
+                      "leads": <%= affiliate_data[:leads].map do |lead_data|
+                        {
+                          lead: {
+                            id: lead_data[:lead].try(:id),
+                            lead_id: lead_data[:lead].try(:lead_id)
+                          },
+                          policy: {
+                            id: lead_data[:policy].id,
+                            policy_number: lead_data[:policy].policy_number,
+                            policy_booking_date: lead_data[:policy].try(:policy_booking_date),
+                            created_at: lead_data[:policy].created_at,
+                            class_name: lead_data[:policy].class.name,
+                            customer: {
+                              id: lead_data[:policy].customer&.id,
+                              first_name: lead_data[:policy].customer&.first_name,
+                              last_name: lead_data[:policy].customer&.last_name,
+                              display_name: lead_data[:policy].customer&.display_name,
+                              email: lead_data[:policy].customer&.email
+                            }
+                          },
+                          commission: lead_data[:commission],
+                          paid: lead_data[:paid],
+                          created_date: lead_data[:lead].try(:created_at)
+                        }
+                      end.to_json.html_safe %>
                     }
                   </script>
                 </td>
@@ -1048,25 +1072,50 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
       } else {
         leads.forEach((leadData, index) => {
+          console.log('Processing lead data:', leadData);
+
+          // Extract data using correct structure from controller
           const commission = leadData.commission || 0;
           const paid = leadData.paid || false;
-          const policyType = leadData.policy_type || 'N/A';
-          const policyNumber = leadData.policy_number || 'N/A';
-          const customerName = leadData.customer_name || 'N/A';
-          const createdDate = leadData.created_date || leadData.created_at || 'N/A';
+
+          // Extract lead information
+          const lead = leadData.lead || {};
+          const leadId = lead.lead_id || lead.id || 'N/A';
+
+          // Extract policy information
+          const policy = leadData.policy || {};
+          const policyNumber = policy.policy_number || 'N/A';
+          const policyType = policy.constructor?.name?.replace('Insurance', '') || 'N/A';
+
+          // Extract customer information from policy
+          const customer = policy.customer || {};
+          const customerName = customer.display_name ||
+                              `${customer.first_name || ''} ${customer.last_name || ''}`.trim() ||
+                              'N/A';
+          const customerEmail = customer.email || '';
+
+          // Extract date information - try multiple sources
+          const createdDate = leadData.created_date ||
+                             lead.created_at ||
+                             policy.policy_booking_date ||
+                             policy.created_at ||
+                             'N/A';
 
           // Format date
           let formattedDate = 'N/A';
           if (createdDate && createdDate !== 'N/A') {
             try {
               const date = new Date(createdDate);
-              formattedDate = date.toLocaleDateString('en-IN', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric'
-              });
+              if (!isNaN(date.getTime())) {
+                formattedDate = date.toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric'
+                });
+              }
             } catch (e) {
-              formattedDate = createdDate;
+              console.log('Date parsing error:', e);
+              formattedDate = String(createdDate).substring(0, 10); // Fallback to string slice
             }
           }
 
@@ -1077,12 +1126,12 @@ document.addEventListener('DOMContentLoaded', function() {
           const row = `
             <tr class="${paid ? 'table-success' : 'table-warning'}" style="opacity: ${paid ? '0.8' : '1'}">
               <td>
-                <span class="badge bg-primary">${leadData.lead_id || leadData.id}</span>
+                <span class="badge bg-primary">${leadId}</span>
               </td>
               <td>
                 <div>
                   <strong>${customerName}</strong>
-                  ${leadData.customer_email ? '<br><small class="text-muted">' + leadData.customer_email + '</small>' : ''}
+                  ${customerEmail ? '<br><small class="text-muted">' + customerEmail + '</small>' : ''}
                 </div>
               </td>
               <td>
