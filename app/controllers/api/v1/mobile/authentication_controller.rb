@@ -2,22 +2,30 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
 
   # POST /api/v1/mobile/auth/login
   def login
-    # Support login with email or mobile number
-    login_field = params[:username] || params[:email] || params[:mobile]
+    # Support login with email, mobile number, or PAN card
+    login_field = params[:username] || params[:email] || params[:mobile] || params[:pan]
     password = params[:password]
 
     if login_field.blank? || password.blank?
       return render json: {
         success: false,
-        message: 'Email/Mobile and password are required'
+        message: 'Email/Mobile/PAN and password are required'
       }, status: :unprocessable_entity
     end
 
     # Check if it's a user login (including customers, agents, admin)
-    # Support login with both email and mobile number
+    # Try to find by email first
     user = User.find_by(email: login_field)
 
-    # If not found by email and login_field looks like a mobile number, try mobile search with formatting
+    # If not found by email, try PAN number (case-insensitive)
+    unless user
+      # Check if it looks like a PAN number (5 letters, 4 digits, 1 letter)
+      if login_field.match?(/\A[A-Za-z]{5}\d{4}[A-Za-z]\z/)
+        user = User.where("UPPER(pan_number) = ?", login_field.upcase).first
+      end
+    end
+
+    # If not found by email or PAN, try mobile number with formatting
     unless user
       formatted_mobile = format_mobile_number(login_field)
       if formatted_mobile

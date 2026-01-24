@@ -361,8 +361,19 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   # GET /api/v1/mobile/agent/policies
   def policies
     agent = current_user
-    page = params[:page] || 1
-    per_page = params[:per_page] || 10
+
+    # If no pagination parameters provided, show all records
+    # If pagination parameters are provided, use them
+    page = params[:page]
+    per_page = params[:per_page]
+
+    # Determine if pagination is requested
+    paginate_results = page.present? || per_page.present?
+
+    # Set default values only if pagination is requested
+    page = (page || 1).to_i if paginate_results
+    per_page = (per_page || 10).to_i if paginate_results
+
     policy_type = params[:policy_type] # 'health', 'life', 'motor', 'other', or 'all'
 
     policies = []
@@ -436,24 +447,37 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # Sort by creation date (newest first)
     policies = policies.sort_by { |p| p[:created_at] }.reverse
 
-    # Paginate manually
+    # Apply pagination only if requested
     total_policies = policies.count
-    start_index = (page.to_i - 1) * per_page.to_i
-    end_index = start_index + per_page.to_i - 1
-    paginated_policies = policies[start_index..end_index] || []
 
-    render json: {
-      success: true,
-      data: {
-        policies: paginated_policies,
-        pagination: {
-          current_page: page.to_i,
-          per_page: per_page.to_i,
-          total_policies: total_policies,
-          total_pages: (total_policies.to_f / per_page.to_i).ceil
+    if paginate_results
+      # Paginate manually when pagination parameters are provided
+      start_index = (page.to_i - 1) * per_page.to_i
+      end_index = start_index + per_page.to_i - 1
+      paginated_policies = policies[start_index..end_index] || []
+
+      render json: {
+        success: true,
+        data: {
+          policies: paginated_policies,
+          pagination: {
+            current_page: page.to_i,
+            per_page: per_page.to_i,
+            total_policies: total_policies,
+            total_pages: (total_policies.to_f / per_page.to_i).ceil
+          }
         }
       }
-    }
+    else
+      # Return all policies without pagination when no pagination parameters are provided
+      render json: {
+        success: true,
+        data: {
+          policies: policies,
+          total_policies: total_policies
+        }
+      }
+    end
   end
 
   # POST /api/v1/mobile/agent/policies/health
@@ -1452,25 +1476,67 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
   def get_customer_policies_with_documents(customer, commission_payouts)
     policies = []
+    agent = current_user
 
-    # Get health insurance policies for this customer
-    customer.health_insurances.includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
-      policies << format_policy_data_with_commission(policy, 'Health', commission_payouts)
-    end
+    # Only show policies where the current agent is affiliated
+    if is_admin?(agent)
+      # Admin can see all policies for the customer
+      customer.health_insurances.includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+        policies << format_policy_data_with_commission(policy, 'Health', commission_payouts)
+      end
 
-    # Get life insurance policies for this customer
-    customer.life_insurances.includes(:life_insurance_documents, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
-      policies << format_policy_data_with_commission(policy, 'Life', commission_payouts)
-    end
+      customer.life_insurances.includes(:life_insurance_documents, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+        policies << format_policy_data_with_commission(policy, 'Life', commission_payouts)
+      end
 
-    # Get motor insurance policies for this customer
-    customer.motor_insurances.includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
-      policies << format_policy_data_with_commission(policy, 'Motor', commission_payouts)
-    end
+      customer.motor_insurances.includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+        policies << format_policy_data_with_commission(policy, 'Motor', commission_payouts)
+      end
 
-    # Get other insurance policies for this customer
-    customer.policies.where(insurance_type: 'other').includes(documents_attachments: :blob).each do |policy|
-      policies << format_policy_data_with_commission(policy, 'Other', commission_payouts)
+      customer.policies.where(insurance_type: 'other').includes(documents_attachments: :blob).each do |policy|
+        policies << format_policy_data_with_commission(policy, 'Other', commission_payouts)
+      end
+    elsif agent.is_a?(SubAgent)
+      # For SubAgents, only show policies where they are the sub_agent
+      customer.health_insurances.where(sub_agent_id: agent.id).includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+        policies << format_policy_data_with_commission(policy, 'Health', commission_payouts)
+      end
+
+      customer.life_insurances.where(sub_agent_id: agent.id).includes(:life_insurance_documents, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+        policies << format_policy_data_with_commission(policy, 'Life', commission_payouts)
+      end
+
+      customer.motor_insurances.where(sub_agent_id: agent.id).includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+        policies << format_policy_data_with_commission(policy, 'Motor', commission_payouts)
+      end
+
+      # Note: Other insurance (Policy model) doesn't have sub_agent_id, so sub_agents won't see these
+    else
+      # For regular User agents, filter using the same logic as get_agent_policies
+      health_policies, life_policies, motor_policies, _ = get_agent_policies(agent)
+
+      # Filter customer's policies to only include agent-affiliated ones
+      customer_health_ids = customer.health_insurances.pluck(:id)
+      customer_life_ids = customer.life_insurances.pluck(:id)
+      customer_motor_ids = customer.motor_insurances.pluck(:id)
+
+      # Only include policies that are both customer's and agent-affiliated
+      health_policies.where(id: customer_health_ids).includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+        policies << format_policy_data_with_commission(policy, 'Health', commission_payouts)
+      end
+
+      life_policies.where(id: customer_life_ids).includes(:life_insurance_documents, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+        policies << format_policy_data_with_commission(policy, 'Life', commission_payouts)
+      end
+
+      motor_policies.where(id: customer_motor_ids).includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+        policies << format_policy_data_with_commission(policy, 'Motor', commission_payouts)
+      end
+
+      # For other insurance policies, filter by agent (if applicable)
+      customer.policies.where(insurance_type: 'other', user: agent).includes(documents_attachments: :blob).each do |policy|
+        policies << format_policy_data_with_commission(policy, 'Other', commission_payouts)
+      end
     end
 
     # Sort by creation date (newest first)
@@ -1660,15 +1726,55 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   end
 
   def get_customer_policies_count(customer)
-    HealthInsurance.where(customer: customer).count +
-    LifeInsurance.where(customer: customer).count +
-    MotorInsurance.where(customer: customer).count
+    agent = current_user
+
+    if is_admin?(agent)
+      # Admin can see all policies
+      HealthInsurance.where(customer: customer).count +
+      LifeInsurance.where(customer: customer).count +
+      MotorInsurance.where(customer: customer).count
+    elsif agent.is_a?(SubAgent)
+      # SubAgents only see their affiliated policies
+      HealthInsurance.where(customer: customer, sub_agent_id: agent.id).count +
+      LifeInsurance.where(customer: customer, sub_agent_id: agent.id).count +
+      MotorInsurance.where(customer: customer, sub_agent_id: agent.id).count
+    else
+      # Regular agents only see their affiliated policies
+      health_policies, life_policies, motor_policies, _ = get_agent_policies(agent)
+      customer_health_ids = customer.health_insurances.pluck(:id)
+      customer_life_ids = customer.life_insurances.pluck(:id)
+      customer_motor_ids = customer.motor_insurances.pluck(:id)
+
+      health_policies.where(id: customer_health_ids).count +
+      life_policies.where(id: customer_life_ids).count +
+      motor_policies.where(id: customer_motor_ids).count
+    end
   end
 
   def get_customer_total_premium(customer)
-    HealthInsurance.where(customer: customer).sum(:total_premium) +
-    LifeInsurance.where(customer: customer).sum(:total_premium) +
-    MotorInsurance.where(customer: customer).sum(:total_premium)
+    agent = current_user
+
+    if is_admin?(agent)
+      # Admin can see all policies
+      HealthInsurance.where(customer: customer).sum(:total_premium) +
+      LifeInsurance.where(customer: customer).sum(:total_premium) +
+      MotorInsurance.where(customer: customer).sum(:total_premium)
+    elsif agent.is_a?(SubAgent)
+      # SubAgents only see their affiliated policies
+      HealthInsurance.where(customer: customer, sub_agent_id: agent.id).sum(:total_premium) +
+      LifeInsurance.where(customer: customer, sub_agent_id: agent.id).sum(:total_premium) +
+      MotorInsurance.where(customer: customer, sub_agent_id: agent.id).sum(:total_premium)
+    else
+      # Regular agents only see their affiliated policies
+      health_policies, life_policies, motor_policies, _ = get_agent_policies(agent)
+      customer_health_ids = customer.health_insurances.pluck(:id)
+      customer_life_ids = customer.life_insurances.pluck(:id)
+      customer_motor_ids = customer.motor_insurances.pluck(:id)
+
+      health_policies.where(id: customer_health_ids).sum(:total_premium) +
+      life_policies.where(id: customer_life_ids).sum(:total_premium) +
+      motor_policies.where(id: customer_motor_ids).sum(:total_premium)
+    end
   end
 
   def format_policy_data(policy, type)
