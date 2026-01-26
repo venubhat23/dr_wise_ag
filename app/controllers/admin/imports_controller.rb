@@ -145,21 +145,39 @@ class Admin::ImportsController < Admin::ApplicationController
     uploaded_file = params[:file]
 
     if uploaded_file.blank?
-      redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.'
+      respond_to do |format|
+        format.html { redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.' }
+        format.json { render json: { success: false, error: 'Please select a file to import.' } }
+      end
       return
     end
 
     begin
       import_result = ImportService::CustomerImporter.new(uploaded_file).import
 
-      if import_result[:success]
-        redirect_to admin_customers_path, notice: "Successfully imported #{import_result[:imported_count]} customers. #{import_result[:skipped_count]} records were skipped due to validation errors."
-      else
-        redirect_back fallback_location: admin_imports_path, alert: "Import failed: #{import_result[:error]}"
+      respond_to do |format|
+        if import_result[:success]
+          format.html { redirect_to admin_customers_path, notice: "Successfully imported #{import_result[:imported_count]} customers. #{import_result[:skipped_count]} records were skipped due to validation errors." }
+          format.json {
+            render json: {
+              success: true,
+              message: "Successfully imported #{import_result[:imported_count]} customers. #{import_result[:skipped_count]} records were skipped due to validation errors.",
+              imported_count: import_result[:imported_count],
+              skipped_count: import_result[:skipped_count],
+              total_count: import_result[:imported_count] + import_result[:skipped_count]
+            }
+          }
+        else
+          format.html { redirect_back fallback_location: admin_imports_path, alert: "Import failed: #{import_result[:error]}" }
+          format.json { render json: { success: false, error: "Import failed: #{import_result[:error]}" } }
+        end
       end
     rescue => e
       Rails.logger.error "Customer import error: #{e.message}"
-      redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.'
+      respond_to do |format|
+        format.html { redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.' }
+        format.json { render json: { success: false, error: 'An error occurred during import. Please check your file format and try again.' } }
+      end
     end
   end
 

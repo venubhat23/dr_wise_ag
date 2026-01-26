@@ -35,6 +35,11 @@
           <div class="step-number">3</div>
           <div class="step-label">Preview</div>
         </div>
+        <div class="step-line"></div>
+        <div class="step" id="step4">
+          <div class="step-number">4</div>
+          <div class="step-label">Complete</div>
+        </div>
       </div>
     </div>
   </div>
@@ -203,6 +208,75 @@
       <button type="button" class="btn btn-success btn-lg" id="importClientsBtn" disabled>
         <i class="bi bi-upload me-2"></i>Import Clients
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 4: Import Complete -->
+<div class="card shadow-sm mb-4" id="step4Content" style="display: none;">
+  <div class="card-body">
+    <div class="d-flex align-items-center mb-4">
+      <div class="step-indicator bg-success text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+        <i class="bi bi-check-lg fw-bold"></i>
+      </div>
+      <h5 class="card-title mb-0">Import Complete</h5>
+    </div>
+
+    <!-- Success Message -->
+    <div class="alert alert-success" id="successMessage">
+      <div class="d-flex">
+        <i class="bi bi-check-circle-fill me-3 fs-4"></i>
+        <div>
+          <h6 class="alert-heading mb-2">Import Successful!</h6>
+          <p class="mb-0" id="successDetails">Your client data has been successfully imported.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import Statistics -->
+    <div class="row" id="importStats">
+      <div class="col-md-4">
+        <div class="card border-success bg-light">
+          <div class="card-body text-center">
+            <h3 class="text-success mb-0" id="importedCount">0</h3>
+            <p class="text-muted mb-0">Successfully Imported</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-warning bg-light">
+          <div class="card-body text-center">
+            <h3 class="text-warning mb-0" id="skippedCount">0</h3>
+            <p class="text-muted mb-0">Skipped/Duplicate</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-primary bg-light">
+          <div class="card-body text-center">
+            <h3 class="text-primary mb-0" id="totalProcessed">0</h3>
+            <p class="text-muted mb-0">Total Processed</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Next Steps -->
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <div class="d-grid">
+          <a href="<%= admin_customers_path %>" class="btn btn-primary btn-lg">
+            <i class="bi bi-people me-2"></i>View All Clients
+          </a>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="d-grid">
+          <button type="button" class="btn btn-outline-secondary btn-lg" id="importMoreBtn">
+            <i class="bi bi-plus-circle me-2"></i>Import More Clients
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -460,17 +534,28 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function showStep(stepNumber) {
-    // Hide all steps
+    // Hide all step contents
+    const step1Content = document.getElementById('step1Content');
+    const step2Content = document.getElementById('step2Content');
+    const step3Content = document.getElementById('step3Content');
+    const step4Content = document.getElementById('step4Content');
+
     if (step1Content) step1Content.style.display = 'none';
     if (step2Content) step2Content.style.display = 'none';
     if (step3Content) step3Content.style.display = 'none';
+    if (step4Content) step4Content.style.display = 'none';
 
-    // Reset step classes
-    if (step1) step1.className = 'step';
-    if (step2) step2.className = 'step';
-    if (step3) step3.className = 'step';
+    // Reset and update step indicators
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const step3 = document.getElementById('step3');
+    const step4 = document.getElementById('step4');
 
-    // Show current step and mark previous as completed
+    [step1, step2, step3, step4].forEach(step => {
+      if (step) step.className = 'step';
+    });
+
+    // Show current step and mark appropriate steps as completed
     switch(stepNumber) {
       case 1:
         if (step1Content) step1Content.style.display = 'block';
@@ -486,6 +571,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (step1) step1.className = 'step completed';
         if (step2) step2.className = 'step completed';
         if (step3) step3.className = 'step active';
+        break;
+      case 4:
+        if (step4Content) step4Content.style.display = 'block';
+        if (step1) step1.className = 'step completed';
+        if (step2) step2.className = 'step completed';
+        if (step3) step3.className = 'step completed';
+        if (step4) step4.className = 'step active';
         break;
     }
   }
@@ -715,14 +807,21 @@ document.addEventListener('DOMContentLoaded', function() {
       method: 'POST',
       body: formData,
       headers: {
-        'X-CSRF-Token': document.querySelector('[name="csrf-token"]') ? document.querySelector('[name="csrf-token"]').content : ''
+        'X-CSRF-Token': document.querySelector('[name="csrf-token"]') ? document.querySelector('[name="csrf-token"]').content : '',
+        'Accept': 'application/json'
       }
     })
-    .then(response => {
-      if (response.redirected) {
-        window.location.href = response.url;
+    .then(response => response.json())
+    .then(data => {
+      importClientsBtn.disabled = false;
+      importClientsBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Import Clients';
+
+      if (data.success) {
+        // Show success step
+        showImportSuccess(data);
+        showStep(4);
       } else {
-        return response.text();
+        alert('Import failed: ' + (data.error || 'Unknown error occurred'));
       }
     })
     .catch(error => {
@@ -730,6 +829,86 @@ document.addEventListener('DOMContentLoaded', function() {
       importClientsBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Import Clients';
       alert('Error importing clients: ' + error.message);
     });
+    });
+  }
+
+  // Function to show import success
+  function showImportSuccess(data) {
+    // Update success message
+    const successDetails = document.getElementById('successDetails');
+    if (successDetails) {
+      successDetails.textContent = data.message;
+    }
+
+    // Update statistics
+    const importedCount = document.getElementById('importedCount');
+    const skippedCount = document.getElementById('skippedCount');
+    const totalProcessed = document.getElementById('totalProcessed');
+
+    if (importedCount) importedCount.textContent = data.imported_count || 0;
+    if (skippedCount) skippedCount.textContent = data.skipped_count || 0;
+    if (totalProcessed) totalProcessed.textContent = data.total_count || 0;
+  }
+
+  // Function to show specific step
+  function showStep(stepNumber) {
+    // Hide all step contents
+    for (let i = 1; i <= 4; i++) {
+      const stepContent = document.getElementById(`step${i}Content`);
+      if (stepContent) stepContent.style.display = 'none';
+
+      const step = document.getElementById(`step${i}`);
+      if (step) {
+        step.classList.remove('active', 'completed');
+        if (i < stepNumber) {
+          step.classList.add('completed');
+        } else if (i === stepNumber) {
+          step.classList.add('active');
+        }
+      }
+    }
+
+    // Show current step content
+    const currentStepContent = document.getElementById(`step${stepNumber}Content`);
+    if (currentStepContent) currentStepContent.style.display = 'block';
+  }
+
+  // Handle "Import More Clients" button
+  const importMoreBtn = document.getElementById('importMoreBtn');
+  if (importMoreBtn) {
+    importMoreBtn.addEventListener('click', function() {
+      // Reset form and go back to step 1
+      currentFile = null;
+      previewData = null;
+
+      // Reset file input
+      const fileInput = document.getElementById('fileInput');
+      if (fileInput) fileInput.value = '';
+
+      // Reset step buttons
+      const proceedToUpload = document.getElementById('proceedToUpload');
+      const showPreviewBtn = document.getElementById('showPreviewBtn');
+      const importClientsBtn = document.getElementById('importClientsBtn');
+
+      if (proceedToUpload) proceedToUpload.disabled = true;
+      if (showPreviewBtn) showPreviewBtn.disabled = true;
+      if (importClientsBtn) importClientsBtn.disabled = true;
+
+      // Hide file selection display
+      const selectedFile = document.getElementById('selectedFile');
+      if (selectedFile) selectedFile.style.display = 'none';
+
+      // Clear preview content
+      const previewContent = document.getElementById('previewContent');
+      const previewPlaceholder = document.getElementById('previewPlaceholder');
+      if (previewContent && previewPlaceholder) {
+        previewContent.innerHTML = '';
+        previewContent.appendChild(previewPlaceholder);
+        previewPlaceholder.style.display = 'block';
+      }
+
+      // Go back to step 1
+      showStep(1);
     });
   }
 });
