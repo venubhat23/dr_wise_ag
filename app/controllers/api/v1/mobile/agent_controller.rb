@@ -1546,7 +1546,25 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   def determine_drwise_policy(policy)
     # DR wise policy: Only admin added (not customer or agent added)
     # is_customer_added: false && is_agent_added: false && is_admin_added: true
-    !policy.is_customer_added && !policy.is_agent_added && policy.is_admin_added
+
+    # Check if the policy object has these methods (specific insurance models do, Policy doesn't)
+    if policy.respond_to?(:is_customer_added) && policy.respond_to?(:is_agent_added) && policy.respond_to?(:is_admin_added)
+      !policy.is_customer_added && !policy.is_agent_added && policy.is_admin_added
+    else
+      # For Policy objects or models without these fields, check through specific_insurance if available
+      if policy.respond_to?(:specific_insurance) && policy.specific_insurance
+        specific = policy.specific_insurance
+        if specific.respond_to?(:is_customer_added) && specific.respond_to?(:is_agent_added) && specific.respond_to?(:is_admin_added)
+          !specific.is_customer_added && !specific.is_agent_added && specific.is_admin_added
+        else
+          # Default to false for models without these tracking fields
+          false
+        end
+      else
+        # Default to false for Policy objects without specific_insurance
+        false
+      end
+    end
   end
 
   def authenticate_agent!
@@ -1865,7 +1883,9 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       end_date: policy.policy_end_date&.strftime('%Y-%m-%d'),
       total_premium: policy.total_premium,
       sum_insured: policy.sum_insured,
-      insurance_company: policy.specific_insurance&.insurance_company_name || policy.insurance_company&.name,
+      insurance_company: policy.respond_to?(:specific_insurance) ?
+                          (policy.specific_insurance&.insurance_company_name || policy.insurance_company&.name) :
+                          policy.insurance_company_name,
       payment_mode: policy.payment_mode,
       commission_amount: agent_commission,
       agent_percentage: agent_percentage,
