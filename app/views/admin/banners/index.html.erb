@@ -182,14 +182,14 @@ function applyFilters() {
                     <%= link_to edit_admin_banner_path(banner), class: "btn btn-sm btn-warning", title: "Edit" do %>
                       <i class="bi bi-pencil"></i>
                     <% end %>
-                    <%= link_to toggle_status_admin_banner_path(banner),
+                    <%= button_to toggle_status_admin_banner_path(banner),
                         method: :patch,
                         class: "btn btn-sm btn-#{banner.status? ? 'secondary' : 'success'} text-white",
                         title: banner.status? ? 'Deactivate' : 'Activate',
                         data: {
-                          confirm: "Are you sure you want to #{banner.status? ? 'deactivate' : 'activate'} this banner?",
-                          turbo_method: :patch
-                        } do %>
+                          confirm: "Are you sure you want to #{banner.status? ? 'deactivate' : 'activate'} this banner?"
+                        },
+                        form: { style: "display: inline;" } do %>
                       <i class="bi bi-#{banner.status? ? 'pause-circle' : 'play-circle'}"></i>
                     <% end %>
                     <%= button_to admin_banner_path(banner),

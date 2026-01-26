@@ -83,4 +83,14 @@ class ApplicationController < ActionController::Base
     # Silently fail if Ahoy is not available
     Rails.logger.debug "Ahoy tracking failed: #{e.message}"
   end
+
+  # Serve favicon.ico from public assets
+  def favicon
+    icon_path = Rails.public_path.join('icon.png')
+    if File.exist?(icon_path)
+      send_file icon_path, type: 'image/png', disposition: 'inline'
+    else
+      head :not_found
+    end
+  end
 end

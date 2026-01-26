@@ -12,6 +12,9 @@ Rails.application.routes.draw do
   # Root route
   root "dashboard#index"
 
+  # Favicon route
+  get '/favicon.ico', to: redirect('/icon.png')
+
   # Public pages
   get 'adhika/privacy-policy', to: 'public_pages#adhika_privacy_policy'
   get 'adhika/account-deletion-policy', to: 'public_pages#adhika_account_deletion_policy'
@@ -665,6 +668,9 @@ Rails.application.routes.draw do
     end
 
   end
+
+  # Favicon route to serve favicon.ico
+  get '/favicon.ico' => 'application#favicon'
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   get "up" => "rails/health#show", as: :rails_health_check
