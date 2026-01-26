@@ -2,7 +2,7 @@ class Admin::ImportsController < Admin::ApplicationController
   require 'csv'
 
   # Skip CSRF token verification for import endpoints that handle file uploads
-  skip_before_action :verify_authenticity_token, only: [:customers, :customers_preview, :sub_agents, :sub_agents_preview, :distributors, :distributors_preview, :health_insurances, :life_insurances, :motor_insurances]
+  skip_before_action :verify_authenticity_token, only: [:customers, :customers_preview, :sub_agents, :sub_agents_preview, :distributors, :distributors_preview, :health_insurances, :health_insurances_preview, :life_insurances, :life_insurances_preview, :motor_insurances, :motor_insurances_preview]
 
   def index
     @import_stats = {
@@ -326,6 +326,416 @@ class Admin::ImportsController < Admin::ApplicationController
       }
     rescue => e
       Rails.logger.error "Distributors preview error: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      render json: {
+        success: false,
+        error: "Error processing file: #{e.message}",
+        file_name: uploaded_file.original_filename,
+        file_size: uploaded_file.size
+      }
+    end
+  end
+
+  def health_insurances_preview
+    return render json: { error: 'File required' }, status: :bad_request unless params[:file].present?
+
+    uploaded_file = params[:file]
+
+    begin
+      require 'csv'
+
+      Rails.logger.info "Processing health insurances file: #{uploaded_file.original_filename}"
+      Rails.logger.info "File path: #{uploaded_file.path}"
+      Rails.logger.info "File size: #{uploaded_file.size}"
+
+      preview_results = []
+      row_index = 0
+      total_rows_processed = 0
+
+      # Detect CSV encoding and parse
+      file_content = File.read(uploaded_file.path)
+
+      # Try UTF-8 first, then fallback to other encodings
+      begin
+        file_content = file_content.force_encoding('UTF-8')
+        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
+      rescue CSV::MalformedCSVError, Encoding::UndefinedConversionError
+        # Try with different encoding
+        file_content = file_content.force_encoding('ISO-8859-1').encode('UTF-8')
+        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
+      end
+
+      Rails.logger.info "CSV headers: #{csv_data.headers}"
+      Rails.logger.info "Total CSV rows: #{csv_data.length}"
+
+      # Normalize headers by removing asterisks
+      normalized_headers = csv_data.headers.map { |h| h.to_s.gsub('*', '') }
+
+      # Preview first 10 rows or all rows if less than 10
+      preview_count = [csv_data.length, 10].min
+
+      csv_data.first(preview_count).each_with_index do |row, index|
+        row_index = index + 1
+        total_rows_processed += 1
+
+        # Skip completely empty rows
+        row_data = row.to_h
+        next if row_data.values.all? { |v| v.nil? || v.to_s.strip.empty? }
+
+        # Normalize row data (remove asterisks from keys)
+        normalized_row = {}
+        row_data.each do |key, value|
+          normalized_key = key.to_s.gsub('*', '')
+          normalized_row[normalized_key] = value
+        end
+
+        # Basic validation for health insurance
+        validation_errors = []
+
+        # Check required fields
+        validation_errors << "Customer name is required" if normalized_row['customer_name'].to_s.strip.empty?
+        validation_errors << "Policy holder is required" if normalized_row['policy_holder'].to_s.strip.empty?
+        validation_errors << "Insurance company name is required" if normalized_row['insurance_company_name'].to_s.strip.empty?
+        validation_errors << "Policy type is required" if normalized_row['policy_type'].to_s.strip.empty?
+        validation_errors << "Insurance type is required" if normalized_row['insurance_type'].to_s.strip.empty?
+
+        # Validate policy type
+        policy_type = normalized_row['policy_type'].to_s.strip.downcase
+        if policy_type.present? && !['new', 'renewal'].include?(policy_type)
+          validation_errors << "Policy type must be 'New' or 'Renewal'"
+        end
+
+        # Validate insurance type
+        insurance_type = normalized_row['insurance_type'].to_s.strip.downcase
+        if insurance_type.present? && !['individual', 'family floater'].include?(insurance_type)
+          validation_errors << "Insurance type must be 'Individual' or 'Family Floater'"
+        end
+
+        # Validate payment mode
+        payment_mode = normalized_row['payment_mode'].to_s.strip.downcase
+        if payment_mode.present? && !['yearly', 'half yearly', 'quarterly', 'monthly'].include?(payment_mode)
+          validation_errors << "Payment mode must be 'Yearly', 'Half Yearly', 'Quarterly', or 'Monthly'"
+        end
+
+        # Validate numeric fields
+        ['sum_insured', 'net_premium', 'gst_percentage', 'total_premium'].each do |field|
+          value = normalized_row[field].to_s.strip
+          if value.present? && !value.match?(/^\d+(\.\d+)?$/)
+            validation_errors << "#{field.humanize} must be a valid number"
+          end
+        end
+
+        # Validate dates
+        ['policy_booking_date', 'policy_start_date', 'policy_end_date'].each do |date_field|
+          date_value = normalized_row[date_field].to_s.strip
+          if date_value.present?
+            begin
+              Date.parse(date_value)
+            rescue
+              validation_errors << "#{date_field.humanize} must be a valid date"
+            end
+          end
+        end
+
+        preview_results << {
+          row: row_index,
+          data: normalized_row,
+          errors: validation_errors,
+          valid: validation_errors.empty?
+        }
+      end
+
+      Rails.logger.info "Preview results: #{preview_results.count} rows processed"
+
+      render json: {
+        success: true,
+        preview: preview_results,
+        headers: normalized_headers,
+        total_rows: csv_data.length,
+        valid_rows: preview_results.count { |r| r[:valid] },
+        invalid_rows: preview_results.count { |r| !r[:valid] },
+        file_name: uploaded_file.original_filename,
+        file_size: uploaded_file.size
+      }
+    rescue => e
+      Rails.logger.error "Health insurances preview error: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      render json: {
+        success: false,
+        error: "Error processing file: #{e.message}",
+        file_name: uploaded_file.original_filename,
+        file_size: uploaded_file.size
+      }
+    end
+  end
+
+  def life_insurances_preview
+    return render json: { error: 'File required' }, status: :bad_request unless params[:file].present?
+
+    uploaded_file = params[:file]
+
+    begin
+      require 'csv'
+
+      Rails.logger.info "Processing life insurances file: #{uploaded_file.original_filename}"
+      Rails.logger.info "File path: #{uploaded_file.path}"
+      Rails.logger.info "File size: #{uploaded_file.size}"
+
+      preview_results = []
+      row_index = 0
+      total_rows_processed = 0
+
+      # Detect CSV encoding and parse
+      file_content = File.read(uploaded_file.path)
+
+      # Try UTF-8 first, then fallback to other encodings
+      begin
+        file_content = file_content.force_encoding('UTF-8')
+        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
+      rescue CSV::MalformedCSVError, Encoding::UndefinedConversionError
+        # Try with different encoding
+        file_content = file_content.force_encoding('ISO-8859-1').encode('UTF-8')
+        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
+      end
+
+      Rails.logger.info "CSV headers: #{csv_data.headers}"
+      Rails.logger.info "Total CSV rows: #{csv_data.length}"
+
+      # Normalize headers by removing asterisks
+      normalized_headers = csv_data.headers.map { |h| h.to_s.gsub('*', '') }
+
+      # Preview first 10 rows or all rows if less than 10
+      preview_count = [csv_data.length, 10].min
+
+      csv_data.first(preview_count).each_with_index do |row, index|
+        row_index = index + 1
+        total_rows_processed += 1
+
+        # Skip completely empty rows
+        row_data = row.to_h
+        next if row_data.values.all? { |v| v.nil? || v.to_s.strip.empty? }
+
+        # Normalize row data (remove asterisks from keys)
+        normalized_row = {}
+        row_data.each do |key, value|
+          normalized_key = key.to_s.gsub('*', '')
+          normalized_row[normalized_key] = value
+        end
+
+        # Basic validation for life insurance
+        validation_errors = []
+
+        # Check required fields
+        validation_errors << "Customer name is required" if normalized_row['customer_name'].to_s.strip.empty?
+        validation_errors << "Policy holder is required" if normalized_row['policy_holder'].to_s.strip.empty?
+        validation_errors << "Insurance company name is required" if normalized_row['insurance_company_name'].to_s.strip.empty?
+        validation_errors << "Policy type is required" if normalized_row['policy_type'].to_s.strip.empty?
+        validation_errors << "Policy term is required" if normalized_row['policy_term'].to_s.strip.empty?
+        validation_errors << "Distributor name is required" if normalized_row['distributor_name'].to_s.strip.empty?
+
+        # Validate policy type
+        policy_type = normalized_row['policy_type'].to_s.strip.downcase
+        if policy_type.present? && !['new', 'renewal'].include?(policy_type)
+          validation_errors << "Policy type must be 'New' or 'Renewal'"
+        end
+
+        # Validate payment mode
+        payment_mode = normalized_row['payment_mode'].to_s.strip.downcase
+        if payment_mode.present? && !['yearly', 'half yearly', 'quarterly', 'monthly'].include?(payment_mode)
+          validation_errors << "Payment mode must be 'Yearly', 'Half Yearly', 'Quarterly', or 'Monthly'"
+        end
+
+        # Validate numeric fields
+        ['sum_insured', 'net_premium', 'first_year_gst_percentage', 'total_premium', 'policy_term'].each do |field|
+          value = normalized_row[field].to_s.strip
+          if value.present? && !value.match?(/^\d+(\.\d+)?$/)
+            validation_errors << "#{field.humanize} must be a valid number"
+          end
+        end
+
+        # Validate policy term range
+        policy_term = normalized_row['policy_term'].to_s.strip
+        if policy_term.present? && policy_term.match?(/^\d+$/)
+          term_value = policy_term.to_i
+          if term_value < 1 || term_value > 100
+            validation_errors << "Policy term must be between 1 and 100 years"
+          end
+        end
+
+        # Validate dates
+        ['policy_booking_date', 'policy_start_date', 'policy_end_date'].each do |date_field|
+          date_value = normalized_row[date_field].to_s.strip
+          if date_value.present?
+            begin
+              Date.parse(date_value)
+            rescue
+              validation_errors << "#{date_field.humanize} must be a valid date"
+            end
+          end
+        end
+
+        preview_results << {
+          row: row_index,
+          data: normalized_row,
+          errors: validation_errors,
+          valid: validation_errors.empty?
+        }
+      end
+
+      Rails.logger.info "Preview results: #{preview_results.count} rows processed"
+
+      render json: {
+        success: true,
+        preview: preview_results,
+        headers: normalized_headers,
+        total_rows: csv_data.length,
+        valid_rows: preview_results.count { |r| r[:valid] },
+        invalid_rows: preview_results.count { |r| !r[:valid] },
+        file_name: uploaded_file.original_filename,
+        file_size: uploaded_file.size
+      }
+    rescue => e
+      Rails.logger.error "Life insurances preview error: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      render json: {
+        success: false,
+        error: "Error processing file: #{e.message}",
+        file_name: uploaded_file.original_filename,
+        file_size: uploaded_file.size
+      }
+    end
+  end
+
+  def motor_insurances_preview
+    return render json: { error: 'File required' }, status: :bad_request unless params[:file].present?
+
+    uploaded_file = params[:file]
+
+    begin
+      require 'csv'
+
+      Rails.logger.info "Processing motor insurances file: #{uploaded_file.original_filename}"
+      Rails.logger.info "File path: #{uploaded_file.path}"
+      Rails.logger.info "File size: #{uploaded_file.size}"
+
+      preview_results = []
+      row_index = 0
+      total_rows_processed = 0
+
+      # Detect CSV encoding and parse
+      file_content = File.read(uploaded_file.path)
+
+      # Try UTF-8 first, then fallback to other encodings
+      begin
+        file_content = file_content.force_encoding('UTF-8')
+        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
+      rescue CSV::MalformedCSVError, Encoding::UndefinedConversionError
+        # Try with different encoding
+        file_content = file_content.force_encoding('ISO-8859-1').encode('UTF-8')
+        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
+      end
+
+      Rails.logger.info "CSV headers: #{csv_data.headers}"
+      Rails.logger.info "Total CSV rows: #{csv_data.length}"
+
+      # Normalize headers by removing asterisks
+      normalized_headers = csv_data.headers.map { |h| h.to_s.gsub('*', '') }
+
+      # Preview first 10 rows or all rows if less than 10
+      preview_count = [csv_data.length, 10].min
+
+      csv_data.first(preview_count).each_with_index do |row, index|
+        row_index = index + 1
+        total_rows_processed += 1
+
+        # Skip completely empty rows
+        row_data = row.to_h
+        next if row_data.values.all? { |v| v.nil? || v.to_s.strip.empty? }
+
+        # Normalize row data (remove asterisks from keys)
+        normalized_row = {}
+        row_data.each do |key, value|
+          normalized_key = key.to_s.gsub('*', '')
+          normalized_row[normalized_key] = value
+        end
+
+        # Basic validation for motor insurance
+        validation_errors = []
+
+        # Check required fields
+        validation_errors << "Customer name is required" if normalized_row['customer_name'].to_s.strip.empty?
+        validation_errors << "Policy holder is required" if normalized_row['policy_holder'].to_s.strip.empty?
+        validation_errors << "Insurance company name is required" if normalized_row['insurance_company_name'].to_s.strip.empty?
+        validation_errors << "Vehicle type is required" if normalized_row['vehicle_type'].to_s.strip.empty?
+        validation_errors << "Registration number is required" if normalized_row['registration_number'].to_s.strip.empty?
+        validation_errors << "Vehicle IDV is required" if normalized_row['vehicle_idv'].to_s.strip.empty?
+
+        # Validate vehicle type
+        vehicle_type = normalized_row['vehicle_type'].to_s.strip.downcase
+        if vehicle_type.present? && !['new vehicle', 'used vehicle'].include?(vehicle_type)
+          validation_errors << "Vehicle type must be 'New Vehicle' or 'Used Vehicle'"
+        end
+
+        # Validate class of vehicle
+        class_of_vehicle = normalized_row['class_of_vehicle'].to_s.strip.downcase
+        if class_of_vehicle.present? && !['private car', 'commercial vehicle', 'two wheeler'].include?(class_of_vehicle)
+          validation_errors << "Class of vehicle must be 'Private Car', 'Commercial Vehicle', or 'Two Wheeler'"
+        end
+
+        # Validate insurance type
+        insurance_type = normalized_row['insurance_type'].to_s.strip.downcase
+        if insurance_type.present? && !['comprehensive', 'third party'].include?(insurance_type)
+          validation_errors << "Insurance type must be 'Comprehensive' or 'Third Party'"
+        end
+
+        # Validate numeric fields
+        ['vehicle_idv', 'net_premium', 'gst_percentage', 'total_premium'].each do |field|
+          value = normalized_row[field].to_s.strip
+          if value.present? && !value.match?(/^\d+(\.\d+)?$/)
+            validation_errors << "#{field.humanize} must be a valid number"
+          end
+        end
+
+        # Validate dates
+        ['policy_booking_date', 'policy_start_date', 'policy_end_date'].each do |date_field|
+          date_value = normalized_row[date_field].to_s.strip
+          if date_value.present?
+            begin
+              Date.parse(date_value)
+            rescue
+              validation_errors << "#{date_field.humanize} must be a valid date"
+            end
+          end
+        end
+
+        # Validate registration number format (basic Indian format)
+        registration_number = normalized_row['registration_number'].to_s.strip.upcase
+        if registration_number.present? && !registration_number.match?(/^[A-Z]{2}\d{1,2}[A-Z]{1,2}\d{1,4}$/)
+          validation_errors << "Registration number format is invalid (should be like MH01AB1234)"
+        end
+
+        preview_results << {
+          row: row_index,
+          data: normalized_row,
+          errors: validation_errors,
+          valid: validation_errors.empty?
+        }
+      end
+
+      Rails.logger.info "Preview results: #{preview_results.count} rows processed"
+
+      render json: {
+        success: true,
+        preview: preview_results,
+        headers: normalized_headers,
+        total_rows: csv_data.length,
+        valid_rows: preview_results.count { |r| r[:valid] },
+        invalid_rows: preview_results.count { |r| !r[:valid] },
+        file_name: uploaded_file.original_filename,
+        file_size: uploaded_file.size
+      }
+    rescue => e
+      Rails.logger.error "Motor insurances preview error: #{e.class} - #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
       render json: {
         success: false,
@@ -665,7 +1075,6 @@ class Admin::ImportsController < Admin::ApplicationController
     end
   end
 
-  private
 
   # Template download methods
   def send_customer_template
