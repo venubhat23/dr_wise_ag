@@ -4,7 +4,45 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
   skip_before_action :verify_authenticity_token, only: [:all_agency_codes, :all_brokers, :insurance_companies_for_type, :insurance_companies_by_agency]
 
   def index
-    @other_insurances = OtherInsurance.includes(:customer).order(created_at: :desc).page(params[:page])
+    @other_insurances = OtherInsurance.includes(:customer)
+
+    # Search functionality
+    if params[:search].present?
+      search_term = params[:search]
+      @other_insurances = @other_insurances.joins(:customer).where(
+        "other_insurances.policy_number ILIKE ? OR other_insurances.insurance_company_name ILIKE ? OR customers.first_name ILIKE ? OR customers.last_name ILIKE ? OR customers.company_name ILIKE ?",
+        "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%"
+      )
+    end
+
+    # Policy type filter
+    if params[:policy_type].present?
+      case params[:policy_type]
+      when 'travel'
+        @other_insurances = @other_insurances.where(insurance_type: 'Travel Insurance')
+      when 'property'
+        @other_insurances = @other_insurances.where(insurance_type: 'Property Insurance')
+      when 'cyber'
+        @other_insurances = @other_insurances.where(insurance_type: 'Cyber Insurance')
+      when 'professional'
+        @other_insurances = @other_insurances.where(insurance_type: 'Professional Indemnity')
+      end
+    end
+
+    # Status filter (based on policy end date since there's no status column)
+    if params[:status].present?
+      case params[:status]
+      when 'active'
+        @other_insurances = @other_insurances.where('policy_end_date IS NULL OR policy_end_date >= ?', Date.current)
+      when 'expired'
+        @other_insurances = @other_insurances.where('policy_end_date < ?', Date.current)
+      when 'pending'
+        # For policies without end date or future start date
+        @other_insurances = @other_insurances.where('policy_start_date > ?', Date.current)
+      end
+    end
+
+    @other_insurances = @other_insurances.order(created_at: :desc).page(params[:page])
   end
 
   def show

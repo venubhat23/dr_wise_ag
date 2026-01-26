@@ -527,6 +527,11 @@ Rails.application.routes.draw do
         get :motor_insurances_form
         get :download_template
         post :customers_preview
+        post :sub_agents_preview
+        post :distributors_preview
+        post :health_insurances_preview
+        post :life_insurances_preview
+        post :motor_insurances_preview
       end
     end
 
@@ -616,6 +621,14 @@ Rails.application.routes.draw do
         # Commission Distribution APIs
         get 'agent/commission_distribution', to: 'agent#commission_distribution'
         get 'agent/commission_summary', to: 'agent#commission_summary'
+
+        # Banner APIs
+        resources :banners, only: [:index, :show] do
+          collection do
+            get :active, to: 'banners#active'
+            get :by_location, to: 'banners#by_location'
+          end
+        end
       end
 
       # Sub Agent APIs

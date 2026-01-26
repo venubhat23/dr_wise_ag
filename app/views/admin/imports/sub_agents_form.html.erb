@@ -629,6 +629,38 @@
   border: none;
 }
 
+/* Preview Table Styling */
+.preview-table {
+  font-size: 0.875rem;
+}
+
+.preview-table thead th {
+  font-weight: 600;
+  white-space: nowrap;
+  background-color: #343a40;
+  color: white;
+  border-color: #454d55;
+  padding: 10px 8px;
+}
+
+.preview-table tbody td {
+  padding: 8px;
+  vertical-align: middle;
+}
+
+.preview-table .valid-row {
+  background-color: #f8f9fa;
+}
+
+.preview-table .invalid-row {
+  background-color: #fff5f5;
+}
+
+.preview-table .badge {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .step-progress {
@@ -706,7 +738,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // Download template
   if (downloadTemplateBtn) {
     downloadTemplateBtn.addEventListener('click', function() {
-      // For now, just show feedback - template download can be implemented later
+      // Download the sub_agents template
+      const url = '<%= download_template_admin_imports_path %>?template_type=sub_agents';
+      window.open(url, '_blank');
+
+      // Show feedback
       const originalText = this.innerHTML;
       this.innerHTML = '<i class="bi bi-check-circle me-2"></i>Downloaded!';
       this.classList.remove('btn-success');
@@ -890,7 +926,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('Sending file for preview:', currentFile.name, currentFile.size);
 
-    fetch('/admin/import/sub_agents_preview', {
+    fetch('<%= sub_agents_preview_admin_imports_path %>', {
       method: 'POST',
       body: formData,
       headers: {
@@ -935,43 +971,62 @@ document.addEventListener('DOMContentLoaded', function() {
     const validationSummaryEl = document.getElementById('validationSummary');
 
     if (totalRowsEl) totalRowsEl.textContent = data.total_rows;
-    if (validRowsEl) validRowsEl.textContent = data.total_rows; // Assume all valid for simplicity
-    if (invalidRowsEl) invalidRowsEl.textContent = 0;
+    if (validRowsEl) validRowsEl.textContent = data.valid_rows || 0;
+    if (invalidRowsEl) invalidRowsEl.textContent = data.invalid_rows || 0;
     if (validationSummaryEl) validationSummaryEl.style.display = 'flex';
 
-    // Create simple preview table
+    // Create preview table
     let html = '<div class="table-responsive"><table class="table table-bordered preview-table">';
 
-    if (data.preview_data && data.preview_data.length > 0) {
+    if (data.preview && data.preview.length > 0) {
       // Header
+      const headers = Object.keys(data.preview[0].data);
       html += '<thead class="table-dark"><tr>';
-      data.headers.forEach(header => {
+      html += '<th style="width: 50px;">#</th>';
+      html += '<th style="width: 80px;">Status</th>';
+      headers.forEach(header => {
         html += `<th>${header}</th>`;
       });
-      html += '</tr></thead><tbody>';
+      html += '<th>Errors</th></tr></thead><tbody>';
 
-      // Rows (show first 10)
-      const previewRows = data.preview_data.slice(0, 10);
+      // Rows (show first 50)
+      const previewRows = data.preview.slice(0, 50);
       previewRows.forEach(row => {
-        html += '<tr class="valid-row">';
-        data.headers.forEach(header => {
-          const cellValue = row[header] || '';
-          html += `<td>${String(cellValue).substring(0, 30)}${String(cellValue).length > 30 ? '...' : ''}</td>`;
+        const rowClass = row.valid ? 'valid-row' : 'invalid-row';
+        html += `<tr class="${rowClass}">`;
+        html += `<td>${row.row}</td>`;
+        html += `<td>${row.valid ? '<span class="badge bg-success">Valid</span>' : '<span class="badge bg-danger">Invalid</span>'}</td>`;
+
+        headers.forEach(header => {
+          const cellValue = row.data[header] || '';
+          const displayValue = String(cellValue).length > 30 ?
+            String(cellValue).substring(0, 27) + '...' :
+            String(cellValue);
+          html += `<td>${displayValue}</td>`;
         });
+
+        html += `<td>${row.errors && row.errors.length > 0 ? row.errors.join('; ') : '-'}</td>`;
         html += '</tr>';
       });
 
-      if (data.preview_data.length > 10) {
-        html += `<tr><td colspan="${data.headers.length}" class="text-center text-muted">... and ${data.preview_data.length - 10} more rows</td></tr>`;
+      if (data.preview.length > 50) {
+        html += `<tr><td colspan="${headers.length + 3}" class="text-center text-muted">... and ${data.preview.length - 50} more rows</td></tr>`;
       }
 
       html += '</tbody></table></div>';
 
-      // Enable import
-      importAffiliatesBtn.disabled = false;
-      html += '<div class="alert alert-success mt-3"><i class="bi bi-check-circle me-2"></i><strong>All records are valid!</strong> You can proceed with the import.</div>';
+      // Enable import if all rows are valid
+      if (data.invalid_rows === 0) {
+        importAffiliatesBtn.disabled = false;
+        html += '<div class="alert alert-success mt-3"><i class="bi bi-check-circle me-2"></i><strong>All records are valid!</strong> You can proceed with the import.</div>';
+      } else {
+        importAffiliatesBtn.disabled = true;
+        html += `<div class="alert alert-warning mt-3"><i class="bi bi-exclamation-triangle me-2"></i><strong>${data.invalid_rows} records have errors.</strong> Please fix the errors in your CSV file and re-upload.</div>`;
+      }
     } else {
-      html += '<tr><td colspan="100%" class="text-center text-muted">No data found in the file.</td></tr></tbody></table></div>';
+      html += '<thead class="table-dark"><tr><th>No Data</th></tr></thead>';
+      html += '<tbody><tr><td class="text-center text-muted">No data found in the file.</td></tr></tbody></table></div>';
+      importAffiliatesBtn.disabled = true;
     }
 
     const previewContentEl = document.getElementById('previewContent');
@@ -1033,6 +1088,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show success step
         showImportSuccess(data);
         showStep(4);
+
+        // Optionally redirect after showing success for a moment (only if all imported successfully)
+        if (data.redirect_url && data.skipped_count === 0) {
+          setTimeout(() => {
+            window.location.href = data.redirect_url;
+          }, 3000);
+        } else if (data.skipped_count > 0) {
+          // If there were skipped records, don't auto-redirect
+          console.log('Some records were skipped, not auto-redirecting');
+        }
       } else {
         console.error('Import failed:', data.error);
         alert('Import failed: ' + (data.error || 'Unknown error occurred'));
@@ -1052,7 +1117,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update success message
     const successDetails = document.getElementById('successDetails');
     if (successDetails) {
-      successDetails.textContent = `${data.imported_count || 0} affiliate(s) successfully imported with ${data.skipped_count || 0} skipped.`;
+      let message = `${data.imported_count || 0} affiliate(s) successfully imported`;
+      if (data.skipped_count > 0) {
+        message += ` with ${data.skipped_count} skipped.`;
+      } else {
+        message += '.';
+      }
+      successDetails.innerHTML = message;
     }
 
     // Update statistics
@@ -1063,6 +1134,28 @@ document.addEventListener('DOMContentLoaded', function() {
     if (importedCount) importedCount.textContent = data.imported_count || 0;
     if (skippedCount) skippedCount.textContent = data.skipped_count || 0;
     if (totalProcessed) totalProcessed.textContent = (data.imported_count || 0) + (data.skipped_count || 0);
+
+    // Show errors if any records were skipped
+    if (data.errors && data.errors.length > 0) {
+      const errorSection = document.createElement('div');
+      errorSection.className = 'alert alert-warning mt-3';
+      errorSection.innerHTML = `
+        <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Some records were skipped:</h6>
+        <ul class="mb-0">
+          ${data.errors.map(error => `<li>${error}</li>`).join('')}
+        </ul>
+      `;
+
+      const successCard = document.querySelector('.step-4-content .card-body');
+      if (successCard) {
+        // Insert error details after the success message
+        const existingAlert = successCard.querySelector('.alert-warning');
+        if (existingAlert) {
+          existingAlert.remove();
+        }
+        successCard.appendChild(errorSection);
+      }
+    }
   }
 
   // Handle "Import More Affiliates" button

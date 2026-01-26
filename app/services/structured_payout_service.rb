@@ -39,6 +39,8 @@ class StructuredPayoutService
       calculate_health_commission
     when 'motor'
       calculate_motor_commission
+    when 'other'
+      calculate_other_commission
     else
       0.0
     end
@@ -73,6 +75,19 @@ class StructuredPayoutService
     affiliate_commission = @policy.try(:sub_agent_commission_amount) || (@policy.net_premium * 0.02)
     ambassador_commission = @policy.try(:ambassador_commission_amount) || (@policy.net_premium * 0.02)
     investor_commission = @policy.try(:investor_commission_amount) || (@policy.net_premium * 0.02)
+    company_expense = calculate_company_expense
+
+    main_agent_commission + affiliate_commission + ambassador_commission + investor_commission + company_expense
+  end
+
+  def calculate_other_commission
+    return 0.0 unless @policy.respond_to?(:net_premium) && @policy.net_premium
+
+    # Use existing commission fields similar to health insurance
+    main_agent_commission = @policy.try(:commission_amount) || 0
+    affiliate_commission = @policy.try(:sub_agent_commission_amount) || 0
+    ambassador_commission = @policy.try(:ambassador_commission_amount) || 0
+    investor_commission = @policy.try(:investor_commission_amount) || 0
     company_expense = calculate_company_expense
 
     main_agent_commission + affiliate_commission + ambassador_commission + investor_commission + company_expense
@@ -160,6 +175,13 @@ class StructuredPayoutService
     amount = calculate_ambassador_amount
     return nil if amount <= 0
 
+    # Check if policy has distributor_id field (for backward compatibility)
+    distributor_note = if @policy.respond_to?(:distributor_id) && @policy.distributor_id
+      ". Distributor ID: #{@policy.distributor_id}"
+    else
+      ""
+    end
+
     CommissionPayout.create!(
       payout_id: main_payout.id,
       policy_type: @policy_type,
@@ -171,7 +193,7 @@ class StructuredPayoutService
       status: 'pending',
       payment_mode: 'bank_transfer',
       reference_number: "AMB_#{main_payout.id}_#{Time.current.to_i}",
-      notes: "Ambassador commission for #{@policy_type} policy#{@policy.distributor_id ? ". Distributor ID: #{@policy.distributor_id}" : ""}",
+      notes: "Ambassador commission for #{@policy_type} policy#{distributor_note}",
       processed_by: 'system_auto'
     )
   end
@@ -225,6 +247,8 @@ class StructuredPayoutService
       @policy.try(:commission_amount) || (@policy.net_premium * 0.10)
     when 'motor'
       @policy.try(:main_agent_commission_amount) || (@policy.net_premium * 0.15)
+    when 'other'
+      @policy.try(:commission_amount) || (@policy.net_premium * 0.10)
     else
       0.0
     end

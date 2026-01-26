@@ -77,7 +77,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Active Policies</h6>
-            <h3 class="mb-0 text-warning"><%= number_with_delimiter(@other_insurances.where(status: 'active').count) %></h3>
+            <h3 class="mb-0 text-warning"><%= number_with_delimiter(@other_insurances.select { |p| p.policy_end_date.nil? || p.policy_end_date >= Date.current }.count) %></h3>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
             <i class="bi bi-bookmark text-warning fs-4"></i>
@@ -156,8 +156,8 @@
                 </td>
                 <td>
                   <div>
-                    <h6 class="mb-1"><%= policy.insurance_company&.name %></h6>
-                    <small class="text-muted">General Insurance</small>
+                    <h6 class="mb-1"><%= policy.insurance_company_name %></h6>
+                    <small class="text-muted"><%= policy.insurance_type %></small>
                   </div>
                 </td>
                 <td>
@@ -173,14 +173,10 @@
                   </div>
                 </td>
                 <td>
-                  <% if policy.status == true %>
-                    <% if policy.policy_end_date && policy.policy_end_date < Date.current %>
-                      <span class="badge bg-warning">Expired</span>
-                    <% else %>
-                      <span class="badge bg-success">Active</span>
-                    <% end %>
+                  <% if policy.policy_end_date && policy.policy_end_date < Date.current %>
+                    <span class="badge bg-warning">Expired</span>
                   <% else %>
-                    <span class="badge bg-danger">Inactive</span>
+                    <span class="badge bg-success">Active</span>
                   <% end %>
                 </td>
                 <td>

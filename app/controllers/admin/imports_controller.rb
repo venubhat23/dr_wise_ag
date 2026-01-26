@@ -2,7 +2,7 @@ class Admin::ImportsController < Admin::ApplicationController
   require 'csv'
 
   # Skip CSRF token verification for import endpoints that handle file uploads
-  skip_before_action :verify_authenticity_token, only: [:customers, :customers_preview, :sub_agents, :sub_agents_preview, :distributors, :health_insurances, :life_insurances, :motor_insurances]
+  skip_before_action :verify_authenticity_token, only: [:customers, :customers_preview, :sub_agents, :sub_agents_preview, :distributors, :distributors_preview, :health_insurances, :life_insurances, :motor_insurances]
 
   def index
     @import_stats = {
@@ -129,36 +129,206 @@ class Admin::ImportsController < Admin::ApplicationController
     uploaded_file = params[:file]
 
     begin
-      spreadsheet = open_spreadsheet(uploaded_file)
-      header = spreadsheet.row(1)
+      require 'csv'
+
+      Rails.logger.info "Processing sub-agents file: #{uploaded_file.original_filename}"
+      Rails.logger.info "File path: #{uploaded_file.path}"
+      Rails.logger.info "File size: #{uploaded_file.size}"
+
+      preview_results = []
+      row_index = 0
+      total_rows_processed = 0
+
+      # Detect CSV encoding and parse
+      file_content = File.read(uploaded_file.path)
+
+      # Try UTF-8 first, then fallback to other encodings
+      begin
+        file_content = file_content.force_encoding('UTF-8')
+        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
+      rescue CSV::MalformedCSVError, Encoding::UndefinedConversionError
+        # Try with different encoding
+        file_content = file_content.force_encoding('ISO-8859-1').encode('UTF-8')
+        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
+      end
+
+      Rails.logger.info "CSV headers: #{csv_data.headers}"
+      Rails.logger.info "Total CSV rows: #{csv_data.length}"
 
       # Normalize headers by removing asterisks
-      normalized_headers = header.map(&:to_s).map { |h| h.gsub('*', '') }
+      normalized_headers = csv_data.headers.map { |h| h.to_s.gsub('*', '') }
 
-      # Preview first 5 rows
-      preview_data = []
-      sample_rows = [2, 3, 4, 5, 6].select { |i| i <= spreadsheet.last_row }
+      # Preview first 10 rows or all rows if less than 10
+      preview_count = [csv_data.length, 10].min
 
-      sample_rows.each do |i|
-        row = Hash[[header, spreadsheet.row(i)].transpose]
+      csv_data.first(preview_count).each_with_index do |row, index|
+        row_index = index + 1
+        total_rows_processed += 1
+
+        # Skip completely empty rows
+        row_data = row.to_h
+        next if row_data.values.all? { |v| v.nil? || v.to_s.strip.empty? }
+
+        # Normalize row data (remove asterisks from keys)
         normalized_row = {}
-        row.each do |key, value|
+        row_data.each do |key, value|
           normalized_key = key.to_s.gsub('*', '')
           normalized_row[normalized_key] = value
         end
-        preview_data << normalized_row
+
+        # Basic validation for sub-agents
+        validation_errors = []
+
+        # Check required fields
+        validation_errors << "First name is required" if normalized_row['first_name'].to_s.strip.empty?
+        validation_errors << "Last name is required" if normalized_row['last_name'].to_s.strip.empty?
+        validation_errors << "Mobile is required" if normalized_row['mobile'].to_s.strip.empty?
+
+        # Mobile validation
+        mobile = normalized_row['mobile'].to_s.strip
+        if mobile.present?
+          clean_mobile = mobile.gsub(/\D/, '')
+          validation_errors << "Mobile must be exactly 10 digits" if clean_mobile.length != 10
+        end
+
+        # Email validation
+        email = normalized_row['email'].to_s.strip
+        if email.present? && !email.match?(URI::MailTo::EMAIL_REGEXP)
+          validation_errors << "Invalid email format"
+        end
+
+        preview_results << {
+          row: row_index,
+          data: normalized_row,
+          errors: validation_errors,
+          valid: validation_errors.empty?
+        }
       end
+
+      Rails.logger.info "Preview results: #{preview_results.count} rows processed"
 
       render json: {
         success: true,
+        preview: preview_results,
         headers: normalized_headers,
-        preview_data: preview_data,
-        total_rows: spreadsheet.last_row - 1,
+        total_rows: csv_data.length,
+        valid_rows: preview_results.count { |r| r[:valid] },
+        invalid_rows: preview_results.count { |r| !r[:valid] },
         file_name: uploaded_file.original_filename,
         file_size: uploaded_file.size
       }
     rescue => e
+      Rails.logger.error "Sub-agents preview error: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
       render json: {
+        success: false,
+        error: "Error processing file: #{e.message}",
+        file_name: uploaded_file.original_filename,
+        file_size: uploaded_file.size
+      }
+    end
+  end
+
+  def distributors_preview
+    return render json: { error: 'File required' }, status: :bad_request unless params[:file].present?
+
+    uploaded_file = params[:file]
+
+    begin
+      require 'csv'
+
+      Rails.logger.info "Processing distributors file: #{uploaded_file.original_filename}"
+      Rails.logger.info "File path: #{uploaded_file.path}"
+      Rails.logger.info "File size: #{uploaded_file.size}"
+
+      preview_results = []
+      row_index = 0
+      total_rows_processed = 0
+
+      # Detect CSV encoding and parse
+      file_content = File.read(uploaded_file.path)
+
+      # Try UTF-8 first, then fallback to other encodings
+      begin
+        file_content = file_content.force_encoding('UTF-8')
+        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
+      rescue CSV::MalformedCSVError, Encoding::UndefinedConversionError
+        # Try with different encoding
+        file_content = file_content.force_encoding('ISO-8859-1').encode('UTF-8')
+        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
+      end
+
+      Rails.logger.info "CSV headers: #{csv_data.headers}"
+      Rails.logger.info "Total CSV rows: #{csv_data.length}"
+
+      # Normalize headers by removing asterisks
+      normalized_headers = csv_data.headers.map { |h| h.to_s.gsub('*', '') }
+
+      # Preview first 10 rows or all rows if less than 10
+      preview_count = [csv_data.length, 10].min
+
+      csv_data.first(preview_count).each_with_index do |row, index|
+        row_index = index + 1
+        total_rows_processed += 1
+
+        # Skip completely empty rows
+        row_data = row.to_h
+        next if row_data.values.all? { |v| v.nil? || v.to_s.strip.empty? }
+
+        # Normalize row data (remove asterisks from keys)
+        normalized_row = {}
+        row_data.each do |key, value|
+          normalized_key = key.to_s.gsub('*', '')
+          normalized_row[normalized_key] = value
+        end
+
+        # Basic validation for distributors
+        validation_errors = []
+
+        # Check required fields
+        validation_errors << "First name is required" if normalized_row['first_name'].to_s.strip.empty?
+        validation_errors << "Last name is required" if normalized_row['last_name'].to_s.strip.empty?
+        validation_errors << "Email is required" if normalized_row['email'].to_s.strip.empty?
+        validation_errors << "Mobile is required" if normalized_row['mobile'].to_s.strip.empty?
+
+        # Mobile validation
+        mobile = normalized_row['mobile'].to_s.strip
+        if mobile.present?
+          clean_mobile = mobile.gsub(/\D/, '')
+          validation_errors << "Mobile must be exactly 10 digits" if clean_mobile.length != 10
+        end
+
+        # Email validation
+        email = normalized_row['email'].to_s.strip
+        if email.present? && !email.match?(URI::MailTo::EMAIL_REGEXP)
+          validation_errors << "Invalid email format"
+        end
+
+        preview_results << {
+          row: row_index,
+          data: normalized_row,
+          errors: validation_errors,
+          valid: validation_errors.empty?
+        }
+      end
+
+      Rails.logger.info "Preview results: #{preview_results.count} rows processed"
+
+      render json: {
+        success: true,
+        preview: preview_results,
+        headers: normalized_headers,
+        total_rows: csv_data.length,
+        valid_rows: preview_results.count { |r| r[:valid] },
+        invalid_rows: preview_results.count { |r| !r[:valid] },
+        file_name: uploaded_file.original_filename,
+        file_size: uploaded_file.size
+      }
+    rescue => e
+      Rails.logger.error "Distributors preview error: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      render json: {
+        success: false,
         error: "Error processing file: #{e.message}",
         file_name: uploaded_file.original_filename,
         file_size: uploaded_file.size
@@ -276,22 +446,54 @@ class Admin::ImportsController < Admin::ApplicationController
   def sub_agents
     uploaded_file = params[:file]
 
+    Rails.logger.info "Sub-agent import started with file: #{uploaded_file&.original_filename}"
+    Rails.logger.info "Request format: #{request.format}"
+
     if uploaded_file.blank?
-      redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.'
+      respond_to do |format|
+        format.html { redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.' }
+        format.json { render json: { success: false, error: 'Please select a file to import.' } }
+      end
       return
     end
 
     begin
       import_result = ImportService::SubAgentImporter.new(uploaded_file).import
+      Rails.logger.info "Import result: #{import_result.inspect}"
 
-      if import_result[:success]
-        redirect_to admin_sub_agents_path, notice: "Successfully imported #{import_result[:imported_count]} affiliates. #{import_result[:skipped_count]} records were skipped due to validation errors."
-      else
-        redirect_back fallback_location: admin_imports_path, alert: "Import failed: #{import_result[:error]}"
+      respond_to do |format|
+        if import_result[:success]
+          success_message = "Successfully imported #{import_result[:imported_count]} affiliates. #{import_result[:skipped_count]} records were skipped due to validation errors."
+          Rails.logger.info "Import successful: #{success_message}"
+
+          format.html { redirect_to admin_sub_agents_path, notice: success_message }
+          format.json {
+            render json: {
+              success: true,
+              message: success_message,
+              imported_count: import_result[:imported_count],
+              skipped_count: import_result[:skipped_count],
+              total_count: import_result[:imported_count] + import_result[:skipped_count],
+              errors: import_result[:errors] || [],
+              redirect_url: admin_sub_agents_path
+            }
+          }
+        else
+          error_message = "Import failed: #{import_result[:error]}"
+          Rails.logger.error error_message
+
+          format.html { redirect_back fallback_location: admin_imports_path, alert: error_message }
+          format.json { render json: { success: false, error: error_message } }
+        end
       end
     rescue => e
-      Rails.logger.error "Affiliate import error: #{e.message}"
-      redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.'
+      Rails.logger.error "Affiliate import error: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+
+      respond_to do |format|
+        format.html { redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.' }
+        format.json { render json: { success: false, error: "An error occurred during import: #{e.message}" } }
+      end
     end
   end
 
@@ -299,22 +501,54 @@ class Admin::ImportsController < Admin::ApplicationController
   def distributors
     uploaded_file = params[:file]
 
+    Rails.logger.info "Distributor import started with file: #{uploaded_file&.original_filename}"
+    Rails.logger.info "Request format: #{request.format}"
+
     if uploaded_file.blank?
-      redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.'
+      respond_to do |format|
+        format.html { redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.' }
+        format.json { render json: { success: false, error: 'Please select a file to import.' } }
+      end
       return
     end
 
     begin
       import_result = ImportService::DistributorImporter.new(uploaded_file).import
+      Rails.logger.info "Import result: #{import_result.inspect}"
 
-      if import_result[:success]
-        redirect_to admin_distributors_path, notice: "Successfully imported #{import_result[:imported_count]} distributors. #{import_result[:skipped_count]} records were skipped due to validation errors."
-      else
-        redirect_back fallback_location: admin_imports_path, alert: "Import failed: #{import_result[:error]}"
+      respond_to do |format|
+        if import_result[:success]
+          success_message = "Successfully imported #{import_result[:imported_count]} distributors. #{import_result[:skipped_count]} records were skipped due to validation errors."
+          Rails.logger.info "Import successful: #{success_message}"
+
+          format.html { redirect_to admin_distributors_path, notice: success_message }
+          format.json {
+            render json: {
+              success: true,
+              message: success_message,
+              imported_count: import_result[:imported_count],
+              skipped_count: import_result[:skipped_count],
+              total_count: import_result[:imported_count] + import_result[:skipped_count],
+              errors: import_result[:errors] || [],
+              redirect_url: admin_distributors_path
+            }
+          }
+        else
+          error_message = "Import failed: #{import_result[:error]}"
+          Rails.logger.error error_message
+
+          format.html { redirect_back fallback_location: admin_imports_path, alert: error_message }
+          format.json { render json: { success: false, error: error_message } }
+        end
       end
     rescue => e
-      Rails.logger.error "Distributor import error: #{e.message}"
-      redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.'
+      Rails.logger.error "Distributor import error: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+
+      respond_to do |format|
+        format.html { redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.' }
+        format.json { render json: { success: false, error: "An error occurred during import: #{e.message}" } }
+      end
     end
   end
 
@@ -543,15 +777,22 @@ class Admin::ImportsController < Admin::ApplicationController
     csv_data = CSV.generate(headers: true) do |csv|
       csv << [
         'first_name', 'middle_name', 'last_name', 'email', 'mobile', 'gender',
-        'birth_date', 'address', 'state', 'city', 'pin_code', 'pan_no', 'aadhar_no',
+        'birth_date', 'address', 'state', 'city', 'pan_no',
         'account_holder_name', 'account_number', 'ifsc_code', 'account_type',
         'distributor_name', 'status'
       ]
       csv << [
         'John', 'Kumar', 'Smith', 'affiliate@example.com', '9876543210', 'Male',
-        '1985-01-01', '789 Agent Street, Mumbai', 'Maharashtra', 'Mumbai', '400001',
-        'ABCDE1234F', '123456789012', 'John Kumar Smith', '1234567890', 'SBIN0001234',
+        '1985-01-01', '789 Agent Street, Mumbai', 'Maharashtra', 'Mumbai',
+        'ABCDE1234F', 'John Kumar Smith', '1234567890', 'SBIN0001234',
         'Savings', 'Distributor Name', 'active'
+      ]
+      # Add one more example row
+      csv << [
+        'Jane', '', 'Doe', 'jane.doe@example.com', '9876543211', 'Female',
+        '1990-05-15', '456 Business Street', 'Delhi', 'Delhi',
+        'BCDEF2345G', 'Jane Doe', '0987654321', 'HDFC0001234',
+        'Savings', '', 'active'
       ]
     end
 
@@ -562,13 +803,13 @@ class Admin::ImportsController < Admin::ApplicationController
     csv_data = CSV.generate(headers: true) do |csv|
       csv << [
         'first_name', 'middle_name', 'last_name', 'email', 'mobile', 'gender',
-        'birth_date', 'address', 'state', 'city', 'pin_code', 'pan_no', 'aadhar_no',
-        'account_holder_name', 'account_number', 'ifsc_code', 'account_type', 'status'
+        'birth_date', 'address', 'state', 'city', 'pan_no',
+        'account_holder_name', 'account_no', 'ifsc_code', 'account_type', 'status'
       ]
       csv << [
         'Jane', 'Kumar', 'Doe', 'distributor@example.com', '9876543211', 'Female',
-        '1980-01-01', '456 Business Street, Delhi', 'Delhi', 'Delhi', '110001',
-        'BCDEF5678G', '123456789013', 'Jane Kumar Doe', '0987654321', 'HDFC0001234',
+        '1980-01-01', '456 Business Street, Delhi', 'Delhi', 'Delhi',
+        'BCDEF5678G', 'Jane Kumar Doe', '0987654321', 'HDFC0001234',
         'Savings', 'active'
       ]
     end
