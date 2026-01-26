@@ -54,6 +54,17 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     @health_insurance.is_customer_added = false
     @health_insurance.is_agent_added = false
 
+    # Auto-set affiliate from customer if not already set
+    if @health_insurance.sub_agent_id.blank? && @health_insurance.customer_id.present?
+      customer = Customer.find(@health_insurance.customer_id)
+      if customer.sub_agent_id.present?
+        @health_insurance.sub_agent_id = customer.sub_agent_id
+      elsif customer.lead_id.present?
+        lead = Lead.find_by(lead_id: customer.lead_id)
+        @health_insurance.sub_agent_id = lead.affiliate_id if lead&.affiliate_id.present?
+      end
+    end
+
     set_distributor_from_affiliate(@health_insurance)
 
     if @health_insurance.save

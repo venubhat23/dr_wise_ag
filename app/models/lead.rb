@@ -40,6 +40,7 @@ class Lead < ApplicationRecord
   belongs_to :converted_customer, class_name: 'Customer', optional: true
   belongs_to :created_policy, class_name: 'Policy', optional: true
   belongs_to :affiliate, class_name: 'SubAgent', optional: true
+  belongs_to :ambassador, class_name: 'Distributor', optional: true
   belongs_to :parent_lead, class_name: 'Lead', optional: true
   has_many :branch_out_leads, class_name: 'Lead', foreign_key: 'parent_lead_id', dependent: :nullify
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
@@ -422,6 +423,10 @@ class Lead < ApplicationRecord
 
   def affiliate_name
     affiliate&.display_name || 'N/A'
+  end
+
+  def ambassador_name
+    ambassador&.display_name || 'N/A'
   end
 
   def created_date=(value)

@@ -104,6 +104,13 @@ class Admin::LeadsController < Admin::ApplicationController
     if session[:branch_out_mode] && session[:source_lead_id]
       @lead.is_branch_out = true
       @lead.parent_lead_id = session[:source_lead_id]
+
+      # Copy affiliate and ambassador from parent lead if not explicitly set
+      source_lead = Lead.find_by(id: session[:source_lead_id])
+      if source_lead
+        @lead.affiliate_id ||= source_lead.affiliate_id
+        @lead.ambassador_id ||= source_lead.ambassador_id
+      end
     end
 
     if @lead.save
@@ -850,6 +857,10 @@ class Admin::LeadsController < Admin::ApplicationController
     @lead.is_branch_out = true
     @lead.parent_lead_id = source_lead.id
 
+    # IMPORTANT: Preserve affiliate and ambassador from source lead
+    @lead.affiliate_id = source_lead.affiliate_id
+    @lead.ambassador_id = source_lead.ambassador_id
+
     # Store source lead ID for reference
     session[:source_lead_id] = source_lead.id
     session[:branch_out_mode] = true
@@ -876,7 +887,7 @@ class Admin::LeadsController < Admin::ApplicationController
       :name, :contact_number, :email, :address, :city, :state,
       :referred_by, :product_category, :product_subcategory, :customer_type, :current_stage, :lead_source,
       :call_disposition, :referral_amount, :notes, :created_date,
-      :note, :is_direct, :affiliate_id, :is_branch_out, :parent_lead_id,
+      :note, :is_direct, :affiliate_id, :ambassador_id, :is_branch_out, :parent_lead_id,
       :first_name, :middle_name, :last_name, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :marital_status, :height, :weight, :birth_place,
       :education, :business_job, :business_name, :job_name, :occupation,

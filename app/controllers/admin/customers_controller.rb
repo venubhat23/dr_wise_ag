@@ -742,6 +742,7 @@ class Admin::CustomersController < Admin::ApplicationController
                   mobile: @customer.mobile,
                   password: generated_password,
                   password_confirmation: generated_password,
+                  original_password: generated_password, # Store the original password
                   user_type: 'customer',
                   status: true
                 )
@@ -763,6 +764,7 @@ class Admin::CustomersController < Admin::ApplicationController
                 mobile: @customer.mobile,
                 password: generated_password,
                 password_confirmation: generated_password,
+                original_password: generated_password, # Store the original password
                 user_type: 'customer',
                 status: true
               )

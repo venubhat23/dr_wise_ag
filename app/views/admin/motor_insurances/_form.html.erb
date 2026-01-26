@@ -988,6 +988,7 @@ document.addEventListener('DOMContentLoaded', function() {
       policyHolderSelect.innerHTML = '<option value="">Select Policy Holder</option><option value="Self">Self</option>';
 
       if (customerId) {
+        // Fetch policy holder options
         fetch(`/admin/motor_insurances/policy_holder_options?customer_id=${customerId}`)
           .then(response => response.json())
           .then(data => {
@@ -1001,6 +1002,26 @@ document.addEventListener('DOMContentLoaded', function() {
             });
           })
           .catch(error => console.error('Error fetching policy holder options:', error));
+
+        // Fetch and auto-select affiliate based on customer's branch/lead
+        fetch(`/admin/motor_insurances/customer_affiliate_info?customer_id=${customerId}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.affiliate_id) {
+              // Auto-select the affiliate in the dropdown
+              const affiliateSelect = document.getElementById('affiliate_select');
+              if (affiliateSelect) {
+                // If using Select2, set the value and trigger change
+                if ($(affiliateSelect).data('select2')) {
+                  $(affiliateSelect).val(data.affiliate_id).trigger('change');
+                } else {
+                  affiliateSelect.value = data.affiliate_id;
+                }
+                console.log(`Auto-selected affiliate: ${data.affiliate_name} (ID: ${data.affiliate_id})`);
+              }
+            }
+          })
+          .catch(error => console.error('Error fetching customer affiliate info:', error));
       }
     });
   }

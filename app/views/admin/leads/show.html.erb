@@ -712,11 +712,17 @@
               <% if @lead.is_direct %>
                 <span class="badge bg-primary">Direct Lead</span>
               <% elsif @lead.affiliate.present? %>
-                <span class="badge bg-success">Agent - <%= @lead.affiliate.display_name %></span>
+                <span class="badge bg-success">Affiliate - <%= @lead.affiliate.display_name %></span>
               <% elsif @lead.referred_by.present? %>
                 <span class="badge bg-info">Referred by - <%= @lead.referred_by %></span>
               <% else %>
                 <span class="text-muted">Not specified</span>
+              <% end %>
+
+              <% if @lead.ambassador.present? %>
+                <div class="mt-2">
+                  <span class="badge bg-info">Ambassador - <%= @lead.ambassador.display_name %></span>
+                </div>
               <% end %>
             </div>
           </div>

@@ -105,6 +105,17 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     @life_insurance.is_customer_added = false
     @life_insurance.is_agent_added = false
 
+    # Auto-set affiliate from customer if not already set
+    if @life_insurance.sub_agent_id.blank? && @life_insurance.customer_id.present?
+      customer = Customer.find(@life_insurance.customer_id)
+      if customer.sub_agent_id.present?
+        @life_insurance.sub_agent_id = customer.sub_agent_id
+      elsif customer.lead_id.present?
+        lead = Lead.find_by(lead_id: customer.lead_id)
+        @life_insurance.sub_agent_id = lead.affiliate_id if lead&.affiliate_id.present?
+      end
+    end
+
     set_distributor_from_affiliate(@life_insurance)
 
     begin
