@@ -121,26 +121,25 @@
 
               <div class="col-md-4 mb-3">
                 <%= form.label :policy_start_date, "Policy Start Date", class: "form-label required" %>
-                <%= form.date_field :policy_start_date, class: "form-control", required: true, id: "policy_start_date" %>
+                <%= form.date_field :policy_start_date, class: "form-control", required: true, id: "start_date" %>
               </div>
 
               <div class="col-md-4 mb-3">
                 <%= form.label :policy_end_date, "Policy End Date", class: "form-label required" %>
-                <%= form.date_field :policy_end_date, class: "form-control", required: true, id: "policy_end_date" %>
+                <%= form.date_field :policy_end_date, class: "form-control", required: true, id: "end_date" %>
               </div>
 
               <div class="col-md-4 mb-3">
                 <%= form.label :payment_mode, "Payment Mode", class: "form-label required" %>
                 <%= form.select :payment_mode,
                     options_for_select([
-                      ['Yearly', 'yearly'],
-                      ['Half Yearly', 'half_yearly'],
-                      ['Quarterly', 'quarterly'],
-                      ['Monthly', 'monthly'],
-                      ['Single Premium', 'single']
+                      ['Yearly', 'Yearly'],
+                      ['Half Yearly', 'Half Yearly'],
+                      ['Quarterly', 'Quarterly'],
+                      ['Monthly', 'Monthly']
                     ], @other_insurance.payment_mode),
                     { prompt: 'Select Payment Mode' },
-                    { class: "form-select", required: true } %>
+                    { class: "form-select", required: true, id: "payment_mode_select" } %>
               </div>
 
               <div class="col-md-6 mb-3">
@@ -457,5 +456,64 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initial calculation
   updateSummary();
+
+  // Enhanced Policy End Date calculation based on start date and payment mode
+  function calculatePolicyEndDate() {
+    const startDateField = document.getElementById('start_date');
+    const endDateField = document.getElementById('end_date');
+    const paymentModeField = document.getElementById('payment_mode_select');
+
+    if (!startDateField || !endDateField || !paymentModeField) {
+      return;
+    }
+
+    const startDate = new Date(startDateField.value);
+    const paymentMode = paymentModeField.value;
+
+    if (!startDateField.value || !paymentMode) {
+      return;
+    }
+
+    let endDate = new Date(startDate);
+
+    switch(paymentMode) {
+      case 'Yearly':
+        endDate.setFullYear(endDate.getFullYear() + 1);
+        endDate.setDate(endDate.getDate() - 1); // End date is one day before renewal
+        break;
+      case 'Half Yearly':
+        endDate.setMonth(endDate.getMonth() + 6);
+        endDate.setDate(endDate.getDate() - 1);
+        break;
+      case 'Quarterly':
+        endDate.setMonth(endDate.getMonth() + 3);
+        endDate.setDate(endDate.getDate() - 1);
+        break;
+      case 'Monthly':
+        endDate.setMonth(endDate.getMonth() + 1);
+        endDate.setDate(endDate.getDate() - 1);
+        break;
+      default:
+        endDate.setFullYear(endDate.getFullYear() + 1);
+        endDate.setDate(endDate.getDate() - 1);
+    }
+
+    endDateField.value = endDate.toISOString().split('T')[0];
+    console.log('📅 Policy End Date calculated:', endDate.toISOString().split('T')[0]);
+  }
+
+  // Event listeners for date calculations
+  document.getElementById('start_date')?.addEventListener('change', function() {
+    calculatePolicyEndDate();
+  });
+
+  document.getElementById('payment_mode_select')?.addEventListener('change', function() {
+    calculatePolicyEndDate();
+  });
+
+  // Initialize calculations on page load if values exist
+  if (document.getElementById('start_date')?.value && document.getElementById('payment_mode_select')?.value) {
+    calculatePolicyEndDate();
+  }
 });
 </script>

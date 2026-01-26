@@ -1,0 +1,159 @@
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-12">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 class="h4 mb-1">
+            <i class="bi bi-diagram-3 text-indigo me-2"></i>
+            Import Distributors
+          </h2>
+          <p class="text-muted mb-0">Upload CSV/Excel file to import distributor data</p>
+        </div>
+        <%= link_to admin_imports_path, class: "btn btn-outline-secondary" do %>
+          <i class="bi bi-arrow-left me-2"></i>Back to Imports
+        <% end %>
+      </div>
+
+      <!-- Import Form -->
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <div class="card shadow-sm">
+            <div class="card-header bg-indigo text-white">
+              <h5 class="card-title mb-0">
+                <i class="bi bi-cloud-upload me-2"></i>
+                Upload Distributor Data
+              </h5>
+            </div>
+
+            <%= form_with url: admin_import_distributors_path, method: :post, multipart: true, local: true, class: "import-form" do |form| %>
+              <div class="card-body">
+                <!-- Requirements Alert -->
+                <div class="alert alert-info" role="alert">
+                  <h6 class="alert-heading">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Import Requirements:
+                  </h6>
+                  <ul class="mb-0">
+                    <li><strong>Required:</strong> first_name, last_name, email, mobile</li>
+                    <li><strong>Optional:</strong> middle_name, birth_date, gender, address, state, city, pin_code</li>
+                    <li><strong>Bank Details:</strong> account_holder_name, account_number, ifsc_code, account_type</li>
+                    <li><strong>Documents:</strong> pan_no, aadhar_no for verification</li>
+                    <li>Duplicate detection on email and mobile numbers</li>
+                  </ul>
+                </div>
+
+                <!-- File Upload -->
+                <div class="mb-4">
+                  <label for="distributorFile" class="form-label fw-bold">
+                    <i class="bi bi-file-earmark-spreadsheet me-2"></i>
+                    Select Distributor Data File
+                  </label>
+                  <%= form.file_field :file,
+                                      id: "distributorFile",
+                                      class: "form-control form-control-lg",
+                                      accept: ".csv,.xlsx,.xls",
+                                      required: true %>
+                  <div class="form-text">
+                    Supported formats: CSV, Excel (.xlsx, .xls). Maximum size: 10MB
+                  </div>
+                </div>
+
+                <!-- Sample Data Preview -->
+                <div class="border rounded p-3 bg-light">
+                  <h6 class="text-muted mb-3">
+                    <i class="bi bi-table me-2"></i>
+                    Sample Data Format:
+                  </h6>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover">
+                      <thead class="table-dark">
+                        <tr>
+                          <th>first_name</th>
+                          <th>last_name</th>
+                          <th>email</th>
+                          <th>mobile</th>
+                          <th>pan_no</th>
+                          <th>account_number</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Jane</td>
+                          <td>Doe</td>
+                          <td>jane@example.com</td>
+                          <td>9876543211</td>
+                          <td>BCDEF5678G</td>
+                          <td>0987654321</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-footer d-flex justify-content-between">
+                <div>
+                  <%= link_to download_template_admin_imports_path(template_type: 'distributors'),
+                              class: "btn btn-outline-success",
+                              target: "_blank" do %>
+                    <i class="bi bi-download me-2"></i>Download Template
+                  <% end %>
+                </div>
+                <div>
+                  <%= form.submit "Import Distributors",
+                                  class: "btn btn-indigo btn-lg text-white",
+                                  data: {
+                                    disable_with: '<i class="bi bi-hourglass-split me-2"></i>Importing...'
+                                  } %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.import-form {
+  margin: 0;
+}
+
+.table th {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.table td {
+  font-size: 0.85rem;
+}
+
+.alert ul {
+  padding-left: 1.2rem;
+}
+
+.card-header {
+  border-bottom: 3px solid rgba(255,255,255,0.3);
+}
+
+.btn-lg {
+  padding: 0.75rem 2rem;
+  font-weight: 500;
+}
+
+.btn-indigo {
+  background-color: #6366f1;
+  border-color: #6366f1;
+}
+
+.btn-indigo:hover {
+  background-color: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.bg-indigo {
+  background-color: #6366f1 !important;
+}
+</style>

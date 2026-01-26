@@ -216,6 +216,8 @@ Rails.application.routes.draw do
         patch :deactivate
         patch :activate
         get :policy_chart
+        get :family_members
+        get :affiliate_info
         get :trace_commission
         get :product_selection
         get :get_policies
@@ -286,7 +288,14 @@ Rails.application.routes.draw do
     end
 
     # Other Insurance
-    resources :other_insurances, path: 'insurance/other'
+    resources :other_insurances, path: 'insurance/other' do
+      collection do
+        get :all_agency_codes
+        get :all_brokers
+        get :insurance_companies_for_type
+        get :insurance_companies_by_agency
+      end
+    end
 
     # Agency/Broker management
     resources :agency_brokers
@@ -328,6 +337,9 @@ Rails.application.routes.draw do
         get :all_codes
         get :agents_for_code
         get :company_for_agency_code
+      end
+      member do
+        get :insurance_companies
       end
     end
 
@@ -509,16 +521,19 @@ Rails.application.routes.draw do
       collection do
         get :customers_form
         get :sub_agents_form
+        get :distributors_form
         get :health_insurances_form
         get :life_insurances_form
         get :motor_insurances_form
         get :download_template
+        post :customers_preview
       end
     end
 
     # Import/Export
     post 'import/customers', to: 'imports#customers'
     post 'import/sub_agents', to: 'imports#sub_agents'
+    post 'import/distributors', to: 'imports#distributors'
     post 'import/health_insurances', to: 'imports#health_insurances'
     post 'import/life_insurances', to: 'imports#life_insurances'
     post 'import/motor_insurances', to: 'imports#motor_insurances'

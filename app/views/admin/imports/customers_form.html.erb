@@ -1,0 +1,736 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Client Import</h2>
+    <p class="text-muted mb-0">Import client data from Excel spreadsheet</p>
+  </div>
+  <div class="d-flex gap-3">
+    <div class="dropdown">
+      <select id="clientIdSelect" class="form-select">
+        <option value="">Client ID</option>
+        <option value="individual">Individual</option>
+        <option value="corporate">Corporate</option>
+      </select>
+    </div>
+    <input type="text" class="form-control" placeholder="Enter Client ID" id="clientIdInput" style="width: 200px;">
+  </div>
+</div>
+
+<!-- Progress Steps -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="d-flex justify-content-center">
+      <div class="step-progress d-flex align-items-center">
+        <div class="step active" id="step1">
+          <div class="step-number">1</div>
+          <div class="step-label">Select Type</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="step2">
+          <div class="step-number">2</div>
+          <div class="step-label">Upload File</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="step3">
+          <div class="step-number">3</div>
+          <div class="step-label">Preview</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Step 1: Select Client Type & Download Template -->
+<div class="card shadow-sm mb-4" id="step1Content">
+  <div class="card-body">
+    <div class="d-flex align-items-center mb-3">
+      <div class="step-indicator bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+        <span class="fw-bold">1</span>
+      </div>
+      <h5 class="card-title mb-0">Select Client Type & Download Template</h5>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <label for="clientTypeSelect" class="form-label fw-bold">Select Client Type*</label>
+        <select class="form-select form-select-lg" id="clientTypeSelect">
+          <option value="">Choose client type...</option>
+          <option value="individual">Individual</option>
+          <option value="corporate">Corporate</option>
+        </select>
+      </div>
+      <div class="col-md-6 d-flex align-items-end">
+        <button type="button" class="btn btn-success btn-lg w-100" id="downloadTemplateBtn" disabled>
+          <i class="bi bi-download me-2"></i>Download Sample Excel
+        </button>
+      </div>
+    </div>
+
+    <!-- Template Information -->
+    <div class="alert alert-info mt-4" id="templateInfo" style="display: none;">
+      <div class="d-flex">
+        <i class="bi bi-info-circle me-2 mt-1"></i>
+        <div>
+          <h6 class="alert-heading mb-2">Template Information</h6>
+          <p class="mb-0" id="templateDescription">The Excel template includes the correct column structure and sample data. Please fill in your client information following the format shown.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Field Requirements -->
+    <div class="row mt-4" id="fieldRequirements" style="display: none;">
+      <div class="col-md-6">
+        <div class="border rounded p-3 bg-light h-100">
+          <h6 class="text-success mb-3"><i class="bi bi-check-circle me-2"></i>Required Fields</h6>
+          <ul class="list-unstyled mb-0" id="requiredFieldsList">
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="border rounded p-3 bg-light h-100">
+          <h6 class="text-info mb-3"><i class="bi bi-info-circle me-2"></i>Optional Fields</h6>
+          <ul class="list-unstyled mb-0" id="optionalFieldsList">
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-end mt-4">
+      <button type="button" class="btn btn-primary btn-lg" id="proceedToUpload" disabled>
+        Next: Upload File <i class="bi bi-arrow-right ms-2"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 2: Upload Completed Excel -->
+<div class="card shadow-sm mb-4" id="step2Content" style="display: none;">
+  <div class="card-body">
+    <div class="d-flex align-items-center mb-3">
+      <div class="step-indicator bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+        <span class="fw-bold">2</span>
+      </div>
+      <h5 class="card-title mb-0">Upload Completed Excel</h5>
+    </div>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+      <div class="upload-area border-2 border-dashed rounded p-5 text-center" id="uploadArea">
+        <div class="upload-icon mb-3">
+          <i class="bi bi-cloud-upload fs-1 text-muted"></i>
+        </div>
+        <h5 class="mb-2">Click to upload or drag and drop</h5>
+        <p class="text-muted mb-3">Supported formats: .xlsx, .xls, .csv (Max 10MB)</p>
+        <input type="file" class="form-control d-none" id="fileInput" name="file" accept=".csv,.xlsx,.xls">
+        <button type="button" class="btn btn-outline-primary" id="chooseFileBtn">Choose File</button>
+      </div>
+
+      <div class="selected-file mt-3" id="selectedFile" style="display: none;">
+        <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-file-earmark-spreadsheet text-success fs-4 me-3"></i>
+            <div>
+              <h6 class="mb-0" id="fileName"></h6>
+              <small class="text-muted" id="fileSize"></small>
+            </div>
+          </div>
+          <button type="button" class="btn btn-outline-danger btn-sm" id="removeFile">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="text-end mt-4">
+        <button type="button" class="btn btn-outline-secondary me-2" id="backToStep1">
+          <i class="bi bi-arrow-left me-2"></i>Previous
+        </button>
+        <button type="button" class="btn btn-info btn-lg" id="showPreviewBtn" disabled>
+          <i class="bi bi-eye me-2"></i>Show Preview
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Step 3: Preview & Validation Results -->
+<div class="card shadow-sm mb-4" id="step3Content" style="display: none;">
+  <div class="card-body">
+    <div class="d-flex align-items-center mb-3">
+      <div class="step-indicator bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+        <span class="fw-bold">3</span>
+      </div>
+      <h5 class="card-title mb-0">Preview & Validation Results</h5>
+    </div>
+
+    <!-- Validation Summary -->
+    <div class="row mb-4" id="validationSummary" style="display: none;">
+      <div class="col-md-4">
+        <div class="card border-info">
+          <div class="card-body text-center">
+            <h3 class="text-info mb-0" id="totalRows">0</h3>
+            <p class="text-muted mb-0">Total Records</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-success">
+          <div class="card-body text-center">
+            <h3 class="text-success mb-0" id="validRows">0</h3>
+            <p class="text-muted mb-0">Valid Records</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-danger">
+          <div class="card-body text-center">
+            <h3 class="text-danger mb-0" id="invalidRows">0</h3>
+            <p class="text-muted mb-0">Invalid Records</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Table -->
+    <div id="previewContent">
+      <p class="text-center text-muted py-5" id="previewPlaceholder">
+        Upload a file and click "Show Preview" to see the validation results.
+      </p>
+    </div>
+
+    <div class="text-end mt-4" id="step3Actions" style="display: none;">
+      <button type="button" class="btn btn-outline-secondary me-2" id="backToStep2">
+        <i class="bi bi-arrow-left me-2"></i>Previous
+      </button>
+      <button type="button" class="btn btn-success btn-lg" id="importClientsBtn" disabled>
+        <i class="bi bi-upload me-2"></i>Import Clients
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+.step-progress {
+  gap: 20px;
+}
+
+.step {
+  text-align: center;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.step.active {
+  opacity: 1;
+}
+
+.step.completed {
+  opacity: 1;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e9ecef;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-bottom: 8px;
+  margin: 0 auto 8px auto;
+  transition: all 0.3s ease;
+}
+
+.step.active .step-number {
+  background: #0d6efd;
+  color: white;
+}
+
+.step.completed .step-number {
+  background: #198754;
+  color: white;
+}
+
+.step-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.step.active .step-label {
+  color: #0d6efd;
+}
+
+.step.completed .step-label {
+  color: #198754;
+}
+
+.step-line {
+  width: 60px;
+  height: 2px;
+  background: #e9ecef;
+  margin-top: 20px;
+}
+
+.step.completed + .step-line {
+  background: #198754;
+}
+
+.upload-area {
+  border-color: #dee2e6 !important;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+  border-color: #0d6efd !important;
+  background-color: #f8f9fa;
+}
+
+.upload-area.drag-over {
+  border-color: #0d6efd !important;
+  background-color: #e7f3ff;
+}
+
+.list-unstyled li {
+  padding: 2px 0;
+  font-size: 0.9rem;
+}
+
+.list-unstyled li:before {
+  content: "• ";
+  color: #28a745;
+  font-weight: bold;
+}
+
+.preview-table {
+  font-size: 0.85rem;
+}
+
+.error-cell {
+  background-color: #f8d7da !important;
+  color: #721c24;
+}
+
+.valid-row {
+  background-color: #d1edff;
+}
+
+.invalid-row {
+  background-color: #f8d7da;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const clientTypeSelect = document.getElementById('clientTypeSelect');
+  const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
+  const proceedToUpload = document.getElementById('proceedToUpload');
+  const templateInfo = document.getElementById('templateInfo');
+  const fieldRequirements = document.getElementById('fieldRequirements');
+  const requiredFieldsList = document.getElementById('requiredFieldsList');
+  const optionalFieldsList = document.getElementById('optionalFieldsList');
+  const fileInput = document.getElementById('fileInput');
+  const chooseFileBtn = document.getElementById('chooseFileBtn');
+  const uploadArea = document.getElementById('uploadArea');
+  const selectedFile = document.getElementById('selectedFile');
+  const fileName = document.getElementById('fileName');
+  const fileSize = document.getElementById('fileSize');
+  const removeFile = document.getElementById('removeFile');
+  const showPreviewBtn = document.getElementById('showPreviewBtn');
+  const importClientsBtn = document.getElementById('importClientsBtn');
+
+  // Step navigation
+  const step1Content = document.getElementById('step1Content');
+  const step2Content = document.getElementById('step2Content');
+  const step3Content = document.getElementById('step3Content');
+  const step1 = document.getElementById('step1');
+  const step2 = document.getElementById('step2');
+  const step3 = document.getElementById('step3');
+
+  let currentFile = null;
+  let previewData = null;
+
+  // Field definitions
+  const fieldDefinitions = {
+    individual: {
+      required: [
+        'customer_type* (must be "individual")',
+        'first_name* (First name)',
+        'last_name* (Last name)',
+        'mobile* (10-digit mobile number)'
+      ],
+      optional: [
+        'middle_name (Middle name)',
+        'email (Email address)',
+        'gender (male/female/other)',
+        'birth_date (YYYY-MM-DD)',
+        'marital_status (single/married/divorced/widowed)',
+        'address (Full address)',
+        'city (City name)',
+        'state (State name)',
+        'pin_code (PIN code)',
+        'pan_no (PAN number AAAAA9999A)',
+        'aadhar_no (12-digit Aadhaar)',
+        'sub_agent_name (Affiliate name)',
+        'status (true/false, default: true)'
+      ]
+    },
+    corporate: {
+      required: [
+        'customer_type* (must be "corporate")',
+        'company_name* (Company name)',
+        'mobile* (10-digit mobile number)',
+        'email* (Email address)',
+        'gst_no* (GST number)'
+      ],
+      optional: [
+        'address (Full address)',
+        'city (City name)',
+        'state (State name)',
+        'pin_code (PIN code)',
+        'pan_no (PAN number AAAAA9999A)',
+        'sub_agent_name (Affiliate name)',
+        'status (true/false, default: true)'
+      ]
+    }
+  };
+
+  // Client type selection
+  if (clientTypeSelect) {
+    clientTypeSelect.addEventListener('change', function() {
+      const selectedType = this.value;
+
+    if (selectedType) {
+      if (downloadTemplateBtn) downloadTemplateBtn.disabled = false;
+      if (proceedToUpload) proceedToUpload.disabled = false;
+      if (templateInfo) templateInfo.style.display = 'block';
+      if (fieldRequirements) fieldRequirements.style.display = 'block';
+
+      // Update field lists
+      const fields = fieldDefinitions[selectedType];
+      if (requiredFieldsList) requiredFieldsList.innerHTML = fields.required.map(field => `<li>${field}</li>`).join('');
+      if (optionalFieldsList) optionalFieldsList.innerHTML = fields.optional.map(field => `<li>${field}</li>`).join('');
+
+      // Update template info
+      const templateDescription = selectedType === 'individual'
+        ? 'Template for individual clients includes personal details like name, mobile, email, and address information.'
+        : 'Template for corporate clients includes company details like company name, GST number, and business information.';
+      const templateDescEl = document.getElementById('templateDescription');
+      if (templateDescEl) templateDescEl.textContent = templateDescription;
+    } else {
+      if (downloadTemplateBtn) downloadTemplateBtn.disabled = true;
+      if (proceedToUpload) proceedToUpload.disabled = true;
+      if (templateInfo) templateInfo.style.display = 'none';
+      if (fieldRequirements) fieldRequirements.style.display = 'none';
+    }
+    });
+  }
+
+  // Download template
+  if (downloadTemplateBtn) {
+    downloadTemplateBtn.addEventListener('click', function() {
+      const clientType = clientTypeSelect ? clientTypeSelect.value : '';
+      if (clientType) {
+        const url = `<%= download_template_admin_imports_path %>?template_type=customers&client_type=${clientType}`;
+        window.open(url, '_blank');
+      }
+    });
+  }
+
+  // Step navigation
+  if (proceedToUpload) {
+    proceedToUpload.addEventListener('click', function() {
+      showStep(2);
+    });
+  }
+
+  const backToStep1 = document.getElementById('backToStep1');
+  if (backToStep1) {
+    backToStep1.addEventListener('click', function() {
+      showStep(1);
+    });
+  }
+
+  const backToStep2 = document.getElementById('backToStep2');
+  if (backToStep2) {
+    backToStep2.addEventListener('click', function() {
+      showStep(2);
+    });
+  }
+
+  function showStep(stepNumber) {
+    // Hide all steps
+    if (step1Content) step1Content.style.display = 'none';
+    if (step2Content) step2Content.style.display = 'none';
+    if (step3Content) step3Content.style.display = 'none';
+
+    // Reset step classes
+    if (step1) step1.className = 'step';
+    if (step2) step2.className = 'step';
+    if (step3) step3.className = 'step';
+
+    // Show current step and mark previous as completed
+    switch(stepNumber) {
+      case 1:
+        if (step1Content) step1Content.style.display = 'block';
+        if (step1) step1.className = 'step active';
+        break;
+      case 2:
+        if (step2Content) step2Content.style.display = 'block';
+        if (step1) step1.className = 'step completed';
+        if (step2) step2.className = 'step active';
+        break;
+      case 3:
+        if (step3Content) step3Content.style.display = 'block';
+        if (step1) step1.className = 'step completed';
+        if (step2) step2.className = 'step completed';
+        if (step3) step3.className = 'step active';
+        break;
+    }
+  }
+
+  // File upload handling
+  if (chooseFileBtn) {
+    chooseFileBtn.addEventListener('click', function() {
+      if (fileInput) fileInput.click();
+    });
+  }
+
+  if (uploadArea) {
+    uploadArea.addEventListener('click', function() {
+      if (fileInput) fileInput.click();
+    });
+  }
+
+  // Drag and drop
+  if (uploadArea) {
+    uploadArea.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      this.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', function() {
+      this.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', function(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleFile(files[0]);
+      }
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', function() {
+      if (this.files.length > 0) {
+        handleFile(this.files[0]);
+      }
+    });
+  }
+
+  function handleFile(file) {
+    const allowedTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+      'text/csv'
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please select a valid Excel or CSV file.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB.');
+      return;
+    }
+
+    currentFile = file;
+    if (fileName) fileName.textContent = file.name;
+    if (fileSize) fileSize.textContent = formatFileSize(file.size);
+    if (selectedFile) selectedFile.style.display = 'block';
+    if (showPreviewBtn) showPreviewBtn.disabled = false;
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  if (removeFile) {
+    removeFile.addEventListener('click', function() {
+      currentFile = null;
+      if (fileInput) fileInput.value = '';
+      if (selectedFile) selectedFile.style.display = 'none';
+      if (showPreviewBtn) showPreviewBtn.disabled = true;
+      previewData = null;
+      const step3ActionsEl = document.getElementById('step3Actions');
+      if (step3ActionsEl) step3ActionsEl.style.display = 'none';
+      if (importClientsBtn) importClientsBtn.disabled = true;
+    });
+  }
+
+  // Show preview
+  if (showPreviewBtn) {
+    showPreviewBtn.addEventListener('click', function() {
+    if (!currentFile) return;
+
+    const formData = new FormData();
+    formData.append('file', currentFile);
+
+    showPreviewBtn.disabled = true;
+    showPreviewBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Processing...';
+
+    console.log('Sending file for preview:', currentFile.name, currentFile.size);
+
+    fetch('<%= customers_preview_admin_imports_path %>', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRF-Token': document.querySelector('[name="csrf-token"]') ? document.querySelector('[name="csrf-token"]').content : ''
+      }
+    })
+    .then(response => {
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      return response.json();
+    })
+    .then(data => {
+      console.log('Response data:', data);
+
+      showPreviewBtn.disabled = false;
+      showPreviewBtn.innerHTML = '<i class="bi bi-eye me-2"></i>Show Preview';
+
+      if (data.success) {
+        console.log('Preview successful, rows:', data.total_rows);
+        previewData = data;
+        displayPreview(data);
+        showStep(3);
+      } else {
+        console.error('Preview failed:', data.error);
+        if (data.debug) {
+          console.log('Debug info:', data.debug);
+        }
+        alert('Error: ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Fetch error:', error);
+      showPreviewBtn.disabled = false;
+      showPreviewBtn.innerHTML = '<i class="bi bi-eye me-2"></i>Show Preview';
+      alert('Error processing file: ' + error.message);
+    });
+    });
+  }
+
+  function displayPreview(data) {
+    // Update summary
+    const totalRowsEl = document.getElementById('totalRows');
+    const validRowsEl = document.getElementById('validRows');
+    const invalidRowsEl = document.getElementById('invalidRows');
+    const validationSummaryEl = document.getElementById('validationSummary');
+
+    if (totalRowsEl) totalRowsEl.textContent = data.total_rows;
+    if (validRowsEl) validRowsEl.textContent = data.valid_rows;
+    if (invalidRowsEl) invalidRowsEl.textContent = data.invalid_rows;
+    if (validationSummaryEl) validationSummaryEl.style.display = 'flex';
+
+    // Create preview table
+    let html = '<div class="table-responsive"><table class="table table-bordered preview-table">';
+
+    if (data.preview.length > 0) {
+      // Header
+      const headers = Object.keys(data.preview[0].data);
+      html += '<thead class="table-dark"><tr>';
+      html += '<th style="width: 50px;">#</th>';
+      html += '<th style="width: 80px;">Status</th>';
+      headers.forEach(header => {
+        html += `<th>${header}</th>`;
+      });
+      html += '<th>Errors</th></tr></thead><tbody>';
+
+      // Rows (show first 50)
+      const previewRows = data.preview.slice(0, 50);
+      previewRows.forEach(row => {
+        const rowClass = row.valid ? 'valid-row' : 'invalid-row';
+        html += `<tr class="${rowClass}">`;
+        html += `<td>${row.row}</td>`;
+        html += `<td>${row.valid ? '<span class="badge bg-success">Valid</span>' : '<span class="badge bg-danger">Invalid</span>'}</td>`;
+
+        headers.forEach(header => {
+          const cellValue = row.data[header] || '';
+          html += `<td>${cellValue}</td>`;
+        });
+
+        html += `<td>${row.errors.length > 0 ? row.errors.join('; ') : '-'}</td>`;
+        html += '</tr>';
+      });
+
+      if (data.preview.length > 50) {
+        html += `<tr><td colspan="${headers.length + 3}" class="text-center text-muted">... and ${data.preview.length - 50} more rows</td></tr>`;
+      }
+
+      html += '</tbody></table></div>';
+
+      // Enable import if all rows are valid
+      if (data.invalid_rows === 0) {
+        importClientsBtn.disabled = false;
+        html += '<div class="alert alert-success mt-3"><i class="bi bi-check-circle me-2"></i><strong>All records are valid!</strong> You can proceed with the import.</div>';
+      } else {
+        importClientsBtn.disabled = true;
+        html += `<div class="alert alert-warning mt-3"><i class="bi bi-exclamation-triangle me-2"></i><strong>${data.invalid_rows} records have errors.</strong> Please fix the errors in your Excel file and re-upload.</div>`;
+      }
+    } else {
+      html += '<tr><td colspan="100%" class="text-center text-muted">No data found in the file.</td></tr></tbody></table></div>';
+    }
+
+    const previewContentEl = document.getElementById('previewContent');
+    const previewPlaceholderEl = document.getElementById('previewPlaceholder');
+    const step3ActionsEl = document.getElementById('step3Actions');
+
+    if (previewContentEl) previewContentEl.innerHTML = html;
+    if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
+    if (step3ActionsEl) step3ActionsEl.style.display = 'block';
+  }
+
+  // Import clients
+  if (importClientsBtn) {
+    importClientsBtn.addEventListener('click', function() {
+    if (!currentFile || !previewData || previewData.invalid_rows > 0) return;
+
+    const formData = new FormData();
+    formData.append('file', currentFile);
+
+    importClientsBtn.disabled = true;
+    importClientsBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Importing...';
+
+    fetch('<%= admin_import_customers_path %>', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRF-Token': document.querySelector('[name="csrf-token"]') ? document.querySelector('[name="csrf-token"]').content : ''
+      }
+    })
+    .then(response => {
+      if (response.redirected) {
+        window.location.href = response.url;
+      } else {
+        return response.text();
+      }
+    })
+    .catch(error => {
+      importClientsBtn.disabled = false;
+      importClientsBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Import Clients';
+      alert('Error importing clients: ' + error.message);
+    });
+    });
+  }
+});
+</script>

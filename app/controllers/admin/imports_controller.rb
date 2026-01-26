@@ -14,6 +14,112 @@ class Admin::ImportsController < Admin::ApplicationController
     # Show customer import form
   end
 
+  # POST /admin/imports/customers_preview
+  def customers_preview
+    uploaded_file = params[:file]
+
+    if uploaded_file.blank?
+      render json: { success: false, error: 'Please select a file to import.' }
+      return
+    end
+
+    begin
+      require 'csv'
+
+      Rails.logger.info "Processing file: #{uploaded_file.original_filename}"
+      Rails.logger.info "File path: #{uploaded_file.path}"
+      Rails.logger.info "File size: #{uploaded_file.size}"
+
+      preview_results = []
+      row_index = 0
+      total_rows_processed = 0
+
+      # Detect CSV encoding and parse
+      file_content = File.read(uploaded_file.path)
+
+      # Try UTF-8 first, then fallback to other encodings
+      begin
+        file_content = file_content.force_encoding('UTF-8')
+        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
+      rescue CSV::MalformedCSVError, Encoding::UndefinedConversionError
+        # Try with different encoding
+        file_content = file_content.force_encoding('ISO-8859-1').encode('UTF-8')
+        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
+      end
+
+      Rails.logger.info "CSV headers: #{csv_data.headers}"
+      Rails.logger.info "Total CSV rows: #{csv_data.length}"
+
+      # Pre-fetch all existing mobile numbers to avoid N+1 queries
+      # Only query if we have rows to validate
+      existing_mobiles = Set.new
+      if csv_data.length > 0
+        all_mobiles = []
+        csv_data.each do |row|
+          mobile = (row['mobile*'] || row['mobile'])&.to_s&.strip
+          if mobile.present?
+            clean_mobile = mobile.gsub(/\D/, '')
+            all_mobiles << mobile
+            all_mobiles << clean_mobile if clean_mobile != mobile
+          end
+        end
+
+        if all_mobiles.any?
+          # Use select to reduce memory usage for large customer tables
+          existing_mobiles = Customer.select(:mobile).where(mobile: all_mobiles.uniq).pluck(:mobile).to_set
+        end
+      end
+
+      csv_data.each_with_index do |row, index|
+        row_index = index + 1
+        total_rows_processed += 1
+
+        # Skip completely empty rows
+        row_data = row.to_h
+        next if row_data.values.all? { |v| v.nil? || v.strip.empty? }
+
+        Rails.logger.info "Processing row #{row_index}: #{row_data}" if row_index <= 3 # Log first 3 rows
+
+        validation_errors = validate_customer_row_optimized(row_data, row_index, existing_mobiles)
+
+        preview_results << {
+          row: row_index,
+          data: row_data,
+          errors: validation_errors,
+          valid: validation_errors.empty?
+        }
+      end
+
+      Rails.logger.info "Preview results: #{preview_results.count} rows processed"
+
+      render json: {
+        success: true,
+        preview: preview_results,
+        total_rows: preview_results.count,
+        valid_rows: preview_results.count { |r| r[:valid] },
+        invalid_rows: preview_results.count { |r| !r[:valid] },
+        debug: {
+          original_rows: total_rows_processed,
+          headers: csv_data.headers,
+          file_size: uploaded_file.size
+        }
+      }
+
+    rescue => e
+      Rails.logger.error "Customer preview error: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      render json: {
+        success: false,
+        error: "Error reading file: #{e.message}. Please check the format and try again.",
+        debug: {
+          error_class: e.class.name,
+          file_name: uploaded_file.original_filename,
+          file_size: uploaded_file.size
+        }
+      }
+    end
+  end
+
   def sub_agents_form
     # Show sub-agent import form
   end
@@ -70,12 +176,35 @@ class Admin::ImportsController < Admin::ApplicationController
       import_result = ImportService::SubAgentImporter.new(uploaded_file).import
 
       if import_result[:success]
-        redirect_to admin_sub_agents_path, notice: "Successfully imported #{import_result[:imported_count]} sub-agents. #{import_result[:skipped_count]} records were skipped due to validation errors."
+        redirect_to admin_sub_agents_path, notice: "Successfully imported #{import_result[:imported_count]} affiliates. #{import_result[:skipped_count]} records were skipped due to validation errors."
       else
         redirect_back fallback_location: admin_imports_path, alert: "Import failed: #{import_result[:error]}"
       end
     rescue => e
-      Rails.logger.error "Sub-agent import error: #{e.message}"
+      Rails.logger.error "Affiliate import error: #{e.message}"
+      redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.'
+    end
+  end
+
+  # POST /admin/import/distributors
+  def distributors
+    uploaded_file = params[:file]
+
+    if uploaded_file.blank?
+      redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.'
+      return
+    end
+
+    begin
+      import_result = ImportService::DistributorImporter.new(uploaded_file).import
+
+      if import_result[:success]
+        redirect_to admin_distributors_path, notice: "Successfully imported #{import_result[:imported_count]} distributors. #{import_result[:skipped_count]} records were skipped due to validation errors."
+      else
+        redirect_back fallback_location: admin_imports_path, alert: "Import failed: #{import_result[:error]}"
+      end
+    rescue => e
+      Rails.logger.error "Distributor import error: #{e.message}"
       redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.'
     end
   end
@@ -180,6 +309,8 @@ class Admin::ImportsController < Admin::ApplicationController
       send_customer_template
     when 'sub_agents'
       send_sub_agent_template
+    when 'distributors'
+      send_distributor_template
     when 'health_insurances'
       send_health_insurance_template
     when 'life_insurances'
@@ -195,21 +326,66 @@ class Admin::ImportsController < Admin::ApplicationController
 
   # Template download methods
   def send_customer_template
+    template_type = params[:client_type] || 'both'
+
+    case template_type
+    when 'individual'
+      send_individual_customer_template
+    when 'corporate'
+      send_corporate_customer_template
+    else
+      send_both_customer_template
+    end
+  end
+
+  def send_individual_customer_template
     csv_data = CSV.generate(headers: true) do |csv|
       csv << [
-        'customer_type', 'first_name', 'middle_name', 'last_name', 'company_name',
-        'email', 'mobile', 'gender', 'birth_date', 'address', 'city', 'state',
-        'pincode', 'pan_no', 'gst_no', 'occupation', 'annual_income', 'marital_status'
+        'customer_type*', 'first_name*', 'middle_name', 'last_name*', 'mobile*',
+        'email', 'gender', 'birth_date', 'marital_status', 'address', 'city', 'state',
+        'pin_code', 'pan_no', 'aadhar_no', 'sub_agent_name', 'status'
+      ]
+      csv << [
+        'individual', 'John', 'Kumar', 'Doe', '9876543210',
+        'john.doe@example.com', 'male', '1990-01-01', 'married', '123 Main St', 'Mumbai', 'Maharashtra',
+        '400001', 'ABCDE1234F', '123456789012', 'Agent Name', 'true'
+      ]
+    end
+
+    send_data csv_data, filename: 'individual_customers_template.csv', type: 'text/csv'
+  end
+
+  def send_corporate_customer_template
+    csv_data = CSV.generate(headers: true) do |csv|
+      csv << [
+        'customer_type*', 'company_name*', 'mobile*', 'email*', 'gst_no*',
+        'address', 'city', 'state', 'pin_code', 'pan_no', 'sub_agent_name', 'status'
+      ]
+      csv << [
+        'corporate', 'ABC Company Ltd', '9876543211', 'contact@abc.com', '22ABCDE1234F1Z5',
+        '456 Business Park', 'Delhi', 'Delhi', '110001', 'ABCDE1234F', 'Agent Name', 'true'
+      ]
+    end
+
+    send_data csv_data, filename: 'corporate_customers_template.csv', type: 'text/csv'
+  end
+
+  def send_both_customer_template
+    csv_data = CSV.generate(headers: true) do |csv|
+      csv << [
+        'customer_type*', 'first_name', 'middle_name', 'last_name', 'company_name',
+        'mobile*', 'email', 'gender', 'birth_date', 'marital_status', 'address', 'city', 'state',
+        'pin_code', 'pan_no', 'gst_no', 'aadhar_no', 'sub_agent_name', 'status'
       ]
       csv << [
         'individual', 'John', 'Kumar', 'Doe', '',
-        'john.doe@example.com', '9876543210', 'male', '1990-01-01', '123 Main St', 'Mumbai', 'Maharashtra',
-        '400001', 'ABCDE1234F', '', 'Software Engineer', '500000', 'married'
+        '9876543210', 'john.doe@example.com', 'male', '1990-01-01', 'married', '123 Main St', 'Mumbai', 'Maharashtra',
+        '400001', 'ABCDE1234F', '', '123456789012', 'Agent Name', 'true'
       ]
       csv << [
         'corporate', '', '', '', 'ABC Company Ltd',
-        'contact@abc.com', '9876543211', '', '', '456 Business Park', 'Delhi', 'Delhi',
-        '110001', '', 'GSTIN123456789', '', '', ''
+        '9876543211', 'contact@abc.com', '', '', '', '456 Business Park', 'Delhi', 'Delhi',
+        '110001', 'ABCDE1234F', '22ABCDE1234F1Z5', '', 'Agent Name', 'true'
       ]
     end
 
@@ -220,34 +396,52 @@ class Admin::ImportsController < Admin::ApplicationController
     csv_data = CSV.generate(headers: true) do |csv|
       csv << [
         'first_name', 'middle_name', 'last_name', 'email', 'mobile', 'gender',
-        'birth_date', 'address', 'pan_no', 'gst_no', 'company_name', 'role_id',
-        'bank_name', 'account_type', 'account_no', 'ifsc_code', 'account_holder_name',
-        'upi_id', 'password'
+        'birth_date', 'address', 'state', 'city', 'pin_code', 'pan_no', 'aadhar_no',
+        'account_holder_name', 'account_number', 'ifsc_code', 'account_type',
+        'distributor_name', 'status'
       ]
       csv << [
-        'Agent', '', 'Smith', 'agent.smith@example.com', '9876543210', 'male',
-        '1985-01-01', '789 Agent Street, Mumbai', 'ABCDE1234F', '', 'Agent Company',
-        '1', 'SBI', 'Savings', '1234567890', 'SBIN0001234', 'Agent Smith',
-        'agent@upi', 'password123'
+        'John', 'Kumar', 'Smith', 'affiliate@example.com', '9876543210', 'Male',
+        '1985-01-01', '789 Agent Street, Mumbai', 'Maharashtra', 'Mumbai', '400001',
+        'ABCDE1234F', '123456789012', 'John Kumar Smith', '1234567890', 'SBIN0001234',
+        'Savings', 'Distributor Name', 'active'
       ]
     end
 
-    send_data csv_data, filename: 'sub_agents_import_template.csv', type: 'text/csv'
+    send_data csv_data, filename: 'affiliates_import_template.csv', type: 'text/csv'
+  end
+
+  def send_distributor_template
+    csv_data = CSV.generate(headers: true) do |csv|
+      csv << [
+        'first_name', 'middle_name', 'last_name', 'email', 'mobile', 'gender',
+        'birth_date', 'address', 'state', 'city', 'pin_code', 'pan_no', 'aadhar_no',
+        'account_holder_name', 'account_number', 'ifsc_code', 'account_type', 'status'
+      ]
+      csv << [
+        'Jane', 'Kumar', 'Doe', 'distributor@example.com', '9876543211', 'Female',
+        '1980-01-01', '456 Business Street, Delhi', 'Delhi', 'Delhi', '110001',
+        'BCDEF5678G', '123456789013', 'Jane Kumar Doe', '0987654321', 'HDFC0001234',
+        'Savings', 'active'
+      ]
+    end
+
+    send_data csv_data, filename: 'distributors_import_template.csv', type: 'text/csv'
   end
 
   def send_health_insurance_template
     csv_data = CSV.generate(headers: true) do |csv|
       csv << [
-        'customer_email', 'policy_holder', 'insurance_company_name', 'policy_type',
-        'policy_number', 'policy_booking_date', 'policy_start_date', 'policy_end_date',
+        'customer_name', 'policy_holder', 'insurance_company_name', 'policy_type',
+        'insurance_type', 'policy_number', 'policy_booking_date', 'policy_start_date', 'policy_end_date',
         'payment_mode', 'sum_insured', 'net_premium', 'gst_percentage', 'total_premium',
-        'plan_name'
+        'sub_agent_name', 'distributor_name', 'investor_name', 'agency_code_name', 'broker_name'
       ]
       csv << [
-        'customer@example.com', 'John Doe', 'HDFC ERGO Health Insurance', 'Individual',
-        'HLT001234', '2024-01-01', '2024-01-01', '2024-12-31',
+        'John Kumar Doe', 'John Doe', 'HDFC ERGO Health Insurance', 'New',
+        'Individual', 'HLT001234', '2024-01-01', '2024-01-01', '2024-12-31',
         'Yearly', '500000', '25000', '18', '29500',
-        'Complete Health Care'
+        'Affiliate Name', 'Distributor Name', 'Investor Name', 'Agency Code Name', 'Broker Name'
       ]
     end
 
@@ -257,16 +451,18 @@ class Admin::ImportsController < Admin::ApplicationController
   def send_life_insurance_template
     csv_data = CSV.generate(headers: true) do |csv|
       csv << [
-        'customer_email', 'policy_holder', 'insured_name', 'insurance_company_name',
+        'customer_name', 'policy_holder', 'insurance_company_name', 'policy_type',
         'policy_number', 'policy_booking_date', 'policy_start_date', 'policy_end_date',
         'payment_mode', 'sum_insured', 'net_premium', 'first_year_gst_percentage',
-        'total_premium', 'plan_name', 'policy_term', 'premium_payment_term'
+        'total_premium', 'policy_term', 'distributor_name', 'sub_agent_name',
+        'investor_name', 'agency_code_name', 'broker_name'
       ]
       csv << [
-        'customer@example.com', 'John Doe', 'John Doe', 'ICICI Prudential Life Insurance',
+        'John Kumar Doe', 'John Doe', 'ICICI Prudential Life Insurance', 'New',
         'LIC001234', '2024-01-01', '2024-01-01', '2044-12-31',
         'Yearly', '1000000', '50000', '18',
-        '59000', 'iProtect Smart', '20', '10'
+        '59000', '20', 'Distributor Name', 'Affiliate Name',
+        'Investor Name', 'Agency Code Name', 'Broker Name'
       ]
     end
 
@@ -276,18 +472,18 @@ class Admin::ImportsController < Admin::ApplicationController
   def send_motor_insurance_template
     csv_data = CSV.generate(headers: true) do |csv|
       csv << [
-        'customer_email', 'policy_holder', 'insurance_company_name', 'policy_type',
-        'policy_number', 'policy_booking_date', 'policy_start_date', 'policy_end_date',
-        'registration_number', 'make', 'model', 'variant', 'mfy', 'vehicle_type',
-        'class_of_vehicle', 'seating_capacity', 'total_idv', 'net_premium',
-        'gst_percentage', 'total_premium', 'engine_number', 'chassis_number'
+        'customer_name', 'policy_holder', 'insurance_company_name', 'vehicle_type',
+        'class_of_vehicle', 'insurance_type', 'policy_number', 'policy_booking_date', 'policy_start_date', 'policy_end_date',
+        'registration_number', 'vehicle_idv', 'net_premium', 'gst_percentage', 'total_premium',
+        'make', 'model', 'variant', 'mfy', 'sub_agent_name', 'distributor_name',
+        'investor_name', 'agency_code_name', 'broker_name'
       ]
       csv << [
-        'customer@example.com', 'John Doe', 'HDFC ERGO General Insurance', 'Comprehensive',
-        'MOT001234', '2024-01-01', '2024-01-01', '2024-12-31',
-        'MH01AB1234', 'Maruti Suzuki', 'Swift', 'VXI', '2020', 'Car',
-        'Private Car', '5', '500000', '18000',
-        '18', '21240', 'ABC123456', 'XYZ789012'
+        'John Kumar Doe', 'John Doe', 'HDFC ERGO General Insurance', 'New Vehicle',
+        'Private Car', 'Comprehensive', 'MOT001234', '2024-01-01', '2024-01-01', '2024-12-31',
+        'MH01AB1234', '500000', '18000', '18', '21240',
+        'Maruti Suzuki', 'Swift', 'VXI', '2020', 'Affiliate Name', 'Distributor Name',
+        'Investor Name', 'Agency Code Name', 'Broker Name'
       ]
     end
 
@@ -315,5 +511,184 @@ class Admin::ImportsController < Admin::ApplicationController
       LifeInsurance.maximum(:created_at),
       MotorInsurance.maximum(:created_at)
     ].compact.max
+  end
+
+  def validate_customer_row(row_data, row_index)
+    errors = []
+
+    # Helper method to check if field is blank
+    def field_blank?(value)
+      value.nil? || value.to_s.strip.empty?
+    end
+
+    customer_type = row_data['customer_type']&.to_s&.downcase&.strip
+
+    # Check customer type
+    if field_blank?(customer_type)
+      errors << "Customer type is required"
+    elsif !['individual', 'corporate'].include?(customer_type)
+      errors << "Customer type must be 'individual' or 'corporate'"
+    end
+
+    # Individual customer validation
+    if customer_type == 'individual'
+      errors << "First name is required for individual customers" if field_blank?(row_data['first_name'])
+      errors << "Last name is required for individual customers" if field_blank?(row_data['last_name'])
+      errors << "Mobile is required for individual customers" if field_blank?(row_data['mobile'])
+    end
+
+    # Corporate customer validation
+    if customer_type == 'corporate'
+      errors << "Company name is required for corporate customers" if field_blank?(row_data['company_name'])
+      errors << "Mobile is required for corporate customers" if field_blank?(row_data['mobile'])
+      errors << "Email is required for corporate customers" if field_blank?(row_data['email'])
+      errors << "GST number is required for corporate customers" if field_blank?(row_data['gst_no'])
+    end
+
+    # Mobile validation
+    mobile = row_data['mobile']&.to_s&.strip
+    if !field_blank?(mobile)
+      # Remove any non-digit characters for validation
+      clean_mobile = mobile.gsub(/\D/, '')
+      if clean_mobile.length != 10
+        errors << "Mobile must be exactly 10 digits"
+      elsif Customer.where(mobile: [mobile, clean_mobile]).exists?
+        errors << "Mobile number already exists"
+      end
+    end
+
+    # Email validation
+    email = row_data['email']&.to_s&.strip
+    if !field_blank?(email) && !email.match?(URI::MailTo::EMAIL_REGEXP)
+      errors << "Invalid email format"
+    end
+
+    # PAN validation
+    pan_no = row_data['pan_no']&.to_s&.strip&.upcase
+    if !field_blank?(pan_no) && !pan_no.match?(/\A[A-Z]{5}\d{4}[A-Z]\z/)
+      errors << "Invalid PAN format (should be AAAAA9999A)"
+    end
+
+    # GST validation
+    gst_no = row_data['gst_no']&.to_s&.strip&.upcase
+    if !field_blank?(gst_no) && !gst_no.match?(/\A\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z\d][A-Z\d]\z/)
+      errors << "Invalid GST format"
+    end
+
+    # Gender validation
+    gender = row_data['gender']&.to_s&.downcase&.strip
+    if !field_blank?(gender) && !['male', 'female', 'other'].include?(gender)
+      errors << "Gender must be 'male', 'female', or 'other'"
+    end
+
+    # Marital status validation
+    marital_status = row_data['marital_status']&.to_s&.downcase&.strip
+    if !field_blank?(marital_status) && !['single', 'married', 'divorced', 'widowed'].include?(marital_status)
+      errors << "Marital status must be 'single', 'married', 'divorced', or 'widowed'"
+    end
+
+    errors
+  end
+
+  def validate_customer_row_optimized(row_data, row_index, existing_mobiles = nil)
+    errors = []
+
+    customer_type = row_data['customer_type*'] || row_data['customer_type']
+    customer_type = customer_type&.to_s&.downcase&.strip
+
+    # Check customer type
+    if customer_type.nil? || customer_type.empty?
+      errors << "Customer type is required"
+    elsif !['individual', 'corporate'].include?(customer_type)
+      errors << "Customer type must be 'individual' or 'corporate'"
+    end
+
+    # Individual customer validation
+    if customer_type == 'individual'
+      first_name = row_data['first_name*'] || row_data['first_name']
+      last_name = row_data['last_name*'] || row_data['last_name']
+      mobile = row_data['mobile*'] || row_data['mobile']
+
+      errors << "First name is required for individual customers" if first_name.nil? || first_name.to_s.strip.empty?
+      errors << "Last name is required for individual customers" if last_name.nil? || last_name.to_s.strip.empty?
+      errors << "Mobile is required for individual customers" if mobile.nil? || mobile.to_s.strip.empty?
+    end
+
+    # Corporate customer validation
+    if customer_type == 'corporate'
+      company_name = row_data['company_name*'] || row_data['company_name']
+      mobile = row_data['mobile*'] || row_data['mobile']
+      email = row_data['email*'] || row_data['email']
+      gst_no = row_data['gst_no*'] || row_data['gst_no']
+
+      errors << "Company name is required for corporate customers" if company_name.nil? || company_name.to_s.strip.empty?
+      errors << "Mobile is required for corporate customers" if mobile.nil? || mobile.to_s.strip.empty?
+      errors << "Email is required for corporate customers" if email.nil? || email.to_s.strip.empty?
+      errors << "GST number is required for corporate customers" if gst_no.nil? || gst_no.to_s.strip.empty?
+    end
+
+    # Mobile validation
+    mobile = (row_data['mobile*'] || row_data['mobile'])&.to_s&.strip
+    if mobile && !mobile.empty?
+      # Remove any non-digit characters for validation
+      clean_mobile = mobile.gsub(/\D/, '')
+      if clean_mobile.length != 10
+        errors << "Mobile must be exactly 10 digits"
+      elsif existing_mobiles
+        # Use the pre-fetched set of existing mobiles
+        if existing_mobiles.include?(mobile) || existing_mobiles.include?(clean_mobile)
+          errors << "Mobile number already exists"
+        end
+      end
+    end
+
+    # Email validation
+    email = row_data['email']&.to_s&.strip
+    if email && !email.empty? && !email.match?(URI::MailTo::EMAIL_REGEXP)
+      errors << "Invalid email format"
+    end
+
+    # PAN validation
+    pan_no = row_data['pan_no']&.to_s&.strip&.upcase
+    if pan_no && !pan_no.empty? && !pan_no.match?(/\A[A-Z]{5}\d{4}[A-Z]\z/)
+      errors << "Invalid PAN format (should be AAAAA9999A)"
+    end
+
+    # GST validation
+    gst_no = row_data['gst_no']&.to_s&.strip&.upcase
+    if gst_no && !gst_no.empty? && !gst_no.match?(/\A\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z\d][A-Z\d]\z/)
+      errors << "Invalid GST format"
+    end
+
+    # Gender validation
+    gender = row_data['gender']&.to_s&.downcase&.strip
+    if gender && !gender.empty? && !['male', 'female', 'other'].include?(gender)
+      errors << "Gender must be 'male', 'female', or 'other'"
+    end
+
+    # Marital status validation
+    marital_status = row_data['marital_status']&.to_s&.downcase&.strip
+    if marital_status && !marital_status.empty? && !['single', 'married', 'divorced', 'widowed'].include?(marital_status)
+      errors << "Marital status must be 'single', 'married', 'divorced', or 'widowed'"
+    end
+
+    # Birth date validation - simplified for performance
+    birth_date = row_data['birth_date']&.to_s&.strip
+    if birth_date && !birth_date.empty?
+      begin
+        # For standard YYYY-MM-DD format (most common), parse directly
+        if birth_date.match?(/^\d{4}-\d{2}-\d{2}$/)
+          Date.parse(birth_date)
+        else
+          # For other formats, try Date.parse which handles many formats
+          Date.parse(birth_date)
+        end
+        # Allow future dates - no restriction
+      rescue
+        errors << "Invalid birth date format"
+      end
+    end
+
+    errors
   end
 end

@@ -169,16 +169,18 @@
                 <td>
                   <div>
                     <div class="fw-bold"><%= indian_currency(policy.total_premium) %></div>
-                    <small class="text-muted"><%= policy.premium_frequency&.humanize %></small>
+                    <small class="text-muted"><%= policy.payment_mode&.humanize %></small>
                   </div>
                 </td>
                 <td>
-                  <% if policy.status == 'active' %>
-                    <span class="badge bg-success">Active</span>
-                  <% elsif policy.status == 'expired' %>
-                    <span class="badge bg-danger">Expired</span>
+                  <% if policy.status == true %>
+                    <% if policy.policy_end_date && policy.policy_end_date < Date.current %>
+                      <span class="badge bg-warning">Expired</span>
+                    <% else %>
+                      <span class="badge bg-success">Active</span>
+                    <% end %>
                   <% else %>
-                    <span class="badge bg-warning"><%= policy.status&.humanize || 'Pending' %></span>
+                    <span class="badge bg-danger">Inactive</span>
                   <% end %>
                 </td>
                 <td>

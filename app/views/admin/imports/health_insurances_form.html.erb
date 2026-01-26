@@ -1,0 +1,159 @@
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-12">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 class="h4 mb-1">
+            <i class="bi bi-heart-pulse-fill text-success me-2"></i>
+            Import Health Insurance Policies
+          </h2>
+          <p class="text-muted mb-0">Upload CSV/Excel file to import health insurance policies with client data</p>
+        </div>
+        <%= link_to admin_imports_path, class: "btn btn-outline-secondary" do %>
+          <i class="bi bi-arrow-left me-2"></i>Back to Imports
+        <% end %>
+      </div>
+
+      <!-- Import Form -->
+      <div class="row justify-content-center">
+        <div class="col-lg-10">
+          <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+              <h5 class="card-title mb-0">
+                <i class="bi bi-cloud-upload me-2"></i>
+                Upload Health Insurance Data
+              </h5>
+            </div>
+
+            <%= form_with url: admin_import_health_insurances_path, method: :post, multipart: true, local: true, class: "import-form" do |form| %>
+              <div class="card-body">
+                <!-- Requirements Alert -->
+                <div class="alert alert-warning" role="alert">
+                  <h6 class="alert-heading">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Important Notice:
+                  </h6>
+                  <p class="mb-0">This import creates both clients and their health insurance policies. Existing clients will be linked by name matching.</p>
+                </div>
+
+                <div class="alert alert-info" role="alert">
+                  <h6 class="alert-heading">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Import Requirements:
+                  </h6>
+                  <ul class="mb-0">
+                    <li><strong>Customer:</strong> customer_name (exact name match)</li>
+                    <li><strong>Policy Required:</strong> policy_holder, insurance_company_name, policy_type, insurance_type</li>
+                    <li><strong>Dates:</strong> policy_booking_date, policy_start_date, policy_end_date, payment_mode</li>
+                    <li><strong>Amounts:</strong> sum_insured, net_premium, gst_percentage, total_premium</li>
+                    <li><strong>Associations:</strong> sub_agent_name, distributor_name, investor_name (by name)</li>
+                    <li>Policy types: New, Renewal, Porting, Migration</li>
+                    <li>Insurance types: Individual, Family Floater, Group</li>
+                  </ul>
+                </div>
+
+                <!-- File Upload -->
+                <div class="mb-4">
+                  <label for="healthInsuranceFile" class="form-label fw-bold">
+                    <i class="bi bi-file-earmark-spreadsheet me-2"></i>
+                    Select Health Insurance Data File
+                  </label>
+                  <%= form.file_field :file,
+                                      id: "healthInsuranceFile",
+                                      class: "form-control form-control-lg",
+                                      accept: ".csv,.xlsx,.xls",
+                                      required: true %>
+                  <div class="form-text">
+                    Supported formats: CSV, Excel (.xlsx, .xls). Maximum size: 10MB
+                  </div>
+                </div>
+
+                <!-- Sample Data Preview -->
+                <div class="border rounded p-3 bg-light">
+                  <h6 class="text-muted mb-3">
+                    <i class="bi bi-table me-2"></i>
+                    Sample Data Format:
+                  </h6>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover">
+                      <thead class="table-dark">
+                        <tr>
+                          <th>customer_name</th>
+                          <th>policy_holder</th>
+                          <th>insurance_company_name</th>
+                          <th>policy_type</th>
+                          <th>insurance_type</th>
+                          <th>sum_insured</th>
+                          <th>total_premium</th>
+                          <th>sub_agent_name</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>John Kumar Doe</td>
+                          <td>John Doe</td>
+                          <td>HDFC ERGO Health Insurance</td>
+                          <td>New</td>
+                          <td>Individual</td>
+                          <td>500000</td>
+                          <td>29500</td>
+                          <td>Agent Name</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-footer d-flex justify-content-between">
+                <div>
+                  <%= link_to download_template_admin_imports_path(template_type: 'health_insurances'),
+                              class: "btn btn-outline-success",
+                              target: "_blank" do %>
+                    <i class="bi bi-download me-2"></i>Download Template
+                  <% end %>
+                </div>
+                <div>
+                  <%= form.submit "Import Health Insurance Policies",
+                                  class: "btn btn-success btn-lg",
+                                  data: {
+                                    disable_with: '<i class="bi bi-hourglass-split me-2"></i>Importing...'
+                                  } %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.import-form {
+  margin: 0;
+}
+
+.table th {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.table td {
+  font-size: 0.8rem;
+}
+
+.alert ul {
+  padding-left: 1.2rem;
+}
+
+.card-header {
+  border-bottom: 3px solid rgba(255,255,255,0.3);
+}
+
+.btn-lg {
+  padding: 0.75rem 2rem;
+  font-weight: 500;
+}
+</style>

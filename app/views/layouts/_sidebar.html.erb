@@ -1047,18 +1047,81 @@
           <% end %>
         </li>
 
-        <!-- Import Data (renamed from Imports) -->
+        <!-- Import Data (with dropdown submenu) -->
         <% if show_sidebar_item?('management') || current_user&.user_type == 'admin' %>
-          <li class="nav-item">
-            <%= link_to admin_imports_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/imports')}" do %>
+          <li class="nav-item dropdown-menu-item">
+            <div class="nav-link-modern dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#import-menu" aria-expanded="false" style="cursor: pointer;">
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-amber">
                   <i class="bi bi-cloud-upload-fill"></i>
                 </div>
               </div>
               <span class="nav-text">Import Data</span>
-              <div class="nav-indicator"></div>
-            <% end %>
+              <i class="bi bi-chevron-right dropdown-arrow ms-auto"></i>
+            </div>
+            <div class="collapse submenu" id="import-menu">
+              <ul class="nav-menu submenu-list">
+                <!-- Import Affiliates -->
+                <li class="nav-item">
+                  <%= link_to sub_agents_form_admin_imports_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/imports/sub_agents_form')}" do %>
+                    <i class="bi bi-people text-violet me-2"></i>
+                    <span class="nav-text">Affiliate</span>
+                  <% end %>
+                </li>
+
+                <!-- Import Distributors -->
+                <li class="nav-item">
+                  <%= link_to distributors_form_admin_imports_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/imports/distributors_form')}" do %>
+                    <i class="bi bi-diagram-3 text-indigo me-2"></i>
+                    <span class="nav-text">Distributor</span>
+                  <% end %>
+                </li>
+
+                <!-- Import Clients -->
+                <li class="nav-item">
+                  <%= link_to customers_form_admin_imports_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/imports/customers_form')}" do %>
+                    <i class="bi bi-people-fill text-green me-2"></i>
+                    <span class="nav-text">Client</span>
+                  <% end %>
+                </li>
+
+                <!-- Import Client & Policy -->
+                <li class="nav-item dropdown-menu-item">
+                  <div class="nav-link-modern dropdown-toggle submenu-link" data-bs-toggle="collapse" data-bs-target="#client-policy-menu" aria-expanded="false" style="cursor: pointer;">
+                    <i class="bi bi-shield-check text-cyan me-2"></i>
+                    <span class="nav-text">Client & Policy</span>
+                    <i class="bi bi-chevron-right dropdown-arrow ms-auto" style="font-size: 10px;"></i>
+                  </div>
+                  <div class="collapse submenu" id="client-policy-menu" style="margin-left: 1rem;">
+                    <ul class="nav-menu submenu-list">
+                      <!-- Health Insurance -->
+                      <li class="nav-item">
+                        <%= link_to health_insurances_form_admin_imports_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/imports/health_insurances_form')}" do %>
+                          <i class="bi bi-heart-pulse-fill text-success me-2" style="font-size: 12px;"></i>
+                          <span class="nav-text" style="font-size: 12px;">Health</span>
+                        <% end %>
+                      </li>
+
+                      <!-- Life Insurance -->
+                      <li class="nav-item">
+                        <%= link_to life_insurances_form_admin_imports_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/imports/life_insurances_form')}" do %>
+                          <i class="bi bi-heart-fill text-danger me-2" style="font-size: 12px;"></i>
+                          <span class="nav-text" style="font-size: 12px;">Life</span>
+                        <% end %>
+                      </li>
+
+                      <!-- Motor Insurance -->
+                      <li class="nav-item">
+                        <%= link_to motor_insurances_form_admin_imports_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/imports/motor_insurances_form')}" do %>
+                          <i class="bi bi-car-front-fill text-primary me-2" style="font-size: 12px;"></i>
+                          <span class="nav-text" style="font-size: 12px;">Motor</span>
+                        <% end %>
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+              </ul>
+            </div>
           </li>
         <% end %>
 

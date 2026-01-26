@@ -1,7 +1,11 @@
 class OtherInsurance < ApplicationRecord
-  belongs_to :policy
+  belongs_to :policy, optional: true
+  belongs_to :customer
+  belongs_to :sub_agent, optional: true
+  belongs_to :agency_code, optional: true
   has_many_attached :documents
   has_many_attached :policy_documents
+  has_many_attached :additional_documents
 
   # Callbacks
   after_create :create_commission_payouts
@@ -34,9 +38,7 @@ class OtherInsurance < ApplicationRecord
     (policy_end_date - Date.current).to_i
   end
 
-  def customer
-    policy&.customer
-  end
+  # Customer association is now direct, not through policy
 
   def policy_number
     read_attribute(:policy_number) || "OTHER-#{id}"
@@ -55,11 +57,11 @@ class OtherInsurance < ApplicationRecord
   end
 
   def create_lead_record
-    return if lead_id.present? # Skip if lead already exists
-    return unless policy&.customer # Skip if no customer
+    return if respond_to?(:lead_id) && lead_id.present? # Skip if lead already exists
+    return unless customer # Skip if no customer
     return if respond_to?(:is_customer_added?) && is_customer_added? # Skip auto-creation for customer-added policies
 
-    LeadGeneratorService.create_lead_for_insurance(self)
+    LeadGeneratorService.create_lead_for_insurance(self) if defined?(LeadGeneratorService)
   rescue StandardError => e
     Rails.logger.error "Failed to create lead for other insurance #{id}: #{e.message}"
   end

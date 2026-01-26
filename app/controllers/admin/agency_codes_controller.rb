@@ -41,6 +41,18 @@ class Admin::AgencyCodesController < Admin::ApplicationController
       end
 
       format.json do
+        # Handle type parameter for AJAX filtering
+        if params[:type].present?
+          @agency_codes = case params[:type]
+          when 'agent'
+            @agency_codes.where(code_type: 'Agent')
+          when 'broker'
+            @agency_codes.where(code_type: 'Broker')
+          else
+            @agency_codes
+          end
+        end
+
         # For JSON requests, return all matching records without pagination
         @agency_codes = @agency_codes.order(:agent_name, :code)
         render json: @agency_codes.map do |agency_code|
@@ -620,5 +632,14 @@ class Admin::AgencyCodesController < Admin::ApplicationController
 
     # Ensure we always return a sorted array (never nil)
     companies.present? ? companies.sort : []
+  end
+
+  # AJAX endpoint for fetching insurance companies for a specific agency code
+  def insurance_companies
+    agency_code = AgencyCode.find(params[:id])
+    companies = get_companies_for_insurance_type(agency_code.insurance_type)
+    render json: companies
+  rescue ActiveRecord::RecordNotFound
+    render json: [], status: :not_found
   end
 end
