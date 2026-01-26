@@ -18,6 +18,10 @@ class Admin::ImportsController < Admin::ApplicationController
     # Show sub-agent import form
   end
 
+  def distributors_form
+    # Show distributor import form
+  end
+
   def health_insurances_form
     # Show health insurance import form
   end

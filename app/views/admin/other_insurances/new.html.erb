@@ -1,6 +1,71 @@
 <% content_for :page_title, "Add General Insurance" %>
 <% content_for :page_subtitle, "Easily create and manage general insurance details" %>
 
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<style>
+  /* Enhanced Select2 styling */
+  .select2-container--bootstrap-5 .select2-selection--single {
+    height: 38px !important;
+    padding: 6px 12px !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 0.375rem !important;
+  }
+
+  .select2-container--bootstrap-5 .select2-selection--single:focus-within {
+    border-color: #86b7fe !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+  }
+
+  .select2-container--bootstrap-5 .select2-selection__rendered {
+    color: #212529 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .select2-container--bootstrap-5 .select2-results__option {
+    padding: 8px 12px !important;
+  }
+
+  .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: #0d6efd !important;
+    color: white !important;
+  }
+
+  .select2-dropdown {
+    border: 1px solid #ced4da !important;
+    border-radius: 0.375rem !important;
+  }
+
+  .select2-results__options {
+    max-height: 200px !important;
+  }
+
+  .select2-dropdown-large .select2-results__options {
+    max-height: 300px !important;
+  }
+
+  .select2-dropdown-large {
+    min-width: 300px !important;
+  }
+
+  .select2-dropdown-large .select2-results__option {
+    padding: 10px 15px !important;
+    border-bottom: 1px solid #f8f9fa;
+  }
+
+  .select2-search__field {
+    padding: 8px 12px !important;
+    border-radius: 0.375rem !important;
+    border: 1px solid #ced4da !important;
+  }
+</style>
+
 <!-- Action Buttons -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
@@ -18,12 +83,12 @@
 
 <%= form_with model: [:admin, @other_insurance], local: true, class: "needs-validation", novalidate: true do |form| %>
 
-  <!-- Client Details Section -->
+  <!-- Client & Agent Details Section -->
   <div class="card mb-4">
     <div class="card-header">
       <h5 class="mb-0">
         <i class="bi bi-person me-2 text-primary"></i>
-        Client Details
+        Client & Agent Details
       </h5>
     </div>
     <div class="card-body">
@@ -41,249 +106,344 @@
       <% end %>
 
       <div class="row">
-        <div class="col-md-6 mb-3">
+        <div class="col-md-4 mb-3">
           <%= form.label :customer_id, "Client Name*", class: "form-label" %>
           <%= form.select :customer_id,
-              options_for_select(@customers.map { |c| [c.display_name, c.id] }, @other_insurance.customer_id),
+              options_for_select(@customers.map { |c| [c.display_name, c.id] }, @selected_customer&.id || @other_insurance.customer_id),
               { prompt: 'Search and select client...' },
               { class: "form-control #{'is-invalid' if @other_insurance.errors[:customer_id].any?}", required: true, id: "customer_select", data: { placeholder: "Type to search clients..." } } %>
           <% if @other_insurance.errors[:customer_id].any? %>
             <div class="invalid-feedback"><%= @other_insurance.errors[:customer_id].first %></div>
           <% end %>
         </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :plan_name, "Plan Name", class: "form-label" %>
+          <%= form.text_field :plan_name,
+              class: "form-control #{'is-invalid' if @other_insurance.errors[:plan_name].any?}",
+              placeholder: "Enter plan name...",
+              id: "plan_name_field" %>
+          <% if @other_insurance.errors[:plan_name].any? %>
+            <div class="invalid-feedback"><%= @other_insurance.errors[:plan_name].first %></div>
+          <% end %>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Insurance Details Section -->
+  <!-- Policy Details Section -->
   <div class="card mb-4">
     <div class="card-header">
       <h5 class="mb-0">
         <i class="bi bi-file-text me-2 text-primary"></i>
-        Insurance Details
+        Policy Details
       </h5>
     </div>
     <div class="card-body">
       <div class="row">
-        <div class="col-md-6 mb-3">
+        <!-- Insurance Company -->
+        <div class="col-md-4 mb-3">
           <%= form.label :insurance_company_id, "Insurance Company*", class: "form-label" %>
           <%= form.select :insurance_company_id,
-              options_for_select([['Select Company', '']] + InsuranceCompany.pluck(:name, :id)),
-              { prompt: 'Select Company' },
-              { class: "form-control #{'is-invalid' if @other_insurance.errors[:insurance_company_id].any?}", required: true } %>
+              options_for_select(@insurance_companies.map { |c| [c.name, c.id] }, @other_insurance.insurance_company_id),
+              { prompt: 'Search and select company...' },
+              { class: "form-control #{'is-invalid' if @other_insurance.errors[:insurance_company_id].any?}", required: true, id: "insurance_company_select", data: { placeholder: "Type to search companies..." } } %>
           <% if @other_insurance.errors[:insurance_company_id].any? %>
             <div class="invalid-feedback"><%= @other_insurance.errors[:insurance_company_id].first %></div>
           <% end %>
         </div>
 
-        <div class="col-md-6 mb-3">
+        <!-- Policy Type -->
+        <div class="col-md-4 mb-3">
           <%= form.label :policy_type, "Policy Type*", class: "form-label" %>
           <%= form.select :policy_type,
               options_for_select([
-                ['Travel Insurance', 'travel'],
-                ['Property Insurance', 'property'],
-                ['Cyber Insurance', 'cyber'],
-                ['Professional Indemnity', 'professional'],
-                ['Directors & Officers', 'directors_officers'],
-                ['Marine Insurance', 'marine'],
-                ['Credit Insurance', 'credit'],
-                ['Other', 'other']
-              ]),
-              { prompt: 'Select Policy Type' },
-              { class: "form-control #{'is-invalid' if @other_insurance.errors[:policy_type].any?}", required: true } %>
+                ['New', 'New'],
+                ['Renewal', 'Renewal'],
+                ['Portability', 'Portability']
+              ], @other_insurance.policy_type),
+              { prompt: 'Select policy type...' },
+              { class: "form-control #{'is-invalid' if @other_insurance.errors[:policy_type].any?}", required: true, id: "policy_type_select", data: { placeholder: "Select policy type..." } } %>
           <% if @other_insurance.errors[:policy_type].any? %>
             <div class="invalid-feedback"><%= @other_insurance.errors[:policy_type].first %></div>
           <% end %>
         </div>
 
-        <div class="col-md-6 mb-3">
+        <!-- Policy Number -->
+        <div class="col-md-4 mb-3">
           <%= form.label :policy_number, "Policy Number*", class: "form-label" %>
-          <%= form.text_field :policy_number, class: "form-control #{'is-invalid' if @other_insurance.errors[:policy_number].any?}", placeholder: "Enter policy number", required: true %>
+          <%= form.text_field :policy_number,
+              class: "form-control #{'is-invalid' if @other_insurance.errors[:policy_number].any?}",
+              placeholder: "Enter policy number...",
+              required: true %>
           <% if @other_insurance.errors[:policy_number].any? %>
             <div class="invalid-feedback"><%= @other_insurance.errors[:policy_number].first %></div>
           <% end %>
         </div>
+      </div>
 
-        <div class="col-md-6 mb-3">
-          <%= form.label :payment_mode, "Payment Mode*", class: "form-label" %>
-          <%= form.select :payment_mode,
-              options_for_select([
-                ['Yearly', 'yearly'],
-                ['Half Yearly', 'half_yearly'],
-                ['Quarterly', 'quarterly'],
-                ['Monthly', 'monthly'],
-                ['Single Premium', 'single']
-              ]),
-              { prompt: 'Select Payment Mode' },
-              { class: "form-control #{'is-invalid' if @other_insurance.errors[:payment_mode].any?}", required: true } %>
-          <% if @other_insurance.errors[:payment_mode].any? %>
-            <div class="invalid-feedback"><%= @other_insurance.errors[:payment_mode].first %></div>
-          <% end %>
-        </div>
-
-        <div class="col-md-6 mb-3">
+      <div class="row">
+        <!-- Policy Start Date -->
+        <div class="col-md-4 mb-3">
           <%= form.label :policy_start_date, "Policy Start Date*", class: "form-label" %>
-          <%= form.date_field :policy_start_date, class: "form-control #{'is-invalid' if @other_insurance.errors[:policy_start_date].any?}", required: true, id: "policy_start_date" %>
+          <%= form.date_field :policy_start_date,
+              class: "form-control #{'is-invalid' if @other_insurance.errors[:policy_start_date].any?}",
+              required: true %>
           <% if @other_insurance.errors[:policy_start_date].any? %>
             <div class="invalid-feedback"><%= @other_insurance.errors[:policy_start_date].first %></div>
           <% end %>
         </div>
 
-        <div class="col-md-6 mb-3">
+        <!-- Policy End Date -->
+        <div class="col-md-4 mb-3">
           <%= form.label :policy_end_date, "Policy End Date*", class: "form-label" %>
-          <%= form.date_field :policy_end_date, class: "form-control #{'is-invalid' if @other_insurance.errors[:policy_end_date].any?}", required: true, id: "policy_end_date" %>
+          <%= form.date_field :policy_end_date,
+              class: "form-control #{'is-invalid' if @other_insurance.errors[:policy_end_date].any?}",
+              required: true %>
           <% if @other_insurance.errors[:policy_end_date].any? %>
             <div class="invalid-feedback"><%= @other_insurance.errors[:policy_end_date].first %></div>
           <% end %>
         </div>
 
-        <div class="col-md-6 mb-3">
-          <%= form.label :policy_booking_date, "Policy Booking Date", class: "form-label" %>
-          <%= form.date_field :policy_booking_date, class: "form-control", value: Date.current %>
-        </div>
-
-        <div class="col-12 mb-3">
-          <%= form.label :note, "Additional Notes", class: "form-label" %>
-          <%= form.text_area :note, class: "form-control", rows: 3, placeholder: "Enter any additional notes about the policy..." %>
-        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Status Section -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="mb-0">
-        <i class="bi bi-check-circle me-2 text-primary"></i>
-        Policy Status
-      </h5>
-    </div>
-    <div class="card-body">
       <div class="row">
-        <div class="col-md-6 mb-3">
-          <%= form.label :status, "Policy Status", class: "form-label" %>
+        <!-- Payment Mode -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :payment_mode, "Payment Mode*", class: "form-label" %>
+          <%= form.select :payment_mode,
+              options_for_select([
+                ['Monthly', 'Monthly'],
+                ['Quarterly', 'Quarterly'],
+                ['Half Yearly', 'Half Yearly'],
+                ['Yearly', 'Yearly'],
+                ['One Time', 'One Time']
+              ], @other_insurance.payment_mode),
+              { prompt: 'Select payment mode...' },
+              { class: "form-control #{'is-invalid' if @other_insurance.errors[:payment_mode].any?}", required: true, id: "payment_mode_select", data: { placeholder: "Select payment mode..." } } %>
+          <% if @other_insurance.errors[:payment_mode].any? %>
+            <div class="invalid-feedback"><%= @other_insurance.errors[:payment_mode].first %></div>
+          <% end %>
+        </div>
+
+        <!-- Status -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :status, "Status*", class: "form-label" %>
           <%= form.select :status,
               options_for_select([
                 ['Active', 'active'],
                 ['Expired', 'expired'],
-                ['Pending', 'pending'],
-                ['Cancelled', 'cancelled']
-              ]),
-              { selected: 'active' },
-              { class: "form-control" } %>
+                ['Cancelled', 'cancelled'],
+                ['Pending', 'pending']
+              ], @other_insurance.status || 'active'),
+              { prompt: 'Select status...' },
+              { class: "form-control #{'is-invalid' if @other_insurance.errors[:status].any?}", required: true, id: "status_select", data: { placeholder: "Select status..." } } %>
+          <% if @other_insurance.errors[:status].any? %>
+            <div class="invalid-feedback"><%= @other_insurance.errors[:status].first %></div>
+          <% end %>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Form Actions -->
-  <div class="card">
+  <!-- Financial Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-currency-rupee me-2 text-primary"></i>
+        Financial Details
+      </h5>
+    </div>
     <div class="card-body">
-      <div class="d-flex justify-content-between">
-        <%= link_to admin_other_insurances_path, class: "btn btn-outline-secondary" do %>
-          <i class="bi bi-x-lg me-1"></i>Cancel
-        <% end %>
-        <%= form.submit "Create General Insurance", class: "btn btn-primary btn-lg" %>
+      <div class="row">
+        <!-- Sum Insured -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :sum_insured, "Sum Insured*", class: "form-label" %>
+          <div class="input-group">
+            <span class="input-group-text">₹</span>
+            <%= form.number_field :sum_insured,
+                class: "form-control #{'is-invalid' if @other_insurance.errors[:sum_insured].any?}",
+                placeholder: "0",
+                step: 1,
+                min: 0,
+                required: true %>
+            <% if @other_insurance.errors[:sum_insured].any? %>
+              <div class="invalid-feedback"><%= @other_insurance.errors[:sum_insured].first %></div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Net Premium -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :net_premium, "Net Premium*", class: "form-label" %>
+          <div class="input-group">
+            <span class="input-group-text">₹</span>
+            <%= form.number_field :net_premium,
+                class: "form-control #{'is-invalid' if @other_insurance.errors[:net_premium].any?}",
+                placeholder: "0.00",
+                step: 0.01,
+                min: 0,
+                required: true,
+                id: "net_premium_field" %>
+            <% if @other_insurance.errors[:net_premium].any? %>
+              <div class="invalid-feedback"><%= @other_insurance.errors[:net_premium].first %></div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- GST Percentage -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :gst_percentage, "GST %", class: "form-label" %>
+          <div class="input-group">
+            <%= form.number_field :gst_percentage,
+                class: "form-control #{'is-invalid' if @other_insurance.errors[:gst_percentage].any?}",
+                placeholder: "18.00",
+                step: 0.01,
+                min: 0,
+                max: 100,
+                value: @other_insurance.gst_percentage || 18.0,
+                id: "gst_percentage_field" %>
+            <span class="input-group-text">%</span>
+            <% if @other_insurance.errors[:gst_percentage].any? %>
+              <div class="invalid-feedback"><%= @other_insurance.errors[:gst_percentage].first %></div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <!-- Total Premium -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :total_premium, "Total Premium*", class: "form-label" %>
+          <div class="input-group">
+            <span class="input-group-text">₹</span>
+            <%= form.number_field :total_premium,
+                class: "form-control #{'is-invalid' if @other_insurance.errors[:total_premium].any?}",
+                placeholder: "0.00",
+                step: 0.01,
+                min: 0,
+                required: true,
+                id: "total_premium_field" %>
+            <% if @other_insurance.errors[:total_premium].any? %>
+              <div class="invalid-feedback"><%= @other_insurance.errors[:total_premium].first %></div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Submit Buttons -->
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-end gap-2">
+        <%= link_to "Cancel", admin_other_insurances_path, class: "btn btn-outline-secondary" %>
+        <%= form.submit "Save General Insurance Policy", class: "btn btn-primary", id: "submit_button" %>
       </div>
     </div>
   </div>
 
 <% end %>
 
-<!-- jQuery (required for Select2) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<!-- Select2 CSS & JS for searchable dropdown -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<!-- Custom styling for enhanced Select2 dropdown -->
-<style>
-  .select2-container--bootstrap-5 .select2-selection--single {
-    height: 38px;
-    border: 1px solid #ced4da;
-    border-radius: 0.375rem;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-  }
-
-  .select2-container--bootstrap-5 .select2-selection--single:focus-within {
-    border-color: #86b7fe;
-    outline: 0;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-  }
-
-  .select2-container--bootstrap-5 .select2-selection__rendered {
-    color: #212529;
-    line-height: 36px;
-    padding-left: 12px;
-    font-size: 1rem;
-  }
-
-  .select2-container--bootstrap-5 .select2-selection__arrow {
-    height: 36px;
-    right: 12px;
-  }
-
-  .select2-dropdown {
-    border: 1px solid #ced4da;
-    border-radius: 0.375rem;
-    margin-top: -1px;
-  }
-
-  .select2-container--bootstrap-5 .select2-results__option--highlighted[aria-selected] {
-    background-color: #0d6efd;
-    color: white;
-  }
-
-  .select2-dropdown-large {
-    font-size: 1rem;
-  }
-
-  .select2-dropdown-large .select2-results__option {
-    padding: 12px 16px;
-    border-bottom: 1px solid #f8f9fa;
-  }
-
-  .select2-dropdown-large .select2-results__option:last-child {
-    border-bottom: none;
-  }
-
-  /* Required asterisk styling */
-  .form-label[for="customer_select"]::after {
-    content: " *";
-    color: red;
-  }
-</style>
-
+<!-- JavaScript for Enhanced Functionality -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialize Select2 for searchable client dropdown
-  $('#customer_select').select2({
-    theme: 'bootstrap-5',
-    placeholder: 'Search and select client...',
-    allowClear: true,
-    width: '100%',
-    dropdownParent: $('body'),
-    dropdownCssClass: 'select2-dropdown-large',
-    minimumResultsForSearch: 0,
-    closeOnSelect: true,
-    templateResult: function(option) {
-      if (!option.id || option.id === '') {
-        return $('<span style="color: #6c757d; font-style: italic;">' + option.text + '</span>');
-      }
-      return $('<span>' + option.text + '</span>');
+  $(document).ready(function() {
+    // Initialize Select2 dropdowns
+    if (typeof $ !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
+      $('#customer_select').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Search and select client...',
+        allowClear: true,
+        dropdownCssClass: 'select2-dropdown-large',
+        language: {
+          noResults: function() {
+            return "No clients found";
+          }
+        }
+      });
+
+
+      $('#insurance_company_select').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Search and select company...',
+        allowClear: false,
+        dropdownCssClass: 'select2-dropdown-large',
+        language: {
+          noResults: function() {
+            return "No companies found";
+          }
+        }
+      });
+
+
+      $('#policy_type_select').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Select policy type...',
+        allowClear: false,
+        dropdownCssClass: 'select2-dropdown-large',
+        minimumResultsForSearch: Infinity
+      });
+
+      $('#payment_mode_select').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Select payment mode...',
+        allowClear: false,
+        dropdownCssClass: 'select2-dropdown-large',
+        minimumResultsForSearch: Infinity
+      });
+
+      $('#status_select').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Select status...',
+        allowClear: false,
+        dropdownCssClass: 'select2-dropdown-large',
+        minimumResultsForSearch: Infinity
+      });
     }
-  });
 
-  // Auto-set policy end date based on start date (default 1 year)
-  document.getElementById('policy_start_date')?.addEventListener('change', function() {
-    const startDate = new Date(this.value);
-    const endDate = new Date(startDate);
-    endDate.setFullYear(endDate.getFullYear() + 1);
-    endDate.setDate(endDate.getDate() - 1); // End date is one day before renewal
+    // Customer selection change handler can be added here if needed in the future
 
-    document.getElementById('policy_end_date').value = endDate.toISOString().split('T')[0];
+    // Auto-calculate total premium
+    function calculateTotalPremium() {
+      var netPremium = parseFloat($('#net_premium_field').val()) || 0;
+      var gstPercentage = parseFloat($('#gst_percentage_field').val()) || 0;
+
+      var gstAmount = (netPremium * gstPercentage) / 100;
+      var totalPremium = netPremium + gstAmount;
+
+      $('#total_premium_field').val(totalPremium.toFixed(2));
+    }
+
+    $('#net_premium_field, #gst_percentage_field').on('input', calculateTotalPremium);
+
+    // Form validation
+    $('form').on('submit', function(e) {
+      var isValid = true;
+      var requiredFields = ['customer_select', 'insurance_company_select', 'policy_type_select', 'policy_number', 'policy_start_date', 'policy_end_date', 'payment_mode_select', 'status_select', 'sum_insured', 'net_premium_field', 'total_premium_field'];
+
+      requiredFields.forEach(function(fieldId) {
+        var field = $('#' + fieldId);
+        if (field.val() === '' || field.val() === null) {
+          field.addClass('is-invalid');
+          isValid = false;
+        } else {
+          field.removeClass('is-invalid');
+        }
+      });
+
+      if (!isValid) {
+        e.preventDefault();
+        alert('Please fill in all required fields.');
+      }
+    });
+
+    // Calculate total premium on page load if values exist
+    calculateTotalPremium();
   });
-});
 </script>

@@ -388,6 +388,16 @@
   color: #3b82f6 !important;
 }
 
+/* Insurance submenu icons styling */
+.submenu-link i {
+  font-size: 14px !important;
+  transition: all 0.2s ease !important;
+}
+
+.submenu-link:hover i {
+  transform: scale(1.1) !important;
+}
+
 .submenu-link.disabled {
   opacity: 0.5 !important;
   cursor: not-allowed !important;
@@ -578,7 +588,7 @@
               <% if show_sidebar_item?('life_insurance') %>
                 <li class="nav-item">
                   <%= link_to admin_life_insurances_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/life_insurances')}" do %>
-                    <span class="submenu-bullet">•</span>
+                    <i class="bi bi-heart-fill text-danger me-2"></i>
                     <span class="nav-text">Life</span>
                   <% end %>
                 </li>
@@ -588,7 +598,7 @@
               <% if show_sidebar_item?('health_insurance') %>
                 <li class="nav-item">
                   <%= link_to admin_health_insurances_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/health_insurances')}" do %>
-                    <span class="submenu-bullet">•</span>
+                    <i class="bi bi-heart-pulse-fill text-success me-2"></i>
                     <span class="nav-text">Health</span>
                   <% end %>
                 </li>
@@ -598,7 +608,7 @@
               <% if show_sidebar_item?('motor_insurance') %>
                 <li class="nav-item">
                   <%= link_to admin_motor_insurances_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/motor_insurances')}" do %>
-                    <span class="submenu-bullet">•</span>
+                    <i class="bi bi-car-front-fill text-primary me-2"></i>
                     <span class="nav-text">Motor</span>
                   <% end %>
                 </li>
@@ -608,7 +618,7 @@
               <% if show_sidebar_item?('other_insurance') %>
                 <li class="nav-item">
                   <%= link_to admin_other_insurances_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/other_insurances')}" do %>
-                    <span class="submenu-bullet">•</span>
+                    <i class="bi bi-shield-plus text-warning me-2"></i>
                     <span class="nav-text">General</span>
                   <% end %>
                 </li>
@@ -632,19 +642,19 @@
             <ul class="nav-menu submenu-list">
               <li class="nav-item">
                 <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
-                  <span class="submenu-bullet">•</span>
+                  <i class="bi bi-pie-chart-fill text-success me-2"></i>
                   <span class="nav-text">Mutual Fund</span>
                 </div>
               </li>
               <li class="nav-item">
                 <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
-                  <span class="submenu-bullet">•</span>
+                  <i class="bi bi-bank text-primary me-2"></i>
                   <span class="nav-text">FD</span>
                 </div>
               </li>
               <li class="nav-item">
                 <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
-                  <span class="submenu-bullet">•</span>
+                  <i class="bi bi-collection text-warning me-2"></i>
                   <span class="nav-text">Other</span>
                 </div>
               </li>
@@ -667,13 +677,13 @@
             <ul class="nav-menu submenu-list">
               <li class="nav-item">
                 <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
-                  <span class="submenu-bullet">•</span>
+                  <i class="bi bi-file-text text-info me-2"></i>
                   <span class="nav-text">ITR</span>
                 </div>
               </li>
               <li class="nav-item">
                 <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
-                  <span class="submenu-bullet">•</span>
+                  <i class="bi bi-calendar-check text-success me-2"></i>
                   <span class="nav-text">Tax Planning</span>
                 </div>
               </li>
@@ -696,25 +706,25 @@
             <ul class="nav-menu submenu-list">
               <li class="nav-item">
                 <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
-                  <span class="submenu-bullet">•</span>
+                  <i class="bi bi-person-fill text-primary me-2"></i>
                   <span class="nav-text">Personal</span>
                 </div>
               </li>
               <li class="nav-item">
                 <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
-                  <span class="submenu-bullet">•</span>
+                  <i class="bi bi-house-fill text-success me-2"></i>
                   <span class="nav-text">Home</span>
                 </div>
               </li>
               <li class="nav-item">
                 <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
-                  <span class="submenu-bullet">•</span>
+                  <i class="bi bi-building text-warning me-2"></i>
                   <span class="nav-text">Mortgage</span>
                 </div>
               </li>
               <li class="nav-item">
                 <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
-                  <span class="submenu-bullet">•</span>
+                  <i class="bi bi-briefcase-fill text-info me-2"></i>
                   <span class="nav-text">Business</span>
                 </div>
               </li>
@@ -737,13 +747,13 @@
             <ul class="nav-menu submenu-list">
               <li class="nav-item">
                 <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
-                  <span class="submenu-bullet">•</span>
+                  <i class="bi bi-geo-alt-fill text-primary me-2"></i>
                   <span class="nav-text">Domestic</span>
                 </div>
               </li>
               <li class="nav-item">
                 <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
-                  <span class="submenu-bullet">•</span>
+                  <i class="bi bi-globe text-success me-2"></i>
                   <span class="nav-text">International</span>
                 </div>
               </li>
