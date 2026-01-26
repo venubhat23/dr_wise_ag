@@ -83,6 +83,10 @@ class Policy < ApplicationRecord
     end
   end
 
+  def policy_holder
+    specific_insurance&.policy_holder
+  end
+
   private
 
   def calculate_total_premium

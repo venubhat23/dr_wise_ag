@@ -91,15 +91,6 @@
         </select>
       </div>
       <div class="col-md-3">
-        <select id="location_filter" class="form-select" onchange="applyFilters()">
-          <option value="">All Locations</option>
-          <option value="dashboard" <%= 'selected' if params[:location] == 'dashboard' %>>Dashboard</option>
-          <option value="login" <%= 'selected' if params[:location] == 'login' %>>Login Page</option>
-          <option value="home" <%= 'selected' if params[:location] == 'home' %>>Home Page</option>
-          <option value="sidebar" <%= 'selected' if params[:location] == 'sidebar' %>>Sidebar Ad</option>
-        </select>
-      </div>
-      <div class="col-md-3">
         <%= link_to "Clear", admin_banners_path, class: "btn btn-outline-secondary" %>
       </div>
     </div>
@@ -109,18 +100,12 @@
 <script>
 function applyFilters() {
   const statusFilter = document.getElementById('status_filter').value;
-  const locationFilter = document.getElementById('location_filter').value;
 
   const url = new URL(window.location.href);
   url.searchParams.delete('status');
-  url.searchParams.delete('location');
 
   if (statusFilter) {
     url.searchParams.set('status', statusFilter);
-  }
-
-  if (locationFilter) {
-    url.searchParams.set('location', locationFilter);
   }
 
   window.location.href = url.toString();
@@ -140,7 +125,6 @@ function applyFilters() {
             <tr>
               <th class="border-0">Preview</th>
               <th class="border-0">Title</th>
-              <th class="border-0">Location</th>
               <th class="border-0">Display Period</th>
               <th class="border-0">Order</th>
               <th class="border-0">Status</th>
@@ -164,9 +148,6 @@ function applyFilters() {
                     <h6 class="mb-1"><%= banner.title %></h6>
                     <small class="text-muted"><%= truncate(banner.description, length: 50) %></small>
                   </div>
-                </td>
-                <td>
-                  <span class="badge bg-secondary"><%= banner.display_location_humanized %></span>
                 </td>
                 <td>
                   <div>
