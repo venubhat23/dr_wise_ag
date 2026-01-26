@@ -1,44 +1,55 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-1">Client Import</h2>
-    <p class="text-muted mb-0">Import client data from Excel spreadsheet</p>
+    <h2 class="mb-1 fw-bold text-dark">
+      <i class="bi bi-cloud-upload me-2 text-primary"></i>
+      Client Import
+    </h2>
+    <p class="text-muted mb-0">Import client data from Excel spreadsheet with advanced validation</p>
   </div>
-  <div class="d-flex gap-3">
-    <div class="dropdown">
-      <select id="clientIdSelect" class="form-select">
-        <option value="">Client ID</option>
-        <option value="individual">Individual</option>
-        <option value="corporate">Corporate</option>
-      </select>
-    </div>
-    <input type="text" class="form-control" placeholder="Enter Client ID" id="clientIdInput" style="width: 200px;">
+  <div>
+    <%= link_to admin_imports_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Imports
+    <% end %>
   </div>
 </div>
 
 <!-- Progress Steps -->
-<div class="row mb-4">
+<div class="row mb-5">
   <div class="col-12">
-    <div class="d-flex justify-content-center">
-      <div class="step-progress d-flex align-items-center">
-        <div class="step active" id="step1">
-          <div class="step-number">1</div>
-          <div class="step-label">Select Type</div>
-        </div>
-        <div class="step-line"></div>
-        <div class="step" id="step2">
-          <div class="step-number">2</div>
-          <div class="step-label">Upload File</div>
-        </div>
-        <div class="step-line"></div>
-        <div class="step" id="step3">
-          <div class="step-number">3</div>
-          <div class="step-label">Preview</div>
-        </div>
-        <div class="step-line"></div>
-        <div class="step" id="step4">
-          <div class="step-number">4</div>
-          <div class="step-label">Complete</div>
+    <div class="card border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-center">
+          <div class="step-progress d-flex align-items-center">
+            <div class="step active" id="step1">
+              <div class="step-number">
+                <i class="bi bi-gear"></i>
+              </div>
+              <div class="step-label">Setup & Template</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" id="step2">
+              <div class="step-number">
+                <i class="bi bi-cloud-upload"></i>
+              </div>
+              <div class="step-label">Upload File</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" id="step3">
+              <div class="step-number">
+                <i class="bi bi-eye"></i>
+              </div>
+              <div class="step-label">Preview & Validate</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" id="step4">
+              <div class="step-number">
+                <i class="bi bi-check-circle"></i>
+              </div>
+              <div class="step-label">Complete</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -46,110 +57,181 @@
 </div>
 
 <!-- Step 1: Select Client Type & Download Template -->
-<div class="card shadow-sm mb-4" id="step1Content">
+<div class="card border-0 shadow-sm mb-4" id="step1Content">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+      <i class="bi bi-gear text-primary fs-5"></i>
+    </div>
+    <div>
+      <h5 class="mb-0 fw-bold">Setup Client Import</h5>
+      <p class="text-muted mb-0 small">Choose client type and download the appropriate template</p>
+    </div>
+  </div>
   <div class="card-body">
-    <div class="d-flex align-items-center mb-3">
-      <div class="step-indicator bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-        <span class="fw-bold">1</span>
+    <!-- Client Type Selection Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <div class="client-type-card individual-card" data-type="individual">
+          <div class="card h-100 border-2 border-transparent cursor-pointer">
+            <div class="card-body text-center">
+              <div class="mb-3">
+                <i class="bi bi-person-circle text-primary" style="font-size: 2.5rem;"></i>
+              </div>
+              <h6 class="fw-bold mb-2">Individual Clients</h6>
+              <p class="text-muted small mb-0">Personal customers with individual accounts</p>
+            </div>
+          </div>
+        </div>
       </div>
-      <h5 class="card-title mb-0">Select Client Type & Download Template</h5>
+      <div class="col-md-6">
+        <div class="client-type-card corporate-card" data-type="corporate">
+          <div class="card h-100 border-2 border-transparent cursor-pointer">
+            <div class="card-body text-center">
+              <div class="mb-3">
+                <i class="bi bi-building text-success" style="font-size: 2.5rem;"></i>
+              </div>
+              <h6 class="fw-bold mb-2">Corporate Clients</h6>
+              <p class="text-muted small mb-0">Business customers with company accounts</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
+    <!-- Download Template Section -->
     <div class="row">
-      <div class="col-md-6">
-        <label for="clientTypeSelect" class="form-label fw-bold">Select Client Type*</label>
-        <select class="form-select form-select-lg" id="clientTypeSelect">
-          <option value="">Choose client type...</option>
-          <option value="individual">Individual</option>
-          <option value="corporate">Corporate</option>
-        </select>
+      <div class="col-md-8">
+        <div class="d-flex align-items-center">
+          <div class="bg-success bg-opacity-10 rounded p-2 me-3">
+            <i class="bi bi-download text-success"></i>
+          </div>
+          <div>
+            <h6 class="mb-1">Download Template</h6>
+            <p class="text-muted small mb-0">Get the Excel template with correct column structure</p>
+          </div>
+        </div>
       </div>
-      <div class="col-md-6 d-flex align-items-end">
-        <button type="button" class="btn btn-success btn-lg w-100" id="downloadTemplateBtn" disabled>
-          <i class="bi bi-download me-2"></i>Download Sample Excel
+      <div class="col-md-4 text-end">
+        <button type="button" class="btn btn-success btn-lg" id="downloadTemplateBtn" disabled>
+          <i class="bi bi-download me-2"></i>Download Template
         </button>
       </div>
     </div>
 
     <!-- Template Information -->
-    <div class="alert alert-info mt-4" id="templateInfo" style="display: none;">
-      <div class="d-flex">
-        <i class="bi bi-info-circle me-2 mt-1"></i>
-        <div>
-          <h6 class="alert-heading mb-2">Template Information</h6>
-          <p class="mb-0" id="templateDescription">The Excel template includes the correct column structure and sample data. Please fill in your client information following the format shown.</p>
+    <div class="mt-4" id="templateInfo" style="display: none;">
+      <div class="alert alert-info border-0 bg-info bg-opacity-10">
+        <div class="d-flex">
+          <div class="bg-info bg-opacity-20 rounded p-2 me-3 align-self-start">
+            <i class="bi bi-info-circle text-info"></i>
+          </div>
+          <div>
+            <h6 class="text-info fw-bold mb-2">Template Information</h6>
+            <p class="mb-0" id="templateDescription">The Excel template includes the correct column structure and sample data. Please fill in your client information following the format shown.</p>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Field Requirements -->
-    <div class="row mt-4" id="fieldRequirements" style="display: none;">
+    <div class="row mt-4 g-3" id="fieldRequirements" style="display: none;">
       <div class="col-md-6">
-        <div class="border rounded p-3 bg-light h-100">
-          <h6 class="text-success mb-3"><i class="bi bi-check-circle me-2"></i>Required Fields</h6>
-          <ul class="list-unstyled mb-0" id="requiredFieldsList">
-          </ul>
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-success bg-opacity-10 border-0">
+            <h6 class="text-success mb-0 fw-bold">
+              <i class="bi bi-check-circle me-2"></i>Required Fields
+            </h6>
+          </div>
+          <div class="card-body">
+            <ul class="list-unstyled mb-0" id="requiredFieldsList">
+            </ul>
+          </div>
         </div>
       </div>
       <div class="col-md-6">
-        <div class="border rounded p-3 bg-light h-100">
-          <h6 class="text-info mb-3"><i class="bi bi-info-circle me-2"></i>Optional Fields</h6>
-          <ul class="list-unstyled mb-0" id="optionalFieldsList">
-          </ul>
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-info bg-opacity-10 border-0">
+            <h6 class="text-info mb-0 fw-bold">
+              <i class="bi bi-info-circle me-2"></i>Optional Fields
+            </h6>
+          </div>
+          <div class="card-body">
+            <ul class="list-unstyled mb-0" id="optionalFieldsList">
+            </ul>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="text-end mt-4">
-      <button type="button" class="btn btn-primary btn-lg" id="proceedToUpload" disabled>
-        Next: Upload File <i class="bi bi-arrow-right ms-2"></i>
+      <button type="button" class="btn btn-primary btn-lg px-4" id="proceedToUpload" disabled>
+        Next: Upload File
+        <i class="bi bi-arrow-right ms-2"></i>
       </button>
     </div>
   </div>
 </div>
 
 <!-- Step 2: Upload Completed Excel -->
-<div class="card shadow-sm mb-4" id="step2Content" style="display: none;">
-  <div class="card-body">
-    <div class="d-flex align-items-center mb-3">
-      <div class="step-indicator bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-        <span class="fw-bold">2</span>
-      </div>
-      <h5 class="card-title mb-0">Upload Completed Excel</h5>
+<div class="card border-0 shadow-sm mb-4" id="step2Content" style="display: none;">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
+      <i class="bi bi-cloud-upload text-info fs-5"></i>
     </div>
-
+    <div>
+      <h5 class="mb-0 fw-bold">Upload Excel File</h5>
+      <p class="text-muted mb-0 small">Upload your completed Excel file with client data</p>
+    </div>
+  </div>
+  <div class="card-body">
     <form id="uploadForm" enctype="multipart/form-data">
-      <div class="upload-area border-2 border-dashed rounded p-5 text-center" id="uploadArea">
-        <div class="upload-icon mb-3">
-          <i class="bi bi-cloud-upload fs-1 text-muted"></i>
-        </div>
-        <h5 class="mb-2">Click to upload or drag and drop</h5>
-        <p class="text-muted mb-3">Supported formats: .xlsx, .xls, .csv (Max 10MB)</p>
-        <input type="file" class="form-control d-none" id="fileInput" name="file" accept=".csv,.xlsx,.xls">
-        <button type="button" class="btn btn-outline-primary" id="chooseFileBtn">Choose File</button>
-      </div>
-
-      <div class="selected-file mt-3" id="selectedFile" style="display: none;">
-        <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-file-earmark-spreadsheet text-success fs-4 me-3"></i>
-            <div>
-              <h6 class="mb-0" id="fileName"></h6>
-              <small class="text-muted" id="fileSize"></small>
+      <!-- File Upload Area -->
+      <div class="upload-area-container mb-4">
+        <div class="upload-area border-2 border-dashed rounded-3 p-5 text-center position-relative" id="uploadArea">
+          <div class="upload-icon mb-3">
+            <div class="bg-info bg-opacity-10 rounded-circle mx-auto d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+              <i class="bi bi-cloud-upload text-info" style="font-size: 2rem;"></i>
             </div>
           </div>
-          <button type="button" class="btn btn-outline-danger btn-sm" id="removeFile">
-            <i class="bi bi-trash"></i>
+          <h5 class="mb-2 fw-bold text-dark">Drop your file here or click to browse</h5>
+          <p class="text-muted mb-3">Supported formats: Excel (.xlsx, .xls) or CSV (.csv)</p>
+          <p class="text-muted small mb-4">Maximum file size: 10MB</p>
+          <input type="file" class="form-control d-none" id="fileInput" name="file" accept=".csv,.xlsx,.xls">
+          <button type="button" class="btn btn-outline-info btn-lg" id="chooseFileBtn">
+            <i class="bi bi-folder2-open me-2"></i>Choose File
           </button>
         </div>
       </div>
 
-      <div class="text-end mt-4">
-        <button type="button" class="btn btn-outline-secondary me-2" id="backToStep1">
-          <i class="bi bi-arrow-left me-2"></i>Previous
+      <!-- Selected File Display -->
+      <div class="selected-file mt-4" id="selectedFile" style="display: none;">
+        <div class="card border-success">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center">
+                <div class="bg-success bg-opacity-10 rounded p-3 me-3">
+                  <i class="bi bi-file-earmark-spreadsheet text-success fs-4"></i>
+                </div>
+                <div>
+                  <h6 class="mb-1 fw-bold" id="fileName"></h6>
+                  <p class="text-muted small mb-0" id="fileSize"></p>
+                </div>
+              </div>
+              <button type="button" class="btn btn-outline-danger btn-sm" id="removeFile">
+                <i class="bi bi-trash me-1"></i>Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="d-flex justify-content-between align-items-center mt-4">
+        <button type="button" class="btn btn-outline-secondary" id="backToStep1">
+          <i class="bi bi-arrow-left me-2"></i>Previous Step
         </button>
-        <button type="button" class="btn btn-info btn-lg" id="showPreviewBtn" disabled>
-          <i class="bi bi-eye me-2"></i>Show Preview
+        <button type="button" class="btn btn-info btn-lg px-4" id="showPreviewBtn" disabled>
+          <i class="bi bi-eye me-2"></i>Preview & Validate
         </button>
       </div>
     </form>
@@ -157,143 +239,199 @@
 </div>
 
 <!-- Step 3: Preview & Validation Results -->
-<div class="card shadow-sm mb-4" id="step3Content" style="display: none;">
+<div class="card border-0 shadow-sm mb-4" id="step3Content" style="display: none;">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <div class="bg-warning bg-opacity-10 rounded-circle p-2 me-3">
+      <i class="bi bi-eye text-warning fs-5"></i>
+    </div>
+    <div>
+      <h5 class="mb-0 fw-bold">Data Validation & Preview</h5>
+      <p class="text-muted mb-0 small">Review your data before importing</p>
+    </div>
+  </div>
   <div class="card-body">
-    <div class="d-flex align-items-center mb-3">
-      <div class="step-indicator bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-        <span class="fw-bold">3</span>
-      </div>
-      <h5 class="card-title mb-0">Preview & Validation Results</h5>
-    </div>
-
-    <!-- Validation Summary -->
-    <div class="row mb-4" id="validationSummary" style="display: none;">
+    <!-- Validation Summary Cards -->
+    <div class="row mb-4 g-3" id="validationSummary" style="display: none;">
       <div class="col-md-4">
-        <div class="card border-info">
+        <div class="card border-0 shadow-sm h-100">
           <div class="card-body text-center">
-            <h3 class="text-info mb-0" id="totalRows">0</h3>
-            <p class="text-muted mb-0">Total Records</p>
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h6 class="text-muted mb-1">Total Records</h6>
+                <h3 class="text-info mb-0 fw-bold" id="totalRows">0</h3>
+              </div>
+              <div class="bg-info bg-opacity-10 rounded p-2">
+                <i class="bi bi-file-earmark-text text-info"></i>
+              </div>
+            </div>
           </div>
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card border-success">
+        <div class="card border-0 shadow-sm h-100">
           <div class="card-body text-center">
-            <h3 class="text-success mb-0" id="validRows">0</h3>
-            <p class="text-muted mb-0">Valid Records</p>
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h6 class="text-muted mb-1">Valid Records</h6>
+                <h3 class="text-success mb-0 fw-bold" id="validRows">0</h3>
+              </div>
+              <div class="bg-success bg-opacity-10 rounded p-2">
+                <i class="bi bi-check-circle text-success"></i>
+              </div>
+            </div>
           </div>
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card border-danger">
+        <div class="card border-0 shadow-sm h-100">
           <div class="card-body text-center">
-            <h3 class="text-danger mb-0" id="invalidRows">0</h3>
-            <p class="text-muted mb-0">Invalid Records</p>
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h6 class="text-muted mb-1">Invalid Records</h6>
+                <h3 class="text-danger mb-0 fw-bold" id="invalidRows">0</h3>
+              </div>
+              <div class="bg-danger bg-opacity-10 rounded p-2">
+                <i class="bi bi-exclamation-triangle text-danger"></i>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Preview Table -->
-    <div id="previewContent">
-      <p class="text-center text-muted py-5" id="previewPlaceholder">
-        Upload a file and click "Show Preview" to see the validation results.
-      </p>
+    <!-- Preview Content Area -->
+    <div class="preview-container">
+      <div id="previewContent">
+        <div class="card border-0 bg-light" id="previewPlaceholder">
+          <div class="card-body text-center py-5">
+            <div class="bg-secondary bg-opacity-10 rounded-circle mx-auto mb-3" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+              <i class="bi bi-table text-secondary fs-4"></i>
+            </div>
+            <h6 class="text-muted mb-1">Data Preview</h6>
+            <p class="text-muted small mb-0">Upload a file and click "Preview & Validate" to see your data</p>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="text-end mt-4" id="step3Actions" style="display: none;">
-      <button type="button" class="btn btn-outline-secondary me-2" id="backToStep2">
-        <i class="bi bi-arrow-left me-2"></i>Previous
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-between align-items-center mt-4" id="step3Actions" style="display: none;">
+      <button type="button" class="btn btn-outline-secondary" id="backToStep2">
+        <i class="bi bi-arrow-left me-2"></i>Previous Step
       </button>
-      <button type="button" class="btn btn-success btn-lg" id="importClientsBtn" disabled>
-        <i class="bi bi-upload me-2"></i>Import Clients
+      <button type="button" class="btn btn-success btn-lg px-4" id="importClientsBtn" disabled>
+        <i class="bi bi-upload me-2"></i>Start Import
       </button>
     </div>
   </div>
 </div>
 
 <!-- Step 4: Import Complete -->
-<div class="card shadow-sm mb-4" id="step4Content" style="display: none;">
-  <div class="card-body">
-    <div class="d-flex align-items-center mb-4">
-      <div class="step-indicator bg-success text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-        <i class="bi bi-check-lg fw-bold"></i>
-      </div>
-      <h5 class="card-title mb-0">Import Complete</h5>
+<div class="card border-0 shadow-sm mb-4" id="step4Content" style="display: none;">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <div class="bg-success bg-opacity-10 rounded-circle p-2 me-3">
+      <i class="bi bi-check-circle text-success fs-5"></i>
     </div>
-
+    <div>
+      <h5 class="mb-0 fw-bold text-success">Import Completed Successfully!</h5>
+      <p class="text-muted mb-0 small">Your client data has been processed and imported</p>
+    </div>
+  </div>
+  <div class="card-body">
     <!-- Success Message -->
-    <div class="alert alert-success" id="successMessage">
+    <div class="alert alert-success border-0 bg-success bg-opacity-10 mb-4" id="successMessage">
       <div class="d-flex">
-        <i class="bi bi-check-circle-fill me-3 fs-4"></i>
+        <div class="bg-success bg-opacity-20 rounded p-2 me-3 align-self-start">
+          <i class="bi bi-check-circle-fill text-success"></i>
+        </div>
         <div>
-          <h6 class="alert-heading mb-2">Import Successful!</h6>
-          <p class="mb-0" id="successDetails">Your client data has been successfully imported.</p>
+          <h6 class="text-success fw-bold mb-2">Import Successful!</h6>
+          <p class="mb-0" id="successDetails">Your client data has been successfully imported and is now available in the system.</p>
         </div>
       </div>
     </div>
 
     <!-- Import Statistics -->
-    <div class="row" id="importStats">
+    <div class="row g-3 mb-4" id="importStats">
       <div class="col-md-4">
-        <div class="card border-success bg-light">
+        <div class="card border-0 shadow-sm h-100">
           <div class="card-body text-center">
-            <h3 class="text-success mb-0" id="importedCount">0</h3>
-            <p class="text-muted mb-0">Successfully Imported</p>
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h6 class="text-muted mb-1">Successfully Imported</h6>
+                <h3 class="text-success mb-0 fw-bold" id="importedCount">0</h3>
+              </div>
+              <div class="bg-success bg-opacity-10 rounded p-2">
+                <i class="bi bi-check-circle text-success"></i>
+              </div>
+            </div>
           </div>
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card border-warning bg-light">
+        <div class="card border-0 shadow-sm h-100">
           <div class="card-body text-center">
-            <h3 class="text-warning mb-0" id="skippedCount">0</h3>
-            <p class="text-muted mb-0">Skipped/Duplicate</p>
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h6 class="text-muted mb-1">Skipped/Duplicate</h6>
+                <h3 class="text-warning mb-0 fw-bold" id="skippedCount">0</h3>
+              </div>
+              <div class="bg-warning bg-opacity-10 rounded p-2">
+                <i class="bi bi-exclamation-triangle text-warning"></i>
+              </div>
+            </div>
           </div>
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card border-primary bg-light">
+        <div class="card border-0 shadow-sm h-100">
           <div class="card-body text-center">
-            <h3 class="text-primary mb-0" id="totalProcessed">0</h3>
-            <p class="text-muted mb-0">Total Processed</p>
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h6 class="text-muted mb-1">Total Processed</h6>
+                <h3 class="text-primary mb-0 fw-bold" id="totalProcessed">0</h3>
+              </div>
+              <div class="bg-primary bg-opacity-10 rounded p-2">
+                <i class="bi bi-file-earmark-text text-primary"></i>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Next Steps -->
-    <div class="row mt-4">
+    <div class="row g-3">
       <div class="col-md-6">
-        <div class="d-grid">
-          <a href="<%= admin_customers_path %>" class="btn btn-primary btn-lg">
-            <i class="bi bi-people me-2"></i>View All Clients
-          </a>
-        </div>
+        <a href="<%= admin_customers_path %>" class="btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center">
+          <i class="bi bi-people me-2"></i>View All Clients
+        </a>
       </div>
       <div class="col-md-6">
-        <div class="d-grid">
-          <button type="button" class="btn btn-outline-secondary btn-lg" id="importMoreBtn">
-            <i class="bi bi-plus-circle me-2"></i>Import More Clients
-          </button>
-        </div>
+        <button type="button" class="btn btn-outline-primary btn-lg w-100 d-flex align-items-center justify-content-center" id="importMoreBtn">
+          <i class="bi bi-plus-circle me-2"></i>Import More Clients
+        </button>
       </div>
     </div>
   </div>
 </div>
 
 <style>
+/* Progress Steps Styling */
 .step-progress {
-  gap: 20px;
+  gap: 30px;
 }
 
 .step {
   text-align: center;
   opacity: 0.5;
-  transition: all 0.3s ease;
+  transition: all 0.3s ease-in-out;
+  position: relative;
 }
 
 .step.active {
   opacity: 1;
+  transform: scale(1.05);
 }
 
 .step.completed {
@@ -301,8 +439,8 @@
 }
 
 .step-number {
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background: #e9ecef;
   color: #6c757d;
@@ -310,88 +448,224 @@
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  margin-bottom: 8px;
-  margin: 0 auto 8px auto;
-  transition: all 0.3s ease;
+  margin: 0 auto 12px auto;
+  transition: all 0.3s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .step.active .step-number {
-  background: #0d6efd;
+  background: linear-gradient(135deg, #0d6efd 0%, #0056d3 100%);
   color: white;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
 }
 
 .step.completed .step-number {
-  background: #198754;
+  background: linear-gradient(135deg, #198754 0%, #146c43 100%);
   color: white;
+  box-shadow: 0 4px 12px rgba(25, 135, 84, 0.4);
 }
 
 .step-label {
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.875rem;
+  font-weight: 600;
   color: #6c757d;
+  transition: all 0.3s ease;
 }
 
 .step.active .step-label {
   color: #0d6efd;
+  font-weight: 700;
 }
 
 .step.completed .step-label {
   color: #198754;
+  font-weight: 600;
 }
 
 .step-line {
-  width: 60px;
-  height: 2px;
+  width: 80px;
+  height: 3px;
   background: #e9ecef;
-  margin-top: 20px;
-}
-
-.step.completed + .step-line {
-  background: #198754;
-}
-
-.upload-area {
-  border-color: #dee2e6 !important;
-  cursor: pointer;
+  margin-top: 25px;
+  border-radius: 2px;
   transition: all 0.3s ease;
 }
 
-.upload-area:hover {
+.step.completed + .step-line {
+  background: linear-gradient(90deg, #198754 0%, #0d6efd 100%);
+}
+
+/* Client Type Selection Cards */
+.client-type-card {
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+.client-type-card .card {
+  transition: all 0.3s ease-in-out;
+  border: 2px solid transparent !important;
+}
+
+.client-type-card:hover .card {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.client-type-card.selected .card {
   border-color: #0d6efd !important;
-  background-color: #f8f9fa;
+  background: rgba(13, 110, 253, 0.05);
+}
+
+.client-type-card.selected.individual-card .card {
+  border-color: #0d6efd !important;
+  background: rgba(13, 110, 253, 0.05);
+}
+
+.client-type-card.selected.corporate-card .card {
+  border-color: #198754 !important;
+  background: rgba(25, 135, 84, 0.05);
+}
+
+/* Upload Area Styling */
+.upload-area {
+  border-color: #dee2e6 !important;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  background: rgba(248, 249, 250, 0.5);
+}
+
+.upload-area:hover {
+  border-color: #17a2b8 !important;
+  background: rgba(23, 162, 184, 0.05);
+  transform: scale(1.01);
 }
 
 .upload-area.drag-over {
-  border-color: #0d6efd !important;
-  background-color: #e7f3ff;
+  border-color: #17a2b8 !important;
+  background: rgba(23, 162, 184, 0.1);
+  box-shadow: inset 0 0 20px rgba(23, 162, 184, 0.2);
 }
 
+/* File List Styling */
 .list-unstyled li {
-  padding: 2px 0;
-  font-size: 0.9rem;
+  padding: 6px 0;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
 }
 
 .list-unstyled li:before {
-  content: "• ";
-  color: #28a745;
-  font-weight: bold;
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #198754;
+  margin-right: 8px;
+  flex-shrink: 0;
 }
 
+/* Table Styling */
 .preview-table {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+}
+
+.preview-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  border-color: #dee2e6;
+  color: #495057;
 }
 
 .error-cell {
-  background-color: #f8d7da !important;
+  background-color: rgba(248, 215, 218, 0.7) !important;
   color: #721c24;
 }
 
 .valid-row {
-  background-color: #d1edff;
+  background-color: rgba(209, 237, 255, 0.3);
 }
 
 .invalid-row {
-  background-color: #f8d7da;
+  background-color: rgba(248, 215, 218, 0.3);
+}
+
+/* Enhanced Card Styling */
+.card {
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+/* Cursor Pointer for Clickable Elements */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Enhanced Button Styling */
+.btn {
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn-lg {
+  padding: 12px 24px;
+  font-size: 1rem;
+}
+
+/* Alert Enhancements */
+.alert {
+  border-radius: 12px;
+  border: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .step-progress {
+    gap: 15px;
+  }
+
+  .step-number {
+    width: 40px;
+    height: 40px;
+  }
+
+  .step-line {
+    width: 40px;
+  }
+
+  .step-label {
+    font-size: 0.75rem;
+  }
+
+  .upload-area {
+    padding: 3rem 1.5rem !important;
+  }
+}
+
+/* Animation for completed steps */
+.step.completed .step-number {
+  animation: pulse-success 2s infinite;
+}
+
+@keyframes pulse-success {
+  0% {
+    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(25, 135, 84, 0.6);
+  }
+  100% {
+    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.4);
+  }
 }
 </style>
 
@@ -470,44 +744,76 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
 
-  // Client type selection
-  if (clientTypeSelect) {
-    clientTypeSelect.addEventListener('change', function() {
-      const selectedType = this.value;
+  // Client type selection with cards
+  const clientTypeCards = document.querySelectorAll('.client-type-card');
+  let selectedClientType = '';
 
-    if (selectedType) {
+  clientTypeCards.forEach(card => {
+    card.addEventListener('click', function() {
+      const clientType = this.getAttribute('data-type');
+      selectedClientType = clientType;
+
+      // Update card selection visual state
+      clientTypeCards.forEach(c => c.classList.remove('selected'));
+      this.classList.add('selected');
+
+      // Enable buttons and show info
       if (downloadTemplateBtn) downloadTemplateBtn.disabled = false;
       if (proceedToUpload) proceedToUpload.disabled = false;
       if (templateInfo) templateInfo.style.display = 'block';
       if (fieldRequirements) fieldRequirements.style.display = 'block';
 
       // Update field lists
-      const fields = fieldDefinitions[selectedType];
+      const fields = fieldDefinitions[clientType];
       if (requiredFieldsList) requiredFieldsList.innerHTML = fields.required.map(field => `<li>${field}</li>`).join('');
       if (optionalFieldsList) optionalFieldsList.innerHTML = fields.optional.map(field => `<li>${field}</li>`).join('');
 
       // Update template info
-      const templateDescription = selectedType === 'individual'
+      const templateDescription = clientType === 'individual'
         ? 'Template for individual clients includes personal details like name, mobile, email, and address information.'
         : 'Template for corporate clients includes company details like company name, GST number, and business information.';
       const templateDescEl = document.getElementById('templateDescription');
       if (templateDescEl) templateDescEl.textContent = templateDescription;
-    } else {
-      if (downloadTemplateBtn) downloadTemplateBtn.disabled = true;
-      if (proceedToUpload) proceedToUpload.disabled = true;
-      if (templateInfo) templateInfo.style.display = 'none';
-      if (fieldRequirements) fieldRequirements.style.display = 'none';
-    }
+
+      // Add selection animation
+      this.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        this.style.transform = '';
+      }, 150);
     });
-  }
+
+    // Add hover effects
+    card.addEventListener('mouseenter', function() {
+      if (!this.classList.contains('selected')) {
+        this.style.transform = 'translateY(-2px)';
+      }
+    });
+
+    card.addEventListener('mouseleave', function() {
+      if (!this.classList.contains('selected')) {
+        this.style.transform = '';
+      }
+    });
+  });
 
   // Download template
   if (downloadTemplateBtn) {
     downloadTemplateBtn.addEventListener('click', function() {
-      const clientType = clientTypeSelect ? clientTypeSelect.value : '';
-      if (clientType) {
-        const url = `<%= download_template_admin_imports_path %>?template_type=customers&client_type=${clientType}`;
+      if (selectedClientType) {
+        const url = `<%= download_template_admin_imports_path %>?template_type=customers&client_type=${selectedClientType}`;
         window.open(url, '_blank');
+
+        // Add download feedback
+        const originalText = this.innerHTML;
+        this.innerHTML = '<i class="bi bi-check-circle me-2"></i>Downloaded!';
+        this.classList.remove('btn-success');
+        this.classList.add('btn-outline-success');
+
+        setTimeout(() => {
+          this.innerHTML = originalText;
+          this.classList.remove('btn-outline-success');
+          this.classList.add('btn-success');
+        }, 2000);
       }
     });
   }
@@ -811,20 +1117,44 @@ document.addEventListener('DOMContentLoaded', function() {
         'Accept': 'application/json'
       }
     })
-    .then(response => response.json())
+    .then(response => {
+      console.log('Import response status:', response.status);
+      console.log('Import response headers:', response.headers);
+      console.log('Import response ok:', response.ok);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response.text().then(text => {
+        console.log('Raw response text:', text);
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          console.error('Failed to parse JSON:', e);
+          console.error('Response text:', text);
+          throw new Error('Invalid JSON response');
+        }
+      });
+    })
     .then(data => {
+      console.log('Import response data:', data);
+
       importClientsBtn.disabled = false;
       importClientsBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Import Clients';
 
       if (data.success) {
+        console.log('Import successful, showing step 4');
         // Show success step
         showImportSuccess(data);
         showStep(4);
       } else {
+        console.error('Import failed:', data.error);
         alert('Import failed: ' + (data.error || 'Unknown error occurred'));
       }
     })
     .catch(error => {
+      console.error('Import error:', error);
       importClientsBtn.disabled = false;
       importClientsBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Import Clients';
       alert('Error importing clients: ' + error.message);
@@ -850,28 +1180,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (totalProcessed) totalProcessed.textContent = data.total_count || 0;
   }
 
-  // Function to show specific step
-  function showStep(stepNumber) {
-    // Hide all step contents
-    for (let i = 1; i <= 4; i++) {
-      const stepContent = document.getElementById(`step${i}Content`);
-      if (stepContent) stepContent.style.display = 'none';
-
-      const step = document.getElementById(`step${i}`);
-      if (step) {
-        step.classList.remove('active', 'completed');
-        if (i < stepNumber) {
-          step.classList.add('completed');
-        } else if (i === stepNumber) {
-          step.classList.add('active');
-        }
-      }
-    }
-
-    // Show current step content
-    const currentStepContent = document.getElementById(`step${stepNumber}Content`);
-    if (currentStepContent) currentStepContent.style.display = 'block';
-  }
 
   // Handle "Import More Clients" button
   const importMoreBtn = document.getElementById('importMoreBtn');

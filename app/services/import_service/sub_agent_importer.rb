@@ -58,7 +58,9 @@ module ImportService
 
     def validate_headers(header)
       required_headers = %w[first_name last_name email mobile]
-      missing_headers = required_headers - header.map(&:to_s).map(&:downcase)
+      # Normalize headers by removing asterisks and converting to lowercase
+      normalized_headers = header.map(&:to_s).map(&:downcase).map { |h| h.gsub('*', '') }
+      missing_headers = required_headers - normalized_headers
 
       if missing_headers.any?
         raise "Missing required headers: #{missing_headers.join(', ')}"
@@ -66,8 +68,15 @@ module ImportService
     end
 
     def process_row(row, row_number)
+      # Normalize row keys by removing asterisks (from required field markers)
+      normalized_row = {}
+      row.each do |key, value|
+        normalized_key = key.to_s.gsub('*', '')
+        normalized_row[normalized_key] = value
+      end
+
       # Clean and normalize data
-      sub_agent_data = normalize_sub_agent_data(row)
+      sub_agent_data = normalize_sub_agent_data(normalized_row)
 
       # Validate row data
       if !valid_row?(sub_agent_data, row_number)
@@ -98,6 +107,21 @@ module ImportService
     end
 
     def normalize_sub_agent_data(row)
+      # Find distributor by name if provided
+      distributor_id = nil
+      if row['distributor_name'].present?
+        distributor = Distributor.find_by("LOWER(first_name || ' ' || last_name) = LOWER(?)", row['distributor_name'].to_s.strip)
+        distributor_id = distributor&.id
+      end
+
+      # Get affiliate role_id - find or create affiliate role
+      affiliate_role = Role.find_or_create_by(name: 'affiliate') do |role|
+        role.description = 'Affiliate Role'
+      end
+
+      # Map account_number from either field name
+      account_number = row['account_number'] || row['account_no']
+
       {
         first_name: row['first_name']&.to_s&.strip,
         middle_name: row['middle_name']&.to_s&.strip,
@@ -107,18 +131,19 @@ module ImportService
         gender: row['gender']&.to_s&.titleize,
         birth_date: parse_date(row['birth_date']),
         address: row['address']&.to_s&.strip,
+        state: row['state']&.to_s&.strip,
+        city: row['city']&.to_s&.strip,
+        pin_code: row['pin_code']&.to_s&.strip,
         pan_no: row['pan_no']&.to_s&.upcase&.strip,
-        gst_no: row['gst_no']&.to_s&.upcase&.strip,
-        company_name: row['company_name']&.to_s&.strip,
-        role_id: parse_role_id(row['role_id']),
-        bank_name: row['bank_name']&.to_s&.strip,
-        account_type: row['account_type']&.to_s&.titleize,
-        account_no: row['account_no']&.to_s&.strip,
-        ifsc_code: row['ifsc_code']&.to_s&.upcase&.strip,
+        aadhar_no: row['aadhar_no']&.to_s&.strip,
         account_holder_name: row['account_holder_name']&.to_s&.strip,
-        upi_id: row['upi_id']&.to_s&.strip,
-        password: row['password'].present? ? row['password'].to_s : 'password123',
-        status: 'active'
+        account_number: account_number&.to_s&.strip,
+        ifsc_code: row['ifsc_code']&.to_s&.upcase&.strip,
+        account_type: row['account_type']&.to_s&.titleize,
+        distributor_id: distributor_id,
+        role_id: affiliate_role.id,
+        status: parse_status(row['status']),
+        password: row['password'].present? ? row['password'].to_s : 'password123'
       }.compact
     end
 
@@ -196,6 +221,19 @@ module ImportService
         role_id_string.to_i
       rescue
         1 # Default role
+      end
+    end
+
+    def parse_status(status_string)
+      return 0 if status_string.blank? # Default to active (0)
+
+      case status_string.to_s.downcase.strip
+      when 'active', '1', 'true'
+        0 # active
+      when 'inactive', '0', 'false'
+        1 # inactive
+      else
+        0 # default to active
       end
     end
   end

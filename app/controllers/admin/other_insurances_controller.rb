@@ -60,7 +60,6 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     redirect_to admin_other_insurances_path, notice: 'Other insurance policy was successfully deleted.'
   end
 
-  private
 
   def set_other_insurance
     @other_insurance = OtherInsurance.find(params[:id])

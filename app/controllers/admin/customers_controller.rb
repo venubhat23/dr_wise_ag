@@ -911,6 +911,30 @@ class Admin::CustomersController < Admin::ApplicationController
     render json: { results: affiliates }
   end
 
+  # AJAX endpoint for fetching family members - reload trigger
+  def family_members
+    customer = Customer.find(params[:id])
+    family_members = customer.family_members.map do |member|
+      {
+        id: member.id,
+        name: member.name,
+        relationship: member.relationship.humanize
+      }
+    end
+    render json: { family_members: family_members }
+  rescue ActiveRecord::RecordNotFound
+    render json: { family_members: [] }, status: :not_found
+  end
+
+  # AJAX endpoint for fetching affiliate info
+  def affiliate_info
+    customer = Customer.find(params[:id])
+    render json: { affiliate_id: customer.sub_agent_id }
+  rescue ActiveRecord::RecordNotFound
+    render json: { affiliate_id: nil }, status: :not_found
+  end
+
+
   private
 
   # Generate a secure password for auto-creation
@@ -1267,29 +1291,6 @@ class Admin::CustomersController < Admin::ApplicationController
         created_at: policy.created_at
       }
     end
-  end
-
-  # AJAX endpoint for fetching family members
-  def family_members
-    customer = Customer.find(params[:id])
-    family_members = customer.family_members.map do |member|
-      {
-        id: member.id,
-        name: member.name,
-        relationship: member.relationship.humanize
-      }
-    end
-    render json: { family_members: family_members }
-  rescue ActiveRecord::RecordNotFound
-    render json: { family_members: [] }, status: :not_found
-  end
-
-  # AJAX endpoint for fetching affiliate info
-  def affiliate_info
-    customer = Customer.find(params[:id])
-    render json: { affiliate_id: customer.sub_agent_id }
-  rescue ActiveRecord::RecordNotFound
-    render json: { affiliate_id: nil }, status: :not_found
   end
 
   private

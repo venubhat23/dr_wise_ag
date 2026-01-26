@@ -58,7 +58,9 @@ module ImportService
 
     def validate_headers(header)
       required_headers = %w[customer_type email mobile]
-      missing_headers = required_headers - header.map(&:to_s).map(&:downcase)
+      # Normalize headers by removing asterisks and converting to lowercase
+      normalized_headers = header.map(&:to_s).map(&:downcase).map { |h| h.gsub('*', '') }
+      missing_headers = required_headers - normalized_headers
 
       if missing_headers.any?
         raise "Missing required headers: #{missing_headers.join(', ')}"
@@ -66,8 +68,15 @@ module ImportService
     end
 
     def process_row(row, row_number)
+      # Normalize row keys by removing asterisks (from required field markers)
+      normalized_row = {}
+      row.each do |key, value|
+        normalized_key = key.to_s.gsub('*', '')
+        normalized_row[normalized_key] = value
+      end
+
       # Clean and normalize data
-      customer_data = normalize_customer_data(row)
+      customer_data = normalize_customer_data(normalized_row)
 
       # Validate row data
       if !valid_row?(customer_data, row_number)

@@ -1,6 +1,9 @@
 class Admin::ImportsController < Admin::ApplicationController
   require 'csv'
 
+  # Skip CSRF token verification for import endpoints that handle file uploads
+  skip_before_action :verify_authenticity_token, only: [:customers, :customers_preview, :sub_agents, :sub_agents_preview, :distributors, :health_insurances, :life_insurances, :motor_insurances]
+
   def index
     @import_stats = {
       total_imports: get_total_imports_count,
@@ -120,6 +123,77 @@ class Admin::ImportsController < Admin::ApplicationController
     end
   end
 
+  def sub_agents_preview
+    return render json: { error: 'File required' }, status: :bad_request unless params[:file].present?
+
+    uploaded_file = params[:file]
+
+    begin
+      spreadsheet = open_spreadsheet(uploaded_file)
+      header = spreadsheet.row(1)
+
+      # Normalize headers by removing asterisks
+      normalized_headers = header.map(&:to_s).map { |h| h.gsub('*', '') }
+
+      # Preview first 5 rows
+      preview_data = []
+      sample_rows = [2, 3, 4, 5, 6].select { |i| i <= spreadsheet.last_row }
+
+      sample_rows.each do |i|
+        row = Hash[[header, spreadsheet.row(i)].transpose]
+        normalized_row = {}
+        row.each do |key, value|
+          normalized_key = key.to_s.gsub('*', '')
+          normalized_row[normalized_key] = value
+        end
+        preview_data << normalized_row
+      end
+
+      render json: {
+        success: true,
+        headers: normalized_headers,
+        preview_data: preview_data,
+        total_rows: spreadsheet.last_row - 1,
+        file_name: uploaded_file.original_filename,
+        file_size: uploaded_file.size
+      }
+    rescue => e
+      render json: {
+        error: "Error processing file: #{e.message}",
+        file_name: uploaded_file.original_filename,
+        file_size: uploaded_file.size
+      }
+    end
+  end
+
+  def sub_agents
+    return render json: { error: 'File required' }, status: :bad_request unless params[:file].present?
+
+    uploaded_file = params[:file]
+
+    begin
+      importer = ImportService::SubAgentImporter.new(uploaded_file)
+      result = importer.import
+
+      if result[:success]
+        respond_to do |format|
+          format.html { redirect_to admin_imports_sub_agents_form_path, notice: "Sub-agents imported successfully! #{result[:imported_count]} imported, #{result[:skipped_count]} skipped." }
+          format.json { render json: result }
+        end
+      else
+        respond_to do |format|
+          format.html { redirect_to admin_imports_sub_agents_form_path, alert: "Import failed: #{result[:error]}" }
+          format.json { render json: result }
+        end
+      end
+    rescue => e
+      respond_to do |format|
+        format.html { redirect_to admin_imports_sub_agents_form_path, alert: "Import failed: #{e.message}" }
+        format.json { render json: { success: false, error: e.message } }
+      end
+    end
+  end
+
   def sub_agents_form
     # Show sub-agent import form
   end
@@ -144,7 +218,12 @@ class Admin::ImportsController < Admin::ApplicationController
   def customers
     uploaded_file = params[:file]
 
+    Rails.logger.info "Customer import started with file: #{uploaded_file&.original_filename}"
+    Rails.logger.info "Request format: #{request.format}"
+    Rails.logger.info "Request headers: Accept = #{request.headers['Accept']}"
+
     if uploaded_file.blank?
+      Rails.logger.error "No file uploaded"
       respond_to do |format|
         format.html { redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.' }
         format.json { render json: { success: false, error: 'Please select a file to import.' } }
@@ -153,30 +232,42 @@ class Admin::ImportsController < Admin::ApplicationController
     end
 
     begin
+      Rails.logger.info "Starting import process..."
       import_result = ImportService::CustomerImporter.new(uploaded_file).import
+      Rails.logger.info "Import result: #{import_result.inspect}"
 
       respond_to do |format|
         if import_result[:success]
-          format.html { redirect_to admin_customers_path, notice: "Successfully imported #{import_result[:imported_count]} customers. #{import_result[:skipped_count]} records were skipped due to validation errors." }
+          success_message = "Successfully imported #{import_result[:imported_count]} customers. #{import_result[:skipped_count]} records were skipped due to validation errors."
+          Rails.logger.info "Import successful: #{success_message}"
+
+          format.html { redirect_to admin_customers_path, notice: success_message }
           format.json {
-            render json: {
+            response_data = {
               success: true,
-              message: "Successfully imported #{import_result[:imported_count]} customers. #{import_result[:skipped_count]} records were skipped due to validation errors.",
+              message: success_message,
               imported_count: import_result[:imported_count],
               skipped_count: import_result[:skipped_count],
               total_count: import_result[:imported_count] + import_result[:skipped_count]
             }
+            Rails.logger.info "Sending JSON response: #{response_data.inspect}"
+            render json: response_data
           }
         else
-          format.html { redirect_back fallback_location: admin_imports_path, alert: "Import failed: #{import_result[:error]}" }
-          format.json { render json: { success: false, error: "Import failed: #{import_result[:error]}" } }
+          error_message = "Import failed: #{import_result[:error]}"
+          Rails.logger.error error_message
+
+          format.html { redirect_back fallback_location: admin_imports_path, alert: error_message }
+          format.json { render json: { success: false, error: error_message } }
         end
       end
     rescue => e
-      Rails.logger.error "Customer import error: #{e.message}"
+      Rails.logger.error "Customer import exception: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+
       respond_to do |format|
         format.html { redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.' }
-        format.json { render json: { success: false, error: 'An error occurred during import. Please check your file format and try again.' } }
+        format.json { render json: { success: false, error: "An error occurred during import: #{e.message}" } }
       end
     end
   end
@@ -363,10 +454,23 @@ class Admin::ImportsController < Admin::ApplicationController
         'email', 'gender', 'birth_date', 'marital_status', 'address', 'city', 'state',
         'pin_code', 'pan_no', 'aadhar_no', 'sub_agent_name', 'status'
       ]
+      # Sample row 1
       csv << [
         'individual', 'John', 'Kumar', 'Doe', '9876543210',
         'john.doe@example.com', 'male', '1990-01-01', 'married', '123 Main St', 'Mumbai', 'Maharashtra',
         '400001', 'ABCDE1234F', '123456789012', 'Agent Name', 'true'
+      ]
+      # Sample row 2
+      csv << [
+        'individual', 'Priya', '', 'Sharma', '9876543211',
+        'priya.sharma@example.com', 'female', '1985-05-15', 'single', '456 Park Road', 'Delhi', 'Delhi',
+        '110001', 'BCDEF2345G', '234567890123', '', 'true'
+      ]
+      # Empty row for user data
+      csv << [
+        'individual', '', '', '', '',
+        '', '', '', '', '', '', '',
+        '', '', '', '', 'true'
       ]
     end
 
@@ -379,9 +483,20 @@ class Admin::ImportsController < Admin::ApplicationController
         'customer_type*', 'company_name*', 'mobile*', 'email*', 'gst_no*',
         'address', 'city', 'state', 'pin_code', 'pan_no', 'sub_agent_name', 'status'
       ]
+      # Sample row 1
       csv << [
         'corporate', 'ABC Company Ltd', '9876543211', 'contact@abc.com', '22ABCDE1234F1Z5',
         '456 Business Park', 'Delhi', 'Delhi', '110001', 'ABCDE1234F', 'Agent Name', 'true'
+      ]
+      # Sample row 2
+      csv << [
+        'corporate', 'XYZ Enterprises Pvt Ltd', '9876543212', 'info@xyz.com', '27BCDEF2345G1Z6',
+        '789 Industrial Area', 'Mumbai', 'Maharashtra', '400001', 'BCDEF2345G', '', 'true'
+      ]
+      # Empty row for user data
+      csv << [
+        'corporate', '', '', '', '',
+        '', '', '', '', '', '', 'true'
       ]
     end
 
@@ -395,15 +510,29 @@ class Admin::ImportsController < Admin::ApplicationController
         'mobile*', 'email', 'gender', 'birth_date', 'marital_status', 'address', 'city', 'state',
         'pin_code', 'pan_no', 'gst_no', 'aadhar_no', 'sub_agent_name', 'status'
       ]
+      # Individual customer sample
       csv << [
         'individual', 'John', 'Kumar', 'Doe', '',
         '9876543210', 'john.doe@example.com', 'male', '1990-01-01', 'married', '123 Main St', 'Mumbai', 'Maharashtra',
         '400001', 'ABCDE1234F', '', '123456789012', 'Agent Name', 'true'
       ]
+      # Corporate customer sample
       csv << [
         'corporate', '', '', '', 'ABC Company Ltd',
         '9876543211', 'contact@abc.com', '', '', '', '456 Business Park', 'Delhi', 'Delhi',
         '110001', 'ABCDE1234F', '22ABCDE1234F1Z5', '', 'Agent Name', 'true'
+      ]
+      # Empty individual template row
+      csv << [
+        'individual', '', '', '', '',
+        '', '', '', '', '', '', '', '',
+        '', '', '', '', '', 'true'
+      ]
+      # Empty corporate template row
+      csv << [
+        'corporate', '', '', '', '',
+        '', '', '', '', '', '', '', '',
+        '', '', '', '', '', 'true'
       ]
     end
 

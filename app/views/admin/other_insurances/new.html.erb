@@ -686,6 +686,44 @@
     font-size: 0.875rem;
     color: #6c757d;
   }
+
+  /* Affiliate option styling */
+  .affiliate-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    min-height: 45px;
+  }
+
+  .affiliate-option-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 10px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .affiliate-option-details {
+    flex: 1;
+  }
+
+  .affiliate-option-name {
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 2px;
+  }
+
+  .affiliate-option-id {
+    font-size: 11px;
+    color: #6c757d;
+  }
 </style>
 
 <script>
@@ -723,7 +761,49 @@ document.addEventListener('DOMContentLoaded', function() {
     allowClear: true,
     width: '100%',
     dropdownParent: $('body'),
-    minimumResultsForSearch: 0
+    minimumResultsForSearch: 0,
+    ajax: {
+      url: '/api/v1/public/search_sub_agents',
+      dataType: 'json',
+      delay: 250,
+      data: function (params) {
+        var selectedCustomerId = $('#customer_select').val();
+
+        return {
+          q: params.term || '',
+          customer_id: selectedCustomerId,
+          limit: params.term ? 20 : 10
+        };
+      },
+      processResults: function (data) {
+        return {
+          results: data.results || []
+        };
+      },
+      cache: true
+    },
+    templateResult: function(affiliate) {
+      if (affiliate.loading) return affiliate.text;
+      if (!affiliate.id || affiliate.id === '') {
+        return $('<span style="color: #6c757d; font-style: italic;">' + affiliate.text + '</span>');
+      }
+
+      var initials = affiliate.text.split(' ').map(n => n[0]).join('').toUpperCase();
+      var $container = $(`
+        <div class="affiliate-option">
+          <div class="affiliate-option-avatar">${initials}</div>
+          <div class="affiliate-option-details">
+            <div class="affiliate-option-name">${affiliate.text}</div>
+            <div class="affiliate-option-id">ID: ${affiliate.id}</div>
+          </div>
+        </div>
+      `);
+
+      return $container;
+    },
+    templateSelection: function(affiliate) {
+      return affiliate.text || affiliate.id;
+    }
   });
 
   $('#other_insurance_agency_code_id').select2({
@@ -806,21 +886,9 @@ document.addEventListener('DOMContentLoaded', function() {
           });
         });
 
-      // Auto-select affiliate based on customer
-      fetch('/admin/customers/' + customerId + '/affiliate_info')
-        .then(response => response.json())
-        .then(data => {
-          console.log('Affiliate info:', data);
-          if (data.affiliate_id) {
-            $('#affiliate_select').val(data.affiliate_id).trigger('change.select2');
-          } else {
-            $('#affiliate_select').val('').trigger('change.select2');
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching affiliate info:', error);
-          $('#affiliate_select').val('').trigger('change.select2');
-        });
+      // Refresh affiliate dropdown to filter by customer
+      $('#affiliate_select').val(null).trigger('change');
+      console.log('Customer selected, affiliate dropdown will now filter for customer ID:', customerId);
     }
   });
 
@@ -847,8 +915,9 @@ document.addEventListener('DOMContentLoaded', function() {
       minimumResultsForSearch: 0
     });
 
-    // Clear affiliate selection
-    $('#affiliate_select').val('').trigger('change');
+    // Clear affiliate selection and refresh dropdown
+    $('#affiliate_select').val(null).trigger('change');
+    console.log('Customer cleared, affiliate dropdown will now show all affiliates');
   });
 
   // Handle broker code type change - matches Health Insurance functionality
@@ -877,7 +946,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('📋 Calling Direct Mode API for Other Insurance...');
 
       // Fetch agents (direct mode) - use General Insurance type
-      fetch('/admin/other_insurances/all_agency_codes')
+      fetch('/admin/insurance/other/all_agency_codes')
         .then(response => response.json())
         .then(data => {
           agencyCodeSelect.empty();
@@ -920,7 +989,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('🏢 Calling Broking Mode API for Other Insurance...');
 
       // Fetch brokers (broking mode)
-      fetch('/admin/other_insurances/all_brokers')
+      fetch('/admin/insurance/other/all_brokers')
         .then(response => response.json())
         .then(data => {
           agencyCodeSelect.empty();
@@ -957,7 +1026,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Load all insurance companies for broking mode
       insuranceCompanySelect.empty().append('<option value="">Loading companies...</option>');
-      fetch('/admin/other_insurances/insurance_companies_for_type?insurance_type=General Insurance')
+      fetch('/admin/insurance/other/insurance_companies_for_type?insurance_type=General Insurance')
         .then(response => response.json())
         .then(data => {
           insuranceCompanySelect.empty();
@@ -1002,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (agencyCodeId && brokerType === 'direct') {
       // For direct mode, auto-fill insurance companies based on selected agent
-      fetch('/admin/other_insurances/insurance_companies_by_agency?broker_code=direct&agency_code_id=' + agencyCodeId)
+      fetch('/admin/insurance/other/insurance_companies_by_agency?broker_code=direct&agency_code_id=' + agencyCodeId)
         .then(response => response.json())
         .then(data => {
           const companySelect = $('#other_insurance_insurance_company_name');
