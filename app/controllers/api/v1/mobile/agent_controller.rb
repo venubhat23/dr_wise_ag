@@ -2778,12 +2778,15 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                            life_policies.where(created_at: current_month_start..current_month_end).pluck(:customer_id) +
                            motor_policies.where(created_at: current_month_start..current_month_end).pluck(:customer_id)).uniq
 
+    # Calculate total customers assigned to this agent (including those without policies)
+    total_customers_count = Customer.where(sub_agent_id: agent.id).active.count
+
     # Calculate target achievement
     monthly_target = 50000.0
     target_achievement = monthly_commission > 0 ? ((monthly_commission / monthly_target) * 100).round(2) : 0
 
     {
-      customers_count: customer_ids.count,
+      customers_count: total_customers_count,
       health_count: health_count,
       life_count: life_count,
       motor_count: motor_count,
@@ -2793,7 +2796,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       commission_earned: total_commission,
       monthly_policies: monthly_health_count + monthly_life_count + monthly_motor_count,
       monthly_premium: monthly_health_premium + monthly_life_premium + monthly_motor_premium,
-      monthly_customers: monthly_customer_ids.count,
+      monthly_customers: Customer.where(sub_agent_id: agent.id).where(created_at: current_month_start..current_month_end).active.count,
       commission_this_month: monthly_commission,
       target_achievement: target_achievement,
       conversion_rate: customer_ids.count > 0 && total_policies > 0 ? ((total_policies.to_f / customer_ids.count) * 100).round(2) : 0,
