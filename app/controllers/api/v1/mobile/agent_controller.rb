@@ -1865,7 +1865,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       end_date: policy.policy_end_date&.strftime('%Y-%m-%d'),
       total_premium: policy.total_premium,
       sum_insured: policy.sum_insured,
-      insurance_company: policy.insurance_company_name,
+      insurance_company: policy.specific_insurance&.insurance_company_name || policy.insurance_company&.name,
       payment_mode: policy.payment_mode,
       commission_amount: agent_commission,
       agent_percentage: agent_percentage,
