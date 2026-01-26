@@ -5,11 +5,14 @@ class Banner < ApplicationRecord
   # Validations
   validates :title, presence: true, length: { maximum: 255 }
   validates :description, length: { maximum: 500 }
-  validates :display_start_date, :display_end_date, :display_location, presence: true
-  validates :display_location, inclusion: { in: ['dashboard', 'login', 'home', 'sidebar'] }
+  validates :display_start_date, :display_end_date, presence: true
+  validates :display_location, inclusion: { in: ['dashboard', 'login', 'home', 'sidebar'] }, allow_blank: true
   validates :status, inclusion: { in: [true, false] }
   validates :display_order, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :redirect_link, format: { with: URI::regexp }, allow_blank: true
+
+  # Set default values
+  before_validation :set_default_display_location
 
   # Custom validation for date range
   validate :end_date_after_start_date
@@ -46,6 +49,10 @@ class Banner < ApplicationRecord
   end
 
   private
+
+  def set_default_display_location
+    self.display_location = 'home' if display_location.blank?
+  end
 
   def end_date_after_start_date
     return unless display_start_date && display_end_date

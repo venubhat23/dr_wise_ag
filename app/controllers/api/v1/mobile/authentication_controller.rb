@@ -5,12 +5,29 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
     # Support login with email, mobile number, or PAN card
     login_field = params[:username] || params[:email] || params[:mobile] || params[:pan]
     password = params[:password]
+    role = params[:role]&.downcase
 
     if login_field.blank? || password.blank?
       return render json: {
         success: false,
         message: 'Email/Mobile/PAN and password are required'
       }, status: :unprocessable_entity
+    end
+
+    # Validate role parameter if provided
+    if role.present? && !['client', 'sub_agent'].include?(role)
+      return render json: {
+        success: false,
+        message: 'Invalid role. Valid roles are: client, sub_agent',
+        valid_roles: ['client', 'sub_agent']
+      }, status: :unprocessable_entity
+    end
+
+    # Role-based authentication
+    if role == 'client'
+      return handle_client_login(login_field, password)
+    elsif role == 'sub_agent'
+      return handle_sub_agent_login(login_field, password)
     end
 
     # Check if it's a user login (including customers, agents, admin)
@@ -523,6 +540,194 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
   end
 
   private
+
+  # Handle client (customer) login - check in Customer table and associated User record
+  def handle_client_login(login_field, password)
+    # Find customer by email, mobile, or PAN
+    customer = find_customer_by_login_field(login_field)
+
+    unless customer
+      return render json: {
+        success: false,
+        message: 'Customer not found with provided credentials'
+      }, status: :unauthorized
+    end
+
+    # Find associated user record for password validation
+    user = User.find_by(email: customer.email)
+    user ||= User.find_by(mobile: customer.mobile) if customer.mobile.present?
+
+    unless user
+      return render json: {
+        success: false,
+        message: 'User account not found for customer'
+      }, status: :unauthorized
+    end
+
+    # Validate password
+    unless user.valid_password?(password)
+      return render json: {
+        success: false,
+        message: 'Invalid credentials'
+      }, status: :unauthorized
+    end
+
+    # Check if user is active
+    unless user.status
+      return render json: {
+        success: false,
+        message: 'Account is inactive. Please contact support.'
+      }, status: :unauthorized
+    end
+
+    # Generate token and return success response
+    token = generate_token(user, 'client')
+    portfolio_stats = get_customer_portfolio_stats(customer)
+
+    render json: {
+      success: true,
+      data: {
+        token: token,
+        username: customer.display_name,
+        role: 'client',
+        user_id: user.id,
+        customer_id: customer.id,
+        email: customer.email,
+        mobile: customer.mobile,
+        password_reset_days: user.days_until_password_expires,
+        password_reset_required: user.password_reset_required?,
+        portfolio_summary: {
+          total_policies: portfolio_stats[:total_policies],
+          upcoming_installments: portfolio_stats[:upcoming_installments],
+          renewal_policies: portfolio_stats[:renewal_policies]
+        }
+      }
+    }
+  end
+
+  # Handle sub_agent login - check in SubAgent table with password validation
+  def handle_sub_agent_login(login_field, password)
+    # Find sub_agent by email, mobile, or PAN
+    sub_agent = find_sub_agent_by_login_field(login_field)
+
+    unless sub_agent
+      return render json: {
+        success: false,
+        message: 'Sub-agent not found with provided credentials'
+      }, status: :unauthorized
+    end
+
+    # Check if sub_agent is active
+    unless sub_agent.status == 'active'
+      return render json: {
+        success: false,
+        message: 'Sub-agent account is inactive. Please contact support.'
+      }, status: :unauthorized
+    end
+
+    # Validate password using SubAgent's has_secure_password method
+    unless sub_agent.authenticate(password)
+      return render json: {
+        success: false,
+        message: 'Invalid credentials'
+      }, status: :unauthorized
+    end
+
+    # Generate token and return success response
+    token = generate_token(sub_agent, 'sub_agent')
+    sub_agent_stats = get_sub_agent_statistics(sub_agent)
+
+    render json: {
+      success: true,
+      data: {
+        token: token,
+        username: sub_agent.display_name,
+        role: 'sub_agent',
+        user_id: sub_agent.id,
+        email: sub_agent.email,
+        mobile: sub_agent.mobile,
+        password_reset_days: get_sub_agent_password_reset_days(sub_agent),
+        password_reset_required: get_sub_agent_password_reset_required(sub_agent),
+        commission_earned: sub_agent_stats[:commission_earned],
+        customers_count: sub_agent_stats[:customers_count],
+        policies_count: sub_agent_stats[:policies_count],
+        commission_breakdown: sub_agent_stats[:commission_breakdown],
+        monthly_target: sub_agent_stats[:monthly_target],
+        achievement_percentage: sub_agent_stats[:achievement_percentage],
+        dashboard_stats: {
+          total_commission: sub_agent_stats[:commission_earned],
+          monthly_target: sub_agent_stats[:monthly_target],
+          achievement_percentage: sub_agent_stats[:achievement_percentage],
+          policies_this_month: get_current_month_policies_count(sub_agent),
+          customers_this_month: get_current_month_customers_count(sub_agent),
+          conversion_rate: calculate_conversion_rate(sub_agent),
+          ranking: calculate_agent_ranking(sub_agent),
+          team_size: get_team_size(sub_agent),
+          performance_grade: calculate_performance_grade(sub_agent_stats[:achievement_percentage])
+        },
+        agency_info: {
+          agency_name: "#{sub_agent.display_name} Agency",
+          license_number: "AGY#{sub_agent.id.to_s.rjust(6, '0')}",
+          territory: ["North Zone", "South Zone", "East Zone", "West Zone"][sub_agent.id % 4],
+          join_date: (Date.current - rand(30..1000).days).strftime("%Y-%m-%d")
+        }
+      }
+    }
+  end
+
+  # Find customer by login field (email, mobile, or PAN)
+  def find_customer_by_login_field(login_field)
+    # Try email first
+    customer = Customer.find_by(email: login_field)
+    return customer if customer
+
+    # Try PAN number if it looks like one
+    if login_field.match?(/\A[A-Za-z]{5}\d{4}[A-Za-z]\z/)
+      customer = Customer.where("UPPER(pan_no) = ?", login_field.upcase).first
+      return customer if customer
+    end
+
+    # Try mobile with various formatting
+    formatted_mobile = format_mobile_number(login_field)
+    if formatted_mobile
+      customer = Customer.find_by(mobile: formatted_mobile) ||
+                Customer.find_by(mobile: "+91#{formatted_mobile}") ||
+                Customer.find_by(mobile: "+91 #{formatted_mobile}") ||
+                Customer.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+                Customer.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}")
+    else
+      customer = Customer.find_by(mobile: login_field)
+    end
+
+    customer
+  end
+
+  # Find sub_agent by login field (email, mobile, or PAN)
+  def find_sub_agent_by_login_field(login_field)
+    # Try email first
+    sub_agent = SubAgent.find_by(email: login_field)
+    return sub_agent if sub_agent
+
+    # Try PAN number if it looks like one
+    if login_field.match?(/\A[A-Za-z]{5}\d{4}[A-Za-z]\z/)
+      sub_agent = SubAgent.where("UPPER(pan_no) = ?", login_field.upcase).first
+      return sub_agent if sub_agent
+    end
+
+    # Try mobile with various formatting
+    formatted_mobile = format_mobile_number(login_field)
+    if formatted_mobile
+      sub_agent = SubAgent.find_by(mobile: formatted_mobile) ||
+                  SubAgent.find_by(mobile: "+91#{formatted_mobile}") ||
+                  SubAgent.find_by(mobile: "+91 #{formatted_mobile}") ||
+                  SubAgent.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
+                  SubAgent.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}")
+    else
+      sub_agent = SubAgent.find_by(mobile: login_field)
+    end
+
+    sub_agent
+  end
 
   def generate_token(user, role)
     payload = {
