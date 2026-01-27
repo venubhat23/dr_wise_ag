@@ -72,17 +72,28 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
   def create
     @other_insurance = OtherInsurance.new(other_insurance_params)
 
+    # Log the parameters for debugging
+    Rails.logger.info "Creating OtherInsurance with params: #{other_insurance_params.inspect}"
+
     # Set calculated fields
     calculate_commission_fields if @other_insurance.net_premium.present?
 
     if @other_insurance.save
-      redirect_to admin_other_insurance_path(@other_insurance), notice: 'Other insurance policy was successfully created.'
+      Rails.logger.info "Successfully created OtherInsurance ##{@other_insurance.id}"
+      redirect_to admin_other_insurance_path(@other_insurance), notice: 'General insurance policy was successfully created.'
     else
+      Rails.logger.error "Failed to create OtherInsurance: #{@other_insurance.errors.full_messages.join(', ')}"
       # Reload form data for re-rendering
+      load_form_data
       @selected_customer = Customer.find(@other_insurance.customer_id) if @other_insurance.customer_id
       @customer_family_members = @selected_customer.family_members if @selected_customer
       render :new, status: :unprocessable_entity
     end
+  rescue => e
+    Rails.logger.error "Exception in OtherInsurance#create: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+    flash[:error] = "An error occurred: #{e.message}"
+    redirect_to new_admin_other_insurance_path
   end
 
   def update
@@ -98,6 +109,7 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     redirect_to admin_other_insurances_path, notice: 'Other insurance policy was successfully deleted.'
   end
 
+  private
 
   def set_other_insurance
     @other_insurance = OtherInsurance.find(params[:id])
