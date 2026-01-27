@@ -203,7 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </small>
                         <% if user.encrypted_password.present? %>
                           <small class="text-info d-block">
-                            <i class="bi bi-key me-1"></i>Password: <%= user.original_password.present? ? user.original_password : "Password set (not visible)" %>
+                            <i class="bi bi-key me-1"></i>Password: <strong><%= user.original_password.present? ? user.original_password : "Not stored in DB" %></strong>
                           </small>
                         <% else %>
                           <small class="text-muted d-block">
