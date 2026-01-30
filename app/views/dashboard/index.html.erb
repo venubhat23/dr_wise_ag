@@ -952,7 +952,7 @@
           <div class="system-status-card" style="cursor: pointer; height: 200px;" onclick="showSystemStatusModal('lead_count')">
             <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
               <i class="bi bi-person-lines-fill fs-1 mb-3 text-info"></i>
-              <div class="fs-2 fw-bold text-dark"><%= number_with_delimiter(Lead.count rescue 0) %></div>
+              <div class="fs-2 fw-bold text-dark"><%= number_with_delimiter((Lead.count rescue 0)) %></div>
               <div class="h6 text-muted">Total Leads</div>
               <div class="mt-2">
                 <small class="text-info"><i class="bi bi-info-circle"></i> Click for details</small>
