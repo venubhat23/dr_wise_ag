@@ -13,9 +13,13 @@ class Admin::LeadsController < Admin::ApplicationController
       @leads = Lead.where(converted_customer_id: nil)
     end
 
-    # Search functionality
+    # Search functionality - Use simpler search in production for better performance
     if params[:search].present?
-      @leads = @leads.search_leads(params[:search])
+      if Rails.env.production? && @leads.respond_to?(:simple_search)
+        @leads = @leads.simple_search(params[:search])
+      else
+        @leads = @leads.search_leads(params[:search])
+      end
     end
 
     # Filter by current stage

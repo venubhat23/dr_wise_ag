@@ -45,6 +45,30 @@ Rails.application.routes.draw do
 
   # Admin routes
   namespace :admin do
+    # API routes for dashboard modals
+    namespace :api do
+      resources :policies, only: [] do
+        collection do
+          get :expiring
+          get :expired
+          get :processed
+          get 'health/expiring', to: 'policies#health_expiring'
+          get 'health/expired_month', to: 'policies#health_expired_month'
+          get 'health/opportunities', to: 'policies#health_opportunities'
+        end
+      end
+
+      # System Status API endpoints
+      resources :system_status, only: [] do
+        collection do
+          get :active_affiliates
+          get :lead_conversion
+          get :avg_policy_value
+          get :commissions_due_detailed
+        end
+      end
+    end
+
     # Admin profile management
     get 'profile', to: 'profile#show'
     get 'profile/edit', to: 'profile#edit', as: 'edit_profile'
@@ -104,6 +128,7 @@ Rails.application.routes.draw do
         get :summary
         get :policy_search
         post :manual_transfer
+        get :commission_details_modal
       end
     end
 
@@ -142,6 +167,22 @@ Rails.application.routes.draw do
       collection do
         post :generate_invoice
       end
+    end
+
+    # API endpoints for dashboard and system status
+    namespace :api do
+      get 'system_status/active_affiliates', to: 'system_status#active_affiliates'
+      get 'system_status/lead_conversion', to: 'system_status#lead_conversion'
+      get 'system_status/avg_policy_value', to: 'system_status#avg_policy_value'
+      get 'system_status/commissions_due_detailed', to: 'system_status#commissions_due_detailed'
+
+      # Policy endpoints for modals
+      get 'policies/expiring', to: 'policies#expiring'
+      get 'policies/expired', to: 'policies#expired'
+      get 'policies/processed', to: 'policies#processed'
+      get 'policies/health/expiring', to: 'policies#health_expiring'
+      get 'policies/health/expired_month', to: 'policies#health_expired_month'
+      get 'policies/health/opportunities', to: 'policies#health_opportunities'
     end
     # Users (Admins/Agents) management
     resources :users

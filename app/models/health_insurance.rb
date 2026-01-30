@@ -1,6 +1,7 @@
 class HealthInsurance < ApplicationRecord
   include PgSearch::Model
   include InsuranceCompanyConstants
+  include DashboardOptimizable
 
   # Associations
   belongs_to :customer, counter_cache: :policies_count

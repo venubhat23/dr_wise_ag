@@ -1,5 +1,11 @@
 <!-- Chart.js for interactive charts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+
+<%
+  # Calculate consistent counts using helper methods
+  renewal_counts = get_consistent_renewal_counts
+  health_alerts = get_health_policy_alerts
+%>
 <!-- Chart.js Data Labels Plugin for showing values on charts -->
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <!-- Additional Chart.js plugins -->
@@ -100,6 +106,521 @@
   .orange-gradient { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
   .pink-gradient { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); }
 
+  /* Modal Styles - Same as Affiliate Payouts */
+  .modal-backdrop {
+    display: none !important;
+  }
+
+  .dashboard-modal.show {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .dashboard-modal.fade:not(.show) {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+
+  /* Hide everything behind the modal */
+  body.modal-open {
+    overflow: hidden !important;
+  }
+
+  .dashboard-modal.show ~ * {
+    pointer-events: none !important;
+  }
+
+  .dashboard-modal .modal-header {
+    flex-shrink: 0 !important;
+  }
+
+  .dashboard-modal .modal-footer {
+    flex-shrink: 0 !important;
+  }
+
+  .dashboard-modal {
+    z-index: 9999 !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(5px) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
+  }
+
+  .dashboard-modal .modal-dialog {
+    max-width: 98vw !important;
+    width: 1600px !important;
+    margin: 0 !important;
+    z-index: 10000 !important;
+    position: relative !important;
+    max-height: 95vh !important;
+    min-height: 80vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .dashboard-modal .modal-content {
+    border: 3px solid #0d6efd;
+    border-radius: 20px;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+    position: relative;
+    z-index: 10001 !important;
+    background: white !important;
+    overflow: hidden;
+    max-height: 90vh !important;
+    min-height: 75vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .dashboard-modal .modal-header {
+    border-bottom: 1px solid #e9ecef;
+    background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+    color: white;
+    padding: 2rem;
+    flex-shrink: 0;
+  }
+
+  .dashboard-modal .modal-header h5 {
+    font-weight: 600;
+    margin: 0;
+    font-size: 1.5rem;
+  }
+
+  .dashboard-modal .modal-footer {
+    border-top: 1px solid #e9ecef;
+    background: #f8f9fa;
+    padding: 1rem 1.5rem;
+  }
+
+  .dashboard-modal .modal-body {
+    background: white !important;
+    padding: 2.5rem 2rem;
+    position: relative;
+    z-index: 1058 !important;
+    overflow-y: auto !important;
+    flex: 1 !important;
+    min-height: 60vh;
+  }
+
+  .dashboard-modal .btn-close {
+    filter: invert(1);
+    opacity: 1;
+  }
+
+  .dashboard-modal .btn-close:hover {
+    opacity: 0.8;
+  }
+
+  .dashboard-modal .table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #495057;
+  }
+
+  .dashboard-modal .table td {
+    vertical-align: middle;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .dashboard-modal .table tbody tr:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.01);
+    transition: all 0.2s ease;
+  }
+
+  .dashboard-modal .table-responsive {
+    max-height: 60vh !important;
+    overflow-y: auto !important;
+  }
+
+  .dashboard-modal #systemStatusContent {
+    min-height: 400px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .dashboard-modal #systemStatusLoading {
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .dashboard-modal #systemStatusLoading .spinner-border {
+    width: 4rem;
+    height: 4rem;
+    border-width: 0.5em;
+  }
+
+  .dashboard-modal #systemStatusLoading .loading-text {
+    margin-top: 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #6c757d;
+  }
+
+  /* Ensure charts and tables display properly in modal */
+  .dashboard-modal .chart-container {
+    max-height: 400px !important;
+    overflow: hidden;
+  }
+
+  .dashboard-modal .table {
+    font-size: 0.9rem;
+  }
+
+  .dashboard-modal .row {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .dashboard-modal .col-md-6 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  /* Simple Modal Cards */
+  .kpi-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+    margin-bottom: 20px;
+  }
+
+  .kpi-card .card-body {
+    padding: 20px;
+    text-align: center;
+  }
+
+  .kpi-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #212529;
+    margin-bottom: 8px;
+  }
+
+  .kpi-label {
+    font-size: 14px;
+    color: #6c757d;
+    font-weight: 600;
+  }
+
+  /* Simple color variants */
+  .kpi-primary {
+    background-color: #0d6efd;
+    color: white;
+  }
+
+  .kpi-primary .kpi-number,
+  .kpi-primary .kpi-label {
+    color: white;
+  }
+
+  .kpi-success {
+    background-color: #198754;
+    color: white;
+  }
+
+  .kpi-success .kpi-number,
+  .kpi-success .kpi-label {
+    color: white;
+  }
+
+  .kpi-warning {
+    background-color: #ffc107;
+    color: #212529;
+  }
+
+  .kpi-warning .kpi-number,
+  .kpi-warning .kpi-label {
+    color: #212529;
+  }
+
+  .kpi-info {
+    background-color: #0dcaf0;
+    color: #212529;
+  }
+
+  .kpi-info .kpi-number,
+  .kpi-info .kpi-label {
+    color: #212529;
+  }
+
+  /* System Status Cards - Simple and Uniform */
+  .system-status-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+  }
+
+  .system-status-card:hover {
+    border-color: #007bff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+
+  /* Unique Commission Breakdown Card */
+  .commission-breakdown-card {
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 12px 40px rgba(239, 68, 68, 0.25);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    position: relative;
+    height: 200px;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+  }
+
+  .commission-breakdown-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 48px rgba(239, 68, 68, 0.35);
+  }
+
+  .commission-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .commission-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    font-size: 24px;
+    color: white;
+  }
+
+  .commission-total {
+    flex: 1;
+  }
+
+  .total-amount {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: white;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+  }
+
+  .total-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .commission-breakdown {
+    margin-bottom: 1rem;
+  }
+
+  .breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .breakdown-item:last-child {
+    border-bottom: none;
+  }
+
+  .breakdown-item .recipient {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    flex: 1;
+  }
+
+  .breakdown-item .amount {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: white;
+  }
+
+  .breakdown-more {
+    padding: 0.3rem 0;
+    text-align: center;
+  }
+
+  .breakdown-more .text-muted {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7) !important;
+    font-style: italic;
+  }
+
+  .commission-footer {
+    position: absolute;
+    bottom: 1rem;
+    left: 1.5rem;
+    right: 1.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    text-align: center;
+  }
+
+  /* Mobile responsiveness */
+  @media (max-width: 768px) {
+    .dashboard-modal .modal-dialog {
+      width: 98vw !important;
+      max-width: 98vw !important;
+      min-height: 90vh !important;
+    }
+
+    .dashboard-modal .modal-content {
+      min-height: 85vh !important;
+    }
+
+    .dashboard-modal .modal-header {
+      padding: 1.5rem;
+    }
+
+    .dashboard-modal .modal-body {
+      padding: 1.5rem;
+      min-height: 70vh;
+    }
+
+    .kpi-card .card-body {
+      padding: 15px;
+    }
+
+    .kpi-number {
+      font-size: 1.5rem;
+    }
+
+    .kpi-label {
+      font-size: 13px;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .kpi-card .card-body {
+      padding: 12px;
+    }
+
+    .kpi-number {
+      font-size: 1.25rem;
+    }
+
+    .kpi-label {
+      font-size: 12px;
+    }
+  }
+
+  .renewal-badge {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+  }
+
+  .status-badge-active {
+    background: linear-gradient(135deg, #198754, #157347);
+    color: white;
+    border: none;
+  }
+
+  .status-badge-expired {
+    background: linear-gradient(135deg, #dc3545, #bb2d3b);
+    color: white;
+    border: none;
+  }
+
+  .status-badge-warning {
+    background: linear-gradient(135deg, #ffc107, #e6ac00);
+    color: #212529;
+    border: none;
+  }
+
+  /* Enhanced Lead Conversion Analysis Card */
+  .lead-conversion-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15), 0 5px 15px rgba(0, 0, 0, 0.08) !important;
+    border: 2px solid #e9ecef !important;
+    transform: translateY(0);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .lead-conversion-card:hover {
+    transform: translateY(-8px) !important;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2), 0 10px 25px rgba(0, 0, 0, 0.12) !important;
+    border-color: #667eea !important;
+  }
+
+  .lead-conversion-title {
+    font-size: 1.2rem !important;
+    font-weight: 800 !important;
+    color: #212529 !important;
+    text-shadow: none;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .lead-conversion-rate {
+    font-size: 3rem !important;
+    font-weight: 900 !important;
+    color: #667eea !important;
+    text-shadow: none;
+    margin: 0.75rem 0 1rem 0 !important;
+  }
+
+  .lead-conversion-stats {
+    background: linear-gradient(135deg, #667eea, #764ba2) !important;
+    border-radius: 12px;
+    padding: 1rem;
+    backdrop-filter: none;
+    border: none;
+    color: white !important;
+  }
+
+  .lead-conversion-stats .fw-bold {
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    color: white !important;
+  }
+
+  .lead-conversion-stats .opacity-75 {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+  }
+
+  .lead-conversion-icon {
+    color: #667eea !important;
+  }
+
+  .lead-conversion-footer {
+    color: #6c757d !important;
+    font-weight: 600 !important;
+  }
+
   @media (max-width: 768px) {
     .dashboard-container {
       padding: 1rem;
@@ -112,6 +633,14 @@
 
     .chart-container {
       height: 250px;
+    }
+
+    .lead-conversion-title {
+      font-size: 0.9rem !important;
+    }
+
+    .lead-conversion-rate {
+      font-size: 2rem !important;
     }
   }
 </style>
@@ -128,10 +657,6 @@
               <div>
                 <h6 class="text-muted mb-2">Total Customers</h6>
                 <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_customers) %></h3>
-                <small class="<%= (@customer_growth || 0) >= 0 ? 'text-success' : 'text-danger' %>">
-                  <i class="bi bi-arrow-<%= (@customer_growth || 0) >= 0 ? 'up' : 'down' %>"></i>
-                  <%= (@customer_growth || 0).abs %>% from last month
-                </small>
               </div>
               <div class="bg-primary bg-opacity-10 rounded p-3">
                 <i class="bi bi-people text-primary fs-4"></i>
@@ -150,10 +675,6 @@
             <div>
               <h6 class="text-muted mb-2">Active Policies</h6>
               <h3 class="mb-0 text-success"><%= number_with_delimiter(@total_policies) %></h3>
-              <small class="<%= (@policy_growth || 0) >= 0 ? 'text-success' : 'text-danger' %>">
-                <i class="bi bi-arrow-<%= (@policy_growth || 0) >= 0 ? 'up' : 'down' %>"></i>
-                <%= (@policy_growth || 0).abs %>% from last month
-              </small>
             </div>
             <div class="bg-success bg-opacity-10 rounded p-3">
               <i class="bi bi-file-earmark-text text-success fs-4"></i>
@@ -171,10 +692,6 @@
             <div>
               <h6 class="text-muted mb-2">Total Premium</h6>
               <h3 class="mb-0 text-warning"><%= indian_currency(@total_premium_collected || 0) %></h3>
-              <small class="<%= (@premium_growth || 0) >= 0 ? 'text-success' : 'text-danger' %>">
-                <i class="bi bi-arrow-<%= (@premium_growth || 0) >= 0 ? 'up' : 'down' %>"></i>
-                <%= (@premium_growth || 0).abs %>% from last month
-              </small>
             </div>
             <div class="bg-warning bg-opacity-10 rounded p-3">
               <i class="bi bi-currency-rupee text-warning fs-4"></i>
@@ -193,10 +710,6 @@
               <div>
                 <h6 class="text-muted mb-2">Active Leads</h6>
                 <h3 class="mb-0 text-info"><%= number_with_delimiter(@pending_leads) %></h3>
-                <small class="<%= (@lead_growth || 0) >= 0 ? 'text-success' : 'text-danger' %>">
-                  <i class="bi bi-arrow-<%= (@lead_growth || 0) >= 0 ? 'up' : 'down' %>"></i>
-                  <%= (@lead_growth || 0).abs %>% from last month
-                </small>
               </div>
               <div class="bg-info bg-opacity-10 rounded p-3">
                 <i class="bi bi-funnel text-info fs-4"></i>
@@ -219,16 +732,28 @@
             Renewal Alerts
           </h5>
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="text-muted">Expiring in 30 days</span>
-            <span class="badge bg-warning text-dark"><%= @renewal_due_count %></span>
+            <a href="javascript:void(0)" onclick="showRenewalModal('expiring')" class="text-decoration-none text-muted">
+              Expiring in 30 days
+            </a>
+            <span class="badge bg-warning text-dark" style="cursor: pointer;" onclick="showRenewalModal('expiring')">
+              <%= renewal_counts[:expiring] %>
+            </span>
           </div>
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="text-muted">Recently expired</span>
-            <span class="badge bg-danger"><%= @expired_policies_count %></span>
+            <a href="javascript:void(0)" onclick="showRenewalModal('expired')" class="text-decoration-none text-muted">
+              Recently expired
+            </a>
+            <span class="badge bg-danger" style="cursor: pointer;" onclick="showRenewalModal('expired')">
+              <%= renewal_counts[:expired] %>
+            </span>
           </div>
           <div class="d-flex justify-content-between align-items-center">
-            <span class="text-muted">Processed this month</span>
-            <span class="badge bg-success"><%= @renewal_status['Renewed'] %></span>
+            <a href="javascript:void(0)" onclick="showRenewalModal('processed')" class="text-decoration-none text-muted">
+              Processed this month
+            </a>
+            <span class="badge bg-success" style="cursor: pointer;" onclick="showRenewalModal('processed')">
+              <%= renewal_counts[:processed] %>
+            </span>
           </div>
         </div>
       </div>
@@ -242,25 +767,30 @@
             <i class="bi bi-exclamation-triangle text-warning me-2"></i>
             Policy Alerts
           </h5>
-          <%
-            # Calculate renewal alerts
-            expiring_soon = HealthInsurance.where(policy_end_date: Date.current..30.days.from_now).count rescue 0
-            expired_policies = HealthInsurance.where(policy_end_date: Date.current.beginning_of_month..Date.current).count rescue 0
-            pending_renewals = HealthInsurance.joins("LEFT JOIN health_insurances hi2 ON hi2.policy_type = 'Renewal' AND hi2.customer_id = health_insurances.customer_id")
-                                             .where(policy_end_date: 30.days.ago..Date.current)
-                                             .where("hi2.id IS NULL").count rescue 0
-          %>
+          <!-- Policy alerts are now calculated using consistent helper methods above -->
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="text-muted">Policies expiring soon</span>
-            <span class="badge bg-warning text-dark"><%= expiring_soon %></span>
+            <a href="javascript:void(0)" onclick="showPolicyModal('expiring')" class="text-decoration-none text-muted">
+              Policies expiring soon
+            </a>
+            <span class="badge bg-warning text-dark" style="cursor: pointer;" onclick="showPolicyModal('expiring')">
+              <%= health_alerts[:expiring_soon] %>
+            </span>
           </div>
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="text-muted">Expired this month</span>
-            <span class="badge bg-danger"><%= expired_policies %></span>
+            <a href="javascript:void(0)" onclick="showPolicyModal('expired_month')" class="text-decoration-none text-muted">
+              Expired this month
+            </a>
+            <span class="badge bg-danger" style="cursor: pointer;" onclick="showPolicyModal('expired_month')">
+              <%= health_alerts[:expired_month] %>
+            </span>
           </div>
           <div class="d-flex justify-content-between align-items-center">
-            <span class="text-muted">Renewal opportunities</span>
-            <span class="badge bg-success"><%= pending_renewals %></span>
+            <a href="javascript:void(0)" onclick="showPolicyModal('opportunities')" class="text-decoration-none text-muted">
+              Renewal opportunities
+            </a>
+            <span class="badge bg-success" style="cursor: pointer;" onclick="showPolicyModal('opportunities')">
+              <%= health_alerts[:opportunities] %>
+            </span>
           </div>
         </div>
       </div>
@@ -383,29 +913,51 @@
       </h5>
       <div class="row">
         <div class="col-xl-3 col-md-6 mb-3">
-          <div class="text-center p-3 bg-light rounded">
-            <h4 class="mb-1 text-success"><%= @total_affiliates %></h4>
-            <small class="text-muted">Active Affiliates</small>
+          <div class="system-status-card" style="cursor: pointer; height: 200px;" onclick="showSystemStatusModal('active_affiliates')">
+            <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
+              <i class="bi bi-people fs-1 mb-3 text-primary"></i>
+              <div class="fs-2 fw-bold text-dark"><%= number_with_delimiter(@total_affiliates) %></div>
+              <div class="h6 text-muted">Active Affiliates</div>
+              <div class="mt-2">
+                <small class="text-info"><i class="bi bi-info-circle"></i> Click for details</small>
+              </div>
+            </div>
           </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-          <div class="text-center p-3 bg-light rounded">
-            <h4 class="mb-1 text-primary"><%= @conversion_rate %>%</h4>
-            <small class="text-muted">Lead Conversion</small>
+          <div class="system-status-card" style="cursor: pointer; height: 200px;" onclick="showSystemStatusModal('avg_policy_value')">
+            <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
+              <i class="bi bi-cash-stack fs-1 mb-3 text-warning"></i>
+              <div class="fs-2 fw-bold text-dark"><%= indian_currency(@avg_policy_value || 0) %></div>
+              <div class="h6 text-muted">Avg Policy Value</div>
+              <div class="mt-2">
+                <small class="text-info"><i class="bi bi-info-circle"></i> Click for details</small>
+              </div>
+            </div>
           </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-          <div class="text-center p-3 bg-light rounded">
-            <h4 class="mb-1 text-warning"><%= indian_currency(@avg_policy_value || 0) %></h4>
-            <small class="text-muted">Avg Policy Value</small>
+          <div class="system-status-card" style="cursor: pointer; height: 200px;" onclick="showSystemStatusModal('commissions_due')">
+            <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
+              <i class="bi bi-wallet2 fs-1 mb-3 <%= @commissions_due > 0 ? 'text-danger' : 'text-success' %>"></i>
+              <div class="fs-2 fw-bold text-dark"><%= indian_currency(@commissions_due || 0) %></div>
+              <div class="h6 text-muted">Commissions Due</div>
+              <div class="mt-2">
+                <small class="text-info"><i class="bi bi-info-circle"></i> Click for details</small>
+              </div>
+            </div>
           </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-          <div class="text-center p-3 bg-light rounded">
-            <h4 class="mb-1 <%= @commissions_due > 0 ? 'text-danger' : 'text-success' %>">
-              <%= indian_currency(@commissions_due || 0) %>
-            </h4>
-            <small class="text-muted">Commissions Due</small>
+          <div class="system-status-card" style="cursor: pointer; height: 200px;" onclick="showSystemStatusModal('lead_count')">
+            <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
+              <i class="bi bi-person-lines-fill fs-1 mb-3 text-info"></i>
+              <div class="fs-2 fw-bold text-dark"><%= number_with_delimiter(Lead.count rescue 0) %></div>
+              <div class="h6 text-muted">Total Leads</div>
+              <div class="mt-2">
+                <small class="text-info"><i class="bi bi-info-circle"></i> Click for details</small>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -414,6 +966,36 @@
 
   <!-- Display Banners if any -->
   <%= display_banners('dashboard') if defined?(display_banners) %>
+</div>
+
+<!-- System Status Detail Modal -->
+<div class="modal dashboard-modal fade" id="systemStatusModal" tabindex="-1" aria-labelledby="systemStatusModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
+  <div class="modal-dialog modal-fullscreen-lg-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="systemStatusModalLabel">
+          <i class="bi bi-gear me-2"></i>System Status Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="systemStatusContent">
+          <!-- Dynamic content will be loaded here -->
+        </div>
+        <div id="systemStatusLoading" class="text-center py-4" style="display: none;">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2 text-muted loading-text">Loading system status details...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x me-1"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -653,9 +1235,1211 @@ document.addEventListener('DOMContentLoaded', function() {
 
   console.log('🎉 Enhanced Dashboard with Analytics Charts Loaded!');
 
+  // Load real-time lead conversion rate on page load
+  loadRealTimeLeadConversion();
+
   // Auto-refresh dashboard data every 5 minutes
   setInterval(function() {
     console.log('Dashboard auto-refresh check');
+    loadRealTimeLeadConversion();
   }, 300000); // 5 minutes
+});
+</script>
+
+<!-- Renewal Alert Modal -->
+<div class="modal dashboard-modal fade" id="renewalModal" tabindex="-1" aria-labelledby="renewalModalLabel" aria-hidden="true" data-bs-backdrop="false" data-bs-keyboard="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="renewalModalLabel">
+          <i class="bi bi-exclamation-triangle me-2"></i>Renewal Alerts
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+          <table class="table table-hover mb-0">
+            <thead class="table-dark sticky-top">
+              <tr>
+                <th>Policy Number</th>
+                <th>Customer</th>
+                <th>Type</th>
+                <th>Premium</th>
+                <th>End Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="renewalTableBody">
+              <!-- Dynamic content will be loaded here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="d-flex justify-content-between align-items-center w-100">
+          <div>
+            <span class="text-muted">
+              <i class="bi bi-info-circle me-1"></i>
+              Total: <span id="renewalCount" class="fw-bold">0</span> policies
+            </span>
+          </div>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x me-1"></i>Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Policy Alert Modal -->
+<div class="modal dashboard-modal fade" id="policyModal" tabindex="-1" aria-labelledby="policyModalLabel" aria-hidden="true" data-bs-backdrop="false" data-bs-keyboard="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="policyModalLabel">
+          <i class="bi bi-shield-check me-2"></i>Policy Alerts
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+          <table class="table table-hover mb-0">
+            <thead class="table-dark sticky-top">
+              <tr>
+                <th>Policy Number</th>
+                <th>Customer</th>
+                <th>Type</th>
+                <th>Sum Insured</th>
+                <th>Premium</th>
+                <th>End Date</th>
+                <th>Days Left</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="policyTableBody">
+              <!-- Dynamic content will be loaded here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="d-flex justify-content-between align-items-center w-100">
+          <div>
+            <span class="text-muted">
+              <i class="bi bi-info-circle me-1"></i>
+              Total: <span id="policyCount" class="fw-bold">0</span> policies
+            </span>
+          </div>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x me-1"></i>Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Function to load real-time lead conversion rate
+function loadRealTimeLeadConversion() {
+  fetch('/admin/api/system_status/lead_conversion')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.summary) {
+        const conversionRateDisplay = document.getElementById('lead-conversion-rate');
+        if (conversionRateDisplay) {
+          conversionRateDisplay.textContent = data.summary.conversion_rate + '%';
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error loading real-time lead conversion:', error);
+    });
+}
+
+// Modal Functions for Dashboard Alerts
+function showRenewalModal(type) {
+  console.log('Opening renewal modal for type:', type);
+
+  const modal = new bootstrap.Modal(document.getElementById('renewalModal'), {
+    backdrop: false,
+    keyboard: true,
+    focus: true
+  });
+
+  const modalTitle = document.getElementById('renewalModalLabel');
+  const tableBody = document.getElementById('renewalTableBody');
+
+  // Update modal title based on type
+  switch(type) {
+    case 'expiring':
+      modalTitle.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>Policies Expiring in 30 Days';
+      loadExpiringPolicies(tableBody);
+      break;
+    case 'expired':
+      modalTitle.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>Recently Expired Policies';
+      loadExpiredPolicies(tableBody);
+      break;
+    case 'processed':
+      modalTitle.innerHTML = '<i class="bi bi-check-circle me-2"></i>Policies Processed This Month';
+      loadProcessedPolicies(tableBody);
+      break;
+  }
+
+  modal.show();
+}
+
+function showPolicyModal(type) {
+  console.log('Opening policy modal for type:', type);
+
+  const modal = new bootstrap.Modal(document.getElementById('policyModal'), {
+    backdrop: false,
+    keyboard: true,
+    focus: true
+  });
+
+  const modalTitle = document.getElementById('policyModalLabel');
+  const tableBody = document.getElementById('policyTableBody');
+
+  // Update modal title based on type
+  switch(type) {
+    case 'expiring':
+      modalTitle.innerHTML = '<i class="bi bi-clock-history me-2"></i>Policies Expiring Soon';
+      loadPoliciesExpiringSoon(tableBody);
+      break;
+    case 'expired_month':
+      modalTitle.innerHTML = '<i class="bi bi-calendar-x me-2"></i>Policies Expired This Month';
+      loadPoliciesExpiredThisMonth(tableBody);
+      break;
+    case 'opportunities':
+      modalTitle.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Renewal Opportunities';
+      loadRenewalOpportunities(tableBody);
+      break;
+  }
+
+  modal.show();
+}
+
+// Data loading functions
+function loadExpiringPolicies(tableBody) {
+  tableBody.innerHTML = '<tr><td colspan="7" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+
+  // Fetch data via AJAX
+  fetch('/admin/api/policies/expiring?days=30')
+    .then(response => response.json())
+    .then(data => {
+      renderPolicyTable(tableBody, data.policies || [], 'expiring');
+      document.getElementById('renewalCount').textContent = data.policies ? data.policies.length : 0;
+    })
+    .catch(error => {
+      console.error('Error loading expiring policies:', error);
+      tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error loading data. Please try again.</td></tr>';
+    });
+}
+
+function loadExpiredPolicies(tableBody) {
+  tableBody.innerHTML = '<tr><td colspan="7" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+
+  fetch('/admin/api/policies/expired')
+    .then(response => response.json())
+    .then(data => {
+      renderPolicyTable(tableBody, data.policies || [], 'expired');
+      document.getElementById('renewalCount').textContent = data.policies ? data.policies.length : 0;
+    })
+    .catch(error => {
+      console.error('Error loading expired policies:', error);
+      tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error loading data. Please try again.</td></tr>';
+    });
+}
+
+function loadProcessedPolicies(tableBody) {
+  tableBody.innerHTML = '<tr><td colspan="7" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+
+  fetch('/admin/api/policies/processed')
+    .then(response => response.json())
+    .then(data => {
+      renderPolicyTable(tableBody, data.policies || [], 'processed');
+      document.getElementById('renewalCount').textContent = data.policies ? data.policies.length : 0;
+    })
+    .catch(error => {
+      console.error('Error loading processed policies:', error);
+      tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error loading data. Please try again.</td></tr>';
+    });
+}
+
+function loadPoliciesExpiringSoon(tableBody) {
+  tableBody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+
+  fetch('/admin/api/policies/health/expiring')
+    .then(response => response.json())
+    .then(data => {
+      renderHealthPolicyTable(tableBody, data.policies || [], 'expiring');
+      document.getElementById('policyCount').textContent = data.policies ? data.policies.length : 0;
+    })
+    .catch(error => {
+      console.error('Error loading policies:', error);
+      tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading data. Please try again.</td></tr>';
+    });
+}
+
+function loadPoliciesExpiredThisMonth(tableBody) {
+  tableBody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+
+  fetch('/admin/api/policies/health/expired_month')
+    .then(response => response.json())
+    .then(data => {
+      renderHealthPolicyTable(tableBody, data.policies || [], 'expired');
+      document.getElementById('policyCount').textContent = data.policies ? data.policies.length : 0;
+    })
+    .catch(error => {
+      console.error('Error loading policies:', error);
+      tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading data. Please try again.</td></tr>';
+    });
+}
+
+function loadRenewalOpportunities(tableBody) {
+  tableBody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+
+  fetch('/admin/api/policies/health/opportunities')
+    .then(response => response.json())
+    .then(data => {
+      renderHealthPolicyTable(tableBody, data.policies || [], 'opportunity');
+      document.getElementById('policyCount').textContent = data.policies ? data.policies.length : 0;
+    })
+    .catch(error => {
+      console.error('Error loading policies:', error);
+      tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading data. Please try again.</td></tr>';
+    });
+}
+
+// Render functions
+function renderPolicyTable(tableBody, policies, type) {
+  if (policies.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No policies found</td></tr>';
+    return;
+  }
+
+  let html = '';
+  policies.forEach(policy => {
+    const daysLeft = policy.days_left || 0;
+    let statusBadge = '';
+
+    if (type === 'expired') {
+      statusBadge = '<span class="badge status-badge-expired">Expired</span>';
+    } else if (type === 'processed') {
+      statusBadge = '<span class="badge status-badge-active">Renewed</span>';
+    } else if (daysLeft <= 7) {
+      statusBadge = '<span class="badge status-badge-expired">Urgent</span>';
+    } else if (daysLeft <= 30) {
+      statusBadge = '<span class="badge status-badge-warning">Expiring Soon</span>';
+    } else {
+      statusBadge = '<span class="badge status-badge-active">Active</span>';
+    }
+
+    html += `
+      <tr>
+        <td><span class="text-monospace">${policy.policy_number || 'N/A'}</span></td>
+        <td>
+          <div>
+            <strong>${policy.customer_name || 'Unknown'}</strong>
+            ${policy.customer_email ? '<br><small class="text-muted">' + policy.customer_email + '</small>' : ''}
+          </div>
+        </td>
+        <td><span class="badge bg-info text-white">${policy.insurance_type || 'General'}</span></td>
+        <td class="fw-bold">₹${(policy.premium || 0).toLocaleString()}</td>
+        <td>${policy.end_date || 'N/A'}</td>
+        <td>${statusBadge}</td>
+        <td>
+          ${type !== 'processed' ?
+            `<a href="/admin/${policy.type_slug}/renew/${policy.id}" class="btn btn-sm btn-success">
+              <i class="bi bi-arrow-repeat me-1"></i>Renew
+            </a>` :
+            '<span class="text-success"><i class="bi bi-check-circle"></i> Completed</span>'
+          }
+        </td>
+      </tr>
+    `;
+  });
+
+  tableBody.innerHTML = html;
+}
+
+function renderHealthPolicyTable(tableBody, policies, type) {
+  if (policies.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No policies found</td></tr>';
+    return;
+  }
+
+  let html = '';
+  policies.forEach(policy => {
+    const daysLeft = policy.days_left || 0;
+    let daysLeftBadge = '';
+
+    if (daysLeft < 0) {
+      daysLeftBadge = `<span class="badge bg-danger">Expired ${Math.abs(daysLeft)} days ago</span>`;
+    } else if (daysLeft === 0) {
+      daysLeftBadge = '<span class="badge bg-danger">Expires Today</span>';
+    } else if (daysLeft <= 7) {
+      daysLeftBadge = `<span class="badge bg-warning text-dark">${daysLeft} days</span>`;
+    } else {
+      daysLeftBadge = `<span class="badge bg-success">${daysLeft} days</span>`;
+    }
+
+    html += `
+      <tr>
+        <td><span class="text-monospace">${policy.policy_number || 'N/A'}</span></td>
+        <td>
+          <div>
+            <strong>${policy.customer_name || 'Unknown'}</strong>
+            ${policy.customer_email ? '<br><small class="text-muted">' + policy.customer_email + '</small>' : ''}
+          </div>
+        </td>
+        <td><span class="badge bg-primary">Health</span></td>
+        <td class="fw-bold">₹${(policy.sum_insured || 0).toLocaleString()}</td>
+        <td>₹${(policy.premium || 0).toLocaleString()}</td>
+        <td>${policy.end_date || 'N/A'}</td>
+        <td>${daysLeftBadge}</td>
+        <td>
+          <a href="/admin/health_insurances/${policy.id}" class="btn btn-sm btn-outline-primary me-1">
+            <i class="bi bi-eye"></i>
+          </a>
+          ${daysLeft >= 0 && daysLeft <= 60 ?
+            `<a href="/admin/health_insurances/${policy.id}/renew" class="btn btn-sm btn-success">
+              <i class="bi bi-arrow-repeat"></i> Renew
+            </a>` : ''
+          }
+        </td>
+      </tr>
+    `;
+  });
+
+  tableBody.innerHTML = html;
+}
+
+// System Status Modal Functions
+function showSystemStatusModal(type) {
+  console.log('Opening system status modal for:', type);
+
+  // Hide scrollbars on body
+  document.body.style.overflow = 'hidden';
+
+  const modalElement = document.getElementById('systemStatusModal');
+
+  // Clear any existing modal instances
+  let existingModal = bootstrap.Modal.getInstance(modalElement);
+  if (existingModal) {
+    existingModal.dispose();
+  }
+
+  const modal = new bootstrap.Modal(modalElement, {
+    backdrop: 'static',
+    keyboard: true,
+    focus: true
+  });
+
+  const modalTitle = document.getElementById('systemStatusModalLabel');
+  const content = document.getElementById('systemStatusContent');
+  const loading = document.getElementById('systemStatusLoading');
+
+  // Show loading
+  if (content) content.style.display = 'none';
+  if (loading) loading.style.display = 'block';
+
+  // Ensure modal is properly displayed
+  modalElement.style.display = 'flex';
+  modalElement.style.zIndex = '9999';
+
+  // Update modal title and load data based on type
+  switch(type) {
+    case 'active_affiliates':
+      modalTitle.innerHTML = '<i class="bi bi-people me-2"></i>Active Affiliates Details';
+      loadActiveAffiliatesData(content, loading);
+      break;
+    case 'lead_conversion':
+      modalTitle.innerHTML = '<i class="bi bi-graph-up-arrow me-2"></i>Lead Conversion Analysis';
+      loadLeadConversionData(content, loading);
+      break;
+    case 'avg_policy_value':
+      modalTitle.innerHTML = '<i class="bi bi-cash-stack me-2"></i>Average Policy Value Breakdown';
+      loadAvgPolicyValueData(content, loading);
+      break;
+    case 'commissions_due':
+      modalTitle.innerHTML = '<i class="bi bi-wallet2 me-2"></i>Commissions Due - Detailed Calculation';
+      loadCommissionsDueData(content, loading);
+      break;
+    case 'total_revenue':
+      modalTitle.innerHTML = '<i class="bi bi-graph-up-arrow me-2"></i>Total Revenue Breakdown';
+      loadTotalRevenueData(content, loading);
+      break;
+  }
+
+  // Add event listener to restore body overflow when modal is closed
+  modalElement.addEventListener('hidden.bs.modal', function () {
+    document.body.style.overflow = 'auto';
+    document.body.classList.remove('modal-open');
+  });
+
+  modal.show();
+}
+
+function loadActiveAffiliatesData(content, loading) {
+  fetch('/admin/api/system_status/active_affiliates')
+    .then(response => response.json())
+    .then(data => {
+      loading.style.display = 'none';
+      content.style.display = 'block';
+
+      if (data.success) {
+        content.innerHTML = `
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <div class="kpi-card kpi-primary">
+                <div class="card-body">
+                  <div class="kpi-number">${data.summary.total_active}</div>
+                  <div class="kpi-label">Active Affiliates</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="kpi-card kpi-success">
+                <div class="card-body">
+                  <div class="kpi-number">${data.summary.total_policies}</div>
+                  <div class="kpi-label">Total Policies</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="kpi-card kpi-warning">
+                <div class="card-body">
+                  <div class="kpi-number">₹${data.summary.total_premium.toLocaleString('en-IN')}</div>
+                  <div class="kpi-label">Total Premium</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="kpi-card kpi-info">
+                <div class="card-body">
+                  <div class="kpi-number">₹${data.summary.total_commission.toLocaleString('en-IN')}</div>
+                  <div class="kpi-label">Total Commission</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-dark">
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Joined Date</th>
+                  <th>Policies</th>
+                  <th>Premium Generated</th>
+                  <th>Commission Earned</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.affiliates.map(affiliate => `
+                  <tr>
+                    <td><strong>${affiliate.name}</strong></td>
+                    <td>${affiliate.email || 'N/A'}</td>
+                    <td>${affiliate.phone || 'N/A'}</td>
+                    <td>${affiliate.joined_date}</td>
+                    <td><span class="badge bg-primary">${affiliate.total_policies}</span></td>
+                    <td class="fw-bold text-success">₹${affiliate.total_premium.toLocaleString('en-IN')}</td>
+                    <td class="fw-bold text-info">₹${affiliate.commission_earned.toLocaleString('en-IN')}</td>
+                    <td><span class="badge bg-success">${affiliate.status}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else {
+        content.innerHTML = '<div class="alert alert-danger">Error loading affiliate data</div>';
+      }
+    })
+    .catch(error => {
+      loading.style.display = 'none';
+      content.style.display = 'block';
+      content.innerHTML = '<div class="alert alert-danger">Error loading data. Please try again.</div>';
+      console.error('Error:', error);
+    });
+}
+
+function loadCommissionsDueData(content, loading) {
+  fetch('/admin/api/system_status/commissions_due_detailed', {
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      console.log('Commission API response status:', response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Commission API data:', data);
+      console.log('Success:', data.success, 'Total Count:', data.total_count, 'Data Array Length:', data.data?.length);
+
+      loading.style.display = 'none';
+      content.style.display = 'block';
+
+      if (data.success && data.total_count > 0) {
+        console.log('✅ Showing commission details - conditions met');
+        content.innerHTML = `
+          <div class="alert" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+            <h6 style="color: #ffffff; font-weight: bold;"><i class="bi bi-calculator me-2"></i>Commission Calculation Formula:</h6>
+            <p class="mb-0" style="color: #ffffff; font-weight: 600;">${data.calculation_method}</p>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <div class="card text-white" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border-radius: 20px; box-shadow: 0 12px 40px rgba(231, 76, 60, 0.4); border: none;">
+                <div class="card-body text-center" style="padding: 2rem 1rem;">
+                  <div style="background: rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 1rem; margin-bottom: 1rem;">
+                    <i class="bi bi-wallet2-fill" style="font-size: 2rem; color: white;"></i>
+                  </div>
+                  <h2 style="font-weight: 900; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0; line-height: 1;">₹${data.total_amount.toLocaleString('en-IN')}</h2>
+                  <p style="font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 0.5rem; color: rgba(255, 255, 255, 0.9);">Total Amount Due</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card text-white" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); border-radius: 20px; box-shadow: 0 12px 40px rgba(243, 156, 18, 0.4); border: none;">
+                <div class="card-body text-center" style="padding: 2rem 1rem;">
+                  <div style="background: rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 1rem; margin-bottom: 1rem;">
+                    <i class="bi bi-file-earmark-text-fill" style="font-size: 2rem; color: white;"></i>
+                  </div>
+                  <h2 style="font-weight: 900; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0; line-height: 1;">${data.total_count}</h2>
+                  <p style="font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 0.5rem; color: rgba(255, 255, 255, 0.9);">Pending Payouts</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card text-white" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border-radius: 20px; box-shadow: 0 12px 40px rgba(52, 152, 219, 0.4); border: none;">
+                <div class="card-body text-center" style="padding: 2rem 1rem;">
+                  <div style="background: rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 1rem; margin-bottom: 1rem;">
+                    <i class="bi bi-calculator-fill" style="font-size: 2rem; color: white;"></i>
+                  </div>
+                  <h2 style="font-weight: 900; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0; line-height: 1;">₹${Math.round(data.total_amount / data.total_count).toLocaleString('en-IN')}</h2>
+                  <p style="font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 0.5rem; color: rgba(255, 255, 255, 0.9);">Average Payout</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 15px; border: 2px solid rgba(102, 126, 234, 0.1);">
+            <i class="bi bi-table" style="font-size: 1.5rem; color: #667eea;"></i>
+            <h5 style="font-weight: 800; color: #2c3e50; margin: 0; font-size: 1.3rem;">Detailed Commission Breakdown</h5>
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 700;">
+              ${data.data.length} Records
+            </div>
+          </div>
+          <div class="table-responsive" style="max-height: 600px; overflow-y: auto; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.1);">
+            <table class="table table-hover" style="background: white; border-radius: 15px; overflow: hidden; margin: 0;">
+              <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); position: sticky; top: 0; z-index: 10;">
+                <tr>
+                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Lead ID</th>
+                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Policy</th>
+                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Customer</th>
+                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Type</th>
+                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Recipient</th>
+                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">Premium</th>
+                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">Percentage</th>
+                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">Commission</th>
+                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Calculation</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.data.map((comm, index) => `
+                  <tr style="background: ${index % 2 === 0 ? 'rgba(102, 126, 234, 0.05)' : 'white'}; border-bottom: 2px solid #f8f9fa; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'" onmouseout="this.style.background='${index % 2 === 0 ? 'rgba(102, 126, 234, 0.05)' : 'white'}'">
+                    <td style="padding: 15px 12px;">
+                      <div class="commission-lead-id">
+                        <span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 700; font-size: 0.75rem; padding: 6px 10px; border-radius: 8px;">${comm.lead_id}</span>
+                      </div>
+                    </td>
+                    <td style="padding: 15px 12px;">
+                      <div class="commission-policy">
+                        <span style="font-family: 'Monaco', 'Menlo', monospace; font-weight: 700; color: #2c3e50; font-size: 0.9rem; background: #ecf0f1; padding: 4px 8px; border-radius: 6px;">${comm.policy_number}</span>
+                      </div>
+                    </td>
+                    <td style="padding: 15px 12px;">
+                      <div class="commission-customer">
+                        <span style="font-weight: 800; color: #34495e; font-size: 0.95rem;">${comm.customer_name}</span>
+                      </div>
+                    </td>
+                    <td style="padding: 15px 12px;">
+                      <span class="badge" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; font-weight: 700; font-size: 0.75rem; padding: 6px 10px; border-radius: 8px; text-transform: uppercase;">${comm.policy_type}</span>
+                    </td>
+                    <td style="padding: 15px 12px;">
+                      <span class="badge" style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: #212529; font-weight: 800; font-size: 0.75rem; padding: 6px 10px; border-radius: 8px; text-transform: uppercase;">${comm.payout_to.replace(/_/g, ' ')}</span>
+                    </td>
+                    <td style="padding: 15px 12px;">
+                      <div class="commission-premium">
+                        <span style="font-weight: 900; color: #667eea; font-size: 1.1rem; text-shadow: 1px 1px 2px rgba(102, 126, 234, 0.2); font-family: system-ui;">₹${comm.base_premium.toLocaleString('en-IN')}</span>
+                      </div>
+                    </td>
+                    <td style="padding: 15px 12px; text-align: center;">
+                      <div class="commission-percentage">
+                        <span style="font-weight: 900; color: #f39c12; font-size: 1.2rem; background: rgba(243, 156, 18, 0.1); padding: 5px 10px; border-radius: 8px; text-shadow: 1px 1px 2px rgba(243, 156, 18, 0.2);">${comm.percentage || 0}%</span>
+                      </div>
+                    </td>
+                    <td style="padding: 15px 12px;">
+                      <div class="commission-amount">
+                        <span style="font-weight: 900; color: #e74c3c; font-size: 1.25rem; background: rgba(231, 76, 60, 0.1); padding: 8px 12px; border-radius: 10px; text-shadow: 1px 1px 3px rgba(231, 76, 60, 0.3); border: 2px solid rgba(231, 76, 60, 0.2); font-family: system-ui;">₹${comm.amount.toLocaleString('en-IN')}</span>
+                      </div>
+                    </td>
+                    <td style="padding: 15px 12px;">
+                      <div class="commission-calculation">
+                        <span style="font-size: 0.85rem; color: #7f8c8d; font-weight: 600; font-style: italic; background: rgba(127, 140, 141, 0.1); padding: 4px 8px; border-radius: 6px;">${comm.calculation}</span>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else {
+        console.log('❌ Showing no commissions - API Response:', {
+          success: data.success,
+          total_count: data.total_count,
+          data_length: data.data?.length,
+          error: data.error || 'None'
+        });
+
+        // Show different message based on the actual issue
+        if (!data.success) {
+          content.innerHTML = `
+            <div class="alert alert-warning" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); border: none; color: white;">
+              <h6 style="color: white; font-weight: bold;"><i class="bi bi-exclamation-triangle me-2"></i>API Error</h6>
+              <p class="mb-0" style="color: white; font-weight: 600;">Error: ${data.error || 'Unknown API error'}</p>
+            </div>
+          `;
+        } else {
+          content.innerHTML = `
+            <div class="text-center py-5">
+              <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+              <h3 class="mt-3" style="color: #11998e; font-weight: bold;"><strong>No Pending Commissions!</strong></h3>
+              <p style="color: #666; font-weight: 600;">All commission payouts have been processed successfully.</p>
+              <div class="mt-3 text-muted">
+                <small>Debug: Success=${data.success}, Count=${data.total_count}</small>
+              </div>
+            </div>
+          `;
+        }
+      }
+    })
+    .catch(error => {
+      console.error('❌ Commission API Error:', error);
+      loading.style.display = 'none';
+      content.style.display = 'block';
+      content.innerHTML = `
+        <div class="alert alert-danger" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); border: none;">
+          <h6 style="color: white; font-weight: bold;"><i class="bi bi-exclamation-triangle me-2"></i>Error Loading Data</h6>
+          <p class="mb-0" style="color: white; font-weight: 600;">Unable to load commission data: ${error.message}</p>
+          <div class="mt-2">
+            <small style="color: rgba(255,255,255,0.8);">Please check browser console for details.</small>
+          </div>
+        </div>
+      `;
+    });
+}
+
+// Load Total Revenue Data
+function loadTotalRevenueData(content, loading) {
+  // Simulating revenue data - in production, this would come from an API endpoint
+  const revenueData = {
+    success: true,
+    total_revenue: <%= @total_premium_collected || 0 %>,
+    revenue_by_type: {
+      health: <%= HealthInsurance.sum(:total_premium) || 0 %>,
+      life: <%= LifeInsurance.sum(:total_premium) || 0 %>,
+      motor: <%= MotorInsurance.sum(:total_premium) || 0 %>,
+      other: <%= OtherInsurance.sum(:total_premium) || 0 %>
+    },
+    monthly_revenue: [],
+    growth_rate: 0
+  };
+
+  // Calculate monthly revenue for the last 6 months
+  <% 6.times do |i| %>
+    <% month_start = i.months.ago.beginning_of_month %>
+    <% month_end = i.months.ago.end_of_month %>
+    revenueData.monthly_revenue.push({
+      month: '<%= month_start.strftime("%B %Y") %>',
+      revenue: <%=
+        HealthInsurance.where(created_at: month_start..month_end).sum(:total_premium) +
+        LifeInsurance.where(created_at: month_start..month_end).sum(:total_premium) +
+        MotorInsurance.where(created_at: month_start..month_end).sum(:total_premium) +
+        OtherInsurance.where(created_at: month_start..month_end).sum(:total_premium)
+      %>
+    });
+  <% end %>
+  revenueData.monthly_revenue.reverse();
+
+  // Calculate growth rate
+  if (revenueData.monthly_revenue.length >= 2) {
+    const lastMonth = revenueData.monthly_revenue[revenueData.monthly_revenue.length - 1].revenue;
+    const previousMonth = revenueData.monthly_revenue[revenueData.monthly_revenue.length - 2].revenue;
+    if (previousMonth > 0) {
+      revenueData.growth_rate = ((lastMonth - previousMonth) / previousMonth * 100).toFixed(2);
+    }
+  }
+
+  loading.style.display = 'none';
+  content.style.display = 'block';
+
+  if (revenueData.success) {
+    content.innerHTML = `
+      <div class="alert" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 16px; padding: 1.5rem;">
+        <h6 style="color: #ffffff; font-weight: bold; font-size: 1.1rem;"><i class="bi bi-graph-up-arrow me-2"></i>Revenue Analysis</h6>
+        <p class="mb-0" style="color: #ffffff; font-weight: 600;">Total revenue collected from all insurance policies</p>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-md-4">
+          <div class="card text-white" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); border-radius: 20px; box-shadow: 0 12px 40px rgba(17, 153, 142, 0.4); border: none;">
+            <div class="card-body text-center" style="padding: 2rem 1rem;">
+              <div style="background: rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 1rem; margin-bottom: 1rem;">
+                <i class="bi bi-cash-stack" style="font-size: 2rem; color: white;"></i>
+              </div>
+              <h2 style="font-weight: 900; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0; line-height: 1;">₹${revenueData.total_revenue.toLocaleString('en-IN')}</h2>
+              <p style="font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 0.5rem; color: rgba(255, 255, 255, 0.9);">Total Revenue</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4); border: none;">
+            <div class="card-body text-center" style="padding: 2rem 1rem;">
+              <div style="background: rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 1rem; margin-bottom: 1rem;">
+                <i class="bi bi-graph-up" style="font-size: 2rem; color: white;"></i>
+              </div>
+              <h2 style="font-weight: 900; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0; line-height: 1;">${revenueData.growth_rate}%</h2>
+              <p style="font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 0.5rem; color: rgba(255, 255, 255, 0.9);">Monthly Growth</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card text-white" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); border-radius: 20px; box-shadow: 0 12px 40px rgba(243, 156, 18, 0.4); border: none;">
+            <div class="card-body text-center" style="padding: 2rem 1rem;">
+              <div style="background: rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 1rem; margin-bottom: 1rem;">
+                <i class="bi bi-calendar-month" style="font-size: 2rem; color: white;"></i>
+              </div>
+              <h2 style="font-weight: 900; font-size: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0; line-height: 1;">₹${revenueData.monthly_revenue.length > 0 ? revenueData.monthly_revenue[revenueData.monthly_revenue.length - 1].revenue.toLocaleString('en-IN') : '0'}</h2>
+              <p style="font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 0.5rem; color: rgba(255, 255, 255, 0.9);">This Month</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6">
+          <h5 style="font-weight: bold; color: #333; margin-bottom: 1rem;">Revenue by Insurance Type</h5>
+          <div class="table-responsive">
+            <table class="table table-hover" style="background: white; border-radius: 15px; overflow: hidden;">
+              <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <tr>
+                  <th style="color: white; font-weight: 800; border: none; padding: 15px;">Type</th>
+                  <th style="color: white; font-weight: 800; border: none; padding: 15px; text-align: right;">Revenue</th>
+                  <th style="color: white; font-weight: 800; border: none; padding: 15px; text-align: right;">Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${Object.entries(revenueData.revenue_by_type).map(([type, amount], index) => {
+                  const percentage = revenueData.total_revenue > 0 ? (amount / revenueData.total_revenue * 100).toFixed(1) : 0;
+                  const typeColors = {
+                    health: '#11998e',
+                    life: '#667eea',
+                    motor: '#f39c12',
+                    other: '#e74c3c'
+                  };
+                  return `
+                    <tr style="background: ${index % 2 === 0 ? 'rgba(102, 126, 234, 0.05)' : 'white'};">
+                      <td style="padding: 12px 15px;">
+                        <span class="badge" style="background: ${typeColors[type]}; color: white; font-weight: 700; padding: 6px 12px; font-size: 0.9rem;">
+                          ${type.charAt(0).toUpperCase() + type.slice(1)} Insurance
+                        </span>
+                      </td>
+                      <td style="padding: 12px 15px; text-align: right; font-weight: bold; font-size: 1.1rem; color: #2c3e50;">
+                        ₹${amount.toLocaleString('en-IN')}
+                      </td>
+                      <td style="padding: 12px 15px; text-align: right;">
+                        <div class="progress" style="height: 25px; background: rgba(0,0,0,0.1); border-radius: 10px;">
+                          <div class="progress-bar" role="progressbar"
+                               style="width: ${percentage}%; background: linear-gradient(90deg, ${typeColors[type]}, ${typeColors[type]}dd); font-weight: bold;"
+                               aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100">
+                            ${percentage}%
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <h5 style="font-weight: bold; color: #333; margin-bottom: 1rem;">Monthly Revenue Trend</h5>
+          <div class="table-responsive">
+            <table class="table table-hover" style="background: white; border-radius: 15px; overflow: hidden;">
+              <thead style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                <tr>
+                  <th style="color: white; font-weight: 800; border: none; padding: 15px;">Month</th>
+                  <th style="color: white; font-weight: 800; border: none; padding: 15px; text-align: right;">Revenue</th>
+                  <th style="color: white; font-weight: 800; border: none; padding: 15px; text-align: center;">Trend</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${revenueData.monthly_revenue.map((month, index) => {
+                  const prevRevenue = index > 0 ? revenueData.monthly_revenue[index - 1].revenue : month.revenue;
+                  const change = ((month.revenue - prevRevenue) / (prevRevenue || 1) * 100).toFixed(1);
+                  const trendIcon = change > 0 ? '↑' : change < 0 ? '↓' : '→';
+                  const trendColor = change > 0 ? '#11998e' : change < 0 ? '#e74c3c' : '#6c757d';
+                  return `
+                    <tr style="background: ${index % 2 === 0 ? 'rgba(17, 153, 142, 0.05)' : 'white'};">
+                      <td style="padding: 12px 15px; font-weight: 600;">${month.month}</td>
+                      <td style="padding: 12px 15px; text-align: right; font-weight: bold; font-size: 1.1rem; color: #2c3e50;">
+                        ₹${month.revenue.toLocaleString('en-IN')}
+                      </td>
+                      <td style="padding: 12px 15px; text-align: center;">
+                        ${index > 0 ? `
+                          <span style="color: ${trendColor}; font-weight: bold; font-size: 1.1rem;">
+                            ${trendIcon} ${Math.abs(change)}%
+                          </span>
+                        ` : '<span class="text-muted">-</span>'}
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    content.innerHTML = '<div class="alert alert-danger">Error loading revenue data. Please try again.</div>';
+  }
+}
+
+// Load Lead Conversion Data with full implementation
+function loadLeadConversionData(content, loading) {
+  fetch('/admin/api/system_status/lead_conversion')
+    .then(response => response.json())
+    .then(data => {
+      loading.style.display = 'none';
+      content.style.display = 'block';
+
+      if (data.success) {
+        // Update the main dashboard display with real-time data
+        const conversionRateDisplay = document.getElementById('lead-conversion-rate');
+        if (conversionRateDisplay && data.summary) {
+          conversionRateDisplay.textContent = data.summary.conversion_rate + '%';
+        }
+
+        content.innerHTML = `
+          <div class="alert alert-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 16px; padding: 1.5rem;">
+            <h6 style="color: #ffffff; font-weight: bold; font-size: 1.1rem;"><i class="bi bi-calculator me-2"></i>Conversion Rate Calculation:</h6>
+            <p class="mb-0" style="color: #ffffff; font-weight: 600; font-size: 1rem;">${data.calculation_method}</p>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <div class="kpi-card kpi-primary">
+                <div class="card-body">
+                  <div class="kpi-number">${data.summary.total_leads}</div>
+                  <div class="kpi-label">Total Leads</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="kpi-card kpi-success">
+                <div class="card-body">
+                  <div class="kpi-number">${data.summary.converted_leads}</div>
+                  <div class="kpi-label">Converted</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="kpi-card kpi-warning">
+                <div class="card-body">
+                  <div class="kpi-number">${data.summary.pending_leads}</div>
+                  <div class="kpi-label">Pending</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="kpi-card kpi-info">
+                <div class="card-body">
+                  <div class="kpi-number">${data.summary.conversion_rate}%</div>
+                  <div class="kpi-label">Conversion Rate</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <h5 style="font-weight: bold; color: #333;">Monthly Conversion Trend</h5>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover" style="background: white; border-radius: 8px; overflow: hidden;">
+                  <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <tr>
+                      <th style="color: white; font-weight: bold; border: none;">Month</th>
+                      <th style="color: white; font-weight: bold; border: none;">Total Leads</th>
+                      <th style="color: white; font-weight: bold; border: none;">Converted</th>
+                      <th style="color: white; font-weight: bold; border: none;">Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${data.monthly_trend ? data.monthly_trend.map(month => `
+                      <tr style="background: rgba(102, 126, 234, 0.05);">
+                        <td style="font-weight: 600; color: #333;"><strong>${month.month}</strong></td>
+                        <td style="font-weight: bold; color: #667eea; font-size: 1.05rem;"><strong>${month.total_leads}</strong></td>
+                        <td style="font-weight: bold; color: #11998e; font-size: 1.05rem;"><strong>${month.converted_leads}</strong></td>
+                        <td><span class="badge ${month.conversion_rate > 30 ? 'bg-success' : month.conversion_rate > 15 ? 'bg-warning text-dark' : 'bg-danger'}" style="font-weight: bold; font-size: 0.9rem;">${month.conversion_rate}%</span></td>
+                      </tr>
+                    `).join('') : '<tr><td colspan="4" style="font-weight: 600;">No data available</td></tr>'}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <h5 style="font-weight: bold; color: #333;">Lead Stage Breakdown</h5>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover" style="background: white; border-radius: 8px; overflow: hidden;">
+                  <thead style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                    <tr>
+                      <th style="color: white; font-weight: bold; border: none;">Stage</th>
+                      <th style="color: white; font-weight: bold; border: none;">Count</th>
+                      <th style="color: white; font-weight: bold; border: none;">Percentage</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${data.stage_breakdown ? Object.entries(data.stage_breakdown).map(([stage, count]) => {
+                      const percentage = data.summary.total_leads > 0 ? ((count / data.summary.total_leads) * 100).toFixed(1) : 0;
+                      const stageColor = stage === 'converted' ? '#11998e' :
+                                        stage === 'lead_generated' ? '#667eea' :
+                                        stage === 'follow_up' ? '#f093fb' :
+                                        stage === 'consultation_scheduled' ? '#4facfe' :
+                                        stage === 'not_interested' ? '#f5576c' :
+                                        stage === 'lead_closed' ? '#ff6b6b' : '#6c757d';
+                      const stageBg = stage === 'converted' ? 'bg-success' :
+                                     stage === 'lead_generated' ? 'bg-primary' :
+                                     stage === 'follow_up' ? 'bg-info' :
+                                     stage === 'consultation_scheduled' ? 'bg-warning' :
+                                     stage === 'not_interested' ? 'bg-danger' :
+                                     stage === 'lead_closed' ? 'bg-dark' : 'bg-secondary';
+                      return `
+                        <tr style="background: rgba(17, 153, 142, 0.05);">
+                          <td>
+                            <span class="badge ${stageBg}" style="font-weight: bold; font-size: 0.9rem; padding: 0.5rem 0.8rem;">
+                              ${stage.replace(/_/g, ' ').toUpperCase()}
+                            </span>
+                          </td>
+                          <td style="font-weight: bold; color: ${stageColor}; font-size: 1.1rem;"><strong>${count}</strong></td>
+                          <td>
+                            <div class="progress" style="height: 25px; background: rgba(0,0,0,0.1); border-radius: 10px;">
+                              <div class="progress-bar" role="progressbar"
+                                   style="width: ${percentage}%; background: linear-gradient(90deg, ${stageColor}, ${stageColor}dd); font-weight: bold; font-size: 0.9rem;"
+                                   aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100">
+                                <strong>${percentage}%</strong>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      `;
+                    }).join('') : '<tr><td colspan="3" style="font-weight: 600;">No data available</td></tr>'}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          ${data.source_conversion && data.source_conversion.length > 0 ? `
+            <div class="mt-3">
+              <h5 style="font-weight: bold; color: #333;">Lead Source Performance</h5>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover" style="background: white; border-radius: 8px; overflow: hidden;">
+                  <thead style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <tr>
+                      <th style="color: white; font-weight: bold; border: none;">Source</th>
+                      <th style="color: white; font-weight: bold; border: none;">Total</th>
+                      <th style="color: white; font-weight: bold; border: none;">Converted</th>
+                      <th style="color: white; font-weight: bold; border: none;">Conversion Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${data.source_conversion.map(source => `
+                      <tr style="background: rgba(240, 147, 251, 0.05);">
+                        <td style="font-weight: 600; color: #333;">
+                          <span class="badge bg-dark" style="font-weight: bold; font-size: 0.9rem; padding: 0.4rem 0.7rem;">
+                            ${source.source.toUpperCase()}
+                          </span>
+                        </td>
+                        <td style="font-weight: bold; color: #f093fb; font-size: 1.05rem;"><strong>${source.total}</strong></td>
+                        <td style="font-weight: bold; color: #11998e; font-size: 1.05rem;"><strong>${source.converted}</strong></td>
+                        <td><span class="badge ${source.rate > 30 ? 'bg-success' : source.rate > 15 ? 'bg-warning text-dark' : 'bg-danger'}" style="font-weight: bold; font-size: 0.95rem; padding: 0.4rem 0.6rem;">${source.rate}%</span></td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ` : ''}
+        `;
+      } else {
+        content.innerHTML = '<div class="alert alert-danger">Error loading lead conversion data</div>';
+      }
+    })
+    .catch(error => {
+      loading.style.display = 'none';
+      content.style.display = 'block';
+      content.innerHTML = '<div class="alert alert-danger">Error loading data. Please try again.</div>';
+      console.error('Error:', error);
+    });
+}
+
+function loadAvgPolicyValueData(content, loading) {
+  fetch('/admin/api/system_status/avg_policy_value')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok: ' + response.status);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Avg Policy Value API Response:', data); // Debug log
+      loading.style.display = 'none';
+      content.style.display = 'block';
+
+      if (data.success) {
+        content.innerHTML = `
+          <div class="alert alert-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 16px; padding: 1.5rem;">
+            <h6 style="color: #ffffff; font-weight: bold; font-size: 1.1rem;"><i class="bi bi-calculator me-2"></i>Average Policy Value Calculation:</h6>
+            <p class="mb-0" style="color: #ffffff; font-weight: 600; font-size: 1rem;">${data.calculation_method}</p>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <div class="kpi-card kpi-warning">
+                <div class="card-body">
+                  <div class="kpi-number">₹${data.summary.overall_average.toLocaleString('en-IN')}</div>
+                  <div class="kpi-label">Overall Average</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="kpi-card kpi-primary">
+                <div class="card-body">
+                  <div class="kpi-number">${data.summary.total_policies}</div>
+                  <div class="kpi-label">Total Policies</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="kpi-card kpi-success">
+                <div class="card-body">
+                  <div class="kpi-number">₹${(data.summary.total_premium / 100000).toFixed(1)}L</div>
+                  <div class="kpi-label">Total Premium</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <h5 class="mb-3">Average Premium by Insurance Type</h5>
+          <div class="table-responsive mb-4">
+            <table class="table table-hover">
+              <thead class="table-dark">
+                <tr>
+                  <th>Insurance Type</th>
+                  <th>Policy Count</th>
+                  <th>Total Premium</th>
+                  <th>Average Premium</th>
+                  <th>Contribution</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.by_type.map(details => {
+                  const contribution = data.summary.total_premium > 0
+                    ? ((details.total_premium / data.summary.total_premium) * 100).toFixed(1)
+                    : 0;
+                  return `
+                    <tr>
+                      <td><span class="badge bg-info">${details.type}</span></td>
+                      <td>${details.count}</td>
+                      <td class="fw-bold">₹${details.total_premium.toLocaleString('en-IN')}</td>
+                      <td class="fw-bold text-warning">₹${details.average.toLocaleString('en-IN')}</td>
+                      <td>
+                        <div class="progress" style="height: 20px;">
+                          <div class="progress-bar bg-success" role="progressbar" style="width: ${contribution}%">${contribution}%</div>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <h5 class="mb-3">Premium Distribution Analysis</h5>
+          <div class="row">
+            ${data.distribution.map(item => `
+              <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card">
+                  <div class="card-body">
+                    <h6 class="card-title text-muted">${item.range}</h6>
+                    <h4 class="mb-0">${item.count}</h4>
+                    <small class="text-muted">policies (${item.percentage}%)</small>
+                    <div class="progress mt-2" style="height: 10px;">
+                      <div class="progress-bar bg-primary" role="progressbar"
+                           style="width: ${item.percentage}%"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        content.innerHTML = '<div class="alert alert-danger">Error loading policy value data</div>';
+      }
+    })
+    .catch(error => {
+      loading.style.display = 'none';
+      content.style.display = 'block';
+      content.innerHTML = '<div class="alert alert-danger">Error loading data. Please try again.</div>';
+      console.error('Error:', error);
+    });
+}
+
+// Clean up modal backdrops on close
+document.addEventListener('DOMContentLoaded', function() {
+  ['renewalModal', 'policyModal', 'systemStatusModal'].forEach(modalId => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.addEventListener('hidden.bs.modal', function() {
+        setTimeout(() => {
+          document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+          document.body.classList.remove('modal-open');
+          document.body.style.paddingRight = '';
+          document.body.style.overflow = '';
+        }, 100);
+      });
+    }
+  });
 });
 </script>

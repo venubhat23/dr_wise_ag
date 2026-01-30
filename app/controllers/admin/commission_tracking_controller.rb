@@ -324,6 +324,16 @@ class Admin::CommissionTrackingController < ApplicationController
 
       @recent_policies = fetch_recent_policies_with_commission || []
       @transfer_summary = fetch_transfer_summary || {}
+
+      # Calculate real-time statistics
+      @active_affiliates = SubAgent.active.count
+      @lead_conversion_rate = calculate_lead_conversion_rate
+      @avg_policy_value = calculate_average_policy_value
+      @commissions_due = calculate_commissions_due
+
+      # Get premium revenue trend data (last 6 months)
+      @premium_trend_data = calculate_premium_trend
+
     rescue => e
       Rails.logger.error "Dashboard data fetch failed: #{e.message}"
       # Fallback data
@@ -335,10 +345,44 @@ class Admin::CommissionTrackingController < ApplicationController
       }
       @recent_policies = []
       @transfer_summary = {}
+      @active_affiliates = 0
+      @lead_conversion_rate = 0.0
+      @avg_policy_value = 0
+      @commissions_due = 0
+      @premium_trend_data = []
     end
 
     # Render the new attractive financial dashboard
     # Now using the default dashboard.html.erb template
+  end
+
+  def commission_details_modal
+    # Endpoint for fetching commission details for modal
+    @pending_commissions = CommissionPayout.includes(:policy)
+                                           .where(status: 'pending')
+                                           .order(created_at: :desc)
+
+    respond_to do |format|
+      format.json do
+        render json: {
+          success: true,
+          data: @pending_commissions.map do |payout|
+            policy = get_policy_for_payout(payout)
+            {
+              id: payout.id,
+              lead_id: policy&.lead_id || 'N/A',
+              policy_number: policy&.policy_number || 'N/A',
+              customer_name: policy&.customer&.display_name || 'N/A',
+              policy_type: payout.policy_type,
+              payout_to: payout.payout_to,
+              amount: payout.payout_amount,
+              created_at: payout.created_at.strftime("%d %b %Y")
+            }
+          end,
+          total_amount: @pending_commissions.sum(:payout_amount)
+        }
+      end
+    end
   end
 
   def modern_dashboard
@@ -879,5 +923,80 @@ class Admin::CommissionTrackingController < ApplicationController
 
   def authorize_admin_access
     redirect_to root_path unless current_user&.user_type == 'admin'
+  end
+
+  def calculate_lead_conversion_rate
+    total_leads = Lead.count
+    converted_leads = Lead.where.not(converted_customer_id: nil).count
+    return 0.0 if total_leads.zero?
+    ((converted_leads.to_f / total_leads) * 100).round(1)
+  rescue => e
+    Rails.logger.error "Error calculating lead conversion rate: #{e.message}"
+    0.0
+  end
+
+  def calculate_average_policy_value
+    total_premium = 0
+    policy_count = 0
+
+    [HealthInsurance, LifeInsurance, MotorInsurance, OtherInsurance].each do |model|
+      total_premium += model.sum(:total_premium)
+      policy_count += model.count
+    end
+
+    return 0 if policy_count.zero?
+    (total_premium / policy_count).round
+  rescue => e
+    Rails.logger.error "Error calculating average policy value: #{e.message}"
+    0
+  end
+
+  def calculate_commissions_due
+    CommissionPayout.where(status: 'pending').sum(:payout_amount).round(2)
+  rescue => e
+    Rails.logger.error "Error calculating commissions due: #{e.message}"
+    0
+  end
+
+  def calculate_premium_trend
+    # Get last 6 months of data
+    months = []
+    6.downto(1) do |i|
+      month_start = i.months.ago.beginning_of_month
+      month_end = i.months.ago.end_of_month
+
+      month_data = {
+        month: month_start.strftime("%b"),
+        year: month_start.year,
+        premium: 0
+      }
+
+      # Calculate total premium for each insurance type for this month
+      [HealthInsurance, LifeInsurance, MotorInsurance, OtherInsurance].each do |model|
+        month_data[:premium] += model.where(created_at: month_start..month_end).sum(:total_premium)
+      end
+
+      months << month_data
+    end
+
+    months
+  rescue => e
+    Rails.logger.error "Error calculating premium trend: #{e.message}"
+    []
+  end
+
+  def get_policy_for_payout(payout)
+    case payout.policy_type
+    when 'health'
+      HealthInsurance.find_by(id: payout.policy_id)
+    when 'life'
+      LifeInsurance.find_by(id: payout.policy_id)
+    when 'motor'
+      MotorInsurance.find_by(id: payout.policy_id)
+    when 'other'
+      OtherInsurance.find_by(id: payout.policy_id)
+    else
+      nil
+    end
   end
 end

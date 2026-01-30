@@ -364,6 +364,13 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Pagination -->
+    <% if @leads.respond_to?(:total_pages) && @leads.total_pages > 1 %>
+      <div class="pagination-wrapper mt-3">
+        <%= paginate @leads %>
+      </div>
+    <% end %>
   </div>
 </div>
 
@@ -1239,6 +1246,73 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .stage-option[data-stage="lead_closed"] {
   background: linear-gradient(90deg, rgba(108, 117, 125, 0.1), transparent);
+}
+
+/* Pagination Styling */
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.pagination {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 4px;
+}
+
+.pagination .page-item {
+  display: inline-block;
+}
+
+.pagination .page-item .page-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #dee2e6;
+  background: white;
+  color: #495057;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.pagination .page-item .page-link:hover {
+  background: #f8f9fa;
+  border-color: #0d6efd;
+  color: #0d6efd;
+}
+
+.pagination .page-item.active .page-link {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: white;
+}
+
+.pagination .page-item.disabled .page-link {
+  color: #6c757d;
+  pointer-events: none;
+  background: #f8f9fa;
+  border-color: #dee2e6;
+  opacity: 0.6;
+}
+
+.pagination .page-item:first-child .page-link {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.pagination .page-item:last-child .page-link {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 </style>
 

@@ -56,7 +56,18 @@
               <%= form.label :contact_number, class: "form-label" do %>
                 Contact Number <span class="text-danger">*</span>
               <% end %>
-              <%= form.text_field :contact_number, class: "form-control", placeholder: "+91 98765 43210", required: true %>
+              <%
+                # Remove +91 prefix if present for display
+                contact_number_display = @lead.contact_number
+                if contact_number_display.present?
+                  contact_number_display = contact_number_display.gsub(/^\+?91\s?/, '').gsub(/\s+/, '')
+                end
+              %>
+              <%= form.text_field :contact_number,
+                  class: "form-control",
+                  placeholder: "9876543210",
+                  required: true,
+                  value: contact_number_display %>
               <div class="invalid-feedback">Please provide a contact number.</div>
             </div>
           </div>
@@ -667,11 +678,15 @@ document.addEventListener('DOMContentLoaded', function() {
   const corporateFields = document.getElementById('corporate_fields');
   const generalFields = document.getElementById('general_fields');
 
-  // Phone number formatting
+  // Phone number formatting - just keep numeric digits, no +91 prefix
   phoneField.addEventListener('input', function() {
     let value = this.value.replace(/\D/g, '');
-    if (value.length === 10) {
-      this.value = '+91 ' + value.substring(0, 5) + ' ' + value.substring(5);
+    // Just show the 10-digit number without any prefix
+    if (value.length <= 10) {
+      this.value = value;
+    } else {
+      // Limit to 10 digits
+      this.value = value.substring(0, 10);
     }
   });
 
@@ -980,7 +995,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Get the saved city from either parameter or data attribute
-    const savedCity = selectedCityValue || leadCitySelect.dataset.savedCity || '<%= @lead&.city %>';
+    const savedCity = selectedCityValue || leadCitySelect.dataset.savedCity || '<%= @lead&.city || "" %>';
 
     // Clear dropdown and add cities
     leadCitySelect.innerHTML = '<option value="">Select City</option>';
@@ -1053,7 +1068,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Get the saved city from parameter or lead data
-    const savedCity = selectedCityValue || '<%= @lead&.city %>';
+    const savedCity = selectedCityValue || '<%= @lead&.city || "" %>';
     console.log('Populating cities with selection:', savedCity);
 
     // Clear dropdown and add cities
@@ -1164,8 +1179,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Load cities if state is pre-selected (improved initialization)
-    const savedState = '<%= @lead&.state %>';
-    const savedCity = '<%= @lead&.city %>';
+    const savedState = '<%= @lead&.state || "" %>';
+    const savedCity = '<%= @lead&.city || "" %>';
 
     console.log('Initializing lead edit form with saved state:', savedState, 'and city:', savedCity);
 
@@ -1176,11 +1191,15 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('Saved city:', savedCity);
       console.log('Lead state select value:', leadStateSelect.value);
 
-      // First check if state has a value and load cities
-      if (savedState) {
+      // Check if state is present (either from saved value or dropdown)
+      const currentState = savedState || leadStateSelect.value;
+
+      if (currentState && currentState !== '') {
+        console.log('Processing state:', currentState);
+
         // Try to find the state in dropdown options
         const stateOption = Array.from(leadStateSelect.options).find(option =>
-          option.value === savedState || option.text === savedState
+          option.value === currentState || option.text === currentState
         );
 
         if (stateOption) {
@@ -1188,30 +1207,31 @@ document.addEventListener('DOMContentLoaded', function() {
           leadStateSelect.value = stateOption.value;
           $('#lead_state').val(stateOption.value).trigger('change.select2');
           console.log('Set state dropdown to:', stateOption.value);
-        }
 
-        // Always load cities for the saved state
-        loadLeadCitiesForState(savedState, savedCity);
-      } else if (leadStateSelect.value && leadStateSelect.value !== '') {
-        console.log('State dropdown has value on page load:', leadStateSelect.value);
-        loadLeadCitiesForState(leadStateSelect.value, savedCity);
+          // Load cities for this state after a small delay to ensure Select2 is ready
+          setTimeout(() => {
+            loadLeadCitiesForState(stateOption.value, savedCity);
+          }, 100);
+        } else {
+          // State not in dropdown, but still try to load cities
+          loadLeadCitiesForState(currentState, savedCity);
+        }
       } else {
-        console.log('No saved state found, checking if city exists');
+        console.log('No state found, checking if city exists');
         // If there's a saved city but no state, still show it
-        if (savedCity) {
+        if (savedCity && savedCity !== '') {
           console.log('Saved city exists without state, adding it manually');
           const $leadCitySelect = $(leadCitySelect);
           leadCitySelect.disabled = false;
 
-          // Ensure the saved city option is available
-          if (!leadCitySelect.querySelector(`option[value="${savedCity}"]`)) {
-            const option = document.createElement('option');
-            option.value = savedCity;
-            option.textContent = savedCity;
-            option.selected = true;
-            leadCitySelect.appendChild(option);
-            console.log('Added saved city option:', savedCity);
-          }
+          // Clear and add the saved city option
+          leadCitySelect.innerHTML = '<option value="">Select City</option>';
+          const option = document.createElement('option');
+          option.value = savedCity;
+          option.textContent = savedCity;
+          option.selected = true;
+          leadCitySelect.appendChild(option);
+          console.log('Added saved city option:', savedCity);
 
           // Initialize Select2 and set the value
           setTimeout(() => {
@@ -1229,7 +1249,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }, 150);
         }
       }
-    }, 200);
+    }, 500); // Increased delay to ensure all scripts are loaded
   }
 
   // Initialize affiliate dropdown with Select2 for edit form

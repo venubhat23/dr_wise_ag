@@ -444,10 +444,6 @@
       </div>
       <div class="kpi-value"><%= number_with_delimiter(@total_customers) %></div>
       <div class="kpi-label">Total Customers</div>
-      <div class="kpi-change <%= @customer_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
-        <i class="bi bi-arrow-<%= @customer_growth >= 0 ? 'up' : 'down' %>-right me-1"></i>
-        <%= @customer_growth.abs %>% from last month
-      </div>
     </div>
 
     <!-- Total Policies -->
@@ -457,10 +453,6 @@
       </div>
       <div class="kpi-value"><%= number_with_delimiter(@total_policies) %></div>
       <div class="kpi-label">Total Policies</div>
-      <div class="kpi-change <%= @policy_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
-        <i class="bi bi-arrow-<%= @policy_growth >= 0 ? 'up' : 'down' %>-right me-1"></i>
-        <%= @policy_growth.abs %>% from last month
-      </div>
     </div>
 
     <!-- Total Premium -->
@@ -470,10 +462,6 @@
       </div>
       <div class="kpi-value"><%= indian_currency(@total_premium || 0) %></div>
       <div class="kpi-label">Total Premium</div>
-      <div class="kpi-change <%= @premium_growth >= 0 ? 'growth-positive' : 'growth-negative' %>">
-        <i class="bi bi-arrow-<%= @premium_growth >= 0 ? 'up' : 'down' %>-right me-1"></i>
-        <%= @premium_growth.abs %>% from last month
-      </div>
     </div>
 
     <!-- Total Affiliates -->
@@ -491,10 +479,6 @@
       </div>
       <div class="kpi-value" id="affiliates-value"><%= number_with_delimiter(@total_affiliates) %></div>
       <div class="kpi-label">Total Affiliates</div>
-      <div class="kpi-change <%= @affiliate_growth >= 0 ? 'growth-positive' : 'growth-negative' %>" id="affiliates-change">
-        <i class="bi bi-arrow-<%= @affiliate_growth >= 0 ? 'up' : 'down' %>-right me-1"></i>
-        <%= @affiliate_growth.abs %>% from last month
-      </div>
     </div>
   </div>
 
