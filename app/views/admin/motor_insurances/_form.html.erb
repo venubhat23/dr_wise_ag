@@ -482,6 +482,7 @@
               class: "form-control commission-input",
               placeholder: "0.0", step: 0.01,
               readonly: @motor_insurance.persisted?,
+              id: "motor_insurance_main_agent_commission_percentage",
               data: { field: 'main_agent' } %>
         </div>
         <div class="col-md-2 mb-3">
@@ -489,6 +490,7 @@
           <%= form.number_field :commission_amount,
               class: "form-control commission-amount",
               placeholder: "0.00", step: 0.01, readonly: true,
+              id: "motor_insurance_commission_amount",
               data: { field: 'main_agent' } %>
         </div>
         <div class="col-md-2 mb-3">
@@ -497,6 +499,7 @@
               class: "form-control tds-percentage",
               placeholder: "0.0", step: 0.01,
               readonly: @motor_insurance.persisted?,
+              id: "motor_insurance_tds_percentage",
               data: { field: 'main_agent' } %>
         </div>
         <div class="col-md-2 mb-3">
@@ -504,6 +507,7 @@
           <%= form.number_field :tds_amount,
               class: "form-control tds-amount",
               placeholder: "0.00", step: 0.01, readonly: true,
+              id: "motor_insurance_tds_amount",
               data: { field: 'main_agent' } %>
         </div>
         <div class="col-md-3 mb-3">
@@ -511,6 +515,7 @@
           <%= form.number_field :after_tds_value,
               class: "form-control after-tds-value",
               placeholder: "0.00", step: 0.01, readonly: true,
+              id: "motor_insurance_after_tds_value",
               data: { field: 'main_agent' } %>
         </div>
       </div>
@@ -527,6 +532,7 @@
               placeholder: "2.0", step: 0.01,
               value: @motor_insurance.distributor_commission_percentage || 2.0,
               readonly: @motor_insurance.persisted?,
+              id: "motor_insurance_distributor_commission_percentage",
               data: { field: 'distributor' } %>
         </div>
         <div class="col-md-2 mb-3">
@@ -534,6 +540,7 @@
           <%= form.number_field :distributor_commission_amount,
               class: "form-control commission-amount",
               placeholder: "0.00", step: 0.01, readonly: true,
+              id: "motor_insurance_distributor_commission_amount",
               data: { field: 'distributor' } %>
         </div>
         <div class="col-md-2 mb-3">
@@ -542,6 +549,7 @@
               class: "form-control tds-percentage",
               placeholder: "0.0", step: 0.01,
               readonly: @motor_insurance.persisted?,
+              id: "motor_insurance_distributor_tds_percentage",
               data: { field: 'distributor' } %>
         </div>
         <div class="col-md-2 mb-3">
@@ -549,6 +557,7 @@
           <%= form.number_field :distributor_tds_amount,
               class: "form-control tds-amount",
               placeholder: "0.00", step: 0.01, readonly: true,
+              id: "motor_insurance_distributor_tds_amount",
               data: { field: 'distributor' } %>
         </div>
         <div class="col-md-3 mb-3">
@@ -556,6 +565,7 @@
           <%= form.number_field :distributor_after_tds_value,
               class: "form-control after-tds-value",
               placeholder: "0.00", step: 0.01, readonly: true,
+              id: "motor_insurance_distributor_after_tds_value",
               data: { field: 'distributor' } %>
         </div>
       </div>
@@ -572,6 +582,7 @@
               placeholder: "2.0", step: 0.01,
               value: @motor_insurance.ambassador_commission_percentage || 2.0,
               readonly: @motor_insurance.persisted?,
+              id: "motor_insurance_ambassador_commission_percentage",
               data: { field: 'ambassador' } %>
         </div>
         <div class="col-md-2 mb-3">
@@ -579,6 +590,7 @@
           <%= form.number_field :ambassador_commission_amount,
               class: "form-control commission-amount",
               placeholder: "0.00", step: 0.01, readonly: true,
+              id: "motor_insurance_ambassador_commission_amount",
               data: { field: 'ambassador' } %>
         </div>
         <div class="col-md-2 mb-3">
@@ -587,6 +599,7 @@
               class: "form-control tds-percentage",
               placeholder: "0", step: 0.01,
               readonly: @motor_insurance.persisted?,
+              id: "motor_insurance_ambassador_tds_percentage",
               data: { field: 'ambassador' } %>
         </div>
         <div class="col-md-2 mb-3">
@@ -594,6 +607,7 @@
           <%= form.number_field :ambassador_tds_amount,
               class: "form-control tds-amount",
               placeholder: "0.00", step: 0.01, readonly: true,
+              id: "motor_insurance_ambassador_tds_amount",
               data: { field: 'ambassador' } %>
         </div>
         <div class="col-md-3 mb-3">
@@ -601,6 +615,7 @@
           <%= form.number_field :ambassador_after_tds_value,
               class: "form-control after-tds-value",
               placeholder: "0.00", step: 0.01, readonly: true,
+              id: "motor_insurance_ambassador_after_tds_value",
               data: { field: 'ambassador' } %>
         </div>
       </div>
@@ -1077,65 +1092,173 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Commission calculations
   function calculateCommissions() {
-    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+    try {
+      const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
 
-    // Calculate all commission types
-    const fields = ['main_agent', 'distributor', 'ambassador', 'investor'];
-    let totalDistributionPercentage = 0;
-
-    fields.forEach(field => {
-      const percentageInput = document.querySelector(`[data-field='${field}'].commission-input`);
-      const amountOutput = document.querySelector(`[data-field='${field}'].commission-amount`);
-      const tdsPercentageInput = document.querySelector(`[data-field='${field}'].tds-percentage`);
-      const tdsAmountOutput = document.querySelector(`[data-field='${field}'].tds-amount`);
-      const afterTdsOutput = document.querySelector(`[data-field='${field}'].after-tds-value`);
-
-      if (percentageInput && amountOutput) {
-        const percentage = parseFloat(percentageInput.value) || 0;
-        const amount = (netPremium * percentage) / 100;
-        const tdsPercentage = parseFloat(tdsPercentageInput?.value) || 0;
-        const tdsAmount = (amount * tdsPercentage) / 100;
-        const afterTds = amount - tdsAmount;
-
-        amountOutput.value = amount.toFixed(2);
-        if (tdsAmountOutput) tdsAmountOutput.value = tdsAmount.toFixed(2);
-        if (afterTdsOutput) afterTdsOutput.value = afterTds.toFixed(2);
-
-        // Add to total distribution (exclude main_agent)
-        if (field !== 'main_agent') {
-          totalDistributionPercentage += percentage;
-        }
+      if (netPremium === 0) {
+        console.log('⚠️ Net Premium is 0, skipping commission calculations');
+        return;
       }
-    });
 
-    // Update total distribution and profit calculations
-    const mainAgentPercentage = parseFloat(document.getElementById('motor_insurance_main_agent_commission_percentage').value) || 0;
-    const companyExpensesPercentage = parseFloat(document.getElementById('company_expenses_percentage').value) || 0;
+      console.log('🔄 Calculating commissions for Net Premium:', netPremium);
 
-    document.getElementById('total_distribution_percentage').value = totalDistributionPercentage.toFixed(2);
+      // Calculate Main Agent Commission
+      const mainAgentPercentage = parseFloat(document.getElementById('motor_insurance_main_agent_commission_percentage').value) || 0;
+      const mainAgentAmount = (netPremium * mainAgentPercentage) / 100;
+      const mainAgentTdsPercentage = parseFloat(document.getElementById('motor_insurance_tds_percentage').value) || 0;
+      const mainAgentTdsAmount = (mainAgentAmount * mainAgentTdsPercentage) / 100;
+      const mainAgentAfterTds = mainAgentAmount - mainAgentTdsAmount;
 
-    // Calculate profit correctly: Profit = Net Premium - All Commission Payouts - Company Expenses
-    // In percentage terms: Profit % = 100% - Main Agent % - Total Distribution % - Company Expenses %
-    const totalCommissionPercentage = mainAgentPercentage + totalDistributionPercentage + companyExpensesPercentage;
-    const profitPercentage = 100 - totalCommissionPercentage;
-    const profitAmount = (netPremium * profitPercentage) / 100;
+      document.getElementById('motor_insurance_commission_amount').value = mainAgentAmount.toFixed(2);
+      document.getElementById('motor_insurance_tds_amount').value = mainAgentTdsAmount.toFixed(2);
+      document.getElementById('motor_insurance_after_tds_value').value = mainAgentAfterTds.toFixed(2);
 
-    document.getElementById('profit_percentage').value = profitPercentage.toFixed(2);
-    document.getElementById('profit_amount').value = profitAmount.toFixed(2);
+      // Calculate Affiliate (Distributor) Commission
+      const affiliatePercentage = parseFloat(document.getElementById('motor_insurance_distributor_commission_percentage').value) || 2.0;
+      const affiliateAmount = (netPremium * affiliatePercentage) / 100;
+      const affiliateTdsPercentage = parseFloat(document.getElementById('motor_insurance_distributor_tds_percentage').value) || 0;
+      const affiliateTdsAmount = (affiliateAmount * affiliateTdsPercentage) / 100;
+      const affiliateAfterTds = affiliateAmount - affiliateTdsAmount;
 
-    // Update summary
-    document.getElementById('main_agent_summary').textContent = `${mainAgentPercentage}% of Net Premium`;
-    document.getElementById('total_distribution_summary').textContent = `${totalDistributionPercentage.toFixed(1)}% (Affiliate + Ambassador + Investor)`;
-    document.getElementById('company_expenses_summary').textContent = `${companyExpensesPercentage}% of Net Premium`;
+      document.getElementById('motor_insurance_distributor_commission_amount').value = affiliateAmount.toFixed(2);
+      document.getElementById('motor_insurance_distributor_tds_amount').value = affiliateTdsAmount.toFixed(2);
+      document.getElementById('motor_insurance_distributor_after_tds_value').value = affiliateAfterTds.toFixed(2);
+
+      // Calculate Ambassador Commission
+      const ambassadorPercentage = parseFloat(document.getElementById('motor_insurance_ambassador_commission_percentage').value) || 2.0;
+      const ambassadorAmount = (netPremium * ambassadorPercentage) / 100;
+      const ambassadorTdsPercentage = parseFloat(document.getElementById('motor_insurance_ambassador_tds_percentage').value) || 0;
+      const ambassadorTdsAmount = (ambassadorAmount * ambassadorTdsPercentage) / 100;
+      const ambassadorAfterTds = ambassadorAmount - ambassadorTdsAmount;
+
+      document.getElementById('motor_insurance_ambassador_commission_amount').value = ambassadorAmount.toFixed(2);
+      document.getElementById('motor_insurance_ambassador_tds_amount').value = ambassadorTdsAmount.toFixed(2);
+      document.getElementById('motor_insurance_ambassador_after_tds_value').value = ambassadorAfterTds.toFixed(2);
+
+      // Calculate Investor Commission
+      const investorPercentage = parseFloat(document.getElementById('motor_insurance_investor_commission_percentage').value) || 2.0;
+      const investorAmount = (netPremium * investorPercentage) / 100;
+      const investorTdsPercentage = parseFloat(document.getElementById('motor_insurance_investor_tds_percentage').value) || 0;
+      const investorTdsAmount = (investorAmount * investorTdsPercentage) / 100;
+      const investorAfterTds = investorAmount - investorTdsAmount;
+
+      document.getElementById('motor_insurance_investor_amount').value = investorAmount.toFixed(2);
+      document.getElementById('motor_insurance_investor_tds_amount').value = investorTdsAmount.toFixed(2);
+      document.getElementById('motor_insurance_investor_after_tds_value').value = investorAfterTds.toFixed(2);
+
+      // Calculate Company Expenses
+      const companyExpensesPercentage = parseFloat(document.getElementById('motor_insurance_company_expenses_percentage').value) || 2.0;
+      const companyExpensesAmount = (netPremium * companyExpensesPercentage) / 100;
+
+      // Calculate totals
+      const totalDistributionPercentage = affiliatePercentage + ambassadorPercentage + investorPercentage;
+
+      // Calculate profit: Net Premium - All Commissions - Company Expenses
+      const totalCommissionPercentage = mainAgentPercentage + totalDistributionPercentage + companyExpensesPercentage;
+      const profitPercentage = 100 - totalCommissionPercentage;
+      const profitAmount = (netPremium * profitPercentage) / 100;
+
+      // Update calculated fields
+      if (document.getElementById('motor_insurance_total_distribution_percentage')) {
+        document.getElementById('motor_insurance_total_distribution_percentage').value = totalDistributionPercentage.toFixed(2);
+      }
+
+      if (document.getElementById('motor_insurance_profit_percentage')) {
+        document.getElementById('motor_insurance_profit_percentage').value = profitPercentage.toFixed(2);
+      }
+
+      if (document.getElementById('motor_insurance_profit_amount')) {
+        document.getElementById('motor_insurance_profit_amount').value = profitAmount.toFixed(2);
+      }
+
+      // Update summary display (if elements exist)
+      if (document.getElementById('main_agent_summary')) {
+        document.getElementById('main_agent_summary').textContent = `${mainAgentPercentage}% of Net Premium`;
+      }
+
+      if (document.getElementById('total_distribution_summary')) {
+        document.getElementById('total_distribution_summary').textContent = `${totalDistributionPercentage.toFixed(1)}% (Affiliate + Ambassador + Investor)`;
+      }
+
+      if (document.getElementById('company_expenses_summary')) {
+        document.getElementById('company_expenses_summary').textContent = `${companyExpensesPercentage}% of Net Premium`;
+      }
+
+      console.log('✅ Motor Insurance commission calculations completed', {
+        netPremium,
+        mainAgentPercentage,
+        affiliatePercentage,
+        ambassadorPercentage,
+        investorPercentage,
+        companyExpensesPercentage,
+        totalDistributionPercentage,
+        profitPercentage,
+        profitAmount
+      });
+
+    } catch (error) {
+      console.error('❌ Commission calculation error:', error);
+    }
   }
 
   // Add event listeners for commission calculations
-  document.querySelectorAll('.commission-input, .tds-percentage').forEach(input => {
-    input.addEventListener('input', calculateCommissions);
-  });
+  function setupCommissionEventListeners() {
+    try {
+      // Net Premium change - primary trigger
+      const netPremiumField = document.getElementById('net_premium');
+      if (netPremiumField) {
+        netPremiumField.addEventListener('input', function() {
+          calculateTotalPremium();
+          calculateCommissions();
+        });
+        console.log('✅ Net Premium event listener attached');
+      }
 
-  document.getElementById('net_premium').addEventListener('input', calculateCommissions);
-  document.getElementById('company_expenses_percentage').addEventListener('input', calculateCommissions);
+      // Commission percentage fields
+      const commissionFields = [
+        'motor_insurance_main_agent_commission_percentage',
+        'motor_insurance_distributor_commission_percentage',
+        'motor_insurance_ambassador_commission_percentage',
+        'motor_insurance_investor_commission_percentage',
+        'motor_insurance_company_expenses_percentage'
+      ];
+
+      commissionFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+          field.addEventListener('input', calculateCommissions);
+          console.log(`✅ Commission field ${fieldId} event listener attached`);
+        }
+      });
+
+      // TDS percentage fields
+      const tdsFields = [
+        'motor_insurance_tds_percentage',
+        'motor_insurance_sub_agent_tds_percentage',
+        'motor_insurance_ambassador_tds_percentage',
+        'motor_insurance_investor_tds_percentage'
+      ];
+
+      tdsFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+          field.addEventListener('input', calculateCommissions);
+          console.log(`✅ TDS field ${fieldId} event listener attached`);
+        }
+      });
+
+      // Run initial calculation if net premium has a value
+      if (netPremiumField && netPremiumField.value) {
+        calculateCommissions();
+      }
+
+    } catch (error) {
+      console.error('❌ Error setting up commission event listeners:', error);
+    }
+  }
+
+  // Call the setup function
+  setupCommissionEventListeners();
 
   // Initial calculations
   calculateTotalPremium();

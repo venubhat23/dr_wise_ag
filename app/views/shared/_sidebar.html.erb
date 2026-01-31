@@ -31,7 +31,7 @@
         <!-- Dashboard -->
         <% if show_sidebar_item?('dashboard') %>
           <li class="nav-item">
-            <%= link_to root_path, class: "nav-link-modern #{'active' if current_page?(root_path)}" do %>
+            <%= link_to root_path, class: "nav-link-modern #{'active' if current_page?(root_path)}", 'data-tooltip': 'Dashboard' do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-blue">
                   <i class="bi bi-grid-3x3-gap-fill"></i>
@@ -46,7 +46,7 @@
         <!-- Customers -->
         <% if show_sidebar_item?('customers') %>
           <li class="nav-item">
-            <%= link_to admin_customers_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/customers')}" do %>
+            <%= link_to admin_customers_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/customers')}", 'data-tooltip': 'Customers' do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-green">
                   <i class="bi bi-people-fill"></i>
@@ -61,7 +61,7 @@
         <!-- Helpdesk -->
         <% if show_sidebar_item?('helpdesk') %>
           <li class="nav-item">
-            <%= link_to admin_helpdesk_index_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/helpdesk')}" do %>
+            <%= link_to admin_helpdesk_index_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/helpdesk')}", 'data-tooltip': 'Helpdesk' do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-purple">
                   <i class="bi bi-headset"></i>
@@ -76,7 +76,7 @@
         <!-- Agents -->
         <% if show_sidebar_item?('users') %>
           <li class="nav-item">
-            <%= link_to admin_users_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/users')}" do %>
+            <%= link_to admin_users_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/users')}", 'data-tooltip': 'Agents' do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-orange">
                   <i class="bi bi-person-badge-fill"></i>
@@ -91,7 +91,7 @@
         <!-- Affiliates -->
         <% if show_sidebar_item?('users') %>
           <li class="nav-item">
-            <%= link_to admin_sub_agents_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/sub_agents')}" do %>
+            <%= link_to admin_sub_agents_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/sub_agents')}", 'data-tooltip': 'Affiliates' do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-violet">
                   <i class="bi bi-people"></i>
@@ -106,7 +106,7 @@
         <!-- Brokers -->
         <% if show_sidebar_item?('users') %>
           <li class="nav-item">
-            <%= link_to admin_brokers_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/brokers')}" do %>
+            <%= link_to admin_brokers_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/brokers')}", 'data-tooltip': 'Brokers' do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-emerald">
                   <i class="bi bi-briefcase"></i>
@@ -121,7 +121,7 @@
         <!-- Agency Code -->
         <% if show_sidebar_item?('users') %>
           <li class="nav-item">
-            <%= link_to admin_agency_codes_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/agency_codes')}" do %>
+            <%= link_to admin_agency_codes_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/agency_codes')}", 'data-tooltip': 'Agency Code' do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-blue">
                   <i class="bi bi-code-slash"></i>
@@ -136,7 +136,7 @@
         <!-- Leads -->
         <% if show_sidebar_item?('leads') %>
           <li class="nav-item">
-            <%= link_to admin_leads_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/leads')}" do %>
+            <%= link_to admin_leads_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/leads')}", 'data-tooltip': 'Leads' do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-pink">
                   <i class="bi bi-funnel-fill"></i>
@@ -158,7 +158,7 @@
           <!-- Life Insurance -->
           <% if show_sidebar_item?('life_insurance') %>
             <li class="nav-item">
-              <%= link_to admin_life_insurances_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/life_insurances')}" do %>
+              <%= link_to admin_life_insurances_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/life_insurances')}", 'data-tooltip': 'Life Insurance' do %>
                 <div class="nav-icon-modern">
                   <div class="icon-bg gradient-red">
                     <i class="bi bi-heart-fill"></i>
@@ -173,7 +173,7 @@
           <!-- Health Insurance -->
           <% if show_sidebar_item?('health_insurance') %>
             <li class="nav-item">
-              <%= link_to admin_health_insurances_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/health_insurances')}" do %>
+              <%= link_to admin_health_insurances_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/health_insurances')}", 'data-tooltip': 'Health Insurance' do %>
                 <div class="nav-icon-modern">
                   <div class="icon-bg gradient-cyan">
                     <i class="bi bi-hospital"></i>

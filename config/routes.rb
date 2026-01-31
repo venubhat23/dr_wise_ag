@@ -341,6 +341,14 @@ Rails.application.routes.draw do
       end
     end
 
+    # Other Insurance - Alternative routes for backward compatibility
+    scope :other_insurances, controller: :other_insurances do
+      get :all_brokers
+      get :insurance_companies_for_type
+      get :all_agency_codes
+      get :insurance_companies_by_agency
+    end
+
     # Agency/Broker management
     resources :agency_brokers
 

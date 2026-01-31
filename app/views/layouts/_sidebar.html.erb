@@ -13,6 +13,7 @@
   display: flex !important;
   flex-direction: column !important;
   backdrop-filter: blur(10px) !important;
+  transition: width 0.3s ease !important;
 }
 
 .nav-link-modern {
@@ -89,7 +90,9 @@
   margin-left: 12px !important;
   font-size: 14px !important;
   display: inline-block !important;
-  transition: all 0.3s ease !important;
+  transition: all 0.3s ease, opacity 0.2s ease, width 0.2s ease !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
 }
 
 .nav-section-title {
@@ -321,10 +324,211 @@
   font-weight: 500 !important;
 }
 
+/* Main content removed - defined below with proper layout control */
+
+/* Desktop Sidebar Toggle Button Styles */
+.desktop-sidebar-toggle {
+  background: none !important;
+  border: none !important;
+  color: #64748b !important;
+  font-size: 18px !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+  margin-right: 15px !important;
+}
+
+.desktop-sidebar-toggle:hover {
+  background: rgba(102, 126, 234, 0.1) !important;
+  color: #3b82f6 !important;
+  transform: scale(1.05) !important;
+}
+
+/* Collapsed Sidebar Styles - MINIMUM Icon-Only Width */
+.modern-sidebar.collapsed {
+  width: 48px !important;
+  min-width: 48px !important;
+  max-width: 48px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
+.modern-sidebar.collapsed .nav-text {
+  display: none !important;
+}
+
+.modern-sidebar.collapsed .nav-section-title {
+  display: none !important;
+}
+
+.modern-sidebar.collapsed .nav-section {
+  margin-bottom: 0 !important;
+}
+
+.modern-sidebar.collapsed .nav-link-modern {
+  margin: 2px 4px !important;
+  padding: 8px 0 !important;
+  justify-content: center !important;
+  display: flex !important;
+  align-items: center !important;
+  min-height: 40px !important;
+  width: 40px !important;
+}
+
+.modern-sidebar.collapsed .nav-icon-modern {
+  margin: 0 !important;
+}
+
+.modern-sidebar.collapsed .icon-bg {
+  margin: 0 !important;
+  width: 28px !important;
+  height: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.modern-sidebar.collapsed .dropdown-arrow {
+  display: none !important;
+}
+
+.modern-sidebar.collapsed .submenu {
+  display: none !important;
+}
+
+.modern-sidebar.collapsed .dropdown-toggle[data-bs-toggle="collapse"] {
+  pointer-events: none !important;
+}
+
+/* CRITICAL: Main content MUST use ALL available space */
 .main-content {
-  margin-left: 260px !important;
-  margin-top: 70px !important;
+  position: absolute !important;
+  left: 260px !important;
+  right: 0 !important;
+  top: 70px !important;
+  bottom: 0 !important;
   padding: 2rem !important;
+  transition: left 0.3s ease !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+}
+
+/* When sidebar is collapsed, main content uses almost FULL SCREEN */
+body.sidebar-collapsed .main-content {
+  left: 48px !important;
+}
+
+/* Tooltip for collapsed sidebar items */
+.modern-sidebar.collapsed .nav-link-modern {
+  position: relative !important;
+}
+
+.modern-sidebar.collapsed .nav-link-modern:hover::after {
+  content: attr(data-tooltip) !important;
+  position: absolute !important;
+  left: calc(100% + 15px) !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: #1e293b !important;
+  color: white !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  z-index: 9999 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  pointer-events: none !important;
+}
+
+.modern-sidebar.collapsed .nav-link-modern:hover::before {
+  content: '' !important;
+  position: absolute !important;
+  left: calc(100% + 5px) !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  border: 5px solid transparent !important;
+  border-right-color: #1e293b !important;
+  z-index: 9999 !important;
+  pointer-events: none !important;
+}
+
+/* Responsive behavior */
+@media (max-width: 991.98px) {
+  .desktop-sidebar-toggle {
+    display: none !important;
+  }
+
+  .modern-sidebar.collapsed {
+    width: 260px !important;
+    transform: translateX(-100%) !important;
+  }
+
+  .modern-sidebar.collapsed .nav-text {
+    opacity: 1 !important;
+    width: auto !important;
+    margin-left: 12px !important;
+  }
+
+  .modern-sidebar.collapsed .nav-section-title {
+    opacity: 1 !important;
+    height: auto !important;
+    padding: 20px 24px 8px 24px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .modern-sidebar.collapsed .nav-section-title::after {
+    display: block !important;
+  }
+
+  .modern-sidebar.collapsed .nav-link-modern {
+    margin: 6px 12px !important;
+    padding: 12px 20px !important;
+    justify-content: flex-start !important;
+  }
+
+  .modern-sidebar.collapsed .icon-bg {
+    margin-right: 12px !important;
+  }
+
+  .modern-sidebar.collapsed .dropdown-arrow {
+    opacity: 1 !important;
+    width: auto !important;
+  }
+
+  .modern-sidebar.collapsed .submenu {
+    display: block !important;
+  }
+
+  /* Mobile: Reset to normal layout */
+  .main-content {
+    position: relative !important;
+    left: 0 !important;
+    right: auto !important;
+    top: 0 !important;
+    bottom: auto !important;
+    margin-left: 0 !important;
+    margin-top: 70px !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  body.sidebar-collapsed .main-content {
+    position: relative !important;
+    left: 0 !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Mobile: Force normal sidebar width */
+  .modern-sidebar.collapsed {
+    width: 260px !important;
+  }
+
+  /* Mobile-specific collapsed sidebar behavior */
+  .modern-sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
 }
 
 /* Dropdown and Submenu Styles */
@@ -475,9 +679,10 @@
         <!-- Dashboard -->
         <% if show_sidebar_item?('dashboard') %>
           <li class="nav-item">
-            <%= link_to root_path, class: "nav-link-modern #{'active' if current_page?(root_path)}" do %>
+            <%= link_to root_path, class: "nav-link-modern #{'active' if current_page?(root_path)}", data: { tooltip: "Dashboard" } do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-blue">
+                  <i class="bi bi-speedometer2"></i>
                 </div>
               </div>
               <span class="nav-text">Dashboard</span>
@@ -489,7 +694,7 @@
         <!-- Analytics -->
         <% if show_sidebar_item?('analytics') %>
           <li class="nav-item">
-            <%= link_to admin_analytics_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/analytics')}" do %>
+            <%= link_to admin_analytics_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/analytics')}", data: { tooltip: "Analytics" } do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-purple">
                   <i class="bi bi-bar-chart-line-fill"></i>
@@ -504,7 +709,7 @@
         <!-- Leads -->
         <% if show_sidebar_item?('leads') %>
           <li class="nav-item">
-            <%= link_to admin_leads_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/leads')}" do %>
+            <%= link_to admin_leads_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/leads')}", data: { tooltip: "Leads" } do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-pink">
                   <i class="bi bi-funnel-fill"></i>
@@ -519,7 +724,7 @@
         <!-- Clients (renamed from Customers) -->
         <% if show_sidebar_item?('customers') %>
           <li class="nav-item">
-            <%= link_to admin_customers_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/customers')}" do %>
+            <%= link_to admin_customers_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/customers')}", data: { tooltip: "Clients" } do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-green">
                   <i class="bi bi-people-fill"></i>
@@ -534,7 +739,7 @@
         <!-- Affiliates (renamed from Affiliate) -->
         <% if show_sidebar_item?('sub_agents') %>
           <li class="nav-item">
-            <%= link_to admin_sub_agents_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/affiliates') || request.path.include?('/admin/sub_agents')}" do %>
+            <%= link_to admin_sub_agents_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/affiliates') || request.path.include?('/admin/sub_agents')}", data: { tooltip: "Affiliates" } do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-violet">
                   <i class="bi bi-people"></i>
@@ -573,7 +778,7 @@
 
         <!-- Insurance Submenu -->
         <li class="nav-item dropdown-menu-item">
-          <div class="nav-link-modern dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#insurance-menu" aria-expanded="false" style="cursor: pointer;">
+          <div class="nav-link-modern dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#insurance-menu" aria-expanded="false" style="cursor: pointer;" data-tooltip="Insurance">
             <div class="nav-icon-modern">
               <div class="icon-bg gradient-cyan">
                 <i class="bi bi-shield-check"></i>

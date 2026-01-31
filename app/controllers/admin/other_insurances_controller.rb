@@ -109,6 +109,75 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     redirect_to admin_other_insurances_path, notice: 'Other insurance policy was successfully deleted.'
   end
 
+  # API endpoint for getting all agency codes (for Direct selection)
+  def all_agency_codes
+    agency_codes = AgencyCode.where(insurance_type: ['Motor and Other Insurance', 'General Insurance', 'Other']).order(:agent_name, :code)
+    render json: {
+      agency_codes: agency_codes.map { |a| { id: a.id, name: "#{a.agent_name} - #{a.code}" } }
+    }
+  end
+
+  # API endpoint for getting all brokers (for Broking selection)
+  def all_brokers
+    brokers = defined?(Broker) ? Broker.active.order(:name) : []
+    render json: {
+      brokers: brokers.map { |b| { id: b.id, name: b.name } }
+    }
+  end
+
+  # API endpoint for getting insurance companies by type
+  def insurance_companies_for_type
+    insurance_type = params[:insurance_type] || 'General Insurance'
+
+    # Get companies for general/other insurance
+    companies = case insurance_type.downcase
+    when 'general insurance', 'other'
+      ['New India Assurance', 'Oriental Insurance', 'National Insurance', 'United India Insurance',
+       'ICICI Lombard', 'Bajaj Allianz', 'Reliance General', 'Tata AIG', 'SBI General']
+    else
+      []
+    end
+
+    render json: {
+      companies: companies.map { |c| { id: c, name: c } }
+    }
+  end
+
+  # API endpoint for getting insurance companies by agency/broker selection
+  def insurance_companies_by_agency
+    agency_id = params[:agency_id]
+    broker_code = params[:broker_code]
+
+    companies_data = []
+
+    case params[:broker_type]
+    when 'direct'
+      # For direct mode: Get company from selected agency
+      if agency_id.present?
+        agency = AgencyCode.find_by(id: agency_id)
+        companies_data = [{
+          id: agency&.insurance_company,
+          text: agency&.insurance_company || 'Unknown Company'
+        }]
+      end
+
+    when 'broking'
+      # For broking mode: Return all general insurance companies
+      general_companies = ['New India Assurance', 'Oriental Insurance', 'National Insurance',
+                          'United India Insurance', 'ICICI Lombard', 'Bajaj Allianz',
+                          'Reliance General', 'Tata AIG', 'SBI General']
+
+      companies_data = general_companies.map { |name|
+        { id: name, text: name }
+      }
+    end
+
+    render json: {
+      success: true,
+      data: companies_data
+    }
+  end
+
   private
 
   def set_other_insurance

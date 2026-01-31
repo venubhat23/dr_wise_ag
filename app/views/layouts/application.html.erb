@@ -68,8 +68,13 @@
       <header class="header">
         <div class="container-fluid h-100">
           <div class="d-flex align-items-center justify-content-between h-100 px-3">
-            <!-- Mobile Toggle -->
+            <!-- Mobile Toggle (existing) -->
             <button class="mobile-toggle d-md-none" type="button" data-bs-toggle="sidebar">
+              <i class="fas fa-bars"></i>
+            </button>
+
+            <!-- Desktop Sidebar Toggle (new) -->
+            <button class="desktop-sidebar-toggle d-none d-md-block" type="button" id="desktopSidebarToggle">
               <i class="fas fa-bars"></i>
             </button>
 
@@ -181,6 +186,7 @@
         if (sidebar) {
           const scrollPosition = sidebar.scrollTop;
           sessionStorage.setItem('sidebarScrollPosition', scrollPosition.toString());
+          console.log('💾 Sidebar scroll position saved:', scrollPosition);
         }
       }
 
@@ -189,10 +195,29 @@
         const savedScrollPosition = sessionStorage.getItem('sidebarScrollPosition');
 
         if (sidebar && savedScrollPosition) {
-          // Use setTimeout to ensure DOM is fully rendered
+          const scrollPos = parseInt(savedScrollPosition, 10);
+
+          // Try immediate restore first
+          sidebar.scrollTop = scrollPos;
+
+          // Use multiple timeouts to ensure it works
           setTimeout(() => {
-            sidebar.scrollTop = parseInt(savedScrollPosition, 10);
-          }, 100);
+            sidebar.scrollTop = scrollPos;
+          }, 50);
+
+          setTimeout(() => {
+            sidebar.scrollTop = scrollPos;
+          }, 150);
+
+          setTimeout(() => {
+            sidebar.scrollTop = scrollPos;
+          }, 300);
+
+          // Final attempt after all content is loaded
+          setTimeout(() => {
+            sidebar.scrollTop = scrollPos;
+            console.log('🔄 Sidebar scroll restored to position:', scrollPos);
+          }, 500);
         }
       }
 
@@ -200,14 +225,33 @@
         const sidebar = document.querySelector('.modern-sidebar, .sidebar, #sidebar');
         if (!sidebar) return;
 
-        // Save scroll position on scroll
-        sidebar.addEventListener('scroll', saveSidebarScrollPosition);
+        // Remove existing listeners to prevent duplicates
+        sidebar.removeEventListener('scroll', saveSidebarScrollPosition);
+
+        // Save scroll position on scroll (with debouncing)
+        let scrollTimeout;
+        sidebar.addEventListener('scroll', function() {
+          clearTimeout(scrollTimeout);
+          scrollTimeout = setTimeout(saveSidebarScrollPosition, 100);
+        });
 
         // Save scroll position when clicking navigation links
         const navLinks = sidebar.querySelectorAll('a');
         navLinks.forEach(link => {
-          link.addEventListener('click', saveSidebarScrollPosition);
+          // Remove existing listener
+          link.removeEventListener('click', saveSidebarScrollPosition);
+
+          // Add new listener
+          link.addEventListener('click', function() {
+            console.log('🖱️ Nav link clicked, saving sidebar position');
+            saveSidebarScrollPosition();
+
+            // Save again after a short delay in case the scroll changes
+            setTimeout(saveSidebarScrollPosition, 50);
+          });
         });
+
+        console.log('✅ Sidebar scroll tracking setup complete');
       }
 
       // Global modal fix to ensure all modals work properly
@@ -269,11 +313,73 @@
         // Restore sidebar scroll position after Turbo navigation
         restoreSidebarScrollPosition();
         setupSidebarScrollTracking();
+
+        // Re-initialize desktop sidebar toggle after Turbo navigation
+        initDesktopSidebarToggle();
       });
 
       // Save sidebar position before navigation and page unload
       document.addEventListener('turbo:before-visit', saveSidebarScrollPosition);
       window.addEventListener('beforeunload', saveSidebarScrollPosition);
+
+      // Desktop Sidebar Toggle Functionality
+      function initDesktopSidebarToggle() {
+        const desktopToggle = document.getElementById('desktopSidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+        const body = document.body;
+
+        if (!desktopToggle || !sidebar) return;
+
+        // Only apply collapsed state on desktop (not mobile)
+        function applyDesktopState() {
+          if (window.innerWidth >= 992) { // lg breakpoint
+            const savedState = localStorage.getItem('sidebarCollapsed');
+            if (savedState === 'true') {
+              sidebar.classList.add('collapsed');
+              body.classList.add('sidebar-collapsed');
+            } else {
+              // Ensure expanded by default on desktop
+              sidebar.classList.remove('collapsed');
+              body.classList.remove('sidebar-collapsed');
+            }
+          } else {
+            // On mobile, remove desktop states to avoid conflicts
+            sidebar.classList.remove('collapsed');
+            body.classList.remove('sidebar-collapsed');
+          }
+        }
+
+        // Apply state on load
+        applyDesktopState();
+
+        // Add click event listener for desktop toggle
+        desktopToggle.addEventListener('click', function() {
+          // Only work on desktop
+          if (window.innerWidth >= 992) {
+            const isCollapsed = sidebar.classList.contains('collapsed');
+
+            if (isCollapsed) {
+              // Expand sidebar
+              sidebar.classList.remove('collapsed');
+              body.classList.remove('sidebar-collapsed');
+              localStorage.setItem('sidebarCollapsed', 'false');
+            } else {
+              // Collapse sidebar
+              sidebar.classList.add('collapsed');
+              body.classList.add('sidebar-collapsed');
+              localStorage.setItem('sidebarCollapsed', 'true');
+            }
+          }
+        });
+
+        // Handle window resize to maintain proper behavior
+        window.addEventListener('resize', function() {
+          applyDesktopState();
+        });
+      }
+
+      // Initialize on DOM load
+      initDesktopSidebarToggle();
 
       // Toast notification functions
       function initToastNotifications() {
