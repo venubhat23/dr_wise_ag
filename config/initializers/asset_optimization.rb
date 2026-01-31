@@ -30,10 +30,10 @@ Rails.application.configure do
 end
 
 # Configure HTTP caching headers for better browser caching
-Rails.application.config.middleware.insert_before(
-  ActionDispatch::Static,
-  Rack::Cache,
-  verbose: false,
-  metastore: 'file:tmp/cache/rack/meta',
-  entitystore: 'file:tmp/cache/rack/body'
-) if Rails.env.production?
+# Rack::Cache has been removed as it's not compatible with Rails 8
+# Rails already provides good caching via static_cache_control setting above
+#
+# If you need additional caching, consider using:
+# - Rails' built-in HTTP caching headers (config.static_cache_control)
+# - CDN for static assets
+# - Redis or Memcached for application-level caching
