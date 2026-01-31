@@ -39,6 +39,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         payment_mode: policy.payment_mode,
         status: policy.active? ? 'Active' : (policy.expired? ? 'Expired' : 'Expiring Soon'),
         days_until_expiry: policy.days_until_expiry,
+        dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false,
         document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
       }
     end
@@ -59,6 +60,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         payment_mode: policy.payment_mode,
         status: policy.active? ? 'Active' : (policy.expired? ? 'Expired' : 'Expiring Soon'),
         days_until_expiry: policy.days_until_expiry,
+        dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false,
         document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
         # Life insurance specific fields
         nominee_name: policy.nominee_name,
@@ -96,6 +98,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             nil
           end
         end,
+        dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false,
         document: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? {
           document: 'Policy Document',
           url: rails_blob_url(policy.policy_documents.first)
@@ -213,6 +216,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             installment_type: installment_type, # 'regular' or 'renewal'
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
+            dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false,
             document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
           }
         end
@@ -302,6 +306,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             installment_type: installment_type, # 'regular' or 'renewal'
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
+            dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false,
             document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
           }
         end
@@ -403,7 +408,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             document: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? {
               document: 'Policy Document',
               url: rails_blob_url(policy.policy_documents.first)
-            } : nil
+            } : nil,
+            dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false
           }
         end
       end
@@ -491,7 +497,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         is_expired: policy.policy_end_date < Date.current,
         days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
         insurance_company: policy.insurance_company_name,
-        document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
+        document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
+        dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false
       }
     end
 
@@ -543,7 +550,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         is_expired: policy.policy_end_date < Date.current,
         days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
         insurance_company: policy.insurance_company_name,
-        document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
+        document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
+        dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false
       }
     end
 
@@ -642,7 +650,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
               # Additional fields specific to motor insurance
               vehicle_number: insurance_config[:type] == 'Motor' && policy.respond_to?(:vehicle_number) ? policy.vehicle_number : nil,
               vehicle_make: insurance_config[:type] == 'Motor' && policy.respond_to?(:vehicle_make) ? policy.vehicle_make : nil,
-              vehicle_model: insurance_config[:type] == 'Motor' && policy.respond_to?(:vehicle_model) ? policy.vehicle_model : nil
+              vehicle_model: insurance_config[:type] == 'Motor' && policy.respond_to?(:vehicle_model) ? policy.vehicle_model : nil,
+              dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false
             }
           end
         end
