@@ -16,18 +16,9 @@ test:
   database: test_3_drwise_test
 
 production:
-  primary:
-    <<: *default
-    database: test_3_drwise
-
-  cable:
-    <<: *default
-    database: test_3_drwise
-
-  queue:
-    <<: *default
-    database: test_3_drwise
-
-  cache:
-    <<: *default
-    database: test_3_drwise
+  <<: *default
+  database: <%= ENV['DATABASE_NAME'] || 'test_3_drwise' %>
+  username: <%= ENV['DATABASE_USERNAME'] || 'test_3_drwise_user' %>
+  password: <%= ENV['DATABASE_PASSWORD'] || 'np9fbi4IsBhlG63FEtu1dPhdxF7q6ped' %>
+  host: <%= ENV['DATABASE_HOST'] || 'dpg-d5kq2ksoud1c73du8060-a.oregon-postgres.render.com' %>
+  port: <%= ENV['DATABASE_PORT'] || '5432' %>

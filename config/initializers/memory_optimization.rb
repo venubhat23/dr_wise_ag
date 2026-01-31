@@ -1,13 +1,39 @@
 # Memory optimization for production environment
 if Rails.env.production?
-  # Reduce ActiveRecord connection pool for free tier
-  Rails.application.config.after_initialize do
-    ActiveRecord::Base.connection_pool.disconnect!
+  # Skip database operations during asset precompilation and database tasks
+  skip_db = ENV['RAILS_ASSETS_PRECOMPILE'].present? ||
+            ENV['DATABASE_URL'].blank? ||
+            (defined?(Rake) && Rake.application.top_level_tasks.any? { |task|
+              task.include?('assets:') || task.include?('db:')
+            })
 
-    ActiveSupport.on_load(:active_record) do
-      config = Rails.application.config.database_configuration[Rails.env]
-      config['pool'] = ENV.fetch("RAILS_MAX_THREADS", 2).to_i
-      ActiveRecord::Base.establish_connection(config)
+  unless skip_db
+    # Reduce ActiveRecord connection pool for free tier
+    Rails.application.config.after_initialize do
+      begin
+        ActiveRecord::Base.connection_pool.disconnect!
+      rescue => e
+        Rails.logger.info "Skipping connection pool disconnect: #{e.message}"
+      end
+
+      ActiveSupport.on_load(:active_record) do
+        begin
+          # Get database configuration
+          db_config = Rails.application.config.database_configuration[Rails.env]
+
+          # Handle multi-database or simple configuration
+          config = if db_config.is_a?(Hash) && db_config['primary']
+            db_config['primary'].dup
+          else
+            db_config.dup
+          end
+
+          config['pool'] = ENV.fetch("RAILS_MAX_THREADS", 2).to_i
+          ActiveRecord::Base.establish_connection(config)
+        rescue => e
+          Rails.logger.error "Failed to optimize database connection: #{e.message}"
+        end
+      end
     end
   end
 
