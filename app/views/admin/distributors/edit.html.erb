@@ -332,11 +332,16 @@
                       </div>
                       <div class="d-flex gap-1">
                         <% if document.document_file.attached? %>
-                          <%= link_to rails_blob_path(document.document_file, disposition: "inline"),
+                          <%= link_to document.document_url || rails_blob_path(document.document_file, disposition: "inline"),
                                       target: "_blank",
                                       class: "btn btn-sm btn-outline-primary",
                                       title: "Preview Document" do %>
                             <i class="bi bi-eye"></i>
+                          <% end %>
+                          <%= link_to rails_blob_path(document.document_file, disposition: "attachment"),
+                                      class: "btn btn-sm btn-outline-secondary",
+                                      title: "Download Document" do %>
+                            <i class="bi bi-download"></i>
                           <% end %>
                         <% end %>
                         <button type="button"

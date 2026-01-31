@@ -329,11 +329,16 @@
                       </div>
                       <div class="d-flex gap-1">
                         <% if document.document_file.attached? %>
-                          <%= link_to rails_blob_path(document.document_file, disposition: "inline"),
+                          <%= link_to document.document_url || rails_blob_path(document.document_file, disposition: "inline"),
                                       target: "_blank",
                                       class: "btn btn-sm btn-outline-primary",
                                       title: "Preview Document" do %>
                             <i class="bi bi-eye"></i>
+                          <% end %>
+                          <%= link_to rails_blob_path(document.document_file, disposition: "attachment"),
+                                      class: "btn btn-sm btn-outline-secondary",
+                                      title: "Download Document" do %>
+                            <i class="bi bi-download"></i>
                           <% end %>
                         <% end %>
                         <button type="button"
@@ -394,64 +399,6 @@
     </div>
   </div>
 
-  <!-- Performance Summary -->
-  <div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-      <div class="d-flex align-items-center">
-        <i class="bi bi-graph-up me-2 text-info"></i>
-        <h5 class="mb-0">Performance Summary</h5>
-      </div>
-      <div>
-        <%= link_to admin_sub_agent_path(@sub_agent), class: "btn btn-sm btn-outline-primary" do %>
-          <i class="bi bi-eye me-1"></i>View Full Details
-        <% end %>
-      </div>
-    </div>
-    <div class="card-body">
-      <div class="row text-center">
-        <div class="col-md-4">
-          <div class="border rounded p-3">
-            <h4 class="text-primary mb-1"><%= @total_policies %></h4>
-            <small class="text-muted">Total Policies Handled</small>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="border rounded p-3">
-            <h4 class="text-success mb-1">₹<%= number_to_currency(@total_commission, unit: '', precision: 0) %></h4>
-            <small class="text-muted">Total Commission Earned</small>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="border rounded p-3">
-            <h4 class="text-info mb-1">
-              <% if @total_policies > 0 %>
-                ₹<%= number_to_currency((@total_commission / @total_policies), unit: '', precision: 0) %>
-              <% else %>
-                ₹0
-              <% end %>
-            </h4>
-            <small class="text-muted">Average Commission per Policy</small>
-          </div>
-        </div>
-      </div>
-
-      <% if @total_policies > 0 %>
-        <div class="alert alert-info mt-3" role="alert">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-info-circle me-2"></i>
-            <div>
-              <strong>Performance Highlights:</strong><br>
-              This affiliate has handled <%= pluralize(@total_policies, 'policy') %> and earned
-              ₹<%= number_to_currency(@total_commission, unit: '', precision: 0) %> in total commission.
-              <% if @total_commission > 0 %>
-                Average earning per policy is ₹<%= number_to_currency((@total_commission / @total_policies), unit: '', precision: 0) %>.
-              <% end %>
-            </div>
-          </div>
-        </div>
-      <% end %>
-    </div>
-  </div>
 
   <!-- Form Actions -->
   <div class="card border-0 shadow-sm">

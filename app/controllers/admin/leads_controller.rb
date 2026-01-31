@@ -281,8 +281,37 @@ class Admin::LeadsController < Admin::ApplicationController
       return
     end
 
-    # For branch out leads, first check if parent lead already has a converted customer
     existing_customer = nil
+
+    # Check if this is a parent lead with already converted branch out leads
+    if !@lead.is_branch_out?
+      # This is a parent lead - check if any of its branch out leads have been converted
+      branch_out_leads = Lead.where(parent_lead_id: @lead.id, is_branch_out: true)
+      converted_branch_lead = branch_out_leads.find { |bl| bl.converted_customer_id.present? }
+
+      if converted_branch_lead
+        existing_customer = Customer.find_by(id: converted_branch_lead.converted_customer_id)
+        if existing_customer
+          Rails.logger.info "Parent lead #{@lead.id}: Found existing customer #{existing_customer.id} from converted branch out lead #{converted_branch_lead.id}"
+
+          # Update lead to mark as converted with same customer
+          @lead.update!(
+            current_stage: 'converted',
+            converted_customer_id: existing_customer.id
+          )
+
+          # Update notes to track the conversion order
+          @lead.update(notes: "#{@lead.notes}\n\n[System] Parent lead converted after branch out lead #{converted_branch_lead.lead_id}. Using existing customer.")
+          converted_branch_lead.update(notes: "#{converted_branch_lead.notes}\n\n[System] Parent lead #{@lead.lead_id} has been linked to same customer.")
+
+          redirect_to admin_customer_path(existing_customer),
+                      notice: "This is a Parent lead. Its branch out lead was already converted to customer. Both leads are now linked to the same customer."
+          return
+        end
+      end
+    end
+
+    # For branch out leads, first check if parent lead already has a converted customer
     if @lead.is_branch_out? && @lead.parent_lead_id.present?
       parent_lead = Lead.find_by(id: @lead.parent_lead_id)
       if parent_lead&.converted_customer_id.present?
@@ -293,7 +322,7 @@ class Admin::LeadsController < Admin::ApplicationController
       end
     end
 
-    # If no existing customer from parent lead, check by mobile/email as before
+    # If no existing customer from parent/branch leads, check by mobile/email as before
     if !existing_customer
       if @lead.contact_number.present?
         existing_customer = Customer.find_by(mobile: @lead.contact_number)
@@ -364,9 +393,26 @@ class Admin::LeadsController < Admin::ApplicationController
 
       # Custom message for branch out leads
       if @lead.is_branch_out? && @lead.parent_lead_id.present?
-        notice_message = "Branch out lead converted! Found existing customer from parent lead. Customer record already exists and has been linked."
+        parent_lead = Lead.find_by(id: @lead.parent_lead_id)
+        if parent_lead&.converted_customer_id.present?
+          # Parent was converted first
+          notice_message = "Branch out lead converted! Using existing customer from parent lead. Both leads are now linked to the same customer."
+
+          # Update notes to track conversion order
+          @lead.update(notes: "#{@lead.notes}\n\n[System] Branch out lead converted after parent lead #{parent_lead.lead_id}. Using existing customer.")
+          parent_lead.update(notes: "#{parent_lead.notes}\n\n[System] Branch out lead #{@lead.lead_id} has been linked to same customer.")
+        else
+          # Branch out lead converted first (before parent)
+          notice_message = "Branch out lead converted! Created new customer. Parent lead can be linked to this customer when converted."
+
+          # Update notes
+          @lead.update(notes: "#{@lead.notes}\n\n[System] Branch out lead converted before parent lead. New customer created.")
+          if parent_lead
+            parent_lead.update(notes: "#{parent_lead.notes}\n\n[System] Branch out lead #{@lead.lead_id} has been converted. Will use same customer when parent is converted.")
+          end
+        end
       else
-        notice_message = "Found existing customer and updated with latest lead information. Please review and save the changes."
+        notice_message = "Found existing customer and updated with latest lead information."
       end
 
       redirect_to admin_customer_path(existing_customer),
@@ -459,7 +505,35 @@ class Admin::LeadsController < Admin::ApplicationController
         converted_customer_id: customer.id
       )
 
-      redirect_to edit_admin_customer_path(customer), notice: 'Lead successfully converted to customer. You can now review and edit the customer details.'
+      # Add notes for tracking conversion
+      if @lead.is_branch_out? && @lead.parent_lead_id.present?
+        # Branch out lead creating new customer
+        parent_lead = Lead.find_by(id: @lead.parent_lead_id)
+
+        @lead.update(notes: "#{@lead.notes}\n\n[System] Branch out lead converted first. New customer created.")
+
+        if parent_lead
+          parent_lead.update(notes: "#{parent_lead.notes}\n\n[System] Branch out lead #{@lead.lead_id} has been converted to customer. Parent lead will use same customer when converted.")
+        end
+
+        notice_message = 'Branch out lead successfully converted to customer. Parent lead will be linked to this customer when converted.'
+      elsif !@lead.is_branch_out?
+        # Check if this parent lead has any branch out leads
+        branch_out_leads = Lead.where(parent_lead_id: @lead.id, is_branch_out: true)
+        if branch_out_leads.any?
+          @lead.update(notes: "#{@lead.notes}\n\n[System] Parent lead converted first. Branch out leads will use this customer when converted.")
+
+          branch_out_leads.each do |bl|
+            bl.update(notes: "#{bl.notes}\n\n[System] Parent lead #{@lead.lead_id} has been converted. Will use same customer when this lead is converted.")
+          end
+        end
+
+        notice_message = 'Lead successfully converted to customer. You can now review and edit the customer details.'
+      else
+        notice_message = 'Lead successfully converted to customer. You can now review and edit the customer details.'
+      end
+
+      redirect_to edit_admin_customer_path(customer), notice: notice_message
     end
   rescue ActiveRecord::RecordInvalid => e
     Rails.logger.error "Lead conversion failed for lead #{@lead.id}: #{e.message}"
