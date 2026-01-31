@@ -440,7 +440,7 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
     # Generate profile image URL if attached
     profile_image_url = nil
     if user.respond_to?(:profile_image) && user.profile_image.attached?
-      profile_image_url = Rails.application.routes.url_helpers.rails_blob_url(user.profile_image, only_path: false)
+      profile_image_url = Rails.application.routes.url_helpers.url_for(user.profile_image, host: request.base_url)
     end
 
     base_data = {

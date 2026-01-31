@@ -1,4 +1,4 @@
-class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
+class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseController
 
   # POST /api/v1/mobile/auth/login
   def login
