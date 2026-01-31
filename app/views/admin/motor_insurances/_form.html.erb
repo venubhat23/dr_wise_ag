@@ -700,7 +700,7 @@
                 <strong>Company Expenses:</strong> <span id="company_expenses_summary">2.0% of Net Premium</span>
               </p>
               <p class="card-text mb-0">
-                <strong>Profit:</strong> <span id="profit_summary">Main Agent Commission - Total Distribution - Company Expenses</span>
+                <strong>Profit:</strong> <span id="profit_summary">Net Premium - All Commissions - Company Expenses</span>
               </p>
             </div>
           </div>
@@ -933,6 +933,42 @@
 <% end %>
 
 <script>
+// Force enable scrolling and prevent conflicts
+try {
+  // Ensure document body can scroll
+  if (document.body) {
+    document.body.style.overflow = 'auto';
+    document.body.style.overflowY = 'auto';
+    document.body.style.overflowX = 'hidden';
+    document.body.style.position = 'relative';
+    document.body.style.height = 'auto';
+  }
+
+  if (document.documentElement) {
+    document.documentElement.style.overflow = 'auto';
+    document.documentElement.style.overflowY = 'auto';
+    document.documentElement.style.overflowX = 'hidden';
+    document.documentElement.style.height = 'auto';
+  }
+
+  // Remove any scroll-blocking classes
+  document.body.classList.remove('modal-open', 'no-scroll');
+
+  console.log('✅ Scroll fix applied successfully');
+} catch (error) {
+  console.warn('⚠️  Scroll fix error:', error);
+}
+
+// Error handling wrapper
+function safeExecute(fn, name) {
+  try {
+    return fn();
+  } catch (error) {
+    console.warn(`⚠️  ${name} error:`, error);
+    return null;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   // Auto-calculation functions
   function calculateTotalPremium() {
@@ -1078,7 +1114,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('total_distribution_percentage').value = totalDistributionPercentage.toFixed(2);
 
-    const profitPercentage = mainAgentPercentage - totalDistributionPercentage - companyExpensesPercentage;
+    // Calculate profit correctly: Profit = Net Premium - All Commission Payouts - Company Expenses
+    // In percentage terms: Profit % = 100% - Main Agent % - Total Distribution % - Company Expenses %
+    const totalCommissionPercentage = mainAgentPercentage + totalDistributionPercentage + companyExpensesPercentage;
+    const profitPercentage = 100 - totalCommissionPercentage;
     const profitAmount = (netPremium * profitPercentage) / 100;
 
     document.getElementById('profit_percentage').value = profitPercentage.toFixed(2);
@@ -1115,6 +1154,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Custom styling for enhanced Select2 dropdown -->
 <style>
+  /* Fix scrolling issues - CRITICAL */
+  html, body {
+    overflow: auto !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    height: auto !important;
+    position: relative !important;
+  }
+
+  /* Prevent any fixed overlays from blocking scroll */
+  .modal-backdrop,
+  .select2-container--open {
+    position: absolute !important;
+  }
+
+  /* Ensure page container can scroll */
+  .container,
+  .container-fluid,
+  .main-content {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Force scroll capability */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
   .select2-container--bootstrap-5 .select2-selection--single {
     height: 38px;
     border: 1px solid #ced4da;

@@ -973,7 +973,7 @@ class Admin::CustomersController < Admin::ApplicationController
       :nominee_date_of_birth, :status, :birth_place, :height_feet, :weight_kg, :education,
       :marital_status, :business_job, :business_name, :type_of_duty, :additional_information, :additional_info,
       :added_by, :sub_agent_id, :age, :lead_id,
-      profile_image: [],
+      :profile_image,
       documents_attributes: [:id, :document_type, :file, :_destroy],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy],
       family_members_attributes: [

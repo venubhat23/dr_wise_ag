@@ -132,8 +132,12 @@ class Admin::SubAgentsController < Admin::ApplicationController
 
   # GET /admin/sub_agents/1/edit
   def edit
-    # Documents are already loaded via set_sub_agent before_action
+    # Load documents for display
+    @documents = @sub_agent.sub_agent_documents.includes(:document_file_attachment).order(:created_at)
+
+    # Only build a new document placeholder if there are no documents (this won't affect display)
     @sub_agent.sub_agent_documents.build if @sub_agent.sub_agent_documents.empty?
+
     @assigned_distributor = @sub_agent.assigned_distributor
     @distributor_assignment = @sub_agent.distributor_assignment
     @available_distributors = Distributor.active.order(:first_name, :last_name)
