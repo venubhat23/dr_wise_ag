@@ -339,7 +339,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
       :first_name, :middle_name, :last_name, :mobile, :email, :password, :password_confirmation, :role_id,
       :state_id, :city_id, :state, :city, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
-      :account_holder_name, :account_type, :upi_id, :status, :upload_main_document,
+      :account_holder_name, :account_type, :upi_id, :status, :upload_main_document, :profile_image,
       sub_agent_documents_attributes: [:id, :document_type, :document_file, :_destroy],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
     )

@@ -137,9 +137,15 @@
   transition: all 0.3s ease !important;
 }
 
-.nav-link-modern:hover .icon-bg {
+.nav-link-modern:not(.collapsed) .nav-link-modern:hover .icon-bg {
   transform: scale(1.1) rotate(2deg) !important;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Collapsed state - NO hover scaling */
+.modern-sidebar.collapsed .nav-link-modern:hover .icon-bg {
+  transform: none !important; /* NO transform on hover */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
 .nav-link-modern:hover .icon-bg::after {
@@ -344,13 +350,13 @@
   transform: scale(1.05) !important;
 }
 
-/* Collapsed Sidebar - Fixed width, icons stay same size */
+/* Collapsed Sidebar - STRICT 52px width, NO icon scaling */
 .modern-sidebar.collapsed {
-  width: 60px !important; /* Fixed narrow width for icons */
-  min-width: 60px !important;
-  max-width: 60px !important;
+  width: 52px !important; /* STRICT narrow width */
+  min-width: 52px !important;
+  max-width: 52px !important;
   overflow: hidden !important;
-  padding: 0 !important;
+  padding: 0 !important; /* NO padding */
   border-right: 1px solid #e2e8f0 !important;
   box-shadow: none !important;
   display: flex !important;
@@ -358,7 +364,7 @@
 }
 
 .modern-sidebar.collapsed .sidebar-nav {
-  padding: 0.5rem 0 !important;
+  padding: 8px 0 !important; /* Minimal vertical padding only */
   width: 100% !important;
   display: flex !important;
   flex-direction: column !important;
@@ -366,15 +372,15 @@
 }
 
 .modern-sidebar.collapsed .nav-text {
-  display: none !important; /* Hide text completely */
+  display: none !important; /* REMOVE text completely */
 }
 
 .modern-sidebar.collapsed .nav-section-title {
-  display: none !important; /* Hide section titles */
+  display: none !important; /* REMOVE section titles */
 }
 
 .modern-sidebar.collapsed .nav-section {
-  margin-bottom: 0.5rem !important;
+  margin: 0 !important; /* NO margin */
   width: 100% !important;
 }
 
@@ -383,16 +389,18 @@
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
+  padding: 0 !important; /* NO padding */
+  margin: 0 !important; /* NO margin */
 }
 
 .modern-sidebar.collapsed .nav-link-modern {
-  margin: 4px 0 !important;
-  padding: 8px !important;
+  margin: 2px 0 !important; /* Minimal vertical spacing */
+  padding: 6px !important; /* Small click area padding */
   justify-content: center !important;
   display: flex !important;
   align-items: center !important;
-  min-height: 44px !important;
-  width: 44px !important; /* Fixed button size */
+  min-height: 40px !important;
+  width: 40px !important; /* Tight fit around icon */
   border-radius: 8px !important;
   background: transparent !important;
   border: none !important;
@@ -405,25 +413,30 @@
   justify-content: center !important;
 }
 
-/* IMPORTANT: Keep icon size exactly the same as expanded state */
+/* CRITICAL: Icons MUST stay EXACT same size as expanded */
 .modern-sidebar.collapsed .icon-bg {
   margin: 0 !important;
-  width: 36px !important; /* Same as expanded */
-  height: 36px !important; /* Same as expanded */
+  width: 36px !important; /* EXACT same as expanded */
+  height: 36px !important; /* EXACT same as expanded */
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   border-radius: 10px !important;
-  font-size: inherit !important; /* Prevent size change */
+  transform: scale(1) !important; /* NO scaling */
+  font-size: 1rem !important; /* Lock font size */
 }
 
-/* Ensure icon fonts don't resize */
+/* PREVENT any icon resizing */
 .modern-sidebar.collapsed .icon-bg i,
-.modern-sidebar.collapsed .icon-bg svg {
-  font-size: inherit !important; /* Keep original size */
+.modern-sidebar.collapsed .icon-bg svg,
+.modern-sidebar.collapsed .icon-bg .bi,
+.modern-sidebar.collapsed .icon-bg .fas,
+.modern-sidebar.collapsed .icon-bg .fa {
+  font-size: 1rem !important; /* LOCK icon font size */
   width: auto !important;
   height: auto !important;
-  transform: none !important; /* No scaling */
+  transform: none !important; /* NO transform */
+  scale: 1 !important; /* NO scale */
 }
 
 .modern-sidebar.collapsed .dropdown-arrow {
@@ -453,8 +466,8 @@
 
 /* When sidebar is collapsed, main content expands automatically */
 body.sidebar-collapsed .main-content {
-  left: 60px !important; /* Match collapsed sidebar width */
-  width: calc(100% - 60px) !important; /* Use all available space */
+  left: 52px !important; /* Match STRICT collapsed sidebar width */
+  width: calc(100% - 52px) !important; /* Use all available space */
 }
 
 /* Tooltip for collapsed sidebar items */

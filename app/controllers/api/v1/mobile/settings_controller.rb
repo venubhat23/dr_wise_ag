@@ -19,6 +19,11 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
     profile_params = get_permitted_params_for_user(user)
 
     ActiveRecord::Base.transaction do
+      # Handle profile image separately if present
+      if params[:profile_image].present? && user.respond_to?(:profile_image)
+        user.profile_image.attach(params[:profile_image])
+      end
+
       if user.update(profile_params)
         # Handle nominee details update for customers
         if user.is_a?(Customer) && params[:nominees].present?
@@ -432,9 +437,16 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
   end
 
   def build_profile_data(user)
+    # Generate profile image URL if attached
+    profile_image_url = nil
+    if user.respond_to?(:profile_image) && user.profile_image.attached?
+      profile_image_url = Rails.application.routes.url_helpers.rails_blob_url(user.profile_image, only_path: false)
+    end
+
     base_data = {
       username: user.email,
-      user_image: nil, # Add if you have profile images
+      user_image: profile_image_url,
+      profile_image: profile_image_url, # Additional field for clarity
       full_name: user.display_name,
       first_name: user.first_name,
       last_name: user.last_name,
@@ -464,7 +476,7 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
         gst: user.gst_number || user.gst_no,
         customer_type: user.customer_type,
         occupation: user.occupation,
-        annual_income: user.annual_income,
+        annual_income: format_indian_amount(user.annual_income),
         marital_status: user.marital_status,
         education: user.education
       })

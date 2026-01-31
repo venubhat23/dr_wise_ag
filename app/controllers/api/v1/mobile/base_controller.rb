@@ -113,4 +113,34 @@ class Api::V1::Mobile::BaseController < ApplicationController
 
     render json: response
   end
+
+  # Helper method to format amount in Indian format with 2 decimal places
+  def format_indian_amount(amount)
+    return "0.00" if amount.nil? || amount.to_f == 0.0
+
+    # Round to 2 decimal places first
+    rounded_amount = amount.to_f.round(2)
+
+    # Split into integer and decimal parts
+    integer_part, decimal_part = sprintf("%.2f", rounded_amount).split('.')
+
+    # Apply Indian numbering system (lakhs and crores)
+    # Convert to string and reverse for easier processing
+    reversed_digits = integer_part.reverse
+
+    # Add commas in Indian format
+    formatted = ""
+    reversed_digits.chars.each_with_index do |digit, index|
+      formatted += digit
+      # Add comma after first 3 digits, then every 2 digits
+      if index == 2
+        formatted += "," if index < reversed_digits.length - 1
+      elsif index > 2 && (index - 2) % 2 == 0
+        formatted += "," if index < reversed_digits.length - 1
+      end
+    end
+
+    # Reverse back and combine with decimal part
+    "#{formatted.reverse}.#{decimal_part}"
+  end
 end

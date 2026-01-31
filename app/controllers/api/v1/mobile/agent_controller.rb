@@ -22,7 +22,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         statistics: stats,
         recent_activities: get_recent_activities(agent),
         # Additional top-level fields as requested
-        commission_earned: stats[:commission_earned].to_f,
+        commission_earned: format_indian_amount(stats[:commission_earned]),
         customers_count: stats[:customers_count].to_i,
         policies_count: stats[:policies_count].to_i
       }
@@ -112,7 +112,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         customer_type: customer.customer_type,
         status: customer.active? ? 'Active' : 'Inactive',
         policies_count: get_customer_policies_count(customer),
-        total_premium: get_customer_total_premium(customer),
+        total_premium: format_indian_amount(get_customer_total_premium(customer)),
         added_by: customer.added_by || 'system',
         added_via: determine_add_source(customer.added_by),
         created_at: customer.created_at,
@@ -1233,6 +1233,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         id: company.id,
         name: company.name,
         code: company.code,
+        type: company.insurance_type,
         status: company.status ? 'Active' : 'Inactive',
         contact_person: company.contact_person,
         email: company.email,
@@ -1264,11 +1265,19 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
   # GET /api/v1/mobile/agent/motor_insurance_companies
   def motor_insurance_companies
+    # Get companies with their types from the constants
+    companies_with_types = MotorInsurance.insurance_companies.map do |company|
+      {
+        name: company[:name],
+        type: company[:type].downcase
+      }
+    end
+
     render json: {
       success: true,
       data: {
-        companies: MotorInsurance.insurance_company_names,
-        total_companies: MotorInsurance.insurance_company_names.count,
+        companies: companies_with_types,
+        total_companies: companies_with_types.count,
         message: "Use exact company names from this list when creating motor insurance policies"
       }
     }
@@ -1466,9 +1475,27 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       end
     end
 
+    # Format amounts for API response
+    formatted_summary = {
+      total_earnings: format_indian_amount(summary[:total_earnings]),
+      paid_earnings: format_indian_amount(summary[:paid_earnings]),
+      pending_earnings: format_indian_amount(summary[:pending_earnings]),
+      this_month_earnings: format_indian_amount(summary[:this_month_earnings]),
+      last_month_earnings: format_indian_amount(summary[:last_month_earnings]),
+      by_policy_type: {}
+    }
+
+    summary[:by_policy_type].each do |type, amounts|
+      formatted_summary[:by_policy_type][type] = {
+        total: format_indian_amount(amounts[:total]),
+        paid: format_indian_amount(amounts[:paid]),
+        pending: format_indian_amount(amounts[:pending])
+      }
+    end
+
     render json: {
       success: true,
-      data: summary
+      data: formatted_summary
     }
   end
 
@@ -1881,15 +1908,15 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       entry_date: policy.created_at&.strftime('%Y-%m-%d'),
       start_date: policy.policy_start_date&.strftime('%Y-%m-%d'),
       end_date: policy.policy_end_date&.strftime('%Y-%m-%d'),
-      total_premium: policy.total_premium,
-      sum_insured: policy.sum_insured,
+      total_premium: format_indian_amount(policy.total_premium),
+      sum_insured: format_indian_amount(policy.sum_insured),
       insurance_company: policy.respond_to?(:specific_insurance) ?
                           (policy.specific_insurance&.insurance_company_name || policy.insurance_company&.name) :
                           policy.insurance_company_name,
       payment_mode: policy.payment_mode,
-      commission_amount: agent_commission,
+      commission_amount: format_indian_amount(agent_commission),
       agent_percentage: agent_percentage,
-      agent_commission: agent_commission,
+      agent_commission: format_indian_amount(agent_commission),
       status: policy.respond_to?(:active?) ? (policy.active? ? 'Active' : 'Inactive') : 'Active',
       is_drwise_policy: determine_drwise_policy(policy),
       document: documents.first ? documents.first[:url] : nil,

@@ -64,7 +64,7 @@ class User < ApplicationRecord
   belongs_to :role, optional: true
   belongs_to :user_role, optional: true
   has_many :policies, dependent: :destroy
-  has_many_attached :profile_images
+  has_one_attached :profile_image
   has_many_attached :documents
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
 

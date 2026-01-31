@@ -135,6 +135,34 @@
           <%= form.text_area :address, class: "form-control", rows: 3, placeholder: "Enter full address" %>
         </div>
       </div>
+
+      <div class="row mt-3">
+        <div class="col-md-6">
+          <%= form.label :profile_image, "Profile Image", class: "form-label" %>
+          <%= form.file_field :profile_image, class: "form-control", accept: "image/*", id: "sub_agent_profile_image" %>
+          <small class="form-text text-muted">Upload a profile picture (JPG, PNG, GIF)</small>
+        </div>
+        <div class="col-md-6">
+          <div class="mt-2">
+            <% if @sub_agent.profile_image.attached? %>
+              <div id="current_profile_image">
+                <label class="form-label">Current Profile Image</label>
+                <div class="border rounded p-2" style="display: inline-block;">
+                  <%= image_tag @sub_agent.profile_image, class: "img-thumbnail", style: "max-height: 120px; max-width: 120px; object-fit: cover;" %>
+                </div>
+                <div class="mt-1">
+                  <small class="text-muted d-block"><%= @sub_agent.profile_image.filename %></small>
+                  <small class="text-muted">(<%= number_to_human_size(@sub_agent.profile_image.byte_size) %>)</small>
+                </div>
+              </div>
+            <% end %>
+            <div id="sub_agent_profile_image_preview" style="<%= 'display: none;' unless @sub_agent.profile_image.attached? %>">
+              <label class="form-label">New Profile Image Preview</label>
+              <img id="preview_img" src="" alt="Preview" class="img-thumbnail" style="max-height: 120px; max-width: 120px; object-fit: cover;">
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1134,6 +1162,52 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   });
+
+  // Profile image preview functionality
+  const profileImageInput = document.getElementById('sub_agent_profile_image');
+  const profileImagePreview = document.getElementById('sub_agent_profile_image_preview');
+  const previewImg = document.getElementById('preview_img');
+  const currentImageDiv = document.getElementById('current_profile_image');
+
+  if (profileImageInput && profileImagePreview && previewImg) {
+    profileImageInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+
+      if (!file) {
+        profileImagePreview.style.display = 'none';
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (JPG, PNG, GIF)');
+        this.value = '';
+        profileImagePreview.style.display = 'none';
+        return;
+      }
+
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Profile image size should be less than 5MB');
+        this.value = '';
+        profileImagePreview.style.display = 'none';
+        return;
+      }
+
+      // Show preview
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewImg.src = e.target.result;
+        profileImagePreview.style.display = 'block';
+
+        // Hide current image when new image is selected
+        if (currentImageDiv) {
+          currentImageDiv.style.opacity = '0.5';
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 });
 
 // Function to immediately delete sub agent documents

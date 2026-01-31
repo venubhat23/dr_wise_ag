@@ -150,6 +150,21 @@
           <%= form.text_area :address, class: "form-control", rows: 3, placeholder: "Enter full address" %>
         </div>
       </div>
+
+      <div class="row mt-3">
+        <div class="col-md-6">
+          <%= form.label :profile_image, "Profile Image", class: "form-label" %>
+          <%= form.file_field :profile_image, class: "form-control", accept: "image/*", id: "sub_agent_profile_image" %>
+          <small class="form-text text-muted">Upload a profile picture (JPG, PNG, GIF)</small>
+        </div>
+        <div class="col-md-6">
+          <div class="mt-2">
+            <div id="sub_agent_profile_image_preview" style="display: none;">
+              <img id="preview_img" src="" alt="Preview" class="img-thumbnail" style="max-height: 120px; max-width: 120px;">
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -590,5 +605,45 @@ document.addEventListener('DOMContentLoaded', function() {
       e.target.closest('.document-entry').remove();
     }
   });
+
+  // Profile image preview functionality
+  const profileImageInput = document.getElementById('sub_agent_profile_image');
+  const profileImagePreview = document.getElementById('sub_agent_profile_image_preview');
+  const previewImg = document.getElementById('preview_img');
+
+  if (profileImageInput && profileImagePreview && previewImg) {
+    profileImageInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+
+      if (!file) {
+        profileImagePreview.style.display = 'none';
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (JPG, PNG, GIF)');
+        this.value = '';
+        profileImagePreview.style.display = 'none';
+        return;
+      }
+
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Profile image size should be less than 5MB');
+        this.value = '';
+        profileImagePreview.style.display = 'none';
+        return;
+      }
+
+      // Show preview
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewImg.src = e.target.result;
+        profileImagePreview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 });
 </script>

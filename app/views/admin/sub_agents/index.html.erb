@@ -120,9 +120,17 @@
               <tr class="<%= sub_agent.deactivated? ? 'table-warning opacity-75' : '' %>">
                 <td>
                   <div class="d-flex align-items-center">
-                    <div class="avatar-sm bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3">
-                      <i class="bi bi-person text-primary"></i>
-                    </div>
+                    <% if sub_agent.profile_image.attached? %>
+                      <div class="avatar-sm me-3">
+                        <%= image_tag sub_agent.profile_image,
+                            class: "rounded-circle",
+                            style: "width: 40px; height: 40px; object-fit: cover; border: 2px solid #e9ecef;" %>
+                      </div>
+                    <% else %>
+                      <div class="avatar-sm bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3">
+                        <i class="bi bi-person text-primary"></i>
+                      </div>
+                    <% end %>
                     <div>
                       <h6 class="mb-0"><%= sub_agent.display_name %></h6>
                       <small class="text-muted"><%= sub_agent.full_name %></small>

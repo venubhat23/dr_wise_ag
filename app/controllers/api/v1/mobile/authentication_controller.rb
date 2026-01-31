@@ -115,12 +115,12 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
             mobile: user.mobile,
             password_reset_days: user.days_until_password_expires,
             password_reset_required: user.password_reset_required?,
-            commission_earned: agent_stats[:commission_earned],
+            commission_earned: format_indian_amount(agent_stats[:commission_earned]),
             customers_count: agent_stats[:customers_count],
             policies_count: agent_stats[:policies_count],
             commission_breakdown: agent_stats[:commission_breakdown],
             dashboard_stats: {
-              total_commission: agent_stats[:commission_earned],
+              total_commission: format_indian_amount(agent_stats[:commission_earned]),
               monthly_target: 75000,
               achievement_percentage: ((agent_stats[:commission_earned] / 75000) * 100).round(2),
               policies_this_month: (agent_stats[:policies_count] * 0.3).round,
@@ -174,14 +174,14 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
           mobile: sub_agent.mobile,
           password_reset_days: get_sub_agent_password_reset_days(sub_agent),
           password_reset_required: get_sub_agent_password_reset_required(sub_agent),
-          commission_earned: sub_agent_stats[:commission_earned],
+          commission_earned: format_indian_amount(sub_agent_stats[:commission_earned]),
           customers_count: sub_agent_stats[:customers_count],
           policies_count: sub_agent_stats[:policies_count],
           commission_breakdown: sub_agent_stats[:commission_breakdown],
           monthly_target: sub_agent_stats[:monthly_target],
           achievement_percentage: sub_agent_stats[:achievement_percentage],
           dashboard_stats: {
-            total_commission: sub_agent_stats[:commission_earned],
+            total_commission: format_indian_amount(sub_agent_stats[:commission_earned]),
             monthly_target: sub_agent_stats[:monthly_target],
             achievement_percentage: sub_agent_stats[:achievement_percentage],
             policies_this_month: get_current_month_policies_count(sub_agent),
@@ -648,14 +648,14 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
         mobile: sub_agent.mobile,
         password_reset_days: get_sub_agent_password_reset_days(sub_agent),
         password_reset_required: get_sub_agent_password_reset_required(sub_agent),
-        commission_earned: sub_agent_stats[:commission_earned],
+        commission_earned: format_indian_amount(sub_agent_stats[:commission_earned]),
         customers_count: sub_agent_stats[:customers_count],
         policies_count: sub_agent_stats[:policies_count],
         commission_breakdown: sub_agent_stats[:commission_breakdown],
         monthly_target: sub_agent_stats[:monthly_target],
         achievement_percentage: sub_agent_stats[:achievement_percentage],
         dashboard_stats: {
-          total_commission: sub_agent_stats[:commission_earned],
+          total_commission: format_indian_amount(sub_agent_stats[:commission_earned]),
           monthly_target: sub_agent_stats[:monthly_target],
           achievement_percentage: sub_agent_stats[:achievement_percentage],
           policies_this_month: get_current_month_policies_count(sub_agent),
@@ -804,13 +804,13 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
     end
 
     {
-      commission_earned: total_commission.round(2),
+      commission_earned: format_indian_amount(total_commission),
       customers_count: customer_ids.uniq.count,
       policies_count: total_policies,
       commission_breakdown: {
-        health_commission: health_commission.round(2),
-        life_commission: life_commission.round(2),
-        motor_commission: motor_commission.round(2)
+        health_commission: format_indian_amount(health_commission),
+        life_commission: format_indian_amount(life_commission),
+        motor_commission: format_indian_amount(motor_commission)
       }
     }
   end
@@ -877,13 +877,13 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
     monthly_target = 50000.0
 
     {
-      commission_earned: total_commission.round(2),
+      commission_earned: format_indian_amount(total_commission),
       customers_count: real_customers_count,
       policies_count: total_policies,
       commission_breakdown: {
-        health_commission: health_commission.round(2),
-        life_commission: life_commission.round(2),
-        motor_commission: motor_commission.round(2)
+        health_commission: format_indian_amount(health_commission),
+        life_commission: format_indian_amount(life_commission),
+        motor_commission: format_indian_amount(motor_commission)
       },
       monthly_target: monthly_target,
       achievement_percentage: total_commission > 0 ? ((total_commission / monthly_target) * 100).round(2) : 0.0
@@ -956,8 +956,8 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
         total_policies: total_policies,
         upcoming_installments: upcoming_installments,
         renewal_policies: renewal_policies,
-        total_coverage: 500000.0,
-        total_premium_paid: 25000.0,
+        total_coverage: format_indian_amount(500000.0),
+        total_premium_paid: format_indian_amount(25000.0),
         policy_breakdown: {
           health_policies: health_count,
           life_policies: life_count,
@@ -972,8 +972,8 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::ApplicationController
         total_policies: 0,
         upcoming_installments: 0,
         renewal_policies: 0,
-        total_coverage: 0.0,
-        total_premium_paid: 0.0,
+        total_coverage: format_indian_amount(0.0),
+        total_premium_paid: format_indian_amount(0.0),
         policy_breakdown: {
           health_policies: 0,
           life_policies: 0,
