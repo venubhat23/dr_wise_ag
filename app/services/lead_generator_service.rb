@@ -46,6 +46,19 @@ class LeadGeneratorService
     # Set additional lead data based on customer type and product
     lead_data = build_lead_data_for_insurance(insurance, product_type, generated_lead_id)
 
+    # Skip email if it would cause uniqueness conflict
+    if lead_data[:email].present?
+      existing_email_lead = Lead.where(
+        email: lead_data[:email],
+        product_subcategory: product_type
+      ).where.not(lead_id: generated_lead_id).first
+
+      if existing_email_lead
+        Rails.logger.warn "Email #{lead_data[:email]} already exists for #{product_type}, skipping email for lead #{generated_lead_id}"
+        lead_data.delete(:email)
+      end
+    end
+
     lead = Lead.create!(lead_data)
 
     # Update the insurance with the generated lead_id
@@ -55,6 +68,7 @@ class LeadGeneratorService
     lead
   rescue StandardError => e
     Rails.logger.error "Failed to create lead for #{insurance.class.name} #{insurance.id}: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
     nil
   end
 
@@ -84,9 +98,9 @@ class LeadGeneratorService
     # Add customer type specific data
     if customer.individual?
       base_data.merge!(
-        first_name: customer.first_name,
-        middle_name: customer.middle_name,
-        last_name: customer.last_name,
+        first_name: sanitize_name(customer.first_name),
+        middle_name: sanitize_name(customer.middle_name),
+        last_name: sanitize_name(customer.last_name),
         gender: customer.gender,
         birth_date: customer.birth_date,
         marital_status: customer.marital_status,
@@ -150,5 +164,15 @@ class LeadGeneratorService
     else
       nil
     end
+  end
+
+  def self.sanitize_name(name)
+    return nil if name.blank?
+
+    # Remove numbers and special characters, keep only letters and spaces
+    sanitized = name.gsub(/[^a-zA-Z\s]/, '').strip
+
+    # If the name becomes empty after sanitization, use a placeholder
+    sanitized.present? ? sanitized : 'Customer'
   end
 end

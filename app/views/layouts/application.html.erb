@@ -311,16 +311,41 @@
         initToastNotifications();
 
         // Restore sidebar scroll position after Turbo navigation
-        restoreSidebarScrollPosition();
-        setupSidebarScrollTracking();
+        setTimeout(() => {
+          restoreSidebarScrollPosition();
+          setupSidebarScrollTracking();
+        }, 100);
+
+        // Add a second restoration attempt after page content loads
+        setTimeout(() => {
+          restoreSidebarScrollPosition();
+        }, 800);
 
         // Re-initialize desktop sidebar toggle after Turbo navigation
         initDesktopSidebarToggle();
       });
 
       // Save sidebar position before navigation and page unload
-      document.addEventListener('turbo:before-visit', saveSidebarScrollPosition);
+      document.addEventListener('turbo:before-visit', function() {
+        console.log('🚀 Turbo navigation starting, saving sidebar position');
+        saveSidebarScrollPosition();
+      });
+
+      document.addEventListener('turbo:visit', function() {
+        console.log('🔄 Turbo visit event, saving sidebar position');
+        saveSidebarScrollPosition();
+      });
+
       window.addEventListener('beforeunload', saveSidebarScrollPosition);
+
+      // Additional backup - save on any click that might navigate
+      document.addEventListener('click', function(e) {
+        const target = e.target.closest('a');
+        if (target && target.href && target.href !== window.location.href) {
+          console.log('🔗 Link click detected, saving sidebar position');
+          saveSidebarScrollPosition();
+        }
+      });
 
       // Desktop Sidebar Toggle Functionality
       function initDesktopSidebarToggle() {

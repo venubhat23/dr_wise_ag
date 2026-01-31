@@ -782,32 +782,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle confirmation
     document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-      // Create and submit delete form
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = deleteUrl;
+      // Show loading state
+      const deleteBtn = this;
+      const originalText = deleteBtn.innerHTML;
+      deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Deleting...';
+      deleteBtn.disabled = true;
 
-      // Add CSRF token
-      const csrfToken = document.querySelector('meta[name="csrf-token"]');
-      if (csrfToken) {
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'authenticity_token';
-        csrfInput.value = csrfToken.getAttribute('content');
-        form.appendChild(csrfInput);
-      }
+      // Make AJAX request to check if lead can be deleted
+      fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+          'Accept': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Hide modal
+        modal.hide();
 
-      // Add method override for DELETE
-      const methodInput = document.createElement('input');
-      methodInput.type = 'hidden';
-      methodInput.name = '_method';
-      methodInput.value = 'DELETE';
-      form.appendChild(methodInput);
-
-      document.body.appendChild(form);
-      form.submit();
-
-      modal.hide();
+        if (data.success) {
+          // Show success message and refresh page
+          showSuccessAlert(data.message || 'Lead successfully deleted');
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          // Show error alert
+          showErrorAlert(data.message || 'Failed to delete lead');
+        }
+      })
+      .catch(error => {
+        console.error('Delete error:', error);
+        modal.hide();
+        showErrorAlert('An error occurred while deleting the lead. Please try again.');
+      })
+      .finally(() => {
+        // Restore button state
+        deleteBtn.innerHTML = originalText;
+        deleteBtn.disabled = false;
+      });
     });
 
     // Clean up modal when hidden
@@ -1023,8 +1038,9 @@ document.addEventListener('DOMContentLoaded', function() {
       const parentLeadId = this.dataset.parentLeadId;
 
       // Show confirmation alert for branch out lead
-      if (confirm('This is a branch out lead… do you want to proceed with existing customer?')) {
-        handleBranchOutConversion(leadId, parentLeadId);
+      if (confirm('This is a branch out lead… do you want to proceed with customer creation')) {
+        // Forward directly to customer creation form for branch out leads
+        window.location.href = `/admin/leads/${leadId}/convert_to_customer`;
       }
     });
   });
@@ -1402,4 +1418,47 @@ document.addEventListener('DOMContentLoaded', function() {
     }, false);
   }
 });
+
+// Alert functions for delete operations
+function showSuccessAlert(message) {
+  const alertHtml = `
+    <div class="alert alert-success alert-dismissible fade show position-fixed"
+         style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+      <i class="bi bi-check-circle me-2"></i>
+      <strong>Success!</strong> ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', alertHtml);
+
+  // Auto dismiss after 3 seconds
+  setTimeout(() => {
+    const alert = document.querySelector('.alert-success');
+    if (alert) {
+      const bsAlert = new bootstrap.Alert(alert);
+      bsAlert.close();
+    }
+  }, 3000);
+}
+
+function showErrorAlert(message) {
+  const alertHtml = `
+    <div class="alert alert-danger alert-dismissible fade show position-fixed"
+         style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      <strong>Error!</strong> ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', alertHtml);
+
+  // Auto dismiss after 5 seconds for error messages
+  setTimeout(() => {
+    const alert = document.querySelector('.alert-danger');
+    if (alert) {
+      const bsAlert = new bootstrap.Alert(alert);
+      bsAlert.close();
+    }
+  }, 5000);
+}
 </script>

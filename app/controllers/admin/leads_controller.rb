@@ -157,6 +157,7 @@ class Admin::LeadsController < Admin::ApplicationController
 
     # Check if the converted customer has policies or other data
     customer_has_policies = false
+    customer = nil
     if has_converted_customer
       customer = Customer.find_by(id: @lead.converted_customer_id)
       if customer
@@ -182,7 +183,11 @@ class Admin::LeadsController < Admin::ApplicationController
       lead_policy_count = 0
     end
 
-    if has_converted_customer || has_created_policy || customer_has_policies || has_lead_policies
+    # Check for branch out leads that depend on this lead
+    has_branch_out_leads = @lead.branch_out_leads.exists?
+
+    # If lead is connected to customer or client, show alert
+    if has_converted_customer || has_created_policy || customer_has_policies || has_lead_policies || has_branch_out_leads
       error_messages = []
 
       if has_converted_customer
@@ -201,16 +206,44 @@ class Admin::LeadsController < Admin::ApplicationController
         error_messages << "#{lead_policy_count} linked insurance policy(ies)"
       end
 
+      if has_branch_out_leads
+        error_messages << "branch out leads"
+      end
+
       message = "Cannot delete lead with #{error_messages.join(', ')}. This would cause data integrity issues."
-      redirect_to admin_leads_path, alert: message
+
+      respond_to do |format|
+        format.html { redirect_to admin_leads_path, alert: message }
+        format.json { render json: { success: false, message: message } }
+      end
     else
+      # Lead can be safely deleted - delete all associated data
       begin
-        @lead.destroy!
-        redirect_to admin_leads_path, notice: 'Lead was successfully deleted.'
+        ActiveRecord::Base.transaction do
+          # Delete uploaded documents
+          @lead.uploaded_documents.destroy_all if @lead.uploaded_documents.any?
+
+          # Delete branch out leads that have this as parent (if any)
+          @lead.branch_out_leads.update_all(parent_lead_id: nil) if @lead.branch_out_leads.any?
+
+          # Delete the lead itself
+          @lead.destroy!
+        end
+
+        respond_to do |format|
+          format.html { redirect_to admin_leads_path, notice: 'Lead and all associated data were successfully deleted.' }
+          format.json { render json: { success: true, message: 'Lead successfully deleted' } }
+        end
       rescue ActiveRecord::RecordNotDestroyed => e
-        redirect_to admin_leads_path, alert: "Failed to delete lead: #{e.message}"
+        respond_to do |format|
+          format.html { redirect_to admin_leads_path, alert: "Failed to delete lead: #{e.message}" }
+          format.json { render json: { success: false, message: "Failed to delete lead: #{e.message}" } }
+        end
       rescue => e
-        redirect_to admin_leads_path, alert: "Failed to delete lead: #{e.message}"
+        respond_to do |format|
+          format.html { redirect_to admin_leads_path, alert: "Failed to delete lead: #{e.message}" }
+          format.json { render json: { success: false, message: "Failed to delete lead: #{e.message}" } }
+        end
       end
     end
   end
@@ -274,18 +307,45 @@ class Admin::LeadsController < Admin::ApplicationController
     end
   end
 
-  # PATCH /admin/leads/1/convert_to_customer
+  # GET & PATCH /admin/leads/1/convert_to_customer
   def convert_to_customer
     unless @lead.can_convert_to_customer?
       redirect_to admin_lead_path(@lead), alert: 'Lead cannot be converted at this stage.'
       return
     end
 
+    # Handle GET request - show conversion form
+    if request.get?
+      # For branch out leads, skip existing customer check and always create new
+      if @lead.is_branch_out?
+        @existing_customer = nil
+      else
+        # Check for existing customers by mobile/email for regular leads
+        existing_customer = nil
+        if @lead.contact_number.present?
+          existing_customer = Customer.find_by(mobile: @lead.contact_number)
+        end
+
+        if !existing_customer && @lead.email.present?
+          existing_customer = Customer.find_by(email: @lead.email)
+        end
+
+        @existing_customer = existing_customer
+      end
+      return # This will render convert_to_customer.html.erb
+    end
+
+    # Handle PATCH request - process conversion
     existing_customer = nil
 
-    # Check if this is a parent lead with already converted branch out leads
-    if !@lead.is_branch_out?
-      # This is a parent lead - check if any of its branch out leads have been converted
+    # For branch out leads, redirect to customer creation form with lead data
+    if @lead.is_branch_out?
+      Rails.logger.info "Branch out lead #{@lead.id}: Redirecting to customer creation form with lead data"
+      redirect_to new_admin_customer_path(lead_id: @lead.id), notice: "Branch out lead ready for customer creation. Lead information will be auto-filled."
+      return
+    else
+      # For regular leads, check existing customer logic
+      # Check if this is a parent lead with already converted branch out leads
       branch_out_leads = Lead.where(parent_lead_id: @lead.id, is_branch_out: true)
       converted_branch_lead = branch_out_leads.find { |bl| bl.converted_customer_id.present? }
 
@@ -304,26 +364,19 @@ class Admin::LeadsController < Admin::ApplicationController
           @lead.update(notes: "#{@lead.notes}\n\n[System] Parent lead converted after branch out lead #{converted_branch_lead.lead_id}. Using existing customer.")
           converted_branch_lead.update(notes: "#{converted_branch_lead.notes}\n\n[System] Parent lead #{@lead.lead_id} has been linked to same customer.")
 
-          redirect_to admin_customer_path(existing_customer),
-                      notice: "This is a Parent lead. Its branch out lead was already converted to customer. Both leads are now linked to the same customer."
+          redirect_to edit_admin_customer_path(existing_customer),
+                      alert: "Customer already present for branch out lead. Redirected to existing customer edit page."
           return
         end
+      elsif branch_out_leads.any?
+        # Parent lead has branch out leads but none are converted yet
+        # Redirect to create customer form for parent lead with lead_id parameter
+        Rails.logger.info "Parent lead #{@lead.id}: Has branch out leads but none converted. Redirecting to customer creation form with parent lead data."
+        redirect_to new_admin_customer_path(lead_id: @lead.id), notice: "Parent lead ready for customer creation. Lead information will be auto-filled."
+        return
       end
-    end
 
-    # For branch out leads, first check if parent lead already has a converted customer
-    if @lead.is_branch_out? && @lead.parent_lead_id.present?
-      parent_lead = Lead.find_by(id: @lead.parent_lead_id)
-      if parent_lead&.converted_customer_id.present?
-        existing_customer = Customer.find_by(id: parent_lead.converted_customer_id)
-        if existing_customer
-          Rails.logger.info "Branch out lead #{@lead.id}: Found existing customer #{existing_customer.id} from parent lead #{parent_lead.id}"
-        end
-      end
-    end
-
-    # If no existing customer from parent/branch leads, check by mobile/email as before
-    if !existing_customer
+      # For regular leads, check by mobile/email as before
       if @lead.contact_number.present?
         existing_customer = Customer.find_by(mobile: @lead.contact_number)
       end
@@ -351,15 +404,15 @@ class Admin::LeadsController < Admin::ApplicationController
         update_attrs[:marital_status] = @lead.marital_status if @lead.marital_status.present?
         update_attrs[:pan_no] = @lead.pan_no if @lead.pan_no.present?
         update_attrs[:pan_number] = @lead.pan_no if @lead.pan_no.present?
-        update_attrs[:height_feet] = @lead.height_feet.presence || @lead.height if (@lead.height_feet.present? || @lead.height.present?)
-        update_attrs[:weight_kg] = @lead.weight_kg.presence || @lead.weight if (@lead.weight_kg.present? || @lead.weight.present?)
+        update_attrs[:height_feet] = @lead.height if @lead.height.present?
+        update_attrs[:weight_kg] = @lead.weight if @lead.weight.present?
         update_attrs[:birth_place] = @lead.birth_place if @lead.birth_place.present?
         update_attrs[:education] = @lead.education if @lead.education.present?
         update_attrs[:business_job] = @lead.business_job if @lead.business_job.present?
-        update_attrs[:business_name] = @lead.business_name.presence || @lead.business_job_name if (@lead.business_name.present? || @lead.business_job_name.present?)
-        update_attrs[:job_name] = @lead.job_name.presence || @lead.business_job_name if (@lead.job_name.present? || @lead.business_job_name.present?)
+        update_attrs[:business_name] = @lead.business_name if @lead.business_name.present?
+        update_attrs[:job_name] = @lead.job_name if @lead.job_name.present?
         update_attrs[:occupation] = @lead.occupation if @lead.occupation.present?
-        update_attrs[:type_of_duty] = @lead.type_of_duty.presence || @lead.duty_type if (@lead.type_of_duty.present? || @lead.duty_type.present?)
+        update_attrs[:type_of_duty] = @lead.type_of_duty if @lead.type_of_duty.present?
         update_attrs[:annual_income] = @lead.annual_income if @lead.annual_income.present?
         update_attrs[:additional_information] = @lead.additional_information if @lead.additional_information.present?
       elsif @lead.corporate?
@@ -444,15 +497,15 @@ class Admin::LeadsController < Admin::ApplicationController
           marital_status: @lead.marital_status.presence,
           pan_no: @lead.pan_no.presence,
           pan_number: @lead.pan_no.presence, # Map to both PAN fields
-          height_feet: @lead.height_feet.presence || @lead.height.presence,
-          weight_kg: @lead.weight_kg.presence || @lead.weight.presence,
+          height_feet: @lead.height.presence,
+          weight_kg: @lead.weight.presence,
           birth_place: @lead.birth_place.presence,
           education: @lead.education.presence,
           business_job: @lead.business_job.presence,
-          business_name: @lead.business_name.presence || @lead.business_job_name.presence,
-          job_name: @lead.job_name.presence || @lead.business_job_name.presence,
+          business_name: @lead.business_name.presence,
+          job_name: @lead.job_name.presence,
           occupation: @lead.occupation.presence,
-          type_of_duty: @lead.type_of_duty.presence || @lead.duty_type.presence,
+          type_of_duty: @lead.type_of_duty.presence,
           annual_income: @lead.annual_income,
           additional_information: @lead.additional_information.presence
         )
@@ -507,16 +560,16 @@ class Admin::LeadsController < Admin::ApplicationController
 
       # Add notes for tracking conversion
       if @lead.is_branch_out? && @lead.parent_lead_id.present?
-        # Branch out lead creating new customer
+        # Branch out lead creating new customer independently
         parent_lead = Lead.find_by(id: @lead.parent_lead_id)
 
-        @lead.update(notes: "#{@lead.notes}\n\n[System] Branch out lead converted first. New customer created.")
+        @lead.update(notes: "#{@lead.notes}\n\n[System] Branch out lead converted independently. New customer created from branch out lead data.")
 
         if parent_lead
-          parent_lead.update(notes: "#{parent_lead.notes}\n\n[System] Branch out lead #{@lead.lead_id} has been converted to customer. Parent lead will use same customer when converted.")
+          parent_lead.update(notes: "#{parent_lead.notes}\n\n[System] Branch out lead #{@lead.lead_id} has been converted to independent customer (ID: #{customer.id}).")
         end
 
-        notice_message = 'Branch out lead successfully converted to customer. Parent lead will be linked to this customer when converted.'
+        notice_message = 'Branch out lead successfully converted to new customer. You can now review and edit the customer details.'
       elsif !@lead.is_branch_out?
         # Check if this parent lead has any branch out leads
         branch_out_leads = Lead.where(parent_lead_id: @lead.id, is_branch_out: true)

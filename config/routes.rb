@@ -431,6 +431,7 @@ Rails.application.routes.draw do
     resources :leads do
       resources :documents, except: [:edit, :update]
       member do
+        get :convert_to_customer
         patch :convert_to_customer
         patch :convert_to_customer_branch_out
         patch :create_policy

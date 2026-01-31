@@ -344,13 +344,22 @@
   transform: scale(1.05) !important;
 }
 
-/* Collapsed Sidebar Styles - MINIMUM Icon-Only Width */
+/* ULTRA-SLIM Icon-Only Sidebar - Exactly icon width */
 .modern-sidebar.collapsed {
-  width: 48px !important;
-  min-width: 48px !important;
-  max-width: 48px !important;
+  width: 50px !important; /* Small width for icons */
+  min-width: 50px !important;
+  max-width: 50px !important;
   overflow: hidden !important;
   padding: 0 !important;
+  border-right: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.modern-sidebar.collapsed .sidebar-nav {
+  padding: 0 !important;
+  width: 100% !important;
 }
 
 .modern-sidebar.collapsed .nav-text {
@@ -366,13 +375,16 @@
 }
 
 .modern-sidebar.collapsed .nav-link-modern {
-  margin: 2px 4px !important;
-  padding: 8px 0 !important;
+  margin: 4px auto !important;
+  padding: 8px !important;
   justify-content: center !important;
   display: flex !important;
   align-items: center !important;
   min-height: 40px !important;
-  width: 40px !important;
+  width: 42px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  border: none !important;
 }
 
 .modern-sidebar.collapsed .nav-icon-modern {
@@ -380,12 +392,13 @@
 }
 
 .modern-sidebar.collapsed .icon-bg {
-  margin: 0 !important;
-  width: 28px !important;
-  height: 28px !important;
+  margin: 0 auto !important;
+  width: 32px !important;
+  height: 32px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  border-radius: 8px !important;
 }
 
 .modern-sidebar.collapsed .dropdown-arrow {
@@ -413,9 +426,9 @@
   box-sizing: border-box !important;
 }
 
-/* When sidebar is collapsed, main content uses almost FULL SCREEN */
+/* When sidebar is collapsed, main content starts right after sidebar */
 body.sidebar-collapsed .main-content {
-  left: 48px !important;
+  left: 50px !important; /* Matches collapsed sidebar width */
 }
 
 /* Tooltip for collapsed sidebar items */
