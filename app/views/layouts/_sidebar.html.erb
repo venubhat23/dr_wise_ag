@@ -344,11 +344,11 @@
   transform: scale(1.05) !important;
 }
 
-/* ULTRA-SLIM Icon-Only Sidebar - Exactly icon width */
+/* Collapsed Sidebar - Fixed width, icons stay same size */
 .modern-sidebar.collapsed {
-  width: 50px !important; /* Small width for icons */
-  min-width: 50px !important;
-  max-width: 50px !important;
+  width: 60px !important; /* Fixed narrow width for icons */
+  min-width: 60px !important;
+  max-width: 60px !important;
   overflow: hidden !important;
   padding: 0 !important;
   border-right: 1px solid #e2e8f0 !important;
@@ -358,30 +358,41 @@
 }
 
 .modern-sidebar.collapsed .sidebar-nav {
-  padding: 0 !important;
+  padding: 0.5rem 0 !important;
   width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
 }
 
 .modern-sidebar.collapsed .nav-text {
-  display: none !important;
+  display: none !important; /* Hide text completely */
 }
 
 .modern-sidebar.collapsed .nav-section-title {
-  display: none !important;
+  display: none !important; /* Hide section titles */
 }
 
 .modern-sidebar.collapsed .nav-section {
-  margin-bottom: 0 !important;
+  margin-bottom: 0.5rem !important;
+  width: 100% !important;
+}
+
+.modern-sidebar.collapsed .nav-menu {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
 }
 
 .modern-sidebar.collapsed .nav-link-modern {
-  margin: 4px auto !important;
+  margin: 4px 0 !important;
   padding: 8px !important;
   justify-content: center !important;
   display: flex !important;
   align-items: center !important;
-  min-height: 40px !important;
-  width: 42px !important;
+  min-height: 44px !important;
+  width: 44px !important; /* Fixed button size */
   border-radius: 8px !important;
   background: transparent !important;
   border: none !important;
@@ -389,16 +400,30 @@
 
 .modern-sidebar.collapsed .nav-icon-modern {
   margin: 0 !important;
-}
-
-.modern-sidebar.collapsed .icon-bg {
-  margin: 0 auto !important;
-  width: 32px !important;
-  height: 32px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border-radius: 8px !important;
+}
+
+/* IMPORTANT: Keep icon size exactly the same as expanded state */
+.modern-sidebar.collapsed .icon-bg {
+  margin: 0 !important;
+  width: 36px !important; /* Same as expanded */
+  height: 36px !important; /* Same as expanded */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  font-size: inherit !important; /* Prevent size change */
+}
+
+/* Ensure icon fonts don't resize */
+.modern-sidebar.collapsed .icon-bg i,
+.modern-sidebar.collapsed .icon-bg svg {
+  font-size: inherit !important; /* Keep original size */
+  width: auto !important;
+  height: auto !important;
+  transform: none !important; /* No scaling */
 }
 
 .modern-sidebar.collapsed .dropdown-arrow {
@@ -426,9 +451,10 @@
   box-sizing: border-box !important;
 }
 
-/* When sidebar is collapsed, main content starts right after sidebar */
+/* When sidebar is collapsed, main content expands automatically */
 body.sidebar-collapsed .main-content {
-  left: 50px !important; /* Matches collapsed sidebar width */
+  left: 60px !important; /* Match collapsed sidebar width */
+  width: calc(100% - 60px) !important; /* Use all available space */
 }
 
 /* Tooltip for collapsed sidebar items */
