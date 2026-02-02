@@ -61,6 +61,96 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+
+    <!-- Enhanced DrWise Admin Header Styling -->
+    <style>
+      .drwise-header-title {
+        position: relative;
+        display: inline-block;
+      }
+
+      .drwise-header-text {
+        font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        font-size: 2.2rem !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.5px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        background-clip: text !important;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        position: relative;
+        display: inline-block;
+        transition: all 0.3s ease;
+      }
+
+      .drwise-header-text::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        opacity: 0;
+        border-radius: 8px;
+        filter: blur(10px);
+        z-index: -1;
+        transition: opacity 0.3s ease;
+      }
+
+      .drwise-header-text:hover::before {
+        opacity: 0.2;
+      }
+
+      .drwise-header-text:hover {
+        transform: scale(1.05);
+        filter: brightness(1.1);
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .drwise-header-text {
+          font-size: 1.8rem !important;
+        }
+      }
+
+      @media (max-width: 576px) {
+        .drwise-header-text {
+          font-size: 1.5rem !important;
+        }
+      }
+
+      /* Animation on page load */
+      @keyframes drwiseSlideIn {
+        0% {
+          opacity: 0;
+          transform: translateX(-30px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      .drwise-header-text {
+        animation: drwiseSlideIn 0.6s ease-out;
+      }
+
+      /* Subtle glow effect */
+      @keyframes subtleGlow {
+        0%, 100% {
+          filter: brightness(1);
+        }
+        50% {
+          filter: brightness(1.1) drop-shadow(0 0 8px rgba(102, 126, 234, 0.3));
+        }
+      }
+
+      .drwise-header-text:hover {
+        animation: subtleGlow 2s ease-in-out infinite;
+      }
+    </style>
   </head>
 
   <body class="insurance-app">
