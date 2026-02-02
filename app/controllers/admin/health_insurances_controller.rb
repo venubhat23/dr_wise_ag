@@ -7,10 +7,32 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   def index
     @health_insurances = HealthInsurance.includes(:customer, :sub_agent, :agency_code, :broker)
 
-    # Search functionality
+    # Tab-based filtering for DrWise vs Non-DrWise policies
+    @current_tab = params[:tab] || 'drwise'
+
+    case @current_tab
+    when 'drwise'
+      # DrWise policies: Admin added policies (is_admin_added: true AND others false)
+      @health_insurances = @health_insurances.where(
+        is_admin_added: true,
+        is_customer_added: false,
+        is_agent_added: false
+      )
+    when 'non_drwise'
+      # Non-DrWise policies: Customer or Agent added policies
+      @health_insurances = @health_insurances.where(
+        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+        true, false, false, true, false, false
+      )
+    end
+
+    # Search functionality (within current tab)
     if params[:search].present?
       @health_insurances = @health_insurances.search_health_policies(params[:search])
     end
+
+    # Calculate statistics for current tab (before pagination)
+    calculate_tab_statistics
 
     @health_insurances = paginate_records(@health_insurances.order(created_at: :desc))
   end
@@ -401,6 +423,33 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   end
 
   private
+
+  def calculate_tab_statistics
+    # Get counts for both tabs for display purposes
+    @drwise_count = HealthInsurance.where(
+      is_admin_added: true,
+      is_customer_added: false,
+      is_agent_added: false
+    ).count
+
+    @non_drwise_count = HealthInsurance.where(
+      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+      true, false, false, true, false, false
+    ).count
+
+    # Statistics for current tab
+    if @current_tab == 'drwise'
+      @total_policies = @drwise_count
+      @active_policies = @health_insurances.where('policy_end_date >= ?', Date.current).count
+      @expiring_soon = @health_insurances.where('policy_end_date BETWEEN ? AND ?', Date.current, 30.days.from_now).count
+      @total_premium = @health_insurances.sum(:total_premium)
+    else
+      @total_policies = @non_drwise_count
+      @active_policies = @health_insurances.where('policy_end_date >= ?', Date.current).count
+      @expiring_soon = @health_insurances.where('policy_end_date BETWEEN ? AND ?', Date.current, 30.days.from_now).count
+      @total_premium = @health_insurances.sum(:total_premium)
+    end
+  end
 
   def process_broker_params(params)
     # Handle agency_code_id when it contains broker_X format

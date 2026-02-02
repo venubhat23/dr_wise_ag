@@ -521,6 +521,10 @@
           <td>Invoice No.: <span><%= @invoice.invoice_number %></span></td>
           <td>Invoice Date: <span><%= @invoice.invoice_date.strftime('%d/%m/%Y') %></span></td>
         </tr>
+        <tr>
+          <td>Policy No.: <span><%= @invoice.policy_number %></span></td>
+          <td>Due Date: <span><%= @invoice.due_date.strftime('%d/%m/%Y') %></span></td>
+        </tr>
       </table>
 
       <!-- Add horizontal line -->

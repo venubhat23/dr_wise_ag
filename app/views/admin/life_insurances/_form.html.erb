@@ -35,19 +35,43 @@
         </div>
 
         <div class="col-md-4 mb-3">
-          <%= form.label :policy_holder, "Policy Holder", class: "form-label" %>
+          <%= form.label :policy_holder, "Policy Holder*", class: "form-label" %>
           <%
             policy_holder_options = [['Self', 'Self']]
+
+            # Add family members to options - using name as value, display as text
             if @customer_family_members&.any?
               @customer_family_members.each do |member|
-                policy_holder_options << ["#{member.name} (#{member.relationship.humanize})", "#{member.name}"]
+                if member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
+                  display_name = "#{member.name} (#{member.relationship.humanize})"
+                  # Save just the name in database, show display name in dropdown
+                  policy_holder_options << [display_name, member.name]
+                end
               end
+            end
+
+            # Check if current value exists in options, if not add it as custom option
+            current_policy_holder = @life_insurance.policy_holder
+            if current_policy_holder.present? &&
+               current_policy_holder.strip.length > 0 &&
+               !current_policy_holder.strip.match?(/^\d+$/) &&
+               !policy_holder_options.any? { |option| option[1] == current_policy_holder }
+              policy_holder_options << ["#{current_policy_holder} (Custom)", current_policy_holder]
             end
           %>
           <%= form.select :policy_holder,
               options_for_select(policy_holder_options, @life_insurance.policy_holder),
-              { prompt: 'Select Policy Holder' },
-              { class: "form-control", id: "policy_holder_select" } %>
+              {},
+              { class: "form-control #{'is-invalid' if @life_insurance.errors[:policy_holder].any?}",
+                required: true,
+                id: "policy_holder_select",
+                data: { placeholder: "Type to search policy holders..." } } %>
+          <% if @life_insurance.errors[:policy_holder].any? %>
+            <div class="invalid-feedback"><%= @life_insurance.errors[:policy_holder].first %></div>
+          <% end %>
+          <div class="form-text">
+            <small class="text-muted">Select the policy holder. Choose "Self" if the customer is the policyholder.</small>
+          </div>
         </div>
 
         <div class="col-md-4 mb-3">
@@ -99,8 +123,25 @@
         <div class="col-md-4 mb-3">
           <%= form.label :agency_code_id, "Agency Code (All Agents)*", class: "form-label" %>
           <span class="dynamic-label" id="agency_code_label_text"></span>
+          <%
+            # Determine the selected value based on broker type
+            selected_value = if @life_insurance.broker_code_type == 'broking' && defined?(@selected_broker_code)
+                              @selected_broker_code
+                            else
+                              @life_insurance.agency_code_id
+                            end
+
+            # Prepare options based on broker type
+            if @life_insurance.broker_code_type == 'broking'
+              # For broking, we'll populate via JavaScript
+              initial_options = []
+            else
+              # For direct, use regular agency codes
+              initial_options = @agency_codes.map { |a| ["#{a.agent_name} - #{a.code}", a.id] }
+            end
+          %>
           <%= form.select :agency_code_id,
-              options_for_select(@agency_codes.map { |a| ["#{a.agent_name} - #{a.code}", a.id] }, @life_insurance.agency_code_id),
+              options_for_select(initial_options, selected_value),
               { prompt: 'Search and select agency code...' },
               { class: "form-control #{'is-invalid' if @life_insurance.errors[:agency_code_id].any?}", required: true, id: "life_insurance_agency_code_id", data: { placeholder: "Type to search agency codes..." } } %>
           <% if @life_insurance.errors[:agency_code_id].any? %>
@@ -522,35 +563,15 @@
               value: @life_insurance.investor_commission_percentage || 2.0,
               step: 0.01 %>
         </div>
-        <div class="col-md-5 mb-3">
+        <div class="col-md-6 mb-3">
           <label class="form-label">Amount</label>
           <%= form.number_field :investor_commission_amount,
               class: "form-control investor-commission-amount",
               value: @life_insurance.investor_commission_amount || 0,
               step: 0.01, readonly: true %>
         </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">TDS %</label>
-          <%= form.number_field :investor_tds_percentage,
-              class: "form-control investor-tds-percentage",
-              value: @life_insurance.investor_tds_percentage || 0,
-              step: 0.01 %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">TDS Amount</label>
-          <%= form.number_field :investor_tds_amount,
-              class: "form-control investor-tds-amount",
-              value: @life_insurance.investor_tds_amount || 0,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">After TDS Value</label>
-          <%= form.number_field :investor_after_tds_value,
-              class: "form-control investor-after-tds-value",
-              value: @life_insurance.investor_after_tds_value || 0,
-              step: 0.01, readonly: true %>
-        </div>
       </div>
+      <%= form.hidden_field :investor_tds_percentage, value: 0, class: "investor-tds-percentage" %>
 
       <!-- Ambassador Commission -->
       <hr class="my-4">
@@ -644,19 +665,28 @@
     <div class="card-header">
       <h5 class="mb-0">
         <i class="bi bi-cloud-upload me-2 text-primary"></i>
-        Policy Upload
+        Policy Documents Manager
       </h5>
+      <small class="text-muted">Upload, organize and manage all policy-related documents with secure storage</small>
     </div>
-    <div class="card-body">
+    <div class="card-body p-4">
       <div class="row">
-        <div class="col-md-6 mb-3">
-          <%= form.label :policy_documents, "Upload Policy", class: "form-label" %>
-          <%= form.file_field :policy_documents,
-              class: "form-control",
-              multiple: true,
-              id: "policy_documents_upload",
-              accept: "application/pdf,image/jpeg,image/jpg,image/png" %>
-          <div class="form-text">Click to upload or drag and drop</div>
+        <div class="col-md-6 mb-4">
+          <div class="border border-primary border-2 rounded p-4" style="background-color: #f8f9ff;">
+            <%= form.label :policy_documents, class: "form-label fw-bold" do %>
+              <i class="bi bi-file-earmark-pdf me-2 text-primary"></i>
+              Policy Documents
+            <% end %>
+            <%= form.file_field :policy_documents,
+                class: "form-control",
+                multiple: true,
+                id: "policy_documents_upload",
+                accept: "application/pdf,image/jpeg,image/jpg,image/png" %>
+            <div class="form-text mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              Supports PDF, JPEG, PNG files (Max: 10MB each)
+            </div>
+          </div>
 
           <!-- Policy Documents Preview -->
           <%= render 'shared/file_upload_preview',
@@ -666,14 +696,23 @@
                      show_file_info: true,
                      max_file_size: '10MB' %>
         </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :documents, "Upload Documents", class: "form-label" %>
-          <%= form.file_field :documents,
-              class: "form-control",
-              multiple: true,
-              id: "additional_documents_upload",
-              accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
-          <div class="form-text">Upload additional documents</div>
+        <div class="col-md-6 mb-4">
+          <div class="border border-secondary border-2 rounded p-4" style="background-color: #f8f9fa;">
+            <%= form.label :documents, class: "form-label fw-bold" do %>
+              <i class="bi bi-file-earmark-plus me-2 text-secondary"></i>
+              Additional Documents
+              <span class="badge bg-secondary ms-2">Optional</span>
+            <% end %>
+            <%= form.file_field :documents,
+                class: "form-control",
+                multiple: true,
+                id: "additional_documents_upload",
+                accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
+            <div class="form-text mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              Supports PDF, Images, Word files - Identity proofs, Medical reports, etc.
+            </div>
+          </div>
 
           <!-- Additional Documents Preview -->
           <%= render 'shared/file_upload_preview',
@@ -687,12 +726,376 @@
 
       <!-- Existing Documents (Edit Mode) -->
       <% if @life_insurance.persisted? %>
-        <%= render 'shared/existing_documents_display',
-                   documents: @life_insurance.uploaded_documents,
-                   title: 'Current Policy Documents',
-                   show_actions: true,
-                   record_type: 'life insurance policy',
-                   container_class: 'border-top pt-4 mt-4' %>
+        <%
+          total_documents = @life_insurance.uploaded_documents.count +
+                           (@life_insurance.policy_documents.attached? ? @life_insurance.policy_documents.count : 0) +
+                           (@life_insurance.documents.attached? ? @life_insurance.documents.count : 0)
+
+          total_size = 0
+          total_size += @life_insurance.uploaded_documents.sum { |doc| doc.file&.byte_size || 0 }
+          total_size += @life_insurance.policy_documents.sum(&:byte_size) if @life_insurance.policy_documents.attached?
+          total_size += @life_insurance.documents.sum(&:byte_size) if @life_insurance.documents.attached?
+
+          document_types = []
+          document_types += @life_insurance.uploaded_documents.pluck(:document_type).compact.uniq
+          document_types += ['Policy Document'] if @life_insurance.policy_documents.attached?
+          document_types += ['Additional Document'] if @life_insurance.documents.attached?
+          document_types = document_types.uniq
+
+          recent_docs = @life_insurance.uploaded_documents.where('created_at > ?', 7.days.ago).count
+        %>
+
+        <% if total_documents > 0 %>
+          <div class="border-top pt-4 mt-4">
+            <!-- Document Overview Statistics -->
+            <div class="row mb-4">
+              <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card h-100 border-0 shadow-sm">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <h6 class="text-muted mb-2">Total Documents</h6>
+                        <h3 class="mb-0 text-primary"><%= total_documents %></h3>
+                      </div>
+                      <div class="bg-primary bg-opacity-10 rounded p-3">
+                        <i class="bi bi-files text-primary fs-4"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card h-100 border-0 shadow-sm">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <h6 class="text-muted mb-2">Document Types</h6>
+                        <h3 class="mb-0 text-info"><%= document_types.count %></h3>
+                      </div>
+                      <div class="bg-info bg-opacity-10 rounded p-3">
+                        <i class="bi bi-collection text-info fs-4"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card h-100 border-0 shadow-sm">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <h6 class="text-muted mb-2">Total Size</h6>
+                        <h3 class="mb-0 text-success"><%= number_to_human_size(total_size) %></h3>
+                      </div>
+                      <div class="bg-success bg-opacity-10 rounded p-3">
+                        <i class="bi bi-hdd-stack text-success fs-4"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card h-100 border-0 shadow-sm">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <h6 class="text-muted mb-2">Recent (7 days)</h6>
+                        <h3 class="mb-0 text-warning"><%= recent_docs %></h3>
+                      </div>
+                      <div class="bg-warning bg-opacity-10 rounded p-3">
+                        <i class="bi bi-clock text-warning fs-4"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Main Document System -->
+            <% if @life_insurance.uploaded_documents.any? %>
+              <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-primary">
+                      <i class="bi bi-folder2-open me-2"></i>
+                      Policy Documents
+                    </h5>
+                    <div class="btn-group" role="group">
+                      <button type="button" class="btn btn-sm btn-outline-primary toggle-view" data-view="grid">
+                        <i class="bi bi-grid-3x3-gap"></i> Grid
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-primary toggle-view active" data-view="list">
+                        <i class="bi bi-list"></i> List
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-body p-0">
+                  <!-- List View -->
+                  <div class="documents-list-view">
+                    <div class="list-group list-group-flush">
+                      <% @life_insurance.uploaded_documents.each_with_index do |document, index| %>
+                        <div class="list-group-item border-0 <%= 'border-bottom' unless index == @life_insurance.uploaded_documents.count - 1 %>">
+                          <div class="d-flex align-items-center py-2">
+                            <!-- Document Icon -->
+                            <div class="flex-shrink-0 me-4">
+                              <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="bi bi-<%= document.file_icon %> text-primary fs-4"></i>
+                              </div>
+                            </div>
+
+                            <!-- Document Details -->
+                            <div class="flex-grow-1">
+                              <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                  <h6 class="mb-1 fw-bold"><%= document.title %></h6>
+                                  <div class="mb-2">
+                                    <span class="badge bg-light text-dark me-2"><%= document.human_document_type %></span>
+                                    <% if document.file&.byte_size %>
+                                      <span class="text-muted small">
+                                        <i class="bi bi-file-earmark me-1"></i><%= number_to_human_size(document.file.byte_size) %>
+                                      </span>
+                                    <% end %>
+                                  </div>
+                                  <% if document.description.present? %>
+                                    <p class="text-muted mb-1 small"><%= truncate(document.description, length: 100) %></p>
+                                  <% end %>
+                                  <small class="text-success d-block">
+                                    <i class="bi bi-calendar-check me-1"></i>Uploaded by <%= document.uploaded_by || "Admin User" %> on <%= document.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+                                  </small>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="btn-group" role="group">
+                                  <% if document.file.present? %>
+                                    <%= link_to rails_blob_path(document.file, disposition: "inline"),
+                                        class: "btn btn-outline-primary btn-sm",
+                                        target: "_blank",
+                                        title: "Preview Document" do %>
+                                      <i class="bi bi-eye me-1"></i>Preview
+                                    <% end %>
+                                    <%= link_to rails_blob_path(document.file, disposition: "attachment"),
+                                        class: "btn btn-outline-success btn-sm",
+                                        title: "Download Document" do %>
+                                      <i class="bi bi-download me-1"></i>Download
+                                    <% end %>
+                                    <%= link_to admin_document_path(document),
+                                        method: :delete,
+                                        class: "btn btn-outline-danger btn-sm",
+                                        title: "Delete Document",
+                                        data: {
+                                          confirm: "Are you sure you want to delete this document? This action cannot be undone."
+                                        } do %>
+                                      <i class="bi bi-trash me-1"></i>Delete
+                                    <% end %>
+                                  <% end %>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+
+                  <!-- Grid View (Hidden by default) -->
+                  <div class="documents-grid-view p-3" style="display: none;">
+                    <div class="row g-3">
+                      <% @life_insurance.uploaded_documents.each_with_index do |document, index| %>
+                        <div class="col-xl-3 col-lg-4 col-md-6">
+                          <div class="card h-100 border-0 shadow-sm document-card">
+                            <div class="card-body p-3 text-center">
+                              <div class="mb-3">
+                                <div class="bg-primary bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                  <i class="bi bi-<%= document.file_icon %> text-primary" style="font-size: 2.5rem;"></i>
+                                </div>
+                              </div>
+                              <h6 class="card-title mb-2"><%= truncate(document.title, length: 25) %></h6>
+                              <span class="badge bg-light text-dark mb-2 small"><%= document.human_document_type %></span>
+                              <% if document.file&.byte_size %>
+                                <p class="small text-muted mb-3">
+                                  <i class="bi bi-file-earmark me-1"></i><%= number_to_human_size(document.file.byte_size) %>
+                                </p>
+                              <% end %>
+                              <div class="btn-group-vertical btn-group-sm w-100">
+                                <% if document.file.present? %>
+                                  <%= link_to rails_blob_path(document.file, disposition: "inline"),
+                                      class: "btn btn-outline-primary btn-sm",
+                                      target: "_blank" do %>
+                                    <i class="bi bi-eye me-1"></i>Preview
+                                  <% end %>
+                                  <%= link_to rails_blob_path(document.file, disposition: "attachment"),
+                                      class: "btn btn-outline-success btn-sm" do %>
+                                    <i class="bi bi-download me-1"></i>Download
+                                  <% end %>
+                                  <%= link_to admin_document_path(document),
+                                      method: :delete,
+                                      class: "btn btn-outline-danger btn-sm",
+                                      data: {
+                                        confirm: "Delete this document?"
+                                      } do %>
+                                    <i class="bi bi-trash me-1"></i>Delete
+                                  <% end %>
+                                <% end %>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <!-- Legacy Documents (ActiveStorage attachments) -->
+            <% if @life_insurance.policy_documents.attached? || @life_insurance.documents.attached? %>
+              <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0">
+                  <h5 class="mb-0 text-muted">
+                    <i class="bi bi-archive me-2"></i>
+                    Legacy Documents
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <% if @life_insurance.policy_documents.attached? %>
+                    <div class="mb-4">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="bg-info bg-opacity-10 rounded p-2 me-3">
+                          <i class="bi bi-file-earmark-pdf text-info fs-5"></i>
+                        </div>
+                        <div>
+                          <h6 class="mb-0 text-info">Policy Documents</h6>
+                          <small class="text-muted"><%= @life_insurance.policy_documents.count %> files</small>
+                        </div>
+                      </div>
+                      <div class="row g-3">
+                        <% @life_insurance.policy_documents.each_with_index do |doc, index| %>
+                          <div class="col-xl-3 col-lg-4 col-md-6">
+                            <div class="card h-100 border-0 shadow-sm legacy-document-card">
+                              <div class="card-body p-3 text-center">
+                                <div class="mb-2">
+                                  <div class="bg-danger bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                    <i class="bi bi-file-earmark-pdf text-danger fs-4"></i>
+                                  </div>
+                                </div>
+                                <h6 class="card-title small mb-2">
+                                  <%= truncate(doc.filename.to_s, length: 25) %>
+                                </h6>
+                                <p class="small text-muted mb-3">
+                                  <i class="bi bi-file-earmark me-1"></i><%= number_to_human_size(doc.byte_size) %>
+                                </p>
+                                <div class="btn-group btn-group-sm">
+                                  <% if doc.persisted? %>
+                                    <%= link_to rails_blob_path(doc, disposition: "inline"),
+                                        class: "btn btn-outline-primary btn-sm",
+                                        target: "_blank",
+                                        title: "Preview" do %>
+                                      <i class="bi bi-eye"></i>
+                                    <% end %>
+                                    <%= link_to rails_blob_path(doc, disposition: "attachment"),
+                                        class: "btn btn-outline-success btn-sm",
+                                        title: "Download" do %>
+                                      <i class="bi bi-download"></i>
+                                    <% end %>
+                                  <% else %>
+                                    <span class="btn btn-outline-secondary btn-sm disabled">
+                                      <i class="bi bi-clock"></i> Pending
+                                    </span>
+                                  <% end %>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        <% end %>
+                      </div>
+                    </div>
+                  <% end %>
+
+                  <% if @life_insurance.documents.attached? %>
+                    <div class="mb-2">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="bg-success bg-opacity-10 rounded p-2 me-3">
+                          <i class="bi bi-file-earmark text-success fs-5"></i>
+                        </div>
+                        <div>
+                          <h6 class="mb-0 text-success">Additional Documents</h6>
+                          <small class="text-muted"><%= @life_insurance.documents.count %> files</small>
+                        </div>
+                      </div>
+                      <div class="row g-3">
+                        <% @life_insurance.documents.each_with_index do |doc, index| %>
+                          <div class="col-xl-3 col-lg-4 col-md-6">
+                            <div class="card h-100 border-0 shadow-sm legacy-document-card">
+                              <div class="card-body p-3 text-center">
+                                <div class="mb-2">
+                                  <% if doc.content_type&.include?('image') %>
+                                    <div class="bg-info bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                      <i class="bi bi-file-earmark-image text-info fs-4"></i>
+                                    </div>
+                                  <% elsif doc.content_type&.include?('pdf') %>
+                                    <div class="bg-danger bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                      <i class="bi bi-file-earmark-pdf text-danger fs-4"></i>
+                                    </div>
+                                  <% else %>
+                                    <div class="bg-secondary bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                      <i class="bi bi-file-earmark text-secondary fs-4"></i>
+                                    </div>
+                                  <% end %>
+                                </div>
+                                <h6 class="card-title small mb-2">
+                                  <%= truncate(doc.filename.to_s, length: 25) %>
+                                </h6>
+                                <p class="small text-muted mb-3">
+                                  <i class="bi bi-file-earmark me-1"></i><%= number_to_human_size(doc.byte_size) %>
+                                </p>
+                                <div class="btn-group btn-group-sm">
+                                  <% if doc.persisted? %>
+                                    <%= link_to rails_blob_path(doc, disposition: "inline"),
+                                        class: "btn btn-outline-primary btn-sm",
+                                        target: "_blank",
+                                        title: "Preview" do %>
+                                      <i class="bi bi-eye"></i>
+                                    <% end %>
+                                    <%= link_to rails_blob_path(doc, disposition: "attachment"),
+                                        class: "btn btn-outline-success btn-sm",
+                                        title: "Download" do %>
+                                      <i class="bi bi-download"></i>
+                                    <% end %>
+                                  <% else %>
+                                    <span class="btn btn-outline-secondary btn-sm disabled">
+                                      <i class="bi bi-clock"></i> Pending
+                                    </span>
+                                  <% end %>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        <% end %>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <!-- No Documents Message -->
+          <div class="border-top pt-4 mt-4">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body text-center py-5">
+                <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                  <i class="bi bi-files text-muted" style="font-size: 2rem;"></i>
+                </div>
+                <h5 class="text-muted mb-2">No documents uploaded yet</h5>
+                <p class="text-muted mb-0">Documents uploaded for this life insurance policy will appear here with preview, download, and management options.</p>
+              </div>
+            </div>
+          </div>
+        <% end %>
       <% end %>
 
       <!-- New Document System -->
@@ -721,6 +1124,98 @@
       </div>
     </div>
   </div>
+
+  <!-- Custom CSS for Enhanced Policy Upload -->
+  <style>
+    .upload-zone {
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-zone:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+    }
+
+    .upload-zone::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      transition: left 0.5s;
+    }
+
+    .upload-zone:hover::before {
+      left: 100%;
+    }
+
+    .upload-zone .form-control:focus {
+      border-color: inherit;
+      box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
+    }
+
+    .upload-zone .form-control:hover {
+      border-color: inherit;
+      transform: scale(1.02);
+      transition: all 0.2s ease;
+    }
+
+    /* Enhanced document display cards */
+    .document-card {
+      transition: all 0.3s ease;
+      border-radius: 15px !important;
+    }
+
+    .document-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+    }
+
+    .legacy-document-card {
+      transition: all 0.3s ease;
+      border-radius: 12px !important;
+    }
+
+    .legacy-document-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
+    }
+
+    /* Policy Upload section animations */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(15deg); }
+      50% { transform: translateY(-10px) rotate(15deg); }
+    }
+
+    @keyframes floatReverse {
+      0%, 100% { transform: translateY(0px) rotate(-15deg); }
+      50% { transform: translateY(-8px) rotate(-15deg); }
+    }
+
+    .card-header .bi-cloud-upload {
+      animation: float 4s ease-in-out infinite;
+    }
+
+    .card-header .bi-files {
+      animation: floatReverse 5s ease-in-out infinite;
+    }
+
+    /* Enhanced button styling for document actions */
+    .btn-group .btn {
+      border-radius: 8px !important;
+      margin: 0 2px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-group .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+  </style>
 
   <!-- Autopay Installment Section -->
   <div class="card mb-4">
@@ -994,10 +1489,191 @@
     color: #6c757d;
   }
 
+  /* Document Display Styles - Matching Client Index Page */
+  .document-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(0,0,0,0.05) !important;
+  }
+
+  .document-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+  }
+
+  .legacy-document-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(0,0,0,0.05) !important;
+  }
+
+  .legacy-document-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+  }
+
+  .list-group-item {
+    transition: background-color 0.15s ease;
+  }
+
+  .list-group-item:hover {
+    background-color: #f8f9fa;
+  }
+
+  .toggle-view.active {
+    background-color: var(--bs-primary);
+    color: white;
+    border-color: var(--bs-primary);
+  }
+
+  .btn-group-vertical .btn {
+    margin-bottom: 2px;
+  }
+
+  .btn-group-vertical .btn:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Icon container enhancements */
+  .bg-primary.bg-opacity-10,
+  .bg-info.bg-opacity-10,
+  .bg-success.bg-opacity-10,
+  .bg-warning.bg-opacity-10,
+  .bg-danger.bg-opacity-10,
+  .bg-secondary.bg-opacity-10 {
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.1);
+  }
+
+  /* Card header styling */
+  .card-header.bg-transparent {
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    background-color: rgba(248, 249, 250, 0.5) !important;
+  }
+
+  /* Smooth button animations */
+  .btn {
+    transition: all 0.15s ease-in-out;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  /* Badge styling */
+  .badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+  }
+
+  /* Document statistics cards */
+  .card.shadow-sm {
+    border: 1px solid rgba(0,0,0,0.05) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+  }
+
+  .card.shadow-sm:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+  }
+
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Document view toggle functionality
+  const toggleButtons = document.querySelectorAll('.toggle-view');
+  const listView = document.querySelector('.documents-list-view');
+  const gridView = document.querySelector('.documents-grid-view');
+
+  toggleButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const view = this.getAttribute('data-view');
+
+      // Update active button
+      toggleButtons.forEach(btn => btn.classList.remove('active'));
+      this.classList.add('active');
+
+      // Switch views
+      if (view === 'grid') {
+        if (listView) listView.style.display = 'none';
+        if (gridView) gridView.style.display = 'block';
+      } else {
+        if (listView) listView.style.display = 'block';
+        if (gridView) gridView.style.display = 'none';
+      }
+    });
+  });
+
+  // Function to load policy holder options when customer changes
+  function loadPolicyHolderOptions() {
+    const customerId = $('#customer_select').val();
+    console.log('🔄 Loading policy holder options for customer:', customerId);
+
+    const policyHolderSelect = $('#policy_holder_select');
+
+    if (!customerId) {
+      // Reset to just 'Self' option if no customer selected
+      policyHolderSelect.empty();
+      policyHolderSelect.append('<option value="">Select Policy Holder</option>');
+      policyHolderSelect.append('<option value="Self">Self</option>');
+      policyHolderSelect.trigger('change.select2'); // Refresh Select2
+      return;
+    }
+
+    // Make AJAX call to get customer family members
+    $.ajax({
+      url: '<%= customer_family_members_admin_life_insurances_path %>',
+      method: 'GET',
+      data: { customer_id: customerId },
+      dataType: 'json',
+      beforeSend: function() {
+        policyHolderSelect.prop('disabled', true);
+        policyHolderSelect.empty();
+        policyHolderSelect.append('<option value="">Loading...</option>');
+        policyHolderSelect.trigger('change.select2');
+      },
+      success: function(response) {
+        console.log('✅ Policy holder options loaded:', response);
+        policyHolderSelect.empty();
+
+        // Always add Self option first
+        policyHolderSelect.append('<option value="Self">Self</option>');
+
+        if (response.success && response.options) {
+          response.options.forEach(function(option) {
+            // Skip the Self option if it's in the response (we already added it)
+            if (option.value !== 'Self') {
+              policyHolderSelect.append(`<option value="${option.value}">${option.text}</option>`);
+            }
+          });
+        }
+
+        policyHolderSelect.prop('disabled', false);
+        policyHolderSelect.trigger('change.select2'); // Refresh Select2
+
+        // Set default to Self if nothing was previously selected
+        if (!policyHolderSelect.val()) {
+          policyHolderSelect.val('Self').trigger('change.select2');
+        }
+      },
+      error: function(xhr, status, error) {
+        console.error('❌ Error loading policy holder options:', error);
+        policyHolderSelect.empty();
+        policyHolderSelect.append('<option value="">Select Policy Holder</option>');
+        policyHolderSelect.append('<option value="Self">Self</option>');
+        policyHolderSelect.prop('disabled', false);
+        policyHolderSelect.trigger('change.select2');
+      }
+    });
+  }
+
+  // Initialize tooltips if Bootstrap is available
+  if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  }
   // Initialize Select2 for searchable dropdown
   $('#customer_select').select2({
     theme: 'bootstrap-5',
@@ -1032,6 +1708,81 @@ document.addEventListener('DOMContentLoaded', function() {
     },
     templateSelection: function(option) {
       return option.text || 'Search and select client...';
+    },
+    escapeMarkup: function(markup) {
+      return markup;
+    }
+  });
+
+  // Attach event handler for customer selection AFTER Select2 is initialized
+  $('#customer_select').on('select2:select', function(e) {
+    console.log('🔄 Customer Select2 Event Triggered');
+    var selectedCustomerId = e.params.data.id || this.value;
+    console.log('👤 Selected Customer ID:', selectedCustomerId);
+
+    // Load policy holder options for the selected customer
+    if (selectedCustomerId) {
+      loadPolicyHolderOptions();
+    }
+
+    // Clear and refresh affiliate dropdown when customer changes
+    $('#affiliate_select').val(null).trigger('change');
+
+    if (selectedCustomerId) {
+      console.log('Customer selected, filtering affiliates for customer ID:', selectedCustomerId);
+    }
+  });
+
+  // Handle customer clearing
+  $('#customer_select').on('select2:clear', function(e) {
+    console.log('🔄 Customer cleared');
+
+    // Reset policy holder options to default
+    const policyHolderSelect = $('#policy_holder_select');
+    policyHolderSelect.empty();
+    policyHolderSelect.append('<option value="">Select Policy Holder</option>');
+    policyHolderSelect.append('<option value="Self">Self</option>');
+    policyHolderSelect.val('Self').trigger('change.select2'); // Set to Self and refresh Select2
+
+    // Clear affiliate dropdown when customer is cleared
+    $('#affiliate_select').val(null).trigger('change');
+    console.log('Customer cleared, showing all affiliates');
+  });
+
+  // Initialize Select2 for Policy Holder dropdown
+  $('#policy_holder_select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Search and select policy holder...',
+    allowClear: false,
+    width: '100%',
+    dropdownParent: $('body'),
+    dropdownCssClass: 'select2-dropdown-large',
+    minimumResultsForSearch: 0,
+    closeOnSelect: true,
+    templateResult: function(option) {
+      if (!option.id || option.element.value === '') {
+        return option.text;
+      }
+
+      // Generate avatar with initials for policy holder
+      var initials = option.text.split(' ').map(function(name) {
+        return name.charAt(0).toUpperCase();
+      }).join('').substring(0, 2);
+
+      // Custom template for policy holder options with avatar
+      var $option = $(
+        '<div class="client-option">' +
+          '<div class="client-option-avatar">' + initials + '</div>' +
+          '<div class="client-option-details">' +
+            '<div class="client-option-name">' + option.text + '</div>' +
+            '<div class="client-option-id">Policy Holder</div>' +
+          '</div>' +
+        '</div>'
+      );
+      return $option;
+    },
+    templateSelection: function(option) {
+      return option.text || 'Search and select policy holder...';
     },
     escapeMarkup: function(markup) {
       return markup;
@@ -1266,8 +2017,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const afterTdsValue = commissionAmount - tdsAmount;
 
     document.querySelector('.investor-commission-amount').value = commissionAmount.toFixed(2);
-    document.querySelector('.investor-tds-amount').value = tdsAmount.toFixed(2);
-    document.querySelector('.investor-after-tds-value').value = afterTdsValue.toFixed(2);
   }
 
   // Auto-calculate ambassador commission
@@ -1394,22 +2143,59 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Load policy holder options when customer changes
-  function loadPolicyHolderOptions() {
-    const customerId = document.getElementById('customer_select').value;
+  // Load customer family members for policy holder options
+  function loadCustomerFamilyMembers(customerId) {
     const policyHolderSelect = document.getElementById('policy_holder_select');
+    if (!policyHolderSelect || !customerId) return;
 
-    if (customerId) {
-      fetch(`/admin/insurance/life/policy_holder_options?customer_id=${customerId}`)
-        .then(response => response.json())
-        .then(data => {
-          policyHolderSelect.innerHTML = '';
+    console.log(`🔄 Loading family members for customer ID: ${customerId}`);
+    // Show loading state
+    policyHolderSelect.innerHTML = '<option value="">Loading family members...</option>';
+
+    // Get CSRF token for authenticated request
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    fetch(`/admin/insurance/life/customer_family_members?customer_id=${customerId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'same-origin'
+    })
+      .then(response => {
+        console.log(`📡 Response status: ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        console.log('📡 Response data:', data);
+        if (data.success) {
+          // Clear existing options
+          policyHolderSelect.innerHTML = '<option value="">Select Policy Holder</option>';
+
+          // Add new options
           data.options.forEach(option => {
-            const optionElement = new Option(option.label, option.value);
+            const optionElement = document.createElement('option');
+            optionElement.value = option.value;
+            optionElement.textContent = option.text;
             policyHolderSelect.add(optionElement);
+            console.log(`✅ Added option: ${option.text}`);
           });
-        });
-    }
+
+          console.log(`✅ Loaded ${data.options.length} policy holder options for ${data.customer_name}`);
+        } else {
+          console.error('❌ Failed to load family members:', data.message);
+          // Fallback to Self only
+          policyHolderSelect.innerHTML = '<option value="">Select Policy Holder</option><option value="Self">Self</option>';
+        }
+      })
+      .catch(error => {
+        console.error('❌ Error loading family members:', error);
+        // Fallback to Self only
+        policyHolderSelect.innerHTML = '<option value="">Select Policy Holder</option><option value="Self">Self</option>';
+      });
   }
 
   // Load brokers when insurance company changes
@@ -1591,26 +2377,10 @@ document.addEventListener('DOMContentLoaded', function() {
   if (autopayStartDateField) {
     autopayStartDateField.addEventListener('change', calculateAutopayEndDate);
   }
-  // Use Select2 event listener instead of native event
-  $('#customer_select').on('select2:select', function(e) {
-    loadPolicyHolderOptions();
 
-    // Clear and refresh affiliate dropdown when customer changes
-    $('#affiliate_select').val(null).trigger('change');
-
-    // Show a message to indicate that affiliates are being filtered
-    var selectedCustomerId = this.value;
-    if (selectedCustomerId) {
-      console.log('Customer selected, filtering affiliates for customer ID:', selectedCustomerId);
-    }
-  });
-
-  // Handle customer clearing
-  $('#customer_select').on('select2:clear', function(e) {
-    // Clear affiliate dropdown when customer is cleared
-    $('#affiliate_select').val(null).trigger('change');
-    console.log('Customer cleared, showing all affiliates');
-  });
+  // NOTE: The loadPolicyHolderOptions function and customer select event handlers
+  // are now defined inside the DOMContentLoaded block above to ensure proper initialization
+  // with Select2. The function will be called when customer selection changes.
 
   // Cascading dropdown event listeners - Use Select2 events
   $('#life_insurance_insurance_company_name').on('select2:select', function(e) {
@@ -2876,5 +3646,261 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => errorDiv.remove(), 5000);
   }
 
+  <% if defined?(@preserve_selections) && @preserve_selections && defined?(@selected_values) %>
+  // ==== FORM STATE PRESERVATION ON VALIDATION ERRORS ====
+  console.log('🔄 Preserving form state after validation errors...');
+
+  // Preserve selected values from server
+  const selectedValues = <%= raw @selected_values.to_json %>;
+  console.log('Selected values to preserve:', selectedValues);
+
+  // Function to restore Select2 dropdown values
+  function restoreSelect2Value(elementId, value, triggerChange = true) {
+    const element = document.getElementById(elementId);
+    if (element && value) {
+      console.log(`Restoring ${elementId} to:`, value);
+
+      // For Select2 elements
+      if (window.jQuery && jQuery('#' + elementId).hasClass('select2-hidden-accessible')) {
+        // For broker/agency codes that might have different value formats
+        if (elementId === 'life_insurance_agency_code_id' && typeof value === 'string' && value.startsWith('broker_')) {
+          // This is a broker selection - set it directly
+          jQuery('#' + elementId).val(value);
+        } else {
+          // Regular agency code or other Select2 field
+          jQuery('#' + elementId).val(value);
+        }
+        if (triggerChange) {
+          jQuery('#' + elementId).trigger('change');
+        }
+        console.log(`✅ Restored Select2 ${elementId} with value:`, value);
+      } else {
+        // Regular select element (like Policy Holder)
+        element.value = value;
+        if (triggerChange) {
+          element.dispatchEvent(new Event('change'));
+        }
+        console.log(`✅ Restored regular ${elementId} with value:`, value);
+      }
+    }
+  }
+
+  // Function to restore file upload display (can't restore actual files for security)
+  function restoreFileUploadDisplay() {
+    const fileInput = document.getElementById('life_insurance_policy_documents');
+    if (fileInput) {
+      // Show message about file upload limitation
+      const uploadSection = fileInput.closest('.card-body');
+      if (uploadSection && !uploadSection.querySelector('.file-restore-notice')) {
+        const notice = document.createElement('div');
+        notice.className = 'alert alert-info file-restore-notice mt-2';
+        notice.innerHTML = '<i class="bi bi-info-circle me-2"></i>Note: Due to browser security, uploaded files need to be re-selected after validation errors.';
+        uploadSection.appendChild(notice);
+      }
+    }
+  }
+
+  // Restore selections after a short delay to ensure dropdowns are initialized
+  setTimeout(function() {
+    console.log('🔧 Starting form state restoration...');
+
+    // Restore customer selection and trigger policy holder loading
+    if (selectedValues.customer_id) {
+      restoreSelect2Value('customer_select', selectedValues.customer_id, true); // Trigger change event
+      console.log('✅ Restored customer selection and triggered policy holder loading');
+    }
+
+    // Restore affiliate selection
+    if (selectedValues.sub_agent_id) {
+      restoreSelect2Value('affiliate_select', selectedValues.sub_agent_id, false);
+    } else {
+      restoreSelect2Value('affiliate_select', '', false); // Self option
+    }
+
+    // Restore policy holder selection (Select2 dropdown)
+    // Wait for customer selection to load policy holder options first
+    if (selectedValues.customer_id && selectedValues.policy_holder) {
+      setTimeout(function() {
+        const policyHolderSelect = $('#policy_holder_select');
+        if (policyHolderSelect.length) {
+          policyHolderSelect.val(selectedValues.policy_holder).trigger('change.select2');
+          console.log('✅ Restored policy holder selection:', selectedValues.policy_holder);
+        }
+      }, 1500); // Wait for loadPolicyHolderOptions AJAX call to complete
+    }
+
+    // Restore broker code type FIRST (triggers dependent dropdown loading)
+    if (selectedValues.broker_code_type) {
+      const brokerCodeTypeSelect = document.getElementById('life_insurance_broker_code_type');
+      if (brokerCodeTypeSelect) {
+        brokerCodeTypeSelect.value = selectedValues.broker_code_type;
+        console.log('✅ Restored broker_code_type:', selectedValues.broker_code_type);
+
+        // Trigger the change event to load appropriate options
+        const event = new Event('change', { bubbles: true });
+        brokerCodeTypeSelect.dispatchEvent(event);
+      }
+    }
+
+    // Restore insurance company with retry mechanism
+    if (selectedValues.insurance_company_name) {
+      let retryCount = 0;
+      const maxRetries = 5;
+
+      function tryRestoreInsuranceCompany() {
+        const select = document.getElementById('life_insurance_insurance_company_name');
+        if (select && $(select).hasClass('select2-hidden-accessible')) {
+          restoreSelect2Value('life_insurance_insurance_company_name', selectedValues.insurance_company_name, false);
+          console.log('✅ Restored insurance company');
+        } else if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(tryRestoreInsuranceCompany, 200);
+        }
+      }
+
+      setTimeout(tryRestoreInsuranceCompany, 200);
+    }
+
+    // Restore agency code/broker code with proper timing and option checking
+    if (selectedValues.agency_code_id) {
+      let retryCount = 0;
+      const maxRetries = 10;
+
+      function tryRestoreAgencyCode() {
+        const select = document.getElementById('life_insurance_agency_code_id');
+        if (select && $(select).hasClass('select2-hidden-accessible')) {
+          // Check if options are loaded
+          const optionCount = $(select).find('option').length;
+          if (optionCount > 1) { // More than just the placeholder
+            restoreSelect2Value('life_insurance_agency_code_id', selectedValues.agency_code_id, false);
+            console.log('✅ Restored agency/broker code');
+          } else if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(tryRestoreAgencyCode, 300);
+          }
+        } else if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(tryRestoreAgencyCode, 300);
+        }
+      }
+
+      setTimeout(tryRestoreAgencyCode, 800); // Wait longer for dependent dropdowns
+    }
+
+    // Add file upload notification if there are validation errors
+    <% if @has_validation_errors %>
+    restoreFileUploadDisplay();
+    <% end %>
+
+    // Show message about file upload re-selection if there were validation errors
+    <% if defined?(@has_validation_errors) && @has_validation_errors %>
+    setTimeout(function() {
+      const policyDocumentsField = document.getElementById('policy_documents_upload');
+      const additionalDocumentsField = document.getElementById('additional_documents_upload');
+
+      if (policyDocumentsField || additionalDocumentsField) {
+        // Add a notice about re-selecting files
+        const fileNoticeHtml = `
+          <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <strong>Note:</strong> Due to browser security restrictions, uploaded files need to be re-selected if there were form validation errors.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        `;
+
+        // Add notice to the Policy Upload section
+        const policyUploadCard = document.querySelector('h5 i.bi-cloud-upload')?.closest('.card');
+        if (policyUploadCard && !policyUploadCard.querySelector('.alert-warning')) {
+          policyUploadCard.querySelector('.card-body').insertAdjacentHTML('afterbegin', fileNoticeHtml);
+        }
+      }
+    }, 1500);
+    <% end %>
+
+    console.log('✅ Form state restoration completed');
+  }, 500); // Give more time for Select2 initialization
+  <% end %>
+
+  <% if @life_insurance.persisted? && @life_insurance.broker_code_type == 'broking' && @selected_broker_code %>
+  // ==== EDIT FORM INITIALIZATION FOR BROKING TYPE ====
+  console.log('🔧 Initializing edit form for broking type policy...');
+  console.log('Selected broker code:', '<%= @selected_broker_code %>');
+
+  // Trigger broking mode and load brokers
+  setTimeout(function() {
+    const brokerCodeTypeSelect = document.getElementById('life_insurance_broker_code_type');
+    if (brokerCodeTypeSelect) {
+      brokerCodeTypeSelect.value = 'broking';
+
+      // Manually trigger the broking mode loading
+      loadAllBrokerCodes();
+
+      // After brokers are loaded, select the correct one
+      setTimeout(function() {
+        if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
+          jQuery('#life_insurance_agency_code_id').val('<%= @selected_broker_code %>').trigger('change');
+          console.log('✅ Pre-selected broker code: <%= @selected_broker_code %>');
+        }
+      }, 1000); // Wait for brokers to load
+    }
+  }, 200);
+  <% end %>
+
+  // Fix for edit mode - ensure fields are visible and populated
+  <% if @life_insurance.persisted? %>
+    console.log('🔧 Edit mode detected - ensuring field visibility...');
+
+    // Policy holder is now a simple text input field
+    const policyHolderInput = document.getElementById('life_insurance_policy_holder');
+    if (policyHolderInput) {
+      console.log('✅ Policy Holder text input field found and visible');
+    }
+
+    // Ensure Agency Code field is visible with proper options
+    const agencyCodeSelect = document.getElementById('life_insurance_agency_code_id');
+    if (agencyCodeSelect) {
+      console.log('🏢 Agency Code field found');
+      // Trigger refresh if Select2 is initialized
+      if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
+        setTimeout(() => {
+          console.log('🔄 Refreshing Agency Code Select2...');
+          jQuery('#life_insurance_agency_code_id').trigger('change');
+        }, 500);
+      }
+    }
+
+    // Ensure Insurance Company field is visible with proper options
+    const insuranceCompanySelect = document.getElementById('life_insurance_insurance_company_name');
+    if (insuranceCompanySelect) {
+      console.log('🏭 Insurance Company field found');
+      const currentCompany = '<%= @life_insurance.insurance_company_name %>';
+      console.log('🏭 Current company value:', currentCompany);
+
+      // Ensure the current value is selected in Select2
+      if (currentCompany && window.jQuery && jQuery('#life_insurance_insurance_company_name').hasClass('select2-hidden-accessible')) {
+        setTimeout(() => {
+          console.log('🔄 Setting Insurance Company value in Select2...');
+          jQuery('#life_insurance_insurance_company_name').val(currentCompany).trigger('change');
+          console.log('✅ Insurance Company value restored:', currentCompany);
+        }, 1000); // Longer delay to ensure Select2 is fully initialized
+      }
+    }
+
+    // Force re-initialization of dropdowns based on broker type
+    const brokerType = '<%= @life_insurance.broker_code_type %>';
+    if (brokerType) {
+      console.log('📋 Broker type detected:', brokerType);
+      setTimeout(() => {
+        const brokerTypeSelect = document.getElementById('life_insurance_broker_code_type');
+        if (brokerTypeSelect) {
+          brokerTypeSelect.value = brokerType;
+          brokerTypeSelect.dispatchEvent(new Event('change'));
+          console.log('🔄 Triggered broker type change event');
+        }
+      }, 1000);
+    }
+  <% end %>
 });
 </script>
+
+

@@ -1229,11 +1229,20 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     companies = companies.order(:name).page(page).per(per_page)
 
     companies_data = companies.map do |company|
+      # Map insurance_type to simplified categories
+      type_mapping = {
+        'life' => 'life',
+        'health' => 'health',
+        'motor' => 'motor_general',
+        'motor_other' => 'motor_general',
+        'general' => 'motor_general'
+      }
+
       {
         id: company.id,
         name: company.name,
         code: company.code,
-        type: company.insurance_type,
+        type: type_mapping[company.insurance_type] || 'motor_general',
         status: company.status ? 'Active' : 'Inactive',
         contact_person: company.contact_person,
         email: company.email,

@@ -4,6 +4,9 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
   skip_before_action :verify_authenticity_token, only: [:all_agency_codes, :all_brokers, :insurance_companies_for_type, :insurance_companies_by_agency]
 
   def index
+    @current_tab = params[:tab] || 'drwise'
+
+    # Base query
     @other_insurances = OtherInsurance.includes(:customer)
 
     # Search functionality
@@ -42,6 +45,31 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
       end
     end
 
+    # Tab-based filtering using DrWise/Non-DrWise classification
+    if @current_tab == 'drwise'
+      @other_insurances = @other_insurances.where(
+        is_admin_added: true,
+        is_customer_added: false,
+        is_agent_added: false
+      )
+    else
+      @other_insurances = @other_insurances.where(
+        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+        true, false, false, true, false, false
+      )
+    end
+
+    # Add counters for tabs based on DrWise/Non-DrWise classification
+    @drwise_count = OtherInsurance.where(
+      is_admin_added: true,
+      is_customer_added: false,
+      is_agent_added: false
+    ).count
+    @non_drwise_count = OtherInsurance.where(
+      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+      true, false, false, true, false, false
+    ).count
+
     @other_insurances = @other_insurances.order(created_at: :desc).page(params[:page])
   end
 
@@ -71,6 +99,11 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
 
   def create
     @other_insurance = OtherInsurance.new(other_insurance_params)
+
+    # Set admin tracking fields for policies created from admin panel
+    @other_insurance.is_admin_added = true
+    @other_insurance.is_customer_added = false
+    @other_insurance.is_agent_added = false
 
     # Log the parameters for debugging
     Rails.logger.info "Creating OtherInsurance with params: #{other_insurance_params.inspect}"
@@ -130,46 +163,128 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     insurance_type = params[:insurance_type] || 'General Insurance'
 
     # Get companies for general/other insurance
-    companies = case insurance_type.downcase
-    when 'general insurance', 'other'
-      ['New India Assurance', 'Oriental Insurance', 'National Insurance', 'United India Insurance',
-       'ICICI Lombard', 'Bajaj Allianz', 'Reliance General', 'Tata AIG', 'SBI General']
-    else
-      []
-    end
+    companies = InsuranceCompany.where(insurance_type: "motor_other").pluck(:name)
+
+    companies_data = companies.map { |name|
+      {
+        id: name,
+        text: name
+      }
+    }
 
     render json: {
-      companies: companies.map { |c| { id: c, name: c } }
+      success: true,
+      data: companies_data
     }
+
   end
 
   # API endpoint for getting insurance companies by agency/broker selection
+  # def insurance_companies_by_agency
+  #   agency_id = params[:agency_id]
+  #   broker_code = params[:broker_code]
+
+  #   companies_data = []
+
+  #   case params[:broker_type]
+  #   when 'direct'
+  #     # For direct mode: Get company from selected agency
+  #     if agency_id.present?
+  #       agency = AgencyCode.find_by(id: agency_id)
+  #       companies_data = [{
+  #         id: agency&.insurance_company,
+  #         text: agency&.insurance_company || 'Unknown Company'
+  #       }]
+  #     end
+
+  #   when 'broking'
+  #     # For broking mode: Return all general insurance companies
+  #     general_companies = ['New India Assurance', 'Oriental Insurance', 'National Insurance',
+  #                         'United India Insurance', 'ICICI Lombard', 'Bajaj Allianz',
+  #                         'Reliance General', 'Tata AIG', 'SBI General']
+
+  #     companies_data = general_companies.map { |name|
+  #       { id: name, text: name }
+  #     }
+  #   end
+
+  #   render json: {
+  #     success: true,
+  #     data: companies_data
+  #   }
+  # end
+
   def insurance_companies_by_agency
-    agency_id = params[:agency_id]
     broker_code = params[:broker_code]
+    agency_code_id = params[:agency_code_id]
+    if broker_code.blank? || agency_code_id.blank?
+      render json: {
+        success: false,
+        message: 'Broker code and agency code ID are required'
+      }
+      return
+    end
 
     companies_data = []
 
-    case params[:broker_type]
+    case broker_code
     when 'direct'
-      # For direct mode: Get company from selected agency
-      if agency_id.present?
-        agency = AgencyCode.find_by(id: agency_id)
-        companies_data = [{
-          id: agency&.insurance_company,
-          text: agency&.insurance_company || 'Unknown Company'
-        }]
+      # For direct mode: Get companies mapped to the selected agency
+      company_names = AgencyCode.where(
+        id: agency_code_id
+      ).where('insurance_type ILIKE ?', '%motor%').pluck(:company_name).compact.uniq
+
+      if company_names.any?
+        # Find insurance companies with fuzzy matching
+        all_insurance_companies = InsuranceCompany.where('insurance_type ILIKE ?', '%general%')
+        matching_companies = []
+
+        # company_names.each do |agency_company_name|
+        #   # Try exact match first
+        #   exact_match = all_insurance_companies.find_by(name: agency_company_name)
+        #   if exact_match
+        #     matching_companies << exact_match
+        #   else
+        #     # Try fuzzy matching - look for companies that contain similar words
+        #     agency_words = agency_company_name.downcase.split.reject { |w| w.length < 4 }
+        #     fuzzy_matches = all_insurance_companies.select do |company|
+        #       company_words = company.name.downcase.split.reject { |w| w.length < 4 }
+        #       # Check if main company words match (require at least 2 significant word matches)
+        #       common_words = agency_words & company_words
+        #       common_words.length >= 2 ||
+        #       (agency_words.include?('bajaj') && company_words.include?('bajaj')) ||
+        #       (agency_words.include?('tata') && company_words.include?('tata')) ||
+        #       (agency_words.include?('hdfc') && company_words.include?('hdfc'))
+        #     end
+        #     matching_companies.concat(fuzzy_matches)
+        #   end
+        # end
+        insurance_companies = InsuranceCompany.where(name: company_names )
+        companies_data = insurance_companies.uniq.map do |company|
+          {
+            id: company.id,
+            text: company.name  # Changed from 'name' to 'text' to match frontend expectations
+          }
+        end
       end
 
     when 'broking'
-      # For broking mode: Return all general insurance companies
-      general_companies = ['New India Assurance', 'Oriental Insurance', 'National Insurance',
-                          'United India Insurance', 'ICICI Lombard', 'Bajaj Allianz',
-                          'Reliance General', 'Tata AIG', 'SBI General']
+      # For broking mode: Show all motor insurance companies
+      insurance_companies = InsuranceCompany.where('insurance_type ILIKE ?', '%general%')
 
-      companies_data = general_companies.map { |name|
-        { id: name, text: name }
+      companies_data = insurance_companies.map do |company|
+        {
+          id: company.id,
+          text: company.name  # Changed from 'name' to 'text' to match frontend expectations
+        }
+      end
+
+    else
+      render json: {
+        success: false,
+        message: 'Invalid broker code. Use "direct" or "broking".'
       }
+      return
     end
 
     render json: {

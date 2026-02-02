@@ -1802,7 +1802,7 @@ function loadCommissionsDueData(content, loading) {
             <div class="col-md-4">
               <div class="kpi-card kpi-primary">
                 <div class="card-body">
-                  <div class="kpi-number">₹${data.total_amount.toLocaleString('en-IN')}</div>
+                  <div class="kpi-number">₹${parseFloat(data.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   <div class="kpi-label">Total Amount Due</div>
                 </div>
               </div>
@@ -1818,7 +1818,7 @@ function loadCommissionsDueData(content, loading) {
             <div class="col-md-4">
               <div class="kpi-card kpi-info">
                 <div class="card-body">
-                  <div class="kpi-number">₹${Math.round(data.total_amount / data.total_count).toLocaleString('en-IN')}</div>
+                  <div class="kpi-number">₹${data.total_count > 0 ? (parseFloat(data.total_amount) / parseFloat(data.total_count)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}</div>
                   <div class="kpi-label">Average Payout</div>
                 </div>
               </div>
@@ -1873,17 +1873,17 @@ function loadCommissionsDueData(content, loading) {
                     </td>
                     <td style="padding: 15px 12px;">
                       <div class="commission-premium">
-                        <span style="font-weight: 900; color: #667eea; font-size: 1.1rem; text-shadow: 1px 1px 2px rgba(102, 126, 234, 0.2); font-family: system-ui;">₹${comm.base_premium.toLocaleString('en-IN')}</span>
+                        <span style="font-weight: 900; color: #667eea; font-size: 1.1rem; text-shadow: 1px 1px 2px rgba(102, 126, 234, 0.2); font-family: system-ui;">₹${parseFloat(comm.base_premium || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </td>
                     <td style="padding: 15px 12px; text-align: center;">
                       <div class="commission-percentage">
-                        <span style="font-weight: 900; color: #f39c12; font-size: 1.2rem; background: rgba(243, 156, 18, 0.1); padding: 5px 10px; border-radius: 8px; text-shadow: 1px 1px 2px rgba(243, 156, 18, 0.2);">${comm.percentage || 0}%</span>
+                        <span style="font-weight: 900; color: #f39c12; font-size: 1.2rem; background: rgba(243, 156, 18, 0.1); padding: 5px 10px; border-radius: 8px; text-shadow: 1px 1px 2px rgba(243, 156, 18, 0.2);">${parseFloat(comm.percentage || 0).toFixed(1)}%</span>
                       </div>
                     </td>
                     <td style="padding: 15px 12px;">
                       <div class="commission-amount">
-                        <span style="font-weight: 900; color: #e74c3c; font-size: 1.25rem; background: rgba(231, 76, 60, 0.1); padding: 8px 12px; border-radius: 10px; text-shadow: 1px 1px 3px rgba(231, 76, 60, 0.3); border: 2px solid rgba(231, 76, 60, 0.2); font-family: system-ui;">₹${comm.amount.toLocaleString('en-IN')}</span>
+                        <span style="font-weight: 900; color: #e74c3c; font-size: 1.25rem; background: rgba(231, 76, 60, 0.1); padding: 8px 12px; border-radius: 10px; text-shadow: 1px 1px 3px rgba(231, 76, 60, 0.3); border: 2px solid rgba(231, 76, 60, 0.2); font-family: system-ui;">₹${parseFloat(comm.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </td>
                     <td style="padding: 15px 12px;">

@@ -519,19 +519,12 @@
               value: @health_insurance.investor_commission_percentage,
               step: 0.01 %>
         </div>
-        <div class="col-md-5 mb-3">
+        <div class="col-md-6 mb-3">
           <label class="form-label">Amount</label>
           <%= form.number_field :investor_commission_amount,
               class: "form-control investor-commission-amount",
               value: @health_insurance.investor_commission_amount,
               step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">TDS %</label>
-          <%= form.number_field :investor_tds_percentage,
-              class: "form-control investor-tds-percentage",
-              value: @health_insurance.investor_tds_percentage,
-              step: 0.01 %>
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label">TDS Amount</label>
@@ -540,7 +533,7 @@
               value: @health_insurance.investor_tds_amount,
               step: 0.01, readonly: true %>
         </div>
-        <div class="col-md-6 mb-3">
+        <div class="col-md-12 mb-3">
           <label class="form-label">After TDS Value</label>
           <%= form.number_field :investor_after_tds_value,
               class: "form-control investor-after-tds-value",
@@ -548,6 +541,7 @@
               step: 0.01, readonly: true %>
         </div>
       </div>
+      <%= form.hidden_field :investor_tds_percentage, value: 0, class: "investor-tds-percentage" %>
 
       <!-- Ambassador Commission -->
       <hr class="my-4">
@@ -717,6 +711,18 @@
         </div>
       </div>
     </div>
+
+    <!-- Original Policy Documents for Reference -->
+    <% if params[:id].present? %>
+      <% original_policy = HealthInsurance.find(params[:id]) %>
+      <%= render 'shared/enhanced_documents_display',
+                 documents: original_policy.uploaded_documents,
+                 record: original_policy,
+                 record_type: 'health_insurance',
+                 title: 'Original Policy Documents (Reference)',
+                 editable: false,
+                 container_class: 'border-top pt-4 mt-4' %>
+    <% end %>
   </div>
 
 <% end %>

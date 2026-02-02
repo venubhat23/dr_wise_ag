@@ -93,7 +93,36 @@ class Invoice < ApplicationRecord
     update!(status: 'paid', paid_at: Time.current)
   end
 
+  def policy_number
+    payout = payout_record
+    return 'N/A' unless payout
+
+    policy = get_policy_from_payout(payout)
+    policy&.policy_number || 'N/A'
+  end
+
   private
+
+  def get_policy_from_payout(payout)
+    case payout.class.name
+    when 'CommissionPayout'
+      get_policy_from_commission_payout(payout)
+    when 'DistributorPayout'
+      get_policy_from_commission_payout(payout)
+    when 'Payout'
+      # For main agent payouts, get the policy directly from the Payout model
+      case payout.policy_type
+      when 'health'
+        HealthInsurance.find_by(id: payout.policy_id)
+      when 'life'
+        LifeInsurance.find_by(id: payout.policy_id)
+      when 'motor'
+        MotorInsurance.find_by(id: payout.policy_id)
+      when 'other'
+        OtherInsurance.find_by(id: payout.policy_id)
+      end
+    end
+  end
 
   def get_policy_from_commission_payout(commission_payout)
     case commission_payout.policy_type

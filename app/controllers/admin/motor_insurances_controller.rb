@@ -11,37 +11,67 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   before_action :load_form_data, only: [:new, :edit, :create, :update, :renew, :create_renewal]
 
   def index
-    @motor_insurances = MotorInsurance.includes(:customer, :sub_agent, :agency_code, :broker)
+    @current_tab = params[:tab] || 'drwise'
+
+    # Base query
+    base_query = MotorInsurance.includes(:customer, :sub_agent, :agency_code, :broker)
 
     # Search functionality
     if params[:search].present?
-      @motor_insurances = @motor_insurances.search_motor_policies(params[:search])
+      base_query = base_query.search_motor_policies(params[:search])
     end
 
-    # Filter by status
-    case params[:status]
-    when 'active'
-      @motor_insurances = @motor_insurances.active
-    when 'expired'
-      @motor_insurances = @motor_insurances.expired
-    when 'expiring_soon'
-      @motor_insurances = @motor_insurances.expiring_soon
+    # Filter by vehicle type
+    if params[:vehicle_type].present?
+      base_query = base_query.where(vehicle_type: params[:vehicle_type])
+    end
+
+    # Filter by payment mode
+    if params[:payment_mode].present?
+      base_query = base_query.where(payment_mode: params[:payment_mode])
     end
 
     # Filter by insurance type
     if params[:insurance_type].present?
-      @motor_insurances = @motor_insurances.where(insurance_type: params[:insurance_type])
+      base_query = base_query.where(insurance_type: params[:insurance_type])
     end
 
     # Filter by policy type
     if params[:policy_type].present?
-      @motor_insurances = @motor_insurances.where(policy_type: params[:policy_type])
+      base_query = base_query.where(policy_type: params[:policy_type])
     end
 
     # Filter by insurance company
     if params[:company].present?
-      @motor_insurances = @motor_insurances.where(insurance_company_name: params[:company])
+      base_query = base_query.where(insurance_company_name: params[:company])
     end
+
+    # Tab-based filtering using DrWise/Non-DrWise classification
+    if @current_tab == 'drwise'
+      @motor_insurances = base_query.where(
+        is_admin_added: true,
+        is_customer_added: false,
+        is_agent_added: false
+      )
+    else
+      @motor_insurances = base_query.where(
+        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+        true, false, false, true, false, false
+      )
+    end
+
+    # Add counters for tabs based on DrWise/Non-DrWise classification
+    @drwise_count = MotorInsurance.where(
+      is_admin_added: true,
+      is_customer_added: false,
+      is_agent_added: false
+    ).count
+    @non_drwise_count = MotorInsurance.where(
+      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+      true, false, false, true, false, false
+    ).count
+    @total_policies = @motor_insurances.count
+    @total_premium = @motor_insurances.sum(:total_premium)
 
     @motor_insurances = paginate_records(@motor_insurances.order(created_at: :desc))
   end
@@ -367,7 +397,9 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     options = [['Self', 'Self']]
     if customer&.family_members&.any?
       customer.family_members.each do |member|
-        options << [member.full_name, member.id.to_s]
+        # Return member name as value, not ID
+        display_name = "#{member.name} (#{member.relationship.humanize})"
+        options << [display_name, member.name]
       end
     end
     render json: { options: options }

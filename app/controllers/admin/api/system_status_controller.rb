@@ -300,6 +300,15 @@ module Admin
                            'N/A'
                          end
 
+            # Format numbers properly for calculation string
+            premium_amount = policy&.total_premium || 0
+            percentage_value = percentage || 0
+            commission_amount = payout.payout_amount.round(2)
+
+            # Format the calculation string with proper formatting
+            formatted_premium = ActionController::Base.helpers.number_to_currency(premium_amount, unit: '₹', format: '%u%n', delimiter: ',', precision: 2)
+            formatted_commission = ActionController::Base.helpers.number_to_currency(commission_amount, unit: '₹', format: '%u%n', delimiter: ',', precision: 2)
+
             {
               id: payout.id,
               lead_id: policy&.lead_id || 'N/A',
@@ -307,10 +316,10 @@ module Admin
               customer_name: customer_name,
               policy_type: payout.policy_type,
               payout_to: payout.payout_to,
-              amount: payout.payout_amount,
-              percentage: percentage,
-              base_premium: policy&.total_premium || 0,
-              calculation: "#{policy&.total_premium || 0} × #{percentage || 0}% = ₹#{payout.payout_amount}",
+              amount: commission_amount,
+              percentage: percentage_value,
+              base_premium: premium_amount,
+              calculation: "#{formatted_premium} × #{percentage_value}% = #{formatted_commission}",
               created_at: payout.created_at.strftime('%d %b %Y'),
               due_date: (payout.created_at + 30.days).strftime('%d %b %Y')
             }

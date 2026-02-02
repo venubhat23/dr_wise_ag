@@ -569,19 +569,12 @@
               value: @renewed_policy.investor_commission_percentage || 2.0,
               step: 0.01 %>
         </div>
-        <div class="col-md-5 mb-3">
+        <div class="col-md-6 mb-3">
           <label class="form-label">Amount</label>
           <%= form.number_field :investor_commission_amount,
               class: "form-control investor-commission-amount",
               value: @renewed_policy.investor_commission_amount || 0,
               step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">TDS %</label>
-          <%= form.number_field :investor_tds_percentage,
-              class: "form-control investor-tds-percentage",
-              value: @renewed_policy.investor_tds_percentage || 0,
-              step: 0.01 %>
         </div>
         <div class="col-md-6 mb-3">
           <label class="form-label">TDS Amount</label>
@@ -590,7 +583,7 @@
               value: @renewed_policy.investor_tds_amount || 0,
               step: 0.01, readonly: true %>
         </div>
-        <div class="col-md-6 mb-3">
+        <div class="col-md-12 mb-3">
           <label class="form-label">After TDS Value</label>
           <%= form.number_field :investor_after_tds_value,
               class: "form-control investor-after-tds-value",
@@ -598,6 +591,7 @@
               step: 0.01, readonly: true %>
         </div>
       </div>
+      <%= form.hidden_field :investor_tds_percentage, value: 0, class: "investor-tds-percentage" %>
 
       <!-- Company Expenses & Profit Calculation -->
       <hr class="my-4">

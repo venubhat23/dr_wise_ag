@@ -210,6 +210,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             payment_mode: policy.payment_mode,
             next_installment_date: next_installment,
             installment_amount: format_indian_amount(calculate_installment_amount(policy.total_premium, policy.payment_mode)),
+            installment_amount_raw: calculate_installment_amount(policy.total_premium, policy.payment_mode),
             days_until_installment: days_until_installment,
             days_left_from_today: days_left_from_today,
             label: label,
@@ -300,6 +301,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             payment_mode: policy.payment_mode,
             next_installment_date: next_installment,
             installment_amount: format_indian_amount(calculate_installment_amount(policy.total_premium, policy.payment_mode)),
+            installment_amount_raw: calculate_installment_amount(policy.total_premium, policy.payment_mode),
             days_until_installment: days_until_installment,
             days_left_from_today: days_left_from_today,
             label: label,
@@ -399,6 +401,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             payment_mode: payment_mode,
             next_installment_date: next_installment,
             installment_amount: format_indian_amount(calculate_installment_amount(policy.total_premium, payment_mode)),
+            installment_amount_raw: calculate_installment_amount(policy.total_premium, payment_mode),
             days_until_installment: days_until_installment,
             days_left_from_today: days_left_from_today,
             label: label,
@@ -423,7 +426,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       data: {
         upcoming_installments: installments,
         total_installments: installments.count,
-        total_amount: format_indian_amount(installments.sum { |i| (i[:installment_amount] || 0).to_f }),
+        total_amount: format_indian_amount(installments.sum { |i| i[:installment_amount_raw] || 0 }),
         # Regular time-based groupings
         next_7_days: installments.count { |i| (i[:days_until_installment] || 0) <= 7 && (i[:days_until_installment] || 0) > 0 },
         next_30_days: installments.count { |i| (i[:days_until_installment] || 0) <= 30 && (i[:days_until_installment] || 0) > 0 },
@@ -490,6 +493,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         end_date: policy.policy_end_date,
         renewal_date: policy.policy_end_date + 1.day,
         total_premium: format_indian_amount(policy.total_premium),
+        total_premium_raw: policy.total_premium.to_f,
         sum_insured: format_indian_amount(policy.sum_insured),
         payment_mode: policy.payment_mode,
         days_until_renewal: days_until_renewal,
@@ -541,6 +545,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         end_date: policy.policy_end_date,
         renewal_date: policy.policy_end_date + 1.day,
         total_premium: format_indian_amount(policy.total_premium),
+        total_premium_raw: policy.total_premium.to_f,
         sum_insured: format_indian_amount(policy.sum_insured),
         payment_mode: policy.payment_mode,
         policy_term: policy.policy_term,
@@ -636,6 +641,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
               end_date: policy.policy_end_date,
               renewal_date: policy.policy_end_date + 1.day,
               total_premium: format_indian_amount(policy.respond_to?(:total_premium) ? policy.total_premium : 0),
+              total_premium_raw: policy.respond_to?(:total_premium) ? policy.total_premium.to_f : 0.0,
               sum_insured: format_indian_amount(policy.respond_to?(:sum_insured) ? policy.sum_insured : nil),
               payment_mode: policy.respond_to?(:payment_mode) ? policy.payment_mode : 'Yearly',
               days_until_renewal: days_until_renewal,
@@ -703,7 +709,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
           next_30_days: renewals.count { |r| r[:days_until_renewal] <= 30 && r[:days_until_renewal] > 0 },
           next_60_days: renewals.count { |r| r[:days_until_renewal] <= 60 && r[:days_until_renewal] > 0 },
           overdue_count: renewals.count { |r| r[:days_until_renewal] < 0 },
-          total_premium_due: format_indian_amount(renewals.sum { |r| r[:total_premium].to_f }),
+          total_premium_due: format_indian_amount(renewals.sum { |r| r[:total_premium_raw] || 0 }),
           most_urgent: renewals.first, # Most urgent renewal (sorted by days_until_renewal)
           insurance_types_covered: renewals.map { |r| r[:insurance_type] }.uniq
         }

@@ -280,6 +280,7 @@ Rails.application.routes.draw do
     resources :life_insurances, path: 'insurance/life' do
       collection do
         get :policy_holder_options
+        get :customer_family_members
         get :brokers_by_company
         get :agency_codes_by_broker
         get :all_agency_codes

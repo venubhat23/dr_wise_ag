@@ -159,6 +159,26 @@ class HealthInsurance < ApplicationRecord
     end
   end
 
+  # DrWise vs Non-DrWise classification methods
+  def drwise_policy?
+    is_admin_added == true && is_customer_added == false && is_agent_added == false
+  end
+
+  def non_drwise_policy?
+    (is_customer_added == true && is_admin_added == false && is_agent_added == false) ||
+    (is_agent_added == true && is_customer_added == false && is_admin_added == false)
+  end
+
+  def policy_classification
+    if drwise_policy?
+      'DrWise'
+    elsif non_drwise_policy?
+      'Non-DrWise'
+    else
+      'Unclassified'
+    end
+  end
+
   def notifications_due_today
     return [] unless notification_dates.present?
 

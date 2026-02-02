@@ -34,7 +34,17 @@
         <li><%= link_to "Edit Lead", edit_admin_lead_path(@lead), class: "dropdown-item" %></li>
         <li><%= link_to "Add Notes", edit_admin_lead_path(@lead), class: "dropdown-item" %></li>
         <li><hr class="dropdown-divider"></li>
-        <li><%= link_to "Delete Lead", admin_lead_path(@lead), method: :delete, class: "dropdown-item text-danger", data: { confirm: "Are you sure?" } %></li>
+        <li>
+          <%= link_to "#",
+              class: "dropdown-item text-danger delete-lead-btn",
+              data: {
+                "lead-id": @lead.id,
+                "lead-name": @lead.name,
+                "delete-url": admin_lead_path(@lead)
+              } do %>
+            <i class="bi bi-trash me-2"></i>Delete Lead
+          <% end %>
+        </li>
       </ul>
     </div>
   </div>
@@ -1134,12 +1144,54 @@
 </style>
 
 <script>
-// Initialize tooltips
+// Initialize tooltips and delete functionality
 document.addEventListener('DOMContentLoaded', function() {
+  // Initialize tooltips
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
   var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl);
   });
+
+  // Delete lead functionality
+  const deleteButton = document.querySelector('.delete-lead-btn');
+  if (deleteButton) {
+    deleteButton.addEventListener('click', function(e) {
+      e.preventDefault();
+
+      const leadId = this.dataset.leadId;
+      const leadName = this.dataset.leadName;
+      const deleteUrl = this.dataset.deleteUrl;
+
+      // Show confirmation modal
+      if (confirm(`Are you sure you want to delete this lead?\n\n${leadName}\n\nThis action cannot be undone.`)) {
+        // Make AJAX request to delete
+        fetch(deleteUrl, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Show success message
+            alert('Lead successfully deleted');
+            // Redirect to leads index
+            window.location.href = '/admin/leads';
+          } else {
+            // Show error alert with the specific message
+            alert(data.message || 'Cannot delete lead. Please check if customer or policies exist.');
+          }
+        })
+        .catch(error => {
+          console.error('Delete error:', error);
+          alert('An error occurred while deleting the lead. Please try again.');
+        });
+      }
+    });
+  }
 });
 </script>
 

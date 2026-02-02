@@ -92,6 +92,31 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
   # GET /admin/insurance/life/1/edit
   def edit
     set_form_data
+
+    # Load customer family members for policy holder dropdown if customer is selected
+    if @life_insurance.customer_id.present?
+      @selected_customer = @life_insurance.customer
+      @customer_family_members = @selected_customer.family_members.includes(:customer)
+    else
+      @customer_family_members = []
+    end
+
+    # Set auto_select_affiliate for the form
+    if @life_insurance.sub_agent_id.present?
+      @auto_select_affiliate = @life_insurance.sub_agent_id
+    else
+      @auto_select_affiliate = 'self'
+    end
+
+    # For broking type policies, determine the correct agency_code selection
+    # Since we store broker_id but the form expects broker_X format for broking
+    if @life_insurance.broker_code_type == 'broking' && @life_insurance.broker_id.present?
+      # Find the broker code that matches this broker
+      broker_code = BrokerCode.find_by(broker_id: @life_insurance.broker_id)
+      if broker_code
+        @selected_broker_code = "broker_#{broker_code.id}"
+      end
+    end
   end
 
   # POST /admin/insurance/life
@@ -127,6 +152,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
                     notice: 'Life insurance policy was successfully created.'
       else
         set_form_data
+        preserve_form_state_on_error
         render :new, status: :unprocessable_entity
       end
     rescue ActiveRecord::RecordNotUnique => e
@@ -136,6 +162,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
         @life_insurance.errors.add(:base, 'A record with similar details already exists')
       end
       set_form_data
+      preserve_form_state_on_error
       render :new, status: :unprocessable_entity
     end
   end
@@ -259,24 +286,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     end
   end
 
-  # GET /admin/insurance/life/policy_holder_options
-  def policy_holder_options
-    customer = Customer.find(params[:customer_id]) if params[:customer_id].present?
-    options = [{ label: 'Self', value: 'Self' }]
-
-    if customer&.family_members&.any?
-      customer.family_members.each do |member|
-        options << {
-          label: member.full_name,
-          value: member.id.to_s,
-          relationship: member.relationship,
-          age: member.age
-        }
-      end
-    end
-
-    render json: { options: options }
-  end
+  # Policy holder options method removed - now using simple text input
 
 
   # GET /admin/insurance/life/1/commission_details
@@ -320,10 +330,19 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
   # API endpoint for getting all agency codes (for Direct selection)
   def all_agency_codes
-    agency_codes = AgencyCode.where(insurance_type: 'Life').order(:code)
+    agency_codes = AgencyCode.where(
+      "insurance_type = ? OR insurance_type = ? OR insurance_type IS NULL",
+      'Life Insurance', 'All'
+    ).order(:agent_name, :code)
 
     render json: {
-      agency_codes: agency_codes.map { |a| { id: a.id, name: "#{a.company_name} - #{a.code}" } }
+      success: true,
+      agents: agency_codes.map { |a| {
+        id: a.id,
+        agent_name: a.agent_name,
+        code: a.code,
+        company_name: a.company_name
+      } }
     }
   end
 
@@ -334,6 +353,51 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     render json: {
       brokers: brokers.map { |b| { id: b.id, name: b.name } }
     }
+  end
+
+  # API endpoint for getting customer family members for policy holder options
+  def customer_family_members
+    customer_id = params[:customer_id]
+
+    if customer_id.present?
+      begin
+        customer = Customer.find(customer_id)
+        family_members = customer.family_members.includes(:customer)
+
+        # Build policy holder options
+        policy_holder_options = [{ value: 'Self', text: 'Self' }]
+
+        family_members.each do |member|
+          # Only add if member has a valid name and it's not empty/numeric only
+          if member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
+            display_name = "#{member.name} (#{member.relationship.humanize})"
+            # Use name as value, display name as text - this ensures the database stores just the name
+            policy_holder_options << {
+              value: member.name,
+              text: display_name
+            }
+          end
+        end
+
+        render json: {
+          success: true,
+          options: policy_holder_options,
+          customer_name: customer.display_name
+        }
+      rescue ActiveRecord::RecordNotFound
+        render json: {
+          success: false,
+          message: 'Customer not found',
+          options: [{ value: 'Self', text: 'Self' }]
+        }
+      end
+    else
+      render json: {
+        success: false,
+        message: 'Customer ID is required',
+        options: [{ value: 'Self', text: 'Self' }]
+      }
+    end
   end
 
   # GET /admin/insurance/life/:id/renew
@@ -465,9 +529,20 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
   end
 
   def insurance_companies_for_type
-    insurance_type = 'Life'  # For life insurance page
-
-    companies = InsuranceCompany.where(insurance_type: insurance_type).pluck(:name)
+    # Get life insurance companies from model constant
+    begin
+      companies = LifeInsurance.life_insurance_companies.map { |company| company[:name] || company['name'] }
+    rescue => e
+      Rails.logger.error "Error loading life insurance companies: #{e.message}"
+      companies = [
+        'ICICI Prudential Life Insurance Co Ltd',
+        'SBI Life Insurance Co Ltd',
+        'LIC India',
+        'HDFC Standard Life Insurance Co Ltd',
+        'Max Life Insurance Co Ltd',
+        'Bajaj Allianz Life Insurance Co Ltd'
+      ]
+    end
 
     render json: {
       success: true,
@@ -487,26 +562,48 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     @distributors = Distributor.active.order(:first_name, :last_name)
     @investors = Investor.active.order(:first_name, :last_name)
 
-    # For cascading dropdowns, load empty or filtered data based on existing selections
-    if @life_insurance&.insurance_company_name.present?
-      # If editing and company is selected, load relevant brokers
-      insurance_company = InsuranceCompany.find_by(name: @life_insurance.insurance_company_name)
-      @brokers = insurance_company ? Broker.where(insurance_company: insurance_company).active.order(:name) : []
+    # Load agency codes for Life Insurance (include both specific and general codes)
+    @agency_codes = AgencyCode.where(
+      "insurance_type = ? OR insurance_type = ? OR insurance_type IS NULL",
+      'Life Insurance', 'All'
+    ).order(:agent_name, :code)
 
-      if @life_insurance.broker_id.present?
-        # If editing and broker is selected, load relevant agency codes
-        @agency_codes = AgencyCode.where(broker_id: @life_insurance.broker_id, insurance_type: 'Life').order(:code)
-      else
-        @agency_codes = []
+    # Load brokers if needed
+    @brokers = Broker.active.order(:name)
+
+    # Load life insurance companies from the database
+    begin
+      # Get life insurance companies from the InsuranceCompany model
+      @insurance_companies = InsuranceCompany.where("name ILIKE ?", "%life%")
+                                           .or(InsuranceCompany.where("name ILIKE ?", "%LIC%"))
+                                           .distinct
+                                           .order(:name)
+                                           .pluck(:name)
+
+      # Fallback to constants if database is empty
+      if @insurance_companies.empty?
+        @insurance_companies = LifeInsurance.life_insurance_companies.map { |company| company[:name] || company['name'] }
       end
-    else
-      # For new records or when no company is selected, start with empty dependent dropdowns
-      @brokers = []
-      @agency_codes = []
+
+      # Ensure current life insurance company is in the options (for edit forms)
+      if defined?(@life_insurance) && @life_insurance&.insurance_company_name.present?
+        unless @insurance_companies.include?(@life_insurance.insurance_company_name)
+          @insurance_companies << @life_insurance.insurance_company_name
+          @insurance_companies.sort!
+        end
+      end
+    rescue => e
+      Rails.logger.error "Error loading life insurance companies: #{e.message}"
+      @insurance_companies = [
+        'ICICI Prudential Life Insurance Co Ltd',
+        'SBI Life Insurance Co Ltd',
+        'LIC India',
+        'HDFC Standard Life Insurance Co Ltd',
+        'Max Life Insurance Co Ltd',
+        'Bajaj Allianz Life Insurance Co Ltd'
+      ]
     end
 
-    # Load only life insurance companies
-    @insurance_companies = LifeInsurance.life_insurance_companies.map { |company| company[:name] }
     @policy_types = LifeInsurance::POLICY_TYPES
     @payment_modes = LifeInsurance::PAYMENT_MODES
     @relationships = LifeInsurance::RELATIONSHIPS
@@ -514,16 +611,73 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     @document_types = LifeInsurance::DOCUMENT_TYPES
   end
 
+  def preserve_form_state_on_error
+    # Load customer family members if a customer was selected
+    if @life_insurance.customer_id.present?
+      begin
+        customer = Customer.find(@life_insurance.customer_id)
+        @customer_family_members = customer.family_members.includes(:customer)
+        @selected_customer = customer
+      rescue ActiveRecord::RecordNotFound
+        @customer_family_members = []
+        @selected_customer = nil
+      end
+    else
+      @customer_family_members = []
+      @selected_customer = nil
+    end
+
+    # Set affiliate selection state for Select2 dropdown
+    if @life_insurance.sub_agent_id.present?
+      @auto_select_affiliate = @life_insurance.sub_agent_id
+    else
+      @auto_select_affiliate = 'self'
+    end
+
+    # Set flag to preserve form state in JavaScript
+    @has_validation_errors = @life_insurance.errors.any?
+    @preserve_selections = true
+
+    # For broking type policies, determine the correct agency_code selection
+    # Since we store broker_id but the form expects broker_X format for broking
+    if @life_insurance.broker_code_type == 'broking' && @life_insurance.broker_id.present?
+      # Find the broker code that matches this broker
+      broker_code = BrokerCode.find_by(broker_id: @life_insurance.broker_id)
+      if broker_code
+        @selected_broker_code = "broker_#{broker_code.id}"
+      end
+    end
+
+    # Store selected values for JavaScript to use
+    @selected_values = {
+      customer_id: @life_insurance.customer_id,
+      sub_agent_id: @life_insurance.sub_agent_id,
+      policy_holder: @life_insurance.policy_holder,
+      broker_code_type: @life_insurance.broker_code_type,
+      agency_code_id: @life_insurance.broker_code_type == 'broking' ? @selected_broker_code : @life_insurance.agency_code_id,
+      insurance_company_name: @life_insurance.insurance_company_name,
+      selected_broker_code: @selected_broker_code
+    }
+  end
+
   def process_broker_params(params)
     # Handle agency_code_id when it contains broker_X format
     if params[:agency_code_id].present? && params[:agency_code_id].start_with?('broker_')
-      # Extract broker ID from broker_X format
-      broker_id = params[:agency_code_id].gsub('broker_', '').to_i
+      # Extract broker code ID from broker_X format
+      broker_code_id = params[:agency_code_id].gsub('broker_', '').to_i
 
-      # Set broker_id and clear agency_code_id for broking type
-      if broker_id > 0
-        params[:broker_id] = broker_id
-        params[:agency_code_id] = nil
+      # Find the broker code and set the actual broker_id
+      if broker_code_id > 0
+        broker_code = BrokerCode.find_by(id: broker_code_id)
+        if broker_code
+          params[:broker_id] = broker_code.broker_id
+          params[:agency_code_id] = nil
+          Rails.logger.info "Processed broker_#{broker_code_id} -> broker_id: #{broker_code.broker_id} (#{broker_code.broker.name})"
+        else
+          Rails.logger.warn "BrokerCode with ID #{broker_code_id} not found"
+          params[:broker_id] = nil
+          params[:agency_code_id] = nil
+        end
       end
     end
 

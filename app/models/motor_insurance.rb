@@ -11,6 +11,10 @@ class MotorInsurance < ApplicationRecord
   belongs_to :broker, optional: true
   has_many_attached :documents
   has_many_attached :policy_documents
+  has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
+
+  # Nested attributes
+  accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations
   validates :policy_holder, presence: true
@@ -170,6 +174,39 @@ class MotorInsurance < ApplicationRecord
       end
     else
       'Not Eligible for Renewal'
+    end
+  end
+
+  # DrWise vs Non-DrWise classification
+  def drwise_policy?
+    # DrWise: Admin Added policies (is_admin_added: true AND others false)
+    is_admin_added? && !is_customer_added? && !is_agent_added?
+  end
+
+  def non_drwise_policy?
+    # Non-DrWise: Customer Added OR Agent Added policies
+    (is_customer_added? && !is_admin_added? && !is_agent_added?) ||
+    (is_agent_added? && !is_customer_added? && !is_admin_added?)
+  end
+
+  def policy_classification
+    if drwise_policy?
+      'DrWise'
+    elsif non_drwise_policy?
+      'Non-DrWise'
+    else
+      'Unknown'
+    end
+  end
+
+  def policy_classification_badge_class
+    case policy_classification
+    when 'DrWise'
+      'bg-success text-white'  # Green for DrWise
+    when 'Non-DrWise'
+      'bg-warning text-dark'   # Orange/Yellow for Non-DrWise
+    else
+      'bg-secondary text-white' # Gray for Unknown
     end
   end
 

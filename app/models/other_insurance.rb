@@ -6,6 +6,10 @@ class OtherInsurance < ApplicationRecord
   has_many_attached :documents
   has_many_attached :policy_documents
   has_many_attached :additional_documents
+  has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
+
+  # Nested attributes
+  accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Callbacks
   before_create :inherit_customer_lead_id
@@ -37,6 +41,60 @@ class OtherInsurance < ApplicationRecord
 
   def days_until_expiry
     (policy_end_date - Date.current).to_i
+  end
+
+  # Source tracking methods
+  def is_customer_added?
+    # Return false as default since the column might not exist yet
+    respond_to?(:is_customer_added) ? read_attribute(:is_customer_added) : false
+  end
+
+  def is_agent_added?
+    # Return false as default since the column might not exist yet
+    respond_to?(:is_agent_added) ? read_attribute(:is_agent_added) : false
+  end
+
+  def is_admin_added?
+    # Return false as default since the column might not exist yet
+    respond_to?(:is_admin_added) ? read_attribute(:is_admin_added) : false
+  end
+
+  def policy_added_by_admin?
+    # Return false as default since the column might not exist yet
+    respond_to?(:policy_added_by_admin) ? read_attribute(:policy_added_by_admin) : false
+  end
+
+  # DrWise vs Non-DrWise classification
+  def drwise_policy?
+    # DrWise: Admin Added policies (is_admin_added: true AND others false)
+    is_admin_added? && !is_customer_added? && !is_agent_added?
+  end
+
+  def non_drwise_policy?
+    # Non-DrWise: Customer Added OR Agent Added policies
+    (is_customer_added? && !is_admin_added? && !is_agent_added?) ||
+    (is_agent_added? && !is_customer_added? && !is_admin_added?)
+  end
+
+  def policy_classification
+    if drwise_policy?
+      'DrWise'
+    elsif non_drwise_policy?
+      'Non-DrWise'
+    else
+      'Unknown'
+    end
+  end
+
+  def policy_classification_badge_class
+    case policy_classification
+    when 'DrWise'
+      'bg-success text-white'  # Green for DrWise
+    when 'Non-DrWise'
+      'bg-warning text-dark'   # Orange/Yellow for Non-DrWise
+    else
+      'bg-secondary text-white' # Gray for Unknown
+    end
   end
 
   # Customer association is now direct, not through policy

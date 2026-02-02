@@ -59,25 +59,40 @@ class Admin::DocumentsController < Admin::ApplicationController
 
   # PATCH/PUT /admin/documents/1
   def update
-    if @document.update(document_params.except(:file))
-      redirect_to admin_document_path(@document), notice: 'Document was successfully updated.'
-    else
-      render :edit, status: :unprocessable_entity
+    respond_to do |format|
+      if @document.update(document_params.except(:file))
+        format.json { render json: { success: true, message: 'Document updated successfully' } }
+        format.html { redirect_to admin_document_path(@document), notice: 'Document was successfully updated.' }
+      else
+        format.json { render json: { success: false, errors: @document.errors.full_messages } }
+        format.html { render :edit, status: :unprocessable_entity }
+      end
     end
   end
 
   # DELETE /admin/documents/1
   def destroy
     documentable = @document.documentable
-    @document.destroy!
 
-    if documentable && params[:return_to_record] == 'true'
-      redirect_to polymorphic_path([:admin, documentable, :documents]), notice: 'Document was successfully deleted.'
-    else
-      redirect_to admin_documents_path, notice: 'Document was successfully deleted.'
+    begin
+      @document.destroy!
+
+      respond_to do |format|
+        format.json { render json: { success: true, message: 'Document deleted successfully' } }
+        format.html do
+          if documentable && params[:return_to_record] == 'true'
+            redirect_to polymorphic_path([:admin, documentable, :documents]), notice: 'Document was successfully deleted.'
+          else
+            redirect_to admin_documents_path, notice: 'Document was successfully deleted.'
+          end
+        end
+      end
+    rescue ActiveRecord::RecordNotDestroyed => e
+      respond_to do |format|
+        format.json { render json: { success: false, error: e.message } }
+        format.html { redirect_to admin_documents_path, alert: "Failed to delete document: #{e.message}" }
+      end
     end
-  rescue ActiveRecord::RecordNotDestroyed => e
-    redirect_to admin_documents_path, alert: "Failed to delete document: #{e.message}"
   end
 
   # GET /admin/documents/1/download
@@ -109,7 +124,7 @@ class Admin::DocumentsController < Admin::ApplicationController
   end
 
   def document_params
-    params.require(:document).permit(:title, :description, :document_type, :file, :documentable_type, :documentable_id)
+    params.require(:document).permit(:title, :document_name, :description, :document_type, :file, :documentable_type, :documentable_id)
   end
 
   def current_user_name

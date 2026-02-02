@@ -7,7 +7,7 @@
   --icon-size: 24px;           /* Fixed icon size - NEVER changes */
   --icon-wrapper: 36px;        /* Icon container size */
   --sidebar-expanded: 240px;   /* Expanded width */
-  --sidebar-collapsed: 56px;   /* Icon + minimal padding */
+  --sidebar-collapsed: 25px;   /* Reduced to 50% of 50px */
   --transition-speed: 0.3s;
 }
 
@@ -151,7 +151,7 @@
 }
 
 .sidebar-collapsed .menu-link {
-  padding: 0.75rem 0;  /* Remove horizontal padding */
+  padding: 0.25rem 0;  /* Minimal padding for ultra-compact sidebar */
   justify-content: center;  /* Center icon */
   gap: 0;  /* Remove gap */
 }

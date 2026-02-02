@@ -187,8 +187,8 @@ class Api::V1::HealthInsurancesController < Api::V1::ApplicationController
     if customer&.family_members&.any?
       customer.family_members.each do |member|
         options << {
-          label: member.full_name,
-          value: member.id.to_s,
+          label: "#{member.name} (#{member.relationship.humanize})",
+          value: member.name,
           relationship: member.relationship,
           age: member.age
         }

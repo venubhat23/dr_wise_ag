@@ -437,35 +437,15 @@
               value: @health_insurance.investor_commission_percentage || 2.0,
               step: 0.01 %>
         </div>
-        <div class="col-md-5 mb-3">
+        <div class="col-md-6 mb-3">
           <label class="form-label">Amount</label>
           <%= form.number_field :investor_commission_amount,
               class: "form-control investor-commission-amount",
               value: @health_insurance.investor_commission_amount || 0,
               step: 0.01, readonly: true %>
         </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">TDS %</label>
-          <%= form.number_field :investor_tds_percentage,
-              class: "form-control investor-tds-percentage",
-              value: @health_insurance.investor_tds_percentage || 0,
-              step: 0.01 %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">TDS Amount</label>
-          <%= form.number_field :investor_tds_amount,
-              class: "form-control investor-tds-amount",
-              value: @health_insurance.investor_tds_amount || 0,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">After TDS Value</label>
-          <%= form.number_field :investor_after_tds_value,
-              class: "form-control investor-after-tds-value",
-              value: @health_insurance.investor_after_tds_value || 0,
-              step: 0.01, readonly: true %>
-        </div>
       </div>
+      <%= form.hidden_field :investor_tds_percentage, value: 0, class: "investor-tds-percentage" %>
 
       <!-- Ambassador Commission -->
       <hr class="my-4">
@@ -1337,8 +1317,6 @@ document.addEventListener('DOMContentLoaded', function() {
       const afterTdsValue = commissionAmount - tdsAmount;
 
       document.querySelector('.investor-commission-amount').value = commissionAmount.toFixed(2);
-      document.querySelector('.investor-tds-amount').value = tdsAmount.toFixed(2);
-      document.querySelector('.investor-after-tds-value').value = afterTdsValue.toFixed(2);
     }
 
     // Auto-calculate ambassador commission
