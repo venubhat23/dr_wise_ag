@@ -19,7 +19,15 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Life Policies</h6>
-            <h3 class="mb-0 text-primary" data-stat="total-policies"><%= number_with_delimiter(@total_policies_count) %></h3>
+            <h3 class="mb-0 text-primary" data-stat="total-policies"><%= number_with_delimiter((@drwise_count || 0) + (@non_drwise_count || 0)) %></h3>
+            <div class="d-flex gap-2 mt-2">
+              <small class="text-success">
+                <i class="bi bi-check-circle me-1"></i>DrWise: <%= @drwise_count %>
+              </small>
+              <small class="text-warning">
+                <i class="bi bi-x-circle me-1"></i>Non-DrWise: <%= @non_drwise_count %>
+              </small>
+            </div>
           </div>
           <div class="bg-primary bg-opacity-10 rounded p-3">
             <i class="bi bi-heart text-primary fs-4"></i>
@@ -35,7 +43,11 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Premium</h6>
-            <h3 class="mb-0 text-success" data-stat="total-premium"><%= indian_currency(@total_premium_amount.to_i) %></h3>
+            <h3 class="mb-0 text-success" data-stat="total-premium"><%= indian_currency((@drwise_premium || 0) + (@non_drwise_premium || 0)) %></h3>
+            <div class="mt-2">
+              <small class="text-muted d-block">DrWise: <%= indian_currency(@drwise_premium || 0) %></small>
+              <small class="text-muted d-block">Non-DrWise: <%= indian_currency(@non_drwise_premium || 0) %></small>
+            </div>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
             <i class="bi bi-currency-rupee text-success fs-4"></i>
@@ -51,7 +63,11 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Coverage</h6>
-            <h3 class="mb-0 text-info" data-stat="total-coverage"><%= indian_currency(@total_coverage_amount.to_i) %></h3>
+            <h3 class="mb-0 text-info" data-stat="total-coverage"><%= indian_currency((@drwise_coverage || 0) + (@non_drwise_coverage || 0)) %></h3>
+            <div class="mt-2">
+              <small class="text-muted d-block">DrWise: <%= indian_currency(@drwise_coverage || 0) %></small>
+              <small class="text-muted d-block">Non-DrWise: <%= indian_currency(@non_drwise_coverage || 0) %></small>
+            </div>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">
             <i class="bi bi-shield-check text-info fs-4"></i>
@@ -67,7 +83,22 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Covered Lives</h6>
-            <h3 class="mb-0 text-warning" data-stat="covered-lives"><%= number_with_delimiter(@covered_lives_count) %></h3>
+            <%
+              total_lives = LifeInsurance.joins(:customer).distinct.count('customers.id')
+              drwise_lives = LifeInsurance.where(
+                is_admin_added: true, is_customer_added: false, is_agent_added: false
+              ).joins(:customer).distinct.count('customers.id')
+              non_drwise_lives = total_lives - drwise_lives
+            %>
+            <h3 class="mb-0 text-warning" data-stat="covered-lives"><%= number_with_delimiter(total_lives) %></h3>
+            <div class="d-flex gap-2 mt-2">
+              <small class="text-success">
+                <i class="bi bi-check-circle me-1"></i>DrWise: <%= drwise_lives %>
+              </small>
+              <small class="text-warning">
+                <i class="bi bi-x-circle me-1"></i>Non-DrWise: <%= non_drwise_lives %>
+              </small>
+            </div>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
             <i class="bi bi-people text-warning fs-4"></i>

@@ -340,6 +340,10 @@ Rails.application.routes.draw do
         get :insurance_companies_for_type
         get :insurance_companies_by_agency
       end
+      member do
+        get :renew
+        post :create_renewal
+      end
     end
 
     # Other Insurance - Alternative routes for backward compatibility

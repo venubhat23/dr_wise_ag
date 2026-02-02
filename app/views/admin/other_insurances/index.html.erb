@@ -60,7 +60,15 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Policies</h6>
-            <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_policies || 0) %></h3>
+            <h3 class="mb-0 text-primary"><%= number_with_delimiter((@drwise_count || 0) + (@non_drwise_count || 0)) %></h3>
+            <div class="d-flex gap-2 mt-2">
+              <small class="text-success">
+                <i class="bi bi-check-circle me-1"></i>DrWise: <%= @drwise_count %>
+              </small>
+              <small class="text-warning">
+                <i class="bi bi-x-circle me-1"></i>Non-DrWise: <%= @non_drwise_count %>
+              </small>
+            </div>
           </div>
           <div class="bg-primary bg-opacity-10 rounded p-3">
             <i class="bi bi-shield text-primary fs-4"></i>
@@ -76,7 +84,11 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Premium</h6>
-            <h3 class="mb-0 text-success"><%= indian_currency(@total_premium || 0) %></h3>
+            <h3 class="mb-0 text-success"><%= indian_currency((@drwise_premium || 0) + (@non_drwise_premium || 0)) %></h3>
+            <div class="mt-2">
+              <small class="text-muted d-block">DrWise: <%= indian_currency(@drwise_premium || 0) %></small>
+              <small class="text-muted d-block">Non-DrWise: <%= indian_currency(@non_drwise_premium || 0) %></small>
+            </div>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
             <i class="bi bi-currency-rupee text-success fs-4"></i>
@@ -92,7 +104,11 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Coverage</h6>
-            <h3 class="mb-0 text-info"><%= indian_currency(@other_insurances.sum(&:sum_insured) || 0) %></h3>
+            <h3 class="mb-0 text-info"><%= indian_currency((@drwise_coverage || 0) + (@non_drwise_coverage || 0)) %></h3>
+            <div class="mt-2">
+              <small class="text-muted d-block">DrWise: <%= indian_currency(@drwise_coverage || 0) %></small>
+              <small class="text-muted d-block">Non-DrWise: <%= indian_currency(@non_drwise_coverage || 0) %></small>
+            </div>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">
             <i class="bi bi-shield-check text-info fs-4"></i>
@@ -108,7 +124,25 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Active Policies</h6>
-            <h3 class="mb-0 text-warning"><%= number_with_delimiter(@other_insurances.select { |p| p.policy_end_date.nil? || p.policy_end_date >= Date.current }.count) %></h3>
+            <%
+              drwise_active = OtherInsurance.where(
+                is_admin_added: true, is_customer_added: false, is_agent_added: false
+              ).where('policy_end_date IS NULL OR policy_end_date >= ?', Date.current).count
+
+              non_drwise_active = OtherInsurance.where(
+                '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+                true, false, false, true, false, false
+              ).where('policy_end_date IS NULL OR policy_end_date >= ?', Date.current).count
+            %>
+            <h3 class="mb-0 text-warning"><%= number_with_delimiter(drwise_active + non_drwise_active) %></h3>
+            <div class="d-flex gap-2 mt-2">
+              <small class="text-success">
+                <i class="bi bi-check-circle me-1"></i>DrWise: <%= drwise_active %>
+              </small>
+              <small class="text-warning">
+                <i class="bi bi-x-circle me-1"></i>Non-DrWise: <%= non_drwise_active %>
+              </small>
+            </div>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
             <i class="bi bi-check-circle text-warning fs-4"></i>
@@ -289,6 +323,33 @@
                         <i class="bi bi-pencil"></i>
                       <% end %>
                     <% end %>
+
+                    <!-- Renewal Button -->
+                    <% if policy.can_be_renewed? && can_create?('other_insurances') %>
+                      <%
+                        # Determine button color and animation based on urgency
+                        days_until_expiry = policy.days_until_expiry
+                        button_class = if days_until_expiry <= 7
+                                        "btn btn-sm btn-danger pulse-animation"
+                                      elsif days_until_expiry <= 30
+                                        "btn btn-sm btn-warning"
+                                      else
+                                        "btn btn-sm btn-success"
+                                      end
+                      %>
+                      <%= link_to renew_admin_other_insurance_path(policy),
+                          class: button_class,
+                          title: "Renew Policy (Expires in #{days_until_expiry} days)" do %>
+                        <i class="bi bi-arrow-clockwise"></i> Renew
+                      <% end %>
+                    <% elsif policy.has_been_renewed? %>
+                      <button class="btn btn-sm btn-secondary" disabled title="Already Renewed">
+                        <i class="bi bi-check-circle"></i>
+                      </button>
+                    <% elsif policy.is_renewal? %>
+                      <span class="badge bg-info">Renewal</span>
+                    <% end %>
+
                     <% if can_delete?('other_insurances') %>
                       <%= link_to admin_other_insurance_path(policy), method: :delete,
                           class: "btn btn-sm btn-outline-danger",

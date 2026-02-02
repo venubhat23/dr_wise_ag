@@ -43,6 +43,40 @@ class OtherInsurance < ApplicationRecord
     (policy_end_date - Date.current).to_i
   end
 
+  # Renewal-related methods
+  def is_renewal?
+    policy_type == 'Renewal' || original_policy_id.present?
+  end
+
+  def renewal_policy
+    OtherInsurance.find_by(original_policy_id: id)
+  end
+
+  def has_been_renewed?
+    is_renewed == true || renewal_policy.present?
+  end
+
+  def can_be_renewed?
+    return false if is_renewal? # Renewal policies cannot be renewed again
+    return false if has_been_renewed? # Already renewed policies cannot be renewed again
+    return false if policy_end_date.blank? # Cannot renew without end date
+
+    # Can renew if policy expires within 60 days
+    policy_end_date <= 60.days.from_now
+  end
+
+  def renewal_status_text
+    if has_been_renewed?
+      'Renewed'
+    elsif can_be_renewed?
+      'Can Renew'
+    elsif is_renewal?
+      'Renewal Policy'
+    else
+      'Not Eligible'
+    end
+  end
+
   # Source tracking methods
   def is_customer_added?
     # Return false as default since the column might not exist yet

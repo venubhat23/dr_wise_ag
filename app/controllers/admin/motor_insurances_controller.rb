@@ -70,6 +70,23 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
       true, false, false, true, false, false
     ).count
+
+    # Calculate statistics for tabs
+    drwise_policies = MotorInsurance.where(
+      is_admin_added: true,
+      is_customer_added: false,
+      is_agent_added: false
+    )
+    non_drwise_policies = MotorInsurance.where(
+      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+      true, false, false, true, false, false
+    )
+
+    @drwise_premium = drwise_policies.sum(:total_premium) || 0
+    @drwise_coverage = drwise_policies.sum(:total_idv) || 0
+    @non_drwise_premium = non_drwise_policies.sum(:total_premium) || 0
+    @non_drwise_coverage = non_drwise_policies.sum(:total_idv) || 0
+
     @total_policies = @motor_insurances.count
     @total_premium = @motor_insurances.sum(:total_premium)
 
