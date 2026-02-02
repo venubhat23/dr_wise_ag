@@ -129,6 +129,7 @@ class Admin::InvestorsController < Admin::ApplicationController
       :state_id, :city_id, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
       :account_holder_name, :account_type, :upi_id, :status, :upload_main_document,
+      :username, :password, :password_confirmation, :original_password,
       investor_documents_attributes: [:id, :document_type, :document_file, :_destroy]
     )
   end

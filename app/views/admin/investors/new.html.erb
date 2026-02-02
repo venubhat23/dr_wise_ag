@@ -176,7 +176,96 @@
     </div>
   </div>
 
-  <!-- 3. Documents & QR Code -->
+  <!-- 3. Login Credentials -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-key me-2 text-info"></i>
+      <h5 class="mb-0">Login Credentials</h5>
+    </div>
+    <div class="card-body">
+      <!-- Login Information -->
+      <div class="alert alert-info d-flex align-items-start mb-4">
+        <i class="bi bi-info-circle me-2 fs-5"></i>
+        <div>
+          <h6 class="alert-heading">Login Information</h6>
+          <p class="mb-0">Investor can login using their <strong>email address</strong> or <strong>mobile number</strong> with the password set below.</p>
+        </div>
+      </div>
+
+      <!-- Password Creation Method -->
+      <div class="row">
+        <div class="col-12 mb-4">
+          <label class="form-label mb-3">Password Creation Method</label>
+          <!-- Auto Generate Option (Default) -->
+          <div class="form-check mb-3 p-3 border rounded bg-light">
+            <input class="form-check-input" type="radio" name="password_option" id="auto_generate_password" value="auto_generate" checked>
+            <label class="form-check-label w-100" for="auto_generate_password">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-cpu me-2 text-primary"></i>
+                <strong>Auto Generate Password (Recommended)</strong>
+              </div>
+              <small class="text-muted d-block mt-1">
+                System will automatically generate a secure password: <strong>Ganesha@123</strong>
+              </small>
+            </label>
+          </div>
+          <!-- Manual Entry Option -->
+          <div class="form-check mb-3 p-3 border rounded">
+            <input class="form-check-input" type="radio" name="password_option" id="manual_password" value="manual">
+            <label class="form-check-label w-100" for="manual_password">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-pencil me-2 text-success"></i>
+                <strong>Set Custom Password</strong>
+              </div>
+              <small class="text-muted d-block mt-1">
+                Manually enter a custom password for the investor
+              </small>
+            </label>
+          </div>
+        </div>
+
+        <!-- Manual Password Fields (hidden by default) -->
+        <div id="manual_password_fields" class="col-12" style="display: none;">
+          <div class="card bg-light border-0">
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <label class="form-label" for="investor_password">
+                    Password <span class="text-danger">*</span>
+                  </label>
+                  <div class="input-group">
+                    <%= form.password_field :password, class: "form-control", placeholder: "Enter password", minlength: 8 %>
+                    <button class="btn btn-outline-secondary" type="button" id="toggle_password">
+                      <i class="bi bi-eye" id="password_icon"></i>
+                    </button>
+                  </div>
+                  <div class="mt-2">
+                    <div class="progress" style="height: 4px;">
+                      <div class="progress-bar" role="progressbar" id="password_strength_bar"></div>
+                    </div>
+                    <small class="text-muted">Strength: <span id="password_strength_text">Enter password</span></small>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="investor_password_confirmation">
+                    Confirm Password <span class="text-danger">*</span>
+                  </label>
+                  <div class="input-group">
+                    <%= form.password_field :password_confirmation, class: "form-control", placeholder: "Confirm password" %>
+                    <button class="btn btn-outline-secondary" type="button" id="toggle_confirm_password">
+                      <i class="bi bi-eye" id="confirm_password_icon"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Documents & QR Code -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-transparent border-0 d-flex align-items-center">
       <i class="bi bi-file-earmark-arrow-up me-2 text-warning"></i>
@@ -335,6 +424,113 @@ document.addEventListener('DOMContentLoaded', function() {
   if (stateSelect && stateSelect.value) {
     loadCitiesForState(stateSelect.value);
   }
+
+  // Password Option Toggle Functionality
+  const autoGenerateRadio = document.getElementById('auto_generate_password');
+  const manualPasswordRadio = document.getElementById('manual_password');
+  const manualPasswordFields = document.getElementById('manual_password_fields');
+
+  function togglePasswordFields() {
+    if (manualPasswordRadio && manualPasswordRadio.checked) {
+      manualPasswordFields.style.display = 'block';
+      // Make password fields required
+      document.getElementById('investor_password').required = true;
+      document.getElementById('investor_password_confirmation').required = true;
+    } else {
+      manualPasswordFields.style.display = 'none';
+      // Clear and unrequire password fields
+      document.getElementById('investor_password').required = false;
+      document.getElementById('investor_password_confirmation').required = false;
+      document.getElementById('investor_password').value = '';
+      document.getElementById('investor_password_confirmation').value = '';
+    }
+  }
+
+  // Event listeners for radio buttons
+  autoGenerateRadio?.addEventListener('change', togglePasswordFields);
+  manualPasswordRadio?.addEventListener('change', togglePasswordFields);
+
+  // Password visibility toggle
+  const togglePasswordBtn = document.getElementById('toggle_password');
+  const toggleConfirmPasswordBtn = document.getElementById('toggle_confirm_password');
+  const passwordField = document.getElementById('investor_password');
+  const confirmPasswordField = document.getElementById('investor_password_confirmation');
+  const passwordIcon = document.getElementById('password_icon');
+  const confirmPasswordIcon = document.getElementById('confirm_password_icon');
+
+  togglePasswordBtn?.addEventListener('click', function() {
+    const type = passwordField.type === 'password' ? 'text' : 'password';
+    passwordField.type = type;
+    passwordIcon.classList.toggle('bi-eye');
+    passwordIcon.classList.toggle('bi-eye-slash');
+  });
+
+  toggleConfirmPasswordBtn?.addEventListener('click', function() {
+    const type = confirmPasswordField.type === 'password' ? 'text' : 'password';
+    confirmPasswordField.type = type;
+    confirmPasswordIcon.classList.toggle('bi-eye');
+    confirmPasswordIcon.classList.toggle('bi-eye-slash');
+  });
+
+  // Password strength checker
+  const strengthBar = document.getElementById('password_strength_bar');
+  const strengthText = document.getElementById('password_strength_text');
+
+  function checkPasswordStrength(password) {
+    let strength = 0;
+    const checks = {
+      length: password.length >= 8,
+      lower: /[a-z]/.test(password),
+      upper: /[A-Z]/.test(password),
+      number: /\d/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    };
+
+    strength = Object.values(checks).filter(Boolean).length;
+
+    let strengthLevel = '';
+    let colorClass = '';
+    let widthPercent = 0;
+
+    switch(strength) {
+      case 0:
+      case 1:
+        strengthLevel = 'Very Weak';
+        colorClass = 'bg-danger';
+        widthPercent = 20;
+        break;
+      case 2:
+        strengthLevel = 'Weak';
+        colorClass = 'bg-warning';
+        widthPercent = 40;
+        break;
+      case 3:
+        strengthLevel = 'Fair';
+        colorClass = 'bg-info';
+        widthPercent = 60;
+        break;
+      case 4:
+        strengthLevel = 'Good';
+        colorClass = 'bg-primary';
+        widthPercent = 80;
+        break;
+      case 5:
+        strengthLevel = 'Strong';
+        colorClass = 'bg-success';
+        widthPercent = 100;
+        break;
+    }
+
+    if (strengthBar && strengthText) {
+      strengthBar.className = `progress-bar ${colorClass}`;
+      strengthBar.style.width = `${widthPercent}%`;
+      strengthText.textContent = strengthLevel;
+    }
+  }
+
+  passwordField?.addEventListener('input', function() {
+    checkPasswordStrength(this.value);
+  });
 
   // Document management
   let documentIndex = 0;
