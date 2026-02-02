@@ -83,22 +83,16 @@
         <div class="col-md-4">
           <%= form.label :state_id, "State", class: "form-label" %>
           <%= form.select :state_id,
-              options_for_select([
-                ['Karnataka', 1], ['Tamil Nadu', 2], ['Maharashtra', 3],
-                ['Gujarat', 4], ['Delhi', 5], ['West Bengal', 6]
-              ], @investor.state_id),
-              { prompt: 'Select State' },
-              { class: "form-select" } %>
+              options_for_select(LocationData.states_for_select, @investor.state_id),
+              { prompt: 'Search and select state...' },
+              { class: "form-select searchable-select", id: "investor_state", data: { placeholder: "Type to search states..." } } %>
         </div>
         <div class="col-md-4">
           <%= form.label :city_id, "City", class: "form-label" %>
           <%= form.select :city_id,
-              options_for_select([
-                ['Bangalore', 1], ['Mumbai', 2], ['Chennai', 3],
-                ['Delhi', 4], ['Kolkata', 5], ['Pune', 6]
-              ], @investor.city_id),
-              { prompt: 'Select City' },
-              { class: "form-select" } %>
+              options_for_select([], @investor.city_id),
+              { prompt: 'Search and select city...' },
+              { class: "form-select searchable-select", id: "investor_city", disabled: true, data: { placeholder: "Type to search cities..." } } %>
         </div>
         <div class="col-md-4">
           <%= form.label :gender, "Gender", class: "form-label" %>
@@ -245,8 +239,103 @@
 }
 </style>
 
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
+<!-- jQuery and Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- Include Location Data -->
+<script>
+<%= File.read(Rails.root.join('app/assets/javascripts/location_data.js')).html_safe %>
+</script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Initialize searchable state-city dropdowns
+  const stateSelect = document.getElementById('investor_state');
+  const citySelect = document.getElementById('investor_city');
+
+  // Use global location data
+  let citiesData = {};
+  if (window.LocationData && window.LocationData.states) {
+    citiesData = Object.keys(window.LocationData.states).reduce((acc, key) => {
+      acc[key] = window.LocationData.states[key].cities;
+      return acc;
+    }, {});
+  }
+
+  function loadCitiesForState(stateValue) {
+    console.log('Loading cities for investor state:', stateValue);
+    if (!stateValue) {
+      populateCityDropdown([]);
+      citySelect.disabled = true;
+      return;
+    }
+
+    // Get cities for this state from local data
+    let cities = citiesData[stateValue] || [];
+    populateCityDropdown(cities);
+  }
+
+  function populateCityDropdown(cities) {
+    // First destroy Select2 if it exists
+    const $citySelect = $(citySelect);
+    if ($citySelect.hasClass('select2-hidden-accessible')) {
+      $citySelect.select2('destroy');
+    }
+
+    // Clear dropdown and add cities
+    citySelect.innerHTML = '<option value="">Search and select city...</option>';
+    cities.forEach(function(city) {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      citySelect.appendChild(option);
+    });
+
+    // Re-enable dropdown
+    citySelect.disabled = false;
+
+    // Re-initialize Select2 on city dropdown
+    $citySelect.select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search and select city...',
+      allowClear: true,
+      width: '100%',
+      minimumResultsForSearch: 0
+    });
+  }
+
+  // Initialize Select2 on state dropdown
+  if (stateSelect) {
+    $('#investor_state').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Search and select state...',
+      allowClear: true,
+      width: '100%',
+      minimumResultsForSearch: 0
+    });
+  }
+
+  // Handle state change
+  stateSelect?.addEventListener('change', function() {
+    loadCitiesForState(this.value);
+  });
+
+  // Handle Select2 change event specifically
+  $('#investor_state').on('select2:select', function (e) {
+    const selectedValue = e.params.data.id;
+    loadCitiesForState(selectedValue);
+  });
+
+  // Load cities if state is pre-selected
+  if (stateSelect && stateSelect.value) {
+    loadCitiesForState(stateSelect.value);
+  }
+
   // Document management
   let documentIndex = 0;
   const addDocumentBtn = document.getElementById('add_document');

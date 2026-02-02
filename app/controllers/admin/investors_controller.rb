@@ -1,4 +1,5 @@
 class Admin::InvestorsController < Admin::ApplicationController
+  include LocationData
   before_action :set_investor, only: [:show, :edit, :update, :destroy, :toggle_status]
 
   # GET /admin/investors
