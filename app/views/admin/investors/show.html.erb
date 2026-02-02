@@ -1,2 +1,302 @@
-<h1>Admin::Investors#show</h1>
-<p>Find me in app/views/admin/investors/show.html.erb</p>
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1"><%= [@investor.first_name, @investor.last_name].compact.join(' ') %></h2>
+    <p class="text-muted mb-0">
+      <span class="badge bg-info me-2">Investor</span>
+      Investor Details & Information
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to edit_admin_investor_path(@investor), class: "btn btn-outline-warning" do %>
+      <i class="bi bi-pencil me-1"></i>
+      Edit Investor
+    <% end %>
+    <%= link_to admin_investors_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Investors
+    <% end %>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Main Information -->
+  <div class="col-lg-8">
+    <!-- Personal Details -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-person me-2 text-primary"></i>
+          Personal Information
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <strong>Full Name:</strong>
+            <div class="text-muted"><%= @investor.full_name %></div>
+          </div>
+          <div class="col-md-6">
+            <strong>Email:</strong>
+            <div class="text-muted">
+              <%= link_to @investor.email, "mailto:#{@investor.email}", class: "text-decoration-none" if @investor.email.present? %>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <strong>Mobile:</strong>
+            <div class="text-muted">
+              <%= link_to @investor.mobile, "tel:#{@investor.mobile}", class: "text-decoration-none" if @investor.mobile.present? %>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <strong>Username:</strong>
+            <div class="text-muted font-monospace"><%= @investor.username %></div>
+          </div>
+          <div class="col-md-6">
+            <strong>Status:</strong>
+            <div>
+              <span class="badge bg-<%= @investor.status == 'active' ? 'success' : 'secondary' %>">
+                <%= @investor.status&.humanize || 'Active' %>
+              </span>
+            </div>
+          </div>
+          <% if @investor.birth_date.present? %>
+            <div class="col-md-6">
+              <strong>Date of Birth:</strong>
+              <div class="text-muted"><%= @investor.birth_date.strftime("%d %B %Y") %></div>
+            </div>
+          <% end %>
+          <% if @investor.gender.present? %>
+            <div class="col-md-6">
+              <strong>Gender:</strong>
+              <div class="text-muted"><%= @investor.gender.humanize %></div>
+            </div>
+          <% end %>
+          <% if @investor.company_name.present? %>
+            <div class="col-md-6">
+              <strong>Company:</strong>
+              <div class="text-muted"><%= @investor.company_name %></div>
+            </div>
+          <% end %>
+        </div>
+
+        <% if @investor.address.present? %>
+          <hr>
+          <h6 class="fw-semibold mb-3">Address Information</h6>
+          <div class="row g-3">
+            <div class="col-12">
+              <strong>Address:</strong>
+              <div class="text-muted"><%= @investor.address %></div>
+            </div>
+          </div>
+        <% end %>
+
+        <% if @investor.pan_no.present? || @investor.gst_no.present? %>
+          <hr>
+          <h6 class="fw-semibold mb-3">Tax Information</h6>
+          <div class="row g-3">
+            <% if @investor.pan_no.present? %>
+              <div class="col-md-6">
+                <strong>PAN Number:</strong>
+                <div class="text-muted font-monospace"><%= @investor.pan_no %></div>
+              </div>
+            <% end %>
+            <% if @investor.gst_no.present? %>
+              <div class="col-md-6">
+                <strong>GST Number:</strong>
+                <div class="text-muted font-monospace"><%= @investor.gst_no %></div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Bank Details -->
+    <% if @investor.bank_name.present? || @investor.account_no.present? || @investor.ifsc_code.present? %>
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="mb-0">
+            <i class="bi bi-bank me-2 text-success"></i>
+            Banking Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <% if @investor.bank_name.present? %>
+              <div class="col-md-6">
+                <strong>Bank Name:</strong>
+                <div class="text-muted"><%= @investor.bank_name %></div>
+              </div>
+            <% end %>
+            <% if @investor.account_no.present? %>
+              <div class="col-md-6">
+                <strong>Account Number:</strong>
+                <div class="text-muted font-monospace">
+                  **** **** <%= @investor.account_no.to_s.last(4) %>
+                </div>
+              </div>
+            <% end %>
+            <% if @investor.ifsc_code.present? %>
+              <div class="col-md-6">
+                <strong>IFSC Code:</strong>
+                <div class="text-muted font-monospace"><%= @investor.ifsc_code %></div>
+              </div>
+            <% end %>
+            <% if @investor.account_holder_name.present? %>
+              <div class="col-md-6">
+                <strong>Account Holder:</strong>
+                <div class="text-muted"><%= @investor.account_holder_name %></div>
+              </div>
+            <% end %>
+            <% if @investor.account_type.present? %>
+              <div class="col-md-6">
+                <strong>Account Type:</strong>
+                <div class="text-muted"><%= @investor.account_type.humanize %></div>
+              </div>
+            <% end %>
+            <% if @investor.upi_id.present? %>
+              <div class="col-md-6">
+                <strong>UPI ID:</strong>
+                <div class="text-muted font-monospace"><%= @investor.upi_id %></div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Documents -->
+    <% if @investor.investor_documents.any? %>
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="mb-0">
+            <i class="bi bi-files me-2 text-warning"></i>
+            Documents
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="bg-light">
+                <tr>
+                  <th class="border-0">Document Type</th>
+                  <th class="border-0">File</th>
+                  <th class="border-0">Uploaded</th>
+                  <th class="border-0">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @investor.investor_documents.each do |document| %>
+                  <tr>
+                    <td>
+                      <div class="fw-semibold"><%= document.document_type %></div>
+                    </td>
+                    <td>
+                      <% if document.document_file.attached? %>
+                        <div class="d-flex align-items-center">
+                          <i class="bi bi-file-earmark me-2 text-muted"></i>
+                          <span><%= document.document_name %></span>
+                        </div>
+                        <small class="text-muted"><%= document.document_size %></small>
+                      <% else %>
+                        <span class="text-muted">No file attached</span>
+                      <% end %>
+                    </td>
+                    <td><%= document.created_at.strftime("%d %b %Y") %></td>
+                    <td>
+                      <% if document.document_file.attached? %>
+                        <%= link_to document.document_url, class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
+                          <i class="bi bi-download"></i>
+                        <% end %>
+                      <% end %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-lg-4">
+    <!-- Profile Card -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body text-center">
+        <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 120px; height: 120px;">
+          <i class="bi bi-person-badge fs-1 text-info"></i>
+        </div>
+        <h5 class="mb-1"><%= @investor.full_name %></h5>
+        <p class="text-muted mb-3"><%= @investor.email %></p>
+
+        <div class="d-grid gap-2">
+          <% if @investor.email.present? %>
+            <%= link_to "mailto:#{@investor.email}", class: "btn btn-outline-primary" do %>
+              <i class="bi bi-envelope me-1"></i>
+            <% end %>
+          <% end %>
+          <% if @investor.mobile.present? %>
+            <%= link_to "tel:#{@investor.mobile}", class: "btn btn-outline-success" do %>
+              <i class="bi bi-telephone me-1"></i>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Account Information -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0">
+        <h6 class="mb-0">Account Information</h6>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 text-sm">
+          <div class="col-5"><strong>Investor ID:</strong></div>
+          <div class="col-7 text-muted">#<%= @investor.id %></div>
+
+          <div class="col-5"><strong>Role:</strong></div>
+          <div class="col-7">
+            <span class="badge bg-info">Investor</span>
+          </div>
+
+          <div class="col-5"><strong>Status:</strong></div>
+          <div class="col-7">
+            <span class="badge bg-<%= @investor.status == 'active' ? 'success' : 'secondary' %>">
+              <%= @investor.status&.humanize || 'Active' %>
+            </span>
+          </div>
+
+          <div class="col-5"><strong>Username:</strong></div>
+          <div class="col-7 text-muted"><%= @investor.username %></div>
+
+          <% if @investor.original_password.present? %>
+            <div class="col-5"><strong>Password:</strong></div>
+            <div class="col-7 text-muted font-monospace"><%= @investor.original_password %></div>
+          <% end %>
+
+          <div class="col-5"><strong>Created:</strong></div>
+          <div class="col-7 text-muted"><%= @investor.created_at.strftime("%d %b %Y") %></div>
+
+          <div class="col-5"><strong>Last Updated:</strong></div>
+          <div class="col-7 text-muted"><%= @investor.updated_at.strftime("%d %b %Y") %></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Investment Summary (Placeholder) -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0">
+        <h6 class="mb-0">Investment Summary</h6>
+      </div>
+      <div class="card-body text-center">
+        <div class="border rounded-3 p-4 bg-light">
+          <i class="bi bi-graph-up fs-1 text-muted mb-3"></i>
+          <p class="text-muted mb-0">Investment tracking features coming soon</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

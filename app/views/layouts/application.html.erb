@@ -68,22 +68,29 @@
       <!-- Enhanced Insurance-themed Header -->
       <header class="header">
         <div class="container-fluid h-100">
-          <div class="d-flex align-items-center justify-content-between h-100 px-3">
-            <!-- Mobile Toggle (existing) -->
-            <button class="mobile-toggle d-md-none" type="button" data-bs-toggle="sidebar">
-              <i class="fas fa-bars"></i>
-            </button>
+          <div class="d-flex align-items-center h-100 px-3">
+            <!-- Left side: Toggle buttons and DrWise Admin -->
+            <div class="d-flex align-items-center flex-grow-0">
+              <!-- Mobile Toggle -->
+              <button class="mobile-toggle d-md-none" type="button" data-bs-toggle="sidebar">
+                <i class="fas fa-bars"></i>
+              </button>
 
-            <!-- Desktop Sidebar Toggle (new) -->
-            <button class="desktop-sidebar-toggle d-none d-md-block" type="button" id="desktopSidebarToggle">
-              <i class="fas fa-bars"></i>
-            </button>
+              <!-- Desktop Sidebar Toggle -->
+              <button class="desktop-sidebar-toggle d-none d-md-block" type="button" id="desktopSidebarToggle">
+                <i class="fas fa-bars"></i>
+              </button>
 
-            <!-- Header Brand -->
-            <div class="d-flex align-items-center">
+              <!-- DrWise Admin Title -->
+              <div class="drwise-header-title ms-3">
+                <span class="drwise-header-text">DrWise Admin</span>
+              </div>
             </div>
 
-            <!-- Header Actions -->
+            <!-- Spacer to push right content to the right -->
+            <div class="flex-grow-1"></div>
+
+            <!-- Right side: Header Actions -->
             <div class="d-flex align-items-center gap-3">
               <div class="dropdown">
                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">

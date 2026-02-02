@@ -74,7 +74,7 @@ class Admin::InvestorsController < Admin::ApplicationController
 
   # GET /admin/investors/1/edit
   def edit
-    @investor.investor_documents.build if @investor.investor_documents.empty?
+    # Don't build empty documents in edit - let user add them via JavaScript
   end
 
   # POST /admin/investors
@@ -85,6 +85,7 @@ class Admin::InvestorsController < Admin::ApplicationController
     if @investor.save
       redirect_to admin_investors_path, notice: 'Investor was successfully created.'
     else
+      # Build a new document for the form if none exist
       @investor.investor_documents.build if @investor.investor_documents.empty?
       render :new, status: :unprocessable_entity
     end
@@ -92,18 +93,93 @@ class Admin::InvestorsController < Admin::ApplicationController
 
   # PATCH/PUT /admin/investors/1
   def update
-    if @investor.update(investor_params)
-      redirect_to admin_investors_path, notice: 'Investor was successfully updated.'
+    # Handle password reset
+    if params[:reset_password] == 'true' || params[:reset_password] == '1'
+      if params[:new_password_option] == 'manual' && investor_params[:password].present?
+        # Manual password provided
+        @investor.password = investor_params[:password]
+        @investor.original_password = investor_params[:password]
+      else
+        # Auto-generate new password
+        new_password = "Ganesha@123"
+        @investor.password = new_password
+        @investor.original_password = new_password
+      end
+    end
+
+    # Remove password fields from update params if not resetting password
+    update_params = investor_params
+    unless params[:reset_password] == 'true' || params[:reset_password] == '1'
+      update_params = update_params.except(:password, :password_confirmation)
+    end
+
+    if @investor.update(update_params)
+      if params[:reset_password] == 'true' || params[:reset_password] == '1'
+        redirect_to admin_investors_path, notice: 'Investor was successfully updated and password was reset.'
+      else
+        redirect_to admin_investors_path, notice: 'Investor was successfully updated.'
+      end
     else
-      @investor.investor_documents.build if @investor.investor_documents.empty?
+      # Don't build empty documents on error - just re-render
       render :edit, status: :unprocessable_entity
     end
   end
 
   # DELETE /admin/investors/1
   def destroy
-    @investor.destroy
-    redirect_to admin_investors_path, notice: 'Investor was successfully deleted.'
+    begin
+      # Get counts for confirmation message
+      health_insurances_count = @investor.health_insurances.count
+      motor_insurances_count = @investor.motor_insurances.count
+      other_insurances_count = @investor.other_insurances.count
+      documents_count = @investor.investor_documents.count
+
+      # Delete commission payouts related to this investor
+      commission_payouts_deleted = 0
+      ['health', 'motor', 'other'].each do |insurance_type|
+        # Find policies where this investor was involved
+        case insurance_type
+        when 'health'
+          policy_ids = @investor.health_insurances.pluck(:id)
+        when 'motor'
+          policy_ids = @investor.motor_insurances.pluck(:id)
+        when 'other'
+          policy_ids = @investor.other_insurances.pluck(:id)
+        end
+
+        if policy_ids.any?
+          deleted_count = CommissionPayout.where(
+            policy_type: insurance_type,
+            policy_id: policy_ids,
+            payout_to: 'investor'
+          ).delete_all
+          commission_payouts_deleted += deleted_count
+        end
+      end
+
+      # Delete the investor (associations will be handled by dependent: options)
+      @investor.destroy!
+
+      # Create detailed success message
+      message_parts = ["Investor was successfully deleted."]
+      if documents_count > 0
+        message_parts << "#{documents_count} document(s) removed"
+      end
+      if health_insurances_count > 0 || motor_insurances_count > 0 || other_insurances_count > 0
+        total_policies = health_insurances_count + motor_insurances_count + other_insurances_count
+        message_parts << "#{total_policies} insurance policy/policies updated (investor reference removed)"
+      end
+      if commission_payouts_deleted > 0
+        message_parts << "#{commission_payouts_deleted} commission payout(s) cleaned up"
+      end
+
+      notice_message = message_parts.join(", ")
+      redirect_to admin_investors_path, notice: notice_message
+
+    rescue StandardError => e
+      Rails.logger.error "Failed to delete investor #{@investor.id}: #{e.message}"
+      redirect_to admin_investors_path, alert: "Failed to delete investor: #{e.message}"
+    end
   end
 
   # PATCH /admin/investors/1/toggle_status

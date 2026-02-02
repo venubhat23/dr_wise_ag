@@ -6,6 +6,9 @@ class Investor < ApplicationRecord
 
   # Associations
   has_many :investor_documents, dependent: :destroy
+  has_many :health_insurances, dependent: :nullify
+  has_many :motor_insurances, dependent: :nullify
+  has_many :other_insurances, dependent: :nullify
   has_one_attached :upload_main_document
 
   # Nested attributes for documents

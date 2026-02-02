@@ -1,7 +1,10 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <div>
-    <h2 class="mb-1">Investor Management</h2>
+  <div class="d-flex align-items-center">
+    <h2 class="page-title mb-0">
+      <span class="title-text">Investor</span>
+      <span class="title-highlight">Management</span>
+    </h2>
   </div>
   <div class="d-flex gap-2">
     <%= link_to new_admin_investor_path, class: "btn btn-primary" do %>
@@ -152,7 +155,7 @@
                         class: "btn btn-sm btn-outline-danger",
                         title: "Delete",
                         data: {
-                          confirm: "Are you sure you want to delete this investor? This action cannot be undone.",
+                          confirm: "⚠️ PERMANENT DELETE WARNING ⚠️\n\nThis will PERMANENTLY delete:\n• Investor: #{investor.display_name}\n• All investor documents\n• Remove investor reference from insurance policies\n• Clean up related commission payouts\n\nThis action CANNOT be undone!\n\nAre you absolutely sure you want to proceed?",
                           turbo_method: :delete
                         } do %>
                       <i class="bi bi-trash"></i>
@@ -215,6 +218,79 @@
 </div>
 
 <style>
+/* Attractive Page Title Styling */
+.page-title {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  padding-left: 0;
+}
+
+.title-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+  position: relative;
+}
+
+.title-highlight {
+  color: #2d3748;
+  font-weight: 600;
+  position: relative;
+}
+
+.title-highlight::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 2px;
+  animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 100%;
+    opacity: 1;
+  }
+}
+
+/* Hover effect for the title */
+.page-title:hover .title-text {
+  animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 1.5rem;
+  }
+}
+
+/* Existing styles */
 .min-width-250 {
   min-width: 250px;
 }

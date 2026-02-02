@@ -176,7 +176,117 @@
     </div>
   </div>
 
-  <!-- 3. Documents & QR Code -->
+  <!-- 3. Login Credentials - Simplified -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-key me-2 text-info"></i>
+      <h5 class="mb-0">Password Management</h5>
+    </div>
+    <div class="card-body">
+      <!-- Login Information -->
+      <div class="alert alert-info d-flex align-items-start mb-4">
+        <i class="bi bi-info-circle me-2 fs-5"></i>
+        <div>
+          <h6 class="alert-heading">Login Information</h6>
+          <p class="mb-0">Investor can login using their <strong>email address</strong> or <strong>mobile number</strong> with their password.</p>
+          <p class="mb-0 mt-2"><strong>Current Password:</strong> <%= @investor.original_password || 'Not available' %></p>
+        </div>
+      </div>
+
+      <!-- Password Reset Option -->
+      <div class="row">
+        <div class="col-12 mb-4">
+          <div class="form-check p-3 border rounded bg-light">
+            <input class="form-check-input" type="checkbox" id="reset_password" name="reset_password">
+            <label class="form-check-label w-100" for="reset_password">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-arrow-clockwise me-2 text-warning"></i>
+                <strong>Reset Password</strong>
+              </div>
+              <small class="text-muted d-block mt-1">
+                Check this box to set a new password for this investor
+              </small>
+            </label>
+          </div>
+        </div>
+
+        <!-- New Password Fields (hidden by default) -->
+        <div id="new_password_fields" class="col-12" style="display: none;">
+          <div class="card bg-light border-0">
+            <div class="card-body">
+              <div class="row">
+                <div class="col-12 mb-3">
+                  <label class="form-label mb-3">New Password Creation Method</label>
+                  <!-- Auto Generate Option (Default) -->
+                  <div class="form-check mb-3 p-3 border rounded bg-white">
+                    <input class="form-check-input" type="radio" name="new_password_option" id="auto_generate_new_password" value="auto_generate" checked>
+                    <label class="form-check-label w-100" for="auto_generate_new_password">
+                      <div class="d-flex align-items-center">
+                        <i class="bi bi-cpu me-2 text-primary"></i>
+                        <strong>Auto Generate New Password (Recommended)</strong>
+                      </div>
+                      <small class="text-muted d-block mt-1">
+                        System will automatically generate a secure password: <strong>Ganesha@123</strong>
+                      </small>
+                    </label>
+                  </div>
+                  <!-- Manual Entry Option -->
+                  <div class="form-check mb-3 p-3 border rounded bg-white">
+                    <input class="form-check-input" type="radio" name="new_password_option" id="manual_new_password" value="manual">
+                    <label class="form-check-label w-100" for="manual_new_password">
+                      <div class="d-flex align-items-center">
+                        <i class="bi bi-pencil me-2 text-success"></i>
+                        <strong>Set Custom Password</strong>
+                      </div>
+                      <small class="text-muted d-block mt-1">
+                        Manually enter a custom password for the investor
+                      </small>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Manual Password Fields (hidden by default) -->
+                <div id="manual_new_password_fields" class="col-12" style="display: none;">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <label class="form-label" for="investor_password">
+                        New Password <span class="text-danger">*</span>
+                      </label>
+                      <div class="input-group">
+                        <%= form.password_field :password, class: "form-control", placeholder: "Enter new password", minlength: 8 %>
+                        <button class="btn btn-outline-secondary" type="button" id="toggle_new_password">
+                          <i class="bi bi-eye" id="new_password_icon"></i>
+                        </button>
+                      </div>
+                      <div class="mt-2">
+                        <div class="progress" style="height: 4px;">
+                          <div class="progress-bar" role="progressbar" id="new_password_strength_bar"></div>
+                        </div>
+                        <small class="text-muted">Strength: <span id="new_password_strength_text">Enter password</span></small>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label" for="investor_password_confirmation">
+                        Confirm New Password <span class="text-danger">*</span>
+                      </label>
+                      <div class="input-group">
+                        <%= form.password_field :password_confirmation, class: "form-control", placeholder: "Confirm new password" %>
+                        <button class="btn btn-outline-secondary" type="button" id="toggle_new_confirm_password">
+                          <i class="bi bi-eye" id="new_confirm_password_icon"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Documents & QR Code -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-transparent border-0 d-flex align-items-center">
       <i class="bi bi-file-earmark-arrow-up me-2 text-warning"></i>
@@ -198,11 +308,11 @@
       </div>
 
       <!-- Existing Documents -->
-      <% if @investor.investor_documents.any? %>
+      <% if @investor.investor_documents.select(&:persisted?).any? %>
         <div class="border-bottom pb-4 mb-4">
           <h6 class="mb-3">Existing Documents</h6>
           <div class="row">
-            <% @investor.investor_documents.each do |document| %>
+            <% @investor.investor_documents.select(&:persisted?).each do |document| %>
               <div class="col-md-6 mb-3">
                 <div class="card h-100">
                   <div class="card-body">
@@ -219,13 +329,15 @@
                           <i class="bi bi-eye me-1"></i>View
                         <% end %>
                       <% end %>
-                      <%= link_to [:admin, @investor, document],
-                                 class: "btn btn-sm btn-outline-danger",
-                                 data: {
-                                   "turbo-method": :delete,
-                                   "turbo-confirm": "Are you sure you want to delete this document?"
-                                 } do %>
-                        <i class="bi bi-trash me-1"></i>Delete
+                      <% if document.persisted? %>
+                        <%= link_to admin_investor_investor_document_path(@investor, document),
+                                   class: "btn btn-sm btn-outline-danger",
+                                   data: {
+                                     "turbo-method": :delete,
+                                     "turbo-confirm": "Are you sure you want to delete this document?"
+                                   } do %>
+                          <i class="bi bi-trash me-1"></i>Delete
+                        <% end %>
                       <% end %>
                     </div>
                   </div>
@@ -379,6 +491,125 @@ document.addEventListener('DOMContentLoaded', function() {
   if (stateSelect && stateSelect.value) {
     loadCitiesForState(stateSelect.value);
   }
+
+
+  // Password Reset Functionality
+  const resetPasswordCheckbox = document.getElementById('reset_password');
+  const newPasswordFields = document.getElementById('new_password_fields');
+  const autoGenerateNewPasswordRadio = document.getElementById('auto_generate_new_password');
+  const manualNewPasswordRadio = document.getElementById('manual_new_password');
+  const manualNewPasswordFields = document.getElementById('manual_new_password_fields');
+
+  resetPasswordCheckbox?.addEventListener('change', function() {
+    if (this.checked) {
+      newPasswordFields.style.display = 'block';
+    } else {
+      newPasswordFields.style.display = 'none';
+      // Clear password fields when hiding
+      document.getElementById('investor_password').value = '';
+      document.getElementById('investor_password_confirmation').value = '';
+    }
+  });
+
+  // New Password Option Toggle
+  function toggleNewPasswordFields() {
+    if (manualNewPasswordRadio && manualNewPasswordRadio.checked) {
+      manualNewPasswordFields.style.display = 'block';
+      document.getElementById('investor_password').required = true;
+      document.getElementById('investor_password_confirmation').required = true;
+    } else {
+      manualNewPasswordFields.style.display = 'none';
+      document.getElementById('investor_password').required = false;
+      document.getElementById('investor_password_confirmation').required = false;
+      document.getElementById('investor_password').value = '';
+      document.getElementById('investor_password_confirmation').value = '';
+    }
+  }
+
+  autoGenerateNewPasswordRadio?.addEventListener('change', toggleNewPasswordFields);
+  manualNewPasswordRadio?.addEventListener('change', toggleNewPasswordFields);
+
+  // New Password visibility toggles
+  const toggleNewPasswordBtn = document.getElementById('toggle_new_password');
+  const toggleNewConfirmPasswordBtn = document.getElementById('toggle_new_confirm_password');
+  const newPasswordField = document.getElementById('investor_password');
+  const newConfirmPasswordField = document.getElementById('investor_password_confirmation');
+  const newPasswordIcon = document.getElementById('new_password_icon');
+  const newConfirmPasswordIcon = document.getElementById('new_confirm_password_icon');
+
+  toggleNewPasswordBtn?.addEventListener('click', function() {
+    const type = newPasswordField.type === 'password' ? 'text' : 'password';
+    newPasswordField.type = type;
+    newPasswordIcon.classList.toggle('bi-eye');
+    newPasswordIcon.classList.toggle('bi-eye-slash');
+  });
+
+  toggleNewConfirmPasswordBtn?.addEventListener('click', function() {
+    const type = newConfirmPasswordField.type === 'password' ? 'text' : 'password';
+    newConfirmPasswordField.type = type;
+    newConfirmPasswordIcon.classList.toggle('bi-eye');
+    newConfirmPasswordIcon.classList.toggle('bi-eye-slash');
+  });
+
+  // New Password strength checker
+  const newStrengthBar = document.getElementById('new_password_strength_bar');
+  const newStrengthText = document.getElementById('new_password_strength_text');
+
+  function checkNewPasswordStrength(password) {
+    let strength = 0;
+    const checks = {
+      length: password.length >= 8,
+      lower: /[a-z]/.test(password),
+      upper: /[A-Z]/.test(password),
+      number: /\d/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    };
+
+    strength = Object.values(checks).filter(Boolean).length;
+
+    let strengthLevel = '';
+    let colorClass = '';
+    let widthPercent = 0;
+
+    switch(strength) {
+      case 0:
+      case 1:
+        strengthLevel = 'Very Weak';
+        colorClass = 'bg-danger';
+        widthPercent = 20;
+        break;
+      case 2:
+        strengthLevel = 'Weak';
+        colorClass = 'bg-warning';
+        widthPercent = 40;
+        break;
+      case 3:
+        strengthLevel = 'Fair';
+        colorClass = 'bg-info';
+        widthPercent = 60;
+        break;
+      case 4:
+        strengthLevel = 'Good';
+        colorClass = 'bg-primary';
+        widthPercent = 80;
+        break;
+      case 5:
+        strengthLevel = 'Strong';
+        colorClass = 'bg-success';
+        widthPercent = 100;
+        break;
+    }
+
+    if (newStrengthBar && newStrengthText) {
+      newStrengthBar.className = `progress-bar ${colorClass}`;
+      newStrengthBar.style.width = `${widthPercent}%`;
+      newStrengthText.textContent = strengthLevel;
+    }
+  }
+
+  newPasswordField?.addEventListener('input', function() {
+    checkNewPasswordStrength(this.value);
+  });
 
   // Document management
   let documentIndex = <%= @investor.investor_documents.size %>;
