@@ -1423,6 +1423,15 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
 
+    // Update autopay start date when policy start date changes
+    function updateAutopayStartDate() {
+      const policyStartDate = document.getElementById('start_date').value;
+      if (policyStartDate) {
+        document.getElementById('autopay_start_date').value = policyStartDate;
+        calculateAutopayEndDate(); // Recalculate end date
+      }
+    }
+
     // Auto-calculate end date based on start date and default to 1 year
     function calculateEndDate() {
       const startDate = document.getElementById('start_date').value;
@@ -1564,7 +1573,10 @@ document.addEventListener('DOMContentLoaded', function() {
       calculateProfitAndExpenses();
     });
     document.getElementById('tds_percentage').addEventListener('input', calculateCommission);
-    document.getElementById('start_date').addEventListener('change', calculateEndDate);
+    document.getElementById('start_date').addEventListener('change', function() {
+      calculateEndDate();
+      updateAutopayStartDate(); // Also update autopay dates when policy start date changes
+    });
 
     // Autopay date calculation event listeners
     if (document.getElementById('payment_mode_select')) {

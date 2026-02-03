@@ -284,10 +284,10 @@
             <div class="row g-3 mb-4">
               <div class="col-md-3">
                 <div class="card">
-                  <%= image_tag @customer.profile_image, class: "card-img-top", style: "height: 150px; object-fit: cover;" %>
+                  <%= image_tag url_for(@customer.profile_image), class: "card-img-top", style: "height: 150px; object-fit: cover;" %>
                   <div class="card-body p-2">
                     <small class="text-muted d-block"><%= @customer.profile_image.filename %></small>
-                    <%= link_to @customer.profile_image, class: "btn btn-sm btn-outline-primary mt-1", target: "_blank" do %>
+                    <%= link_to url_for(@customer.profile_image), class: "btn btn-sm btn-outline-primary mt-1", target: "_blank" do %>
                       <i class="bi bi-eye me-1"></i>View
                     <% end %>
                   </div>
@@ -331,7 +331,7 @@
                     </div>
                     <div class="card-footer d-flex gap-2 p-2">
                       <% if document.downloadable? %>
-                        <%= link_to rails_blob_path(document.file, disposition: "attachment"), class: "btn btn-sm btn-outline-primary flex-grow-1", target: "_blank" do %>
+                        <%= link_to rails_blob_url(document.file, disposition: "attachment"), class: "btn btn-sm btn-outline-primary flex-grow-1", target: "_blank" do %>
                           <i class="bi bi-download me-1"></i>Download
                         <% end %>
                       <% end %>
@@ -371,7 +371,7 @@
                   </div>
                   <div>
                     <% if document.file.attached? %>
-                      <%= link_to rails_blob_path(document.file, disposition: "attachment"), class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
+                      <%= link_to rails_blob_url(document.file, disposition: "attachment"), class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
                         <i class="bi bi-download me-1"></i>Download
                       <% end %>
                     <% else %>
@@ -561,11 +561,11 @@
       <div class="card-body text-center">
         <% if @customer.profile_image.attached? %>
           <div class="profile-image-container mb-3">
-            <%= link_to rails_blob_path(@customer.profile_image, disposition: "inline"),
+            <%= link_to rails_blob_url(@customer.profile_image, disposition: "inline"),
                 target: "_blank",
                 title: "Click to view full size",
                 class: "text-decoration-none" do %>
-              <%= image_tag @customer.profile_image,
+              <%= image_tag url_for(@customer.profile_image),
                   class: "profile-image rounded-circle border border-3 border-light shadow",
                   alt: @customer.display_name,
                   style: "width: 120px; height: 120px; object-fit: cover;" %>
@@ -823,7 +823,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body text-center">
-          <%= image_tag @customer.profile_image,
+          <%= image_tag url_for(@customer.profile_image),
               class: "img-fluid rounded shadow",
               style: "max-height: 500px; max-width: 100%;",
               alt: "Profile image of #{@customer.display_name}" %>
@@ -838,12 +838,12 @@
           </div>
         </div>
         <div class="modal-footer">
-          <%= link_to rails_blob_path(@customer.profile_image, disposition: "attachment"),
+          <%= link_to rails_blob_url(@customer.profile_image, disposition: "attachment"),
               class: "btn btn-primary",
               download: @customer.profile_image.filename do %>
             <i class="bi bi-download me-1"></i>Download
           <% end %>
-          <%= link_to rails_blob_path(@customer.profile_image, disposition: "inline"),
+          <%= link_to rails_blob_url(@customer.profile_image, disposition: "inline"),
               class: "btn btn-outline-secondary",
               target: "_blank" do %>
             <i class="bi bi-arrows-fullscreen me-1"></i>Open in New Tab

@@ -315,7 +315,7 @@ body.modal-open {
                       <%= indian_currency(commission_data.dig(:summary, :total_commission_generated).to_i) %>
                     </span>
                     <small class="text-muted d-block mt-1">
-                      Main Agent: <%= indian_currency(commission_data.dig(:main_agent, :total_commission).to_i) %>
+                      Main Agent: <%= indian_currency(commission_data.dig(:main_agent, :total_commission).to_f.round(2)) %>
                       <span class="text-muted">(<%= commission_data.dig(:percentages, :main_agent) || commission_data.dig(:main_agent, :percentage) || policy&.main_agent_commission_percentage || '0' %>%)</span>
                     </small>
                   </div>
@@ -371,19 +371,19 @@ body.modal-open {
                 <td>
                   <div>
                     <small class="d-block">
-                      Affiliate: <%= indian_currency(commission_data.dig(:payouts, :affiliate).to_i) %>
+                      Affiliate: <%= indian_currency(commission_data.dig(:payouts, :affiliate).to_f.round(2)) %>
                       <span class="text-muted">(<%= commission_data.dig(:percentages, :affiliate) || policy&.sub_agent_commission_percentage || '0' %>%)</span>
                     </small>
                     <small class="d-block">
-                      Ambassador: <%= indian_currency(commission_data.dig(:payouts, :ambassador).to_i) %>
+                      Ambassador: <%= indian_currency(commission_data.dig(:payouts, :ambassador).to_f.round(2)) %>
                       <span class="text-muted">(<%= commission_data.dig(:percentages, :ambassador) || policy&.ambassador_commission_percentage || '0' %>%)</span>
                     </small>
                     <small class="d-block">
-                      Investor: <%= indian_currency(commission_data.dig(:payouts, :investor).to_i) %>
+                      Investor: <%= indian_currency(commission_data.dig(:payouts, :investor).to_f.round(2)) %>
                       <span class="text-muted">(<%= commission_data.dig(:percentages, :investor) || policy&.investor_commission_percentage || '0' %>%)</span>
                     </small>
                     <small class="d-block">
-                      Company: <%= indian_currency(commission_data.dig(:payouts, :company_expense).to_i) %>
+                      Company: <%= indian_currency(commission_data.dig(:payouts, :company_expense).to_f.round(2)) %>
                       <span class="text-muted">(<%= commission_data.dig(:percentages, :company_expense) || policy&.company_expenses_percentage || '0' %>%)</span>
                     </small>
                   </div>

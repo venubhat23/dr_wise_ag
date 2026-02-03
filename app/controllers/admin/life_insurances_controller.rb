@@ -70,6 +70,9 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     @life_insurance = LifeInsurance.new
     set_form_data
 
+    # Set default commission percentage from system settings
+    @life_insurance.main_agent_commission_percentage = SystemSetting.default_main_agent_commission
+
     # Pre-fill customer data if coming from customer page
     if params[:customer_id].present?
       @selected_customer = Customer.find(params[:customer_id])

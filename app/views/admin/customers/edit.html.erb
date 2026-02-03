@@ -381,13 +381,9 @@
                     <label class="form-label">Relationship <span class="text-danger">*</span></label>
                     <select name="customer[family_members_attributes][<%= index %>][relationship]" class="form-select" required>
                       <option value="">Select Relationship</option>
-                      <option value="father" <%= 'selected' if family_member.relationship == 'father' %>>Father</option>
-                      <option value="mother" <%= 'selected' if family_member.relationship == 'mother' %>>Mother</option>
-                      <option value="spouse" <%= 'selected' if family_member.relationship == 'spouse' %>>Spouse</option>
-                      <option value="son" <%= 'selected' if family_member.relationship == 'son' %>>Son</option>
-                      <option value="daughter" <%= 'selected' if family_member.relationship == 'daughter' %>>Daughter</option>
-                      <option value="sibling" <%= 'selected' if family_member.relationship == 'sibling' %>>Sibling</option>
-                      <option value="other" <%= 'selected' if family_member.relationship == 'other' %>>Other</option>
+                      <% FamilyMember::RELATIONSHIPS.each do |rel| %>
+                        <option value="<%= rel %>" <%= 'selected' if family_member.relationship == rel %>><%= rel.humanize.titleize %></option>
+                      <% end %>
                     </select>
                   </div>
                   <div class="col-md-4">
@@ -440,7 +436,7 @@
               <h6>Profile Image</h6>
               <div class="row g-2 mb-3">
                 <div class="col-md-3">
-                  <%= image_tag @customer.profile_image, class: "img-thumbnail", style: "max-height: 100px;" %>
+                  <%= image_tag url_for(@customer.profile_image), class: "img-thumbnail", style: "max-height: 100px;" %>
                   <small class="d-block text-muted"><%= @customer.profile_image.filename %></small>
                   <button type="button" class="btn btn-outline-primary btn-sm mt-2"
                           data-bs-toggle="modal"
@@ -556,7 +552,7 @@
       <div class="card-body">
         <div class="d-flex align-items-center mb-3">
           <% if @customer.profile_image.attached? %>
-            <%= image_tag @customer.profile_image, class: "rounded-circle me-3", style: "width: 50px; height: 50px; object-fit: cover;" %>
+            <%= image_tag url_for(@customer.profile_image), class: "rounded-circle me-3", style: "width: 50px; height: 50px; object-fit: cover;" %>
           <% else %>
             <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
               <i class="bi bi-person text-primary"></i>
@@ -807,13 +803,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <label class="form-label">Relationship <span class="text-danger">*</span></label>
             <select name="customer[family_members_attributes][${familyMemberIndex}][relationship]" class="form-select" required>
               <option value="">Select Relationship</option>
-              <option value="father">Father</option>
-              <option value="mother">Mother</option>
-              <option value="spouse">Spouse</option>
-              <option value="son">Son</option>
-              <option value="daughter">Daughter</option>
-              <option value="sibling">Sibling</option>
-              <option value="other">Other</option>
+              <% FamilyMember::RELATIONSHIPS.each do |rel| %>
+              <option value="<%= rel %>"><%= rel.humanize.titleize %></option>
+              <% end %>
             </select>
           </div>
           <div class="col-md-4">
@@ -946,7 +938,7 @@ document.addEventListener('DOMContentLoaded', function() {
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body text-center">
-          <%= image_tag @customer.profile_image,
+          <%= image_tag url_for(@customer.profile_image),
               class: "img-fluid rounded shadow",
               style: "max-height: 500px; max-width: 100%;",
               alt: "Profile image of #{@customer.display_name}" %>
@@ -961,12 +953,12 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
         </div>
         <div class="modal-footer">
-          <%= link_to rails_blob_path(@customer.profile_image, disposition: "attachment"),
+          <%= link_to rails_blob_url(@customer.profile_image, disposition: "attachment"),
               class: "btn btn-primary",
               download: @customer.profile_image.filename do %>
             <i class="bi bi-download me-1"></i>Download
           <% end %>
-          <%= link_to rails_blob_path(@customer.profile_image, disposition: "inline"),
+          <%= link_to rails_blob_url(@customer.profile_image, disposition: "inline"),
               class: "btn btn-outline-secondary",
               target: "_blank" do %>
             <i class="bi bi-arrows-fullscreen me-1"></i>Open in New Tab

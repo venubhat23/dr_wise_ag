@@ -2101,15 +2101,19 @@ document.addEventListener('DOMContentLoaded', function() {
       switch (paymentMode) {
         case 'Yearly':
           end.setFullYear(end.getFullYear() + 1);
+          end.setDate(end.getDate() - 1); // Subtract 1 day to make it end on the day before anniversary
           break;
         case 'Half-Yearly':
           end.setMonth(end.getMonth() + 6);
+          end.setDate(end.getDate() - 1);
           break;
         case 'Quarterly':
           end.setMonth(end.getMonth() + 3);
+          end.setDate(end.getDate() - 1);
           break;
         case 'Monthly':
           end.setMonth(end.getMonth() + 1);
+          end.setDate(end.getDate() - 1);
           break;
         case 'Single':
           // For single payment, autopay end date is the same as start date
@@ -2118,10 +2122,20 @@ document.addEventListener('DOMContentLoaded', function() {
         default:
           // Default to yearly if no mode selected
           end.setFullYear(end.getFullYear() + 1);
+          end.setDate(end.getDate() - 1);
           break;
       }
 
       document.getElementById('autopay_end_date').value = end.toISOString().split('T')[0];
+    }
+  }
+
+  // Update autopay start date when policy start date changes
+  function updateAutopayStartDate() {
+    const policyStartDate = document.getElementById('start_date').value;
+    if (policyStartDate) {
+      document.getElementById('autopay_start_date').value = policyStartDate;
+      calculateAutopayEndDate(); // Recalculate end date
     }
   }
 
@@ -2376,6 +2390,12 @@ document.addEventListener('DOMContentLoaded', function() {
   const autopayStartDateField = document.getElementById('autopay_start_date');
   if (autopayStartDateField) {
     autopayStartDateField.addEventListener('change', calculateAutopayEndDate);
+  }
+
+  // Update autopay dates when policy start date changes
+  const policyStartDateField = document.getElementById('start_date');
+  if (policyStartDateField) {
+    policyStartDateField.addEventListener('change', updateAutopayStartDate);
   }
 
   // NOTE: The loadPolicyHolderOptions function and customer select event handlers

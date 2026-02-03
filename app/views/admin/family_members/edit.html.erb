@@ -55,14 +55,7 @@
             Relationship <span class="text-danger">*</span>
           <% end %>
           <%= form.select :relationship,
-              options_for_select([
-                ['Father', 'father'],
-                ['Mother', 'mother'],
-                ['Spouse', 'spouse'],
-                ['Child', 'child'],
-                ['Sibling', 'sibling'],
-                ['Other', 'other']
-              ], @family_member.relationship),
+              options_for_select(FamilyMember::RELATIONSHIPS.map { |rel| [rel.humanize.titleize, rel] }, @family_member.relationship),
               { prompt: 'Select Relationship' },
               { class: "form-select", required: true } %>
         </div>

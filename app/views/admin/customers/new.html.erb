@@ -1258,12 +1258,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <label class="form-label">Relationship <span class="text-danger">*</span></label>
             <select name="customer[family_members_attributes][${familyMemberIndex}][relationship]" class="form-select" required>
               <option value="">Select Relationship</option>
-              <option value="father">Father</option>
-              <option value="mother">Mother</option>
-              <option value="spouse">Spouse</option>
-              <option value="child">Child</option>
-              <option value="sibling">Sibling</option>
-              <option value="other">Other</option>
+              <% FamilyMember::RELATIONSHIPS.each do |rel| %>
+              <option value="<%= rel %>"><%= rel.humanize.titleize %></option>
+              <% end %>
             </select>
           </div>
           <div class="col-md-4">
@@ -1398,12 +1395,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <label class="form-label">Relationship <span class="text-danger">*</span></label>
             <select name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][relationship]" class="form-select" required>
               <option value="">Select Relationship</option>
-              <option value="father">Father</option>
-              <option value="mother">Mother</option>
-              <option value="spouse">Spouse</option>
-              <option value="child">Child</option>
-              <option value="sibling">Sibling</option>
-              <option value="other">Other</option>
+              <% FamilyMember::RELATIONSHIPS.each do |rel| %>
+              <option value="<%= rel %>"><%= rel.humanize.titleize %></option>
+              <% end %>
             </select>
           </div>
           <div class="col-md-4">

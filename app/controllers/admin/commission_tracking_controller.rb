@@ -794,24 +794,24 @@ class Admin::CommissionTrackingController < ApplicationController
   def get_commission_data_from_payout(saved_payout)
     # Convert saved payout data to the format expected by the view
     # Use net_premium from policy if available, otherwise use total_commission_amount
-    net_premium_value = saved_payout.policy&.net_premium || saved_payout.total_commission_amount || 0
-    policy_premium = saved_payout.policy&.total_premium || net_premium_value || 0
+    net_premium_value = (saved_payout.policy&.net_premium || saved_payout.total_commission_amount || 0).to_f.round(2)
+    policy_premium = (saved_payout.policy&.total_premium || net_premium_value || 0).to_f.round(2)
 
     # Use stored percentages from payout when available, otherwise calculate
-    main_agent_amount = saved_payout.main_agent_commission_amount || 0
-    main_agent_percentage = saved_payout.main_agent_percentage || (policy_premium > 0 ? (main_agent_amount.to_f / policy_premium * 100).round(2) : 0)
+    main_agent_amount = (saved_payout.main_agent_commission_amount || 0).to_f.round(2)
+    main_agent_percentage = saved_payout.main_agent_percentage || (policy_premium > 0 ? (main_agent_amount / policy_premium * 100).round(1) : 0)
 
-    affiliate_amount = saved_payout.affiliate_commission_amount || 0
-    affiliate_percentage = saved_payout.affiliate_percentage || (policy_premium > 0 ? (affiliate_amount.to_f / policy_premium * 100).round(2) : 0)
+    affiliate_amount = (saved_payout.affiliate_commission_amount || 0).to_f.round(2)
+    affiliate_percentage = saved_payout.affiliate_percentage || (policy_premium > 0 ? (affiliate_amount / policy_premium * 100).round(1) : 0)
 
-    ambassador_amount = saved_payout.ambassador_commission_amount || 0
-    ambassador_percentage = saved_payout.ambassador_percentage || (policy_premium > 0 ? (ambassador_amount.to_f / policy_premium * 100).round(2) : 0)
+    ambassador_amount = (saved_payout.ambassador_commission_amount || 0).to_f.round(2)
+    ambassador_percentage = saved_payout.ambassador_percentage || (policy_premium > 0 ? (ambassador_amount / policy_premium * 100).round(1) : 0)
 
-    investor_amount = saved_payout.investor_commission_amount || 0
-    investor_percentage = saved_payout.investor_percentage || (policy_premium > 0 ? (investor_amount.to_f / policy_premium * 100).round(2) : 0)
+    investor_amount = (saved_payout.investor_commission_amount || 0).to_f.round(2)
+    investor_percentage = saved_payout.investor_percentage || (policy_premium > 0 ? (investor_amount / policy_premium * 100).round(1) : 0)
 
-    company_expense_amount = saved_payout.company_expense_amount || 0
-    company_expense_percentage = saved_payout.company_expense_percentage || (policy_premium > 0 ? (company_expense_amount.to_f / policy_premium * 100).round(2) : 0)
+    company_expense_amount = (saved_payout.company_expense_amount || 0).to_f.round(2)
+    company_expense_percentage = saved_payout.company_expense_percentage || (policy_premium > 0 ? (company_expense_amount / policy_premium * 100).round(1) : 0)
 
     {
       summary: {
@@ -840,14 +840,14 @@ class Admin::CommissionTrackingController < ApplicationController
   def get_policy_breakdown_from_payout(saved_payout)
     # Convert saved payout data to the full breakdown format expected by the show view
 
-    # Calculate deductions (amounts taken from main agent)
-    main_agent_total = saved_payout.main_agent_commission_amount || 0
-    affiliate_amount = saved_payout.affiliate_commission_amount || 0
-    ambassador_amount = saved_payout.ambassador_commission_amount || 0
-    investor_amount = saved_payout.investor_commission_amount || 0
-    company_expense_amount = saved_payout.company_expense_amount || 0
+    # Calculate deductions (amounts taken from main agent) - ensure proper rounding
+    main_agent_total = (saved_payout.main_agent_commission_amount || 0).to_f.round(2)
+    affiliate_amount = (saved_payout.affiliate_commission_amount || 0).to_f.round(2)
+    ambassador_amount = (saved_payout.ambassador_commission_amount || 0).to_f.round(2)
+    investor_amount = (saved_payout.investor_commission_amount || 0).to_f.round(2)
+    company_expense_amount = (saved_payout.company_expense_amount || 0).to_f.round(2)
 
-    final_profit = main_agent_total - affiliate_amount - ambassador_amount - investor_amount - company_expense_amount
+    final_profit = (main_agent_total - affiliate_amount - ambassador_amount - investor_amount - company_expense_amount).round(2)
 
     # Get commission payout statuses
     commission_payouts = saved_payout.commission_payouts.index_by(&:payout_to)
