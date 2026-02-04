@@ -96,6 +96,7 @@ class Lead < ApplicationRecord
   scope :by_source, ->(source) { where(lead_source: source) }
   scope :by_product_category, ->(category) { where(product_category: category) }
   scope :by_product_subcategory, ->(subcategory) { where(product_subcategory: subcategory) }
+  scope :by_product, ->(product) { where(product_subcategory: product) }
   scope :recent, -> { order(created_date: :desc) }
   scope :pending_conversion, -> { where(current_stage: ['consultation_scheduled', 'one_on_one', 'follow_up', 're_follow_up']) }
   scope :converted_leads, -> { where(current_stage: 'converted') }

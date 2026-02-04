@@ -1928,6 +1928,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       agent_commission: format_indian_amount(agent_commission),
       status: policy.respond_to?(:active?) ? (policy.active? ? 'Active' : 'Inactive') : 'Active',
       is_drwise_policy: determine_drwise_policy(policy),
+      drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
       document: documents.first ? documents.first[:url] : nil,
       created_at: policy.created_at
     }
@@ -2195,11 +2196,11 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       converted_leads: Lead.converted_leads.count,
       conversion_rate: calculate_conversion_rate,
       by_stage: {
-        consultation: Lead.by_stage('consultation').count,
+        consultation_scheduled: Lead.by_stage('consultation_scheduled').count,
         one_on_one: Lead.by_stage('one_on_one').count,
+        follow_up: Lead.by_stage('follow_up').count,
         converted: Lead.by_stage('converted').count,
-        policy_created: Lead.by_stage('policy_created').count,
-        referral_settled: Lead.by_stage('referral_settled').count
+        lead_closed: Lead.by_stage('lead_closed').count
       },
       by_product: {
         health: Lead.by_product('health').count,

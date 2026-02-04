@@ -8,6 +8,7 @@ class Customer < ApplicationRecord
   has_many :documents, class_name: 'CustomerDocument', dependent: :destroy
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
   has_one_attached :profile_image
+  has_many_attached :profile_images
   belongs_to :affiliate, class_name: 'SubAgent', foreign_key: 'sub_agent_id', optional: true
 
   # Insurance associations
@@ -45,6 +46,9 @@ class Customer < ApplicationRecord
   # Validations
   validates :status, inclusion: { in: [true, false] }
 
+  # Profile image validations
+  validate :profile_image_validation
+
   # Set default values
   after_initialize :set_defaults
   before_create :generate_lead_id_if_missing
@@ -77,6 +81,7 @@ class Customer < ApplicationRecord
   # Callbacks
   before_validation :normalize_blank_values
   before_save :calculate_age
+  after_update :handle_profile_images
 
   # Search
   pg_search_scope :search_customers,
@@ -120,6 +125,39 @@ class Customer < ApplicationRecord
 
   def corporate?
     customer_type == 'corporate'
+  end
+
+  # Image helper methods
+  def profile_image_url
+    if profile_image.attached?
+      Rails.application.routes.url_helpers.rails_blob_url(profile_image, only_path: false)
+    else
+      nil
+    end
+  rescue => e
+    Rails.logger.error "Error generating profile image URL for customer #{id}: #{e.message}"
+    nil
+  end
+
+  def has_profile_image?
+    profile_image.attached? && profile_image.blob.present?
+  rescue => e
+    Rails.logger.error "Error checking profile image for customer #{id}: #{e.message}"
+    false
+  end
+
+  def safe_profile_image_display
+    return nil unless has_profile_image?
+
+    {
+      url: profile_image_url,
+      filename: profile_image.filename.to_s,
+      size: profile_image.byte_size,
+      content_type: profile_image.content_type
+    }
+  rescue => e
+    Rails.logger.error "Error generating safe profile image display for customer #{id}: #{e.message}"
+    nil
   end
 
 
@@ -206,6 +244,49 @@ class Customer < ApplicationRecord
       self.lead_id = "CUST-#{Date.current.strftime('%Y%m%d')}-#{rand(1000..9999)}"
       break unless Customer.exists?(lead_id: self.lead_id) || Lead.exists?(lead_id: self.lead_id)
     end
+  end
+
+  # Handle multiple profile images by setting the first as primary
+  def handle_profile_images
+    return unless profile_images.attached? && profile_images.any?
+
+    # If no primary profile image is set and we have profile_images, use the first one
+    if !profile_image.attached? && profile_images.first
+      profile_image.attach(profile_images.first.blob)
+    end
+  rescue => e
+    Rails.logger.error "Error handling profile images for customer #{id}: #{e.message}"
+  end
+
+  # Profile image validation
+  def profile_image_validation
+    return unless profile_image.attached?
+
+    # Validate file size (max 5MB)
+    if profile_image.byte_size > 5.megabytes
+      errors.add(:profile_image, 'is too large (should be less than 5MB)')
+    end
+
+    # Validate file type
+    unless profile_image.content_type.in?(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+      errors.add(:profile_image, 'must be a JPEG, PNG, GIF, or WebP image')
+    end
+
+    # Validate multiple profile images if present
+    if profile_images.attached?
+      profile_images.each_with_index do |image, index|
+        if image.byte_size > 5.megabytes
+          errors.add(:profile_images, "image #{index + 1} is too large (should be less than 5MB)")
+        end
+
+        unless image.content_type.in?(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+          errors.add(:profile_images, "image #{index + 1} must be a JPEG, PNG, GIF, or WebP image")
+        end
+      end
+    end
+  rescue => e
+    Rails.logger.error "Error validating profile image for customer #{id || 'new'}: #{e.message}"
+    errors.add(:profile_image, 'validation failed due to an error')
   end
 
 end

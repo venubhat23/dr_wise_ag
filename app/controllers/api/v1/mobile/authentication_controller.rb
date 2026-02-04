@@ -3,14 +3,14 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
   # POST /api/v1/mobile/auth/login
   def login
     # Support login with email, mobile number, or PAN card
-    login_field = params[:username] || params[:email] || params[:mobile] || params[:pan]
+    login_field = params[:login] || params[:username] || params[:email] || params[:mobile] || params[:pan]
     password = params[:password]
     role = params[:role]&.downcase
 
     if login_field.blank? || password.blank?
       return render json: {
         success: false,
-        message: 'Email/Mobile/PAN and password are required'
+        message: 'Login credentials and password are required'
       }, status: :unprocessable_entity
     end
 

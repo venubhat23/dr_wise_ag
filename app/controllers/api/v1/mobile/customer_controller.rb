@@ -39,7 +39,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         payment_mode: policy.payment_mode,
         status: policy.active? ? 'Active' : (policy.expired? ? 'Expired' : 'Expiring Soon'),
         days_until_expiry: policy.days_until_expiry,
-        dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false,
+        drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
       }
     end
@@ -60,7 +60,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         payment_mode: policy.payment_mode,
         status: policy.active? ? 'Active' : (policy.expired? ? 'Expired' : 'Expiring Soon'),
         days_until_expiry: policy.days_until_expiry,
-        dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false,
+        drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
         # Life insurance specific fields
         nominee_name: policy.nominee_name,
@@ -98,7 +98,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             nil
           end
         end,
-        dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false,
+        drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         document: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? {
           document: 'Policy Document',
           url: rails_blob_url(policy.policy_documents.first)
@@ -217,7 +217,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             installment_type: installment_type, # 'regular' or 'renewal'
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
-            dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false,
+            drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
             document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
           }
         end
@@ -308,7 +308,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             installment_type: installment_type, # 'regular' or 'renewal'
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
-            dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false,
+            drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
             document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
           }
         end
@@ -412,7 +412,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
               document: 'Policy Document',
               url: rails_blob_url(policy.policy_documents.first)
             } : nil,
-            dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false
+            drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false
           }
         end
       end
@@ -502,7 +502,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
         insurance_company: policy.insurance_company_name,
         document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
-        dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false
+        drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false
       }
     end
 
@@ -556,7 +556,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
         insurance_company: policy.insurance_company_name,
         document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
-        dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false
+        drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false
       }
     end
 
@@ -657,7 +657,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
               vehicle_number: insurance_config[:type] == 'Motor' && policy.respond_to?(:vehicle_number) ? policy.vehicle_number : nil,
               vehicle_make: insurance_config[:type] == 'Motor' && policy.respond_to?(:vehicle_make) ? policy.vehicle_make : nil,
               vehicle_model: insurance_config[:type] == 'Motor' && policy.respond_to?(:vehicle_model) ? policy.vehicle_model : nil,
-              dr_wise: policy.respond_to?(:product_through_dr) ? (policy.product_through_dr || false) : false
+              drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false
             }
           end
         end
@@ -1106,5 +1106,136 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
 
     # Round to 2 decimal places
     amount.round(2)
+  end
+
+  # POST /api/v1/mobile/customer/helpdesk
+  # Create a new helpdesk ticket for customer
+  def create_helpdesk_ticket
+    ticket_params = params.permit(:subject, :description, :category, :priority)
+
+    # Validate required fields
+    if ticket_params[:subject].blank? || ticket_params[:description].blank?
+      return render json: {
+        success: false,
+        message: 'Subject and description are required'
+      }, status: :unprocessable_entity
+    end
+
+    begin
+      # Create client request (helpdesk ticket)
+      ticket = ClientRequest.create!(
+        name: current_customer.display_name,
+        email: current_customer.email,
+        phone_number: current_customer.mobile,
+        subject: ticket_params[:subject],
+        description: ticket_params[:description],
+        category: ticket_params[:category] || 'general',
+        priority: ticket_params[:priority] || 'medium',
+        status: 'pending',
+        submitter_type: 'Customer',
+        submitter_id: current_customer.id
+      )
+
+      render json: {
+        success: true,
+        message: 'Helpdesk ticket created successfully',
+        data: {
+          ticket: {
+            id: ticket.id,
+            ticket_number: ticket.ticket_number || "TKT#{ticket.id.to_s.rjust(6, '0')}",
+            subject: ticket.subject,
+            description: ticket.description,
+            category: ticket.category,
+            priority: ticket.priority,
+            status: ticket.status,
+            created_at: ticket.created_at
+          }
+        }
+      }
+    rescue => e
+      render json: {
+        success: false,
+        message: 'Failed to create helpdesk ticket',
+        errors: [e.message]
+      }, status: :unprocessable_entity
+    end
+  end
+
+  # GET /api/v1/mobile/customer/helpdesk_tickets
+  # Get helpdesk tickets created by the customer
+  def helpdesk_tickets
+    page = params[:page] || 1
+    per_page = params[:per_page] || 20
+    status_filter = params[:status]
+
+    tickets = ClientRequest.where(submitter_type: 'Customer', submitter_id: current_customer.id)
+
+    if status_filter.present?
+      tickets = tickets.where(status: status_filter)
+    end
+
+    tickets = tickets.order(created_at: :desc)
+                    .page(page)
+                    .per(per_page)
+
+    render json: {
+      success: true,
+      data: {
+        tickets: tickets.map do |ticket|
+          {
+            id: ticket.id,
+            ticket_number: ticket.ticket_number || "TKT#{ticket.id.to_s.rjust(6, '0')}",
+            subject: ticket.subject,
+            description: ticket.description,
+            category: ticket.category,
+            priority: ticket.priority,
+            status: ticket.status,
+            resolution_notes: ticket.resolution_notes,
+            resolved_at: ticket.resolved_at,
+            created_at: ticket.created_at,
+            updated_at: ticket.updated_at
+          }
+        end,
+        pagination: {
+          current_page: tickets.current_page,
+          total_pages: tickets.total_pages,
+          total_count: tickets.total_count,
+          per_page: per_page.to_i
+        }
+      }
+    }
+  end
+
+  # GET /api/v1/mobile/customer/helpdesk_tickets/:id
+  # Get specific helpdesk ticket details
+  def helpdesk_ticket_details
+    ticket = ClientRequest.find_by(id: params[:id], submitter_type: 'Customer', submitter_id: current_customer.id)
+
+    if ticket.nil?
+      return render json: {
+        success: false,
+        message: 'Ticket not found or you do not have access to this ticket'
+      }, status: :not_found
+    end
+
+    render json: {
+      success: true,
+      data: {
+        ticket: {
+          id: ticket.id,
+          ticket_number: ticket.ticket_number || "TKT#{ticket.id.to_s.rjust(6, '0')}",
+          subject: ticket.subject,
+          description: ticket.description,
+          category: ticket.category,
+          priority: ticket.priority,
+          status: ticket.status,
+          resolution_notes: ticket.resolution_notes,
+          resolved_at: ticket.resolved_at,
+          assigned_to: ticket.assigned_to,
+          created_at: ticket.created_at,
+          updated_at: ticket.updated_at
+        }
+      }
+    }
   end
 end

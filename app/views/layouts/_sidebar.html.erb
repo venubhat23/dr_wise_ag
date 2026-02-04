@@ -1412,6 +1412,27 @@ body.sidebar-collapsed .main-content {
       </div>
     <% end %>
 
+    <!-- Investor Section for Investors -->
+    <% if current_user&.investor? %>
+    <div class="nav-section">
+      <div class="nav-section-title">Investor Portal</div>
+      <ul class="nav-menu">
+        <!-- Investment Dashboard -->
+        <li class="nav-item">
+          <%= link_to investor_dashboard_path, class: "nav-link-modern #{'active' if request.path.include?('/investor')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-purple">
+                <i class="bi bi-graph-up-arrow"></i>
+              </div>
+            </div>
+            <span class="nav-text">Investor Dashboard</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+      </ul>
+    </div>
+    <% end %>
+
     <!-- Commission Section for Ambassadors -->
     <% if current_user&.ambassador? %>
     <div class="nav-section">

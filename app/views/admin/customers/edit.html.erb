@@ -432,17 +432,41 @@
             <h5 class="mb-0">Current Files</h5>
           </div>
           <div class="card-body">
-            <% if @customer.profile_image.attached? %>
+            <% if @customer.has_profile_image? %>
               <h6>Profile Image</h6>
               <div class="row g-2 mb-3">
                 <div class="col-md-3">
-                  <%= image_tag url_for(@customer.profile_image), class: "img-thumbnail", style: "max-height: 100px;" %>
-                  <small class="d-block text-muted"><%= @customer.profile_image.filename %></small>
-                  <button type="button" class="btn btn-outline-primary btn-sm mt-2"
-                          data-bs-toggle="modal"
-                          data-bs-target="#profilePreviewModal">
-                    <i class="bi bi-eye me-1"></i>Preview
-                  </button>
+                  <% image_data = @customer.safe_profile_image_display %>
+                  <% if image_data %>
+                    <div class="position-relative">
+                      <%= image_tag image_data[:url],
+                          class: "img-thumbnail",
+                          style: "max-height: 100px; width: auto;",
+                          onerror: "this.src='/assets/placeholder-avatar.png'; this.onerror=null;",
+                          loading: "lazy" %>
+                      <small class="d-block text-muted mt-1">
+                        <i class="bi bi-file-image me-1"></i><%= image_data[:filename] %>
+                        <br><span class="text-success">(<%= number_to_human_size(image_data[:size]) %>)</span>
+                      </small>
+                    </div>
+                    <div class="btn-group mt-2" role="group">
+                      <button type="button" class="btn btn-outline-primary btn-sm"
+                              data-bs-toggle="modal"
+                              data-bs-target="#profilePreviewModal">
+                        <i class="bi bi-eye me-1"></i>Preview
+                      </button>
+                      <a href="<%= image_data[:url] %>"
+                         class="btn btn-outline-secondary btn-sm"
+                         download="<%= image_data[:filename] %>">
+                        <i class="bi bi-download me-1"></i>Download
+                      </a>
+                    </div>
+                  <% else %>
+                    <div class="alert alert-warning alert-sm">
+                      <i class="bi bi-exclamation-triangle me-1"></i>
+                      Image unavailable or corrupted
+                    </div>
+                  <% end %>
                 </div>
               </div>
             <% end %>
@@ -551,8 +575,22 @@
       </div>
       <div class="card-body">
         <div class="d-flex align-items-center mb-3">
-          <% if @customer.profile_image.attached? %>
-            <%= image_tag url_for(@customer.profile_image), class: "rounded-circle me-3", style: "width: 50px; height: 50px; object-fit: cover;" %>
+          <% if @customer.has_profile_image? %>
+            <% image_data = @customer.safe_profile_image_display %>
+            <% if image_data %>
+              <%= image_tag image_data[:url],
+                  class: "rounded-circle me-3",
+                  style: "width: 50px; height: 50px; object-fit: cover;",
+                  onerror: "this.style.display='none'; this.nextElementSibling.style.display='flex';",
+                  loading: "lazy" %>
+              <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; display: none;">
+                <i class="bi bi-person text-primary"></i>
+              </div>
+            <% else %>
+              <div class="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                <i class="bi bi-exclamation-triangle text-warning"></i>
+              </div>
+            <% end %>
           <% else %>
             <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
               <i class="bi bi-person text-primary"></i>
@@ -927,47 +965,62 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- Profile Preview Modal -->
-<% if @customer.profile_image.attached? %>
-  <div class="modal fade" id="profilePreviewModal" tabindex="-1" aria-labelledby="profilePreviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="profilePreviewModalLabel">
-            <i class="bi bi-person-circle me-2"></i>Profile Image - <%= @customer.display_name %>
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body text-center">
-          <%= image_tag url_for(@customer.profile_image),
-              class: "img-fluid rounded shadow",
-              style: "max-height: 500px; max-width: 100%;",
-              alt: "Profile image of #{@customer.display_name}" %>
-
-          <div class="mt-3">
-            <p class="text-muted mb-1">
-              <strong>File:</strong> <%= @customer.profile_image.filename %>
-            </p>
-            <p class="text-muted mb-0">
-              <strong>Size:</strong> <%= number_to_human_size(@customer.profile_image.byte_size) %>
-            </p>
+<% if @customer.has_profile_image? %>
+  <% image_data = @customer.safe_profile_image_display %>
+  <% if image_data %>
+    <div class="modal fade" id="profilePreviewModal" tabindex="-1" aria-labelledby="profilePreviewModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="profilePreviewModalLabel">
+              <i class="bi bi-person-circle me-2"></i>Profile Image - <%= @customer.display_name %>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-        </div>
-        <div class="modal-footer">
-          <%= link_to rails_blob_url(@customer.profile_image, disposition: "attachment"),
-              class: "btn btn-primary",
-              download: @customer.profile_image.filename do %>
-            <i class="bi bi-download me-1"></i>Download
-          <% end %>
-          <%= link_to rails_blob_url(@customer.profile_image, disposition: "inline"),
-              class: "btn btn-outline-secondary",
-              target: "_blank" do %>
-            <i class="bi bi-arrows-fullscreen me-1"></i>Open in New Tab
-          <% end %>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-            <i class="bi bi-x-lg me-1"></i>Close
-          </button>
+          <div class="modal-body text-center">
+            <div class="position-relative">
+              <%= image_tag image_data[:url],
+                  class: "img-fluid rounded shadow",
+                  style: "max-height: 500px; max-width: 100%;",
+                  alt: "Profile image of #{@customer.display_name}",
+                  onerror: "this.style.display='none'; this.nextElementSibling.style.display='block';",
+                  loading: "lazy" %>
+
+              <div style="display: none;" class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Unable to load image. The file may be corrupted or temporarily unavailable.
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <p class="text-muted mb-1">
+                <strong>File:</strong> <%= image_data[:filename] %>
+              </p>
+              <p class="text-muted mb-1">
+                <strong>Size:</strong> <%= number_to_human_size(image_data[:size]) %>
+              </p>
+              <p class="text-muted mb-0">
+                <strong>Type:</strong> <%= image_data[:content_type] %>
+              </p>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <a href="<%= image_data[:url] %>"
+               class="btn btn-primary"
+               download="<%= image_data[:filename] %>">
+              <i class="bi bi-download me-1"></i>Download
+            </a>
+            <a href="<%= image_data[:url] %>"
+               class="btn btn-outline-secondary"
+               target="_blank">
+              <i class="bi bi-arrows-fullscreen me-1"></i>Open in New Tab
+            </a>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              <i class="bi bi-x-lg me-1"></i>Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  <% end %>
 <% end %>

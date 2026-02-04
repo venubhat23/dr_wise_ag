@@ -291,24 +291,43 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
 
   # POST /api/v1/mobile/settings/helpdesk
   def helpdesk
-    helpdesk_params = params.permit(:name, :email, :phone_number, :description)
+    # Accept both 'description' and 'message' fields
+    description_text = params[:description] || params[:message]
+    subject_text = params[:subject]
+    category = params[:category] || 'general'
+    priority = params[:priority] || 'medium'
 
-    if helpdesk_params[:name].blank? || helpdesk_params[:email].blank? || helpdesk_params[:description].blank?
-      return render json: {
-        success: false,
-        message: 'Name, email, and description are required'
-      }, status: :unprocessable_entity
+    # If request body is missing or description is blank, add dummy entry
+    if description_text.blank?
+      description_text = "Mobile app help request submitted without description"
+      subject_text ||= "Mobile Help Request"
     end
+
+    # Ensure category is valid
+    category = 'general' unless ClientRequest::CATEGORIES.include?(category)
+
+    # Get user details from current authenticated user
+    user = current_user
+    user_name = user ? "#{user.first_name} #{user.last_name}" : (params[:name] || 'Mobile User')
+    user_email = user.try(:email) || params[:email] || 'mobile@example.com'
+    user_phone = user.try(:mobile) || params[:phone_number] || '+91 0000000000'
+
+    # Ensure subject has a value
+    subject_text ||= "Help Request from #{user_name}"
 
     begin
       # Create client request in database
       client_request = ClientRequest.create!(
-        name: helpdesk_params[:name],
-        email: helpdesk_params[:email],
-        phone_number: helpdesk_params[:phone_number],
-        description: helpdesk_params[:description],
+        name: user_name,
+        email: user_email,
+        phone_number: user_phone,
+        subject: subject_text,
+        description: description_text,
+        category: category,
         status: 'pending',
-        priority: 'medium'
+        priority: priority,
+        submitter_type: user&.class&.name || 'User',
+        submitter_id: user&.id
       )
 
       render json: {
@@ -316,8 +335,13 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
         message: 'Your request has been submitted successfully. Our team will contact you soon.',
         data: {
           request_id: client_request.id,
-          ticket_number: client_request.ticket_number,
+          ticket_number: client_request.ticket_number || "TKT#{client_request.id.to_s.rjust(6, '0')}",
+          subject: client_request.subject,
+          description: client_request.description,
+          category: client_request.category,
+          priority: client_request.priority,
           status: client_request.status,
+          created_at: client_request.created_at,
           estimated_response_time: '24-48 hours'
         }
       }

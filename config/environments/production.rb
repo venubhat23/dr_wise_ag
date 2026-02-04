@@ -21,8 +21,14 @@ Rails.application.configure do
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.asset_host = "http://assets.example.com"
 
-  # Store uploaded files on the local file system (see config/storage.yml for options).
-  config.active_storage.service = :local
+  # Store uploaded files on cloud storage in production, fall back to local if no credentials
+  if Rails.application.credentials.dig(:aws, :access_key_id).present?
+    config.active_storage.service = :amazon
+  else
+    config.active_storage.service = :local
+    # Log warning about using local storage in production
+    Rails.logger.warn "WARNING: Using local storage for Active Storage in production. Consider configuring AWS S3 for persistent file storage."
+  end
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   config.assume_ssl = true

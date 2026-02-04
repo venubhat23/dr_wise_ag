@@ -30,6 +30,9 @@ Rails.application.routes.draw do
   get 'ambassador/commission_details', to: 'ambassador#commission_details'
   get 'ambassador/payout_history', to: 'ambassador#payout_history'
 
+  # Investor Dashboard
+  get 'investor/dashboard', to: 'investor#dashboard'
+
   # API routes
   namespace :api do
     resources :cities, only: [:index]
@@ -649,6 +652,11 @@ Rails.application.routes.draw do
         get 'customer/upcoming_renewals', to: 'customer#upcoming_renewals'
         post 'customer/add_policy', to: 'customer#add_policy'
 
+        # Customer Helpdesk APIs
+        post 'customer/helpdesk', to: 'customer#create_helpdesk_ticket'
+        get 'customer/helpdesk_tickets', to: 'customer#helpdesk_tickets'
+        get 'customer/helpdesk_tickets/:id', to: 'customer#helpdesk_ticket_details'
+
         # Settings Module APIs
         get 'settings/profile', to: 'settings#profile'
         put 'settings/profile', to: 'settings#update_profile'
@@ -675,6 +683,12 @@ Rails.application.routes.draw do
         # Leads APIs
         get 'agent/leads', to: 'agent#leads'
         post 'agent/leads', to: 'agent#add_lead'
+
+        # Sub Agent APIs
+        get 'sub_agent/leads', to: 'sub_agent#leads'
+        get 'sub_agent/leads/:id', to: 'sub_agent#lead_details'
+        post 'sub_agent/helpdesk', to: 'sub_agent#create_helpdesk_ticket'
+        get 'sub_agent/helpdesk_tickets', to: 'sub_agent#helpdesk_tickets'
 
         # Commission Distribution APIs
         get 'agent/commission_distribution', to: 'agent#commission_distribution'

@@ -3,6 +3,7 @@ class ClientRequest < ApplicationRecord
 
   # Associations
   belongs_to :resolved_by, class_name: 'User', optional: true
+  belongs_to :submitter, polymorphic: true, optional: true
 
   # Validations
   validates :name, presence: true
@@ -16,6 +17,7 @@ class ClientRequest < ApplicationRecord
   # Enums
   STATUSES = %w[pending in_progress resolved closed].freeze
   PRIORITIES = %w[low medium high urgent].freeze
+  CATEGORIES = %w[general policy_inquiry claims technical_support billing other].freeze
 
   # Scopes
   scope :pending, -> { where(status: 'pending') }
