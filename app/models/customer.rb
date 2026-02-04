@@ -130,7 +130,14 @@ class Customer < ApplicationRecord
   # Image helper methods
   def profile_image_url
     if profile_image.attached?
-      Rails.application.routes.url_helpers.rails_blob_url(profile_image, only_path: false)
+      begin
+        # Try to generate full URL first
+        Rails.application.routes.url_helpers.rails_blob_url(profile_image, only_path: false)
+      rescue ArgumentError, ActionController::RoutingError => e
+        # If host is not configured or other routing error, fall back to path only
+        Rails.logger.warn "Host not configured for URL generation, using path only: #{e.message}"
+        Rails.application.routes.url_helpers.rails_blob_path(profile_image)
+      end
     else
       nil
     end
@@ -149,8 +156,11 @@ class Customer < ApplicationRecord
   def safe_profile_image_display
     return nil unless has_profile_image?
 
+    url = profile_image_url
+    return nil if url.blank?
+
     {
-      url: profile_image_url,
+      url: url,
       filename: profile_image.filename.to_s,
       size: profile_image.byte_size,
       content_type: profile_image.content_type

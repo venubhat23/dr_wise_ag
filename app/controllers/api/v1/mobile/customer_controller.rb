@@ -40,6 +40,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         status: policy.active? ? 'Active' : (policy.expired? ? 'Expired' : 'Expiring Soon'),
         days_until_expiry: policy.days_until_expiry,
         drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
+        dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
       }
     end
@@ -61,6 +62,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         status: policy.active? ? 'Active' : (policy.expired? ? 'Expired' : 'Expiring Soon'),
         days_until_expiry: policy.days_until_expiry,
         drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
+        dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
         # Life insurance specific fields
         nominee_name: policy.nominee_name,
@@ -99,6 +101,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
           end
         end,
         drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
+        dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         document: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? {
           document: 'Policy Document',
           url: rails_blob_url(policy.policy_documents.first)
@@ -218,6 +221,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
             drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
+        dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
             document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
           }
         end
@@ -309,6 +313,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
             drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
+        dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
             document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
           }
         end

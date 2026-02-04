@@ -1929,6 +1929,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       status: policy.respond_to?(:active?) ? (policy.active? ? 'Active' : 'Inactive') : 'Active',
       is_drwise_policy: determine_drwise_policy(policy),
       drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
+      dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
       document: documents.first ? documents.first[:url] : nil,
       created_at: policy.created_at
     }

@@ -1,0 +1,517 @@
+<style>
+  .profit-summary-dashboard {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px 0;
+  }
+
+  .summary-card {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  }
+
+  .page-title {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .main-title {
+    font-size: 36px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+  }
+
+  .subtitle {
+    color: #718096;
+    font-size: 18px;
+  }
+
+  .profit-stats-section {
+    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 30px;
+  }
+
+  .section-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+  }
+
+  .stat-card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 5px;
+  }
+
+  .stat-label {
+    font-size: 14px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .breakdown-section {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 30px;
+  }
+
+  .breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+  }
+
+  .breakdown-card {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .breakdown-header {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    text-align: center;
+  }
+
+  .breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+
+  .policies-table {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  }
+
+  .table-header {
+    background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+    color: white;
+    padding: 20px;
+  }
+
+  .policies-list {
+    max-height: 600px;
+    overflow-y: auto;
+  }
+
+  .policy-item {
+    display: grid;
+    grid-template-columns: 1fr 150px 120px 120px 120px 100px;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .policy-item:hover {
+    background: #f7fafc;
+  }
+
+  .policy-item:last-child {
+    border-bottom: none;
+  }
+
+  .policy-main {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .policy-number {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 2px;
+  }
+
+  .policy-customer {
+    font-size: 12px;
+    color: #718096;
+  }
+
+  .policy-type {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .health { background: #c6f6d5; color: #276749; }
+  .life { background: #feebc8; color: #7c2d12; }
+  .motor { background: #bee3f8; color: #2c5282; }
+  .other { background: #e9d8fd; color: #553c9a; }
+
+  .amount {
+    font-weight: 600;
+    text-align: right;
+  }
+
+  .profit-positive { color: #38a169; }
+  .profit-negative { color: #e53e3e; }
+
+  .trends-chart {
+    background: linear-gradient(135deg, #805ad5 0%, #6b46c1 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 30px;
+  }
+
+  .chart-container {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+  }
+
+  .filter-section {
+    background: #f7fafc;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .filter-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4a5568;
+    text-transform: uppercase;
+  }
+
+  .filter-select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    font-size: 14px;
+  }
+</style>
+
+<div class="profit-summary-dashboard">
+  <div class="container">
+    <!-- Page Header -->
+    <div class="summary-card">
+      <div class="page-title">
+        <h1 class="main-title">DrWise Profit Summary</h1>
+        <p class="subtitle">Detailed profit breakdown for investor <%= @investor.full_name %></p>
+      </div>
+
+      <!-- Total Profit Statistics -->
+      <div class="profit-stats-section">
+        <h2 class="section-title">
+          <i class="fas fa-chart-pie"></i>
+          Overall Profit Statistics
+        </h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">₹<%= number_with_delimiter((@total_profit_stats[:total_profit]/1000).round(1)) %>K</div>
+            <div class="stat-label">Total Profit</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value"><%= @total_profit_stats[:total_policies] %></div>
+            <div class="stat-label">Total Policies</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">₹<%= number_with_delimiter(@total_profit_stats[:average_profit_per_policy].round(0)) %></div>
+            <div class="stat-label">Avg Profit/Policy</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value"><%= @total_profit_stats[:profit_margin] %>%</div>
+            <div class="stat-label">Profit Margin</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Policy Type Breakdown -->
+      <div class="breakdown-section">
+        <h2 class="section-title">
+          <i class="fas fa-layer-group"></i>
+          Profit by Policy Type
+        </h2>
+        <div class="breakdown-grid">
+          <% ['health', 'life', 'motor', 'other'].each do |policy_type| %>
+            <% data = @profit_breakdown[policy_type.to_sym] %>
+            <div class="breakdown-card">
+              <div class="breakdown-header"><%= policy_type.capitalize %> Insurance</div>
+              <div class="breakdown-item">
+                <span>Policies:</span>
+                <strong><%= data[:policies_count] %></strong>
+              </div>
+              <div class="breakdown-item">
+                <span>Premium:</span>
+                <strong>₹<%= number_with_delimiter((data[:total_premium]/1000).round(1)) %>K</strong>
+              </div>
+              <div class="breakdown-item">
+                <span>Your Commission:</span>
+                <strong>₹<%= number_with_delimiter((data[:investor_commission]/1000).round(1)) %>K</strong>
+              </div>
+              <div class="breakdown-item">
+                <span>Company Expenses:</span>
+                <strong>₹<%= number_with_delimiter((data[:company_expenses]/1000).round(1)) %>K</strong>
+              </div>
+              <div class="breakdown-item" style="border-top: 1px solid rgba(255,255,255,0.3); padding-top: 8px; margin-top: 8px;">
+                <span>Net Profit:</span>
+                <strong style="color: <%= data[:profit] >= 0 ? '#68d391' : '#fc8181' %>;">
+                  ₹<%= number_with_delimiter((data[:profit]/1000).round(1)) %>K (<%= data[:profit_margin] %>%)
+                </strong>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Monthly Profit Trends -->
+      <div class="trends-chart">
+        <h2 class="section-title">
+          <i class="fas fa-trending-up"></i>
+          Monthly Profit Trends (Last 12 Months)
+        </h2>
+        <div class="chart-container">
+          <canvas id="monthlyProfitChart" height="100"></canvas>
+        </div>
+      </div>
+
+      <!-- Policy-wise Detailed List -->
+      <div class="policies-table">
+        <div class="table-header">
+          <h2 class="section-title" style="margin: 0;">
+            <i class="fas fa-list-alt"></i>
+            Individual Policy Profits
+          </h2>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label class="filter-label">Policy Type</label>
+              <select class="filter-select" id="policyTypeFilter">
+                <option value="">All Types</option>
+                <option value="Health">Health</option>
+                <option value="Life">Life</option>
+                <option value="Motor">Motor</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Sort By</label>
+              <select class="filter-select" id="sortFilter">
+                <option value="profit_desc">Highest Profit</option>
+                <option value="profit_asc">Lowest Profit</option>
+                <option value="premium_desc">Highest Premium</option>
+                <option value="date_desc">Latest Policies</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Show</label>
+              <select class="filter-select" id="profitFilter">
+                <option value="">All Policies</option>
+                <option value="profitable">Profitable Only</option>
+                <option value="unprofitable">Loss Making</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table Header -->
+        <div class="policy-item" style="background: #f7fafc; font-weight: 600; color: #4a5568;">
+          <div>Policy Details</div>
+          <div style="text-align: right;">Premium</div>
+          <div style="text-align: right;">Your Commission</div>
+          <div style="text-align: right;">Expenses</div>
+          <div style="text-align: right;">Net Profit</div>
+          <div style="text-align: center;">Margin</div>
+        </div>
+
+        <!-- Policies List -->
+        <div class="policies-list" id="policiesList">
+          <% @policy_profits.each do |policy| %>
+            <div class="policy-item" data-type="<%= policy[:policy_type] %>" data-profit="<%= policy[:profit] %>" data-premium="<%= policy[:premium] %>" data-date="<%= policy[:policy_date] %>">
+              <div class="policy-main">
+                <div class="policy-number">
+                  <%= policy[:policy_number] %>
+                  <span class="policy-type <%= policy[:policy_type].downcase %>"><%= policy[:policy_type] %></span>
+                </div>
+                <div class="policy-customer">
+                  <%= policy[:customer_name] %> • <%= policy[:policy_date].strftime("%d %b %Y") %>
+                </div>
+              </div>
+              <div class="amount">₹<%= number_with_delimiter(policy[:premium].round(0)) %></div>
+              <div class="amount">₹<%= number_with_delimiter(policy[:investor_commission].round(0)) %></div>
+              <div class="amount">₹<%= number_with_delimiter(policy[:company_expenses].round(0)) %></div>
+              <div class="amount <%= policy[:profit] >= 0 ? 'profit-positive' : 'profit-negative' %>">
+                ₹<%= number_with_delimiter(policy[:profit].round(0)) %>
+              </div>
+              <div style="text-align: center; font-weight: 600;">
+                <span style="color: <%= policy[:profit_margin] >= 0 ? '#38a169' : '#e53e3e' %>;">
+                  <%= policy[:profit_margin] %>%
+                </span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Monthly Profit Trends Chart
+  const profitCtx = document.getElementById('monthlyProfitChart').getContext('2d');
+  const monthlyTrends = <%= @monthly_profit_trends.to_json.html_safe %>;
+
+  new Chart(profitCtx, {
+    type: 'bar',
+    data: {
+      labels: Object.values(monthlyTrends).map(d => d.month.split(' ')[0].substr(0,3)),
+      datasets: [{
+        label: 'Monthly Profit (₹)',
+        data: Object.values(monthlyTrends).map(d => d.profit),
+        backgroundColor: 'rgba(104, 211, 145, 0.8)',
+        borderColor: 'rgba(104, 211, 145, 1)',
+        borderWidth: 2
+      }, {
+        label: 'Premium (₹)',
+        data: Object.values(monthlyTrends).map(d => d.premium),
+        type: 'line',
+        borderColor: 'rgba(255, 255, 255, 0.8)',
+        backgroundColor: 'transparent',
+        borderWidth: 3,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: 'white'
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: 'white'
+          },
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          }
+        },
+        y: {
+          ticks: {
+            color: 'white',
+            callback: function(value) {
+              return '₹ ' + (value/1000).toFixed(0) + 'K';
+            }
+          },
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          }
+        }
+      }
+    }
+  });
+
+  // Filter functionality
+  document.getElementById('policyTypeFilter').addEventListener('change', filterPolicies);
+  document.getElementById('sortFilter').addEventListener('change', filterPolicies);
+  document.getElementById('profitFilter').addEventListener('change', filterPolicies);
+
+  function filterPolicies() {
+    const typeFilter = document.getElementById('policyTypeFilter').value;
+    const sortFilter = document.getElementById('sortFilter').value;
+    const profitFilter = document.getElementById('profitFilter').value;
+
+    const policies = Array.from(document.querySelectorAll('.policy-item')).slice(1); // Skip header
+
+    // Filter policies
+    policies.forEach(policy => {
+      let show = true;
+
+      if (typeFilter && !policy.dataset.type.includes(typeFilter)) {
+        show = false;
+      }
+
+      if (profitFilter === 'profitable' && parseFloat(policy.dataset.profit) <= 0) {
+        show = false;
+      }
+
+      if (profitFilter === 'unprofitable' && parseFloat(policy.dataset.profit) > 0) {
+        show = false;
+      }
+
+      policy.style.display = show ? 'grid' : 'none';
+    });
+
+    // Sort policies
+    const visiblePolicies = policies.filter(p => p.style.display !== 'none');
+    const container = document.getElementById('policiesList');
+
+    visiblePolicies.sort((a, b) => {
+      switch (sortFilter) {
+        case 'profit_desc':
+          return parseFloat(b.dataset.profit) - parseFloat(a.dataset.profit);
+        case 'profit_asc':
+          return parseFloat(a.dataset.profit) - parseFloat(b.dataset.profit);
+        case 'premium_desc':
+          return parseFloat(b.dataset.premium) - parseFloat(a.dataset.premium);
+        case 'date_desc':
+          return new Date(b.dataset.date) - new Date(a.dataset.date);
+        default:
+          return 0;
+      }
+    });
+
+    // Re-append sorted policies
+    visiblePolicies.forEach(policy => container.appendChild(policy));
+  }
+</script>

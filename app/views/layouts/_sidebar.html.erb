@@ -1417,15 +1417,15 @@ body.sidebar-collapsed .main-content {
     <div class="nav-section">
       <div class="nav-section-title">Investor Portal</div>
       <ul class="nav-menu">
-        <!-- Investment Dashboard -->
+        <!-- Profit Summary -->
         <li class="nav-item">
-          <%= link_to investor_dashboard_path, class: "nav-link-modern #{'active' if request.path.include?('/investor')}" do %>
+          <%= link_to investor_profit_summary_path, class: "nav-link-modern #{'active' if request.path.include?('/investor/profit_summary') || request.path.include?('/summary-investor')}" do %>
             <div class="nav-icon-modern">
-              <div class="icon-bg gradient-purple">
-                <i class="bi bi-graph-up-arrow"></i>
+              <div class="icon-bg gradient-indigo">
+                <i class="bi bi-cash-stack"></i>
               </div>
             </div>
-            <span class="nav-text">Investor Dashboard</span>
+            <span class="nav-text">Profit Summary</span>
             <div class="nav-indicator"></div>
           <% end %>
         </li>

@@ -32,6 +32,8 @@ Rails.application.routes.draw do
 
   # Investor Dashboard
   get 'investor/dashboard', to: 'investor#dashboard'
+  get 'investor/profit_summary', to: 'investor#profit_summary'
+  get 'summary-investor', to: 'investor#profit_summary'
 
   # API routes
   namespace :api do

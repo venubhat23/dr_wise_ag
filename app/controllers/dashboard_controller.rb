@@ -86,6 +86,8 @@ class DashboardController < ApplicationController
   def redirect_ambassador_users
     if current_user&.ambassador?
       redirect_to ambassador_dashboard_path
+    elsif current_user&.investor?
+      redirect_to investor_profit_summary_path
     end
   end
 
@@ -113,12 +115,6 @@ class DashboardController < ApplicationController
   end
 
   private
-
-  def redirect_ambassador_users
-    if current_user&.ambassador?
-      redirect_to ambassador_dashboard_path
-    end
-  end
 
   # Optimized helper methods to avoid N+1 queries
 

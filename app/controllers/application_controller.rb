@@ -33,6 +33,8 @@ class ApplicationController < ActionController::Base
   def after_sign_in_path_for(resource)
     if resource.ambassador?
       ambassador_dashboard_path
+    elsif resource.investor?
+      investor_profit_summary_path
     else
       stored_location_for(resource) || root_path
     end
@@ -58,6 +60,11 @@ class ApplicationController < ActionController::Base
 
     # Skip authorization for ambassador controller
     if self.class.name == 'AmbassadorController'
+      return false
+    end
+
+    # Skip authorization for investor controller
+    if self.class.name == 'InvestorController'
       return false
     end
 
