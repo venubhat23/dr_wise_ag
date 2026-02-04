@@ -790,11 +790,26 @@ class Admin::CustomersController < Admin::ApplicationController
 
   # PATCH/PUT /admin/customers/1
   def update
-    if @customer.update(customer_params)
-      redirect_to admin_customer_path(@customer), notice: 'Customer was successfully updated.'
-    else
-      @sub_agents = SubAgent.active.order(:first_name, :last_name)
-      render :edit, status: :unprocessable_entity
+    begin
+      if @customer.update(customer_params)
+        redirect_to admin_customer_path(@customer), notice: 'Customer was successfully updated.'
+      else
+        @sub_agents = SubAgent.active.order(:first_name, :last_name)
+        render :edit, status: :unprocessable_entity
+      end
+    rescue ActiveRecord::AssociationTypeMismatch => e
+      Rails.logger.error "Customer update failed - Association error: #{e.message}"
+      Rails.logger.error "Customer params: #{customer_params.inspect}"
+
+      # Clear problematic association data and retry without it
+      safe_params = customer_params.except(:documents)
+      if @customer.update(safe_params)
+        redirect_to admin_customer_path(@customer), notice: 'Customer was successfully updated (documents skipped due to error).'
+      else
+        @sub_agents = SubAgent.active.order(:first_name, :last_name)
+        flash.now[:alert] = "Update failed: #{e.message}"
+        render :edit, status: :unprocessable_entity
+      end
     end
   end
 
@@ -966,7 +981,7 @@ class Admin::CustomersController < Admin::ApplicationController
   end
 
   def customer_params
-    params.require(:customer).permit(
+    permitted_params = params.require(:customer).permit(
       :customer_type, :first_name, :middle_name, :last_name, :company_name, :email, :mobile,
       :address, :state, :city, :pincode, :pan_no, :pan_number, :gst_no, :gst_number, :birth_date,
       :gender, :occupation, :job_name, :annual_income, :nominee_name, :nominee_relation,
@@ -989,6 +1004,13 @@ class Admin::CustomersController < Admin::ApplicationController
         documents_attributes: [:id, :document_type, :file, :_destroy]
       ]
     )
+
+    # Filter out blank string values from documents array to prevent association errors
+    if permitted_params[:documents].present?
+      permitted_params[:documents] = permitted_params[:documents].reject(&:blank?)
+    end
+
+    permitted_params
   end
 
   def generate_customers_csv(customers)

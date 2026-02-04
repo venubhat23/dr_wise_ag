@@ -442,7 +442,7 @@
                       <%= image_tag image_data[:url],
                           class: "img-thumbnail",
                           style: "max-height: 100px; width: auto;",
-                          onerror: "this.src='/assets/placeholder-avatar.png'; this.onerror=null;",
+                          onerror: "this.src='<%= asset_path('placeholder-avatar.svg') %>'; this.onerror=null;",
                           loading: "lazy" %>
                       <small class="d-block text-muted mt-1">
                         <i class="bi bi-file-image me-1"></i><%= image_data[:filename] %>
