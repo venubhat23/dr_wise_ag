@@ -410,8 +410,8 @@ class InvestorController < ApplicationController
         payout_to: 'investor'
       ).sum(:payout_amount).to_f
 
-      # Calculate profit: Premium - Commission - Expenses
-      type_profit = type_premium - type_investor_commission - type_company_expenses
+      # For investors: profit = commission only
+      type_profit = type_investor_commission
 
       breakdown[policy_type.to_sym] = {
         policies_count: policies.count,
@@ -431,8 +431,8 @@ class InvestorController < ApplicationController
       total_premium: total_premium,
       total_company_expenses: total_company_expenses,
       total_investor_commission: total_commission,
-      total_profit: total_premium - total_commission - total_company_expenses,
-      profit_margin: total_premium > 0 ? (((total_premium - total_commission - total_company_expenses) / total_premium) * 100).round(2) : 0
+      total_profit: total_commission,
+      profit_margin: total_premium > 0 ? ((total_commission / total_premium) * 100).round(2) : 0
     }
 
     breakdown
@@ -457,7 +457,8 @@ class InvestorController < ApplicationController
           payout_to: 'investor'
         ).sum(:payout_amount).to_f
 
-        profit = premium - investor_commission - company_expenses
+        # For investors: profit = commission only
+        profit = investor_commission
 
         policy_profits << {
           policy_type: policy_type.capitalize,
@@ -509,7 +510,8 @@ class InvestorController < ApplicationController
         monthly_investor_commission += type_commission
       end
 
-      monthly_profit = monthly_premium - monthly_investor_commission - monthly_expenses
+      # For investors: profit = commission only
+      monthly_profit = monthly_investor_commission
 
       trends[month_key] = {
         month: month_start.strftime("%B %Y"),
@@ -537,7 +539,8 @@ class InvestorController < ApplicationController
       payout_to: 'investor'
     ).sum(:payout_amount).to_f
 
-    total_profit = total_premium - total_investor_commission - total_expenses
+    # For investors: profit = commission only
+    total_profit = total_investor_commission
 
     {
       total_policies: total_policies_count,
