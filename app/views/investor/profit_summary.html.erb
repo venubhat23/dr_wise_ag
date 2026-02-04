@@ -21,7 +21,7 @@
           <div class="d-flex justify-content-between">
             <div>
               <h6 class="text-muted mb-2">Total Profit</h6>
-              <h3 class="mb-0 text-success">₹<%= number_with_delimiter((@total_profit_stats[:total_profit]).round(0)) %></h3>
+              <h3 class="mb-0 text-success"><%= indian_currency(@total_profit_stats[:total_profit], show_decimals: true) %></h3>
             </div>
             <div class="bg-success bg-opacity-10 rounded p-3">
               <i class="bi bi-currency-rupee text-success fs-4"></i>
@@ -53,7 +53,7 @@
           <div class="d-flex justify-content-between">
             <div>
               <h6 class="text-muted mb-2">Avg Profit/Policy</h6>
-              <h3 class="mb-0 text-info">₹<%= number_with_delimiter(@total_profit_stats[:average_profit_per_policy].round(0)) %></h3>
+              <h3 class="mb-0 text-info"><%= indian_currency(@total_profit_stats[:average_profit_per_policy], show_decimals: true) %></h3>
             </div>
             <div class="bg-info bg-opacity-10 rounded p-3">
               <i class="bi bi-graph-up text-info fs-4"></i>
@@ -104,21 +104,21 @@
                 </div>
                 <div class="mb-2">
                   <span class="text-muted small">Premium:</span>
-                  <strong class="float-end">₹<%= number_with_delimiter((data[:total_premium]).round(0)) %></strong>
+                  <strong class="float-end"><%= indian_currency(data[:total_premium], show_decimals: true) %></strong>
                 </div>
                 <div class="mb-2">
                   <span class="text-muted small">Commission:</span>
-                  <strong class="float-end">₹<%= number_with_delimiter((data[:investor_commission]).round(0)) %></strong>
+                  <strong class="float-end"><%= indian_currency(data[:investor_commission], show_decimals: true) %></strong>
                 </div>
                 <div class="mb-2">
                   <span class="text-muted small">Expenses:</span>
-                  <strong class="float-end">₹<%= number_with_delimiter((data[:company_expenses]).round(0)) %></strong>
+                  <strong class="float-end"><%= indian_currency(data[:company_expenses], show_decimals: true) %></strong>
                 </div>
                 <hr class="my-2">
                 <div class="mb-0">
                   <span class="text-muted small">Net Profit:</span>
                   <strong class="float-end <%= data[:profit] >= 0 ? 'text-success' : 'text-danger' %>">
-                    ₹<%= number_with_delimiter((data[:profit]).round(0)) %>
+                    <%= indian_currency(data[:profit], show_decimals: true) %>
                   </strong>
                 </div>
                 <div class="progress mt-2" style="height: 6px;">
@@ -237,17 +237,17 @@
                   </div>
                 </td>
                 <td class="text-end align-middle">
-                  <strong>₹<%= number_with_delimiter(policy[:premium].round(0)) %></strong>
+                  <strong><%= indian_currency(policy[:premium], show_decimals: true) %></strong>
                 </td>
                 <td class="text-end align-middle">
-                  ₹<%= number_with_delimiter(policy[:investor_commission].round(0)) %>
+                  <%= indian_currency(policy[:investor_commission], show_decimals: true) %>
                 </td>
                 <td class="text-end align-middle">
-                  ₹<%= number_with_delimiter(policy[:company_expenses].round(0)) %>
+                  <%= indian_currency(policy[:company_expenses], show_decimals: true) %>
                 </td>
                 <td class="text-end align-middle">
                   <strong class="<%= policy[:profit] >= 0 ? 'text-success' : 'text-danger' %>">
-                    ₹<%= number_with_delimiter(policy[:profit].round(0)) %>
+                    <%= indian_currency(policy[:profit], show_decimals: true) %>
                   </strong>
                 </td>
                 <td class="text-center align-middle">
@@ -331,7 +331,8 @@
         y: {
           ticks: {
             callback: function(value) {
-              return '₹ ' + (value/1000).toFixed(0) + 'K';
+              // Format in Indian currency style with 2 decimals
+              return '₹' + value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
           },
           grid: {
