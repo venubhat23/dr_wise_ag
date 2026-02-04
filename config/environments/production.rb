@@ -26,8 +26,10 @@ Rails.application.configure do
     config.active_storage.service = :amazon
   else
     config.active_storage.service = :local
-    # Log warning about using local storage in production
-    Rails.logger.warn "WARNING: Using local storage for Active Storage in production. Consider configuring AWS S3 for persistent file storage."
+    # Warning will be logged after Rails initialization completes
+    config.after_initialize do
+      Rails.logger.warn "WARNING: Using local storage for Active Storage in production. Consider configuring AWS S3 for persistent file storage."
+    end
   end
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
