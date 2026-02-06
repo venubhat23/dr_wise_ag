@@ -578,18 +578,162 @@
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>
-              <div>Commission Payout - <%= @invoice.payout_type.humanize %></div>
-              <div style="color: #666; font-size: 10px; font-style: italic;">
-                Payment for <%= @invoice.payout_type.humanize.downcase %> commission services
-              </div>
-            </td>
-            <td class="center-align"><%= @invoice.payout_type.humanize %></td>
-            <td class="center-align">1 Payout</td>
-            <td class="right-align"><%= indian_currency(@invoice.total_amount, delimiter: ',') %></td>
-            <td class="right-align"><%= indian_currency(@invoice.total_amount, delimiter: ',') %></td>
-          </tr>
+          <%
+            # Get commission payouts for this specific invoice
+            if @invoice.payout_type == 'affiliate'
+              # For affiliate invoices, we need to find the specific SubAgent
+              # and get their paid commission payouts that sum to the invoice amount
+              sub_agent = SubAgent.find_by(id: @invoice.payout_id)
+              if sub_agent
+                # Get all policies where this SubAgent is involved and has paid affiliate commissions
+                commission_payouts = []
+
+                # Health policies
+                HealthInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
+                  payouts = CommissionPayout.where(policy_type: 'health', policy_id: policy.id,
+                                                  payout_to: 'affiliate', status: 'paid')
+                  commission_payouts += payouts
+                end
+
+                # Life policies
+                LifeInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
+                  payouts = CommissionPayout.where(policy_type: 'life', policy_id: policy.id,
+                                                  payout_to: 'affiliate', status: 'paid')
+                  commission_payouts += payouts
+                end
+
+                # Motor policies
+                MotorInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
+                  payouts = CommissionPayout.where(policy_type: 'motor', policy_id: policy.id,
+                                                  payout_to: 'affiliate', status: 'paid')
+                  commission_payouts += payouts
+                end
+
+                # Other policies
+                OtherInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
+                  payouts = CommissionPayout.where(policy_type: 'other', policy_id: policy.id,
+                                                  payout_to: 'affiliate', status: 'paid')
+                  commission_payouts += payouts
+                end
+
+                # Sort by policy type and ID
+                commission_payouts = commission_payouts.sort_by { |p| [p.policy_type, p.policy_id] }
+              else
+                commission_payouts = [@invoice.payout_record].compact
+              end
+            elsif @invoice.payout_type == 'ambassador'
+              # For ambassador invoices, we need to consider both SubAgent and Distributor relationships
+              commission_payouts = []
+
+              # First check if payout_id refers to a DistributorPayout
+              distributor_payout = DistributorPayout.find_by(id: @invoice.payout_id)
+              if distributor_payout
+                # Get the distributor (ambassador)
+                distributor = Distributor.find_by(id: distributor_payout.distributor_id)
+                if distributor
+                  # Get all paid DistributorPayout records for this distributor
+                  distributor_payouts = DistributorPayout.where(distributor_id: distributor.id, status: 'paid')
+                  commission_payouts = distributor_payouts.sort_by { |p| [p.policy_type, p.policy_id] }
+                end
+              else
+                # Try SubAgent approach (ambassador commissions via CommissionPayout)
+                sub_agent = SubAgent.find_by(id: @invoice.payout_id)
+                if sub_agent
+                  # Get ambassador commissions for this specific sub_agent's policies
+                  HealthInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
+                    payouts = CommissionPayout.where(policy_type: 'health', policy_id: policy.id,
+                                                    payout_to: 'ambassador', status: 'paid')
+                    commission_payouts += payouts
+                  end
+
+                  LifeInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
+                    payouts = CommissionPayout.where(policy_type: 'life', policy_id: policy.id,
+                                                    payout_to: 'ambassador', status: 'paid')
+                    commission_payouts += payouts
+                  end
+
+                  MotorInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
+                    payouts = CommissionPayout.where(policy_type: 'motor', policy_id: policy.id,
+                                                    payout_to: 'ambassador', status: 'paid')
+                    commission_payouts += payouts
+                  end
+
+                  OtherInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
+                    payouts = CommissionPayout.where(policy_type: 'other', policy_id: policy.id,
+                                                    payout_to: 'ambassador', status: 'paid')
+                    commission_payouts += payouts
+                  end
+
+                  commission_payouts = commission_payouts.sort_by { |p| [p.policy_type, p.policy_id] }
+                else
+                  commission_payouts = [@invoice.payout_record].compact
+                end
+              end
+            else
+              # For other types, show single payout record
+              commission_payouts = [@invoice.payout_record].compact
+            end
+
+            total_line_items = 0
+          %>
+
+          <% commission_payouts.each_with_index do |commission_payout, index| %>
+            <%
+              # Get policy details based on policy type
+              policy = case commission_payout.policy_type
+              when 'health'
+                HealthInsurance.find_by(id: commission_payout.policy_id)
+              when 'life'
+                LifeInsurance.find_by(id: commission_payout.policy_id)
+              when 'motor'
+                MotorInsurance.find_by(id: commission_payout.policy_id)
+              when 'other'
+                OtherInsurance.find_by(id: commission_payout.policy_id)
+              end
+
+              customer_name = policy&.customer&.display_name || 'Unknown Customer'
+              policy_number = policy&.policy_number || 'N/A'
+
+              # Handle both CommissionPayout and DistributorPayout amounts
+              payout_amount = commission_payout.respond_to?(:payout_amount) ? commission_payout.payout_amount : 0
+              total_line_items += payout_amount
+            %>
+            <tr>
+              <td>
+                <div style="font-weight: bold; font-size: 11px; color: #333; margin-bottom: 2px;">
+                  Commission Payout - <%= @invoice.payout_type.humanize %>
+                </div>
+                <div style="color: #666; font-size: 9px; font-style: italic; margin-bottom: 6px;">
+                  Payment for <%= @invoice.payout_type.humanize.downcase %> commission services
+                </div>
+
+                <div style="margin-top: 6px; padding: 6px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #5a4ec9;">
+                  <div style="font-weight: bold; font-size: 10px; color: #5a4ec9; margin-bottom: 4px;">Commission Breakdown:</div>
+                  <div style="font-size: 9px; color: #333; margin-bottom: 2px;">
+                    <strong>Policy ID:</strong> #<%= commission_payout.policy_id %>
+                  </div>
+                  <div style="font-size: 9px; color: #333; margin-bottom: 2px;">
+                    <strong>Policy Number:</strong> <%= policy_number %>
+                  </div>
+                  <div style="font-size: 9px; color: #333; margin-bottom: 2px;">
+                    <strong>Customer:</strong> <%= customer_name %>
+                  </div>
+                  <% if commission_payout.respond_to?(:lead_id) && commission_payout.lead_id.present? %>
+                    <div style="font-size: 9px; color: #333; margin-bottom: 2px;">
+                      <strong>Lead ID:</strong> <%= commission_payout.lead_id %>
+                    </div>
+                  <% end %>
+                  <div style="font-size: 9px; color: #333;">
+                    <strong>Policy Type:</strong> <%= commission_payout.policy_type.humanize %>
+                  </div>
+                </div>
+              </td>
+              <td class="center-align"><%= @invoice.payout_type.humanize %></td>
+              <td class="center-align">1 Policy</td>
+              <td class="right-align"><%= indian_currency(payout_amount, delimiter: ',') %></td>
+              <td class="right-align"><%= indian_currency(payout_amount, delimiter: ',') %></td>
+            </tr>
+          <% end %>
         </tbody>
       </table>
 
@@ -602,7 +746,7 @@
             <table class="subtotal-values-table">
               <tr>
                 <td>₹ 0.00</td>
-                <td><%= indian_currency(@invoice.total_amount) %></td>
+                <td><%= indian_currency(total_line_items) %></td>
               </tr>
             </table>
           </td>
@@ -619,7 +763,7 @@
             <div class="summary-section">
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px; padding: 3px 0; border-bottom: 1px solid #eee;">
                 <span>SUBTOTAL</span>
-                <span style="font-weight: bold;"><%= indian_currency(@invoice.total_amount) %></span>
+                <span style="font-weight: bold;"><%= indian_currency(total_line_items) %></span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px; padding: 3px 0; border-bottom: 1px solid #eee;">
                 <span>TAX (N/A)</span>
@@ -627,13 +771,13 @@
               </div>
               <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; border-top: 2px solid #5a4ec9; padding-top: 6px; margin-top: 6px; background-color: #f0f0f0; padding: 8px; border-radius: 5px;">
                 <span>TOTAL AMOUNT</span>
-                <span><%= indian_currency(@invoice.total_amount) %></span>
+                <span><%= indian_currency(total_line_items) %></span>
               </div>
 
               <div class="amount-words">
                 <h3>Total Amount (in words)</h3>
                 <%
-                  total_amount_int = @invoice.total_amount.to_i
+                  total_amount_int = total_line_items.to_i
                   ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"]
                   teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
                   tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]

@@ -101,7 +101,8 @@
         <table class="table table-hover mb-0">
           <thead class="bg-light">
             <tr>
-              <th class="border-0">Invoice # / Policy Number</th>
+              <th class="border-0">Invoice Number</th>
+              <th class="border-0">Policy Number</th>
               <th class="border-0">Recipient</th>
               <th class="border-0">Type</th>
               <th class="border-0">Amount</th>
@@ -115,23 +116,19 @@
             <% @invoices.each do |invoice| %>
               <tr>
                 <td class="py-3">
-                  <div class="d-flex flex-column">
-                    <div class="d-flex align-items-center mb-2">
-                      <div class="bg-primary bg-opacity-10 rounded-2 px-3 py-2 me-2">
-                        <div class="fw-bold text-primary fs-6">
-                          <%= invoice.invoice_number %>
-                        </div>
-                        <small class="text-primary">Invoice #</small>
-                      </div>
+                  <div class="bg-primary bg-opacity-10 rounded-2 px-3 py-2">
+                    <div class="fw-bold text-primary fs-6">
+                      <%= invoice.invoice_number %>
                     </div>
-                    <div class="d-flex align-items-center">
-                      <div class="bg-secondary bg-opacity-10 rounded-2 px-3 py-2">
-                        <div class="fw-medium text-dark">
-                          <%= invoice.policy_number %>
-                        </div>
-                        <small class="text-secondary">Policy Number</small>
-                      </div>
+                    <small class="text-primary">Invoice #</small>
+                  </div>
+                </td>
+                <td class="py-3">
+                  <div class="bg-secondary bg-opacity-10 rounded-2 px-3 py-2">
+                    <div class="fw-medium text-dark">
+                      <%= invoice.policy_number %>
                     </div>
+                    <small class="text-secondary">Policy Number</small>
                   </div>
                 </td>
                 <td class="py-3">

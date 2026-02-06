@@ -94,19 +94,32 @@ class DashboardController < ApplicationController
   def load_dashboard_data
     start_time = Time.current
 
-    # Use ultra-fast tiered caching
-    cached_data = DashboardTieredCacheService.fetch_stats(mode: :auto)
+    # Get date filter parameters (default to current year)
+    current_year = Date.current.year
+    @filter_year = params[:year].present? ? params[:year].to_i : current_year
+    @filter_month = params[:month].present? ? params[:month].to_i : nil
+    @filter_start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : Date.new(@filter_year, 1, 1)
+    @filter_end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : Date.new(@filter_year, 12, 31)
+
+    # If month is specified, filter by that month
+    if @filter_month.present?
+      @filter_start_date = Date.new(@filter_year, @filter_month, 1)
+      @filter_end_date = @filter_start_date.end_of_month
+    end
+
+    # Use filtered dashboard data instead of cached
+    filtered_data = get_filtered_dashboard_data(@filter_start_date, @filter_end_date)
 
     # Track performance
     DashboardPerformanceMonitor.track_dashboard_load(
       start_time: start_time,
       end_time: Time.current,
-      cache_hit: cached_data[:cached_from].present?,
-      data_source: cached_data[:cached_from] || 'unknown'
+      cache_hit: false,
+      data_source: 'filtered_data'
     )
 
-    # Set instance variables from cached data
-    cached_data.each { |key, value| instance_variable_set("@#{key}", value) }
+    # Set instance variables from filtered data
+    filtered_data.each { |key, value| instance_variable_set("@#{key}", value) }
   rescue => e
     Rails.logger.error "Dashboard data loading failed: #{e.message}"
     # Fallback to basic counts if ultra-fast service fails
@@ -115,6 +128,344 @@ class DashboardController < ApplicationController
   end
 
   private
+
+  def get_filtered_dashboard_data(start_date, end_date)
+    # Execute all database queries with date filtering
+    results = {}
+
+    # Batch count queries using single SQL with UNION for better performance
+    count_results = ActiveRecord::Base.connection.execute("
+      SELECT 'total_customers' as metric, COUNT(*) as count FROM customers WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      UNION ALL
+      SELECT 'active_customers', COUNT(*) FROM customers WHERE status = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      UNION ALL
+      SELECT 'total_ambassadors', COUNT(*) FROM distributors WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      UNION ALL
+      SELECT 'total_leads', COUNT(*) FROM leads WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      UNION ALL
+      SELECT 'converted_leads', COUNT(*) FROM leads WHERE current_stage = 'converted' AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      UNION ALL
+      SELECT 'health_count', COUNT(*) FROM health_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      UNION ALL
+      SELECT 'life_count', COUNT(*) FROM life_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+    ")
+
+    # Process count results
+    count_results.each do |row|
+      results[row['metric'].to_sym] = row['count']
+    end
+
+    # Handle optional tables that might not exist
+    results[:motor_count] = (MotorInsurance.where(created_at: start_date..end_date).count rescue 0)
+    results[:other_count] = (OtherInsurance.where(created_at: start_date..end_date).count rescue 0)
+
+    # Calculate active affiliates for the period
+    results[:total_affiliates] = SubAgent.where(created_at: start_date..end_date).count
+
+    # Calculate derived values
+    results[:inactive_customers] = results[:total_customers] - results[:active_customers]
+    results[:total_policies] = results[:health_count] + results[:life_count] + results[:motor_count] + results[:other_count]
+    results[:lead_conversion_percentage] = results[:total_leads] > 0 ? ((results[:converted_leads].to_f / results[:total_leads]) * 100).round(2) : 0
+
+    # Premium data for the filtered period
+    premium_results = ActiveRecord::Base.connection.execute("
+      SELECT
+        COALESCE(SUM(total_premium), 0) as total_premium,
+        COALESCE(SUM(sum_insured), 0) as total_sum_insured
+      FROM (
+        SELECT total_premium, sum_insured FROM health_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+        UNION ALL
+        SELECT total_premium, sum_insured FROM life_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      ) as combined_insurance
+    ").first
+
+    results[:total_premium_collected] = (premium_results['total_premium'] || 0).to_f
+    results[:total_sum_insured] = (premium_results['total_sum_insured'] || 0).to_f
+
+    # Add motor insurance for the period if table exists
+    begin
+      motor_data = MotorInsurance.where(created_at: start_date..end_date).select('COALESCE(SUM(total_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
+      results[:total_premium_collected] += motor_data.premium.to_f if motor_data
+      results[:total_sum_insured] += motor_data.sum.to_f if motor_data
+    rescue
+      # Motor insurance table doesn't exist
+    end
+
+    # Pending leads count for the period
+    pending_stages = ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one']
+    results[:pending_leads] = Lead.where(current_stage: pending_stages, created_at: start_date..end_date).count
+
+    # Renewals and expired policies for the period
+    thirty_days_from_end = end_date + 30.days
+    results[:renewal_due_count] = get_renewal_due_count_for_period(start_date, end_date)
+    results[:expired_policies_count] = get_expired_policies_count_for_period(start_date, end_date)
+    results[:renewal_status] = get_renewal_status_counts_for_period(start_date, end_date)
+
+    # Payout data for the period
+    payout_data = get_optimized_payout_data_for_period(start_date, end_date)
+    results.merge!(
+      pending_payouts: payout_data[:pending_amount],
+      paid_payouts: payout_data[:paid_amount],
+      total_payouts: payout_data[:total_amount]
+    )
+
+    # Calculate growth metrics for the period
+    growth_metrics = calculate_growth_metrics_for_period(start_date, end_date)
+    results.merge!(growth_metrics)
+
+    # Add recent activities data for the period
+    results[:recent_policies] = get_recent_policies_for_period(start_date, end_date)
+    results[:recent_leads] = get_recent_leads_for_period(start_date, end_date)
+
+    # Add missing variables that the dashboard expects
+    results[:commissions_due] = results[:pending_payouts] || 0
+    results[:avg_policy_value] = results[:total_policies] > 0 ? (results[:total_premium_collected] / results[:total_policies]).round(0) : 0
+
+    # Add filter information
+    results[:filter_start_date] = start_date
+    results[:filter_end_date] = end_date
+    results[:filter_year] = start_date.year
+    results[:filter_month] = start_date.month if start_date.month == end_date.month
+
+    results
+  end
+
+  # Helper methods for filtered data
+  def get_renewal_due_count_for_period(start_date, end_date)
+    thirty_days_from_end = end_date + 30.days
+    sql = "
+      SELECT COUNT(*) as count FROM (
+        SELECT id FROM health_insurances WHERE created_at BETWEEN ? AND ? AND policy_end_date BETWEEN ? AND ?
+        UNION ALL
+        SELECT id FROM life_insurances WHERE created_at BETWEEN ? AND ? AND policy_end_date BETWEEN ? AND ?
+      ) as renewals
+    "
+
+    result = ActiveRecord::Base.connection.exec_query(
+      sql,
+      'SQL',
+      [[nil, start_date], [nil, end_date], [nil, end_date], [nil, thirty_days_from_end],
+       [nil, start_date], [nil, end_date], [nil, end_date], [nil, thirty_days_from_end]]
+    )
+
+    count = result.first['count'].to_i
+
+    # Add motor and other insurances if they exist
+    begin
+      count += MotorInsurance.where(created_at: start_date..end_date, policy_end_date: end_date..thirty_days_from_end).count
+    rescue
+    end
+
+    begin
+      count += OtherInsurance.where(created_at: start_date..end_date, policy_end_date: end_date..thirty_days_from_end).count
+    rescue
+    end
+
+    count
+  end
+
+  def get_expired_policies_count_for_period(start_date, end_date)
+    sql = "
+      SELECT COUNT(*) as count FROM (
+        SELECT id FROM health_insurances WHERE created_at BETWEEN ? AND ? AND policy_end_date < ?
+        UNION ALL
+        SELECT id FROM life_insurances WHERE created_at BETWEEN ? AND ? AND policy_end_date < ?
+      ) as expired
+    "
+
+    result = ActiveRecord::Base.connection.exec_query(
+      sql,
+      'SQL',
+      [[nil, start_date], [nil, end_date], [nil, end_date], [nil, start_date], [nil, end_date], [nil, end_date]]
+    )
+
+    count = result.first['count'].to_i
+
+    # Add motor and other insurances if they exist
+    begin
+      count += MotorInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', end_date).count
+    rescue
+    end
+
+    begin
+      count += OtherInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', end_date).count
+    rescue
+    end
+
+    count
+  end
+
+  def get_optimized_payout_data_for_period(start_date, end_date)
+    commission_data = CommissionPayout
+      .where(created_at: start_date..end_date)
+      .group(:status)
+      .sum(:payout_amount)
+
+    commission_pending = commission_data['pending'] || 0
+    commission_paid = commission_data['paid'] || 0
+    commission_total = CommissionPayout.where(created_at: start_date..end_date).sum(:payout_amount) || 0
+
+    distributor_pending = 0
+    distributor_paid = 0
+    distributor_total = 0
+
+    # Check if distributor payouts exist
+    begin
+      if ActiveRecord::Base.connection.table_exists?('distributor_payouts')
+        distributor_data = DistributorPayout
+          .where(created_at: start_date..end_date)
+          .group(:status)
+          .sum(:payout_amount)
+
+        distributor_pending = distributor_data['pending'] || 0
+        distributor_paid = distributor_data['paid'] || 0
+        distributor_total = DistributorPayout.where(created_at: start_date..end_date).sum(:payout_amount) || 0
+      end
+    rescue
+    end
+
+    {
+      pending_amount: commission_pending + distributor_pending,
+      paid_amount: commission_paid + distributor_paid,
+      total_amount: commission_total + distributor_total
+    }
+  end
+
+  def get_renewal_status_counts_for_period(start_date, end_date)
+    renewed_count = 0
+
+    begin
+      renewed_count += HealthInsurance.where(created_at: start_date..end_date, policy_type: 'Renewal').count
+      renewed_count += LifeInsurance.where(created_at: start_date..end_date, policy_type: 'Renewal').count
+      renewed_count += (MotorInsurance.where(created_at: start_date..end_date, policy_type: 'Renewal').count rescue 0)
+    rescue => e
+      Rails.logger.error "Error calculating renewal status for period: #{e.message}"
+      renewed_count = 0
+    end
+
+    {
+      'Renewed' => renewed_count,
+      'Pending' => get_renewal_due_count_for_period(start_date, end_date),
+      'Expired' => get_expired_policies_count_for_period(start_date, end_date)
+    }
+  end
+
+  def get_recent_policies_for_period(start_date, end_date)
+    sql = "
+      SELECT * FROM (
+        SELECT
+          'Health Insurance' as policy_type,
+          h.policy_number,
+          h.total_premium,
+          h.created_at,
+          c.display_name as customer_name
+        FROM health_insurances h
+        LEFT JOIN customers c ON h.customer_id = c.id
+        WHERE h.created_at BETWEEN '#{start_date}' AND '#{end_date}'
+        ORDER BY h.created_at DESC
+        LIMIT 5
+      ) AS health
+      UNION ALL
+      SELECT * FROM (
+        SELECT
+          'Life Insurance' as policy_type,
+          l.policy_number,
+          l.total_premium,
+          l.created_at,
+          c.display_name as customer_name
+        FROM life_insurances l
+        LEFT JOIN customers c ON l.customer_id = c.id
+        WHERE l.created_at BETWEEN '#{start_date}' AND '#{end_date}'
+        ORDER BY l.created_at DESC
+        LIMIT 5
+      ) AS life
+    "
+
+    # Add motor insurance if it exists
+    begin
+      if ActiveRecord::Base.connection.table_exists?('motor_insurances')
+        sql += "
+          UNION ALL
+          SELECT * FROM (
+            SELECT
+              'Motor Insurance' as policy_type,
+              m.policy_number,
+              m.total_premium,
+              m.created_at,
+              c.display_name as customer_name
+            FROM motor_insurances m
+            LEFT JOIN customers c ON m.customer_id = c.id
+            WHERE m.created_at BETWEEN '#{start_date}' AND '#{end_date}'
+            ORDER BY m.created_at DESC
+            LIMIT 5
+          ) AS motor
+        "
+      end
+    rescue
+    end
+
+    sql += " ORDER BY created_at DESC LIMIT 10"
+
+    results = ActiveRecord::Base.connection.execute(sql)
+    results.map do |row|
+      {
+        type: row['policy_type'],
+        customer: row['customer_name'] || 'Unknown',
+        policy_number: row['policy_number'],
+        premium: row['total_premium'].to_f,
+        date: row['created_at']
+      }
+    end
+  rescue => e
+    Rails.logger.error "Error fetching recent policies for period: #{e.message}"
+    []
+  end
+
+  def get_recent_leads_for_period(start_date, end_date)
+    Lead.select(:id, :lead_id, :name, :current_stage, :created_at)
+        .where(created_at: start_date..end_date)
+        .order(created_at: :desc)
+        .limit(10)
+  rescue => e
+    Rails.logger.error "Error fetching recent leads for period: #{e.message}"
+    []
+  end
+
+  def calculate_growth_metrics_for_period(start_date, end_date)
+    # Compare current period with previous period of same duration
+    period_duration = (end_date - start_date).days
+    previous_start = start_date - period_duration.days
+    previous_end = start_date - 1.day
+
+    # Current period data
+    current_customers = Customer.where(created_at: start_date..end_date).count
+    current_policies = get_policies_count_for_period(start_date, end_date)
+    current_premium = get_premium_for_period(start_date, end_date)
+    current_affiliates = SubAgent.where(created_at: start_date..end_date).count
+    current_ambassadors = Distributor.where(created_at: start_date..end_date).count
+    current_leads = Lead.where(created_at: start_date..end_date).count
+
+    # Previous period data
+    previous_customers = Customer.where(created_at: previous_start..previous_end).count
+    previous_policies = get_policies_count_for_period(previous_start, previous_end)
+    previous_premium = get_premium_for_period(previous_start, previous_end)
+    previous_affiliates = SubAgent.where(created_at: previous_start..previous_end).count
+    previous_ambassadors = Distributor.where(created_at: previous_start..previous_end).count
+    previous_leads = Lead.where(created_at: previous_start..previous_end).count
+
+    # Calculate growth percentages
+    {
+      customer_growth: calculate_percentage_change(current_customers, previous_customers),
+      policy_growth: calculate_percentage_change(current_policies, previous_policies),
+      premium_growth: calculate_percentage_change(current_premium, previous_premium),
+      affiliate_growth: calculate_percentage_change(current_affiliates, previous_affiliates),
+      ambassador_growth: calculate_percentage_change(current_ambassadors, previous_ambassadors),
+      lead_growth: calculate_percentage_change(current_leads, previous_leads),
+      conversion_rate: current_leads > 0 ? ((Lead.where(created_at: start_date..end_date, current_stage: 'converted').count.to_f / current_leads) * 100).round(1) : 0,
+      avg_policy_value: current_policies > 0 ? (current_premium / current_policies).round(0) : 0,
+      monthly_recurring_revenue: (current_premium / 12.0).round(0)
+    }
+  end
 
   # Optimized helper methods to avoid N+1 queries
 

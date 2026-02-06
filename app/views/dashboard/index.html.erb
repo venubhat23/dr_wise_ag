@@ -13,7 +13,7 @@
 
 <style>
   .dashboard-container {
-    padding: 1.5rem;
+    padding: 0 1.5rem 1.5rem 1.5rem; /* Remove top padding, keep others */
     background: #f8fafc;
     min-height: 100vh;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -294,6 +294,7 @@
     padding-left: 0.75rem;
     padding-right: 0.75rem;
   }
+
 
   /* Simple Modal Cards */
   .kpi-card {
@@ -646,6 +647,69 @@
 </style>
 
 <div class="dashboard-container">
+  <!-- Filters and Search - Moved to top with no padding -->
+  <div class="card shadow-sm mb-4" style="margin-top: 0 !important;">
+    <div class="card-body">
+      <%= form_with url: root_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end" do |form| %>
+        <!-- Year Filter -->
+        <div>
+          <%= form.select :year,
+                         options_for_select([
+                           ['2024', '2024'],
+                           ['2025', '2025'],
+                           ["#{Date.current.year} (Current)", Date.current.year.to_s],
+                           ['2027', '2027'],
+                           ['2028', '2028']
+                         ], (@filter_year || Date.current.year).to_s),
+                         {},
+                         { class: "form-select", id: "year_filter" } %>
+        </div>
+
+        <!-- Month Filter -->
+        <div>
+          <%= form.select :month,
+                         options_for_select([
+                           ['All Year', ''],
+                           ['January', '1'],
+                           ['February', '2'],
+                           ['March', '3'],
+                           ['April', '4'],
+                           ['May', '5'],
+                           ['June', '6'],
+                           ['July', '7'],
+                           ['August', '8'],
+                           ['September', '9'],
+                           ['October', '10'],
+                           ['November', '11'],
+                           ['December', '12']
+                         ], @filter_month.to_s),
+                         {},
+                         { class: "form-select", id: "month_filter" } %>
+        </div>
+
+        <!-- Custom Date Range -->
+        <div class="d-flex gap-2">
+          <%= form.date_field :start_date,
+                             value: @filter_start_date&.strftime('%Y-%m-%d'),
+                             class: "form-control",
+                             id: "start_date_field",
+                             placeholder: "Start Date" %>
+          <%= form.date_field :end_date,
+                             value: @filter_end_date&.strftime('%Y-%m-%d'),
+                             class: "form-control",
+                             id: "end_date_field",
+                             placeholder: "End Date" %>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex gap-2">
+          <%= form.submit "Apply Filter", class: "btn btn-primary" %>
+          <button type="button" id="clear_filters_btn" class="btn btn-outline-secondary">Clear</button>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
   <!-- Core KPI Cards -->
   <div class="row mb-4">
     <!-- Total Customers -->
@@ -939,7 +1003,7 @@
         <div class="col-xl-3 col-md-6 mb-3">
           <div class="system-status-card" style="cursor: pointer; height: 200px;" onclick="showSystemStatusModal('commissions_due')">
             <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
-              <i class="bi bi-wallet2 fs-1 mb-3 <%= @commissions_due > 0 ? 'text-danger' : 'text-success' %>"></i>
+              <i class="bi bi-wallet2 fs-1 mb-3 <%= (@commissions_due || 0) > 0 ? 'text-danger' : 'text-success' %>"></i>
               <div class="fs-2 fw-bold text-dark"><%= indian_currency(@commissions_due || 0) %></div>
               <div class="h6 text-muted">Commissions Due</div>
               <div class="mt-2">
@@ -2414,8 +2478,225 @@ function loadAvgPolicyValueData(content, loading) {
     });
 }
 
+// Dashboard Filter Auto-Update Functionality
+function updateCurrentPeriod() {
+  const yearSelect = document.getElementById('year_filter');
+  const monthSelect = document.getElementById('month_filter');
+  const startDateField = document.getElementById('start_date_field');
+  const endDateField = document.getElementById('end_date_field');
+
+  if (!yearSelect || !monthSelect) return;
+
+  const year = parseInt(yearSelect.value);
+  const month = monthSelect.value;
+
+  let startDate, endDate;
+
+  if (month && month !== '') {
+    // Specific month selected
+    const monthNum = parseInt(month);
+    startDate = new Date(year, monthNum - 1, 1);
+    endDate = new Date(year, monthNum, 0); // Last day of the month
+    console.log(`Month selected: ${monthNum} (${year})`);
+  } else {
+    // Full year selected
+    startDate = new Date(year, 0, 1); // January 1st
+    endDate = new Date(year, 11, 31); // December 31st
+    console.log(`Full year selected: ${year}`);
+  }
+
+  // AUTO-LOAD: Update Custom Date Range fields immediately
+  if (startDateField && endDateField) {
+    const formatDate = (date) => {
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    // Update the date field values
+    startDateField.value = formatDate(startDate);
+    endDateField.value = formatDate(endDate);
+
+    // Add visual feedback - highlight fields to show they were auto-updated
+    startDateField.style.backgroundColor = '#d4edda';
+    endDateField.style.backgroundColor = '#d4edda';
+    startDateField.style.border = '2px solid #28a745';
+    endDateField.style.border = '2px solid #28a745';
+    startDateField.style.transition = 'all 0.3s ease';
+    endDateField.style.transition = 'all 0.3s ease';
+
+    // Remove the highlight after 2 seconds
+    setTimeout(() => {
+      startDateField.style.backgroundColor = '';
+      endDateField.style.backgroundColor = '';
+      startDateField.style.border = '';
+      endDateField.style.border = '';
+    }, 2000);
+
+    console.log(`🎯 AUTO-LOADED DATES: ${formatDate(startDate)} to ${formatDate(endDate)}`);
+    console.log(`📅 Start Date Field Updated: ${startDateField.value}`);
+    console.log(`📅 End Date Field Updated: ${endDateField.value}`);
+  } else {
+    console.log('❌ Date fields not found - cannot auto-update');
+  }
+}
+
+// Date field change handler to update current period
+function updateCurrentPeriodFromDates() {
+  const startDateField = document.getElementById('start_date_field');
+  const endDateField = document.getElementById('end_date_field');
+  const currentPeriodDisplay = document.getElementById('current-period-display');
+
+  if (!startDateField || !endDateField || !currentPeriodDisplay) return;
+
+  const startValue = startDateField.value;
+  const endValue = endDateField.value;
+
+  if (startValue && endValue) {
+    const startDate = new Date(startValue);
+    const endDate = new Date(endValue);
+
+    const formatDisplayDate = (date) => {
+      const options = { year: 'numeric', month: 'short', day: 'numeric' };
+      return date.toLocaleDateString('en-US', options);
+    };
+
+    const displayText = `${formatDisplayDate(startDate)} - ${formatDisplayDate(endDate)}`;
+    currentPeriodDisplay.textContent = displayText;
+  }
+}
+
+// Clear all filters function
+function clearAllFilters() {
+  const yearSelect = document.getElementById('year_filter');
+  const monthSelect = document.getElementById('month_filter');
+  const startDateField = document.getElementById('start_date_field');
+  const endDateField = document.getElementById('end_date_field');
+
+  console.log('🧹 Clearing all filters...');
+
+  // Reset to default values (current year)
+  const currentYear = new Date().getFullYear().toString();
+  if (yearSelect) {
+    yearSelect.value = currentYear; // Default to current year
+    console.log(`✅ Year reset to ${currentYear}`);
+  }
+
+  if (monthSelect) {
+    monthSelect.value = ''; // Reset to "All Year"
+    console.log('✅ Month reset to "All Year"');
+  }
+
+  // Clear and highlight date fields
+  if (startDateField) {
+    startDateField.value = '';
+    startDateField.style.backgroundColor = '#fff3cd';
+    startDateField.style.border = '2px solid #ffc107';
+    console.log('✅ Start date cleared');
+  }
+
+  if (endDateField) {
+    endDateField.value = '';
+    endDateField.style.backgroundColor = '#fff3cd';
+    endDateField.style.border = '2px solid #ffc107';
+    console.log('✅ End date cleared');
+  }
+
+  // Auto-load dates based on reset values (2026 All Year)
+  setTimeout(() => {
+    updateCurrentPeriod();
+
+    // Remove highlighting after auto-load
+    setTimeout(() => {
+      if (startDateField) {
+        startDateField.style.backgroundColor = '';
+        startDateField.style.border = '';
+      }
+      if (endDateField) {
+        endDateField.style.backgroundColor = '';
+        endDateField.style.border = '';
+      }
+    }, 1500);
+  }, 200);
+
+  console.log(`🎯 Filters cleared and reset to default (${currentYear} All Year)`);
+}
+
 // Clean up modal backdrops on close
 document.addEventListener('DOMContentLoaded', function() {
+  // Add event listeners for filter auto-update
+  const yearSelect = document.getElementById('year_filter');
+  const monthSelect = document.getElementById('month_filter');
+  const startDateField = document.getElementById('start_date_field');
+  const endDateField = document.getElementById('end_date_field');
+
+  // AUTO-LOAD current year dates on page load
+  console.log('🚀 Page loaded - Auto-loading current year dates...');
+  if (startDateField && endDateField && !startDateField.value && !endDateField.value) {
+    // Only auto-load if fields are empty (first page load)
+    const currentYear = new Date().getFullYear();
+    const yearStart = `${currentYear}-01-01`;
+    const yearEnd = `${currentYear}-12-31`;
+
+    startDateField.value = yearStart;
+    endDateField.value = yearEnd;
+
+    // Brief green highlight to show auto-loading
+    startDateField.style.backgroundColor = '#d4edda';
+    endDateField.style.backgroundColor = '#d4edda';
+
+    setTimeout(() => {
+      startDateField.style.backgroundColor = '';
+      endDateField.style.backgroundColor = '';
+    }, 1000);
+
+    console.log(`✅ Auto-loaded current year dates: ${yearStart} to ${yearEnd}`);
+  } else if (startDateField && endDateField) {
+    console.log(`ℹ️ Date fields already have values: ${startDateField.value} to ${endDateField.value}`);
+  }
+
+  if (yearSelect) {
+    console.log('✅ Year dropdown found, adding change listener');
+    yearSelect.addEventListener('change', function() {
+      console.log('🔥 Year dropdown changed to:', yearSelect.value);
+      updateCurrentPeriod();
+    });
+  } else {
+    console.log('❌ Year dropdown not found');
+  }
+
+  if (monthSelect) {
+    console.log('✅ Month dropdown found, adding change listener');
+    monthSelect.addEventListener('change', function() {
+      console.log('🔥 Month dropdown changed to:', monthSelect.value);
+      updateCurrentPeriod();
+    });
+  } else {
+    console.log('❌ Month dropdown not found');
+  }
+
+  if (startDateField) {
+    startDateField.addEventListener('change', updateCurrentPeriodFromDates);
+  }
+
+  if (endDateField) {
+    endDateField.addEventListener('change', updateCurrentPeriodFromDates);
+  }
+
+  // Add Clear button event listener
+  const clearButton = document.getElementById('clear_filters_btn');
+  if (clearButton) {
+    console.log('✅ Clear button found, adding click listener');
+    clearButton.addEventListener('click', function() {
+      console.log('🧹 Clear button clicked!');
+      clearAllFilters();
+    });
+  } else {
+    console.log('❌ Clear button not found');
+  }
+
+  // Modal cleanup
   ['renewalModal', 'policyModal', 'systemStatusModal'].forEach(modalId => {
     const modal = document.getElementById(modalId);
     if (modal) {

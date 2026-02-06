@@ -18,11 +18,15 @@ class Invoice < ApplicationRecord
   def payout_record
     case payout_type
     when 'affiliate'
-      CommissionPayout.find_by(id: payout_id, payout_to: 'affiliate')
+      # First try with payout_to filter, if not found try without filter for backward compatibility
+      CommissionPayout.find_by(id: payout_id, payout_to: 'affiliate') ||
+      CommissionPayout.find_by(id: payout_id)
     when 'distributor'
       DistributorPayout.find_by(id: payout_id)
     when 'ambassador'
-      CommissionPayout.find_by(id: payout_id, payout_to: 'ambassador')
+      # First try with payout_to filter, if not found try without filter for backward compatibility
+      CommissionPayout.find_by(id: payout_id, payout_to: 'ambassador') ||
+      CommissionPayout.find_by(id: payout_id)
     when 'commission'
       Payout.find_by(id: payout_id)
     end

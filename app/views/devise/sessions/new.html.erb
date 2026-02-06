@@ -30,14 +30,14 @@
       <%= form_for(resource, as: resource_name, url: session_path(resource_name), html: { authenticity_token: true }) do |f| %>
         <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
         <div class="mb-3">
-          <%= f.label :login, "Email / Mobile / PAN", class: "form-label" %>
+          <%= f.label :login, "Email", class: "form-label" %>
           <div class="input-group">
             <span class="input-group-text">
-              <i class="fas fa-user"></i>
+              <i class="fas fa-envelope"></i>
             </span>
-            <%= f.text_field :login, autofocus: true, autocomplete: "username", class: "form-control", placeholder: "email@example.com / 9876543210 / ABCDE1234F" %>
+            <%= f.email_field :login, autofocus: true, autocomplete: "email", class: "form-control", placeholder: "email@example.com" %>
           </div>
-          <small class="text-muted">You can login with email, mobile number (with or without +91), or PAN number</small>
+          <small class="text-muted">Please enter your email address</small>
         </div>
 
         <div class="mb-3">

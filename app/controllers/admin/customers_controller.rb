@@ -170,6 +170,32 @@ class Admin::CustomersController < Admin::ApplicationController
     # Sort all policies by creation date (newest first)
     @all_policies.sort_by! { |p| p[:created_at] }.reverse!
 
+    # Calculate policy status counts for policy status cards
+    @active_policies_count = 0
+    @expired_policies_count = 0
+    @past_policies_count = 0
+    @upcoming_installments_count = 0
+
+    @all_policies.each do |policy|
+      case policy[:status]
+      when 'Active'
+        # All active policies should count as active
+        @active_policies_count += 1
+      when 'Expired'
+        @expired_policies_count += 1
+      else
+        @past_policies_count += 1
+      end
+
+      # Check for upcoming installment policies (policies with payment mode other than yearly/lump sum)
+      policy_obj = policy[:policy]
+      if policy_obj.respond_to?(:payment_mode) &&
+         ['Monthly', 'Quarterly', 'Half Yearly', 'Semi-Annual'].include?(policy_obj.payment_mode) &&
+         policy[:status] == 'Active'
+        @upcoming_installments_count += 1
+      end
+    end
+
     # For backwards compatibility, set @policies
     @policies = @all_policies
   end
@@ -1343,5 +1369,16 @@ class Admin::CustomersController < Admin::ApplicationController
   def format_currency(amount)
     return "0" if amount.nil? || amount.zero?
     amount.to_i.to_s.reverse.gsub(/(\\d{3})(?=\\d)/, '\\\\1,').reverse
+  end
+
+  # Helper method to check if a policy can be renewed
+  def policy_can_be_renewed?(policy)
+    return false unless policy
+    return false unless policy.respond_to?(:policy_end_date) && policy.policy_end_date
+
+    # Check if policy expires within next 60 days and is not already a renewal
+    policy.policy_end_date <= 60.days.from_now &&
+    (!policy.respond_to?(:policy_type) || policy.policy_type != 'Renewal') &&
+    (!policy.respond_to?(:is_renewal?) || !policy.is_renewal?)
   end
 end
