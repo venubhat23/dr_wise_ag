@@ -16,52 +16,63 @@
   </div>
 </div>
 
-<div class="card border-0 shadow-sm">
+<div class="card border-0 shadow-lg">
   <% if @family_members.any? %>
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead>
+      <table class="table table-hover align-middle mb-0" style="border: 2px solid #dee2e6; border-radius: 0.5rem; overflow: hidden;">
+        <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
           <tr>
-            <th>Name</th>
-            <th>Relationship</th>
-            <th>Birth Date</th>
-            <th>Age</th>
-            <th>Gender</th>
-            <th>Mobile</th>
-            <th>Actions</th>
+            <th style="border-right: 1px solid rgba(255,255,255,0.2); padding: 15px; font-weight: 600;">Name</th>
+            <th style="border-right: 1px solid rgba(255,255,255,0.2); padding: 15px; font-weight: 600;">Relationship</th>
+            <th style="border-right: 1px solid rgba(255,255,255,0.2); padding: 15px; font-weight: 600;">Birth Date</th>
+            <th style="border-right: 1px solid rgba(255,255,255,0.2); padding: 15px; font-weight: 600;">Age</th>
+            <th style="border-right: 1px solid rgba(255,255,255,0.2); padding: 15px; font-weight: 600;">Gender</th>
+            <th style="border-right: 1px solid rgba(255,255,255,0.2); padding: 15px; font-weight: 600;">Mobile</th>
+            <th style="padding: 15px; font-weight: 600; text-align: center;">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <% @family_members.each do |family_member| %>
-            <tr>
-              <td>
-                <%= link_to admin_customer_family_member_path(@customer, family_member), class: "text-decoration-none" do %>
-                  <%= family_member.name %>
+          <% @family_members.each_with_index do |family_member, index| %>
+            <tr style="border-bottom: 1px solid #e9ecef; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#f8f9fa'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.backgroundColor=''; this.style.transform=''; this.style.boxShadow=''">
+              <td style="border-right: 1px solid #e9ecef; padding: 15px; vertical-align: middle;">
+                <%= link_to admin_customer_family_member_path(@customer, family_member), class: "text-decoration-none fw-semibold" style="color: #495057;" do %>
+                  <i class="bi bi-person-circle me-2" style="color: #6c757d;"></i><%= family_member.name %>
                 <% end %>
               </td>
-              <td>
-                <span class="badge bg-info"><%= family_member.relationship.humanize %></span>
+              <td style="border-right: 1px solid #e9ecef; padding: 15px; vertical-align: middle;">
+                <span class="badge bg-gradient" style="background: linear-gradient(135deg, #28a745, #20c997); padding: 8px 12px; border-radius: 20px; font-size: 0.85rem;"><%= family_member.relationship.humanize %></span>
               </td>
-              <td><%= family_member.birth_date&.strftime("%b %d, %Y") %></td>
-              <td><%= family_member.age %> years</td>
-              <td><%= family_member.gender&.humanize %></td>
-              <td>
+              <td style="border-right: 1px solid #e9ecef; padding: 15px; vertical-align: middle; color: #6c757d;">
+                <i class="bi bi-calendar3 me-1"></i><%= family_member.birth_date&.strftime("%b %d, %Y") %>
+              </td>
+              <td style="border-right: 1px solid #e9ecef; padding: 15px; vertical-align: middle;">
+                <span class="badge bg-light text-dark border" style="padding: 6px 10px; border-radius: 15px;"><%= family_member.age %> years</span>
+              </td>
+              <td style="border-right: 1px solid #e9ecef; padding: 15px; vertical-align: middle;">
+                <span class="<%= family_member.gender&.downcase == 'male' ? 'text-primary' : 'text-danger' %> fw-semibold">
+                  <i class="bi bi-<%= family_member.gender&.downcase == 'male' ? 'person-standing' : 'person-standing-dress' %> me-1"></i><%= family_member.gender&.humanize %>
+                </span>
+              </td>
+              <td style="border-right: 1px solid #e9ecef; padding: 15px; vertical-align: middle;">
                 <% if family_member.mobile.present? %>
-                  <a href="tel:<%= family_member.mobile %>"><%= family_member.mobile %></a>
+                  <a href="tel:<%= family_member.mobile %>" class="text-decoration-none" style="color: #0d6efd;">
+                    <i class="bi bi-telephone me-1"></i><%= family_member.mobile %>
+                  </a>
                 <% else %>
-                  -
+                  <span class="text-muted">-</span>
                 <% end %>
               </td>
-              <td>
-                <div class="d-flex gap-1">
-                  <%= link_to admin_customer_family_member_path(@customer, family_member), class: "btn btn-sm btn-outline-info" do %>
+              <td style="padding: 15px; vertical-align: middle; text-align: center;">
+                <div class="d-flex gap-2 justify-content-center">
+                  <%= link_to admin_customer_family_member_path(@customer, family_member), class: "btn btn-sm", style: "background: linear-gradient(135deg, #17a2b8, #138496); color: white; border: none; border-radius: 20px; padding: 8px 12px; transition: all 0.3s ease;" do %>
                     <i class="bi bi-eye"></i>
                   <% end %>
-                  <%= link_to edit_admin_customer_family_member_path(@customer, family_member), class: "btn btn-sm btn-outline-warning" do %>
+                  <%= link_to edit_admin_customer_family_member_path(@customer, family_member), class: "btn btn-sm", style: "background: linear-gradient(135deg, #ffc107, #e0a800); color: white; border: none; border-radius: 20px; padding: 8px 12px; transition: all 0.3s ease;" do %>
                     <i class="bi bi-pencil"></i>
                   <% end %>
                   <%= link_to admin_customer_family_member_path(@customer, family_member), method: :delete,
-                      class: "btn btn-sm btn-outline-danger",
+                      class: "btn btn-sm",
+                      style: "background: linear-gradient(135deg, #dc3545, #c82333); color: white; border: none; border-radius: 20px; padding: 8px 12px; transition: all 0.3s ease;",
                       data: { confirm: "Are you sure?", turbo_method: :delete } do %>
                     <i class="bi bi-trash"></i>
                   <% end %>

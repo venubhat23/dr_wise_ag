@@ -209,17 +209,15 @@ document.addEventListener('DOMContentLoaded', function() {
                       <h6 class="mb-0">
                         <%= customer.display_name.present? ? customer.display_name : "Unnamed Customer" %>
                       </h6>
+                      <small class="text-muted d-block">
+                        <i class="bi bi-calendar me-1"></i>Created: <%= customer.created_at.strftime('%d %b %Y') %>
+                      </small>
                     </div>
                   </div>
                 </td>
                 <td>
                   <div>
-                    <div class="mb-1">
-                      <%= customer.mobile.present? ? customer.mobile : "No mobile number" %>
-                    </div>
-                    <small class="text-muted d-block">
-                      <i class="bi bi-calendar me-1"></i>Created: <%= customer.created_at.strftime('%d %b %Y') %>
-                    </small>
+                    <%= customer.mobile.present? ? customer.mobile : "No mobile number" %>
                   </div>
                 </td>
                 <td>

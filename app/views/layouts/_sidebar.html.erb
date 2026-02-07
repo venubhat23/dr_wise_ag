@@ -731,7 +731,7 @@ body.sidebar-collapsed .main-content {
         <!-- Dashboard -->
         <% if show_sidebar_item?('dashboard') %>
           <li class="nav-item">
-            <%= link_to root_path, class: "nav-link-modern #{'active' if current_page?(root_path)}", data: { tooltip: "Dashboard" } do %>
+            <%= link_to dashboard_path, class: "nav-link-modern #{'active' if current_page?(dashboard_path)}", data: { tooltip: "Dashboard" } do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-blue">
                   <i class="bi bi-speedometer2"></i>
