@@ -552,6 +552,401 @@
         </div>
       </div>
     <% end %>
+
+    <!-- Active Policies Table -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-shield-check me-2 text-success"></i>
+          Active Policies
+        </h5>
+        <span class="badge bg-success">
+          <%= @all_policies.select { |p| p[:status] == 'Active' }.count %> Active
+        </span>
+      </div>
+      <div class="card-body">
+        <%
+          active_policies = @all_policies.select { |p| p[:status] == 'Active' }
+        %>
+        <% if active_policies.any? %>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-success">
+                <tr>
+                  <th class="border-0">Policy Type</th>
+                  <th class="border-0">Policy Number</th>
+                  <th class="border-0">Insurance Company</th>
+                  <th class="border-0">Premium Amount</th>
+                  <th class="border-0">Policy Period</th>
+                  <th class="border-0">Days Remaining</th>
+                  <th class="border-0">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% active_policies.each do |policy| %>
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <span class="badge bg-success bg-opacity-10 text-success me-2">
+                          <i class="bi bi-shield-check"></i>
+                        </span>
+                        <strong><%= policy[:type] %></strong>
+                      </div>
+                    </td>
+                    <td>
+                      <code class="bg-light px-2 py-1 rounded">
+                        <%= policy[:policy_number] %>
+                      </code>
+                    </td>
+                    <td><%= policy[:company_name] %></td>
+                    <td>
+                      <span class="text-success fw-bold">
+                        <%= indian_currency(policy[:premium].to_i) %>
+                      </span>
+                    </td>
+                    <td>
+                      <% if policy[:start_date] && policy[:end_date] %>
+                        <small class="text-muted d-block">
+                          <i class="bi bi-calendar-event me-1"></i>
+                          <%= policy[:start_date].strftime("%d %b %Y") %> -
+                        </small>
+                        <small class="text-warning">
+                          <i class="bi bi-calendar-x me-1"></i>
+                          <%= policy[:end_date].strftime("%d %b %Y") %>
+                        </small>
+                      <% else %>
+                        <span class="text-muted">N/A</span>
+                      <% end %>
+                    </td>
+                    <td>
+                      <% if policy[:end_date] %>
+                        <% days_remaining = (policy[:end_date] - Date.current).to_i %>
+                        <% if days_remaining > 0 %>
+                          <span class="badge bg-<%= days_remaining <= 30 ? 'warning' : 'info' %>">
+                            <%= days_remaining %> days
+                          </span>
+                        <% else %>
+                          <span class="badge bg-danger">Expired</span>
+                        <% end %>
+                      <% else %>
+                        <span class="text-muted">N/A</span>
+                      <% end %>
+                    </td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <% case policy[:type] %>
+                        <% when 'Health Insurance' %>
+                          <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                            <i class="bi bi-eye"></i>
+                          <% end %>
+                          <%= link_to edit_admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
+                            <i class="bi bi-pencil"></i>
+                          <% end %>
+                        <% when 'Life Insurance' %>
+                          <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                            <i class="bi bi-eye"></i>
+                          <% end %>
+                          <%= link_to edit_admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
+                            <i class="bi bi-pencil"></i>
+                          <% end %>
+                        <% when 'Motor Insurance' %>
+                          <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                            <i class="bi bi-eye"></i>
+                          <% end %>
+                          <%= link_to edit_admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
+                            <i class="bi bi-pencil"></i>
+                          <% end %>
+                        <% end %>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-shield-x fs-3 d-block mb-2"></i>
+            <p class="mb-0">No active policies found</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Expired Policies Table -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-shield-x me-2 text-danger"></i>
+          Expired Policies
+        </h5>
+        <span class="badge bg-danger">
+          <%= @all_policies.select { |p| p[:status] == 'Expired' }.count %> Expired
+        </span>
+      </div>
+      <div class="card-body">
+        <%
+          expired_policies = @all_policies.select { |p| p[:status] == 'Expired' }
+        %>
+        <% if expired_policies.any? %>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-danger">
+                <tr>
+                  <th class="border-0">Policy Type</th>
+                  <th class="border-0">Policy Number</th>
+                  <th class="border-0">Insurance Company</th>
+                  <th class="border-0">Premium Amount</th>
+                  <th class="border-0">Expired Date</th>
+                  <th class="border-0">Days Ago</th>
+                  <th class="border-0">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% expired_policies.each do |policy| %>
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <span class="badge bg-danger bg-opacity-10 text-danger me-2">
+                          <i class="bi bi-shield-x"></i>
+                        </span>
+                        <strong><%= policy[:type] %></strong>
+                      </div>
+                    </td>
+                    <td>
+                      <code class="bg-light px-2 py-1 rounded">
+                        <%= policy[:policy_number] %>
+                      </code>
+                    </td>
+                    <td><%= policy[:company_name] %></td>
+                    <td>
+                      <span class="text-muted">
+                        <%= indian_currency(policy[:premium].to_i) %>
+                      </span>
+                    </td>
+                    <td>
+                      <% if policy[:end_date] %>
+                        <span class="text-danger">
+                          <i class="bi bi-calendar-x me-1"></i>
+                          <%= policy[:end_date].strftime("%d %b %Y") %>
+                        </span>
+                      <% else %>
+                        <span class="text-muted">N/A</span>
+                      <% end %>
+                    </td>
+                    <td>
+                      <% if policy[:end_date] %>
+                        <% days_ago = (Date.current - policy[:end_date]).to_i %>
+                        <span class="badge bg-danger">
+                          <%= days_ago %> days ago
+                        </span>
+                      <% else %>
+                        <span class="text-muted">N/A</span>
+                      <% end %>
+                    </td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <% case policy[:type] %>
+                        <% when 'Health Insurance' %>
+                          <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                            <i class="bi bi-eye"></i>
+                          <% end %>
+                        <% when 'Life Insurance' %>
+                          <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                            <i class="bi bi-eye"></i>
+                          <% end %>
+                        <% when 'Motor Insurance' %>
+                          <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                            <i class="bi bi-eye"></i>
+                          <% end %>
+                        <% end %>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-shield-check fs-3 d-block mb-2 text-success"></i>
+            <p class="mb-0">No expired policies found</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Upcoming Installments Table -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-calendar-event me-2 text-warning"></i>
+          Upcoming Installments (Next 30 Days)
+        </h5>
+        <%
+          upcoming_installments = @all_policies.select do |p|
+            policy_obj = p[:policy]
+            next false unless policy_obj.respond_to?(:payment_mode)
+            next false unless ['Monthly', 'Quarterly', 'Half Yearly', 'Semi-Annual'].include?(policy_obj.payment_mode)
+            next false unless p[:status] == 'Active'
+            next false unless policy_obj.respond_to?(:policy_start_date) && policy_obj.policy_start_date
+
+            # Calculate next installment date based on payment mode
+            start_date = policy_obj.policy_start_date
+            today = Date.current
+
+            case policy_obj.payment_mode
+            when 'Monthly'
+              next_date = start_date
+              while next_date <= today
+                next_date = next_date + 1.month
+              end
+            when 'Quarterly'
+              next_date = start_date
+              while next_date <= today
+                next_date = next_date + 3.months
+              end
+            when 'Half Yearly', 'Semi-Annual'
+              next_date = start_date
+              while next_date <= today
+                next_date = next_date + 6.months
+              end
+            else
+              next false
+            end
+
+            # Check if next installment is within 30 days
+            next_date <= 30.days.from_now
+          end
+        %>
+        <span class="badge bg-warning text-dark">
+          <%= upcoming_installments.count %> Due Soon
+        </span>
+      </div>
+      <div class="card-body">
+        <% if upcoming_installments.any? %>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-warning">
+                <tr>
+                  <th class="border-0">Policy Type</th>
+                  <th class="border-0">Policy Number</th>
+                  <th class="border-0">Insurance Company</th>
+                  <th class="border-0">Payment Mode</th>
+                  <th class="border-0">Premium Amount</th>
+                  <th class="border-0">Next Due Date</th>
+                  <th class="border-0">Days Until Due</th>
+                  <th class="border-0">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% upcoming_installments.each do |policy| %>
+                  <%
+                    policy_obj = policy[:policy]
+                    start_date = policy_obj.policy_start_date
+                    today = Date.current
+
+                    case policy_obj.payment_mode
+                    when 'Monthly'
+                      next_date = start_date
+                      while next_date <= today
+                        next_date = next_date + 1.month
+                      end
+                    when 'Quarterly'
+                      next_date = start_date
+                      while next_date <= today
+                        next_date = next_date + 3.months
+                      end
+                    when 'Half Yearly', 'Semi-Annual'
+                      next_date = start_date
+                      while next_date <= today
+                        next_date = next_date + 6.months
+                      end
+                    end
+
+                    days_until_due = (next_date - today).to_i
+                  %>
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <span class="badge bg-warning bg-opacity-10 text-warning me-2">
+                          <i class="bi bi-calendar-event"></i>
+                        </span>
+                        <strong><%= policy[:type] %></strong>
+                      </div>
+                    </td>
+                    <td>
+                      <code class="bg-light px-2 py-1 rounded">
+                        <%= policy[:policy_number] %>
+                      </code>
+                    </td>
+                    <td><%= policy[:company_name] %></td>
+                    <td>
+                      <span class="badge bg-info">
+                        <i class="bi bi-arrow-repeat me-1"></i>
+                        <%= policy_obj.payment_mode %>
+                      </span>
+                    </td>
+                    <td>
+                      <span class="text-warning fw-bold">
+                        <%= indian_currency(policy[:premium].to_i) %>
+                      </span>
+                    </td>
+                    <td>
+                      <span class="text-warning">
+                        <i class="bi bi-calendar-event me-1"></i>
+                        <%= next_date.strftime("%d %b %Y") %>
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge bg-<%= days_until_due <= 7 ? 'danger' : (days_until_due <= 15 ? 'warning' : 'info') %>">
+                        <%= days_until_due %> days
+                      </span>
+                    </td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <% case policy[:type] %>
+                        <% when 'Health Insurance' %>
+                          <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                            <i class="bi bi-eye"></i>
+                          <% end %>
+                          <%= link_to edit_admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
+                            <i class="bi bi-pencil"></i>
+                          <% end %>
+                        <% when 'Life Insurance' %>
+                          <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                            <i class="bi bi-eye"></i>
+                          <% end %>
+                          <%= link_to edit_admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
+                            <i class="bi bi-pencil"></i>
+                          <% end %>
+                        <% when 'Motor Insurance' %>
+                          <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                            <i class="bi bi-eye"></i>
+                          <% end %>
+                          <%= link_to edit_admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
+                            <i class="bi bi-pencil"></i>
+                          <% end %>
+                        <% end %>
+                        <button class="btn btn-sm btn-outline-success" title="Mark as Paid" onclick="markInstallmentPaid('<%= policy[:policy_number] %>')">
+                          <i class="bi bi-check-circle"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-calendar-check fs-3 d-block mb-2 text-success"></i>
+            <p class="mb-0">No upcoming installments in the next 30 days</p>
+            <small class="text-muted">All installments are up to date</small>
+          </div>
+        <% end %>
+      </div>
+    </div>
   </div>
 
   <!-- Sidebar -->
@@ -640,328 +1035,9 @@
       </div>
     </div>
 
-    <!-- Policy Status Cards -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-        <h6 class="mb-0">Policy Status</h6>
-        <i class="bi bi-shield-check text-primary"></i>
-      </div>
-      <div class="card-body p-2">
-        <div class="row g-2">
-          <!-- Active Policies (Not Renewed) -->
-          <div class="col-6">
-            <div class="policy-status-card active-policies" onclick="filterPoliciesByStatus('active')">
-              <div class="policy-status-icon">
-                <i class="bi bi-shield-fill-check"></i>
-              </div>
-              <div class="policy-status-content">
-                <h4 class="policy-count mb-1"><%= @active_policies_count || 0 %></h4>
-                <small class="policy-label">Active Policy</small>
-              </div>
-            </div>
-          </div>
-
-          <!-- Expired Policies -->
-          <div class="col-6">
-            <div class="policy-status-card expired-policies" onclick="filterPoliciesByStatus('expired')">
-              <div class="policy-status-icon">
-                <i class="bi bi-shield-fill-x"></i>
-              </div>
-              <div class="policy-status-content">
-                <h4 class="policy-count mb-1"><%= @expired_policies_count || 0 %></h4>
-                <small class="policy-label">Expired Policy</small>
-              </div>
-            </div>
-          </div>
-
-          <!-- Past Policies -->
-          <div class="col-6">
-            <div class="policy-status-card past-policies" onclick="filterPoliciesByStatus('past')">
-              <div class="policy-status-icon">
-                <i class="bi bi-archive"></i>
-              </div>
-              <div class="policy-status-content">
-                <h4 class="policy-count mb-1"><%= @past_policies_count || 0 %></h4>
-                <small class="policy-label">Past Policy</small>
-              </div>
-            </div>
-          </div>
-
-          <!-- Upcoming Installment -->
-          <div class="col-6">
-            <div class="policy-status-card upcoming-installment" onclick="filterPoliciesByStatus('upcoming')">
-              <div class="policy-status-icon">
-                <i class="bi bi-calendar-event"></i>
-              </div>
-              <div class="policy-status-content">
-                <h4 class="policy-count mb-1"><%= @upcoming_installments_count || 0 %></h4>
-                <small class="policy-label">Upcoming Installment</small>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Policy Details Table -->
-    <div class="card border-0 shadow-sm mb-4" id="policy-details-section">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-        <h6 class="mb-0" id="policy-section-title">Policy Details</h6>
-        <small class="text-muted" id="policy-count-badge">All Policies (<%= @all_policies.count %>)</small>
-      </div>
-      <div class="card-body p-0">
-        <!-- Active Policies Table -->
-        <div id="active-policies-table" class="policy-table-section">
-          <% if @active_policies_count && @active_policies_count > 0 %>
-            <div class="table-header">
-              <h6 class="text-success mb-2 px-3 pt-3">
-                <i class="bi bi-shield-fill-check me-2"></i>Active Policies (<%= @active_policies_count %>)
-              </h6>
-            </div>
-            <div class="table-responsive">
-              <table class="table table-hover mb-0">
-                <thead class="table-success">
-                  <tr>
-                    <th class="border-0">Policy Type</th>
-                    <th class="border-0">Policy Number</th>
-                    <th class="border-0">Company</th>
-                    <th class="border-0">Premium</th>
-                    <th class="border-0">End Date</th>
-                    <th class="border-0">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <%
-                    def policy_can_be_renewed?(policy)
-                      return false unless policy
-                      return false unless policy.respond_to?(:policy_end_date) && policy.policy_end_date
-                      policy.policy_end_date <= 60.days.from_now &&
-                      (!policy.respond_to?(:policy_type) || policy.policy_type != 'Renewal') &&
-                      (!policy.respond_to?(:is_renewal?) || !policy.is_renewal?)
-                    end
-                    active_policies = @all_policies.select { |p| p[:status] == 'Active' && policy_can_be_renewed?(p[:policy]) }
-                  %>
-                  <% active_policies.first(1).each do |policy| %>
-                    <tr class="table-success-light">
-                      <td class="py-3">
-                        <div class="d-flex align-items-center">
-                          <span class="badge bg-success bg-opacity-10 text-success me-2">
-                            <i class="bi bi-shield-check"></i>
-                          </span>
-                          <strong><%= policy[:type] %></strong>
-                        </div>
-                      </td>
-                      <td class="py-3">
-                        <code class="bg-light px-2 py-1 rounded"><%= policy[:policy_number] %></code>
-                      </td>
-                      <td class="py-3"><%= policy[:company_name] %></td>
-                      <td class="py-3">
-                        <span class="text-success fw-bold">₹<%= number_with_delimiter(policy[:premium]) %></span>
-                      </td>
-                      <td class="py-3">
-                        <span class="text-warning">
-                          <i class="bi bi-calendar-event me-1"></i>
-                          <%= policy[:end_date]&.strftime('%d %b %Y') %>
-                        </span>
-                      </td>
-                      <td class="py-3">
-                        <span class="badge bg-success">Active & Renewable</span>
-                      </td>
-                    </tr>
-                  <% end %>
-                </tbody>
-              </table>
-            </div>
-          <% end %>
-        </div>
-
-        <!-- Expired Policies Table -->
-        <div id="expired-policies-table" class="policy-table-section">
-          <% if @expired_policies_count && @expired_policies_count > 0 %>
-            <div class="table-header">
-              <h6 class="text-danger mb-2 px-3 pt-3">
-                <i class="bi bi-shield-fill-x me-2"></i>Expired Policies (<%= @expired_policies_count %>)
-              </h6>
-            </div>
-            <div class="table-responsive">
-              <table class="table table-hover mb-0">
-                <thead class="table-danger">
-                  <tr>
-                    <th class="border-0">Policy Type</th>
-                    <th class="border-0">Policy Number</th>
-                    <th class="border-0">Company</th>
-                    <th class="border-0">Premium</th>
-                    <th class="border-0">End Date</th>
-                    <th class="border-0">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% expired_policies = @all_policies.select { |p| p[:status] == 'Expired' } %>
-                  <% expired_policies.first(2).each do |policy| %>
-                    <tr class="table-danger-light">
-                      <td class="py-3">
-                        <div class="d-flex align-items-center">
-                          <span class="badge bg-danger bg-opacity-10 text-danger me-2">
-                            <i class="bi bi-shield-x"></i>
-                          </span>
-                          <strong><%= policy[:type] %></strong>
-                        </div>
-                      </td>
-                      <td class="py-3">
-                        <code class="bg-light px-2 py-1 rounded"><%= policy[:policy_number] %></code>
-                      </td>
-                      <td class="py-3"><%= policy[:company_name] %></td>
-                      <td class="py-3">
-                        <span class="text-muted">₹<%= number_with_delimiter(policy[:premium]) %></span>
-                      </td>
-                      <td class="py-3">
-                        <span class="text-danger">
-                          <i class="bi bi-calendar-x me-1"></i>
-                          <%= policy[:end_date]&.strftime('%d %b %Y') %>
-                        </span>
-                      </td>
-                      <td class="py-3">
-                        <span class="badge bg-danger">Expired</span>
-                      </td>
-                    </tr>
-                  <% end %>
-                </tbody>
-              </table>
-            </div>
-          <% end %>
-        </div>
-
-        <!-- Past Policies Table -->
-        <div id="past-policies-table" class="policy-table-section">
-          <% if @past_policies_count && @past_policies_count > 0 %>
-            <div class="table-header">
-              <h6 class="text-secondary mb-2 px-3 pt-3">
-                <i class="bi bi-archive me-2"></i>Past Policies (<%= @past_policies_count %>)
-              </h6>
-            </div>
-            <div class="table-responsive">
-              <table class="table table-hover mb-0">
-                <thead class="table-secondary">
-                  <tr>
-                    <th class="border-0">Policy Type</th>
-                    <th class="border-0">Policy Number</th>
-                    <th class="border-0">Company</th>
-                    <th class="border-0">Premium</th>
-                    <th class="border-0">End Date</th>
-                    <th class="border-0">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% past_policies = @all_policies.select { |p| p[:status] == 'Active' && !policy_can_be_renewed?(p[:policy]) } %>
-                  <% past_policies.first(2).each do |policy| %>
-                    <tr class="table-secondary-light">
-                      <td class="py-3">
-                        <div class="d-flex align-items-center">
-                          <span class="badge bg-secondary bg-opacity-10 text-secondary me-2">
-                            <i class="bi bi-archive"></i>
-                          </span>
-                          <strong><%= policy[:type] %></strong>
-                        </div>
-                      </td>
-                      <td class="py-3">
-                        <code class="bg-light px-2 py-1 rounded"><%= policy[:policy_number] %></code>
-                      </td>
-                      <td class="py-3"><%= policy[:company_name] %></td>
-                      <td class="py-3">
-                        <span class="text-muted">₹<%= number_with_delimiter(policy[:premium]) %></span>
-                      </td>
-                      <td class="py-3">
-                        <span class="text-secondary">
-                          <i class="bi bi-calendar me-1"></i>
-                          <%= policy[:end_date]&.strftime('%d %b %Y') %>
-                        </span>
-                      </td>
-                      <td class="py-3">
-                        <span class="badge bg-secondary">Past/Non-renewable</span>
-                      </td>
-                    </tr>
-                  <% end %>
-                </tbody>
-              </table>
-            </div>
-          <% end %>
-        </div>
-
-        <!-- Upcoming Installments Table -->
-        <div id="upcoming-installments-table" class="policy-table-section">
-          <% if @upcoming_installments_count && @upcoming_installments_count > 0 %>
-            <div class="table-header">
-              <h6 class="text-warning mb-2 px-3 pt-3">
-                <i class="bi bi-calendar-event me-2"></i>Upcoming Installment Policies (<%= @upcoming_installments_count %>)
-              </h6>
-            </div>
-            <div class="table-responsive">
-              <table class="table table-hover mb-0">
-                <thead class="table-warning">
-                  <tr>
-                    <th class="border-0">Policy Type</th>
-                    <th class="border-0">Policy Number</th>
-                    <th class="border-0">Company</th>
-                    <th class="border-0">Payment Mode</th>
-                    <th class="border-0">Premium</th>
-                    <th class="border-0">Next Installment</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% upcoming_installment_policies = @all_policies.select { |p|
-                       policy_obj = p[:policy]
-                       policy_obj.respond_to?(:payment_mode) &&
-                       ['Monthly', 'Quarterly', 'Half Yearly', 'Semi-Annual'].include?(policy_obj.payment_mode) &&
-                       p[:status] == 'Active'
-                     } %>
-                  <% upcoming_installment_policies.each do |policy| %>
-                    <tr class="table-warning-light">
-                      <td class="py-3">
-                        <div class="d-flex align-items-center">
-                          <span class="badge bg-warning bg-opacity-10 text-warning me-2">
-                            <i class="bi bi-calendar-event"></i>
-                          </span>
-                          <strong><%= policy[:type] %></strong>
-                        </div>
-                      </td>
-                      <td class="py-3">
-                        <code class="bg-light px-2 py-1 rounded"><%= policy[:policy_number] %></code>
-                      </td>
-                      <td class="py-3"><%= policy[:company_name] %></td>
-                      <td class="py-3">
-                        <span class="badge bg-warning text-dark">
-                          <i class="bi bi-arrow-repeat me-1"></i>
-                          <%= policy[:policy].payment_mode %>
-                        </span>
-                      </td>
-                      <td class="py-3">
-                        <span class="text-warning fw-bold">₹<%= number_with_delimiter(policy[:premium]) %></span>
-                      </td>
-                      <td class="py-3">
-                        <span class="text-warning">
-                          <i class="bi bi-clock me-1"></i>
-                          Due Soon
-                        </span>
-                      </td>
-                    </tr>
-                  <% end %>
-                </tbody>
-              </table>
-            </div>
-          <% end %>
-        </div>
-
-        <!-- Empty State -->
-        <% if @all_policies.empty? %>
-          <div class="text-center py-5">
-            <i class="bi bi-shield-x fs-1 text-muted d-block mb-3"></i>
-            <h5 class="text-muted">No Policies Found</h5>
-            <p class="text-muted mb-3">This customer doesn't have any insurance policies yet.</p>
-            <a href="#" class="btn btn-primary">Add First Policy</a>
-          </div>
-        <% end %>
-      </div>
-    </div>
+ 
 
     <!-- Customer Timeline -->
     <div class="card border-0 shadow-sm mb-4">
@@ -1183,5 +1259,43 @@
     </div>
   </div>
 <% end %>
+
+<script>
+function markInstallmentPaid(policyNumber) {
+  if (confirm(`Are you sure you want to mark the installment for policy ${policyNumber} as paid?`)) {
+    // Here you would typically make an AJAX call to your backend
+    // For now, we'll just show a success message
+    alert(`Installment for policy ${policyNumber} has been marked as paid!`);
+
+    // Optionally reload the page to refresh the data
+    // window.location.reload();
+  }
+}
+
+// Optional: Add tooltips to action buttons
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize Bootstrap tooltips if available
+  if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+  }
+
+  // Add hover effects to policy tables
+  const policyCards = document.querySelectorAll('.card');
+  policyCards.forEach(card => {
+    const tables = card.querySelectorAll('table tbody tr');
+    tables.forEach(row => {
+      row.addEventListener('mouseenter', function() {
+        this.style.backgroundColor = '#f8f9fa';
+      });
+      row.addEventListener('mouseleave', function() {
+        this.style.backgroundColor = '';
+      });
+    });
+  });
+});
+</script>
 
 

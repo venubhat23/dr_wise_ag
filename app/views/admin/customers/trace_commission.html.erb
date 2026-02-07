@@ -153,6 +153,263 @@
 </div>
 
 
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Comprehensive Product Matrix</h5>
+      <small class="text-muted">Complete portfolio overview Dr WISE all 17 product categories</small>
+    </div>
+  </div>
+  <div class="card-body">
+    <!-- Coverage Overview Chart -->
+    <div class="row mb-5">
+      <div class="col-md-6">
+        <div class="coverage-chart-container">
+          <canvas id="coverageChart" width="300" height="300"></canvas>
+          <div class="chart-center-text">
+            <div class="center-score">
+              <span class="score-number"><%= @commission_summary[:opted_count] %></span>
+              <span class="score-total">/<%= @commission_summary[:total_products] %></span>
+            </div>
+            <div class="score-label">Products</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="coverage-details">
+          <h6 class="mb-3">Coverage Analysis</h6>
+          <div class="coverage-metrics">
+            <div class="metric-item mb-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="metric-label">Coverage Percentage</span>
+                <span class="metric-value text-primary"><%= @commission_summary[:coverage_percentage] %>%</span>
+              </div>
+              <div class="progress mt-2" style="height: 8px;">
+                <div class="progress-bar bg-primary" style="width: <%= @commission_summary[:coverage_percentage] %>%"></div>
+              </div>
+            </div>
+
+            <div class="metric-item mb-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="metric-label">Total Investment</span>
+                <span class="metric-value text-success"><%= indian_currency(@commission_summary[:total_premium]) %></span>
+              </div>
+            </div>
+
+            <div class="metric-item">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="metric-label">Commission Status</span>
+                <span class="badge bg-<%= @commission_payouts.where(status: 'paid').any? ? 'success' : 'warning' %>">
+                  <%= @commission_payouts.where(status: 'paid').any? ? 'Payments Made' : 'Pending' %>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comprehensive Product Matrix Table - Side by Side Layout -->
+    <div class="table-responsive product-matrix-side-by-side-container">
+      <%
+        product_categories = [
+          {
+            name: 'Insurance Products',
+            icon: 'bi-shield-check',
+            products: [
+              { name: 'Life Insurance', icon: 'bi-heart-pulse', key: 'Life Insurance' },
+              { name: 'Health Insurance', icon: 'bi-activity', key: 'Health Insurance' },
+              { name: 'Motor Insurance', icon: 'bi-car-front', key: 'Motor Insurance' }
+            ]
+          },
+          {
+            name: 'Investment Products',
+            icon: 'bi-graph-up',
+            products: [
+              { name: 'Mutual Fund', icon: 'bi-pie-chart', key: 'Mutual Fund' },
+              { name: 'Gold', icon: 'bi-coin', key: 'Gold' },
+              { name: 'NPS', icon: 'bi-building', key: 'NPS' },
+              { name: 'Bonds', icon: 'bi-receipt', key: 'Bonds' }
+            ]
+          },
+          {
+            name: 'Loan Products',
+            icon: 'bi-bank',
+            products: [
+              { name: 'Personal Loan', icon: 'bi-person', key: 'Personal Loan' },
+              { name: 'Home Loan', icon: 'bi-house', key: 'Home Loan' },
+              { name: 'Business Loan', icon: 'bi-briefcase', key: 'Business Loan' }
+            ]
+          },
+          {
+            name: 'Taxation Services',
+            icon: 'bi-calculator',
+            products: [
+              { name: 'Income Tax Return (ITR)', icon: 'bi-file-earmark-text', key: 'ITR' }
+            ]
+          },
+          {
+            name: 'Travel Services',
+            icon: 'bi-airplane',
+            products: [
+              { name: 'Domestic Travel', icon: 'bi-geo', key: 'Domestic Travel' },
+              { name: 'International Travel', icon: 'bi-globe', key: 'International Travel' }
+            ]
+          }
+        ]
+      %>
+
+      <% product_categories.each do |category| %>
+        <div class="product-category-section mb-5">
+          <div class="category-header-section">
+            <h4 class="category-title">
+              <i class="<%= category[:icon] %> me-2"></i>
+              <%= category[:name] %>
+            </h4>
+          </div>
+
+          <table class="table table-bordered product-comparison-table">
+            <thead class="table-dark">
+              <tr>
+                <th style="width: 20%;">Product Type</th>
+                <th style="width: 8%;" class="text-center">DrWise Status</th>
+                <th style="width: 10%;" class="text-center">DrWise Policies</th>
+                <th style="width: 22%;">DrWise Coverage Details</th>
+                <th style="width: 8%;" class="text-center">NonDrWise Status</th>
+                <th style="width: 10%;" class="text-center">NonDrWise Policies</th>
+                <th style="width: 22%;">NonDrWise Coverage Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% category[:products].each do |product| %>
+                <%
+                  drwise_data = @drwise_policy_status[product[:key]] || @drwise_product_status[product[:key]]
+                  non_drwise_data = @non_drwise_policy_status[product[:key]] || @non_drwise_product_status[product[:key]]
+                  drwise_opted = drwise_data && drwise_data[:opted]
+                  non_drwise_opted = non_drwise_data && non_drwise_data[:opted]
+                %>
+                <tr class="product-comparison-row">
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <i class="<%= product[:icon] %> me-2 text-primary"></i>
+                      <span class="fw-medium"><%= product[:name] %></span>
+                    </div>
+                  </td>
+
+                  <!-- DrWise Status -->
+                  <td class="text-center">
+                    <% if drwise_opted %>
+                      <span class="badge bg-success">
+                        <i class="bi bi-check-circle me-1"></i>Yes
+                      </span>
+                    <% else %>
+                      <span class="badge bg-secondary">
+                        <i class="bi bi-x-circle me-1"></i>No
+                      </span>
+                    <% end %>
+                  </td>
+
+                  <!-- DrWise Policies Count -->
+                  <td class="text-center">
+                    <% if drwise_opted && drwise_data %>
+                      <% count_label = category[:name].include?('Insurance') ? 'policies' : (category[:name].include?('Investment') ? 'investments' : (category[:name].include?('Loan') ? 'loans' : (category[:name].include?('Taxation') ? 'services' : 'packages'))) %>
+                      <span class="badge bg-success"><%= drwise_data[:count] %> <%= count_label %></span>
+                    <% else %>
+                      <span class="text-muted">-</span>
+                    <% end %>
+                  </td>
+
+                  <!-- DrWise Coverage Details -->
+                  <td>
+                    <% if drwise_opted && drwise_data %>
+                      <% if category[:name].include?('Insurance') %>
+                        <div class="small">
+                          <div class="text-success mb-1">
+                            <i class="bi bi-currency-rupee me-1"></i>
+                            Total Premium: <%= indian_currency(drwise_data[:total_premium] || 0) %>
+                          </div>
+                          <% if drwise_data[:latest_policy] %>
+                            <div class="text-muted mb-2">
+                              <i class="bi bi-clock me-1"></i>
+                              Latest: <%= drwise_data[:latest_policy].created_at.strftime('%b %d, %Y') %>
+                            </div>
+                          <% end %>
+                          <% if ['Motor Insurance', 'Life Insurance', 'Health Insurance'].include?(product[:name]) %>
+                            <button class="btn btn-sm btn-success mt-1" onclick="showInsurancePolicies('<%= @customer.id %>', 'drwise', '<%= product[:name].downcase.gsub(' ', '') %>')">
+                              <i class="bi bi-eye me-1"></i>View Policies
+                            </button>
+                          <% end %>
+                        </div>
+                      <% else %>
+                        <span class="text-muted">Product not yet implemented</span>
+                      <% end %>
+                    <% else %>
+                      <span class="text-muted">No DrWise policies found</span>
+                    <% end %>
+                  </td>
+
+                  <!-- NonDrWise Status -->
+                  <td class="text-center">
+                    <% if non_drwise_opted %>
+                      <span class="badge bg-success">
+                        <i class="bi bi-check-circle me-1"></i>Yes
+                      </span>
+                    <% else %>
+                      <span class="badge bg-secondary">
+                        <i class="bi bi-x-circle me-1"></i>No
+                      </span>
+                    <% end %>
+                  </td>
+
+                  <!-- NonDrWise Policies Count -->
+                  <td class="text-center">
+                    <% if non_drwise_opted && non_drwise_data %>
+                      <% count_label = category[:name].include?('Insurance') ? 'policies' : (category[:name].include?('Investment') ? 'investments' : (category[:name].include?('Loan') ? 'loans' : (category[:name].include?('Taxation') ? 'services' : 'packages'))) %>
+                      <span class="badge bg-warning"><%= non_drwise_data[:count] %> <%= count_label %></span>
+                    <% else %>
+                      <span class="text-muted">-</span>
+                    <% end %>
+                  </td>
+
+                  <!-- NonDrWise Coverage Details -->
+                  <td>
+                    <% if non_drwise_opted && non_drwise_data %>
+                      <% if category[:name].include?('Insurance') %>
+                        <div class="small">
+                          <div class="text-success mb-1">
+                            <i class="bi bi-currency-rupee me-1"></i>
+                            Total Premium: <%= indian_currency(non_drwise_data[:total_premium] || 0) %>
+                          </div>
+                          <% if non_drwise_data[:latest_policy] %>
+                            <div class="text-muted mb-2">
+                              <i class="bi bi-clock me-1"></i>
+                              Latest: <%= non_drwise_data[:latest_policy].created_at.strftime('%b %d, %Y') %>
+                            </div>
+                          <% end %>
+                          <% if ['Motor Insurance', 'Life Insurance', 'Health Insurance'].include?(product[:name]) %>
+                            <button class="btn btn-sm btn-warning mt-1" onclick="showInsurancePolicies('<%= @customer.id %>', 'non-drwise', '<%= product[:name].downcase.gsub(' ', '') %>')">
+                              <i class="bi bi-eye me-1"></i>View Policies
+                            </button>
+                          <% end %>
+                        </div>
+                      <% else %>
+                        <span class="text-muted">Product not yet implemented</span>
+                      <% end %>
+                    <% else %>
+                      <span class="text-muted">No Non-DrWise policies found</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+
 <!-- Policy Details Cards -->
 <div class="row mb-4">
   <% @policy_status.each_with_index do |(policy_type, data), index| %>
@@ -227,6 +484,10 @@
 
 <!-- Commission Payouts Table -->
 <% if @commission_payouts.any? %>
+  <%
+    # Group payouts by policy number
+    grouped_payouts = @commission_payouts.group_by { |p| p.policy_number || "Policy ##{p.policy_id}" }
+  %>
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-transparent border-0">
       <h5 class="mb-0">Commission Payouts</h5>
@@ -238,47 +499,81 @@
             <tr>
               <th class="border-0">Policy</th>
               <th class="border-0">Type</th>
-              <th class="border-0">Payout To</th>
-              <th class="border-0">Amount</th>
+              <th class="border-0">Commission Breakdown</th>
+              <th class="border-0">Total Amount</th>
               <th class="border-0">Status</th>
               <th class="border-0">Date</th>
             </tr>
           </thead>
           <tbody>
-            <% @commission_payouts.each do |payout| %>
+            <% grouped_payouts.each do |policy_number, payouts| %>
+              <% first_payout = payouts.first %>
+              <% total_amount = payouts.sum(&:payout_amount) %>
               <tr>
                 <td>
-                  <div class="fw-bold"><%= payout.policy_number || "Policy ##{payout.policy_id}" %></div>
-                  <small class="text-muted"><%= payout.customer_name %></small>
+                  <div class="fw-bold"><%= policy_number %></div>
+                  <small class="text-muted"><%= first_payout.customer_name %></small>
                 </td>
                 <td>
                   <span class="badge bg-<%=
-                    case payout.policy_type
+                    case first_payout.policy_type
                     when 'health' then 'success'
                     when 'life' then 'primary'
                     when 'motor' then 'warning'
                     else 'secondary'
                     end
                   %>">
-                    <%= payout.policy_type.humanize %>
+                    <%= first_payout.policy_type.humanize %>
                   </span>
                 </td>
-                <td><%= payout.payout_to.humanize %></td>
-                <td class="fw-bold text-success"><%= indian_currency(payout.payout_amount) %></td>
                 <td>
-                  <span class="badge bg-<%=
-                    case payout.status
-                    when 'paid' then 'success'
-                    when 'pending' then 'warning'
-                    when 'processing' then 'info'
-                    when 'cancelled' then 'danger'
-                    else 'secondary'
-                    end
-                  %>">
-                    <%= payout.status.humanize %>
-                  </span>
+                  <div class="commission-breakdown">
+                    <% payouts.each_with_index do |payout, index| %>
+                      <div class="commission-item d-flex justify-content-between align-items-center <%= 'mb-1' if index < payouts.length - 1 %>">
+                        <small class="text-muted">
+                          <i class="bi bi-arrow-right me-1"></i>
+                          <strong><%= payout.payout_to.humanize %>:</strong>
+                        </small>
+                        <span class="badge bg-light text-dark fw-bold">
+                          <%= indian_currency(payout.payout_amount) %>
+                        </span>
+                      </div>
+                    <% end %>
+                  </div>
                 </td>
-                <td><%= payout.payout_date&.strftime('%b %d, %Y') || 'Pending' %></td>
+                <td>
+                  <div class="fw-bold text-success fs-6">
+                    <%= indian_currency(total_amount) %>
+                  </div>
+                  <small class="text-muted">
+                    <%= payouts.count %> payments
+                  </small>
+                </td>
+                <td>
+                  <% all_paid = payouts.all? { |p| p.status == 'paid' } %>
+                  <% all_pending = payouts.all? { |p| p.status == 'pending' } %>
+                  <% if all_paid %>
+                    <span class="badge bg-success">
+                      <i class="bi bi-check-circle me-1"></i>All Paid
+                    </span>
+                  <% elsif all_pending %>
+                    <span class="badge bg-warning">
+                      <i class="bi bi-clock me-1"></i>All Pending
+                    </span>
+                  <% else %>
+                    <span class="badge bg-info">
+                      <i class="bi bi-hourglass-split me-1"></i>Mixed Status
+                    </span>
+                  <% end %>
+                </td>
+                <td>
+                  <div class="text-dark fw-medium">
+                    <%= first_payout.payout_date&.strftime('%b %d, %Y') || 'Pending' %>
+                  </div>
+                  <% if payouts.map(&:payout_date).uniq.length > 1 %>
+                    <small class="text-muted">Multiple dates</small>
+                  <% end %>
+                </td>
               </tr>
             <% end %>
           </tbody>
@@ -289,6 +584,71 @@
 <% end %>
 
 <style>
+/* Commission Breakdown Styling */
+.commission-breakdown {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  max-width: 300px;
+}
+
+.commission-item {
+  background: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 3px solid #28a745;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+
+.commission-item:hover {
+  border-left-color: #198754;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transform: translateX(2px);
+}
+
+.commission-item:nth-child(1) { border-left-color: #007bff; } /* Main agent */
+.commission-item:nth-child(2) { border-left-color: #28a745; } /* Affiliate */
+.commission-item:nth-child(3) { border-left-color: #ffc107; } /* Ambassador */
+.commission-item:nth-child(4) { border-left-color: #6f42c1; } /* Investor */
+.commission-item:nth-child(5) { border-left-color: #dc3545; } /* Company expense */
+
+/* Table styling enhancements */
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 123, 255, 0.02);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.table th {
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #495057;
+  padding: 16px 12px;
+}
+
+.table td {
+  padding: 20px 12px;
+  vertical-align: middle;
+  border-color: #f1f5f9;
+}
+
+/* Badge styling */
+.badge {
+  font-size: 11px;
+  padding: 6px 10px;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+/* Total amount styling */
+.fs-6 {
+  font-size: 1.1rem !important;
+}
+
 /* Chart Container Styling */
 .coverage-chart-container {
   position: relative;
