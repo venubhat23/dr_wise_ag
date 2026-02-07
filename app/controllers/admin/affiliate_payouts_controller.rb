@@ -117,9 +117,16 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
       if errors.any?
         redirect_to admin_affiliate_payouts_path, alert: "Some payouts failed: #{errors.join(', ')}"
       else
-        # Generate invoices after successful payouts
-        generate_affiliate_invoices(affiliate_id, lead_ids, payout_type)
-        redirect_to admin_affiliate_payouts_path, notice: "#{success_count} affiliate payout(s) marked as paid successfully! Invoices have been generated."
+        # Generate invoices after successful payouts - before redirect
+        invoice_generated = generate_affiliate_invoices(affiliate_id, lead_ids, payout_type)
+
+        notice_message = if invoice_generated
+          "#{success_count} affiliate payout(s) marked as paid successfully! Invoice has been generated."
+        else
+          "#{success_count} affiliate payout(s) marked as paid successfully!"
+        end
+
+        redirect_to admin_affiliate_payouts_path, notice: notice_message
       end
 
     rescue StandardError => e
@@ -535,35 +542,54 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
 
   def generate_affiliate_invoices(affiliate_id, lead_ids, payout_type)
     begin
+      invoices_created = false
+
       case payout_type
       when 'affiliate_all', 'bulk_selection'
         # Generate invoice for specific affiliate
         if affiliate_id.present?
-          generate_single_affiliate_invoice(affiliate_id)
+          invoice = generate_single_affiliate_invoice_for_leads(affiliate_id, lead_ids)
+          invoices_created = true if invoice
         end
 
         # Generate invoices for affiliate_ids if it's bulk selection
         if payout_type == 'bulk_selection' && params[:affiliate_ids].present?
           params[:affiliate_ids].each do |aff_id|
-            generate_single_affiliate_invoice(aff_id)
+            invoice = generate_single_affiliate_invoice(aff_id)
+            invoices_created = true if invoice
           end
         end
 
       when 'lead_single', 'lead_multiple', 'bulk_modal_selection'
         # Generate invoices by grouping leads by affiliate
-        generate_invoices_for_leads(lead_ids)
+        invoices = generate_invoices_for_leads(lead_ids)
+        invoices_created = true if invoices.any?
 
       when 'quick_all_pending'
-        # Generate invoices for all affiliates with pending payouts
-        pending_payouts = calculate_affiliate_payouts.select { |a| a[:pending_amount] > 0 }
-        pending_payouts.each do |affiliate_data|
-          generate_single_affiliate_invoice(affiliate_data[:affiliate].id)
+        # Generate invoices for all affiliates with pending payouts that were just marked as paid
+        affiliates_processed = Set.new
+
+        # Track which affiliates had leads processed
+        CommissionPayout.where(payout_to: 'affiliate', status: 'paid', updated_at: 1.minute.ago..Time.current).each do |payout|
+          policy = get_policy_from_commission_payout(payout)
+          if policy && policy.respond_to?(:sub_agent_id) && policy.sub_agent_id.present?
+            affiliates_processed.add(policy.sub_agent_id)
+          end
+        end
+
+        # Generate invoice for each processed affiliate
+        affiliates_processed.each do |aff_id|
+          invoice = generate_single_affiliate_invoice_for_recent_payments(aff_id)
+          invoices_created = true if invoice
         end
       end
+
+      return invoices_created
 
     rescue => e
       Rails.logger.error "Invoice generation failed: #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
+      return false
     end
   end
 
@@ -618,6 +644,7 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
   end
 
   def generate_invoices_for_leads(lead_ids)
+    invoices = []
     # Group leads by affiliate
     affiliate_groups = {}
 
@@ -633,7 +660,125 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
 
     # Generate invoice for each affiliate group
     affiliate_groups.each do |affiliate_id, group_lead_ids|
-      generate_single_affiliate_invoice(affiliate_id)
+      invoice = generate_single_affiliate_invoice_for_leads(affiliate_id, group_lead_ids)
+      invoices << invoice if invoice
+    end
+
+    invoices
+  end
+
+  def generate_single_affiliate_invoice_for_leads(affiliate_id, lead_ids)
+    sub_agent = SubAgent.find_by(id: affiliate_id)
+    return unless sub_agent
+
+    # Calculate total commission for these specific leads
+    total_commission = 0
+    policies_processed = []
+
+    lead_ids.each do |lead_id|
+      policy = find_policy_by_lead_id(lead_id)
+      next unless policy
+
+      # Get the commission payout for this policy
+      policy_type = get_policy_type(policy)
+      payout = CommissionPayout.find_by(
+        policy_type: policy_type,
+        policy_id: policy.id,
+        payout_to: 'affiliate',
+        status: 'paid'
+      )
+
+      if payout
+        total_commission += payout.payout_amount.to_f
+        policies_processed << policy.policy_number
+      end
+    end
+
+    return if total_commission <= 0
+
+    # Generate unique invoice number
+    invoice_number = generate_invoice_number
+
+    # Create invoice
+    begin
+      invoice = Invoice.create!(
+        invoice_number: invoice_number,
+        payout_type: 'affiliate',
+        payout_id: affiliate_id,
+        total_amount: total_commission,
+        status: 'paid',
+        invoice_date: Date.current,
+        due_date: Date.current,
+        paid_at: Time.current,
+        recipient_name: "#{sub_agent.first_name} #{sub_agent.last_name}",
+        recipient_email: sub_agent.email,
+        notes: "Affiliate commission for policies: #{policies_processed.join(', ')}"
+      )
+
+      Rails.logger.info "Generated invoice #{invoice.invoice_number} for sub_agent #{sub_agent.first_name} #{sub_agent.last_name} (#{sub_agent.id})"
+      invoice
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error "Failed to create invoice for affiliate #{affiliate_id}: #{e.message}"
+      nil
+    rescue => e
+      Rails.logger.error "Unexpected error creating invoice for affiliate #{affiliate_id}: #{e.message}"
+      nil
+    end
+  end
+
+  def generate_single_affiliate_invoice_for_recent_payments(affiliate_id)
+    sub_agent = SubAgent.find_by(id: affiliate_id)
+    return unless sub_agent
+
+    # Get recently paid commission payouts for this affiliate (within last minute)
+    recent_payouts = CommissionPayout.where(
+      payout_to: 'affiliate',
+      status: 'paid',
+      updated_at: 1.minute.ago..Time.current
+    ).select do |payout|
+      policy = get_policy_from_commission_payout(payout)
+      policy && policy.respond_to?(:sub_agent_id) && policy.sub_agent_id == affiliate_id.to_i
+    end
+
+    return if recent_payouts.empty?
+
+    # Calculate total commission
+    total_commission = recent_payouts.sum(&:payout_amount)
+    return if total_commission <= 0
+
+    # Collect policy numbers
+    policies_processed = recent_payouts.map do |payout|
+      policy = get_policy_from_commission_payout(payout)
+      policy&.policy_number
+    end.compact
+
+    # Generate unique invoice number
+    invoice_number = generate_invoice_number
+
+    # Create invoice
+    begin
+      invoice = Invoice.create!(
+        invoice_number: invoice_number,
+        payout_type: 'affiliate',
+        payout_id: affiliate_id,
+        total_amount: total_commission,
+        status: 'paid',
+        invoice_date: Date.current,
+        due_date: Date.current,
+        paid_at: Time.current,
+        recipient_name: "#{sub_agent.first_name} #{sub_agent.last_name}",
+        recipient_email: sub_agent.email,
+        notes: "Affiliate commission for policies: #{policies_processed.join(', ')}"
+      )
+
+      Rails.logger.info "Generated invoice #{invoice.invoice_number} for sub_agent #{sub_agent.first_name} #{sub_agent.last_name} (#{sub_agent.id})"
+      invoice
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error "Failed to create invoice for affiliate #{affiliate_id}: #{e.message}"
+      nil
+    rescue => e
+      Rails.logger.error "Unexpected error creating invoice for affiliate #{affiliate_id}: #{e.message}"
+      nil
     end
   end
 

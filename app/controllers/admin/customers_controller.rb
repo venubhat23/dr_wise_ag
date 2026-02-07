@@ -643,6 +643,59 @@ class Admin::CustomersController < Admin::ApplicationController
     if params[:lead_id].present?
       @lead = Lead.find(params[:lead_id])
 
+      # Check if this lead is already converted to a customer
+      if @lead.converted_customer_id.present?
+        existing_customer = Customer.find_by(id: @lead.converted_customer_id)
+        if existing_customer
+          # Lead is already converted, redirect to the customer's edit page
+          redirect_to edit_admin_customer_path(existing_customer),
+                      notice: "This lead has already been converted to a customer. Redirected to the customer's edit page."
+          return
+        end
+      end
+
+      # For branch-out leads, check if there's already a customer from the parent or other branch leads
+      if @lead.is_branch_out? && @lead.parent_lead_id.present?
+        parent_lead = Lead.find_by(id: @lead.parent_lead_id)
+
+        # Check if parent lead has a customer
+        if parent_lead && parent_lead.converted_customer_id.present?
+          existing_customer = Customer.find_by(id: parent_lead.converted_customer_id)
+          if existing_customer
+            # Update the branch-out lead to mark as converted with the same customer
+            @lead.update!(
+              current_stage: 'converted',
+              converted_customer_id: existing_customer.id
+            )
+            redirect_to edit_admin_customer_path(existing_customer),
+                        notice: "Branch-out lead linked to existing customer from parent lead. Redirected to customer's edit page."
+            return
+          end
+        end
+
+        # Check if any other branch-out leads from same parent are already converted
+        if parent_lead
+          other_branch_leads = Lead.where(parent_lead_id: parent_lead.id)
+                                   .where.not(id: @lead.id)
+                                   .where.not(converted_customer_id: nil)
+
+          if other_branch_leads.any?
+            converted_branch = other_branch_leads.first
+            existing_customer = Customer.find_by(id: converted_branch.converted_customer_id)
+            if existing_customer
+              # Update this branch-out lead to use the same customer
+              @lead.update!(
+                current_stage: 'converted',
+                converted_customer_id: existing_customer.id
+              )
+              redirect_to edit_admin_customer_path(existing_customer),
+                          notice: "Branch-out lead linked to existing customer from sibling branch lead. Redirected to customer's edit page."
+              return
+            end
+          end
+        end
+      end
+
       # Basic information mapping
       @customer.customer_type = @lead.customer_type
       @customer.email = @lead.email

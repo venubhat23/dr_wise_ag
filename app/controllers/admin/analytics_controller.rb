@@ -2,13 +2,20 @@ require 'ostruct'
 
 class Admin::AnalyticsController < Admin::ApplicationController
   def index
+    # Handle date filter parameters
+    setup_filter_dates
+
     # Check for refresh parameter
     if params[:refresh] == 'true'
       refresh_analytics_cache
     end
 
-    # Load analytics data (cached or fresh)
-    load_analytics_data
+    # Load analytics data (filtered or cached)
+    if has_filter_params?
+      load_filtered_analytics_data
+    else
+      load_analytics_data
+    end
 
     # Handle AJAX requests for chart data
     if request.xhr? && params[:chart].present?
@@ -24,6 +31,367 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   private
+
+  def setup_filter_dates
+    # Get date filter parameters (default to current year)
+    current_year = Date.current.year
+    @filter_year = params[:year].present? ? params[:year].to_i : current_year
+    @filter_month = params[:month].present? ? params[:month].to_i : nil
+    @filter_start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : Date.new(@filter_year, 1, 1)
+    @filter_end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : Date.new(@filter_year, 12, 31)
+
+    # If month is specified, filter by that month
+    if @filter_month.present?
+      @filter_start_date = Date.new(@filter_year, @filter_month, 1)
+      @filter_end_date = @filter_start_date.end_of_month
+    end
+  end
+
+  def has_filter_params?
+    params[:year].present? || params[:month].present? || params[:start_date].present? || params[:end_date].present?
+  end
+
+  def load_filtered_analytics_data
+    Rails.logger.info "🔍 Loading filtered analytics data for period: #{@filter_start_date} to #{@filter_end_date}"
+
+    # Use the same filtered data approach as dashboard controller
+    filtered_data = get_filtered_analytics_data(@filter_start_date, @filter_end_date)
+
+    # Set instance variables from filtered data
+    filtered_data.each { |key, value| instance_variable_set("@#{key}", value) }
+  end
+
+  def get_filtered_analytics_data(start_date, end_date)
+    # Time ranges
+    @current_month = start_date.beginning_of_month
+    @last_month = (start_date - 1.month).beginning_of_month
+    @current_year = start_date.beginning_of_year
+    @last_year = (start_date - 1.year).beginning_of_year
+
+    # Core metrics for the filtered period
+    @total_customers = Customer.where(created_at: start_date..end_date).count
+    @total_policies = calculate_total_policies_for_period(start_date, end_date)
+    @total_premium = calculate_total_premium_for_period(start_date, end_date)
+    @total_affiliates = SubAgent.where(created_at: start_date..end_date).count
+    @total_ambassadors = Distributor.where(created_at: start_date..end_date).count
+
+    # Growth metrics (compare with previous period of same duration)
+    period_duration = (end_date - start_date).days
+    previous_start = start_date - period_duration.days
+    previous_end = start_date - 1.day
+
+    @customer_growth = calculate_growth_for_period(Customer, start_date, end_date, previous_start, previous_end)
+    @policy_growth = calculate_policy_growth_for_period(start_date, end_date, previous_start, previous_end)
+    @premium_growth = calculate_premium_growth_for_period(start_date, end_date, previous_start, previous_end)
+    @affiliate_growth = calculate_growth_for_period(SubAgent, start_date, end_date, previous_start, previous_end)
+
+    # Policy distribution for the filtered period
+    @policy_distribution = {
+      'Life Insurance' => LifeInsurance.where(created_at: start_date..end_date).count,
+      'Health Insurance' => HealthInsurance.where(created_at: start_date..end_date).count,
+      'Motor Insurance' => MotorInsurance.where(created_at: start_date..end_date).count,
+      'Other Insurance' => OtherInsurance.where(created_at: start_date..end_date).count
+    }
+
+    # Monthly trends within the filtered period (up to 12 months)
+    @monthly_trends = calculate_monthly_trends_for_period(start_date, end_date)
+
+    # Top performing affiliates for the period
+    @top_affiliates = calculate_top_affiliates_for_period(start_date, end_date)
+
+    # Recent activities for the period
+    @recent_policies = get_recent_policies_for_period(start_date, end_date)
+    @recent_leads = Lead.where(created_at: start_date..end_date).order(created_at: :desc).limit(10)
+
+    # Commission analytics for the period
+    @commission_summary = calculate_commission_summary_for_period(start_date, end_date)
+
+    # Renewal analytics for the period
+    @renewal_analytics = calculate_renewal_analytics_for_period(start_date, end_date)
+
+    # Lead analytics for the period
+    @lead_conversion_funnel = calculate_lead_conversion_funnel_for_period(start_date, end_date)
+    @lead_stage_distribution = calculate_lead_stage_distribution_for_period(start_date, end_date)
+
+    # Customer location analytics for the period
+    @customer_location = calculate_customer_location_for_period(start_date, end_date)
+
+    # Additional metrics
+    @conversion_rate = calculate_conversion_rate_for_period(start_date, end_date)
+    @avg_policy_value = @total_policies > 0 ? (@total_premium / @total_policies).round(0) : 0
+    @commissions_due = (@commission_summary[:total_commission_due] || 0).to_f
+
+    # Return the instance variables as a hash for consistency
+    {
+      filter_start_date: start_date,
+      filter_end_date: end_date,
+      filter_year: start_date.year,
+      filter_month: start_date.month == end_date.month ? start_date.month : nil
+    }
+  end
+
+  # Helper methods for filtered calculations
+  def calculate_total_policies_for_period(start_date, end_date)
+    HealthInsurance.where(created_at: start_date..end_date).count +
+    LifeInsurance.where(created_at: start_date..end_date).count +
+    MotorInsurance.where(created_at: start_date..end_date).count +
+    OtherInsurance.where(created_at: start_date..end_date).count
+  end
+
+  def calculate_total_premium_for_period(start_date, end_date)
+    health_premium = HealthInsurance.where(created_at: start_date..end_date).sum(:total_premium) || 0
+    life_premium = LifeInsurance.where(created_at: start_date..end_date).sum(:total_premium) || 0
+    motor_premium = MotorInsurance.where(created_at: start_date..end_date).sum(:total_premium) || 0
+    health_premium + life_premium + motor_premium
+  end
+
+  def calculate_growth_for_period(model, current_start, current_end, previous_start, previous_end)
+    current_count = model.where(created_at: current_start..current_end).count
+    previous_count = model.where(created_at: previous_start..previous_end).count
+
+    return 0 if previous_count == 0
+    ((current_count.to_f - previous_count.to_f) / previous_count.to_f * 100).round(1)
+  end
+
+  def calculate_policy_growth_for_period(current_start, current_end, previous_start, previous_end)
+    current_policies = calculate_total_policies_for_period(current_start, current_end)
+    previous_policies = calculate_total_policies_for_period(previous_start, previous_end)
+
+    return 0 if previous_policies == 0
+    ((current_policies.to_f - previous_policies.to_f) / previous_policies.to_f * 100).round(1)
+  end
+
+  def calculate_premium_growth_for_period(current_start, current_end, previous_start, previous_end)
+    current_premium = calculate_total_premium_for_period(current_start, current_end)
+    previous_premium = calculate_total_premium_for_period(previous_start, previous_end)
+
+    return 0 if previous_premium == 0
+    ((current_premium.to_f - previous_premium.to_f) / previous_premium.to_f * 100).round(1)
+  end
+
+  def calculate_monthly_trends_for_period(start_date, end_date)
+    trends = {}
+    current_date = start_date.beginning_of_month
+
+    while current_date <= end_date
+      month_end = [current_date.end_of_month, end_date].min
+      month_name = current_date.strftime('%b %Y')
+
+      trends[month_name] = {
+        customers: Customer.where(created_at: current_date..month_end).count,
+        policies: calculate_policies_for_month_in_period(current_date, month_end),
+        premium: calculate_premium_for_month_in_period(current_date, month_end),
+        leads: Lead.where(created_at: current_date..month_end).count
+      }
+
+      current_date = current_date.next_month.beginning_of_month
+    end
+
+    trends
+  end
+
+  def calculate_policies_for_month_in_period(month_start, month_end)
+    HealthInsurance.where(created_at: month_start..month_end).count +
+    LifeInsurance.where(created_at: month_start..month_end).count +
+    MotorInsurance.where(created_at: month_start..month_end).count +
+    OtherInsurance.where(created_at: month_start..month_end).count
+  end
+
+  def calculate_premium_for_month_in_period(month_start, month_end)
+    HealthInsurance.where(created_at: month_start..month_end).sum(:total_premium) +
+    LifeInsurance.where(created_at: month_start..month_end).sum(:total_premium) +
+    MotorInsurance.where(created_at: month_start..month_end).sum(:total_premium)
+  end
+
+  def calculate_top_affiliates_for_period(start_date, end_date)
+    # Get top affiliates based on policies created in the period
+    affiliate_data = []
+
+    SubAgent.limit(50).each do |agent|
+      health_count = HealthInsurance.where(sub_agent_id: agent.id, created_at: start_date..end_date).count
+      life_count = LifeInsurance.where(sub_agent_id: agent.id, created_at: start_date..end_date).count
+      motor_count = MotorInsurance.where(sub_agent_id: agent.id, created_at: start_date..end_date).count
+      total_policies = health_count + life_count + motor_count
+
+      if total_policies > 0
+        affiliate_data << {
+          id: agent.id,
+          first_name: agent.first_name,
+          last_name: agent.last_name,
+          status: agent.status || 'active',
+          policies_count: total_policies
+        }
+      end
+    end
+
+    # Sort and convert to OpenStruct
+    affiliate_data.sort_by { |a| -a[:policies_count] }.first(10).map { |data| OpenStruct.new(data) }
+  rescue => e
+    Rails.logger.error "Error calculating top affiliates for period: #{e.message}"
+    []
+  end
+
+  def get_recent_policies_for_period(start_date, end_date)
+    policies = []
+
+    # Get recent health insurance policies for the period
+    HealthInsurance.includes(:customer).where(created_at: start_date..end_date).order(created_at: :desc).limit(3).each do |policy|
+      policies << {
+        type: 'Health Insurance',
+        customer: policy.customer.display_name,
+        policy_number: policy.policy_number,
+        premium: policy.total_premium,
+        date: policy.created_at
+      }
+    end
+
+    # Get recent life insurance policies for the period
+    LifeInsurance.includes(:customer).where(created_at: start_date..end_date).order(created_at: :desc).limit(3).each do |policy|
+      policies << {
+        type: 'Life Insurance',
+        customer: policy.customer.display_name,
+        policy_number: policy.policy_number,
+        premium: policy.total_premium,
+        date: policy.created_at
+      }
+    end
+
+    # Get recent motor insurance policies for the period
+    MotorInsurance.includes(:customer).where(created_at: start_date..end_date).order(created_at: :desc).limit(2).each do |policy|
+      policies << {
+        type: 'Motor Insurance',
+        customer: policy.customer.display_name,
+        policy_number: policy.policy_number,
+        premium: policy.total_premium,
+        date: policy.created_at
+      }
+    end
+
+    policies.sort_by { |p| p[:date] }.reverse.first(10)
+  end
+
+  def calculate_commission_summary_for_period(start_date, end_date)
+    {
+      total_commission_due: CommissionPayout.where(status: 'pending', created_at: start_date..end_date).sum(:payout_amount),
+      total_commission_paid: CommissionPayout.where(status: 'paid', created_at: start_date..end_date).sum(:payout_amount),
+      affiliate_commissions: CommissionPayout.where(payout_to: 'sub_agent', status: 'pending', created_at: start_date..end_date).sum(:payout_amount),
+      ambassador_commissions: CommissionPayout.where(payout_to: 'ambassador', status: 'pending', created_at: start_date..end_date).sum(:payout_amount)
+    }
+  end
+
+  def calculate_renewal_analytics_for_period(start_date, end_date)
+    end_plus_30 = end_date + 30.days
+    end_plus_60 = end_date + 60.days
+
+    {
+      expiring_soon: calculate_expiring_policies_for_period(start_date, end_date, end_date, end_plus_30),
+      expiring_later: calculate_expiring_policies_for_period(start_date, end_date, end_plus_30, end_plus_60),
+      expired: calculate_expired_policies_for_period(start_date, end_date),
+      renewal_rate: calculate_renewal_rate_for_period(start_date, end_date)
+    }
+  end
+
+  def calculate_expiring_policies_for_period(created_start, created_end, expiry_start, expiry_end)
+    HealthInsurance.where(created_at: created_start..created_end, policy_end_date: expiry_start..expiry_end).count +
+    LifeInsurance.where(created_at: created_start..created_end, policy_end_date: expiry_start..expiry_end).count +
+    MotorInsurance.where(created_at: created_start..created_end, policy_end_date: expiry_start..expiry_end).count +
+    OtherInsurance.where(created_at: created_start..created_end, policy_end_date: expiry_start..expiry_end).count
+  end
+
+  def calculate_expired_policies_for_period(start_date, end_date)
+    HealthInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', Date.current).count +
+    LifeInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', Date.current).count +
+    MotorInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', Date.current).count +
+    OtherInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', Date.current).count
+  end
+
+  def calculate_renewal_rate_for_period(start_date, end_date)
+    # Calculate renewal rate for policies created in the period
+    total_eligible = LifeInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', Date.current).count +
+                     HealthInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', Date.current).count
+    renewed = LifeInsurance.where(created_at: start_date..end_date, policy_type: 'Renewal').count +
+              HealthInsurance.where(created_at: start_date..end_date, policy_type: 'Renewal').count
+
+    return 0 if total_eligible == 0
+    ((renewed.to_f / total_eligible.to_f) * 100).round(1)
+  end
+
+  def calculate_lead_conversion_funnel_for_period(start_date, end_date)
+    {
+      'Leads Generated' => Lead.where(created_at: start_date..end_date).count,
+      'Contacted' => Lead.where(created_at: start_date..end_date, current_stage: ['contacted', 'interested', 'quoted', 'policy_created']).count,
+      'Interested' => Lead.where(created_at: start_date..end_date, current_stage: ['interested', 'quoted', 'policy_created']).count,
+      'Quoted' => Lead.where(created_at: start_date..end_date, current_stage: ['quoted', 'policy_created']).count,
+      'Converted' => Lead.where(created_at: start_date..end_date, current_stage: 'policy_created').count
+    }
+  rescue => e
+    Rails.logger.error "Error calculating lead conversion funnel for period: #{e.message}"
+    {
+      'Leads Generated' => 0,
+      'Contacted' => 0,
+      'Interested' => 0,
+      'Quoted' => 0,
+      'Converted' => 0
+    }
+  end
+
+  def calculate_lead_stage_distribution_for_period(start_date, end_date)
+    {
+      'New Leads' => Lead.where(created_at: start_date..end_date, current_stage: 'lead_generated').count,
+      'Contacted' => Lead.where(created_at: start_date..end_date, current_stage: ['follow_up', 'follow_up_successful']).count,
+      'Consultation' => Lead.where(created_at: start_date..end_date, current_stage: 'consultation_scheduled').count,
+      'One-on-One' => Lead.where(created_at: start_date..end_date, current_stage: 'one_on_one').count,
+      'Converted' => Lead.where(created_at: start_date..end_date, current_stage: 'converted').count
+    }
+  rescue => e
+    Rails.logger.error "Error calculating lead stage distribution for period: #{e.message}"
+    {
+      'New Leads' => 0,
+      'Contacted' => 0,
+      'Consultation' => 0,
+      'One-on-One' => 0,
+      'Converted' => 0
+    }
+  end
+
+  def calculate_customer_location_for_period(start_date, end_date)
+    location_data = {}
+
+    # Group customers by city for the period
+    Customer.where(created_at: start_date..end_date).group(:city).count.each do |city, count|
+      next if city.blank?
+      location_data[city.to_s.titleize] = count
+    end
+
+    # If no city data, try state
+    if location_data.empty?
+      Customer.where(created_at: start_date..end_date).group(:state).count.each do |state, count|
+        next if state.blank?
+        location_data[state.to_s.titleize] = count
+      end
+    end
+
+    # If still no data, provide a default
+    if location_data.empty?
+      location_data = { 'Unknown' => Customer.where(created_at: start_date..end_date).count }
+    end
+
+    location_data
+  rescue => e
+    Rails.logger.error "Error calculating customer location for period: #{e.message}"
+    { 'Unknown' => Customer.where(created_at: start_date..end_date).count }
+  end
+
+  def calculate_conversion_rate_for_period(start_date, end_date)
+    total_leads = Lead.where(created_at: start_date..end_date).count
+    total_policies = @total_policies || 0
+
+    return 0 if total_leads == 0
+    ((total_policies.to_f / total_leads.to_f) * 100).round(1)
+  rescue => e
+    Rails.logger.error "Error calculating conversion rate for period: #{e.message}"
+    0
+  end
 
   def get_chart_data(chart_name)
     case chart_name

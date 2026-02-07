@@ -2,9 +2,18 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
 
 <%
-  # Calculate consistent counts using helper methods
-  renewal_counts = get_consistent_renewal_counts
-  health_alerts = get_health_policy_alerts
+  # Use renewal data from controller (filter-independent)
+  renewal_counts = {
+    expiring: @renewal_due_count || 0,
+    expired: @recently_expired_count || 0,
+    processed: (@renewal_status && @renewal_status['Renewed']) || 0
+  }
+  # Calculate policy alerts using filter-independent data
+  health_alerts = {
+    expiring_soon: @policies_expiring_soon || 0,
+    expired_this_month: @expired_this_month || 0,
+    renewal_opportunities: @renewal_opportunities || 0
+  }
 %>
 <!-- Chart.js Data Labels Plugin for showing values on charts -->
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -657,6 +666,7 @@
                          options_for_select([
                            ['2024', '2024'],
                            ['2025', '2025'],
+                           ['2026', '2026'],
                            ["#{Date.current.year} (Current)", Date.current.year.to_s],
                            ['2027', '2027'],
                            ['2028', '2028']
@@ -954,15 +964,15 @@
       <div class="chart-stats">
         <div class="stat-item">
           <span class="stat-label">Health:</span>
-          <span class="stat-value"><%= HealthInsurance.count rescue 0 %></span>
+          <span class="stat-value"><%= @health_count || 0 %></span>
         </div>
         <div class="stat-item">
           <span class="stat-label">Life:</span>
-          <span class="stat-value"><%= LifeInsurance.count rescue 0 %></span>
+          <span class="stat-value"><%= @life_count || 0 %></span>
         </div>
         <div class="stat-item">
           <span class="stat-label">Motor:</span>
-          <span class="stat-value"><%= MotorInsurance.count rescue 0 %></span>
+          <span class="stat-value"><%= @motor_count || 0 %></span>
         </div>
       </div>
     </div>
@@ -1016,7 +1026,7 @@
           <div class="system-status-card" style="cursor: pointer; height: 200px;" onclick="showSystemStatusModal('lead_count')">
             <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
               <i class="bi bi-person-lines-fill fs-1 mb-3 text-info"></i>
-              <div class="fs-2 fw-bold text-dark"><%= number_with_delimiter((Lead.count rescue 0)) %></div>
+              <div class="fs-2 fw-bold text-dark"><%= number_with_delimiter(@total_leads || 0) %></div>
               <div class="h6 text-muted">Total Leads</div>
             </div>
           </div>
@@ -1084,18 +1094,19 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('💰 Initializing Revenue Chart...');
     const revenueCtx = document.getElementById('revenueChart');
     if (revenueCtx) {
-      // Sample data - in production this would come from the controller
+      // Use actual revenue trend data from controller
+      <% if @premium_revenue_trend.present? && @premium_revenue_trend.any? %>
+      const revenueData = {
+        labels: <%= @premium_revenue_trend.map { |item| item[:month] }.to_json.html_safe %>,
+        values: <%= @premium_revenue_trend.map { |item| item[:amount] }.to_json.html_safe %>
+      };
+      <% else %>
+      // Fallback data if no trend data available
       const revenueData = {
         labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-        values: [
-          <%= (@total_premium_collected || 25000) * 0.6 %>,
-          <%= (@total_premium_collected || 25000) * 0.7 %>,
-          <%= (@total_premium_collected || 25000) * 0.8 %>,
-          <%= (@total_premium_collected || 25000) * 0.9 %>,
-          <%= (@total_premium_collected || 25000) * 0.95 %>,
-          <%= @total_premium_collected || 25000 %>
-        ]
+        values: [0, 0, 0, 0, 0, 0]
       };
+      <% end %>
 
       // Create gradient for the line
       const gradientRevenue = revenueCtx.getContext('2d').createLinearGradient(0, 0, 0, 300);
@@ -1219,9 +1230,9 @@ document.addEventListener('DOMContentLoaded', function() {
       const policyData = {
         labels: ['Health Insurance', 'Life Insurance', 'Motor Insurance'],
         values: [
-          <%= HealthInsurance.count rescue 15 %>,
-          <%= LifeInsurance.count rescue 8 %>,
-          <%= MotorInsurance.count rescue 12 %>
+          <%= @health_count || 0 %>,
+          <%= @life_count || 0 %>,
+          <%= @motor_count || 0 %>
         ]
       };
 

@@ -294,8 +294,9 @@ class Admin::LeadsController < Admin::ApplicationController
           converted_customer_id: existing_customer.id
         )
 
-        redirect_to edit_admin_customer_path(existing_customer),
-                    notice: "Branch out lead linked to existing customer and marked as converted."
+        # Redirect to product selection page for branch out leads with existing customers
+        redirect_to product_selection_admin_customer_path(existing_customer),
+                    notice: "Branch out lead linked to existing customer. Please select a product to continue."
       else
         # No existing customer found, redirect to regular convert_to_customer action
         redirect_to convert_to_customer_admin_lead_path(@lead),
@@ -338,9 +339,58 @@ class Admin::LeadsController < Admin::ApplicationController
     # Handle PATCH request - process conversion
     existing_customer = nil
 
-    # For branch out leads, redirect to customer creation form with lead data
+    # For branch out leads, check for existing customer first
     if @lead.is_branch_out?
-      Rails.logger.info "Branch out lead #{@lead.id}: Redirecting to customer creation form with lead data"
+      # Check if this branch-out lead is already converted
+      if @lead.converted_customer_id.present?
+        existing_customer = Customer.find_by(id: @lead.converted_customer_id)
+        if existing_customer
+          redirect_to edit_admin_customer_path(existing_customer),
+                      notice: "This branch-out lead is already converted. Redirected to customer's edit page."
+          return
+        end
+      end
+
+      # Check if parent lead has a customer
+      if @lead.parent_lead_id.present?
+        parent_lead = Lead.find_by(id: @lead.parent_lead_id)
+        if parent_lead && parent_lead.converted_customer_id.present?
+          existing_customer = Customer.find_by(id: parent_lead.converted_customer_id)
+          if existing_customer
+            # Link this branch-out lead to parent's customer
+            @lead.update!(
+              current_stage: 'converted',
+              converted_customer_id: existing_customer.id
+            )
+            redirect_to edit_admin_customer_path(existing_customer),
+                        notice: "Branch-out lead linked to existing customer from parent lead."
+            return
+          end
+        end
+
+        # Check if any sibling branch-out leads are already converted
+        if parent_lead
+          sibling_branches = Lead.where(parent_lead_id: parent_lead.id)
+                                 .where.not(id: @lead.id)
+                                 .where.not(converted_customer_id: nil)
+          if sibling_branches.any?
+            sibling_customer = Customer.find_by(id: sibling_branches.first.converted_customer_id)
+            if sibling_customer
+              # Link this branch-out lead to sibling's customer
+              @lead.update!(
+                current_stage: 'converted',
+                converted_customer_id: sibling_customer.id
+              )
+              redirect_to edit_admin_customer_path(sibling_customer),
+                          notice: "Branch-out lead linked to existing customer from sibling branch."
+              return
+            end
+          end
+        end
+      end
+
+      # No existing customer found, proceed to create new
+      Rails.logger.info "Branch out lead #{@lead.id}: No existing customer found. Redirecting to customer creation form."
       redirect_to new_admin_customer_path(lead_id: @lead.id), notice: "Branch out lead ready for customer creation. Lead information will be auto-filled."
       return
     else
@@ -365,7 +415,7 @@ class Admin::LeadsController < Admin::ApplicationController
           converted_branch_lead.update(notes: "#{converted_branch_lead.notes}\n\n[System] Parent lead #{@lead.lead_id} has been linked to same customer.")
 
           redirect_to edit_admin_customer_path(existing_customer),
-                      alert: "Customer already present for branch out lead. Redirected to existing customer edit page."
+                      notice: "Customer already present for branch out lead. Redirected to existing customer edit page."
           return
         end
       elsif branch_out_leads.any?
@@ -468,7 +518,7 @@ class Admin::LeadsController < Admin::ApplicationController
         notice_message = "Found existing customer and updated with latest lead information."
       end
 
-      redirect_to admin_customer_path(existing_customer),
+      redirect_to product_selection_admin_customer_path(existing_customer),
                   notice: notice_message
       return
     end

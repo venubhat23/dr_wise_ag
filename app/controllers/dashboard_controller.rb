@@ -110,6 +110,12 @@ class DashboardController < ApplicationController
     # Use filtered dashboard data instead of cached
     filtered_data = get_filtered_dashboard_data(@filter_start_date, @filter_end_date)
 
+    # Load filter-independent data (always based on current date, not filter dates)
+    filter_independent_data = load_filter_independent_data()
+
+    # Merge both data sets
+    filtered_data.merge!(filter_independent_data)
+
     # Track performance
     DashboardPerformanceMonitor.track_dashboard_load(
       start_time: start_time,
@@ -129,25 +135,139 @@ class DashboardController < ApplicationController
 
   private
 
+  def load_filter_independent_data
+    # These sections should always show current real-time data, not filtered by date
+    results = {}
+    current_date = Date.current
+    thirty_days_from_now = current_date + 30.days
+
+    # Renewal Alerts - always based on current date
+    results[:renewal_due_count] = get_renewal_due_count(thirty_days_from_now)
+    results[:recently_expired_count] = get_recently_expired_count
+    results[:renewal_status] = get_renewal_status_counts
+
+    # Policy Alerts - always based on current date
+    results[:policies_expiring_soon] = get_renewal_due_count(thirty_days_from_now)
+    results[:expired_this_month] = get_expired_this_month_count
+    results[:renewal_opportunities] = get_renewal_opportunities_count
+
+    # Recent Activity - always shows latest activities
+    results[:recent_policies] = get_recent_policies
+
+    # Premium Revenue Trend - last 6 months from current date
+    results[:premium_revenue_trend] = get_premium_revenue_trend_data
+
+    # Keep backward compatibility
+    results[:expired_policies_count] = results[:recently_expired_count]
+
+    results
+  rescue => e
+    Rails.logger.error "Error loading filter-independent data: #{e.message}"
+    {}
+  end
+
+  def get_premium_revenue_trend_data
+    # Get last 6 months of premium data from current date
+    end_date = Date.current.end_of_month
+    start_date = end_date - 5.months
+
+    trend_data = []
+    6.times do |i|
+      month_start = (end_date - i.months).beginning_of_month
+      month_end = (end_date - i.months).end_of_month
+
+      monthly_premium = get_premium_for_period(month_start, month_end)
+      trend_data.unshift({
+        month: month_start.strftime('%b %Y'),
+        amount: monthly_premium
+      })
+    end
+
+    trend_data
+  rescue => e
+    Rails.logger.error "Error calculating premium trend: #{e.message}"
+    []
+  end
+
   def get_filtered_dashboard_data(start_date, end_date)
     # Execute all database queries with date filtering
     results = {}
 
     # Batch count queries using single SQL with UNION for better performance
+    # For customers, show customers who have policies in the date range (more relevant)
     count_results = ActiveRecord::Base.connection.execute("
-      SELECT 'total_customers' as metric, COUNT(*) as count FROM customers WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      SELECT 'total_customers' as metric, COUNT(DISTINCT customer_id) as count FROM (
+        SELECT customer_id FROM health_insurances
+        WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
+        UNION
+        SELECT customer_id FROM life_insurances
+        WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
+        UNION
+        SELECT customer_id FROM motor_insurances
+        WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
+      ) as policy_customers
       UNION ALL
-      SELECT 'active_customers', COUNT(*) FROM customers WHERE status = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      SELECT 'active_customers', COUNT(DISTINCT customer_id) FROM (
+        SELECT customer_id FROM health_insurances h
+        JOIN customers c ON h.customer_id = c.id
+        WHERE c.status = true AND (
+          (h.created_at BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (h.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (h.policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (h.policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
+        )
+        UNION
+        SELECT customer_id FROM life_insurances l
+        JOIN customers c ON l.customer_id = c.id
+        WHERE c.status = true AND (
+          (l.created_at BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (l.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (l.policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (l.policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
+        )
+        UNION
+        SELECT customer_id FROM motor_insurances m
+        JOIN customers c ON m.customer_id = c.id
+        WHERE c.status = true AND (
+          (m.created_at BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (m.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (m.policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (m.policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
+        )
+      ) as active_policy_customers
       UNION ALL
-      SELECT 'total_ambassadors', COUNT(*) FROM distributors WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      SELECT 'total_ambassadors', COUNT(*) FROM distributors
+      WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+         OR updated_at BETWEEN '#{start_date}' AND '#{end_date}'
       UNION ALL
-      SELECT 'total_leads', COUNT(*) FROM leads WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      SELECT 'total_leads', COUNT(*) FROM leads
+      WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+         OR updated_at BETWEEN '#{start_date}' AND '#{end_date}'
       UNION ALL
-      SELECT 'converted_leads', COUNT(*) FROM leads WHERE current_stage = 'converted' AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      SELECT 'converted_leads', COUNT(*) FROM leads
+      WHERE current_stage = 'converted' AND (created_at BETWEEN '#{start_date}' AND '#{end_date}'
+                                          OR updated_at BETWEEN '#{start_date}' AND '#{end_date}')
       UNION ALL
-      SELECT 'health_count', COUNT(*) FROM health_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      SELECT 'health_count', COUNT(*) FROM health_insurances
+      WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
+         OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
+         OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
+         OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
       UNION ALL
-      SELECT 'life_count', COUNT(*) FROM life_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      SELECT 'life_count', COUNT(*) FROM life_insurances
+      WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
+         OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
+         OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
+         OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
     ")
 
     # Process count results
@@ -156,11 +276,17 @@ class DashboardController < ApplicationController
     end
 
     # Handle optional tables that might not exist
-    results[:motor_count] = (MotorInsurance.where(created_at: start_date..end_date).count rescue 0)
+    results[:motor_count] = (MotorInsurance.where(
+      "(created_at BETWEEN ? AND ?) OR (policy_start_date BETWEEN ? AND ?) OR (policy_end_date BETWEEN ? AND ?) OR (policy_booking_date BETWEEN ? AND ?)",
+      start_date, end_date, start_date, end_date, start_date, end_date, start_date, end_date
+    ).count rescue 0)
     results[:other_count] = (OtherInsurance.where(created_at: start_date..end_date).count rescue 0)
 
     # Calculate active affiliates for the period
-    results[:total_affiliates] = SubAgent.where(created_at: start_date..end_date).count
+    results[:total_affiliates] = SubAgent.where(
+      "(created_at BETWEEN ? AND ?) OR (updated_at BETWEEN ? AND ?)",
+      start_date, end_date, start_date, end_date
+    ).count
 
     # Calculate derived values
     results[:inactive_customers] = results[:total_customers] - results[:active_customers]
@@ -173,9 +299,17 @@ class DashboardController < ApplicationController
         COALESCE(SUM(total_premium), 0) as total_premium,
         COALESCE(SUM(sum_insured), 0) as total_sum_insured
       FROM (
-        SELECT total_premium, sum_insured FROM health_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+        SELECT total_premium, sum_insured FROM health_insurances
+        WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
         UNION ALL
-        SELECT total_premium, sum_insured FROM life_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+        SELECT total_premium, sum_insured FROM life_insurances
+        WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
+           OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
       ) as combined_insurance
     ").first
 
@@ -184,7 +318,10 @@ class DashboardController < ApplicationController
 
     # Add motor insurance for the period if table exists
     begin
-      motor_data = MotorInsurance.where(created_at: start_date..end_date).select('COALESCE(SUM(total_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
+      motor_data = MotorInsurance.where(
+        "(created_at BETWEEN ? AND ?) OR (policy_start_date BETWEEN ? AND ?) OR (policy_end_date BETWEEN ? AND ?) OR (policy_booking_date BETWEEN ? AND ?)",
+        start_date, end_date, start_date, end_date, start_date, end_date, start_date, end_date
+      ).select('COALESCE(SUM(total_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
       results[:total_premium_collected] += motor_data.premium.to_f if motor_data
       results[:total_sum_insured] += motor_data.sum.to_f if motor_data
     rescue
@@ -195,11 +332,12 @@ class DashboardController < ApplicationController
     pending_stages = ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one']
     results[:pending_leads] = Lead.where(current_stage: pending_stages, created_at: start_date..end_date).count
 
-    # Renewals and expired policies for the period
-    thirty_days_from_end = end_date + 30.days
-    results[:renewal_due_count] = get_renewal_due_count_for_period(start_date, end_date)
-    results[:expired_policies_count] = get_expired_policies_count_for_period(start_date, end_date)
-    results[:renewal_status] = get_renewal_status_counts_for_period(start_date, end_date)
+    # Renewal and expiry data are now loaded in load_filter_independent_data
+    # to ensure they always show current real-time status regardless of filter
+    # These lines are commented out as they're now handled separately:
+    # results[:renewal_due_count] = get_renewal_due_count_for_period(start_date, end_date)
+    # results[:expired_policies_count] = get_expired_policies_count_for_period(start_date, end_date)
+    # results[:renewal_status] = get_renewal_status_counts_for_period(start_date, end_date)
 
     # Payout data for the period
     payout_data = get_optimized_payout_data_for_period(start_date, end_date)
@@ -213,8 +351,9 @@ class DashboardController < ApplicationController
     growth_metrics = calculate_growth_metrics_for_period(start_date, end_date)
     results.merge!(growth_metrics)
 
-    # Add recent activities data for the period
-    results[:recent_policies] = get_recent_policies_for_period(start_date, end_date)
+    # Recent activity data is now loaded in load_filter_independent_data
+    # to always show the latest activities regardless of filter
+    # results[:recent_policies] = get_recent_policies_for_period(start_date, end_date)
     results[:recent_leads] = get_recent_leads_for_period(start_date, end_date)
 
     # Add missing variables that the dashboard expects
@@ -233,20 +372,17 @@ class DashboardController < ApplicationController
   # Helper methods for filtered data
   def get_renewal_due_count_for_period(start_date, end_date)
     thirty_days_from_end = end_date + 30.days
+
+    # Use direct SQL interpolation instead of bound parameters to avoid array issues
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE created_at BETWEEN ? AND ? AND policy_end_date BETWEEN ? AND ?
+        SELECT id FROM health_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{thirty_days_from_end}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE created_at BETWEEN ? AND ? AND policy_end_date BETWEEN ? AND ?
+        SELECT id FROM life_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{thirty_days_from_end}'
       ) as renewals
     "
 
-    result = ActiveRecord::Base.connection.exec_query(
-      sql,
-      'SQL',
-      [[nil, start_date], [nil, end_date], [nil, end_date], [nil, thirty_days_from_end],
-       [nil, start_date], [nil, end_date], [nil, end_date], [nil, thirty_days_from_end]]
-    )
+    result = ActiveRecord::Base.connection.execute(sql)
 
     count = result.first['count'].to_i
 
@@ -265,19 +401,16 @@ class DashboardController < ApplicationController
   end
 
   def get_expired_policies_count_for_period(start_date, end_date)
+    # Use direct SQL interpolation instead of bound parameters to avoid array issues
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE created_at BETWEEN ? AND ? AND policy_end_date < ?
+        SELECT id FROM health_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date < '#{end_date}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE created_at BETWEEN ? AND ? AND policy_end_date < ?
+        SELECT id FROM life_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date < '#{end_date}'
       ) as expired
     "
 
-    result = ActiveRecord::Base.connection.exec_query(
-      sql,
-      'SQL',
-      [[nil, start_date], [nil, end_date], [nil, end_date], [nil, start_date], [nil, end_date], [nil, end_date]]
-    )
+    result = ActiveRecord::Base.connection.execute(sql)
 
     count = result.first['count'].to_i
 
@@ -358,7 +491,7 @@ class DashboardController < ApplicationController
           h.policy_number,
           h.total_premium,
           h.created_at,
-          c.display_name as customer_name
+          CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
         FROM health_insurances h
         LEFT JOIN customers c ON h.customer_id = c.id
         WHERE h.created_at BETWEEN '#{start_date}' AND '#{end_date}'
@@ -372,7 +505,7 @@ class DashboardController < ApplicationController
           l.policy_number,
           l.total_premium,
           l.created_at,
-          c.display_name as customer_name
+          CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
         FROM life_insurances l
         LEFT JOIN customers c ON l.customer_id = c.id
         WHERE l.created_at BETWEEN '#{start_date}' AND '#{end_date}'
@@ -392,7 +525,7 @@ class DashboardController < ApplicationController
               m.policy_number,
               m.total_premium,
               m.created_at,
-              c.display_name as customer_name
+              CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
             FROM motor_insurances m
             LEFT JOIN customers c ON m.customer_id = c.id
             WHERE m.created_at BETWEEN '#{start_date}' AND '#{end_date}'
@@ -434,8 +567,25 @@ class DashboardController < ApplicationController
   def calculate_growth_metrics_for_period(start_date, end_date)
     # Compare current period with previous period of same duration
     period_duration = (end_date - start_date).days
+
+    # Handle edge cases for very long periods (like "All Time")
+    # PostgreSQL datetime range is 4713 BC to 294276 AD
+    # We'll limit to reasonable business dates (1900 onwards)
+    min_valid_date = Date.new(1900, 1, 1)
+
     previous_start = start_date - period_duration.days
     previous_end = start_date - 1.day
+
+    # If previous_start is before minimum valid date, adjust the period
+    if previous_start < min_valid_date
+      previous_start = min_valid_date
+      # Keep the same duration if possible, otherwise use what's available
+      if previous_end < min_valid_date
+        # No valid previous period available, use same period for comparison
+        previous_start = start_date
+        previous_end = end_date
+      end
+    end
 
     # Current period data
     current_customers = Customer.where(created_at: start_date..end_date).count
@@ -599,21 +749,17 @@ class DashboardController < ApplicationController
   end
 
   def get_renewal_due_count(thirty_days_from_now)
-    # Use single UNION query for better performance
+    # Use single UNION query for better performance with string interpolation
+    current_date = Date.current
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE policy_end_date BETWEEN ? AND ?
+        SELECT id FROM health_insurances WHERE policy_end_date BETWEEN '#{current_date}' AND '#{thirty_days_from_now}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE policy_end_date BETWEEN ? AND ?
+        SELECT id FROM life_insurances WHERE policy_end_date BETWEEN '#{current_date}' AND '#{thirty_days_from_now}'
       ) as renewals
     "
 
-    result = ActiveRecord::Base.connection.exec_query(
-      sql,
-      'SQL',
-      [[nil, Date.current], [nil, thirty_days_from_now], [nil, Date.current], [nil, thirty_days_from_now]]
-    )
-
+    result = ActiveRecord::Base.connection.execute(sql)
     count = result.first['count'].to_i
 
     # Add motor and other insurances if they exist
@@ -635,21 +781,17 @@ class DashboardController < ApplicationController
   end
 
   def get_expired_policies_count
-    # Use single UNION query for better performance
+    # Use single UNION query for better performance with string interpolation
+    current_date = Date.current
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE policy_end_date < ?
+        SELECT id FROM health_insurances WHERE policy_end_date < '#{current_date}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE policy_end_date < ?
+        SELECT id FROM life_insurances WHERE policy_end_date < '#{current_date}'
       ) as expired
     "
 
-    result = ActiveRecord::Base.connection.exec_query(
-      sql,
-      'SQL',
-      [[nil, Date.current], [nil, Date.current]]
-    )
-
+    result = ActiveRecord::Base.connection.execute(sql)
     count = result.first['count'].to_i
 
     # Add motor and other insurances if they exist
@@ -861,7 +1003,7 @@ class DashboardController < ApplicationController
           h.policy_number,
           h.total_premium,
           h.created_at,
-          c.display_name as customer_name
+          CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
         FROM health_insurances h
         LEFT JOIN customers c ON h.customer_id = c.id
         ORDER BY h.created_at DESC
@@ -874,7 +1016,7 @@ class DashboardController < ApplicationController
           l.policy_number,
           l.total_premium,
           l.created_at,
-          c.display_name as customer_name
+          CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
         FROM life_insurances l
         LEFT JOIN customers c ON l.customer_id = c.id
         ORDER BY l.created_at DESC
@@ -893,7 +1035,7 @@ class DashboardController < ApplicationController
               m.policy_number,
               m.total_premium,
               m.created_at,
-              c.display_name as customer_name
+              CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
             FROM motor_insurances m
             LEFT JOIN customers c ON m.customer_id = c.id
             ORDER BY m.created_at DESC
@@ -948,6 +1090,96 @@ class DashboardController < ApplicationController
     active_count
   rescue => e
     Rails.logger.error "Error calculating active affiliates: #{e.message}"
+    0
+  end
+
+  def get_recently_expired_count
+    # Get policies that expired in the last 30 days
+    current_date = Date.current
+    thirty_days_ago = current_date - 30.days
+
+    sql = "
+      SELECT COUNT(*) as count FROM (
+        SELECT id FROM health_insurances WHERE policy_end_date BETWEEN '#{thirty_days_ago}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
+        UNION ALL
+        SELECT id FROM life_insurances WHERE policy_end_date BETWEEN '#{thirty_days_ago}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
+      ) as recently_expired
+    "
+
+    result = ActiveRecord::Base.connection.execute(sql)
+    count = result.first['count'].to_i
+
+    # Add motor and other insurances if they exist
+    begin
+      if ActiveRecord::Base.connection.table_exists?('motor_insurances')
+        count += MotorInsurance.where(policy_end_date: thirty_days_ago..current_date).where('policy_end_date < ?', current_date).count
+      end
+    rescue
+    end
+
+    count
+  rescue => e
+    Rails.logger.error "Error getting recently expired count: #{e.message}"
+    0
+  end
+
+  def get_expired_this_month_count
+    # Get policies that expired this month
+    current_date = Date.current
+    month_start = current_date.beginning_of_month
+
+    sql = "
+      SELECT COUNT(*) as count FROM (
+        SELECT id FROM health_insurances WHERE policy_end_date BETWEEN '#{month_start}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
+        UNION ALL
+        SELECT id FROM life_insurances WHERE policy_end_date BETWEEN '#{month_start}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
+      ) as expired_this_month
+    "
+
+    result = ActiveRecord::Base.connection.execute(sql)
+    count = result.first['count'].to_i
+
+    # Add motor insurance if it exists
+    begin
+      if ActiveRecord::Base.connection.table_exists?('motor_insurances')
+        count += MotorInsurance.where(policy_end_date: month_start..current_date).where('policy_end_date < ?', current_date).count
+      end
+    rescue
+    end
+
+    count
+  rescue => e
+    Rails.logger.error "Error getting expired this month count: #{e.message}"
+    0
+  end
+
+  def get_renewal_opportunities_count
+    # Count policies expiring in next 60 days that haven't been renewed yet
+    current_date = Date.current
+    sixty_days_from_now = current_date + 60.days
+
+    sql = "
+      SELECT COUNT(*) as count FROM (
+        SELECT id FROM health_insurances WHERE policy_end_date BETWEEN '#{current_date}' AND '#{sixty_days_from_now}' AND policy_type != 'Renewal'
+        UNION ALL
+        SELECT id FROM life_insurances WHERE policy_end_date BETWEEN '#{current_date}' AND '#{sixty_days_from_now}' AND policy_type != 'Renewal'
+      ) as opportunities
+    "
+
+    result = ActiveRecord::Base.connection.execute(sql)
+    count = result.first['count'].to_i
+
+    # Add motor insurance if it exists
+    begin
+      if ActiveRecord::Base.connection.table_exists?('motor_insurances')
+        count += MotorInsurance.where(policy_end_date: current_date..sixty_days_from_now).where.not(policy_type: 'Renewal').count
+      end
+    rescue
+    end
+
+    count
+  rescue => e
+    Rails.logger.error "Error getting renewal opportunities count: #{e.message}"
     0
   end
 

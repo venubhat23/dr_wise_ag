@@ -1281,7 +1281,7 @@ document.addEventListener('DOMContentLoaded', function() {
                      data-policy-id="${lead.policy_id}"
                      data-commission="${lead.commission}"
                      data-affiliate-id="${affiliateData.affiliate.id}"
-                     onchange="updateModalSummary()">
+                     onchange="onLeadCheckboxChange(this)">
               <label class="form-check-label" for="lead_${lead.id}">
                 <div class="d-flex justify-content-between align-items-center">
                   <div>
@@ -1311,11 +1311,18 @@ document.addEventListener('DOMContentLoaded', function() {
     updateModalSummary();
   };
 
+  window.onLeadCheckboxChange = function(leadCheckbox) {
+    // When a lead is checked/unchecked, update the modal summary
+    // The updateModalSummary function will automatically handle checking/unchecking the parent affiliate
+    updateModalSummary();
+  };
+
   window.toggleAffiliateLeads = function(affiliateCheckbox) {
     const affiliateId = affiliateCheckbox.dataset.affiliateId;
     const isChecked = affiliateCheckbox.checked;
 
-    // Toggle all leads for this affiliate
+    // If unchecking affiliate, uncheck all its leads
+    // If checking affiliate, check all its leads
     document.querySelectorAll(`input[data-affiliate-id="${affiliateId}"].lead-modal-checkbox`).forEach(leadCheckbox => {
       leadCheckbox.checked = isChecked;
     });
@@ -1345,6 +1352,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
   window.updateModalSummary = function() {
     const selectedLeads = document.querySelectorAll('.lead-modal-checkbox:checked');
+
+    // Auto-check parent affiliate checkboxes for checked leads
+    const affiliateIdsWithCheckedLeads = new Set();
+    selectedLeads.forEach(lead => {
+      const affiliateId = lead.dataset.affiliateId;
+      if (affiliateId) {
+        affiliateIdsWithCheckedLeads.add(affiliateId);
+      }
+    });
+
+    // Check affiliate checkboxes based on whether they have checked leads
+    document.querySelectorAll('.affiliate-modal-checkbox').forEach(affiliateCheckbox => {
+      const affiliateId = affiliateCheckbox.dataset.affiliateId;
+      const hasCheckedLeads = affiliateIdsWithCheckedLeads.has(affiliateId);
+
+      // Only update if state needs to change to avoid triggering unnecessary events
+      if (affiliateCheckbox.checked !== hasCheckedLeads) {
+        affiliateCheckbox.checked = hasCheckedLeads;
+      }
+    });
+
+    // Now get the actual selected affiliates after auto-checking
     const selectedAffiliates = document.querySelectorAll('.affiliate-modal-checkbox:checked');
 
     let totalAmount = 0;
