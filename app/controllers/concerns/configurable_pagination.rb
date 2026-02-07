@@ -16,9 +16,16 @@ module ConfigurablePagination
     [[per_page, 5].max, 100].min
   end
 
-  def paginate_records(records)
+  def paginate_records(records, total_count = nil)
     per_page = per_page_param
-    total_count = records.count
+
+    # Use provided total_count or calculate it safely
+    total_count ||= begin
+      records.count
+    rescue PG::UndefinedFunction
+      # If count fails due to select() with multiple columns, use size
+      records.size
+    end
 
     # Store total count and per_page for view access
     @total_record_count = total_count

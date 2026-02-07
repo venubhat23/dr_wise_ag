@@ -587,24 +587,45 @@
     </div>
     <div class="card-body">
       <div class="row">
-        <div class="col-md-6 mb-3">
-          <%= form.label :nominee_name, "Nominee Name", class: "form-label" %>
+        <div class="col-md-4 mb-3">
+          <%= form.label :nominee_name, "Nominee Name*", class: "form-label" %>
           <%= form.text_field :nominee_name,
-              class: "form-control",
-              placeholder: "Enter nominee name" %>
+              class: "form-control #{'is-invalid' if @health_insurance.errors[:nominee_name].any?}",
+              placeholder: "Enter nominee name",
+              required: true %>
+          <% if @health_insurance.errors[:nominee_name].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:nominee_name].first %></div>
+          <% end %>
         </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :nominee_relation, "Relationship", class: "form-label" %>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :nominee_relation, "Relationship*", class: "form-label" %>
           <%= form.select :nominee_relation,
               options_for_select([
+                ['Father', 'father'],
+                ['Mother', 'mother'],
                 ['Spouse', 'spouse'],
-                ['Child', 'child'],
-                ['Parent', 'parent'],
-                ['Sibling', 'sibling'],
+                ['Son', 'son'],
+                ['Daughter', 'daughter'],
+                ['Brother', 'brother'],
+                ['Sister', 'sister'],
                 ['Other', 'other']
               ], @health_insurance.nominee_relation),
-              { prompt: 'Select Relationship' },
-              { class: "form-control" } %>
+              { prompt: 'Select relationship' },
+              { class: "form-control #{'is-invalid' if @health_insurance.errors[:nominee_relation].any?}", required: true } %>
+          <% if @health_insurance.errors[:nominee_relation].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:nominee_relation].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :nominee_dob, "Date of Birth*", class: "form-label" %>
+          <%= form.date_field :nominee_dob,
+              class: "form-control #{'is-invalid' if @health_insurance.errors[:nominee_dob].any?}",
+              required: true %>
+          <% if @health_insurance.errors[:nominee_dob].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:nominee_dob].first %></div>
+          <% end %>
         </div>
       </div>
     </div>

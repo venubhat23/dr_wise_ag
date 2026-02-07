@@ -9,19 +9,17 @@ class Admin::CustomersController < Admin::ApplicationController
 
   # GET /admin/customers
   def index
+    # Optimize query by selecting only needed columns for index page
+    index_columns = %w[
+      id first_name middle_name last_name company_name customer_type mobile
+      email status deactivated created_at sub_agent_id sub_agent policies_count
+    ]
+
     # Check if policies_count column exists for optimized queries
     has_counter_cache = Customer.column_names.include?('policies_count')
 
-    # Check if search is active first
-    search_active = params[:search].present? && params[:search].strip.length >= 4
-
-    if search_active
-      # When search is active, use simpler query without select optimization to avoid pg_search conflicts
-      @customers = Customer.all
-    else
-      # Use standard query and rely on counter cache for policy counts
-      @customers = Customer.all
-    end
+    # Use optimized select for faster loading with profile image
+    @customers = Customer.select(index_columns.join(', ')).with_attached_profile_image
 
     # Search functionality - only search if 4+ characters or empty
     if params[:search].present?
@@ -48,10 +46,35 @@ class Admin::CustomersController < Admin::ApplicationController
     end
 
     # Get total count before pagination for display purposes
-    @total_filtered_count = @customers.count
+    # Create a separate query without select() for counting to avoid PostgreSQL issues
+    count_scope = Customer.all
+
+    # Apply same filters as main query for accurate count
+    if params[:search].present?
+      search_term = params[:search].strip
+      if search_term.length >= 4
+        count_scope = count_scope.search_customers(search_term)
+      elsif search_term.length > 0
+        count_scope = count_scope.none
+      end
+    end
+
+    if params[:customer_type].present?
+      count_scope = count_scope.where(customer_type: params[:customer_type])
+    end
+
+    case params[:status]
+    when 'active'
+      count_scope = count_scope.where(status: true)
+    when 'inactive'
+      count_scope = count_scope.where(status: false)
+    end
+
+    @total_filtered_count = count_scope.count
 
     # Order and paginate using configurable pagination
-    @customers = paginate_records(@customers.order(created_at: :desc))
+    # Pass the pre-calculated count to avoid PostgreSQL issues with select() queries
+    @customers = paginate_records(@customers.order(created_at: :desc), @total_filtered_count)
 
     # Calculate statistics
     # Create a separate scope for statistics to avoid pg_search GROUP BY issues
@@ -118,6 +141,14 @@ class Admin::CustomersController < Admin::ApplicationController
   def show
     @family_members = @customer.family_members.order(:created_at)
     @uploaded_documents = @customer.uploaded_documents.includes(file_attachment: :blob).order(:created_at)
+
+    # Find all associated leads for this customer
+    @associated_leads = Lead.where(converted_customer_id: @customer.id)
+                           .or(Lead.where(lead_id: @customer.lead_id))
+                           .order(:created_at)
+
+    # Keep the original @lead for backward compatibility
+    @lead = @associated_leads.first
 
     # Gather all policies from different insurance types
     @all_policies = []
@@ -1030,6 +1061,20 @@ class Admin::CustomersController < Admin::ApplicationController
     render json: { affiliate_id: nil }, status: :not_found
   end
 
+  def nominee_details
+    customer = Customer.find(params[:id])
+    render json: {
+      nominee_name: customer.nominee_name,
+      nominee_relation: customer.nominee_relation,
+      nominee_date_of_birth: customer.nominee_date_of_birth&.strftime("%Y-%m-%d")
+    }
+  rescue ActiveRecord::RecordNotFound
+    render json: {
+      nominee_name: nil,
+      nominee_relation: nil,
+      nominee_date_of_birth: nil
+    }, status: :not_found
+  end
 
   private
 

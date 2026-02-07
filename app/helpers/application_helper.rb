@@ -1,5 +1,36 @@
 module ApplicationHelper
   include CurrencyHelper
+
+  # Customer avatar helpers
+  def customer_initials(customer)
+    if customer.customer_type == 'corporate' && customer.company_name.present?
+      customer.company_name.split.map(&:first).join.upcase[0, 2]
+    elsif customer.display_name.present?
+      customer.display_name.split.map(&:first).join.upcase[0, 2]
+    else
+      'CU'
+    end
+  end
+
+  def customer_avatar_color(customer)
+    colors = [
+      '#6f42c1', # Purple
+      '#20c997', # Teal
+      '#fd7e14', # Orange
+      '#e91e63', # Pink
+      '#00bcd4', # Cyan
+      '#795548', # Brown
+      '#607d8b', # Blue Grey
+      '#ff5722', # Deep Orange
+      '#9c27b0', # Purple
+      '#00e676'  # Green
+    ]
+
+    # Use customer ID to consistently assign same color
+    color_index = customer.id % colors.length
+    colors[color_index]
+  end
+
   # Permission checking helpers
   def current_user_can?(module_name, action = 'read')
     return true if current_user&.admin? || current_user&.user_type == 'admin'

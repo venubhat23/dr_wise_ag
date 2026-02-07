@@ -1,0 +1,524 @@
+<!-- Modern Header with Purple Theme -->
+<div class="customer-header mb-4">
+  <div class="header-content">
+    <div class="header-title">
+      <h2 class="mb-1">Customer Details</h2>
+      <p class="text-muted small">Manage your customer database</p>
+    </div>
+    <div class="header-actions">
+      <div class="search-container">
+        <label class="form-label small">Client ID</label>
+        <input type="text" class="form-control client-id-input" placeholder="Enter Client ID" value="<%= @customer.id %>">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Customer Content -->
+<div class="customer-content">
+  <div class="content-area">
+    <!-- Collapsible Sections -->
+    <div class="modern-accordion" id="customerAccordion">
+
+      <!-- Lead Information Section -->
+      <% lead_count = @associated_leads.count %>
+      <div class="accordion-item border-0 shadow-sm mb-3 rounded">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#leadInfo" aria-expanded="false" aria-controls="leadInfo">
+            <i class="bi bi-person-plus me-3 text-info"></i>
+            <span class="fw-medium">Lead Information</span>
+            <span class="badge bg-info ms-auto me-3"><%= lead_count %></span>
+          </button>
+        </h2>
+        <div id="leadInfo" class="accordion-collapse collapse" data-bs-parent="#customerAccordion">
+          <div class="accordion-body">
+            <% if @associated_leads.any? %>
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Associated Leads</h6>
+                <small class="text-muted">All leads linked to this customer</small>
+              </div>
+
+              <% @associated_leads.each_with_index do |lead, index| %>
+                <div class="border rounded p-3 mb-3 <%= index == 0 ? 'bg-light' : '' %>">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center">
+                      <span class="badge bg-<%= lead.is_branch_out? ? 'info' : 'primary' %> me-2">
+                        <%= lead.is_branch_out? ? 'Branch Lead' : 'Parent Lead' %>
+                      </span>
+                      <% if index == 0 %>
+                        <span class="badge bg-success me-2">Primary</span>
+                      <% end %>
+                    </div>
+                    <%= link_to admin_lead_path(lead), class: "btn btn-sm btn-outline-info", target: "_blank" do %>
+                      <i class="bi bi-eye me-1"></i>View Details
+                    <% end %>
+                  </div>
+
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <strong class="text-muted d-block">Lead ID</strong>
+                      <span class="badge bg-info"><%= lead.lead_id %></span>
+                    </div>
+                    <div class="col-md-6">
+                      <strong class="text-muted d-block">Current Stage</strong>
+                      <span class="badge bg-<%= lead.current_stage == 'converted' ? 'success' : 'warning' %>">
+                        <%= lead.current_stage.humanize %>
+                      </span>
+                    </div>
+                    <div class="col-md-6">
+                      <strong class="text-muted d-block">Product Category</strong>
+                      <%= lead.product_category.present? ? lead.product_category.humanize : 'Not specified' %>
+                      <% if lead.product_subcategory.present? %>
+                        - <%= lead.product_subcategory.humanize %>
+                      <% end %>
+                    </div>
+                    <div class="col-md-6">
+                      <strong class="text-muted d-block">Lead Created</strong>
+                      <%= lead.created_at.strftime("%B %d, %Y") %>
+                    </div>
+                    <% if lead.current_stage == 'converted' && lead.stage_updated_at.present? %>
+                      <div class="col-md-6">
+                        <strong class="text-muted d-block">Conversion Duration</strong>
+                        <% days = (lead.stage_updated_at.to_date - lead.created_at.to_date).to_i %>
+                        <span class="text-success"><%= pluralize(days, 'day') %></span>
+                      </div>
+                    <% end %>
+                    <% if lead.is_branch_out? && lead.parent_lead_id.present? %>
+                      <div class="col-md-6">
+                        <strong class="text-muted d-block">Parent Lead</strong>
+                        <% parent_lead = Lead.find_by(id: lead.parent_lead_id) %>
+                        <% if parent_lead %>
+                          <span class="badge bg-secondary"><%= parent_lead.lead_id %></span>
+                        <% end %>
+                      </div>
+                    <% end %>
+                    <% unless lead.is_branch_out? %>
+                      <% branch_leads = Lead.where(parent_lead_id: lead.id, is_branch_out: true) %>
+                      <% if branch_leads.any? %>
+                        <div class="col-12">
+                          <strong class="text-muted d-block">Branch Leads</strong>
+                          <% branch_leads.each do |branch| %>
+                            <span class="badge bg-info me-1"><%= branch.lead_id %></span>
+                          <% end %>
+                        </div>
+                      <% end %>
+                    <% end %>
+                  </div>
+
+                  <% if lead.notes.present? %>
+                    <div class="mt-3">
+                      <strong class="text-muted d-block">Lead Notes</strong>
+                      <div class="bg-light p-2 rounded">
+                        <%= simple_format(lead.notes) %>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            <% else %>
+              <div class="text-center py-3">
+                <i class="bi bi-person-x text-muted mb-2" style="font-size: 2rem;"></i>
+                <p class="text-muted mb-0">No associated lead found for this customer.</p>
+                <% if @customer.lead_id.present? %>
+                  <small class="text-info d-block mt-1">Customer Lead ID: <%= @customer.lead_id %></small>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced Details Section -->
+      <div class="accordion-item border-0 shadow-sm mb-3 rounded">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#advancedDetails" aria-expanded="false" aria-controls="advancedDetails">
+            <i class="bi bi-info-circle me-3 text-primary"></i>
+            <span class="fw-medium">Advanced Details</span>
+            <span class="badge bg-primary ms-auto me-3">Details</span>
+          </button>
+        </h2>
+        <div id="advancedDetails" class="accordion-collapse collapse" data-bs-parent="#customerAccordion">
+          <div class="accordion-body">
+            <div class="row g-3">
+              <% if @customer.individual? %>
+                <div class="col-md-6">
+                  <strong class="text-muted d-block">Birth Date</strong>
+                  <%= @customer.birth_date&.strftime("%B %d, %Y") || '-' %>
+                </div>
+                <div class="col-md-6">
+                  <strong class="text-muted d-block">Age</strong>
+                  <%= @customer.age || '-' %>
+                </div>
+                <div class="col-md-6">
+                  <strong class="text-muted d-block">Gender</strong>
+                  <%= @customer.gender&.humanize || '-' %>
+                </div>
+                <div class="col-md-6">
+                  <strong class="text-muted d-block">Marital Status</strong>
+                  <%= @customer.marital_status&.humanize || '-' %>
+                </div>
+              <% else %>
+                <div class="col-md-6">
+                  <strong class="text-muted d-block">Company Name</strong>
+                  <%= @customer.company_name || '-' %>
+                </div>
+                <div class="col-md-6">
+                  <strong class="text-muted d-block">Business Type</strong>
+                  <%= @customer.business_job || '-' %>
+                </div>
+              <% end %>
+              <div class="col-md-6">
+                <strong class="text-muted d-block">PAN Number</strong>
+                <%= @customer.pan_no || '-' %>
+              </div>
+              <div class="col-md-6">
+                <strong class="text-muted d-block">Annual Income</strong>
+                <%= @customer.annual_income.present? ? "₹#{number_with_delimiter(@customer.annual_income)}" : '-' %>
+              </div>
+              <div class="col-md-12">
+                <strong class="text-muted d-block">Address</strong>
+                <%= [@customer.address, @customer.city, @customer.state].compact.join(', ').presence || '-' %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Family Members Section -->
+      <% family_count = @family_members&.count || 0 %>
+      <div class="accordion-item border-0 shadow-sm mb-3 rounded">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#familyMembers" aria-expanded="false" aria-controls="familyMembers">
+            <i class="bi bi-people me-3 text-success"></i>
+            <span class="fw-medium">Family Members</span>
+            <span class="badge bg-success ms-auto me-3"><%= family_count %></span>
+          </button>
+        </h2>
+        <div id="familyMembers" class="accordion-collapse collapse" data-bs-parent="#customerAccordion">
+          <div class="accordion-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="mb-0">Family Members</h6>
+              <%= link_to new_admin_customer_family_member_path(@customer), class: "btn btn-sm btn-success" do %>
+                <i class="bi bi-plus me-1"></i>Add Family Member
+              <% end %>
+            </div>
+
+            <% if @family_members.any? %>
+              <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Name</th>
+                      <th>Relationship</th>
+                      <th>Age</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% @family_members.each do |member| %>
+                      <tr>
+                        <td><%= member.name %></td>
+                        <td><%= member.relationship&.humanize %></td>
+                        <td><%= member.age || '-' %></td>
+                        <td>
+                          <%= link_to edit_admin_customer_family_member_path(@customer, member), class: "btn btn-sm btn-outline-warning" do %>
+                            <i class="bi bi-pencil"></i>
+                          <% end %>
+                        </td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            <% else %>
+              <div class="text-center py-3">
+                <i class="bi bi-people text-muted mb-2" style="font-size: 2rem;"></i>
+                <p class="text-muted">No family members added yet.</p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documents Section -->
+      <% documents_count = @uploaded_documents&.count || 0 %>
+      <div class="accordion-item border-0 shadow-sm mb-3 rounded">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#documents" aria-expanded="false" aria-controls="documents">
+            <i class="bi bi-file-earmark me-3 text-info"></i>
+            <span class="fw-medium">Uploaded Documents</span>
+            <span class="badge bg-info ms-auto me-3"><%= documents_count %></span>
+          </button>
+        </h2>
+        <div id="documents" class="accordion-collapse collapse" data-bs-parent="#customerAccordion">
+          <div class="accordion-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="mb-0">Documents</h6>
+              <%= link_to new_admin_customer_document_path(@customer), class: "btn btn-sm btn-info" do %>
+                <i class="bi bi-plus me-1"></i>Add Document
+              <% end %>
+            </div>
+
+            <% if @uploaded_documents.any? %>
+              <div class="row g-3">
+                <% @uploaded_documents.each do |document| %>
+                  <div class="col-md-6">
+                    <div class="card border">
+                      <div class="card-body p-3">
+                        <h6 class="card-title mb-2"><%= document.document_type&.humanize || 'Document' %></h6>
+                        <p class="card-text text-muted small mb-2"><%= document.file.filename if document.file.attached? %></p>
+                        <% if document.file.attached? %>
+                          <%= link_to rails_blob_url(document.file), target: '_blank', class: "btn btn-sm btn-outline-primary" do %>
+                            <i class="bi bi-eye me-1"></i>View
+                          <% end %>
+                        <% end %>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <div class="text-center py-3">
+                <i class="bi bi-file-earmark-x text-muted mb-2" style="font-size: 2rem;"></i>
+                <p class="text-muted">No documents uploaded yet.</p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Insurance Policies Section -->
+      <% policies_count = @all_policies&.count || 0 %>
+      <div class="accordion-item border-0 shadow-sm mb-3 rounded">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#insurancePolicies" aria-expanded="false" aria-controls="insurancePolicies">
+            <i class="bi bi-shield-check me-3 text-primary"></i>
+            <span class="fw-medium">Insurance Policies</span>
+            <span class="badge bg-primary ms-auto me-3"><%= policies_count %></span>
+          </button>
+        </h2>
+        <div id="insurancePolicies" class="accordion-collapse collapse" data-bs-parent="#customerAccordion">
+          <div class="accordion-body">
+            <% if @all_policies.any? %>
+              <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Type</th>
+                      <th>Policy Number</th>
+                      <th>Company</th>
+                      <th>Premium</th>
+                      <th>Status</th>
+                      <th>End Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% @all_policies.each do |policy| %>
+                      <tr>
+                        <td>
+                          <span class="badge bg-info"><%= policy[:type] %></span>
+                        </td>
+                        <td><%= policy[:policy_number] %></td>
+                        <td><%= policy[:company_name] %></td>
+                        <td>₹<%= number_with_delimiter(policy[:premium]) %></td>
+                        <td>
+                          <span class="badge bg-<%= policy[:status] == 'Active' ? 'success' : 'danger' %>">
+                            <%= policy[:status] %>
+                          </span>
+                        </td>
+                        <td><%= policy[:end_date]&.strftime('%Y-%m-%d') %></td>
+                        <td>
+                          <% case policy[:type] %>
+                          <% when 'Health Insurance' %>
+                            <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                              <i class="bi bi-eye"></i>
+                            <% end %>
+                          <% when 'Life Insurance' %>
+                            <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                              <i class="bi bi-eye"></i>
+                            <% end %>
+                          <% when 'Motor Insurance' %>
+                            <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                              <i class="bi bi-eye"></i>
+                            <% end %>
+                          <% end %>
+                        </td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            <% else %>
+              <div class="text-center py-3">
+                <i class="bi bi-shield-x text-muted mb-2" style="font-size: 2rem;"></i>
+                <p class="text-muted">No insurance policies found.</p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-md-4">
+    <!-- Customer Avatar and Quick Stats -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body text-center">
+        <div class="profile-image-container mb-3">
+          <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto" style="width: 80px; height: 80px; font-size: 2rem; font-weight: bold;">
+            <%= @customer.display_name.present? ? @customer.display_name.first.upcase : 'U' %>
+          </div>
+        </div>
+        <h5 class="mb-1"><%= @customer.display_name %></h5>
+        <p class="text-muted mb-3">Customer ID: #<%= @customer.id %></p>
+
+        <div class="row text-center">
+          <div class="col-4">
+            <div class="border-end">
+              <h6 class="mb-0 text-primary"><%= policies_count %></h6>
+              <small class="text-muted">Policies</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="border-end">
+              <h6 class="mb-0 text-success"><%= family_count %></h6>
+              <small class="text-muted">Family</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <h6 class="mb-0 text-info"><%= documents_count %></h6>
+            <small class="text-muted">Documents</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0">
+        <h6 class="mb-0">Quick Actions</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <%= link_to edit_admin_customer_path(@customer), class: "btn btn-outline-warning btn-sm" do %>
+            <i class="bi bi-pencil me-2"></i>Edit Customer
+          <% end %>
+          <%= link_to trace_commission_admin_customer_path(@customer), class: "btn btn-outline-info btn-sm" do %>
+            <i class="bi bi-graph-up-arrow me-2"></i>Insurance Summary
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Timeline -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0">
+        <h6 class="mb-0">Customer Timeline</h6>
+      </div>
+      <div class="card-body">
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-marker bg-primary"></div>
+            <div class="timeline-content">
+              <h6 class="timeline-title">Customer Created</h6>
+              <p class="timeline-description text-muted">
+                <%= @customer.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+              </p>
+            </div>
+          </div>
+
+          <% if @lead&.current_stage == 'converted' %>
+            <div class="timeline-item">
+              <div class="timeline-marker bg-success"></div>
+              <div class="timeline-content">
+                <h6 class="timeline-title">Lead Converted</h6>
+                <p class="timeline-description text-muted">
+                  <%= @lead.stage_updated_at&.strftime("%B %d, %Y") || @lead.updated_at&.strftime("%B %d, %Y") %>
+                </p>
+              </div>
+            </div>
+          <% end %>
+
+          <% @all_policies&.first(3)&.each do |policy| %>
+            <div class="timeline-item">
+              <div class="timeline-marker bg-info"></div>
+              <div class="timeline-content">
+                <h6 class="timeline-title">Policy Created</h6>
+                <p class="timeline-description text-muted">
+                  <%= policy[:type] %> - <%= policy[:policy_number] %><br>
+                  <%= policy[:created_at]&.strftime("%B %d, %Y") %>
+                </p>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.accordion-button {
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+}
+
+.accordion-button:focus {
+  border-color: #86b7fe;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.timeline {
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #dee2e6;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -1rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  z-index: 1;
+}
+
+.timeline-content {
+  margin-left: 1rem;
+}
+
+.timeline-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.timeline-description {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+</style>

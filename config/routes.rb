@@ -10,7 +10,7 @@ Rails.application.routes.draw do
   end
 
   # Root route
-  root "dashboard#index"
+  root to: redirect('/dashboard')
 
   # Favicon route
   get '/favicon.ico', to: redirect('/icon.png')
@@ -267,6 +267,7 @@ Rails.application.routes.draw do
         get :policy_chart
         get :family_members
         get :affiliate_info
+        get :nominee_details
         get :trace_commission
         get :product_selection
         get :get_policies

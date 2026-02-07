@@ -617,6 +617,67 @@
     </div>
   </div>
 
+  <!-- Nominee Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-person-check me-2 text-primary"></i>
+        Nominee Details <span class="text-danger">*</span>
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :nominee_name, "Nominee Name*", class: "form-label" %>
+          <%= form.text_field :nominee_name,
+              class: "form-control #{'is-invalid' if @health_insurance.errors[:nominee_name].any?}",
+              placeholder: "Enter nominee name",
+              required: true,
+              id: "nominee_name" %>
+          <% if @health_insurance.errors[:nominee_name].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:nominee_name].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :nominee_relation, "Relationship*", class: "form-label" %>
+          <%= form.select :nominee_relation,
+              options_for_select([
+                ['Father', 'father'],
+                ['Mother', 'mother'],
+                ['Spouse', 'spouse'],
+                ['Son', 'son'],
+                ['Daughter', 'daughter'],
+                ['Brother', 'brother'],
+                ['Sister', 'sister'],
+                ['Other', 'other']
+              ], @health_insurance.nominee_relation),
+              { prompt: 'Select relationship' },
+              { class: "form-control #{'is-invalid' if @health_insurance.errors[:nominee_relation].any?}", required: true, id: "nominee_relation" } %>
+          <% if @health_insurance.errors[:nominee_relation].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:nominee_relation].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :nominee_dob, "Date of Birth*", class: "form-label" %>
+          <%= form.date_field :nominee_dob,
+              class: "form-control #{'is-invalid' if @health_insurance.errors[:nominee_dob].any?}",
+              required: true,
+              id: "nominee_dob" %>
+          <% if @health_insurance.errors[:nominee_dob].any? %>
+            <div class="invalid-feedback"><%= @health_insurance.errors[:nominee_dob].first %></div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Auto-fill from Client:</strong> When you select a client, nominee details will be automatically populated if available in the customer profile.
+      </div>
+    </div>
+  </div>
+
   <!-- Autopay Installment Section -->
   <div class="card mb-4">
     <div class="card-header">
@@ -1475,6 +1536,94 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
 
+    // Load nominee details when customer changes
+    function loadNomineeDetails() {
+      const customerId = document.getElementById('customer_select').value;
+      const nomineeNameField = document.getElementById('nominee_name');
+      const nomineeRelationField = document.getElementById('nominee_relation');
+      const nomineeDobField = document.getElementById('nominee_dob');
+
+      if (customerId) {
+        // Show loading state
+        nomineeNameField.value = 'Loading...';
+        nomineeNameField.disabled = true;
+        nomineeRelationField.disabled = true;
+        nomineeDobField.disabled = true;
+
+        fetch(`/admin/customers/${customerId}/nominee_details`)
+          .then(response => response.json())
+          .then(data => {
+            // Re-enable fields
+            nomineeNameField.disabled = false;
+            nomineeRelationField.disabled = false;
+            nomineeDobField.disabled = false;
+
+            if (data.nominee_name) {
+              // Auto-fill nominee details from customer
+              nomineeNameField.value = data.nominee_name || '';
+              nomineeRelationField.value = data.nominee_relation || '';
+              nomineeDobField.value = data.nominee_date_of_birth || '';
+
+              // Show success message
+              showNotification('Nominee details loaded from customer profile!', 'success');
+            } else {
+              // Clear fields if no nominee data
+              nomineeNameField.value = '';
+              nomineeRelationField.value = '';
+              nomineeDobField.value = '';
+
+              // Show warning message
+              showNotification('No nominee details found in customer profile. Please fill manually.', 'warning');
+            }
+          })
+          .catch(error => {
+            console.error('Error loading nominee details:', error);
+            // Re-enable fields
+            nomineeNameField.disabled = false;
+            nomineeRelationField.disabled = false;
+            nomineeDobField.disabled = false;
+
+            // Clear fields and show error
+            nomineeNameField.value = '';
+            nomineeRelationField.value = '';
+            nomineeDobField.value = '';
+
+            showNotification('Error loading nominee details. Please fill manually.', 'error');
+          });
+      } else {
+        // Clear fields when no customer selected
+        nomineeNameField.value = '';
+        nomineeRelationField.value = '';
+        nomineeDobField.value = '';
+      }
+    }
+
+    // Helper function to show notifications
+    function showNotification(message, type) {
+      // Remove existing notifications
+      const existingNotifications = document.querySelectorAll('.nominee-notification');
+      existingNotifications.forEach(n => n.remove());
+
+      const alertClass = type === 'success' ? 'alert-success' :
+                        type === 'warning' ? 'alert-warning' : 'alert-danger';
+
+      const notification = document.createElement('div');
+      notification.className = `alert ${alertClass} nominee-notification mt-2 mb-0`;
+      notification.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'x-circle'} me-2"></i>${message}`;
+
+      const nomineeCard = document.querySelector('.card-body:has(#nominee_name)');
+      if (nomineeCard) {
+        nomineeCard.appendChild(notification);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.remove();
+          }
+        }, 5000);
+      }
+    }
+
     // Show/Hide family coverage section based on insurance type
     function toggleFamilyCoverageSection() {
       const insuranceType = document.getElementById('insurance_type_select').value;
@@ -1609,6 +1758,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Use Select2 event listener instead of native event
     $('#customer_select').on('select2:select', function(e) {
       loadPolicyHolderOptions();
+      loadNomineeDetails();
       $('#affiliate_select').val(null).trigger('change');
       var selectedCustomerId = this.value;
       if (selectedCustomerId) {

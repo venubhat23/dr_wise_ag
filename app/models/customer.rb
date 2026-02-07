@@ -43,6 +43,15 @@ class Customer < ApplicationRecord
   validates :mobile, uniqueness: true, allow_blank: true, if: :corporate?
   validates :gst_no, presence: true, if: :corporate?
 
+  # Nominee Details (Mandatory for all customers)
+  validates :nominee_name, presence: true
+  validates :nominee_relation, presence: true
+  validates :nominee_date_of_birth, presence: true
+  validates :nominee_relation, inclusion: {
+    in: ['father', 'mother', 'spouse', 'son', 'daughter', 'brother', 'sister', 'other'],
+    message: "must be a valid relationship"
+  }
+
   # Validations
   validates :status, inclusion: { in: [true, false] }
 

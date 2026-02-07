@@ -174,52 +174,43 @@ document.addEventListener('DOMContentLoaded', function() {
         <table class="table table-hover mb-0">
           <thead class="bg-light">
             <tr>
-              <th class="border-0">Customer</th>
+              <th class="border-0">Customer Name</th>
               <th class="border-0">Contact</th>
               <th class="border-0">Affiliate</th>
-              <th class="border-0">Policies</th>
               <th class="border-0">Status</th>
               <th class="border-0">Actions</th>
             </tr>
           </thead>
           <tbody>
             <% @customers.each do |customer| %>
-              <tr class="<%= customer.deactivated? ? 'table-warning opacity-75' : '' %>">
+              <tr>
                 <td>
-                  <div class="d-flex align-items-center">
-                    <!-- Profile Image Circle -->
-                    <div class="me-3">
-                      <% if customer.profile_image.attached? %>
-                        <%= image_tag url_for(customer.profile_image),
-                            class: "rounded-circle",
-                            style: "width: 40px; height: 40px; object-fit: cover;",
-                            alt: "Profile",
-                            onerror: "this.onerror=null; this.src='/assets/placeholder-avatar.svg';" %>
-                      <% else %>
-                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
-                             style="width: 40px; height: 40px;">
-                          <span class="text-primary fw-bold">
-                            <%= customer.display_name.present? ? customer.display_name[0].upcase : "?" %>
-                          </span>
-                        </div>
-                      <% end %>
-                    </div>
-                    <!-- Customer Details -->
-                    <div>
-                      <h6 class="mb-1">
-                        <%= customer.display_name.present? ? customer.display_name : "Unnamed Customer" %>
-                      </h6>
-                      <small class="text-muted d-block">
-                        <%= customer.email.present? ? customer.email : "No email provided" %>
-                      </small>
-                    </div>
+                  <div>
+                    <h6 class="mb-1">
+                      <%= customer.first_name.present? || customer.last_name.present? ?
+                          [customer.first_name, customer.last_name].compact.join(' ') :
+                          (customer.company_name.present? ? customer.company_name : "Unnamed Customer") %>
+                    </h6>
+                    <small class="text-muted">
+                      <span class="badge bg-<%= customer.customer_type == 'individual' ? 'primary' : 'success' %> badge-sm">
+                        <%= customer.customer_type.humanize %>
+                      </span>
+                    </small>
                   </div>
+                </td>
+                <td>
+                  <span class="badge bg-<%= customer.customer_type == 'individual' ? 'primary' : 'success' %>">
+                    <%= customer.customer_type.humanize %>
+                  </span>
                 </td>
                 <td>
                   <div>
                     <div class="mb-1">
                       <%= customer.mobile.present? ? customer.mobile : "No mobile number" %>
                     </div>
+                    <% if customer.pan_no.present? %>
+                      <small class="text-muted d-block">PAN: <%= customer.pan_no %></small>
+                    <% end %>
                     <small class="text-muted d-block">
                       <i class="bi bi-calendar me-1"></i>Created: <%= customer.created_at.strftime('%d %b %Y') %>
                     </small>
@@ -243,7 +234,17 @@ document.addEventListener('DOMContentLoaded', function() {
                   </div>
                 </td>
                 <td>
-                  <span class="badge bg-info"><%= customer.respond_to?(:policies_count) ? (customer.policies_count || 0) : customer.policies.count %></span>
+                  <div>
+                    <div>
+                      <%= customer.city.present? ? customer.city : "City not specified" %>
+                    </div>
+                    <small class="text-muted">
+                      <%= customer.state.present? ? customer.state.humanize : "State not specified" %>
+                    </small>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-info"><%= customer.respond_to?(:policies_count) ? (customer.policies_count || 0) : customer.policies.count %> policies</span>
                 </td>
                 <td>
                   <% if customer.deactivated? %>
@@ -425,32 +426,3 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
-
-<style>
-/* Customer Profile Image Styles */
-.rounded-circle {
-  border: 2px solid #e9ecef;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.rounded-circle img {
-  border-radius: 50%;
-}
-
-/* Hover effect for profile images */
-tr:hover .rounded-circle {
-  border-color: #007bff;
-  transition: border-color 0.3s ease;
-}
-
-/* Initial letter avatar */
-.bg-primary.bg-opacity-10 {
-  background-color: rgba(13, 110, 253, 0.1) !important;
-  border: 2px solid #e9ecef;
-}
-
-tr:hover .bg-primary.bg-opacity-10 {
-  border-color: #007bff;
-  transition: border-color 0.3s ease;
-}
-</style>

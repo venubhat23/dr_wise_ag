@@ -682,6 +682,65 @@
     </div>
   </div>
 
+  <!-- Nominee Details Section -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0">
+      <h5 class="mb-0">
+        <i class="bi bi-people me-2 text-primary"></i>
+        Nominee Details *
+      </h5>
+      <p class="text-muted mb-0 mt-1">Nominee information is mandatory for customer registration</p>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :nominee_name, "Nominee Name *", class: "form-label" %>
+          <%= form.text_field :nominee_name,
+              class: "form-control",
+              placeholder: "Enter nominee full name",
+              required: true %>
+          <div class="invalid-feedback">
+            Please provide a nominee name.
+          </div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= form.label :nominee_relation, "Relationship *", class: "form-label" %>
+          <%= form.select :nominee_relation,
+              options_for_select([
+                ['Father', 'father'],
+                ['Mother', 'mother'],
+                ['Spouse', 'spouse'],
+                ['Son', 'son'],
+                ['Daughter', 'daughter'],
+                ['Brother', 'brother'],
+                ['Sister', 'sister'],
+                ['Other', 'other']
+              ], @customer.nominee_relation),
+              { prompt: 'Select Relationship' },
+              { class: "form-control", required: true, id: "nominee_relationship_select" } %>
+          <div class="invalid-feedback">
+            Please select nominee relationship.
+          </div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= form.label :nominee_date_of_birth, "Date of Birth *", class: "form-label" %>
+          <%= form.date_field :nominee_date_of_birth,
+              class: "form-control",
+              required: true %>
+          <div class="invalid-feedback">
+            Please provide nominee date of birth.
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-info d-flex align-items-center">
+        <i class="bi bi-info-circle me-2"></i>
+        <div>
+          <small><strong>Important:</strong> Nominee details are mandatory for all customers. Please ensure the information is accurate as it will be used for legal purposes.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Status and Form Actions -->
   <div class="card border-0 shadow-sm">
     <div class="card-body">

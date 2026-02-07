@@ -510,7 +510,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       :installment_autopay_start_date, :installment_autopay_end_date,
       # New fields for edit form
       :premium_frequency, :status, :start_date, :end_date, :additional_details,
-      :nominee_name, :nominee_relation,
+      :nominee_name, :nominee_relation, :nominee_dob,
       # Commission details for all stakeholders
       :sub_agent_commission_percentage, :sub_agent_commission_amount, :sub_agent_tds_percentage, :sub_agent_tds_amount, :sub_agent_after_tds_value,
       :ambassador_commission_percentage, :ambassador_commission_amount, :ambassador_tds_percentage, :ambassador_tds_amount, :ambassador_after_tds_value,

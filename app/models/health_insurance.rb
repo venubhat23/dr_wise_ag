@@ -37,6 +37,14 @@ class HealthInsurance < ApplicationRecord
   validates :gst_percentage, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :total_premium, presence: true, numericality: { greater_than: 0 }
 
+  # Nominee validations (mandatory)
+  validates :nominee_name, presence: true
+  validates :nominee_relation, presence: true, inclusion: {
+    in: ['father', 'mother', 'spouse', 'son', 'daughter', 'brother', 'sister', 'other'],
+    message: "must be a valid relationship"
+  }
+  validates :nominee_dob, presence: true
+
   # Custom validation
   # validate :company_name_must_be_valid
 
