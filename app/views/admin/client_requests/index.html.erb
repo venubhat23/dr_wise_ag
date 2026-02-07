@@ -181,7 +181,7 @@
                 </td>
                 <td>
                   <div>
-                    <h6 class="mb-1"><%= request.name %></h6>
+                    <h6 class="mb-0"><%= request.name %></h6>
                     <% if request.respond_to?(:subject) && request.subject.present? %>
                       <small class="text-muted"><%= truncate(request.subject, length: 30) %></small>
                     <% end %>
@@ -223,16 +223,7 @@
                   <% end %>
                 </td>
                 <td>
-                  <span class="badge bg-<%=
-                    case request.status
-                    when 'resolved', 'closed' then 'success'
-                    when 'in_progress' then 'info'
-                    when 'pending' then 'warning'
-                    else 'secondary'
-                    end
-                  %>">
-                    <%= request.status.humanize %>
-                  </span>
+                  <%= request.status.humanize %>
                 </td>
                 <td>
                   <div>

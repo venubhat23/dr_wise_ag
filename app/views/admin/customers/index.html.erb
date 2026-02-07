@@ -1,13 +1,13 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-1">Customer Management</h2>
+    <h2 class="mb-1">Client Management</h2>
   </div>
   <div>
     <% if can_create?('customers') %>
       <%= link_to new_admin_customer_path, class: "btn btn-primary" do %>
         <i class="bi bi-plus-lg me-1"></i>
-        Add New Customer
+        Add New Client
       <% end %>
     <% end %>
   </div>
@@ -20,7 +20,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Total Customers</h6>
+            <h6 class="text-muted mb-2">Total Clients</h6>
             <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_customers) %></h3>
           </div>
           <div class="bg-primary bg-opacity-10 rounded p-3">
@@ -36,7 +36,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Active Customers</h6>
+            <h6 class="text-muted mb-2">Active Clients</h6>
             <h3 class="mb-0 text-success"><%= number_with_delimiter(@active_customers) %></h3>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
@@ -52,7 +52,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Individual Customers</h6>
+            <h6 class="text-muted mb-2">Individual Clients</h6>
             <h3 class="mb-0 text-info"><%= number_with_delimiter(@individual_customers) %></h3>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">
@@ -68,7 +68,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Corporate Customers</h6>
+            <h6 class="text-muted mb-2">Corporate Clients</h6>
             <h3 class="mb-0 text-warning"><%= number_with_delimiter(@corporate_customers) %></h3>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Customers List -->
 <div class="card border-0 shadow-sm">
   <div class="card-header bg-transparent border-0">
-    <h5 class="mb-0">Customer List</h5>
+    <h5 class="mb-0">Client List</h5>
   </div>
   <div class="card-body p-0">
     <% if @customers.any? %>
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <table class="table table-hover mb-0">
           <thead class="bg-light">
             <tr>
-              <th class="border-0">Customer</th>
+              <th class="border-0">Client</th>
               <th class="border-0">Contact</th>
               <th class="border-0">Affiliate</th>
               <th class="border-0">Policies</th>
@@ -206,12 +206,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <!-- Customer Details -->
                     <div>
-                      <h6 class="mb-1">
+                      <h6 class="mb-0">
                         <%= customer.display_name.present? ? customer.display_name : "Unnamed Customer" %>
                       </h6>
-                      <small class="text-muted d-block">
-                        <%= customer.email.present? ? customer.email : "No email provided" %>
-                      </small>
                     </div>
                   </div>
                 </td>
@@ -243,15 +240,13 @@ document.addEventListener('DOMContentLoaded', function() {
                   </div>
                 </td>
                 <td>
-                  <span class="badge bg-info"><%= customer.respond_to?(:policies_count) ? (customer.policies_count || 0) : customer.policies.count %></span>
+                  <%= customer.respond_to?(:policies_count) ? (customer.policies_count || 0) : customer.policies.count %>
                 </td>
                 <td>
                   <% if customer.deactivated? %>
-                    <span class="badge bg-danger">Deactivated</span>
+                    Deactivated
                   <% else %>
-                    <span class="badge bg-<%= customer.status? ? 'success' : 'secondary' %>">
-                      <%= customer.status? ? 'Active' : 'Inactive' %>
-                    </span>
+                    <%= customer.status? ? 'Active' : 'Inactive' %>
                   <% end %>
                 </td>
                 <td>
@@ -314,13 +309,13 @@ document.addEventListener('DOMContentLoaded', function() {
             <% if defined?(@total_filtered_count) && @total_filtered_count.present? %>
               Showing <%= @customers.current_page == 1 ? 1 : ((@customers.current_page - 1) * @customers.limit_value + 1) %>
               to <%= [@customers.current_page * @customers.limit_value, @total_filtered_count].min %>
-              of <%= number_with_delimiter(@total_filtered_count) %> customers
+              of <%= number_with_delimiter(@total_filtered_count) %> clients
             <% elsif @customers.respond_to?(:total_count) %>
               Showing <%= @customers.current_page == 1 ? 1 : ((@customers.current_page - 1) * @customers.limit_value + 1) %>
               to <%= [@customers.current_page * @customers.limit_value, @customers.total_count].min %>
-              of <%= number_with_delimiter(@customers.total_count) %> customers
+              of <%= number_with_delimiter(@customers.total_count) %> clients
             <% else %>
-              Showing <%= @customers.count %> customers
+              Showing <%= @customers.count %> clients
             <% end %>
           </small>
 
@@ -334,18 +329,18 @@ document.addEventListener('DOMContentLoaded', function() {
     <% else %>
       <div class="text-center py-5">
         <i class="bi bi-people fs-1 text-muted d-block mb-3"></i>
-        <h5 class="text-muted">No customers found</h5>
+        <h5 class="text-muted">No clients found</h5>
         <p class="text-muted mb-3">
           <% if params[:search].present? || params[:customer_type].present? || params[:status].present? %>
             Try adjusting your search criteria or
-            <%= link_to "view all customers", admin_customers_path, class: "text-decoration-none" %>.
+            <%= link_to "view all clients", admin_customers_path, class: "text-decoration-none" %>.
           <% else %>
-            Start by adding your first customer to the system.
+            Start by adding your first client to the system.
           <% end %>
         </p>
         <%= link_to new_admin_customer_path, class: "btn btn-primary" do %>
           <i class="bi bi-plus-lg me-1"></i>
-          Add First Customer
+          Add First Client
         <% end %>
       </div>
     <% end %>

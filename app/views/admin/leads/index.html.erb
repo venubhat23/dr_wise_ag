@@ -170,7 +170,6 @@
           <tr>
             <th class="border-0">Lead Details</th>
             <th class="border-0">Contact Information</th>
-            <th class="border-0">Referred By / Product Interest</th>
             <th class="border-0">Current Stage</th>
             <th class="border-0">Created Date</th>
             <th class="border-0">Actions</th>
@@ -189,24 +188,11 @@
                       </span>
                     <% end %>
                     <h6 class="mb-1"><%= lead.name %></h6>
-                    <small class="text-muted"><%= lead.email %></small>
                   </div>
                 </td>
                 <td>
                   <div>
                     <div class="mb-1"><%= lead.contact_number %></div>
-                    <small class="text-muted"><%= lead.full_address.presence || 'Address not provided' %></small>
-                  </div>
-                </td>
-                <td>
-                  <div>
-                    <span class="badge <%= lead.source_badge_class %> me-1">
-                      <%= lead.referred_by.presence || lead.lead_source&.humanize || 'Unknown' %>
-                    </span>
-                    <br>
-                    <span class="badge <%= lead.product_badge_class %> mt-1">
-                      <%= lead.product_display_name || 'Not specified' %>
-                    </span>
                   </div>
                 </td>
                 <td>

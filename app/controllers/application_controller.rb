@@ -36,7 +36,7 @@ class ApplicationController < ActionController::Base
     elsif resource.investor?
       investor_profit_summary_path
     else
-      stored_location_for(resource) || root_path
+      stored_location_for(resource) || admin_customers_path
     end
   end
 

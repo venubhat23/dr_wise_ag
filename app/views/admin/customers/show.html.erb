@@ -1,1015 +1,1007 @@
-<!-- Page Header -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <div>
-    <h1 class="mb-1 text-primary">
-      <i class="bi bi-person-circle me-2"></i>
-      Customer Details
-    </h1>
-    <h2 class="mb-1"><%= @customer.display_name %></h2>
-    <p class="text-muted mb-0">
-      <span class="badge bg-<%= @customer.customer_type == 'individual' ? 'primary' : 'success' %> me-2">
-        <%= @customer.customer_type.humanize %>
-      </span>
-      Customer ID: #<%= @customer.id %>
-    </p>
-  </div>
-  <div class="d-flex gap-2">
-    <button type="button" class="btn btn-outline-info" onclick="toggleAllSections()">
-      <i class="bi bi-arrows-expand me-1"></i>
-      <span id="toggle-text">Expand All</span>
-    </button>
-    <%= link_to edit_admin_customer_path(@customer), class: "btn btn-primary" do %>
-      <i class="bi bi-pencil me-1"></i>
-      Edit Customer
-    <% end %>
-    <%= link_to admin_customers_path, class: "btn btn-outline-secondary" do %>
-      <i class="bi bi-arrow-left me-1"></i>
-      Back to List
-    <% end %>
+<!-- Page Header with Customer Info -->
+<div class="customer-header-card">
+  <div class="d-flex justify-content-between align-items-start">
+    <!-- Left Section with Avatar and Basic Info -->
+    <div class="d-flex align-items-center gap-3">
+      <!-- Avatar -->
+      <div class="customer-avatar">
+        <% if @customer.profile_image.attached? %>
+          <%= image_tag rails_blob_path(@customer.profile_image, only_path: true),
+              class: "avatar-img",
+              alt: @customer.display_name %>
+        <% else %>
+          <div class="avatar-placeholder">
+            <%= @customer.display_name.first.upcase %>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Customer Info -->
+      <div>
+        <h2 class="customer-name mb-2"><%= @customer.display_name %></h2>
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <span class="badge customer-type-badge <%= @customer.customer_type == 'individual' ? 'individual' : 'corporate' %>">
+            <%= @customer.customer_type == 'individual' ? 'Individual Client' : 'Corporate Client' %>
+          </span>
+          <span class="badge status-badge <%= @customer.status ? 'active' : 'inactive' %>">
+            <%= @customer.status ? 'Active' : 'Inactive' %>
+          </span>
+        </div>
+        <div class="text-muted small">
+          <i class="bi bi-person me-1"></i>Agent:
+          <% if @customer.respond_to?(:sub_agent_id) && @customer.sub_agent_id.present? %>
+            <% sub_agent = SubAgent.find_by(id: @customer.sub_agent_id) %>
+            <%= sub_agent&.full_name || 'Krama Consulting' %>
+          <% elsif @customer.respond_to?(:sub_agent) && @customer.sub_agent.is_a?(String) %>
+            <%= @customer.sub_agent %>
+          <% else %>
+            Krama Consulting
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Section with ID and Actions -->
+    <div class="text-end">
+      <div class="customer-credentials mb-3">
+        <div class="credential-item">
+          <span class="credential-label">Client ID:</span>
+          <span class="credential-value fw-bold" id="customer-id-value">
+            <% if @customer.respond_to?(:customer_code) && @customer.customer_code.present? %>
+              <%= @customer.customer_code %>
+            <% else %>
+              #<%= @customer.id %>
+            <% end %>
+          </span>
+        </div>
+        <div class="credential-item">
+          <span class="credential-label">Password:</span>
+          <span class="credential-value fw-bold" id="customer-password-value">
+            <% user = User.find_by(email: @customer.email, user_type: 'customer') if @customer.email.present? %>
+            <% if user&.original_password.present? %>
+              <%= user.original_password %>
+            <% elsif @customer.respond_to?(:original_password) && @customer.original_password.present? %>
+              <%= @customer.original_password %>
+            <% else %>
+              -
+            <% end %>
+          </span>
+        </div>
+      </div>
+      <div class="d-flex gap-2 justify-content-end">
+        <button class="btn btn-outline-primary btn-sm" onclick="copyCredentials()">
+          <i class="bi bi-clipboard me-1"></i>Copy
+        </button>
+        <a href="https://wa.me/<%= @customer.mobile&.gsub(/\D/, '') %>" class="btn btn-success btn-sm" target="_blank">
+          <i class="bi bi-whatsapp"></i>
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 
-<div class="row">
-  <!-- Main Customer Information -->
-  <div class="col-lg-8">
-    <!-- Basic Information -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center"
-           role="button"
-           data-bs-toggle="collapse"
-           data-bs-target="#basicInfo"
-           aria-expanded="true"
-           aria-controls="basicInfo">
-        <h5 class="mb-0">
-          <i class="bi bi-chevron-down me-2 collapse-icon"></i>
-          Basic Information
-        </h5>
-        <span class="badge bg-<%= @customer.status ? 'success' : 'secondary' %>">
-          <%= @customer.status ? 'Active' : 'Inactive' %>
-        </span>
+<!-- Basic Information Section -->
+<div class="info-section-card">
+  <div class="section-header" data-bs-toggle="collapse" data-bs-target="#basicInfoCollapse" aria-expanded="true">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-person"></i>
       </div>
-      <div class="collapse show" id="basicInfo">
-        <div class="card-body">
-        <div class="row g-3">
-          <% if @customer.individual? %>
-            <div class="col-md-6">
-              <strong class="text-muted d-block">First Name</strong>
-              <%= @customer.first_name || '-' %>
-            </div>
-            <div class="col-md-6">
-              <strong class="text-muted d-block">Last Name</strong>
-              <%= @customer.last_name || '-' %>
-            </div>
-            <div class="col-md-6">
-              <strong class="text-muted d-block">Birth Date</strong>
-              <%= @customer.birth_date&.strftime("%B %d, %Y") || '-' %>
-            </div>
-            <div class="col-md-6">
-              <strong class="text-muted d-block">Age</strong>
-              <%= @customer.age || '-' %> years
-            </div>
-            <div class="col-md-6">
-              <strong class="text-muted d-block">Gender</strong>
-              <%= @customer.gender&.humanize || '-' %>
-            </div>
-            <div class="col-md-6">
-              <strong class="text-muted d-block">Birth Place</strong>
-              <%= @customer.birth_place || '-' %>
-            </div>
-          <% else %>
-            <div class="col-md-12">
-              <strong class="text-muted d-block">Company Name</strong>
-              <%= @customer.company_name || '-' %>
-            </div>
-          <% end %>
-
-          <div class="col-md-6">
-            <strong class="text-muted d-block">Email</strong>
-            <% if @customer.email.present? %>
-              <a href="mailto:<%= @customer.email %>"><%= @customer.email %></a>
-            <% else %>
-              -
-            <% end %>
-          </div>
-          <div class="col-md-6">
-            <strong class="text-muted d-block">Mobile</strong>
-            <% if @customer.mobile.present? %>
-              <a href="tel:<%= @customer.mobile %>"><%= @customer.mobile %></a>
-            <% else %>
-              -
-            <% end %>
-          </div>
-
-          <% if @customer.individual? %>
-            <div class="col-md-6">
-              <strong class="text-muted d-block">Height</strong>
-              <%= @customer.height || '-' %>
-            </div>
-            <div class="col-md-6">
-              <strong class="text-muted d-block">Weight</strong>
-              <%= @customer.weight || '-' %>
-            </div>
-            <div class="col-md-6">
-              <strong class="text-muted d-block">Education</strong>
-              <%= @customer.education || '-' %>
-            </div>
-            <div class="col-md-6">
-              <strong class="text-muted d-block">Marital Status</strong>
-              <%= @customer.marital_status&.humanize || '-' %>
-            </div>
-            <div class="col-md-6">
-              <strong class="text-muted d-block">Occupation</strong>
-              <%= @customer.occupation || '-' %>
-            </div>
-            <div class="col-md-6">
-              <strong class="text-muted d-block">Job Title</strong>
-              <%= @customer.job_name || '-' %>
-            </div>
-            <div class="col-md-6">
-              <strong class="text-muted d-block">Type of Duty</strong>
-              <%= @customer.type_of_duty || '-' %>
-            </div>
-          <% end %>
-
-          <div class="col-md-6">
-            <strong class="text-muted d-block">Annual Income</strong>
-            <% if @customer.annual_income.present? %>
-              <%= indian_currency(@customer.annual_income) %>
-            <% else %>
-              -
-            <% end %>
+      <h5 class="section-title">Basic Information</h5>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="basicInfoCollapse" class="collapse show">
+    <div class="section-body">
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-3">
+          <div class="info-field">
+            <label>FIRST NAME</label>
+            <div class="info-value"><%= @customer.first_name || '-' %></div>
           </div>
         </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="info-field">
+            <label>LAST NAME</label>
+            <div class="info-value"><%= @customer.last_name || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="info-field">
+            <label>MOBILE NO.</label>
+            <div class="info-value"><%= @customer.mobile || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="info-field">
+            <label>EMAIL</label>
+            <div class="info-value"><%= @customer.email || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="info-field">
+            <label>GENDER</label>
+            <div class="info-value"><%= @customer.gender&.humanize || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="info-field">
+            <label>BIRTH DATE</label>
+            <div class="info-value"><%= @customer.birth_date&.strftime("%B %d, %Y") || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="info-field">
+            <label>BIRTH PLACE</label>
+            <div class="info-value"><%= @customer.birth_place || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="info-field">
+            <label>MARITAL STATUS</label>
+            <div class="info-value"><%= @customer.marital_status&.humanize || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="info-field">
+            <label>AGE</label>
+            <div class="info-value"><%= @customer.age ? "#{@customer.age} years" : '-' %></div>
+          </div>
         </div>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- User Account Information -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0"
-           role="button"
-           data-bs-toggle="collapse"
-           data-bs-target="#userAccount"
-           aria-expanded="true"
-           aria-controls="userAccount">
-        <h5 class="mb-0">
-          <i class="bi bi-chevron-down me-2 collapse-icon"></i>
-          User Account Information
-        </h5>
+<!-- Advance Details Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#advanceDetailsCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-info-circle"></i>
       </div>
-      <div class="collapse show" id="userAccount">
-        <div class="card-body">
-        <div class="row g-3">
-          <% if @customer.email.present? %>
-            <% user = User.find_by(email: @customer.email, user_type: 'customer') %>
-            <% if user %>
-              <div class="col-md-6">
-                <strong class="text-muted d-block">Account Status</strong>
-                <span class="badge bg-success">
-                  <i class="bi bi-person-check me-1"></i>Active
-                </span>
-              </div>
-              <div class="col-md-6">
-                <strong class="text-muted d-block">Login Credentials</strong>
-                <% if user.original_password.present? %>
-                  <div class="text-info">
-                    <i class="bi bi-key me-1"></i><strong><%= user.original_password %></strong>
-                  </div>
-                <% elsif user.encrypted_password.present? %>
-                  <div class="text-muted">
-                    <i class="bi bi-lock me-1"></i>Password set (not visible)
-                  </div>
-                <% else %>
-                  <div class="text-warning">
-                    <i class="bi bi-lock me-1"></i>Password not set
-                  </div>
-                <% end %>
-              </div>
-              <div class="col-md-6">
-                <strong class="text-muted d-block">Login Email</strong>
-                <%= user.email %>
-              </div>
-              <div class="col-md-6">
-                <strong class="text-muted d-block">Login Mobile</strong>
-                <%= user.mobile %>
-              </div>
-            <% else %>
-              <div class="col-12">
-                <div class="alert alert-warning mb-0">
-                  <i class="bi bi-person-x me-2"></i>User account not created yet
-                </div>
-              </div>
-            <% end %>
-          <% else %>
-            <div class="col-12">
-              <div class="alert alert-info mb-0">
-                <i class="bi bi-info-circle me-2"></i>No email address provided - User account cannot be created
-              </div>
-            </div>
-          <% end %>
+      <h5 class="section-title">Advance Details</h5>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="advanceDetailsCollapse" class="collapse">
+    <div class="section-body">
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>OCCUPATION</label>
+            <div class="info-value"><%= @customer.occupation || '-' %></div>
+          </div>
         </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>EDUCATION</label>
+            <div class="info-value"><%= @customer.education || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>ANNUAL INCOME</label>
+            <div class="info-value">
+              <% if @customer.annual_income.present? %>
+                <%= indian_currency(@customer.annual_income) %>
+              <% else %>
+                -
+              <% end %>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>PAN NUMBER</label>
+            <div class="info-value"><%= @customer.pan_number || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>GST NUMBER</label>
+            <div class="info-value"><%= @customer.gst_number || '-' %></div>
+          </div>
         </div>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- Lead Information -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center"
-           role="button"
-           data-bs-toggle="collapse"
-           data-bs-target="#leadInfo"
-           aria-expanded="false"
-           aria-controls="leadInfo">
-        <h5 class="mb-0">
-          <i class="bi bi-chevron-right me-2 collapse-icon"></i>
-          <i class="bi bi-funnel me-2 text-info"></i>
-          Associated Leads
-        </h5>
-        <span class="badge bg-info">
-          <%= @associated_leads.count %> Total
-        </span>
+<!-- Address Information Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#addressCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-geo-alt"></i>
       </div>
-      <div class="collapse" id="leadInfo">
-        <div class="card-body">
-        <% if @associated_leads.any? %>
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-info">
+      <h5 class="section-title">Address Information</h5>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="addressCollapse" class="collapse">
+    <div class="section-body">
+      <div class="row g-4">
+        <div class="col-12">
+          <div class="info-field">
+            <label>FULL ADDRESS</label>
+            <div class="info-value"><%= @customer.address || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="info-field">
+            <label>CITY</label>
+            <div class="info-value"><%= @customer.city || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="info-field">
+            <label>STATE</label>
+            <div class="info-value"><%= @customer.state || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="info-field">
+            <label>PINCODE</label>
+            <div class="info-value"><%= @customer.pincode || '-' %></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Family Members Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#familyCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-people"></i>
+      </div>
+      <h5 class="section-title">Family Members</h5>
+      <span class="section-count"><%= @family_members&.count || 0 %></span>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="familyCollapse" class="collapse">
+    <div class="section-body">
+      <% if @family_members&.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Relationship</th>
+                <th>Birth Date</th>
+                <th>Age</th>
+                <th>Gender</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @family_members.each do |family_member| %>
                 <tr>
-                  <th class="border-0">Lead ID</th>
-                  <th class="border-0">Name</th>
-                  <th class="border-0">Contact</th>
-                  <th class="border-0">Product</th>
-                  <th class="border-0">Stage</th>
-                  <th class="border-0">Created Date</th>
-                  <th class="border-0">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% @associated_leads.each do |lead| %>
-                  <tr>
-                    <td>
-                      <code class="bg-light px-2 py-1 rounded text-primary">
-                        <%= lead.lead_id %>
-                      </code>
-                    </td>
-                    <td>
-                      <strong><%= lead.name %></strong>
-                    </td>
-                    <td>
-                      <div class="small">
-                        <% if lead.email.present? %>
-                          <div><i class="bi bi-envelope me-1 text-muted"></i><%= lead.email %></div>
-                        <% end %>
-                        <% if lead.contact_number.present? %>
-                          <div><i class="bi bi-phone me-1 text-muted"></i><%= lead.contact_number %></div>
-                        <% end %>
-                      </div>
-                    </td>
-                    <td>
-                      <span class="badge bg-primary bg-opacity-10 text-primary">
-                        <%= lead.product_category %>
-                      </span>
-                      <% if lead.product_subcategory.present? %>
-                        <br><small class="text-muted"><%= lead.product_subcategory %></small>
+                  <td><%= family_member.name %></td>
+                  <td><span class="badge bg-info"><%= family_member.relationship.humanize %></span></td>
+                  <td><%= family_member.birth_date&.strftime("%B %d, %Y") %></td>
+                  <td><%= family_member.age %> years</td>
+                  <td><%= family_member.gender&.humanize %></td>
+                  <td>
+                    <div class="d-flex gap-1">
+                      <%= link_to edit_admin_customer_family_member_path(@customer, family_member), class: "btn btn-sm btn-outline-warning" do %>
+                        <i class="bi bi-pencil"></i>
                       <% end %>
-                    </td>
-                    <td>
-                      <%
-                        stage_colors = {
-                          'new' => 'secondary',
-                          'contacted' => 'info',
-                          'qualified' => 'warning',
-                          'proposal_sent' => 'primary',
-                          'negotiation' => 'warning',
-                          'converted' => 'success',
-                          'lost' => 'danger',
-                          'policy_created' => 'success'
-                        }
-                        stage_color = stage_colors[lead.current_stage] || 'secondary'
-                      %>
-                      <span class="badge bg-<%= stage_color %>">
-                        <%= lead.current_stage&.humanize || 'Unknown' %>
-                      </span>
-                    </td>
-                    <td>
-                      <div class="small">
-                        <strong><%= lead.created_at.strftime("%d %b %Y") %></strong>
-                        <br><span class="text-muted"><%= lead.created_at.strftime("%I:%M %p") %></span>
-                      </div>
-                    </td>
-                    <td>
-                      <div class="btn-group" role="group">
-                        <%= link_to admin_lead_path(lead), class: "btn btn-sm btn-outline-primary", title: "View Lead Details" do %>
-                          <i class="bi bi-eye"></i>
-                        <% end %>
-                        <% if lead.current_stage != 'converted' %>
-                          <%= link_to edit_admin_lead_path(lead), class: "btn btn-sm btn-outline-warning", title: "Edit Lead" do %>
-                            <i class="bi bi-pencil"></i>
-                          <% end %>
-                        <% end %>
-                      </div>
-                    </td>
-                  </tr>
-                  <% if lead.notes.present? %>
-                    <tr class="table-light">
-                      <td></td>
-                      <td colspan="6">
-                        <small class="text-muted">
-                          <i class="bi bi-sticky me-1"></i>
-                          <strong>Notes:</strong> <%= simple_format(lead.notes, {}, wrapper_tag: "span") %>
-                        </small>
-                      </td>
-                    </tr>
-                  <% end %>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-        <% else %>
-          <div class="text-center text-muted py-4">
-            <i class="bi bi-funnel fs-3 d-block mb-3"></i>
-            <h6>No Leads Found</h6>
-            <p class="mb-3">This customer doesn't have any associated leads.</p>
-            <%= link_to new_admin_lead_path(customer_id: @customer.id), class: "btn btn-primary" do %>
-              <i class="bi bi-plus me-1"></i>Create New Lead
-            <% end %>
-          </div>
-        <% end %>
-        </div>
-      </div>
-    </div>
-
-    <!-- Address Information -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0"
-           role="button"
-           data-bs-toggle="collapse"
-           data-bs-target="#addressInfo"
-           aria-expanded="false"
-           aria-controls="addressInfo">
-        <h5 class="mb-0">
-          <i class="bi bi-chevron-right me-2 collapse-icon"></i>
-          Address Information
-        </h5>
-      </div>
-      <div class="collapse" id="addressInfo">
-        <div class="card-body">
-        <div class="row g-3">
-          <div class="col-12">
-            <strong class="text-muted d-block">Full Address</strong>
-            <%= @customer.address || '-' %>
-          </div>
-          <div class="col-md-4">
-            <strong class="text-muted d-block">City</strong>
-            <%= @customer.city || '-' %>
-          </div>
-          <div class="col-md-4">
-            <strong class="text-muted d-block">State</strong>
-            <%= @customer.state || '-' %>
-          </div>
-          <div class="col-md-4">
-            <strong class="text-muted d-block">Pincode</strong>
-            <%= @customer.pincode || '-' %>
-          </div>
-        </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Financial Information -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0">
-        <h5 class="mb-0">Financial Information</h5>
-      </div>
-      <div class="card-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <strong class="text-muted d-block">PAN Number</strong>
-            <%= @customer.pan_number || '-' %>
-          </div>
-          <div class="col-md-6">
-            <strong class="text-muted d-block">GST Number</strong>
-            <%= @customer.gst_number || '-' %>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Nominee Information -->
-    <% if @customer.nominee_name.present? %>
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-transparent border-0">
-          <h5 class="mb-0">Nominee Information</h5>
-        </div>
-        <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-4">
-              <strong class="text-muted d-block">Nominee Name</strong>
-              <%= @customer.nominee_name %>
-            </div>
-            <div class="col-md-4">
-              <strong class="text-muted d-block">Relation</strong>
-              <%= @customer.nominee_relation || '-' %>
-            </div>
-            <div class="col-md-4">
-              <strong class="text-muted d-block">Date of Birth</strong>
-              <%= @customer.nominee_date_of_birth&.strftime("%B %d, %Y") || '-' %>
-            </div>
-          </div>
-        </div>
-      </div>
-    <% end %>
-
-    <!-- Additional Information -->
-    <% if @customer.additional_info.present? %>
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-transparent border-0">
-          <h5 class="mb-0">Additional Information</h5>
-        </div>
-        <div class="card-body">
-          <p class="mb-0"><%= simple_format(@customer.additional_info) %></p>
-        </div>
-      </div>
-    <% end %>
-
-    <!-- Documents and Images -->
-    <% if @customer.profile_image.attached? || @customer.documents.any? || @uploaded_documents.any? %>
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Files & Documents</h5>
-          <div class="d-flex gap-2">
-            <%= link_to new_admin_customer_document_path(@customer), class: "btn btn-sm btn-outline-primary" do %>
-              <i class="bi bi-plus me-1"></i>Add Document
-            <% end %>
-          </div>
-        </div>
-        <div class="card-body">
-          <% if @customer.profile_image.attached? %>
-            <h6 class="text-primary mb-3">Profile Image</h6>
-            <div class="row g-3 mb-4">
-              <div class="col-md-3">
-                <div class="card">
-                  <%= image_tag rails_blob_path(@customer.profile_image, only_path: true), class: "card-img-top", style: "height: 150px; object-fit: cover;" %>
-                  <div class="card-body p-2">
-                    <small class="text-muted d-block"><%= @customer.profile_image.filename %></small>
-                    <%= link_to url_for(@customer.profile_image), class: "btn btn-sm btn-outline-primary mt-1", target: "_blank" do %>
-                      <i class="bi bi-eye me-1"></i>View
-                    <% end %>
-                  </div>
-                </div>
-              </div>
-            </div>
-          <% end %>
-
-          <% if @uploaded_documents.any? %>
-            <h6 class="text-info mb-3">
-              <i class="bi bi-folder2 me-2"></i>Uploaded Documents
-              <span class="badge bg-secondary ms-2"><%= @uploaded_documents.count %></span>
-            </h6>
-            <div class="row g-3 mb-4">
-              <% @uploaded_documents.each do |document| %>
-                <div class="col-md-6 col-lg-4">
-                  <div class="card h-100 border">
-                    <div class="card-header d-flex justify-content-between align-items-start p-3">
-                      <div>
-                        <i class="bi bi-<%= document.file_icon %> me-2 text-primary fs-5"></i>
-                        <strong class="text-sm"><%= document.human_document_type %></strong>
-                      </div>
-                      <span class="badge bg-light text-dark"><%= document.human_file_type %></span>
-                    </div>
-                    <div class="card-body p-3">
-                      <h6 class="card-title text-truncate mb-2" title="<%= document.title %>">
-                        <%= document.title %>
-                      </h6>
-                      <div class="small text-muted mb-3">
-                        <div class="d-flex justify-content-between">
-                          <span><i class="bi bi-file-earmark me-1"></i><%= document.file_name %></span>
-                        </div>
-                        <div class="d-flex justify-content-between mt-1">
-                          <span><i class="bi bi-hdd me-1"></i><%= document.file_size_mb %> MB</span>
-                          <span><i class="bi bi-person me-1"></i><%= document.uploaded_by %></span>
-                        </div>
-                        <div class="mt-1">
-                          <i class="bi bi-calendar me-1"></i><%= document.created_at.strftime("%b %d, %Y") %>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="card-footer d-flex gap-2 p-2">
-                      <% if document.downloadable? %>
-                        <%= link_to rails_blob_url(document.file, disposition: "attachment"), class: "btn btn-sm btn-outline-primary flex-grow-1", target: "_blank" do %>
-                          <i class="bi bi-download me-1"></i>Download
-                        <% end %>
-                      <% end %>
-                      <%= link_to admin_customer_document_path(@customer, document), method: :delete,
+                      <%= link_to admin_customer_family_member_path(@customer, family_member), method: :delete,
                           class: "btn btn-sm btn-outline-danger",
-                          data: { confirm: "Are you sure you want to delete this document?", turbo_method: :delete } do %>
+                          data: { confirm: "Are you sure?", turbo_method: :delete } do %>
                         <i class="bi bi-trash"></i>
                       <% end %>
                     </div>
-                  </div>
-                </div>
+                  </td>
+                </tr>
               <% end %>
-            </div>
-          <% end %>
-
-          <% if @customer.documents.any? %>
-            <h6 class="text-success mb-3">
-              <i class="bi bi-paperclip me-2"></i>Attached Files
-              <span class="badge bg-secondary ms-2"><%= @customer.documents.count %></span>
-            </h6>
-            <div class="list-group">
-              <% @customer.documents.each do |document| %>
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                  <div class="d-flex align-items-center">
-                    <i class="bi bi-file-earmark me-3 text-muted fs-5"></i>
-                    <div>
-                      <span class="fw-medium">
-                        <%= document.filename || "Document (#{document.document_type})" %>
-                      </span>
-                      <small class="text-muted d-block">
-                        <% if document.file_size %>
-                          <i class="bi bi-hdd me-1"></i>Size: <%= number_to_human_size(document.file_size) %>
-                        <% end %>
-                        <i class="bi bi-calendar ms-3 me-1"></i><%= document.created_at&.strftime("%b %d, %Y") %>
-                      </small>
-                    </div>
-                  </div>
-                  <div>
-                    <% if document.file.attached? %>
-                      <%= link_to rails_blob_url(document.file, disposition: "attachment"), class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
-                        <i class="bi bi-download me-1"></i>Download
-                      <% end %>
-                    <% else %>
-                      <span class="badge bg-warning text-dark">No File</span>
-                    <% end %>
-                  </div>
-                </div>
-              <% end %>
-            </div>
-          <% end %>
-
-          <% if !@customer.profile_image.attached? && @customer.documents.empty? && @uploaded_documents.empty? %>
-            <div class="text-center text-muted py-4">
-              <i class="bi bi-folder2-open fs-1 d-block mb-3"></i>
-              <h6>No Documents Found</h6>
-              <p class="mb-3">No documents have been uploaded for this customer yet.</p>
-              <%= link_to new_admin_customer_document_path(@customer), class: "btn btn-primary" do %>
-                <i class="bi bi-plus me-1"></i>Add First Document
-              <% end %>
-            </div>
-          <% end %>
+            </tbody>
+          </table>
         </div>
-      </div>
-    <% end %>
-
-    <!-- All Policies -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-          <i class="bi bi-shield-check me-2 text-primary"></i>
-          Insurance Policies
-        </h5>
-        <div class="d-flex gap-2">
-          <%= link_to policy_chart_admin_customer_path(@customer), class: "btn btn-sm btn-outline-info" do %>
-          <% end %>
-          <div class="dropdown">
-            <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            </button>
-            <ul class="dropdown-menu">
-              <li><%= link_to "Health Insurance", new_admin_health_insurance_path(customer_id: @customer.id), class: "dropdown-item" %></li>
-              <li><%= link_to "Life Insurance", new_admin_life_insurance_path(customer_id: @customer.id), class: "dropdown-item" %></li>
-              <li><%= link_to "Motor Insurance", new_admin_motor_insurance_path(customer_id: @customer.id), class: "dropdown-item" %></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-      <div class="card-body">
-        <% if @all_policies.any? %>
-          <div class="row">
-            <% @all_policies.each do |policy_data| %>
-              <div class="col-md-6 mb-3">
-                <div class="card border h-100">
-                  <div class="card-header d-flex justify-content-between align-items-center">
-                    <div>
-                      <h6 class="mb-0">
-                        <%= policy_data[:type] %>
-                        <span class="badge bg-<%= policy_data[:status] == 'Active' ? 'success' : 'danger' %> ms-2">
-                          <%= policy_data[:status] %>
-                        </span>
-                      </h6>
-                    </div>
-                    <small class="text-muted"><%= policy_data[:created_at].strftime("%b %d, %Y") %></small>
-                  </div>
-                  <div class="card-body">
-                    <div class="row g-2">
-                      <div class="col-12">
-                        <strong class="text-primary d-block">Policy Number</strong>
-                        <span class="font-monospace"><%= policy_data[:policy_number] %></span>
-                      </div>
-                      <div class="col-12">
-                        <strong class="text-muted d-block">Insurance Company</strong>
-                        <%= policy_data[:company_name] %>
-                      </div>
-                      <div class="col-6">
-                        <strong class="text-muted d-block">Premium</strong>
-                        <span class="text-success fw-bold"><%= indian_currency(policy_data[:premium].to_i) %></span>
-                      </div>
-                      <div class="col-6">
-                        <strong class="text-muted d-block">Policy Period</strong>
-                        <% if policy_data[:start_date] && policy_data[:end_date] %>
-                          <%= policy_data[:start_date].strftime("%b %Y") %> - <%= policy_data[:end_date].strftime("%b %Y") %>
-                        <% else %>
-                          N/A
-                        <% end %>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="card-footer d-flex justify-content-between">
-                    <% case policy_data[:type] %>
-                    <% when 'Health Insurance' %>
-                      <%= link_to "View Details", admin_health_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-primary" %>
-                      <%= link_to "Edit", edit_admin_health_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-warning" %>
-                    <% when 'Life Insurance' %>
-                      <%= link_to "View Details", admin_life_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-primary" %>
-                      <%= link_to "Edit", edit_admin_life_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-warning" %>
-                    <% when 'Motor Insurance' %>
-                      <%= link_to "View Details", admin_motor_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-primary" %>
-                      <%= link_to "Edit", edit_admin_motor_insurance_path(policy_data[:policy]), class: "btn btn-sm btn-outline-warning" %>
-                    <% end %>
-                  </div>
-                </div>
-              </div>
-            <% end %>
-          </div>
-        <% else %>
-          <div class="text-center text-muted py-5">
-            <i class="bi bi-shield-x fs-1 d-block mb-3 text-muted"></i>
-            <h5>No Policies Found</h5>
-            <p class="mb-3">This customer doesn't have any insurance policies yet.</p>
-            <div class="d-flex gap-2 justify-content-center">
-              <%= link_to "Add Health Insurance", new_admin_health_insurance_path(customer_id: @customer.id), class: "btn btn-primary" %>
-              <%= link_to "Add Life Insurance", new_admin_life_insurance_path(customer_id: @customer.id), class: "btn btn-primary" %>
-              <%= link_to "Add Motor Insurance", new_admin_motor_insurance_path(customer_id: @customer.id), class: "btn btn-primary" %>
-            </div>
-          </div>
-        <% end %>
-      </div>
-    </div>
-
-    <!-- Family Members -->
-    <% if @customer.individual? %>
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Family Members</h5>
-          <%= link_to new_admin_customer_family_member_path(@customer), class: "btn btn-sm btn-primary" do %>
+      <% else %>
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-people fs-3 d-block mb-2"></i>
+          <p class="mb-3">No family members added yet</p>
+          <%= link_to new_admin_customer_family_member_path(@customer), class: "btn btn-primary btn-sm" do %>
             <i class="bi bi-plus me-1"></i>Add Family Member
           <% end %>
         </div>
-        <div class="card-body">
-          <% if @family_members.any? %>
-            <div class="table-responsive">
-              <table class="table table-sm mb-0">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Relationship</th>
-                    <th>Birth Date</th>
-                    <th>Age</th>
-                    <th>Gender</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% @family_members.each do |family_member| %>
-                    <tr>
-                      <td><%= family_member.name %></td>
-                      <td>
-                        <span class="badge bg-info"><%= family_member.relationship.humanize %></span>
-                      </td>
-                      <td><%= family_member.birth_date&.strftime("%B %d, %Y") %></td>
-                      <td><%= family_member.age %> years</td>
-                      <td><%= family_member.gender&.humanize %></td>
-                      <td>
-                        <div class="d-flex gap-1">
-                          <%= link_to edit_admin_customer_family_member_path(@customer, family_member), class: "btn btn-sm btn-outline-warning" do %>
-                            <i class="bi bi-pencil"></i>
-                          <% end %>
-                          <%= link_to admin_customer_family_member_path(@customer, family_member), method: :delete,
-                              class: "btn btn-sm btn-outline-danger",
-                              data: { confirm: "Are you sure?", turbo_method: :delete } do %>
-                            <i class="bi bi-trash"></i>
-                          <% end %>
-                        </div>
-                      </td>
-                    </tr>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Corporate Members Section (for corporate customers) -->
+<% if @customer.customer_type == 'corporate' %>
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#corporateCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-building"></i>
+      </div>
+      <h5 class="section-title">Corporate Members</h5>
+      <span class="section-count">0</span>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="corporateCollapse" class="collapse">
+    <div class="section-body">
+      <div class="text-center text-muted py-4">
+        <i class="bi bi-building fs-3 d-block mb-2"></i>
+        <p class="mb-0">No corporate members added yet</p>
+      </div>
+    </div>
+  </div>
+</div>
+<% end %>
+
+<!-- Uploaded Documents Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#documentsCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-folder"></i>
+      </div>
+      <h5 class="section-title">Uploaded Documents</h5>
+      <span class="section-count"><%= @uploaded_documents&.count || 0 %></span>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="documentsCollapse" class="collapse">
+    <div class="section-body">
+      <% if @uploaded_documents&.any? %>
+        <div class="row g-3">
+          <% @uploaded_documents.each do |document| %>
+            <div class="col-md-6">
+              <div class="document-card">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <i class="bi bi-<%= document.file_icon %> me-2 text-primary fs-5"></i>
+                    <strong><%= document.human_document_type %></strong>
+                  </div>
+                  <span class="badge bg-light text-dark"><%= document.human_file_type %></span>
+                </div>
+                <h6 class="mb-2"><%= document.title %></h6>
+                <div class="small text-muted mb-3">
+                  <div><i class="bi bi-file-earmark me-1"></i><%= document.file_name %></div>
+                  <div><i class="bi bi-hdd me-1"></i><%= document.file_size_mb %> MB</div>
+                  <div><i class="bi bi-calendar me-1"></i><%= document.created_at.strftime("%b %d, %Y") %></div>
+                </div>
+                <div class="d-flex gap-2">
+                  <% if document.downloadable? %>
+                    <%= link_to rails_blob_url(document.file, disposition: "attachment"), class: "btn btn-sm btn-outline-primary flex-grow-1", target: "_blank" do %>
+                      <i class="bi bi-download me-1"></i>Download
+                    <% end %>
                   <% end %>
-                </tbody>
-              </table>
-            </div>
-          <% else %>
-            <div class="text-center text-muted py-4">
-              <i class="bi bi-people fs-3 d-block mb-2"></i>
-              <p class="mb-0">No family members added yet</p>
+                  <%= link_to admin_customer_document_path(@customer, document), method: :delete,
+                      class: "btn btn-sm btn-outline-danger",
+                      data: { confirm: "Are you sure?", turbo_method: :delete } do %>
+                    <i class="bi bi-trash"></i>
+                  <% end %>
+                </div>
+              </div>
             </div>
           <% end %>
         </div>
-      </div>
-    <% end %>
+      <% else %>
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-folder2-open fs-3 d-block mb-2"></i>
+          <p class="mb-3">No documents uploaded yet</p>
+          <%= link_to new_admin_customer_document_path(@customer), class: "btn btn-primary btn-sm" do %>
+            <i class="bi bi-plus me-1"></i>Add Document
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
 
-    <!-- Active Policies Table -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-          <i class="bi bi-shield-check me-2 text-success"></i>
-          Active Policies
-        </h5>
-        <span class="badge bg-success">
-          <%= @all_policies.select { |p| p[:status] == 'Active' }.count %> Active
-        </span>
+<!-- Nominee Information Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#nomineeCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-person-heart"></i>
       </div>
-      <div class="card-body">
-        <%
-          active_policies = @all_policies.select { |p| p[:status] == 'Active' }
-        %>
-        <% if active_policies.any? %>
-          <div class="table-responsive">
-            <table class="table table-hover align-middle">
-              <thead class="table-success">
-                <tr>
-                  <th class="border-0">Policy Type</th>
-                  <th class="border-0">Policy Number</th>
-                  <th class="border-0">Insurance Company</th>
-                  <th class="border-0">Premium Amount</th>
-                  <th class="border-0">Policy Period</th>
-                  <th class="border-0">Days Remaining</th>
-                  <th class="border-0">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% active_policies.each do |policy| %>
-                  <tr>
-                    <td>
-                      <div class="d-flex align-items-center">
-                        <span class="badge bg-success bg-opacity-10 text-success me-2">
-                          <i class="bi bi-shield-check"></i>
-                        </span>
-                        <strong><%= policy[:type] %></strong>
-                      </div>
-                    </td>
-                    <td>
-                      <code class="bg-light px-2 py-1 rounded">
-                        <%= policy[:policy_number] %>
-                      </code>
-                    </td>
-                    <td><%= policy[:company_name] %></td>
-                    <td>
-                      <span class="text-success fw-bold">
-                        <%= indian_currency(policy[:premium].to_i) %>
-                      </span>
-                    </td>
-                    <td>
-                      <% if policy[:start_date] && policy[:end_date] %>
-                        <small class="text-muted d-block">
-                          <i class="bi bi-calendar-event me-1"></i>
-                          <%= policy[:start_date].strftime("%d %b %Y") %> -
-                        </small>
-                        <small class="text-warning">
-                          <i class="bi bi-calendar-x me-1"></i>
-                          <%= policy[:end_date].strftime("%d %b %Y") %>
-                        </small>
-                      <% else %>
-                        <span class="text-muted">N/A</span>
-                      <% end %>
-                    </td>
-                    <td>
-                      <% if policy[:end_date] %>
-                        <% days_remaining = (policy[:end_date] - Date.current).to_i %>
-                        <% if days_remaining > 0 %>
-                          <span class="badge bg-<%= days_remaining <= 30 ? 'warning' : 'info' %>">
-                            <%= days_remaining %> days
-                          </span>
-                        <% else %>
-                          <span class="badge bg-danger">Expired</span>
-                        <% end %>
-                      <% else %>
-                        <span class="text-muted">N/A</span>
-                      <% end %>
-                    </td>
-                    <td>
-                      <div class="btn-group" role="group">
-                        <% case policy[:type] %>
-                        <% when 'Health Insurance' %>
-                          <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
-                            <i class="bi bi-eye"></i>
-                          <% end %>
-                          <%= link_to edit_admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
-                            <i class="bi bi-pencil"></i>
-                          <% end %>
-                        <% when 'Life Insurance' %>
-                          <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
-                            <i class="bi bi-eye"></i>
-                          <% end %>
-                          <%= link_to edit_admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
-                            <i class="bi bi-pencil"></i>
-                          <% end %>
-                        <% when 'Motor Insurance' %>
-                          <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
-                            <i class="bi bi-eye"></i>
-                          <% end %>
-                          <%= link_to edit_admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
-                            <i class="bi bi-pencil"></i>
-                          <% end %>
-                        <% end %>
-                      </div>
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
+      <h5 class="section-title">Nominee Information</h5>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="nomineeCollapse" class="collapse">
+    <div class="section-body">
+      <% if @customer.nominee_name.present? %>
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div class="info-field">
+              <label>NOMINEE NAME</label>
+              <div class="info-value"><%= @customer.nominee_name %></div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="info-field">
+              <label>RELATION</label>
+              <div class="info-value"><%= @customer.nominee_relation || '-' %></div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="info-field">
+              <label>DATE OF BIRTH</label>
+              <div class="info-value"><%= @customer.nominee_date_of_birth&.strftime("%B %d, %Y") || '-' %></div>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-person-heart fs-3 d-block mb-2"></i>
+          <p class="mb-0">No nominee information added</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- User Account Information Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#userAccountCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-person-circle"></i>
+      </div>
+      <h5 class="section-title">User Account Information</h5>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="userAccountCollapse" class="collapse">
+    <div class="section-body">
+      <% if @customer.email.present? %>
+        <% user = User.find_by(email: @customer.email, user_type: 'customer') %>
+        <% if user %>
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="info-field">
+                <label>ACCOUNT STATUS</label>
+                <div class="info-value">
+                  <span class="badge bg-success">
+                    <i class="bi bi-person-check me-1"></i>Active
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-field">
+                <label>LOGIN EMAIL</label>
+                <div class="info-value"><%= user.email %></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-field">
+                <label>LOGIN MOBILE</label>
+                <div class="info-value"><%= user.mobile || '-' %></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-field">
+                <label>LOGIN PASSWORD</label>
+                <div class="info-value">
+                  <% if user.original_password.present? %>
+                    <span class="text-success fw-bold"><%= user.original_password %></span>
+                    <button class="btn btn-sm btn-outline-secondary ms-2"
+                            onclick="copyToClipboard('<%= user.original_password %>')"
+                            title="Copy password">
+                      <i class="bi bi-clipboard"></i>
+                    </button>
+                  <% else %>
+                    <span class="text-muted">Password encrypted</span>
+                  <% end %>
+                </div>
+              </div>
+            </div>
           </div>
         <% else %>
-          <div class="text-center text-muted py-4">
-            <i class="bi bi-shield-x fs-3 d-block mb-2"></i>
-            <p class="mb-0">No active policies found</p>
+          <div class="alert alert-warning">
+            <i class="bi bi-person-x me-2"></i>User account not created yet
           </div>
         <% end %>
-      </div>
+      <% else %>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle me-2"></i>No email address provided - User account cannot be created
+        </div>
+      <% end %>
     </div>
+  </div>
+</div>
 
-    <!-- Expired Policies Table -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-          <i class="bi bi-shield-x me-2 text-danger"></i>
-          Expired Policies
-        </h5>
-        <span class="badge bg-danger">
-          <%= @all_policies.select { |p| p[:status] == 'Expired' }.count %> Expired
-        </span>
+<!-- Associated Leads Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#leadsCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-funnel"></i>
       </div>
-      <div class="card-body">
-        <%
-          expired_policies = @all_policies.select { |p| p[:status] == 'Expired' }
-        %>
-        <% if expired_policies.any? %>
-          <div class="table-responsive">
-            <table class="table table-hover align-middle">
-              <thead class="table-danger">
+      <h5 class="section-title">Associated Leads</h5>
+      <span class="section-count"><%= @associated_leads&.count || 0 %> Total</span>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="leadsCollapse" class="collapse">
+    <div class="section-body">
+      <% if @associated_leads&.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Lead ID</th>
+                <th>Name</th>
+                <th>Mobile</th>
+                <th>Email</th>
+                <th>Product</th>
+                <th>Stage</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @associated_leads.each do |lead| %>
                 <tr>
-                  <th class="border-0">Policy Type</th>
-                  <th class="border-0">Policy Number</th>
-                  <th class="border-0">Insurance Company</th>
-                  <th class="border-0">Premium Amount</th>
-                  <th class="border-0">Expired Date</th>
-                  <th class="border-0">Days Ago</th>
-                  <th class="border-0">Actions</th>
+                  <td><code class="bg-light px-2 py-1 rounded text-primary"><%= lead.lead_id %></code></td>
+                  <td><strong><%= lead.name %></strong></td>
+                  <td>
+                    <% if lead.contact_number.present? %>
+                      <i class="bi bi-phone me-1 text-muted"></i><%= lead.contact_number %>
+                    <% else %>
+                      <span class="text-muted">-</span>
+                    <% end %>
+                  </td>
+                  <td>
+                    <% if lead.email.present? %>
+                      <i class="bi bi-envelope me-1 text-muted"></i><%= lead.email %>
+                    <% else %>
+                      <span class="text-muted">-</span>
+                    <% end %>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary bg-opacity-10 text-primary"><%= lead.product_category %></span>
+                    <% if lead.product_subcategory.present? %>
+                      <br><small class="text-muted"><%= lead.product_subcategory %></small>
+                    <% end %>
+                  </td>
+                  <td>
+                    <%
+                      stage_colors = {
+                        'new' => 'secondary', 'contacted' => 'info', 'qualified' => 'warning',
+                        'proposal_sent' => 'primary', 'negotiation' => 'warning', 'converted' => 'success',
+                        'lost' => 'danger', 'policy_created' => 'success'
+                      }
+                      stage_color = stage_colors[lead.current_stage] || 'secondary'
+                    %>
+                    <span class="badge bg-<%= stage_color %>"><%= lead.current_stage&.humanize || 'Unknown' %></span>
+                  </td>
+                  <td><%= lead.created_at.strftime("%d %b %Y") %></td>
                 </tr>
-              </thead>
-              <tbody>
-                <% expired_policies.each do |policy| %>
-                  <tr>
-                    <td>
-                      <div class="d-flex align-items-center">
-                        <span class="badge bg-danger bg-opacity-10 text-danger me-2">
-                          <i class="bi bi-shield-x"></i>
-                        </span>
-                        <strong><%= policy[:type] %></strong>
-                      </div>
-                    </td>
-                    <td>
-                      <code class="bg-light px-2 py-1 rounded">
-                        <%= policy[:policy_number] %>
-                      </code>
-                    </td>
-                    <td><%= policy[:company_name] %></td>
-                    <td>
-                      <span class="text-muted">
-                        <%= indian_currency(policy[:premium].to_i) %>
-                      </span>
-                    </td>
-                    <td>
-                      <% if policy[:end_date] %>
-                        <span class="text-danger">
-                          <i class="bi bi-calendar-x me-1"></i>
-                          <%= policy[:end_date].strftime("%d %b %Y") %>
-                        </span>
-                      <% else %>
-                        <span class="text-muted">N/A</span>
-                      <% end %>
-                    </td>
-                    <td>
-                      <% if policy[:end_date] %>
-                        <% days_ago = (Date.current - policy[:end_date]).to_i %>
-                        <span class="badge bg-danger">
-                          <%= days_ago %> days ago
-                        </span>
-                      <% else %>
-                        <span class="text-muted">N/A</span>
-                      <% end %>
-                    </td>
-                    <td>
-                      <div class="btn-group" role="group">
-                        <% case policy[:type] %>
-                        <% when 'Health Insurance' %>
-                          <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
-                            <i class="bi bi-eye"></i>
-                          <% end %>
-                        <% when 'Life Insurance' %>
-                          <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
-                            <i class="bi bi-eye"></i>
-                          <% end %>
-                        <% when 'Motor Insurance' %>
-                          <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
-                            <i class="bi bi-eye"></i>
-                          <% end %>
-                        <% end %>
-                      </div>
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-funnel fs-3 d-block mb-3"></i>
+          <h6>No Leads Found</h6>
+          <p class="mb-3">This client doesn't have any associated leads.</p>
+          <%= link_to new_admin_lead_path(customer_id: @customer.id), class: "btn btn-primary btn-sm" do %>
+            <i class="bi bi-plus me-1"></i>Create New Lead
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Financial Information Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#financialCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-credit-card"></i>
+      </div>
+      <h5 class="section-title">Financial Information</h5>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="financialCollapse" class="collapse">
+    <div class="section-body">
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="info-field">
+            <label>PAN NUMBER</label>
+            <div class="info-value"><%= @customer.pan_number || '-' %></div>
           </div>
-        <% else %>
-          <div class="text-center text-muted py-4">
-            <i class="bi bi-shield-check fs-3 d-block mb-2 text-success"></i>
-            <p class="mb-0">No expired policies found</p>
+        </div>
+        <div class="col-md-4">
+          <div class="info-field">
+            <label>GST NUMBER</label>
+            <div class="info-value"><%= @customer.gst_number || '-' %></div>
           </div>
-        <% end %>
+        </div>
+        <div class="col-md-4">
+          <div class="info-field">
+            <label>ANNUAL INCOME</label>
+            <div class="info-value">
+              <% if @customer.annual_income.present? %>
+                <%= indian_currency(@customer.annual_income) %>
+              <% else %>
+                -
+              <% end %>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- Upcoming Installments Table -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-          <i class="bi bi-calendar-event me-2 text-warning"></i>
-          Upcoming Installments (Next 30 Days)
-        </h5>
-        <%
-          upcoming_installments = @all_policies.select do |p|
-            policy_obj = p[:policy]
-            next false unless policy_obj.respond_to?(:payment_mode)
-            next false unless ['Monthly', 'Quarterly', 'Half Yearly', 'Semi-Annual'].include?(policy_obj.payment_mode)
-            next false unless p[:status] == 'Active'
-            next false unless policy_obj.respond_to?(:policy_start_date) && policy_obj.policy_start_date
+<!-- Active Policies Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#activePoliciesCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-shield-check-fill"></i>
+      </div>
+      <h5 class="section-title">Active Policies</h5>
+      <span class="section-count bg-success text-white"><%= @all_policies&.select { |p| p[:status] == 'Active' }&.count || 0 %> Active</span>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="activePoliciesCollapse" class="collapse">
+    <div class="section-body">
+      <% active_policies = @all_policies&.select { |p| p[:status] == 'Active' } || [] %>
+      <% if active_policies.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-success">
+              <tr>
+                <th>Policy Type</th>
+                <th>Policy Number</th>
+                <th>Company</th>
+                <th>Premium</th>
+                <th>Period</th>
+                <th>Days Left</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% active_policies.each do |policy| %>
+                <tr>
+                  <td><strong><%= policy[:type] %></strong></td>
+                  <td><code class="bg-light px-2 py-1 rounded"><%= policy[:policy_number] %></code></td>
+                  <td><%= policy[:company_name] %></td>
+                  <td><span class="text-success fw-bold"><%= indian_currency(policy[:premium].to_i) %></span></td>
+                  <td>
+                    <% if policy[:start_date] && policy[:end_date] %>
+                      <small><%= policy[:start_date].strftime("%d %b %Y") %> - <%= policy[:end_date].strftime("%d %b %Y") %></small>
+                    <% else %>
+                      N/A
+                    <% end %>
+                  </td>
+                  <td>
+                    <% if policy[:end_date] %>
+                      <% days_remaining = (policy[:end_date] - Date.current).to_i %>
+                      <% if days_remaining > 0 %>
+                        <span class="badge bg-<%= days_remaining <= 30 ? 'warning' : 'info' %>"><%= days_remaining %> days</span>
+                      <% else %>
+                        <span class="badge bg-danger">Expired</span>
+                      <% end %>
+                    <% else %>
+                      N/A
+                    <% end %>
+                  </td>
+                  <td>
+                    <% case policy[:type] %>
+                    <% when 'Health Insurance' %>
+                      <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% when 'Life Insurance' %>
+                      <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% when 'Motor Insurance' %>
+                      <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-shield-x fs-3 d-block mb-2"></i>
+          <p class="mb-0">No active policies found</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
 
-            # Calculate next installment date based on payment mode
-            start_date = policy_obj.policy_start_date
-            today = Date.current
-
-            case policy_obj.payment_mode
-            when 'Monthly'
-              next_date = start_date
-              while next_date <= today
-                next_date = next_date + 1.month
-              end
-            when 'Quarterly'
-              next_date = start_date
-              while next_date <= today
-                next_date = next_date + 3.months
-              end
-            when 'Half Yearly', 'Semi-Annual'
-              next_date = start_date
-              while next_date <= today
-                next_date = next_date + 6.months
-              end
-            else
-              next false
-            end
-
-            # Check if next installment is within 30 days
-            next_date <= 30.days.from_now
+<!-- Past Policies Section (Renewed Policies) -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#pastPoliciesCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-clock-history"></i>
+      </div>
+      <h5 class="section-title">Past Policies (Renewed)</h5>
+      <%
+        # Past policies are those that have been renewed (have a renewal policy)
+        past_policies = @all_policies&.select do |p|
+          policy_obj = p[:policy]
+          # Check if this is a renewed policy or if policy has is_renewed flag
+          if policy_obj.respond_to?(:policy_type)
+            policy_obj.policy_type == 'Renewal' || (policy_obj.respond_to?(:is_renewed) && policy_obj.is_renewed)
+          else
+            false
           end
-        %>
-        <span class="badge bg-warning text-dark">
-          <%= upcoming_installments.count %> Due Soon
-        </span>
-      </div>
-      <div class="card-body">
-        <% if upcoming_installments.any? %>
-          <div class="table-responsive">
-            <table class="table table-hover align-middle">
-              <thead class="table-warning">
+        end || []
+      %>
+      <span class="section-count bg-success text-white"><%= past_policies.count %> Renewed</span>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="pastPoliciesCollapse" class="collapse">
+    <div class="section-body">
+      <% if past_policies.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-success">
+              <tr>
+                <th>Policy Type</th>
+                <th>Policy Number</th>
+                <th>Company</th>
+                <th>Premium</th>
+                <th>Period</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% past_policies.each do |policy| %>
                 <tr>
-                  <th class="border-0">Policy Type</th>
-                  <th class="border-0">Policy Number</th>
-                  <th class="border-0">Insurance Company</th>
-                  <th class="border-0">Payment Mode</th>
-                  <th class="border-0">Premium Amount</th>
-                  <th class="border-0">Next Due Date</th>
-                  <th class="border-0">Days Until Due</th>
-                  <th class="border-0">Actions</th>
+                  <td><strong><%= policy[:type] %></strong></td>
+                  <td>
+                    <code class="bg-light px-2 py-1 rounded"><%= policy[:policy_number] %></code>
+                    <span class="badge bg-success ms-1">Renewed</span>
+                  </td>
+                  <td><%= policy[:company_name] %></td>
+                  <td><span class="text-muted"><%= indian_currency(policy[:premium].to_i) %></span></td>
+                  <td>
+                    <% if policy[:start_date] && policy[:end_date] %>
+                      <small><%= policy[:start_date].strftime("%d %b %Y") %> - <%= policy[:end_date].strftime("%d %b %Y") %></small>
+                    <% else %>
+                      N/A
+                    <% end %>
+                  </td>
+                  <td>
+                    <span class="badge bg-success">Renewed</span>
+                  </td>
+                  <td>
+                    <% case policy[:type] %>
+                    <% when 'Health Insurance' %>
+                      <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% when 'Life Insurance' %>
+                      <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% when 'Motor Insurance' %>
+                      <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% end %>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                <% upcoming_installments.each do |policy| %>
-                  <%
-                    policy_obj = policy[:policy]
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-clock-history fs-3 d-block mb-2"></i>
+          <p class="mb-0">No renewed policies found</p>
+          <small class="text-muted">Policies that have been successfully renewed will appear here</small>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Expired Policies Section (Not Renewed) -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#expiredPoliciesCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-shield-x"></i>
+      </div>
+      <h5 class="section-title">Expired Policies (Not Renewed)</h5>
+      <%
+        # Expired policies that have NOT been renewed
+        expired_policies = @all_policies&.select do |p|
+          policy_obj = p[:policy]
+          # Check if expired and NOT renewed
+          p[:status] == 'Expired' &&
+          !(policy_obj.respond_to?(:is_renewed) && policy_obj.is_renewed) &&
+          !(policy_obj.respond_to?(:has_been_renewed?) && policy_obj.has_been_renewed?)
+        end || []
+      %>
+      <span class="section-count bg-danger text-white"><%= expired_policies.count %> Not Renewed</span>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="expiredPoliciesCollapse" class="collapse">
+    <div class="section-body">
+      <% if expired_policies.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-danger">
+              <tr>
+                <th>Policy Type</th>
+                <th>Policy Number</th>
+                <th>Company</th>
+                <th>Premium</th>
+                <th>Expired Date</th>
+                <th>Days Ago</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% expired_policies.each do |policy| %>
+                <tr>
+                  <td><strong><%= policy[:type] %></strong></td>
+                  <td>
+                    <code class="bg-light px-2 py-1 rounded"><%= policy[:policy_number] %></code>
+                    <span class="badge bg-danger ms-1">Not Renewed</span>
+                  </td>
+                  <td><%= policy[:company_name] %></td>
+                  <td><span class="text-muted"><%= indian_currency(policy[:premium].to_i) %></span></td>
+                  <td>
+                    <% if policy[:end_date] %>
+                      <span class="text-danger"><%= policy[:end_date].strftime("%d %b %Y") %></span>
+                    <% else %>
+                      N/A
+                    <% end %>
+                  </td>
+                  <td>
+                    <% if policy[:end_date] %>
+                      <% days_ago = (Date.current - policy[:end_date]).to_i %>
+                      <span class="badge bg-danger"><%= days_ago %> days ago</span>
+                    <% else %>
+                      N/A
+                    <% end %>
+                  </td>
+                  <td>
+                    <% case policy[:type] %>
+                    <% when 'Health Insurance' %>
+                      <%= link_to "Renew", "#", class: "btn btn-sm btn-warning me-1" %>
+                      <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% when 'Life Insurance' %>
+                      <%= link_to "Renew", "#", class: "btn btn-sm btn-warning me-1" %>
+                      <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% when 'Motor Insurance' %>
+                      <%= link_to "Renew", "#", class: "btn btn-sm btn-warning me-1" %>
+                      <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-shield-check fs-3 d-block mb-2 text-success"></i>
+          <p class="mb-0">No expired unreneved policies</p>
+          <small class="text-muted">All expired policies have been renewed</small>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Upcoming Renewals & Installments (Next 30 Days) -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#upcomingDuesCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-calendar-check"></i>
+      </div>
+      <h5 class="section-title">Upcoming Renewals & Installments (Next 30 Days)</h5>
+      <%
+        # Policies needing renewal in next 30 days
+        renewal_policies = @all_policies&.select do |p|
+          next false unless p[:status] == 'Active'
+          next false unless p[:end_date]
+          days_until_expiry = (p[:end_date] - Date.current).to_i
+          days_until_expiry > 0 && days_until_expiry <= 30
+        end || []
+
+        # Installments due in next 30 days
+        installment_policies = @all_policies&.select do |p|
+          policy_obj = p[:policy]
+          next false unless policy_obj.respond_to?(:payment_mode)
+          next false unless ['Monthly', 'Quarterly', 'Half Yearly', 'Semi-Annual'].include?(policy_obj.payment_mode)
+          next false unless p[:status] == 'Active'
+          next false unless policy_obj.respond_to?(:policy_start_date) && policy_obj.policy_start_date
+          start_date = policy_obj.policy_start_date
+          today = Date.current
+          case policy_obj.payment_mode
+          when 'Monthly'
+            next_date = start_date
+            while next_date <= today
+              next_date = next_date + 1.month
+            end
+          when 'Quarterly'
+            next_date = start_date
+            while next_date <= today
+              next_date = next_date + 3.months
+            end
+          when 'Half Yearly', 'Semi-Annual'
+            next_date = start_date
+            while next_date <= today
+              next_date = next_date + 6.months
+            end
+          else
+            next false
+          end
+          next_date <= 30.days.from_now
+        end || []
+
+        total_upcoming = (renewal_policies + installment_policies).uniq { |p| p[:policy].id }
+      %>
+      <span class="section-count bg-warning text-dark"><%= total_upcoming.count %> Due Soon</span>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="upcomingDuesCollapse" class="collapse">
+    <div class="section-body">
+      <% if total_upcoming.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-warning">
+              <tr>
+                <th>Type</th>
+                <th>Policy</th>
+                <th>Company</th>
+                <th>Amount</th>
+                <th>Due Date</th>
+                <th>Days Left</th>
+                <th>Due For</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% total_upcoming.each do |policy| %>
+                <%
+                  policy_obj = policy[:policy]
+                  # Check if it's a renewal or installment
+                  days_until_expiry = policy[:end_date] ? (policy[:end_date] - Date.current).to_i : nil
+                  is_renewal = days_until_expiry && days_until_expiry > 0 && days_until_expiry <= 30
+
+                  # Calculate installment date if applicable
+                  if !is_renewal && policy_obj.respond_to?(:payment_mode) && policy_obj.respond_to?(:policy_start_date)
                     start_date = policy_obj.policy_start_date
                     today = Date.current
-
                     case policy_obj.payment_mode
                     when 'Monthly'
                       next_date = start_date
@@ -1026,495 +1018,566 @@
                       while next_date <= today
                         next_date = next_date + 6.months
                       end
+                    else
+                      next_date = nil
                     end
-
-                    days_until_due = (next_date - today).to_i
-                  %>
-                  <tr>
-                    <td>
-                      <div class="d-flex align-items-center">
-                        <span class="badge bg-warning bg-opacity-10 text-warning me-2">
-                          <i class="bi bi-calendar-event"></i>
-                        </span>
-                        <strong><%= policy[:type] %></strong>
-                      </div>
-                    </td>
-                    <td>
-                      <code class="bg-light px-2 py-1 rounded">
-                        <%= policy[:policy_number] %>
-                      </code>
-                    </td>
-                    <td><%= policy[:company_name] %></td>
-                    <td>
-                      <span class="badge bg-info">
-                        <i class="bi bi-arrow-repeat me-1"></i>
-                        <%= policy_obj.payment_mode %>
-                      </span>
-                    </td>
-                    <td>
-                      <span class="text-warning fw-bold">
-                        <%= indian_currency(policy[:premium].to_i) %>
-                      </span>
-                    </td>
-                    <td>
-                      <span class="text-warning">
-                        <i class="bi bi-calendar-event me-1"></i>
-                        <%= next_date.strftime("%d %b %Y") %>
-                      </span>
-                    </td>
-                    <td>
-                      <span class="badge bg-<%= days_until_due <= 7 ? 'danger' : (days_until_due <= 15 ? 'warning' : 'info') %>">
-                        <%= days_until_due %> days
-                      </span>
-                    </td>
-                    <td>
-                      <div class="btn-group" role="group">
-                        <% case policy[:type] %>
-                        <% when 'Health Insurance' %>
-                          <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
-                            <i class="bi bi-eye"></i>
-                          <% end %>
-                          <%= link_to edit_admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
-                            <i class="bi bi-pencil"></i>
-                          <% end %>
-                        <% when 'Life Insurance' %>
-                          <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
-                            <i class="bi bi-eye"></i>
-                          <% end %>
-                          <%= link_to edit_admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
-                            <i class="bi bi-pencil"></i>
-                          <% end %>
-                        <% when 'Motor Insurance' %>
-                          <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
-                            <i class="bi bi-eye"></i>
-                          <% end %>
-                          <%= link_to edit_admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
-                            <i class="bi bi-pencil"></i>
-                          <% end %>
-                        <% end %>
-                        <button class="btn btn-sm btn-outline-success" title="Mark as Paid" onclick="markInstallmentPaid('<%= policy[:policy_number] %>')">
-                          <i class="bi bi-check-circle"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-        <% else %>
-          <div class="text-center text-muted py-4">
-            <i class="bi bi-calendar-check fs-3 d-block mb-2 text-success"></i>
-            <p class="mb-0">No upcoming installments in the next 30 days</p>
-            <small class="text-muted">All installments are up to date</small>
-          </div>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Sidebar -->
-  <div class="col-lg-4">
-    <!-- Profile Card -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-body text-center">
-        <% if @customer.profile_image.attached? %>
-          <div class="profile-image-container mb-3">
-            <%= link_to rails_blob_url(@customer.profile_image, disposition: "inline"),
-                target: "_blank",
-                title: "Click to view full size",
-                class: "text-decoration-none" do %>
-              <%= image_tag rails_blob_path(@customer.profile_image, only_path: true),
-                  class: "profile-image rounded-circle border border-3 border-light shadow",
-                  alt: @customer.display_name,
-                  style: "width: 120px; height: 120px; object-fit: cover;" %>
-            <% end %>
-          </div>
-        <% else %>
-          <div class="profile-placeholder mb-3">
-            <div class="rounded-circle border border-3 border-light shadow d-flex align-items-center justify-content-center"
-                 style="width: 120px; height: 120px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0 auto;">
-              <i class="bi bi-person fs-1 text-white"></i>
-            </div>
-          </div>
-        <% end %>
-
-        <h5 class="mb-1"><%= @customer.display_name %></h5>
-        <p class="text-muted mb-2">
-          <span class="badge bg-<%= @customer.customer_type == 'individual' ? 'primary' : 'success' %>">
-            <%= @customer.customer_type.humanize %>
-          </span>
-        </p>
-        <p class="text-muted small mb-0">
-          <i class="bi bi-person-badge me-1"></i>ID: #<%= @customer.id %>
-        </p>
-        <% if @customer.email.present? %>
-          <p class="text-muted small mb-0">
-            <i class="bi bi-envelope me-1"></i><%= @customer.email %>
-          </p>
-        <% end %>
-        <% if @customer.mobile.present? %>
-          <p class="text-muted small mb-0">
-            <i class="bi bi-phone me-1"></i><%= @customer.mobile %>
-          </p>
-        <% end %>
-
-        <!-- Profile Preview Button -->
-        <div class="mt-3">
-          <% if @customer.profile_image.attached? %>
-            <button type="button" class="btn btn-outline-primary btn-sm w-100"
-                    data-bs-toggle="modal"
-                    data-bs-target="#profilePreviewModal">
-              <i class="bi bi-eye me-1"></i>Preview Profile Image
-            </button>
-          <% else %>
-            <button type="button" class="btn btn-outline-secondary btn-sm w-100" disabled>
-              <i class="bi bi-image me-1"></i>No Profile Image
-            </button>
-          <% end %>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0">
-        <h6 class="mb-0">Quick Stats</h6>
-      </div>
-      <div class="card-body">
-        <div class="row g-3">
-          <div class="col-6">
-            <div class="text-center">
-              <h4 class="text-primary mb-1"><%= @all_policies.count %></h4>
-              <small class="text-muted">Policies</small>
-            </div>
-          </div>
-          <div class="col-6">
-            <div class="text-center">
-              <h4 class="text-success mb-1"><%= @family_members.count %></h4>
-              <small class="text-muted">Family Members</small>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-
-    <!-- Policy Details Table -->
- 
-
-    <!-- Customer Timeline -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0">
-        <h6 class="mb-0">Customer Timeline</h6>
-      </div>
-      <div class="card-body">
-        <div class="timeline">
-          <div class="timeline-item">
-            <div class="timeline-marker bg-success"></div>
-            <div class="timeline-content">
-              <small class="text-muted">Customer Created</small>
-              <div><%= @customer.created_at.strftime("%B %d, %Y at %I:%M %p") %></div>
-            </div>
-          </div>
-          <% if @customer.updated_at != @customer.created_at %>
-            <div class="timeline-item">
-              <div class="timeline-marker bg-info"></div>
-              <div class="timeline-content">
-                <small class="text-muted">Last Updated</small>
-                <div><%= @customer.updated_at.strftime("%B %d, %Y at %I:%M %p") %></div>
-              </div>
-            </div>
-          <% end %>
-        </div>
-      </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0">
-        <h6 class="mb-0">Actions</h6>
-      </div>
-      <div class="card-body">
-        <div class="d-grid gap-2">
-          <%= link_to edit_admin_customer_path(@customer), class: "btn btn-primary" do %>
-            <i class="bi bi-pencil me-1"></i>Edit Customer
-          <% end %>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent Policies -->
-    <% if @all_policies.any? %>
-      <div class="card border-0 shadow-sm">
-        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-          <h6 class="mb-0">Recent Policies</h6>
-          <%= link_to policy_chart_admin_customer_path(@customer), class: "btn btn-sm btn-outline-primary" do %>
-            View All
-          <% end %>
-        </div>
-        <div class="card-body p-0">
-          <div class="list-group list-group-flush">
-            <% @all_policies.first(5).each do |policy_data| %>
-              <div class="list-group-item">
-                <div class="d-flex w-100 justify-content-between align-items-start">
-                  <div class="flex-grow-1">
-                    <h6 class="mb-1">
-                      <%= policy_data[:policy_number] %>
-                      <span class="badge bg-<%= policy_data[:status] == 'Active' ? 'success' : 'danger' %> ms-2">
-                        <%= policy_data[:status] %>
-                      </span>
-                    </h6>
-                    <p class="mb-1 small text-muted"><%= policy_data[:company_name] %></p>
-                    <small class="text-muted">
-                      <i class="bi bi-shield-check me-1"></i>
-                      <%= policy_data[:type] %> •
-                      <%= policy_data[:created_at].strftime("%B %d, %Y") %>
-                    </small>
-                  </div>
-                  <div class="text-end">
-                    <small class="text-success fw-bold d-block"><%= indian_currency(policy_data[:premium].to_i) %></small>
-                    <% if policy_data[:end_date] %>
-                      <small class="text-muted">
-                        Exp: <%= policy_data[:end_date].strftime("%b %Y") %>
-                      </small>
+                    is_installment = next_date && next_date <= 30.days.from_now
+                    days_until_installment = next_date ? (next_date - today).to_i : nil
+                  else
+                    is_installment = false
+                    next_date = nil
+                    days_until_installment = nil
+                  end
+                %>
+                <tr>
+                  <td><strong><%= policy[:type] %></strong></td>
+                  <td><code class="bg-light px-2 py-1 rounded"><%= policy[:policy_number] %></code></td>
+                  <td><%= policy[:company_name] %></td>
+                  <td><span class="text-success fw-bold"><%= indian_currency(policy[:premium].to_i) %></span></td>
+                  <td>
+                    <% if is_renewal %>
+                      <span class="text-warning"><%= policy[:end_date].strftime("%d %b %Y") %></span>
+                    <% elsif is_installment %>
+                      <span class="text-info"><%= next_date.strftime("%d %b %Y") %></span>
+                    <% else %>
+                      N/A
                     <% end %>
-                  </div>
-                </div>
-              </div>
-            <% end %>
-          </div>
+                  </td>
+                  <td>
+                    <% if is_renewal %>
+                      <span class="badge bg-<%= days_until_expiry <= 7 ? 'danger' : (days_until_expiry <= 15 ? 'warning' : 'info') %>">
+                        <%= days_until_expiry %> days
+                      </span>
+                    <% elsif is_installment %>
+                      <span class="badge bg-<%= days_until_installment <= 7 ? 'danger' : (days_until_installment <= 15 ? 'warning' : 'info') %>">
+                        <%= days_until_installment %> days
+                      </span>
+                    <% else %>
+                      N/A
+                    <% end %>
+                  </td>
+                  <td>
+                    <% if is_renewal %>
+                      <span class="badge bg-warning">Renewal</span>
+                    <% elsif is_installment %>
+                      <span class="badge bg-info">Installment</span>
+                    <% else %>
+                      -
+                    <% end %>
+                  </td>
+                  <td>
+                    <% if is_renewal %>
+                      <%= link_to "Renew", "#", class: "btn btn-sm btn-success me-1" %>
+                    <% elsif is_installment %>
+                      <%= link_to "Pay", "#", class: "btn btn-sm btn-primary me-1" %>
+                    <% end %>
+                    <% case policy[:type] %>
+                    <% when 'Health Insurance' %>
+                      <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% when 'Life Insurance' %>
+                      <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% when 'Motor Insurance' %>
+                      <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
         </div>
-      </div>
-    <% end %>
+      <% else %>
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-calendar-check fs-3 d-block mb-2 text-success"></i>
+          <p class="mb-0">No renewals or installments due in the next 30 days</p>
+          <small class="text-muted">All policies and payments are up to date</small>
+        </div>
+      <% end %>
+    </div>
   </div>
 </div>
 
+<!-- Remove old Upcoming Installments Section -->
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#upcomingInstallmentsCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-calendar-event"></i>
+      </div>
+      <h5 class="section-title">Upcoming Installments (Next 30 Days)</h5>
+      <%
+        upcoming_installments = @all_policies&.select do |p|
+          policy_obj = p[:policy]
+          next false unless policy_obj.respond_to?(:payment_mode)
+          next false unless ['Monthly', 'Quarterly', 'Half Yearly', 'Semi-Annual'].include?(policy_obj.payment_mode)
+          next false unless p[:status] == 'Active'
+          next false unless policy_obj.respond_to?(:policy_start_date) && policy_obj.policy_start_date
+          start_date = policy_obj.policy_start_date
+          today = Date.current
+          case policy_obj.payment_mode
+          when 'Monthly'
+            next_date = start_date
+            while next_date <= today
+              next_date = next_date + 1.month
+            end
+          when 'Quarterly'
+            next_date = start_date
+            while next_date <= today
+              next_date = next_date + 3.months
+            end
+          when 'Half Yearly', 'Semi-Annual'
+            next_date = start_date
+            while next_date <= today
+              next_date = next_date + 6.months
+            end
+          else
+            next false
+          end
+          next_date <= 30.days.from_now
+        end || []
+      %>
+      <span class="section-count bg-warning text-dark"><%= upcoming_installments.count %> Due Soon</span>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="upcomingInstallmentsCollapse" class="collapse">
+    <div class="section-body">
+      <% if upcoming_installments.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-warning">
+              <tr>
+                <th>Policy Type</th>
+                <th>Policy Number</th>
+                <th>Payment Mode</th>
+                <th>Premium</th>
+                <th>Next Due Date</th>
+                <th>Days Until Due</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% upcoming_installments.each do |policy| %>
+                <%
+                  policy_obj = policy[:policy]
+                  start_date = policy_obj.policy_start_date
+                  today = Date.current
+                  case policy_obj.payment_mode
+                  when 'Monthly'
+                    next_date = start_date
+                    while next_date <= today
+                      next_date = next_date + 1.month
+                    end
+                  when 'Quarterly'
+                    next_date = start_date
+                    while next_date <= today
+                      next_date = next_date + 3.months
+                    end
+                  when 'Half Yearly', 'Semi-Annual'
+                    next_date = start_date
+                    while next_date <= today
+                      next_date = next_date + 6.months
+                    end
+                  end
+                  days_until_due = (next_date - today).to_i
+                %>
+                <tr>
+                  <td><strong><%= policy[:type] %></strong></td>
+                  <td><code class="bg-light px-2 py-1 rounded"><%= policy[:policy_number] %></code></td>
+                  <td><span class="badge bg-info"><%= policy_obj.payment_mode %></span></td>
+                  <td><span class="text-warning fw-bold"><%= indian_currency(policy[:premium].to_i) %></span></td>
+                  <td><span class="text-warning"><%= next_date.strftime("%d %b %Y") %></span></td>
+                  <td><span class="badge bg-<%= days_until_due <= 7 ? 'danger' : (days_until_due <= 15 ? 'warning' : 'info') %>"><%= days_until_due %> days</span></td>
+                  <td>
+                    <% case policy[:type] %>
+                    <% when 'Health Insurance' %>
+                      <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% when 'Life Insurance' %>
+                      <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% when 'Motor Insurance' %>
+                      <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-calendar-check fs-3 d-block mb-2 text-success"></i>
+          <p class="mb-0">No upcoming installments in the next 30 days</p>
+          <small class="text-muted">All installments are up to date</small>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Actions -->
+<div class="bottom-actions">
+  <%= link_to edit_admin_customer_path(@customer), class: "btn btn-primary" do %>
+    <i class="bi bi-pencil me-1"></i>Edit Client
+  <% end %>
+  <%= link_to admin_customers_path, class: "btn btn-outline-secondary" do %>
+    <i class="bi bi-arrow-left me-1"></i>Back to List
+  <% end %>
+</div>
+
 <style>
-.timeline {
+/* Customer Header Card */
+.customer-header-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.customer-avatar {
+  width: 80px;
+  height: 80px;
   position: relative;
-  padding-left: 20px;
 }
 
-.timeline::before {
-  content: '';
-  position: absolute;
-  left: 8px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: #dee2e6;
-}
-
-.timeline-item {
-  position: relative;
-  margin-bottom: 1rem;
-}
-
-.timeline-marker {
-  position: absolute;
-  left: -15px;
-  width: 12px;
-  height: 12px;
+.avatar-img {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  border: 2px solid #fff;
+  object-fit: cover;
 }
 
-.timeline-content {
-  padding-left: 10px;
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #2563eb;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 600;
 }
 
-/* Profile Image Styles */
-.profile-image-container {
-  position: relative;
-  display: inline-block;
+.customer-name {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
 }
 
-.profile-image {
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.customer-type-badge {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
-.profile-image:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+.customer-type-badge.individual {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.customer-type-badge.corporate {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-badge.inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.customer-credentials {
+  display: flex;
+  gap: 20px;
+  justify-content: flex-end;
+}
+
+.credential-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.credential-label {
+  color: #64748b;
+}
+
+.credential-value {
+  color: #1e293b;
+}
+
+/* Info Section Cards */
+.info-section-card {
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+.section-header {
+  padding: 16px 24px;
+  background: #f8fafc;
   cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
 }
 
-.profile-placeholder div {
-  transition: all 0.3s ease;
+.section-header:hover {
+  background: #f1f5f9;
 }
 
-.profile-placeholder:hover div {
-  transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+.section-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #e0f2fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0369a1;
+  font-size: 20px;
+  margin-right: 16px;
 }
 
-/* Profile Card Styling */
-.card-body {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
 }
 
-.profile-image-container::after {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: -5px;
-  right: -5px;
-  bottom: -5px;
-  background: linear-gradient(45deg, transparent, rgba(102, 126, 234, 0.1), transparent);
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: -1;
+.section-count {
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  margin-left: 12px;
 }
 
-.profile-image-container:hover::after {
-  opacity: 1;
+.collapse-icon {
+  color: #94a3b8;
+  transition: transform 0.3s;
+}
+
+.section-header:not(.collapsed) .collapse-icon {
+  transform: rotate(180deg);
+}
+
+.section-header.collapsed .collapse-icon {
+  transform: rotate(0deg);
+}
+
+.section-body {
+  padding: 24px;
+}
+
+/* Info Fields */
+.info-field {
+  margin-bottom: 4px;
+}
+
+.info-field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+/* Document Card */
+.document-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+/* Policy Card */
+.policy-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+/* Bottom Actions */
+.bottom-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .customer-header-card {
+    padding: 16px;
+  }
+
+  .customer-credentials {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .section-header {
+    padding: 12px 16px;
+  }
+
+  .section-body {
+    padding: 16px;
+  }
+
+  .bottom-actions {
+    flex-direction: column;
+  }
+
+  .bottom-actions .btn {
+    width: 100%;
+  }
 }
 </style>
 
-<!-- Profile Preview Modal -->
-<% if @customer.profile_image.attached? %>
-  <div class="modal fade" id="profilePreviewModal" tabindex="-1" aria-labelledby="profilePreviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="profilePreviewModalLabel">
-            <i class="bi bi-person-circle me-2"></i>Profile Image - <%= @customer.display_name %>
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body text-center">
-          <% if @customer.profile_image.attached? %>
-            <%= image_tag rails_blob_path(@customer.profile_image, only_path: true),
-                class: "img-fluid rounded shadow",
-                style: "max-height: 500px; max-width: 100%; object-fit: contain;",
-                alt: "Profile image of #{@customer.display_name}" %>
-
-            <div class="mt-3">
-              <p class="text-muted mb-1">
-                <strong>File:</strong> <%= @customer.profile_image.filename %>
-              </p>
-              <p class="text-muted mb-0">
-                <strong>Size:</strong> <%= number_to_human_size(@customer.profile_image.byte_size) %>
-              </p>
-            </div>
-          <% else %>
-            <p class="text-muted">No profile image available</p>
-          <% end %>
-        </div>
-        <div class="modal-footer">
-          <%= link_to rails_blob_url(@customer.profile_image, disposition: "attachment"),
-              class: "btn btn-primary",
-              download: @customer.profile_image.filename do %>
-            <i class="bi bi-download me-1"></i>Download
-          <% end %>
-          <%= link_to rails_blob_url(@customer.profile_image, disposition: "inline"),
-              class: "btn btn-outline-secondary",
-              target: "_blank" do %>
-            <i class="bi bi-arrows-fullscreen me-1"></i>Open in New Tab
-          <% end %>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-            <i class="bi bi-x-lg me-1"></i>Close
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-<% end %>
-
 <script>
-function markInstallmentPaid(policyNumber) {
-  if (confirm(`Are you sure you want to mark the installment for policy ${policyNumber} as paid?`)) {
-    // Here you would typically make an AJAX call to your backend
-    // For now, we'll just show a success message
-    alert(`Installment for policy ${policyNumber} has been marked as paid!`);
+// Copy credentials function
+function copyCredentials() {
+  const customerIdElement = document.getElementById('customer-id-value');
+  const passwordElement = document.getElementById('customer-password-value');
 
-    // Optionally reload the page to refresh the data
-    // window.location.reload();
+  const customerId = customerIdElement ? customerIdElement.textContent.trim() : '';
+  const password = passwordElement ? passwordElement.textContent.trim() : '';
+
+  if (!customerId || customerId === '-' || !password || password === '-') {
+    showNotification('No credentials to copy', 'error');
+    return;
   }
-}
 
-// Toggle all sections expand/collapse
-function toggleAllSections() {
-  const collapseElements = document.querySelectorAll('.collapse');
-  const toggleBtn = document.getElementById('toggle-text');
-  const icon = toggleBtn.previousElementSibling;
+  const text = `Client ID: ${customerId}\nPassword: ${password}`;
 
-  let allExpanded = true;
-  collapseElements.forEach(el => {
-    if (!el.classList.contains('show')) {
-      allExpanded = false;
-    }
-  });
-
-  if (allExpanded) {
-    // Collapse all
-    collapseElements.forEach(el => {
-      if (el.classList.contains('show')) {
-        const bsCollapse = new bootstrap.Collapse(el, { toggle: false });
-        bsCollapse.hide();
-      }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(function() {
+      showNotification('Credentials copied to clipboard!');
     });
-    toggleBtn.textContent = 'Expand All';
-    icon.className = 'bi bi-arrows-expand me-1';
   } else {
-    // Expand all
-    collapseElements.forEach(el => {
-      if (!el.classList.contains('show')) {
-        const bsCollapse = new bootstrap.Collapse(el, { toggle: false });
-        bsCollapse.show();
-      }
-    });
-    toggleBtn.textContent = 'Collapse All';
-    icon.className = 'bi bi-arrows-collapse me-1';
+    // Fallback for older browsers
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      showNotification('Credentials copied to clipboard!');
+    } catch (err) {
+      showNotification('Failed to copy', 'error');
+    }
+    document.body.removeChild(textArea);
   }
 }
 
-// Optional: Add tooltips to action buttons
+function showNotification(message, type = 'success') {
+  const notification = document.createElement('div');
+  notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+  notification.style.cssText = `
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 250px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  `;
+  notification.innerHTML = `
+    <i class="bi bi-${type === 'success' ? 'check-circle' : 'x-circle'} me-2"></i>
+    ${message}
+  `;
+
+  document.body.appendChild(notification);
+  setTimeout(() => {
+    notification.remove();
+  }, 3000);
+}
+
+// Handle collapse animations
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize Bootstrap tooltips if available
-  if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-      return new bootstrap.Tooltip(tooltipTriggerEl)
-    })
-  }
-
-  // Handle collapse icon rotation
-  document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(button => {
-    const target = button.getAttribute('data-bs-target');
-    const targetElement = document.querySelector(target);
-    const icon = button.querySelector('.collapse-icon');
-
-    if (targetElement && icon) {
-      targetElement.addEventListener('show.bs.collapse', function() {
-        icon.classList.remove('bi-chevron-right');
-        icon.classList.add('bi-chevron-down');
-      });
-
-      targetElement.addEventListener('hide.bs.collapse', function() {
-        icon.classList.remove('bi-chevron-down');
-        icon.classList.add('bi-chevron-right');
-      });
-    }
+  // Initialize all collapse elements
+  const collapseElements = document.querySelectorAll('.collapse');
+  collapseElements.forEach(element => {
+    new bootstrap.Collapse(element, {
+      toggle: false
+    });
   });
 
-  // Add hover effects to policy tables
-  const policyCards = document.querySelectorAll('.card');
-  policyCards.forEach(card => {
-    const tables = card.querySelectorAll('table tbody tr');
-    tables.forEach(row => {
-      row.addEventListener('mouseenter', function() {
-        this.style.backgroundColor = '#f8f9fa';
-      });
-      row.addEventListener('mouseleave', function() {
-        this.style.backgroundColor = '';
-      });
+  // Handle click events on section headers
+  const sectionHeaders = document.querySelectorAll('.section-header');
+  sectionHeaders.forEach(header => {
+    header.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const targetId = this.getAttribute('data-bs-target');
+      const targetElement = document.querySelector(targetId);
+
+      if (targetElement) {
+        // Toggle the collapse
+        const bsCollapse = bootstrap.Collapse.getInstance(targetElement);
+        if (bsCollapse) {
+          bsCollapse.toggle();
+        }
+
+        // Update aria-expanded attribute
+        const isExpanded = targetElement.classList.contains('show');
+        this.setAttribute('aria-expanded', !isExpanded);
+
+        // Toggle collapsed class on header
+        if (!isExpanded) {
+          this.classList.remove('collapsed');
+        } else {
+          this.classList.add('collapsed');
+        }
+      }
     });
   });
 });
 </script>
-
-
