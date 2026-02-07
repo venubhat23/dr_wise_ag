@@ -19,8 +19,8 @@ class Customer < ApplicationRecord
   # New product associations
   has_many :investments, dependent: :destroy
   has_many :loans, dependent: :destroy
-  has_many :tax_services, dependent: :destroy
-  has_many :travel_packages, dependent: :destroy
+  # has_many :tax_services, dependent: :destroy # Temporarily commented out due to incomplete table structure
+  # has_many :travel_packages, dependent: :destroy # Temporarily commented out due to incomplete table structure
 
   # Nested attributes
   accepts_nested_attributes_for :family_members, allow_destroy: true, reject_if: :all_blank

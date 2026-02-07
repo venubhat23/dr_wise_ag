@@ -7,14 +7,29 @@ class TravelPackage < ApplicationRecord
   validates :travel_date, presence: true
   validates :package_amount, presence: true, numericality: { greater_than: 0 }
 
-  # Enums
-  enum :status, { booked: true, cancelled: false }
+  # Status methods (using boolean column)
+  def booked?
+    status == true
+  end
+
+  def cancelled?
+    status == false || status.nil?
+  end
+
+  def mark_as_booked!
+    update!(status: true)
+  end
+
+  def mark_as_cancelled!
+    update!(status: false)
+  end
 
   # Scopes
   scope :by_type, ->(type) { where(travel_type: type) }
   scope :upcoming, -> { where('travel_date > ?', Date.current) }
   scope :completed, -> { where('return_date < ?', Date.current) }
   scope :active_bookings, -> { where(status: true) }
+  scope :cancelled_bookings, -> { where(status: [false, nil]) }
 
   # Instance methods
   def display_name

@@ -6,13 +6,28 @@ class TaxService < ApplicationRecord
   validates :financial_year, presence: true
   validates :filing_date, presence: true
 
-  # Enums
-  enum :status, { completed: true, pending: false }
+  # Status methods (using boolean column)
+  def completed?
+    status == true
+  end
+
+  def pending?
+    status == false || status.nil?
+  end
+
+  def mark_as_completed!
+    update!(status: true)
+  end
+
+  def mark_as_pending!
+    update!(status: false)
+  end
 
   # Scopes
   scope :by_type, ->(type) { where(service_type: type) }
   scope :by_financial_year, ->(year) { where(financial_year: year) }
   scope :completed_services, -> { where(status: true) }
+  scope :pending_services, -> { where(status: [false, nil]) }
 
   # Instance methods
   def display_name
