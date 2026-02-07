@@ -648,7 +648,7 @@
   <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#activePoliciesCollapse" aria-expanded="false">
     <div class="d-flex align-items-center">
       <div class="section-icon">
-        <i class="bi bi-shield-check-fill"></i>
+        <i class="bi bi-clipboard-check"></i>
       </div>
       <h5 class="section-title">Active Policies</h5>
       <span class="section-count bg-success text-white"><%= @all_policies&.select { |p| p[:status] == 'Active' }&.count || 0 %> Active</span>
