@@ -122,6 +122,30 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       # Auto-populate family members as policy holder options
       @customer_family_members = @selected_customer.family_members.includes(:customer)
     end
+
+    # Pre-fill lead data if coming from lead conversion
+    if params[:lead_id].present?
+      @lead = Lead.find_by(id: params[:lead_id])
+      if @lead
+        # Set the lead_id for the motor insurance record
+        @motor_insurance.lead_id = @lead.lead_id
+
+        # If customer_id wasn't already set, get it from the lead
+        if @selected_customer.nil? && @lead.converted_customer_id.present?
+          @selected_customer = Customer.find(@lead.converted_customer_id)
+          @motor_insurance.customer_id = @selected_customer.id
+          @customer_family_members = @selected_customer.family_members.includes(:customer)
+        end
+
+        # Auto-fill affiliate from lead
+        if @lead.affiliate_id.present?
+          @motor_insurance.sub_agent_id = @lead.affiliate_id
+          @auto_select_affiliate = @lead.affiliate_id
+        elsif !@lead.is_direct
+          @auto_select_affiliate = 'self'
+        end
+      end
+    end
   end
 
   def edit
@@ -179,6 +203,18 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     set_distributor_from_affiliate(@motor_insurance)
 
     if @motor_insurance.save
+      # Update lead status if this policy was created from a lead conversion
+      if @motor_insurance.lead_id.present?
+        lead = Lead.find_by(lead_id: @motor_insurance.lead_id)
+        if lead
+          # Update the lead to mark policy as created and move to converted stage
+          lead.update!(
+            current_stage: 'converted',
+            policy_created_id: @motor_insurance.id
+          )
+        end
+      end
+
       redirect_to admin_motor_insurance_path(@motor_insurance), notice: 'Motor insurance policy was successfully created.'
     else
       load_form_data

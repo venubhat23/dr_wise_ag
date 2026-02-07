@@ -11,6 +11,9 @@ class Customer < ApplicationRecord
   has_many_attached :profile_images
   belongs_to :affiliate, class_name: 'SubAgent', foreign_key: 'sub_agent_id', optional: true
 
+  # Lead associations - all leads that have been converted to this customer
+  has_many :converted_leads, class_name: 'Lead', foreign_key: 'converted_customer_id', dependent: :nullify
+
   # Insurance associations
   has_many :health_insurances, dependent: :destroy
   has_many :life_insurances, dependent: :destroy

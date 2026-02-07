@@ -544,44 +544,44 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     begin
       invoices_created = false
 
+      # Collect all affiliates that need invoices
+      affiliates_to_process = Set.new
+
       case payout_type
       when 'affiliate_all', 'bulk_selection'
-        # Generate invoice for specific affiliate
-        if affiliate_id.present?
-          invoice = generate_single_affiliate_invoice_for_leads(affiliate_id, lead_ids)
-          invoices_created = true if invoice
-        end
+        # Add specific affiliate
+        affiliates_to_process.add(affiliate_id.to_i) if affiliate_id.present?
 
-        # Generate invoices for affiliate_ids if it's bulk selection
+        # Add affiliates from bulk selection
         if payout_type == 'bulk_selection' && params[:affiliate_ids].present?
           params[:affiliate_ids].each do |aff_id|
-            invoice = generate_single_affiliate_invoice(aff_id)
-            invoices_created = true if invoice
+            affiliates_to_process.add(aff_id.to_i)
           end
         end
 
       when 'lead_single', 'lead_multiple', 'bulk_modal_selection'
-        # Generate invoices by grouping leads by affiliate
-        invoices = generate_invoices_for_leads(lead_ids)
-        invoices_created = true if invoices.any?
-
-      when 'quick_all_pending'
-        # Generate invoices for all affiliates with pending payouts that were just marked as paid
-        affiliates_processed = Set.new
-
-        # Track which affiliates had leads processed
-        CommissionPayout.where(payout_to: 'affiliate', status: 'paid', updated_at: 1.minute.ago..Time.current).each do |payout|
-          policy = get_policy_from_commission_payout(payout)
+        # Find affiliates from the leads
+        lead_ids.each do |lead_id|
+          policy = find_policy_by_lead_id(lead_id)
           if policy && policy.respond_to?(:sub_agent_id) && policy.sub_agent_id.present?
-            affiliates_processed.add(policy.sub_agent_id)
+            affiliates_to_process.add(policy.sub_agent_id)
           end
         end
 
-        # Generate invoice for each processed affiliate
-        affiliates_processed.each do |aff_id|
-          invoice = generate_single_affiliate_invoice_for_recent_payments(aff_id)
-          invoices_created = true if invoice
+      when 'quick_all_pending'
+        # Find all affiliates that had recent payments
+        CommissionPayout.where(payout_to: 'affiliate', status: 'paid', updated_at: 1.minute.ago..Time.current).each do |payout|
+          policy = get_policy_from_commission_payout(payout)
+          if policy && policy.respond_to?(:sub_agent_id) && policy.sub_agent_id.present?
+            affiliates_to_process.add(policy.sub_agent_id)
+          end
         end
+      end
+
+      # Generate/update one invoice per affiliate
+      affiliates_to_process.each do |aff_id|
+        invoice = generate_or_update_affiliate_invoice(aff_id)
+        invoices_created = true if invoice
       end
 
       return invoices_created
@@ -802,6 +802,94 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
 
   def generate_invoice_number
     "INV-AFF-#{Date.current.strftime('%Y%m%d')}-#{rand(10000..99999)}"
+  end
+
+  def generate_or_update_affiliate_invoice(affiliate_id)
+    sub_agent = SubAgent.find_by(id: affiliate_id)
+    return unless sub_agent
+
+    # Check if there's already an invoice for this affiliate today
+    today = Date.current
+    existing_invoice = Invoice.where(
+      payout_type: 'affiliate',
+      payout_id: affiliate_id,
+      invoice_date: today
+    ).first
+
+    # Get all paid commission payouts for this affiliate
+    paid_payouts = CommissionPayout.where(payout_to: 'affiliate', status: 'paid')
+                                   .select do |payout|
+      policy = get_policy_from_commission_payout(payout)
+      policy && policy.respond_to?(:sub_agent_id) && policy.sub_agent_id == affiliate_id.to_i
+    end
+
+    return if paid_payouts.empty?
+
+    # Calculate total commission from all paid payouts
+    total_commission = paid_payouts.sum(&:payout_amount)
+    return if total_commission <= 0
+
+    # Collect policy numbers for the notes
+    policies_processed = paid_payouts.map do |payout|
+      policy = get_policy_from_commission_payout(payout)
+      policy&.policy_number
+    end.compact.uniq
+
+    begin
+      if existing_invoice
+        # Update existing invoice with new total
+        existing_invoice.update!(
+          total_amount: total_commission,
+          notes: "Affiliate commission for #{paid_payouts.count} policies: #{policies_processed.join(', ')}",
+          updated_at: Time.current
+        )
+        Rails.logger.info "Updated existing invoice #{existing_invoice.invoice_number} for affiliate #{sub_agent.first_name} #{sub_agent.last_name} (#{sub_agent.id})"
+        existing_invoice
+      else
+        # Create new consolidated invoice
+        invoice_number = generate_unique_invoice_number(affiliate_id)
+
+        invoice = Invoice.create!(
+          invoice_number: invoice_number,
+          payout_type: 'affiliate',
+          payout_id: affiliate_id,
+          total_amount: total_commission,
+          status: 'paid',
+          invoice_date: Date.current,
+          due_date: Date.current,
+          paid_at: Time.current,
+          recipient_name: "#{sub_agent.first_name} #{sub_agent.last_name}",
+          recipient_email: sub_agent.email,
+          notes: "Affiliate commission for #{paid_payouts.count} policies: #{policies_processed.join(', ')}"
+        )
+
+        Rails.logger.info "Generated consolidated invoice #{invoice.invoice_number} for affiliate #{sub_agent.first_name} #{sub_agent.last_name} (#{sub_agent.id})"
+        invoice
+      end
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error "Failed to create/update invoice for affiliate #{affiliate_id}: #{e.message}"
+      nil
+    rescue => e
+      Rails.logger.error "Unexpected error creating/updating invoice for affiliate #{affiliate_id}: #{e.message}"
+      nil
+    end
+  end
+
+  def generate_unique_invoice_number(affiliate_id)
+    # Generate a deterministic invoice number based on affiliate and date
+    date_str = Date.current.strftime('%Y%m%d')
+    base_number = "INV-AFF-#{date_str}-#{affiliate_id.to_s.rjust(5, '0')}"
+
+    # Check if this exact number exists
+    counter = 1
+    invoice_number = base_number
+
+    while Invoice.exists?(invoice_number: invoice_number)
+      invoice_number = "#{base_number}-#{counter}"
+      counter += 1
+    end
+
+    invoice_number
   end
 
 end
