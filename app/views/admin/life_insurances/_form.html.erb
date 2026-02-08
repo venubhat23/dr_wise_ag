@@ -162,6 +162,8 @@
           <% if @life_insurance.errors[:insurance_company_name].any? %>
             <div class="invalid-feedback"><%= @life_insurance.errors[:insurance_company_name].first %></div>
           <% end %>
+          <!-- Hidden field to store insurance company code -->
+          <%= form.hidden_field :insurance_company_code, id: "life_insurance_insurance_company_code" %>
         </div>
       </div>
 
@@ -1580,6 +1582,33 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+
+  // Insurance Company Name to Code mapping
+  const companyCodeMapping = {
+    <% InsuranceCompany.all.each do |company| %>
+      '<%= company.name %>': '<%= company.code %>',
+    <% end %>
+  };
+
+  // Handle insurance company selection to auto-populate code
+  const companySelect = document.getElementById('life_insurance_insurance_company_name');
+  const companyCodeField = document.getElementById('life_insurance_insurance_company_code');
+
+  if (companySelect && companyCodeField) {
+    companySelect.addEventListener('change', function() {
+      const selectedCompany = this.value;
+      const companyCode = companyCodeMapping[selectedCompany] || '';
+      companyCodeField.value = companyCode;
+      console.log('Selected company:', selectedCompany, '-> Code:', companyCode);
+    });
+
+    // Set initial value if company is already selected
+    if (companySelect.value) {
+      const companyCode = companyCodeMapping[companySelect.value] || '';
+      companyCodeField.value = companyCode;
+    }
+  }
+
   // Document view toggle functionality
   const toggleButtons = document.querySelectorAll('.toggle-view');
   const listView = document.querySelector('.documents-list-view');

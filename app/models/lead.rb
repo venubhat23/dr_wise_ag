@@ -449,6 +449,16 @@ class Lead < ApplicationRecord
     is_branch_out == true
   end
 
+  # Calculate age from birth_date
+  def age
+    return nil unless birth_date.present?
+
+    today = Date.current
+    age = today.year - birth_date.year
+    age -= 1 if today < birth_date + age.years
+    age
+  end
+
   # Custom validation for unique contact number and product combination
   def unique_contact_for_product_combination
     return if contact_number.blank? || product_category.blank? || product_subcategory.blank?
@@ -574,4 +584,5 @@ class Lead < ApplicationRecord
       end
     end
   end
+
 end
