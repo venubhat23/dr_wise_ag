@@ -690,43 +690,94 @@
     padding: 1.5rem;
   }
 
-  /* Ensure page ends cleanly */
+  /* CONSISTENT SPACING: Fix spacing between all sections */
+  .info-section-card {
+    margin-bottom: 1.5rem !important;
+  }
+
   .info-section-card:last-child {
-    margin-bottom: 1rem;
+    margin-bottom: 0 !important;
   }
 
-  /* Remove any extra spacing at bottom of page */
-  .container-fluid,
-  .container,
-  .row,
-  .col-*,
-  [class*="col-"] {
-    padding-bottom: 0 !important;
+  /* Section body proper padding */
+  .section-body {
+    padding: 1.5rem !important;
   }
 
+  /* Form elements spacing within sections */
+  .section-body .row {
+    margin-bottom: 0.5rem;
+  }
+
+  .section-body .col-md-4,
+  .section-body .col-md-6,
+  .section-body .col-md-3 {
+    margin-bottom: 1rem !important;
+  }
+
+  /* Action buttons top spacing */
+  .d-flex.justify-content-between.align-items-center.mb-4 {
+    margin-bottom: 2rem !important;
+    padding: 1rem 0;
+  }
+
+  /* Clean page ending without removing necessary spacing */
   main {
-    padding-bottom: 1rem !important;
+    padding-bottom: 2rem !important;
   }
 
-  /* Remove Bootstrap default spacing */
-  .mb-4,
-  .mb-3,
-  .mb-2,
-  .mb-1,
-  .my-4,
-  .my-3,
-  .my-2,
-  .my-1 {
-    margin-bottom: 0 !important;
-  }
-
-  /* Override any remaining margin/padding on page end */
-  body > *:last-child,
-  main > *:last-child,
-  .container > *:last-child,
-  .container-fluid > *:last-child {
+  /* Only remove bottom spacing from empty containers */
+  .container-fluid:empty,
+  .container:empty,
+  .row:empty {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
+  }
+
+  /* ANTI-OVERLAP: Ensure sections never overlap */
+  .info-section-card {
+    position: relative;
+    z-index: 1;
+    clear: both;
+  }
+
+  .info-section-card + .info-section-card {
+    margin-top: 0 !important;
+  }
+
+  /* Proper form spacing inside sections */
+  .section-body .form-label {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  .section-body .form-control {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Ensure consistent row spacing */
+  .section-body .row + .row {
+    margin-top: 1rem;
+  }
+
+  /* Page structure - ensure clean ending */
+  .container-fluid {
+    padding-top: 1rem;
+    padding-bottom: 0 !important;
+  }
+
+  /* Hide any empty containers at bottom */
+  div:empty:not([class*="collapse"]):not([id*="Collapse"]):not(.section-icon):not(.collapse-icon) {
+    display: none !important;
+  }
+
+  /* Remove bottom margins from last elements */
+  .info-section-card:last-of-type {
+    margin-bottom: 0 !important;
+  }
+
+  .info-section-card:last-of-type .section-body > *:last-child {
+    margin-bottom: 0 !important;
   }
 
   /* Clean page ending */
@@ -753,64 +804,71 @@
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Aggressively remove empty sections
-  function removeEmptyContainers() {
-    // Remove empty info-section-cards
-    const emptySections = document.querySelectorAll('.info-section-card');
-    emptySections.forEach(section => {
-      const sectionBody = section.querySelector('.section-body');
-      const collapseDiv = section.querySelector('.collapse');
+// Enhanced cleanup function for life insurance page
+function aggressiveCleanup() {
+  console.log('🧹 Running life insurance page cleanup...');
 
-      // Check if section body is empty or has no meaningful content
-      if (sectionBody && (!sectionBody.children.length ||
-          sectionBody.textContent.trim() === '' ||
-          sectionBody.innerHTML.trim() === '')) {
-        section.remove();
-      }
+  // Find last actual section (Additional Information)
+  const lastSection = document.querySelector('.info-section-card:last-of-type');
 
-      // Check if collapse div is empty
-      if (collapseDiv && (!collapseDiv.children.length ||
-          collapseDiv.textContent.trim() === '' ||
-          collapseDiv.innerHTML.trim() === '')) {
-        section.remove();
-      }
-    });
+  if (lastSection) {
+    console.log('📍 Last section found:', lastSection.querySelector('.section-title')?.textContent);
 
-    // Remove any empty divs
-    const allDivs = document.querySelectorAll('div');
-    allDivs.forEach(div => {
-      if (div.children.length === 0 &&
-          div.textContent.trim() === '' &&
-          !div.classList.contains('section-icon') &&
-          !div.classList.contains('collapse-icon')) {
-        div.remove();
-      }
-    });
+    // Remove ALL elements after the last section until we hit STYLE/SCRIPT
+    let nextElement = lastSection.nextElementSibling;
+    let removedCount = 0;
 
-    // Remove any stray elements after the last meaningful content
-    const lastSection = document.querySelector('.info-section-card:last-of-type');
-    if (lastSection) {
-      let nextElement = lastSection.nextElementSibling;
-      while (nextElement && nextElement.tagName !== 'STYLE' && nextElement.tagName !== 'SCRIPT') {
-        const toRemove = nextElement;
-        nextElement = nextElement.nextElementSibling;
-        if (toRemove.textContent.trim() === '' || toRemove.children.length === 0) {
-          toRemove.remove();
-        }
-      }
+    while (nextElement &&
+           nextElement.tagName !== 'STYLE' &&
+           nextElement.tagName !== 'SCRIPT') {
+      const toRemove = nextElement;
+      nextElement = nextElement.nextElementSibling;
+
+      console.log('🗑️ Removing element after last section:', toRemove.tagName, toRemove.className);
+      toRemove.remove();
+      removedCount++;
     }
 
-    // Force remove any remaining empty Bootstrap containers
-    const containers = document.querySelectorAll('.container, .container-fluid, .row, [class*="col-"]');
-    containers.forEach(container => {
-      if (container.children.length === 0 && container.textContent.trim() === '') {
-        container.remove();
-      }
-    });
+    console.log(`✅ Removed ${removedCount} elements after last section`);
   }
 
-  // Run cleanup
-  removeEmptyContainers();
-});
+  // Remove any empty info-section-cards
+  const allSections = document.querySelectorAll('.info-section-card');
+  allSections.forEach(section => {
+    const sectionBody = section.querySelector('.section-body');
+    if (sectionBody) {
+      const textContent = sectionBody.textContent.trim();
+      const hasInputs = sectionBody.querySelectorAll('input, textarea, select').length;
+
+      // Only remove if truly empty (no inputs and no text)
+      if (!hasInputs && textContent === '') {
+        console.log('🗑️ Removing empty section:', section);
+        section.remove();
+      }
+    }
+  });
+
+  // Remove empty divs that might be causing spacing issues
+  const allDivs = document.querySelectorAll('div');
+  allDivs.forEach(div => {
+    if (div.children.length === 0 &&
+        div.textContent.trim() === '' &&
+        !div.classList.contains('section-icon') &&
+        !div.classList.contains('collapse-icon') &&
+        !div.classList.contains('collapse') &&
+        !div.id.includes('Collapse')) {
+      console.log('🗑️ Removing empty div:', div);
+      div.remove();
+    }
+  });
+
+  console.log('✅ Life insurance page cleanup completed');
+}
+
+// Run cleanup with multiple triggers
+document.addEventListener('DOMContentLoaded', aggressiveCleanup);
+window.addEventListener('load', aggressiveCleanup);
+setTimeout(aggressiveCleanup, 100);
+setTimeout(aggressiveCleanup, 500);
+setTimeout(aggressiveCleanup, 1000);
 </script>

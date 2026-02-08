@@ -10,7 +10,7 @@
     <% end %>
   </div>
 
-  <div class="btn-toolbar">
+  <div class="d-flex gap-2">
     <%= link_to edit_admin_other_insurance_path(@other_insurance), class: "btn btn-primary" do %>
       <i class="bi bi-pencil me-2"></i>
       Edit Policy
@@ -18,580 +18,763 @@
   </div>
 </div>
 
-<!-- Main Policy Card -->
-<div class="row">
-  <div class="col-lg-8">
-    <div class="card mb-4">
-      <div class="card-header">
-        <div class="d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">
-            <i class="bi bi-shield-check me-2 text-primary"></i>
-            Policy Information
-          </h5>
-          <span class="premium-badge">General Insurance</span>
-        </div>
+<!-- Client & Agent Details Section -->
+<div class="info-section-card">
+  <div class="section-header" data-bs-toggle="collapse" data-bs-target="#clientAgentCollapse" aria-expanded="true">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-person"></i>
       </div>
-
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Policy Number</label>
-            <h6 class="fw-bold"><%= @other_insurance.policy_number %></h6>
-          </div>
-
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Policy Type</label>
-            <h6><%= @other_insurance.policy_type&.humanize || 'General Insurance' %></h6>
-          </div>
-
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Sum Insured</label>
-            <h5 class="text-warning mb-0"><%= indian_currency(@other_insurance.sum_insured) %></h5>
-          </div>
-
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Total Premium</label>
-            <h5 class="text-success mb-0"><%= indian_currency(@other_insurance.total_premium) %></h5>
-          </div>
-
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Premium Frequency</label>
-            <h6><%= @other_insurance.payment_mode&.humanize || 'Annual' %></h6>
-          </div>
-
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Status</label>
-            <div>
-              <% if @other_insurance.policy_end_date.present? && @other_insurance.policy_end_date < Date.current %>
-                <span class="badge bg-danger fs-6">
-                  <i class="bi bi-x-circle me-1"></i>
-                  Expired
-                </span>
-              <% elsif @other_insurance.policy_start_date.present? && @other_insurance.policy_start_date > Date.current %>
-                <span class="badge bg-warning fs-6">
-                  <i class="bi bi-clock me-1"></i>
-                  Pending
-                </span>
-              <% elsif @other_insurance.policy_end_date.present? && @other_insurance.policy_end_date >= Date.current %>
-                <span class="badge bg-success fs-6">
-                  <i class="bi bi-check-circle me-1"></i>
-                  Active
-                </span>
-              <% else %>
-                <span class="badge bg-secondary fs-6">
-                  <i class="bi bi-question-circle me-1"></i>
-                  Unknown
-                </span>
-              <% end %>
-            </div>
-          </div>
-
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Policy Start Date</label>
-            <h6><%= @other_insurance.policy_start_date.strftime("%B %d, %Y") if @other_insurance.policy_start_date %></h6>
-          </div>
-
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Policy End Date</label>
-            <h6 class="<%= 'text-danger' if @other_insurance.policy_end_date && @other_insurance.policy_end_date < 30.days.from_now %>">
-              <%= @other_insurance.policy_end_date.strftime("%B %d, %Y") if @other_insurance.policy_end_date %>
-              <% if @other_insurance.policy_end_date && @other_insurance.policy_end_date < 30.days.from_now %>
-                <br><small class="text-danger">
-                  <i class="bi bi-exclamation-triangle me-1"></i>
-                  Expires soon
-                </small>
-              <% end %>
-            </h6>
-          </div>
-        </div>
-
-        <% if @other_insurance.plan_name.present? %>
-          <div class="luxury-divider"></div>
-          <div class="mt-3">
-            <label class="form-label text-muted">Plan Name</label>
-            <div class="bg-light p-3 rounded">
-              <%= @other_insurance.plan_name %>
-            </div>
-          </div>
-        <% end %>
-      </div>
+      <h5 class="section-title">Client & Agent Details</h5>
     </div>
-
-    <!-- Reference Information -->
-    <div class="card">
-      <div class="card-header">
-        <h5 class="mb-0">
-          <i class="bi bi-building me-2 text-info"></i>
-          Insurance Details
-        </h5>
-      </div>
-
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Insurance Company</label>
-            <h6><%= @other_insurance.insurance_company_name %></h6>
-          </div>
-
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Insurance Type</label>
-            <h6><%= @other_insurance.insurance_type&.humanize || 'Not specified' %></h6>
-          </div>
-
-          <% if @other_insurance.claim_process.present? %>
-            <div class="col-12">
-              <label class="form-label text-muted">Claim Process</label>
-              <div class="bg-light p-3 rounded">
-                <%= simple_format(@other_insurance.claim_process) %>
-              </div>
-            </div>
-          <% end %>
-        </div>
-      </div>
-    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
-
-  <div class="col-lg-4">
-    <!-- Customer Information -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h5 class="mb-0">
-          <i class="bi bi-person me-2 text-primary"></i>
-          Customer Details
-        </h5>
+  <div id="clientAgentCollapse" class="collapse show">
+    <div class="section-body">
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Client Name*</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.customer&.display_name %>" readonly>
       </div>
 
-      <div class="card-body">
-        <% if @other_insurance.customer %>
-          <div class="d-flex align-items-center mb-3">
-            <div class="stats-icon primary me-3" style="width: 50px; height: 50px; font-size: 1.2rem;">
-              <i class="bi bi-person"></i>
-            </div>
-            <div>
-              <h6 class="mb-1"><%= @other_insurance.customer.display_name %></h6>
-              <small class="text-muted">
-                <%= @other_insurance.customer.customer_type&.humanize || 'Individual' %>
-              </small>
-            </div>
-          </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Policy Holder*</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.policy_holder %>" readonly>
+      </div>
 
-          <div class="mb-3">
-            <label class="form-label text-muted small">Email</label>
-            <div><%= @other_insurance.customer.email || 'N/A' %></div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label text-muted small">Mobile</label>
-            <div><%= @other_insurance.customer.mobile || 'N/A' %></div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label text-muted small">Address</label>
-            <div>
-              <%= @other_insurance.customer.address.present? ? @other_insurance.customer.address : 'Not provided' %><br>
-              <%= @other_insurance.customer.city %>, <%= @other_insurance.customer.state %>
-              <% if @other_insurance.customer.pincode.present? %>
-                - <%= @other_insurance.customer.pincode %>
-              <% end %>
-            </div>
-          </div>
-
-          <%= link_to admin_customer_path(@other_insurance.customer), class: "btn btn-outline-primary btn-sm w-100" do %>
-            <i class="bi bi-eye me-2"></i>
-            View Customer Profile
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No customer information available.</p>
-        <% end %>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Affiliate</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.sub_agent&.display_name || 'Self' %>" readonly>
       </div>
     </div>
-    <!-- Premium Breakdown -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h5 class="mb-0">
-          <i class="bi bi-calculator me-2 text-success"></i>
-          Premium Breakdown
-        </h5>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-12 mb-2">
-            <div class="d-flex justify-content-between">
-              <span class="text-muted">Net Premium:</span>
-              <strong><%= indian_currency(@other_insurance.net_premium) %></strong>
-            </div>
-          </div>
-          <div class="col-12 mb-2">
-            <div class="d-flex justify-content-between">
-              <span class="text-muted">GST (<%= @other_insurance.gst_percentage %>%):</span>
-              <span><%= indian_currency((@other_insurance.net_premium * @other_insurance.gst_percentage / 100)) %></span>
-            </div>
-          </div>
-          <hr>
-          <div class="col-12">
-            <div class="d-flex justify-content-between">
-              <span class="text-muted"><strong>Total Premium:</strong></span>
-              <strong class="text-success"><%= indian_currency(@other_insurance.total_premium) %></strong>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-
   </div>
 </div>
 
-<!-- Documents Section - Simple UI -->
-<% if @other_insurance.uploaded_documents.any? ||
-      (@other_insurance.respond_to?(:policy_documents) && @other_insurance.policy_documents.attached?) ||
-      (@other_insurance.respond_to?(:documents) && @other_insurance.documents.attached?) ||
-      (@other_insurance.respond_to?(:additional_documents) && @other_insurance.additional_documents.attached?) %>
-  <div class="row mt-4">
-    <div class="col-12">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body">
-          <!-- New Documents -->
-          <% if @other_insurance.uploaded_documents.any? %>
-            <div class="row g-3 mb-4">
-              <% @other_insurance.uploaded_documents.each do |document| %>
-                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
-                  <div class="card h-100 border-0 shadow-sm document-card">
-                    <div class="card-body p-3 text-center">
-                      <div class="mb-2">
-                        <% case document.file_extension&.downcase %>
-                        <% when 'pdf' %>
-                          <div class="bg-danger bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                            <i class="bi bi-file-earmark-pdf text-danger fs-4"></i>
-                          </div>
-                        <% when 'jpg', 'jpeg', 'png', 'gif' %>
-                          <div class="bg-info bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                            <i class="bi bi-file-earmark-image text-info fs-4"></i>
-                          </div>
-                        <% when 'doc', 'docx' %>
-                          <div class="bg-primary bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                            <i class="bi bi-file-earmark-word text-primary fs-4"></i>
-                          </div>
-                        <% else %>
-                          <div class="bg-secondary bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                            <i class="bi bi-file-earmark text-secondary fs-4"></i>
-                          </div>
-                        <% end %>
-                      </div>
-                      <h6 class="card-title small mb-2" title="<%= document.title %>">
-                        <%= truncate(document.title, length: 20) %>
-                      </h6>
-                      <p class="small text-muted mb-3">
-                        <%= number_to_human_size(document.file_size) if document.file_size %>
-                      </p>
-                      <div class="btn-group-vertical btn-group-sm w-100">
-                        <%= link_to admin_document_path(document),
-                            class: "btn btn-outline-primary btn-sm mb-1",
-                            target: "_blank",
-                            title: "View" do %>
-                          <i class="bi bi-eye"></i>
-                        <% end %>
-                        <%= link_to admin_document_path(document),
-                            class: "btn btn-outline-success btn-sm",
-                            download: true,
-                            title: "Download" do %>
-                          <i class="bi bi-download"></i>
-                        <% end %>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              <% end %>
-            </div>
-          <% end %>
+<!-- Policy Details Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#policyDetailsCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-file-text"></i>
+      </div>
+      <h5 class="section-title">Policy Details</h5>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="policyDetailsCollapse" class="collapse">
+    <div class="section-body">
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Broker Code</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.broker_code_type %>" readonly>
+      </div>
 
-          <!-- Legacy Documents -->
-          <% if (@other_insurance.respond_to?(:policy_documents) && @other_insurance.policy_documents.attached?) ||
-                (@other_insurance.respond_to?(:documents) && @other_insurance.documents.attached?) ||
-                (@other_insurance.respond_to?(:additional_documents) && @other_insurance.additional_documents.attached?) %>
-            <div class="row g-3">
-              <!-- Policy Documents -->
-              <% if @other_insurance.respond_to?(:policy_documents) && @other_insurance.policy_documents.attached? %>
-                <% @other_insurance.policy_documents.each do |doc| %>
-                  <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
-                    <div class="card h-100 border-0 shadow-sm document-card">
-                      <div class="card-body p-3 text-center">
-                        <div class="mb-2">
-                          <div class="bg-danger bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                            <i class="bi bi-file-earmark-pdf text-danger fs-4"></i>
-                          </div>
-                        </div>
-                        <h6 class="card-title small mb-2" title="<%= doc.filename.to_s %>">
-                          <%= truncate(doc.filename.to_s, length: 20) %>
-                        </h6>
-                        <p class="small text-muted mb-3">
-                          <%= number_to_human_size(doc.byte_size) %>
-                        </p>
-                        <div class="btn-group-vertical btn-group-sm w-100">
-                          <% if doc.persisted? %>
-                            <%= link_to rails_blob_path(doc, disposition: "inline"),
-                                class: "btn btn-outline-primary btn-sm mb-1",
-                                target: "_blank",
-                                title: "View" do %>
-                              <i class="bi bi-eye"></i>
-                            <% end %>
-                            <%= link_to rails_blob_path(doc, disposition: "attachment"),
-                                class: "btn btn-outline-success btn-sm",
-                                title: "Download" do %>
-                              <i class="bi bi-download"></i>
-                            <% end %>
-                          <% else %>
-                            <span class="btn btn-outline-secondary btn-sm disabled">
-                              <i class="bi bi-clock"></i>
-                            </span>
-                          <% end %>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                <% end %>
-              <% end %>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Agency Code</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.agency_code_id %>" readonly>
+      </div>
 
-              <!-- Documents -->
-              <% if @other_insurance.respond_to?(:documents) && @other_insurance.documents.attached? %>
-                <% @other_insurance.documents.each do |doc| %>
-                  <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
-                    <div class="card h-100 border-0 shadow-sm document-card">
-                      <div class="card-body p-3 text-center">
-                        <div class="mb-2">
-                          <% if doc.content_type&.include?('image') %>
-                            <div class="bg-info bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                              <i class="bi bi-file-earmark-image text-info fs-4"></i>
-                            </div>
-                          <% elsif doc.content_type&.include?('pdf') %>
-                            <div class="bg-danger bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                              <i class="bi bi-file-earmark-pdf text-danger fs-4"></i>
-                            </div>
-                          <% else %>
-                            <div class="bg-secondary bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                              <i class="bi bi-file-earmark text-secondary fs-4"></i>
-                            </div>
-                          <% end %>
-                        </div>
-                        <h6 class="card-title small mb-2" title="<%= doc.filename.to_s %>">
-                          <%= truncate(doc.filename.to_s, length: 20) %>
-                        </h6>
-                        <p class="small text-muted mb-3">
-                          <%= number_to_human_size(doc.byte_size) %>
-                        </p>
-                        <div class="btn-group-vertical btn-group-sm w-100">
-                          <% if doc.persisted? %>
-                            <%= link_to rails_blob_path(doc, disposition: "inline"),
-                                class: "btn btn-outline-primary btn-sm mb-1",
-                                target: "_blank",
-                                title: "View" do %>
-                              <i class="bi bi-eye"></i>
-                            <% end %>
-                            <%= link_to rails_blob_path(doc, disposition: "attachment"),
-                                class: "btn btn-outline-success btn-sm",
-                                title: "Download" do %>
-                              <i class="bi bi-download"></i>
-                            <% end %>
-                          <% else %>
-                            <span class="btn btn-outline-secondary btn-sm disabled">
-                              <i class="bi bi-clock"></i>
-                            </span>
-                          <% end %>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                <% end %>
-              <% end %>
-
-              <!-- Additional Documents -->
-              <% if @other_insurance.respond_to?(:additional_documents) && @other_insurance.additional_documents.attached? %>
-                <% @other_insurance.additional_documents.each do |doc| %>
-                  <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
-                    <div class="card h-100 border-0 shadow-sm document-card">
-                      <div class="card-body p-3 text-center">
-                        <div class="mb-2">
-                          <% if doc.content_type&.include?('image') %>
-                            <div class="bg-info bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                              <i class="bi bi-file-earmark-image text-info fs-4"></i>
-                            </div>
-                          <% elsif doc.content_type&.include?('pdf') %>
-                            <div class="bg-danger bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                              <i class="bi bi-file-earmark-pdf text-danger fs-4"></i>
-                            </div>
-                          <% else %>
-                            <div class="bg-secondary bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                              <i class="bi bi-file-earmark text-secondary fs-4"></i>
-                            </div>
-                          <% end %>
-                        </div>
-                        <h6 class="card-title small mb-2" title="<%= doc.filename.to_s %>">
-                          <%= truncate(doc.filename.to_s, length: 20) %>
-                        </h6>
-                        <p class="small text-muted mb-3">
-                          <%= number_to_human_size(doc.byte_size) %>
-                        </p>
-                        <div class="btn-group-vertical btn-group-sm w-100">
-                          <% if doc.persisted? %>
-                            <%= link_to rails_blob_path(doc, disposition: "inline"),
-                                class: "btn btn-outline-primary btn-sm mb-1",
-                                target: "_blank",
-                                title: "View" do %>
-                              <i class="bi bi-eye"></i>
-                            <% end %>
-                            <%= link_to rails_blob_path(doc, disposition: "attachment"),
-                                class: "btn btn-outline-success btn-sm",
-                                title: "Download" do %>
-                              <i class="bi bi-download"></i>
-                            <% end %>
-                          <% else %>
-                            <span class="btn btn-outline-secondary btn-sm disabled">
-                              <i class="bi bi-clock"></i>
-                            </span>
-                          <% end %>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                <% end %>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Broker ID</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.broker_id %>" readonly>
       </div>
     </div>
-  </div>
 
-  <style>
-    .document-card {
-      transition: all 0.2s ease;
-    }
-    .document-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
-    }
-  </style>
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Insurance Company Name*</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.insurance_company_name %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Insurance Type*</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.insurance_type %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Policy Type*</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.policy_type %>" readonly>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Policy Number*</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.policy_number %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Plan Name</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.plan_name %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Policy Term (Years)</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.policy_term %>" readonly>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Policy Booking Date</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.policy_booking_date&.strftime('%B %d, %Y') %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Policy Start Date*</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.policy_start_date&.strftime('%B %d, %Y') %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Policy End Date*</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.policy_end_date&.strftime('%B %d, %Y') %>" readonly>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Payment Mode*</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.payment_mode %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Status</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.status || 'Active' %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Claim Process</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.claim_process %>" readonly>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- Premium Details Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#premiumDetailsCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-currency-rupee"></i>
+      </div>
+      <h5 class="section-title">Premium Details</h5>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="premiumDetailsCollapse" class="collapse">
+    <div class="section-body">
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Sum Insured*</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.sum_insured) if @other_insurance.sum_insured %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Net Premium*</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.net_premium) if @other_insurance.net_premium %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">GST Percentage</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.gst_percentage %>%" readonly>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Total Premium*</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.total_premium) if @other_insurance.total_premium %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Status</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.status || 'Active' %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Days Until Expiry</label>
+        <% if @other_insurance.policy_end_date.present? %>
+          <% days_until_expiry = (@other_insurance.policy_end_date - Date.current).to_i %>
+          <input type="text" class="form-control <%= days_until_expiry <= 30 ? 'text-danger' : days_until_expiry <= 60 ? 'text-warning' : 'text-success' %>"
+                 value="<%= days_until_expiry %> days" readonly>
+        <% else %>
+          <input type="text" class="form-control" value="N/A" readonly>
+        <% end %>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- Commission Details Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#commissionDetailsCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-percent"></i>
+      </div>
+      <h5 class="section-title">Commission Details</h5>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="commissionDetailsCollapse" class="collapse">
+    <div class="section-body">
+
+    <!-- Main Agent Commission -->
+    <h6 class="text-primary mb-3">Main Agent Commission</h6>
+    <div class="row">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Percentage (%)</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.main_agent_commission_percentage %>%" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Commission Amount</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.commission_amount) if @other_insurance.commission_amount %>" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">TDS %</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.tds_percentage %>%" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">TDS Amount</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.tds_amount) if @other_insurance.tds_amount %>" readonly>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">After TDS Value</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.after_tds_value) if @other_insurance.after_tds_value %>" readonly>
+      </div>
+    </div>
+
+    <!-- Main Agent Commission Transaction Details -->
+    <h6 class="text-info mb-3 mt-4">Main Agent Commission Transaction</h6>
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Commission Received</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.main_agent_commission_received? ? 'Yes' : 'No' %>" readonly>
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Commission Paid Date</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.main_agent_commission_paid_date&.strftime('%B %d, %Y') %>" readonly>
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Transaction ID</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.main_agent_commission_transaction_id %>" readonly>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-12 mb-3">
+        <label class="form-label">Commission Notes</label>
+        <textarea class="form-control" rows="2" readonly><%= @other_insurance.main_agent_commission_notes %></textarea>
+      </div>
+    </div>
+
+    <!-- Sub Agent Commission -->
+    <h6 class="text-success mb-3 mt-4">Affiliate Commission</h6>
+    <div class="row">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Percentage (%)</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.sub_agent_commission_percentage %>%" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Commission Amount</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.sub_agent_commission_amount) if @other_insurance.sub_agent_commission_amount %>" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">TDS %</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.sub_agent_tds_percentage %>%" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">TDS Amount</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.sub_agent_tds_amount) if @other_insurance.sub_agent_tds_amount %>" readonly>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">After TDS Value</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.sub_agent_after_tds_value) if @other_insurance.sub_agent_after_tds_value %>" readonly>
+      </div>
+    </div>
+
+    <!-- Investor Commission -->
+    <h6 class="text-warning mb-3 mt-4">Investor Commission</h6>
+    <div class="row">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Percentage (%)</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.investor_commission_percentage %>%" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Commission Amount</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.investor_commission_amount) if @other_insurance.investor_commission_amount %>" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">TDS %</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.investor_tds_percentage %>%" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">TDS Amount</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.investor_tds_amount) if @other_insurance.investor_tds_amount %>" readonly>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">After TDS Value</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.investor_after_tds_value) if @other_insurance.investor_after_tds_value %>" readonly>
+      </div>
+    </div>
+
+    <!-- Ambassador Commission -->
+    <h6 class="text-danger mb-3 mt-4">Ambassador Commission</h6>
+    <div class="row">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Percentage (%)</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.ambassador_commission_percentage %>%" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Commission Amount</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.ambassador_commission_amount) if @other_insurance.ambassador_commission_amount %>" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">TDS %</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.ambassador_tds_percentage %>%" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">TDS Amount</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.ambassador_tds_amount) if @other_insurance.ambassador_tds_amount %>" readonly>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">After TDS Value</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.ambassador_after_tds_value) if @other_insurance.ambassador_after_tds_value %>" readonly>
+      </div>
+    </div>
+
+    <!-- Company Financials -->
+    <h6 class="text-secondary mb-3 mt-4">Company Financials</h6>
+    <div class="row">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Company Expenses (%)</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.company_expenses_percentage %>%" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Total Distribution (%)</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.total_distribution_percentage %>%" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Profit (%)</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.profit_percentage %>%" readonly>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Profit Amount (₹)</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.profit_amount) if @other_insurance.profit_amount %>" readonly>
+      </div>
+    </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Autopay Installment Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#autopayCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-calendar-check"></i>
+      </div>
+      <h5 class="section-title">Autopay Installment</h5>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="autopayCollapse" class="collapse">
+    <div class="section-body">
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Installment Autopay Start Date</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.installment_autopay_start_date&.strftime('%B %d, %Y') %>" readonly>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Installment Autopay End Date</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.installment_autopay_end_date&.strftime('%B %d, %Y') %>" readonly>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- Renewal Information Section -->
+<% if @other_insurance.respond_to?(:is_renewed) && @other_insurance.is_renewed? %>
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#renewalInfoCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-arrow-repeat"></i>
+      </div>
+      <h5 class="section-title">Renewal Information</h5>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="renewalInfoCollapse" class="collapse">
+    <div class="section-body">
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Is Renewed</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.is_renewed? ? 'Yes' : 'No' %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Original Policy ID</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.original_policy_id %>" readonly>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
 <% end %>
 
+<!-- Additional Information Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#additionalInfoCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-info-circle"></i>
+      </div>
+      <h5 class="section-title">Additional Information</h5>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="additionalInfoCollapse" class="collapse">
+    <div class="section-body">
+    <div class="row">
+      <div class="col-md-12 mb-3">
+        <label class="form-label">Plan Name</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.plan_name.present? ? @other_insurance.plan_name : 'N/A' %>" readonly>
+      </div>
+
+      <div class="col-md-12 mb-3">
+        <label class="form-label">Policy Term</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.policy_term.present? ? @other_insurance.policy_term : 'N/A' %>" readonly>
+      </div>
+
+      <div class="col-md-12 mb-3">
+        <label class="form-label">Claim Process</label>
+        <textarea class="form-control" rows="3" readonly><%= @other_insurance.claim_process.present? ? @other_insurance.claim_process : 'No claim process information' %></textarea>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Policy ID</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.policy_id %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Added By Admin</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.is_admin_added? ? 'Yes' : 'No' %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Added By Customer</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.is_customer_added? ? 'Yes' : 'No' %>" readonly>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Added By Agent</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.is_agent_added? ? 'Yes' : 'No' %>" readonly>
+      </div>
+    </div>
+
+    <!-- Timestamps -->
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Created At</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.created_at&.strftime('%B %d, %Y at %I:%M %p') %>" readonly>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Last Updated At</label>
+        <input type="text" class="form-control" value="<%= @other_insurance.updated_at&.strftime('%B %d, %Y at %I:%M %p') %>" readonly>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+
+
 <style>
-/* Scroll to top fix */
-html {
-  scroll-behavior: smooth !important;
-}
+  .document-card {
+    transition: all 0.2s ease;
+  }
+  .document-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+  }
 
-body {
-  position: relative !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-}
+  /* Make all readonly inputs have a light gray background for better visibility */
+  input[readonly], textarea[readonly] {
+    background-color: #f8f9fa !important;
+    cursor: default;
+  }
 
-.main-content {
-  position: relative !important;
-  overflow: visible !important;
-  height: auto !important;
-}
+  /* Add subtle border on hover for better UX */
+  .form-control[readonly]:hover {
+    border-color: #dee2e6;
+  }
 
-.premium-badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
+  /* Info Section Cards */
+  .info-section-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid #e3e6f0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
 
-.luxury-divider {
-  height: 2px;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  margin: 1rem 0;
-}
+  .info-section-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
 
-.stats-icon.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-}
+  .section-header {
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #e3e6f0;
+    border-radius: 12px 12px 0 0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+    user-select: none;
+  }
 
-@media print {
-  .btn, .card-header, nav {
+  .section-header:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+  }
+
+  .section-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    flex-shrink: 0;
+  }
+
+  .section-icon i {
+    color: white;
+    font-size: 1.1rem;
+  }
+
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2d3436;
+    margin: 0;
+    flex-grow: 1;
+  }
+
+  .section-count {
+    background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-left: 1rem;
+  }
+
+  .collapse-icon {
+    color: #94a3b8;
+    transition: transform 0.3s;
+  }
+
+  .section-header:not(.collapsed) .collapse-icon {
+    transform: rotate(180deg);
+  }
+
+  .section-header.collapsed .collapse-icon {
+    transform: rotate(0deg);
+  }
+
+  .section-body {
+    padding: 1.5rem;
+  }
+
+  /* CONSISTENT SPACING: Fix spacing between all sections */
+  .info-section-card {
+    margin-bottom: 1.5rem !important;
+  }
+
+  .info-section-card:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  /* Section body proper padding */
+  .section-body {
+    padding: 1.5rem !important;
+  }
+
+  /* Form elements spacing within sections */
+  .section-body .row {
+    margin-bottom: 0.5rem;
+  }
+
+  .section-body .col-md-4,
+  .section-body .col-md-6,
+  .section-body .col-md-3,
+  .section-body .col-md-12 {
+    margin-bottom: 1rem !important;
+  }
+
+  /* Action buttons top spacing */
+  .d-flex.justify-content-between.align-items-center.mb-4 {
+    margin-bottom: 2rem !important;
+    padding: 1rem 0;
+  }
+
+  /* ANTI-OVERLAP: Ensure sections never overlap */
+  .info-section-card {
+    position: relative;
+    z-index: 1;
+    clear: both;
+  }
+
+  .info-section-card + .info-section-card {
+    margin-top: 0 !important;
+  }
+
+  /* Proper form spacing inside sections */
+  .section-body .form-label {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  .section-body .form-control {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Ensure consistent row spacing */
+  .section-body .row + .row {
+    margin-top: 1rem;
+  }
+
+  /* Page structure - ensure clean ending */
+  .container-fluid {
+    padding-top: 1rem;
+    padding-bottom: 0 !important;
+  }
+
+  /* Hide any empty containers at bottom */
+  div:empty:not([class*="collapse"]):not([id*="Collapse"]):not(.section-icon):not(.collapse-icon) {
     display: none !important;
   }
 
-  .card {
-    border: none !important;
-    box-shadow: none !important;
+  /* Remove bottom margins from last elements */
+  .info-section-card:last-of-type {
+    margin-bottom: 0 !important;
   }
 
-  .card-body {
-    padding: 0 !important;
+  .info-section-card:last-of-type .section-body > *:last-child {
+    margin-bottom: 0 !important;
   }
-}
 
-/* Add scroll-to-top button */
-.scroll-to-top {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 9999;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-  transition: all 0.3s ease;
-}
+  /* Clean page ending */
+  body::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
 
-.scroll-to-top:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-}
-
-.scroll-to-top.show {
-  display: flex;
-}
+  /* Print styles */
+  @media print {
+    .btn, .d-flex {
+      display: none !important;
+    }
+    .card, .info-section-card {
+      break-inside: avoid;
+    }
+    .info-section-card:last-child {
+      margin-bottom: 0;
+    }
+  }
 </style>
 
-<!-- Scroll to top button -->
-<button class="scroll-to-top" id="scrollToTop" onclick="scrollToTop()" title="Back to top">
-  <i class="bi bi-arrow-up"></i>
-</button>
-
 <script>
-// Scroll to top functionality
-function scrollToTop() {
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
+// Enhanced cleanup function for other insurance page
+function aggressiveCleanup() {
+  console.log('🧹 Running other insurance page cleanup...');
+
+  // Find last actual section (Additional Information)
+  const lastSection = document.querySelector('.info-section-card:last-of-type');
+
+  if (lastSection) {
+    console.log('📍 Last section found:', lastSection.querySelector('.section-title')?.textContent);
+
+    // Remove ALL elements after the last section until we hit STYLE/SCRIPT
+    let nextElement = lastSection.nextElementSibling;
+    let removedCount = 0;
+
+    while (nextElement &&
+           nextElement.tagName !== 'STYLE' &&
+           nextElement.tagName !== 'SCRIPT') {
+      const toRemove = nextElement;
+      nextElement = nextElement.nextElementSibling;
+
+      console.log('🗑️ Removing element after last section:', toRemove.tagName, toRemove.className);
+      toRemove.remove();
+      removedCount++;
+    }
+
+    console.log(`✅ Removed ${removedCount} elements after last section`);
+  }
+
+  // Remove any empty info-section-cards
+  const allSections = document.querySelectorAll('.info-section-card');
+  allSections.forEach(section => {
+    const sectionBody = section.querySelector('.section-body');
+    if (sectionBody) {
+      const textContent = sectionBody.textContent.trim();
+      const hasInputs = sectionBody.querySelectorAll('input, textarea, select').length;
+
+      // Only remove if truly empty (no inputs and no text)
+      if (!hasInputs && textContent === '') {
+        console.log('🗑️ Removing empty section:', section);
+        section.remove();
+      }
+    }
   });
+
+  // Remove empty divs that might be causing spacing issues
+  const allDivs = document.querySelectorAll('div');
+  allDivs.forEach(div => {
+    if (div.children.length === 0 &&
+        div.textContent.trim() === '' &&
+        !div.classList.contains('section-icon') &&
+        !div.classList.contains('collapse-icon') &&
+        !div.classList.contains('collapse') &&
+        !div.id.includes('Collapse')) {
+      console.log('🗑️ Removing empty div:', div);
+      div.remove();
+    }
+  });
+
+  console.log('✅ Other insurance page cleanup completed');
 }
 
-// Show/hide scroll to top button
-window.addEventListener('scroll', function() {
-  const scrollToTopBtn = document.getElementById('scrollToTop');
-  if (window.pageYOffset > 300) {
-    scrollToTopBtn.classList.add('show');
-  } else {
-    scrollToTopBtn.classList.remove('show');
-  }
-});
-
-// Ensure proper scrolling behavior
-document.addEventListener('DOMContentLoaded', function() {
-  // Reset any scroll blocking styles
-  document.body.style.position = 'relative';
-  document.body.style.overflowY = 'auto';
-  document.body.style.overflowX = 'hidden';
-
-  // Enable smooth scrolling
-  document.documentElement.style.scrollBehavior = 'smooth';
-});
+// Run cleanup with multiple triggers
+document.addEventListener('DOMContentLoaded', aggressiveCleanup);
+window.addEventListener('load', aggressiveCleanup);
+setTimeout(aggressiveCleanup, 100);
+setTimeout(aggressiveCleanup, 500);
+setTimeout(aggressiveCleanup, 1000);
 </script>

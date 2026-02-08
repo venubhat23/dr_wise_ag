@@ -1567,6 +1567,69 @@
 </div>
 
 <style>
+/* Hide any empty cards and containers */
+.info-section-card:empty {
+  display: none !important;
+}
+
+.info-section-card .section-body:empty {
+  display: none !important;
+}
+
+/* SPACING: Consistent spacing between all cards */
+.info-section-card {
+  margin-bottom: 2rem !important;
+}
+
+.info-section-card:last-of-type {
+  margin-bottom: 2.5rem !important;
+}
+
+/* Ensure no extra spacing from nested elements */
+.info-section-card .section-body > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Layout wrapper controls - prevent empty space */
+.main-content {
+  min-height: calc(100vh - 80px) !important;
+}
+
+.content-area {
+  position: relative;
+  min-height: calc(100vh - 120px) !important;
+  padding-bottom: 0 !important;
+}
+
+.content-area::after {
+  content: "";
+  display: block;
+  height: 0;
+  clear: both;
+}
+
+/* Bottom actions proper spacing and positioning */
+.bottom-actions {
+  margin-top: 2rem !important;
+  margin-bottom: 3rem !important;
+  padding: 1.5rem 0 !important;
+  clear: both !important;
+  position: relative;
+  z-index: 10;
+}
+
+/* Aggressive empty container cleanup */
+div:empty:not(.bottom-actions):not([class*="modal"]):not([class*="tooltip"]):not([class*="popover"]):not([class*="dropdown"]):not(.collapse):not([id*="Collapse"]) {
+  display: none !important;
+}
+
+/* Container cleanup at page bottom */
+.container-fluid > div:empty:last-child,
+.content-area > div:empty:last-child,
+.main-content > div:empty:last-child {
+  display: none !important;
+}
+
 /* Customer Header Card */
 .customer-header-card {
   background: white;
@@ -1705,7 +1768,7 @@
 .info-section-card {
   background: white;
   border-radius: 12px;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   overflow: hidden;
   transition: all 0.3s ease;
@@ -1799,17 +1862,7 @@
   font-weight: 500;
 }
 
-/* Bottom Actions */
-.bottom-actions {
-  margin-top: 24px;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
+/* Bottom Actions - Removed duplicate definition */
 
 /* Document Styles */
 .documents-grid {
@@ -2212,4 +2265,94 @@ function shareDocument(documentId) {
   // Implementation for sharing document
   alert('Share functionality coming soon!');
 }
+
+// Enhanced cleanup for layout wrapper containers
+function cleanupEmptyContainers() {
+  console.log('🧹 Running enhanced container cleanup...');
+
+  // Remove empty info-section-cards
+  const allSections = document.querySelectorAll('.info-section-card');
+  allSections.forEach(section => {
+    const sectionBody = section.querySelector('.section-body');
+    if (sectionBody) {
+      const bodyContent = sectionBody.innerHTML.trim();
+      const textContent = sectionBody.textContent.trim();
+      if (bodyContent === '' || textContent === '' || textContent === 'No data available') {
+        console.log('🗑️ Removing empty section:', section);
+        section.remove();
+      }
+    }
+  });
+
+  // Remove any empty cards
+  const allCards = document.querySelectorAll('.card');
+  allCards.forEach(card => {
+    if (card.innerHTML.trim() === '' || card.children.length === 0) {
+      console.log('🗑️ Removing empty card:', card);
+      card.remove();
+    }
+  });
+
+  // Target layout wrapper containers specifically
+  const layoutContainers = [
+    '.container-fluid',
+    '.content-area',
+    '.main-content',
+    'main'
+  ];
+
+  layoutContainers.forEach(selector => {
+    const containers = document.querySelectorAll(selector);
+    containers.forEach(container => {
+      // Find last children that are empty divs
+      const children = Array.from(container.children);
+      children.reverse().forEach((child, index) => {
+        // Only check last few children to avoid removing necessary structure
+        if (index < 5 &&
+            child.tagName === 'DIV' &&
+            child.innerHTML.trim() === '' &&
+            !child.classList.contains('bottom-actions') &&
+            !child.classList.contains('modal') &&
+            !child.classList.contains('dropdown-menu') &&
+            !child.id.includes('modal') &&
+            !child.id.includes('Collapse')) {
+          console.log('🗑️ Removing empty layout child from', selector, ':', child);
+          child.remove();
+        }
+      });
+    });
+  });
+
+  // Clean up any rogue empty containers at end of page
+  const allDivs = document.querySelectorAll('div');
+  const lastDivs = Array.from(allDivs).slice(-10); // Check last 10 divs
+  lastDivs.reverse().forEach(div => {
+    if (div.innerHTML.trim() === '' &&
+        !div.classList.contains('bottom-actions') &&
+        !div.classList.contains('modal') &&
+        !div.classList.contains('dropdown-menu') &&
+        !div.id.includes('modal') &&
+        !div.id.includes('Collapse') &&
+        div.offsetHeight > 20) { // Only remove if it has visible height
+      console.log('🗑️ Removing trailing empty div:', div);
+      div.remove();
+    }
+  });
+
+  // Force layout recalculation
+  document.body.offsetHeight;
+
+  console.log('✅ Container cleanup completed');
+}
+
+// Run cleanup with multiple triggers and delays
+document.addEventListener('DOMContentLoaded', cleanupEmptyContainers);
+window.addEventListener('load', cleanupEmptyContainers);
+setTimeout(cleanupEmptyContainers, 300);  // Quick cleanup
+setTimeout(cleanupEmptyContainers, 1000); // Secondary cleanup
+setTimeout(cleanupEmptyContainers, 2000); // Final cleanup
+
+// Also run on turbo events
+document.addEventListener('turbo:load', cleanupEmptyContainers);
+document.addEventListener('turbo:frame-load', cleanupEmptyContainers);
 </script>
