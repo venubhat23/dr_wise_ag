@@ -99,7 +99,7 @@ class DashboardUltraFastService
       main_stats_sql = <<-SQL
         WITH RECURSIVE date_series AS (
           SELECT DATE '#{Date.current}' as current_date,
-                 DATE '#{Date.current + 30.days}' as future_date,
+                 DATE '#{Date.current + 45.days}' as future_date,
                  DATE '#{Date.current.beginning_of_month}' as month_start,
                  DATE '#{1.month.ago.beginning_of_month}' as last_month_start,
                  DATE '#{1.month.ago.end_of_month}' as last_month_end
@@ -269,7 +269,7 @@ class DashboardUltraFastService
             COALESCE(SUM(total_premium), 0) as premium,
             COALESCE(SUM(sum_insured), 0) as sum_insured,
             COUNT(CASE WHEN policy_end_date < CURRENT_DATE THEN 1 END) as expired,
-            COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' THEN 1 END) as expiring
+            COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '45 days' THEN 1 END) as expiring
           FROM motor_insurances
         SQL
 
@@ -293,7 +293,7 @@ class DashboardUltraFastService
             COALESCE(SUM(total_premium), 0) as premium,
             COALESCE(SUM(sum_insured), 0) as sum_insured,
             COUNT(CASE WHEN policy_end_date < CURRENT_DATE THEN 1 END) as expired,
-            COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' THEN 1 END) as expiring
+            COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '45 days' THEN 1 END) as expiring
           FROM other_insurances
         SQL
 

@@ -38,23 +38,9 @@
             <p class="mb-0 fw-medium"><%= @distributor.full_name %></p>
           </div>
           <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Email</label>
-            <p class="mb-0"><%= @distributor.email %></p>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Mobile</label>
+            <label class="form-label text-muted">Contact</label>
             <p class="mb-0"><%= @distributor.mobile %></p>
           </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label text-muted">Gender</label>
-            <p class="mb-0"><%= @distributor.gender %></p>
-          </div>
-          <% if @distributor.birth_date.present? %>
-            <div class="col-md-6 mb-3">
-              <label class="form-label text-muted">Birth Date</label>
-              <p class="mb-0"><%= @distributor.birth_date.strftime('%d %B %Y') %></p>
-            </div>
-          <% end %>
           <% if @distributor.address.present? %>
             <div class="col-md-12 mb-3">
               <label class="form-label text-muted">Address</label>
@@ -124,8 +110,6 @@
                         <div>
                           <h6 class="mb-1"><%= affiliate.display_name %></h6>
                           <small class="text-muted">
-                            <i class="bi bi-envelope me-1"></i><%= affiliate.email %>
-                            <span class="mx-2">|</span>
                             <i class="bi bi-telephone me-1"></i><%= affiliate.mobile %>
                           </small>
                         </div>
@@ -365,13 +349,6 @@
           <br>
           <small><%= @distributor.updated_at.strftime('%d %B %Y at %I:%M %p') %></small>
         </div>
-        <% if @distributor.role_id.present? %>
-          <div>
-            <small class="text-muted">Role ID</small>
-            <br>
-            <span class="badge bg-info"><%= @distributor.role_id %></span>
-          </div>
-        <% end %>
       </div>
     </div>
   </div>

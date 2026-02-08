@@ -555,56 +555,61 @@ class Admin::DistributorPayoutsController < ApplicationController
 
     Rails.logger.info "Found distributor: #{distributor.display_name} (#{distributor.id})"
 
-    # Calculate total commission for this distributor
-    total_commission = calculate_distributor_total_commission(distributor_id)
-    Rails.logger.info "Calculated total commission: #{total_commission}"
-
-    if total_commission <= 0
-      Rails.logger.info "No commission to invoice for distributor #{distributor_id}"
-      return false
-    end
-
     # Check if invoice already exists for this distributor this month
+    current_month_start = Date.current.beginning_of_month
+    current_month_end = Date.current.end_of_month
     existing_invoice = Invoice.find_by(
       payout_type: 'distributor',
       payout_id: distributor_id,
-      invoice_date: Date.current.beginning_of_month..Date.current.end_of_month
+      invoice_date: current_month_start..current_month_end
     )
 
-    if existing_invoice
-      Rails.logger.info "Invoice already exists for distributor #{distributor_id}: #{existing_invoice.invoice_number}"
+    # Get all paid distributor payouts for this month
+    paid_payouts = DistributorPayout.where(
+      distributor_id: distributor_id,
+      status: 'paid',
+      payout_date: current_month_start..current_month_end
+    )
+
+    total_commission = paid_payouts.sum(&:payout_amount)
+    Rails.logger.info "Calculated monthly commission: #{total_commission}"
+
+    if total_commission <= 0
+      Rails.logger.info "No commission to invoice for distributor #{distributor_id} this month"
       return false
     end
 
     begin
-      # Create invoice
-      invoice = Invoice.create!(
-        invoice_number: generate_distributor_invoice_number,
-        payout_type: 'distributor',
-        payout_id: distributor_id,
-        total_amount: total_commission,
-        status: 'paid',
-        invoice_date: Date.current,
-        due_date: Date.current,
-        paid_at: Time.current
-      )
+      if existing_invoice
+        # Update existing invoice with current month's total
+        existing_invoice.update!(
+          total_amount: total_commission,
+          notes: "Monthly distributor commission for #{paid_payouts.count} payouts in #{Date.current.strftime('%B %Y')}",
+          updated_at: Time.current
+        )
+        Rails.logger.info "Updated existing monthly invoice #{existing_invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
+        return true
+      else
+        # Create new monthly invoice
+        invoice = Invoice.create!(
+          invoice_number: generate_monthly_distributor_invoice_number(distributor_id),
+          payout_type: 'distributor',
+          payout_id: distributor_id,
+          total_amount: total_commission,
+          status: 'paid',
+          invoice_date: Date.current,
+          due_date: Date.current,
+          paid_at: Time.current,
+          recipient_name: distributor.display_name,
+          recipient_email: distributor.email,
+          notes: "Monthly distributor commission for #{paid_payouts.count} payouts in #{Date.current.strftime('%B %Y')}"
+        )
 
-      Rails.logger.info "Created invoice: #{invoice.invoice_number} (ID: #{invoice.id}) for ₹#{total_commission}"
-
-      # Mark related distributor payouts as invoiced
-      distributor_payouts = DistributorPayout.where(distributor_id: distributor_id, status: 'paid')
-      Rails.logger.info "Found #{distributor_payouts.count} distributor payouts to mark as invoiced"
-
-      distributor_payouts.each do |payout|
-        if payout.respond_to?(:invoiced=)
-          payout.update!(invoiced: true) unless payout.invoiced
-        end
+        Rails.logger.info "Generated monthly invoice #{invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
+        return true
       end
-
-      Rails.logger.info "Generated invoice #{invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
-      return true
     rescue => e
-      Rails.logger.error "Failed to create distributor invoice: #{e.message}"
+      Rails.logger.error "Failed to create/update distributor invoice: #{e.message}"
       Rails.logger.error e.backtrace.first(5).join("\n")
       return false
     end
@@ -646,6 +651,23 @@ class Admin::DistributorPayoutsController < ApplicationController
     end
 
     total_commission
+  end
+
+  def generate_monthly_distributor_invoice_number(distributor_id)
+    # Generate a deterministic invoice number based on distributor and month
+    year_month = Date.current.strftime('%Y%m')
+    base_number = "INV-DIST-#{year_month}-#{distributor_id.to_s.rjust(5, '0')}"
+
+    # Check if this exact number exists
+    counter = 1
+    invoice_number = base_number
+
+    while Invoice.exists?(invoice_number: invoice_number)
+      invoice_number = "#{base_number}-#{counter}"
+      counter += 1
+    end
+
+    invoice_number
   end
 
   def generate_distributor_invoice_number
@@ -728,58 +750,60 @@ class Admin::DistributorPayoutsController < ApplicationController
     distributor = Distributor.find_by(id: distributor_id)
     return unless distributor
 
-    # Get all ambassador commission payouts for this distributor that are paid but not invoiced
-    # Using simpler approach - get by checking each payout manually
-    ambassador_payouts = CommissionPayout.where(payout_to: 'ambassador', status: 'paid')
-                                        .select do |payout|
-                                          # Skip if already invoiced (if field exists)
-                                          if payout.respond_to?(:invoiced) && payout.invoiced
-                                            next false
-                                          end
+    # Check if invoice already exists for this distributor this month
+    current_month_start = Date.current.beginning_of_month
+    current_month_end = Date.current.end_of_month
+    existing_invoice = Invoice.find_by(
+      payout_type: 'ambassador',
+      payout_id: distributor_id,
+      invoice_date: current_month_start..current_month_end
+    )
 
-                                          policy = get_policy_from_commission_payout(payout)
-                                          policy&.respond_to?(:distributor_id) && policy.distributor_id == distributor_id.to_i
-                                        end
+    # Get all ambassador commission payouts for this distributor in current month
+    ambassador_payouts = CommissionPayout.where(
+      payout_to: 'ambassador',
+      status: 'paid',
+      payout_date: current_month_start..current_month_end
+    ).select do |payout|
+      policy = get_policy_from_commission_payout(payout)
+      policy&.respond_to?(:distributor_id) && policy.distributor_id == distributor_id.to_i
+    end
 
     return if ambassador_payouts.empty?
 
     total_amount = ambassador_payouts.sum(&:payout_amount)
     return if total_amount <= 0
 
-    # Generate one invoice for all ambassador payouts for this distributor this month
-    existing_invoice = Invoice.find_by(
-      payout_type: 'ambassador',
-      payout_id: distributor_id,
-      invoice_date: Date.current.beginning_of_month..Date.current.end_of_month
-    )
-
-    return if existing_invoice
-
-    # Create invoice
-    invoice = Invoice.create!(
-      invoice_number: generate_ambassador_invoice_number,
-      payout_type: 'ambassador',
-      payout_id: distributor_id, # Use distributor_id as reference
-      total_amount: total_amount,
-      status: 'paid',
-      invoice_date: Date.current,
-      due_date: Date.current,
-      paid_at: Time.current
-    )
-
-    # Mark all ambassador payouts as invoiced (if field exists)
-    ambassador_payouts.each do |payout|
-      if payout.respond_to?(:invoiced=)
-        payout.update!(invoiced: true)
+    begin
+      if existing_invoice
+        # Update existing monthly invoice
+        existing_invoice.update!(
+          total_amount: total_amount,
+          notes: "Monthly ambassador commission for #{ambassador_payouts.count} payouts in #{Date.current.strftime('%B %Y')}",
+          updated_at: Time.current
+        )
+        Rails.logger.info "Updated existing monthly ambassador invoice #{existing_invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
       else
-        # Add a note to indicate it's been invoiced
-        current_notes = payout.notes || ""
-        new_notes = [current_notes, "Invoice #{invoice.invoice_number} generated"].compact.join(" | ")
-        payout.update!(notes: new_notes)
-      end
-    end
+        # Create new monthly invoice
+        invoice = Invoice.create!(
+          invoice_number: generate_monthly_ambassador_invoice_number(distributor_id),
+          payout_type: 'ambassador',
+          payout_id: distributor_id,
+          total_amount: total_amount,
+          status: 'paid',
+          invoice_date: Date.current,
+          due_date: Date.current,
+          paid_at: Time.current,
+          recipient_name: distributor.display_name,
+          recipient_email: distributor.email,
+          notes: "Monthly ambassador commission for #{ambassador_payouts.count} payouts in #{Date.current.strftime('%B %Y')}"
+        )
 
-    Rails.logger.info "Generated ambassador invoice #{invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
+        Rails.logger.info "Generated monthly ambassador invoice #{invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
+      end
+    rescue => e
+      Rails.logger.error "Failed to create/update ambassador invoice: #{e.message}"
+    end
   end
 
   def generate_ambassador_invoices_for_leads(lead_ids)
@@ -800,6 +824,23 @@ class Admin::DistributorPayoutsController < ApplicationController
     distributor_groups.each do |distributor_id, group_lead_ids|
       generate_single_ambassador_invoice(distributor_id)
     end
+  end
+
+  def generate_monthly_ambassador_invoice_number(distributor_id)
+    # Generate a deterministic invoice number based on distributor and month
+    year_month = Date.current.strftime('%Y%m')
+    base_number = "INV-AMB-#{year_month}-#{distributor_id.to_s.rjust(5, '0')}"
+
+    # Check if this exact number exists
+    counter = 1
+    invoice_number = base_number
+
+    while Invoice.exists?(invoice_number: invoice_number)
+      invoice_number = "#{base_number}-#{counter}"
+      counter += 1
+    end
+
+    invoice_number
   end
 
   def generate_ambassador_invoice_number

@@ -22,8 +22,8 @@ class Admin::Reports::PaymentDueReportsController < Admin::Reports::BaseControll
       due_ranges: {
         'Overdue' => @payment_due_records.count { |r| r[:is_overdue] },
         'Due in 7 days' => @payment_due_records.count { |r| r[:days_until_due] && r[:days_until_due] <= 7 && r[:days_until_due] >= 0 },
-        'Due in 30 days' => @payment_due_records.count { |r| r[:days_until_due] && r[:days_until_due] <= 30 && r[:days_until_due] >= 0 },
-        'Due later' => @payment_due_records.count { |r| r[:days_until_due] && r[:days_until_due] > 30 }
+        'Due in 45 days' => @payment_due_records.count { |r| r[:days_until_due] && r[:days_until_due] <= 45 && r[:days_until_due] >= 0 },
+        'Due later' => @payment_due_records.count { |r| r[:days_until_due] && r[:days_until_due] > 45 }
       }
     }
 

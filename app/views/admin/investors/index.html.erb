@@ -37,12 +37,15 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Recent Investors</h6>
-            <h3 class="mb-0 text-success"><%= number_with_delimiter(@total_investors) %></h3>
-            <small class="text-muted">Last 30 days</small>
+            <h6 class="text-muted mb-2">Total Investor Amount</h6>
+            <h3 class="mb-0 text-success">₹<%= number_with_delimiter(@total_investor_amount.to_i) %></h3>
+            <small class="text-muted">
+              Paid: ₹<%= number_with_delimiter(@paid_investor_amount.to_i) %> |
+              Pending: ₹<%= number_with_delimiter(@pending_investor_amount.to_i) %>
+            </small>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
-            <i class="bi bi-person-plus text-success fs-4"></i>
+            <i class="bi bi-currency-rupee text-success fs-4"></i>
           </div>
         </div>
       </div>
@@ -54,12 +57,14 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Total Credentials</h6>
-            <h3 class="mb-0 text-info"><%= number_with_delimiter(@total_investors) %></h3>
-            <small class="text-muted">Login accounts</small>
+            <h6 class="text-muted mb-2">Active Investors</h6>
+            <h3 class="mb-0 text-info"><%= number_with_delimiter(@active_investors) %></h3>
+            <small class="text-muted">
+              Inactive: <%= number_with_delimiter(@inactive_investors) %>
+            </small>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">
-            <i class="bi bi-key text-info fs-4"></i>
+            <i class="bi bi-person-check text-info fs-4"></i>
           </div>
         </div>
       </div>

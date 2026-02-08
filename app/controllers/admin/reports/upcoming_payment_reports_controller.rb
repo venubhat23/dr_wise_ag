@@ -24,7 +24,7 @@ class Admin::Reports::UpcomingPaymentReportsController < Admin::Reports::BaseCon
         'Due today' => @upcoming_payments.count { |p| p[:payment_due_date] == Date.current },
         'Due this week' => @upcoming_payments.count { |p| p[:days_until_due] && p[:days_until_due] <= 7 && p[:days_until_due] >= 0 },
         'Due in 15 days' => @upcoming_payments.count { |p| p[:days_until_due] && p[:days_until_due] <= 15 && p[:days_until_due] >= 0 },
-        'Due in 30 days' => @upcoming_payments.count { |p| p[:days_until_due] && p[:days_until_due] <= 30 && p[:days_until_due] >= 0 },
+        'Due in 45 days' => @upcoming_payments.count { |p| p[:days_until_due] && p[:days_until_due] <= 45 && p[:days_until_due] >= 0 },
         'Due in 60 days' => @upcoming_payments.count { |p| p[:days_until_due] && p[:days_until_due] <= 60 && p[:days_until_due] >= 0 }
       }
     }
@@ -122,7 +122,7 @@ class Admin::Reports::UpcomingPaymentReportsController < Admin::Reports::BaseCon
       when 'due_in_15_days'
         payments = payments.select { |p| p[:days_until_due] && p[:days_until_due] <= 15 && p[:days_until_due] >= 0 }
       when 'due_in_month'
-        payments = payments.select { |p| p[:days_until_due] && p[:days_until_due] <= 30 && p[:days_until_due] >= 0 }
+        payments = payments.select { |p| p[:days_until_due] && p[:days_until_due] <= 45 && p[:days_until_due] >= 0 }
       end
     end
 

@@ -111,7 +111,7 @@ class DashboardStatsService
           COALESCE(SUM(sum_insured), 0) as total_sum_insured,
           COUNT(CASE WHEN policy_end_date >= CURRENT_DATE THEN 1 END) as active_count,
           COUNT(CASE WHEN policy_end_date < CURRENT_DATE THEN 1 END) as expired_count,
-          COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' THEN 1 END) as expiring_soon
+          COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '45 days' THEN 1 END) as expiring_soon
         FROM health_insurances
         UNION ALL
         SELECT
@@ -121,7 +121,7 @@ class DashboardStatsService
           COALESCE(SUM(sum_insured), 0) as total_sum_insured,
           COUNT(CASE WHEN policy_end_date >= CURRENT_DATE THEN 1 END) as active_count,
           COUNT(CASE WHEN policy_end_date < CURRENT_DATE THEN 1 END) as expired_count,
-          COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' THEN 1 END) as expiring_soon
+          COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '45 days' THEN 1 END) as expiring_soon
         FROM life_insurances
       )
       SELECT
@@ -150,7 +150,7 @@ class DashboardStatsService
             COALESCE(SUM(total_premium), 0) as premium,
             COALESCE(SUM(sum_insured), 0) as sum_insured,
             COUNT(CASE WHEN policy_end_date < CURRENT_DATE THEN 1 END) as expired,
-            COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' THEN 1 END) as expiring
+            COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '45 days' THEN 1 END) as expiring
           FROM motor_insurances"
         )
         motor_count = motor_stats['count'].to_i
@@ -171,7 +171,7 @@ class DashboardStatsService
             COALESCE(SUM(total_premium), 0) as premium,
             COALESCE(SUM(sum_insured), 0) as sum_insured,
             COUNT(CASE WHEN policy_end_date < CURRENT_DATE THEN 1 END) as expired,
-            COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' THEN 1 END) as expiring
+            COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '45 days' THEN 1 END) as expiring
           FROM other_insurances"
         )
         other_count = other_stats['count'].to_i

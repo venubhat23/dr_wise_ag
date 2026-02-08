@@ -92,7 +92,7 @@
             </div>
 
             <div class="col-md-4 mb-3">
-              <%= form.label :code, "Company Code", class: "form-label" %>
+              <%= form.label :code, "Company Short Name", class: "form-label" %>
               <%= form.text_field :code,
                   class: "form-control #{'is-invalid' if @insurance_company.errors[:code].any?}",
                   placeholder: "e.g., LIC, HDFC" %>
@@ -101,7 +101,7 @@
                   <%= @insurance_company.errors[:code].first %>
                 </div>
               <% end %>
-              <small class="form-text text-muted">Optional short code for the company</small>
+              <small class="form-text text-muted">Optional short name for the company</small>
             </div>
 
             <div class="col-md-6 mb-3">

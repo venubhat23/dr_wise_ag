@@ -78,17 +78,17 @@
 
 <!-- Basic Information Section -->
 <div class="info-section-card">
-  <div class="section-header" data-bs-toggle="collapse" data-bs-target="#basicInfoCollapse" aria-expanded="true">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#basicInfoCollapse" aria-expanded="false">
     <div class="d-flex align-items-center">
       <div class="section-icon">
         <i class="bi bi-person"></i>
       </div>
       <h5 class="section-title">Basic Information</h5>
-      <span class="section-count">8 Fields</span>
+      
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
-  <div id="basicInfoCollapse" class="collapse show">
+  <div id="basicInfoCollapse" class="collapse">
     <div class="section-body">
       <div class="row g-4">
         <div class="col-md-6 col-lg-3">
@@ -158,7 +158,7 @@
         <i class="bi bi-info-circle"></i>
       </div>
       <h5 class="section-title">Advance Details</h5>
-      <span class="section-count">5 Fields</span>
+      
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
@@ -202,7 +202,7 @@
         <i class="bi bi-geo-alt"></i>
       </div>
       <h5 class="section-title">Address Information</h5>
-      <span class="section-count">4 Fields</span>
+      
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
@@ -233,22 +233,19 @@
 </div>
 
 <!-- Family Members Section -->
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-header bg-transparent border-0">
-    <div class="d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">
-        <i class="bi bi-people me-2"></i>Family Members
-      </h5>
-      <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-info"><%= @family_members&.count || 0 %></span>
-        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#familyMembersCollapse" aria-expanded="true" aria-controls="familyMembersCollapse" style="border: none; background: transparent;">
-          <i class="bi bi-chevron-down" id="familyMembersChevron" style="transition: transform 0.3s ease;"></i>
-        </button>
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#familyMembersCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-people"></i>
       </div>
+      <h5 class="section-title">Family Members</h5>
+      <span class="section-count"><%= @family_members&.count || 0 %> Members</span>
     </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
-  <div class="collapse show" id="familyMembersCollapse">
-    <div class="card-body p-0">
+  <div id="familyMembersCollapse" class="collapse">
+    <div class="section-body">
     <% if @family_members&.any? %>
       <div class="table-responsive">
         <table class="table table-hover mb-0">
@@ -311,7 +308,6 @@
     </div>
   </div>
 </div>
-</div>
 
 <!-- Corporate Members Section (for corporate customers) -->
 <% if @customer.customer_type == 'corporate' %>
@@ -322,7 +318,7 @@
         <i class="bi bi-building"></i>
       </div>
       <h5 class="section-title">Corporate Members</h5>
-      <span class="section-count">0</span>
+      
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
@@ -344,8 +340,8 @@
       <div class="section-icon">
         <i class="bi bi-folder"></i>
       </div>
-      <h5 class="section-title">Document Library</h5>
-      <span class="section-count"><%= @uploaded_documents&.count || 0 %> Files</span>
+      <h5 class="section-title">Document Library <%= @uploaded_documents&.any? || @customer.documents&.any? || @customer.profile_image&.attached? ? "(#{(@uploaded_documents&.count || 0) + (@customer.documents&.count || 0) + (@customer.profile_image&.attached? ? 1 : 0)})" : "(0)" %></h5>
+      
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
@@ -627,7 +623,7 @@
         <i class="bi bi-person-heart"></i>
       </div>
       <h5 class="section-title">Nominee Information</h5>
-      <span class="section-count">3 Fields</span>
+      
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
@@ -664,24 +660,20 @@
   </div>
 </div>
 
-
 <!-- Associated Leads Section -->
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-header bg-transparent border-0">
-    <div class="d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">
-        <i class="bi bi-funnel me-2"></i>Associated Leads
-      </h5>
-      <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-primary"><%= @associated_leads&.count || 0 %> Total</span>
-        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#associatedLeadsCollapse" aria-expanded="true" aria-controls="associatedLeadsCollapse" style="border: none; background: transparent;">
-          <i class="bi bi-chevron-down" id="associatedLeadsChevron" style="transition: transform 0.3s ease;"></i>
-        </button>
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#associatedLeadsCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-funnel"></i>
       </div>
+      <h5 class="section-title">Associated Leads</h5>
+      <span class="section-count"><%= @associated_leads&.count || 0 %> Total</span>
     </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
-  <div class="collapse show" id="associatedLeadsCollapse">
-    <div class="card-body p-0">
+  <div id="associatedLeadsCollapse" class="collapse">
+    <div class="section-body">
       <% if @associated_leads&.any? %>
         <div class="row g-3">
           <% @associated_leads.each_with_index do |lead, index| %>
@@ -804,7 +796,7 @@
         <i class="bi bi-credit-card"></i>
       </div>
       <h5 class="section-title">Financial Information</h5>
-      <span class="section-count">1 Field</span>
+      
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
@@ -846,8 +838,8 @@
       <div class="section-icon">
         <i class="bi bi-clipboard-check"></i>
       </div>
-      <h5 class="section-title">Active Policies</h5>
-      <span class="section-count"><%= active_policies.count %> Active</span>
+      <h5 class="section-title">Active Policies (<%= active_policies.count %>)</h5>
+
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
@@ -998,8 +990,8 @@
       <div class="section-icon">
         <i class="bi bi-clock-history"></i>
       </div>
-      <h5 class="section-title">Past Policies (Renewed)</h5>
-      <span class="section-count"><%= past_policies.count %> Renewed</span>
+      <h5 class="section-title">Past Policies (Renewed) (<%= past_policies.count %>)</h5>
+
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
@@ -1130,8 +1122,8 @@
       <div class="section-icon">
         <i class="bi bi-shield-x"></i>
       </div>
-      <h5 class="section-title">Expired Policies (Not Renewed)</h5>
-      <span class="section-count"><%= expired_policies.count %> Not Renewed</span>
+      <h5 class="section-title">Expired Policies (Not Renewed) (<%= expired_policies.count %>)</h5>
+
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
@@ -1225,9 +1217,9 @@
   </div>
 </div>
 
-<!-- Upcoming Renewals & Installments (Next 30 Days) -->
+<!-- Upcoming Renewals & Installments (Next 45 Days) -->
       <%
-        # Policies needing renewal in next 30 days
+        # Policies needing renewal in next 45 days
         renewal_policies = @all_policies&.select do |p|
           next false unless p[:status] == 'Active'
           next false unless p[:end_date]
@@ -1235,7 +1227,7 @@
           days_until_expiry > 0 && days_until_expiry <= 30
         end || []
 
-        # Installments due in next 30 days
+        # Installments due in next 45 days
         installment_policies = @all_policies&.select do |p|
           policy_obj = p[:policy]
           next false unless policy_obj.respond_to?(:payment_mode)
@@ -1263,7 +1255,7 @@
           else
             next false
           end
-          next_date <= 30.days.from_now
+          next_date <= 45.days.from_now
         end || []
 
         total_upcoming = (renewal_policies + installment_policies).uniq { |p| p[:policy].id }
@@ -1274,8 +1266,8 @@
       <div class="section-icon">
         <i class="bi bi-calendar-check"></i>
       </div>
-      <h5 class="section-title">Upcoming Renewals & Installments (Next 30 Days)</h5>
-      <span class="section-count"><%= total_upcoming.count %> Due Soon</span>
+      <h5 class="section-title">Upcoming Renewals & Installments (Next 45 Days) (<%= total_upcoming.count %>)</h5>
+
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
@@ -1343,7 +1335,7 @@
                     else
                       next_date = nil
                     end
-                    is_installment = next_date && next_date <= 30.days.from_now
+                    is_installment = next_date && next_date <= 45.days.from_now
                     days_until_installment = next_date ? (next_date - today).to_i : nil
                   else
                     is_installment = false
@@ -1416,7 +1408,7 @@
       <% else %>
         <div class="text-center text-muted py-4">
           <i class="bi bi-calendar-check fs-3 d-block mb-2 text-success"></i>
-          <p class="mb-0">No renewals or installments due in the next 30 days</p>
+          <p class="mb-0">No renewals or installments due in the next 45 days</p>
           <small class="text-muted">All policies and payments are up to date</small>
         </div>
       <% end %>
@@ -1424,15 +1416,9 @@
   </div>
 </div>
 
-<!-- Remove old Upcoming Installments Section -->
-  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#upcomingInstallmentsCollapse" aria-expanded="false">
-    <div class="d-flex align-items-center">
-      <div class="section-icon">
-        <i class="bi bi-calendar-event"></i>
-      </div>
-      <h5 class="section-title">Upcoming Installments (Next 30 Days)</h5>
-      <%
-        upcoming_installments = @all_policies&.select do |p|
+<!-- Upcoming Installments (Next 45 Days) -->
+<%
+  upcoming_installments = @all_policies&.select do |p|
           policy_obj = p[:policy]
           next false unless policy_obj.respond_to?(:payment_mode)
           next false unless ['Monthly', 'Quarterly', 'Half Yearly', 'Semi-Annual'].include?(policy_obj.payment_mode)
@@ -1459,9 +1445,18 @@
           else
             next false
           end
-          next_date <= 30.days.from_now
+          next_date <= 45.days.from_now
         end || []
-      %>
+%>
+
+<% if upcoming_installments.any? %>
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#upcomingInstallmentsCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-credit-card-2-back"></i>
+      </div>
+      <h5 class="section-title">Upcoming Installments</h5>
       <span class="section-count"><%= upcoming_installments.count %> Due Soon</span>
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
@@ -1531,15 +1526,15 @@
                   <td>
                     <% case policy[:type] %>
                     <% when 'Health Insurance' %>
-                      <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                      <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
                         <i class="bi bi-eye"></i>
                       <% end %>
                     <% when 'Life Insurance' %>
-                      <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                      <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
                         <i class="bi bi-eye"></i>
                       <% end %>
                     <% when 'Motor Insurance' %>
-                      <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
+                      <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
                         <i class="bi bi-eye"></i>
                       <% end %>
                     <% end %>
@@ -1552,13 +1547,14 @@
       <% else %>
         <div class="text-center text-muted py-4">
           <i class="bi bi-calendar-check fs-3 d-block mb-2 text-success"></i>
-          <p class="mb-0">No upcoming installments in the next 30 days</p>
+          <p class="mb-0">No upcoming installments in the next 45 days</p>
           <small class="text-muted">All installments are up to date</small>
         </div>
       <% end %>
     </div>
   </div>
 </div>
+<% end %>
 
 <!-- Bottom Actions -->
 <div class="bottom-actions">
@@ -1591,204 +1587,206 @@
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  border: 3px solid #f8f9fa;
 }
 
 .avatar-placeholder {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: #2563eb;
-  color: white;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 32px;
-  font-weight: 600;
+  color: white;
+  font-weight: bold;
 }
 
 .customer-name {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 600;
-  color: #1e293b;
+  color: #2c3e50;
   margin: 0;
 }
 
 .customer-type-badge {
   padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 20px;
+  font-size: 13px;
   font-weight: 500;
 }
 
 .customer-type-badge.individual {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: #e3f2fd;
+  color: #1976d2;
 }
 
 .customer-type-badge.corporate {
-  background: #dcfce7;
-  color: #15803d;
+  background: #f3e5f5;
+  color: #7b1fa2;
 }
 
 .status-badge {
   padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 20px;
+  font-size: 13px;
   font-weight: 500;
 }
 
 .status-badge.active {
-  background: #dcfce7;
-  color: #15803d;
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 
 .status-badge.inactive {
-  background: #f1f5f9;
-  color: #64748b;
+  background: #ffebee;
+  color: #c62828;
 }
 
+/* Customer Credentials */
 .customer-credentials {
-  display: flex;
-  gap: 20px;
-  justify-content: flex-end;
+  background: #f8f9fa;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px dashed #dee2e6;
 }
 
 .credential-item {
   display: flex;
-  align-items: center;
   gap: 8px;
-  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.credential-item:last-child {
+  margin-bottom: 0;
 }
 
 .credential-label {
-  color: #64748b;
+  font-size: 16px;
+  color: #6c757d;
+  font-weight: 500;
 }
 
 .credential-value {
-  color: #1e293b;
+  font-size: 18px;
+  color: #2c3e50;
+  font-family: 'Courier New', monospace;
 }
 
-/* Container for all sections to ensure consistent width */
-.container-fluid,
-.container {
-  width: 100% !important;
-  max-width: none !important;
+/* Make copy and WhatsApp icons smaller */
+.customer-credentials + .d-flex .btn i {
+  font-size: 0.8rem;
 }
 
-/* Main content area fixes */
-.main-content,
-.page-content,
-.customer-sections {
-  width: 100% !important;
-  max-width: none !important;
+.customer-credentials + .d-flex .btn .bi-clipboard {
+  font-size: 0.75rem;
 }
 
-/* Force all direct children sections to be consistent width */
-.main-content > div,
-.page-content > div,
-body > div:not(.navbar):not(.sidebar) {
-  width: 100% !important;
-  max-width: none !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
+.customer-credentials + .d-flex .btn .bi-whatsapp {
+  font-size: 0.75rem;
+}
+
+/* Prevent empty containers from rendering */
+.info-section-card:empty {
+  display: none !important;
+}
+
+.section-body:empty {
+  display: none !important;
+}
+
+/* Ensure page ends cleanly */
+.info-section-card:last-child {
+  margin-bottom: 1rem;
 }
 
 /* Info Section Cards */
-.info-section-card,
-.card {
+.info-section-card {
   background: white;
   border-radius: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 2rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   overflow: hidden;
-  width: 100% !important; /* Ensures consistent full width */
-  max-width: none !important; /* Removes any width constraints */
-  flex: none !important; /* Prevents flex shrinking */
-  min-width: 0 !important; /* Prevents content overflow issues */
-  display: block !important; /* Ensures block layout */
+  transition: all 0.3s ease;
+}
+
+.info-section-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
 }
 
 .section-header {
-  padding: 16px 24px;
-  background: #f8fafc;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-bottom: 1px solid #e9ecef;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: background 0.2s;
-  min-height: 72px; /* Ensures consistent height: 16px top + 40px icon + 16px bottom = 72px */
-  box-sizing: border-box;
-  width: 100%; /* Ensures full width utilization */
+  transition: all 0.3s ease;
 }
 
 .section-header:hover {
-  background: #f1f5f9;
+  background: linear-gradient(135deg, #f0f2f5 0%, #ffffff 100%);
 }
 
 .section-icon {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
-  background: #e0f2fe;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #0369a1;
-  font-size: 20px;
-  margin-right: 16px;
-  flex-shrink: 0; /* Prevents icon from shrinking */
+  color: white;
+  font-size: 18px;
+  margin-right: 12px;
 }
 
 .section-title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
-  color: #1e293b;
+  color: #2c3e50;
   margin: 0;
-  line-height: 1.5; /* Consistent line height */
-  flex: 1; /* Takes available space */
 }
 
 .section-count {
-  background: #e2e8f0;
-  color: #475569;
+  background: #e9ecef;
+  padding: 4px 10px;
+  border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 12px;
-  margin-left: 12px;
-  line-height: 1.2; /* Consistent line height */
-  white-space: nowrap; /* Prevents wrapping */
-  flex-shrink: 0; /* Prevents shrinking */
+  color: #6c757d;
+  margin-left: auto;
+  margin-right: 12px;
 }
 
 .collapse-icon {
-  color: #94a3b8;
-  transition: transform 0.3s;
-  font-size: 16px; /* Consistent icon size */
-  flex-shrink: 0; /* Prevents shrinking */
-}
-
-.section-header:not(.collapsed) .collapse-icon {
-  transform: rotate(180deg);
+  color: #6c757d;
+  transition: transform 0.3s ease;
 }
 
 .section-header.collapsed .collapse-icon {
   transform: rotate(0deg);
 }
 
+.section-header:not(.collapsed) .collapse-icon {
+  transform: rotate(180deg);
+}
+
 .section-body {
-  padding: 24px;
+  padding: 20px;
 }
 
 /* Info Fields */
 .info-field {
-  margin-bottom: 4px;
+  margin-bottom: 12px;
 }
 
 .info-field label {
   font-size: 11px;
   font-weight: 600;
-  color: #94a3b8;
+  color: #6c757d;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
@@ -1796,155 +1794,53 @@ body > div:not(.navbar):not(.sidebar) {
 }
 
 .info-value {
-  font-size: 14px;
-  color: #1e293b;
+  font-size: 15px;
+  color: #2c3e50;
   font-weight: 500;
 }
 
-/* Enhanced Document Interface Styles */
-
-
-/* Enhanced Profile Image Display */
-.enhanced-profile-display {
-  max-width: 400px;
-}
-
-.profile-image-card {
+/* Bottom Actions */
+.bottom-actions {
+  margin-top: 24px;
+  padding: 20px;
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  transition: all 0.3s ease;
-}
-
-.profile-image-card:hover {
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-  border-color: #3b82f6;
-}
-
-.profile-image-preview {
-  width: 80px;
-  height: 80px;
-  position: relative;
-  cursor: pointer;
   border-radius: 12px;
-  overflow: hidden;
-}
-
-.profile-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 12px;
-}
-
-.profile-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   display: flex;
-  align-items: center;
+  gap: 12px;
   justify-content: center;
-  opacity: 0;
-  transition: all 0.3s ease;
-  border-radius: 12px;
 }
 
-.profile-image-preview:hover .profile-overlay {
-  opacity: 1;
-}
-
-.profile-info {
-  flex: 1;
-}
-
-.profile-title {
-  color: #1e293b;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.profile-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-/* Legacy Documents Grid */
-.legacy-documents-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.legacy-document-card {
-  background: #fef7cd;
-  border: 1px solid #f59e0b;
-  border-radius: 12px;
-  padding: 16px;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.legacy-document-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.2);
-}
-
-.legacy-document-preview {
-  margin-bottom: 12px;
-}
-
-.file-icon {
-  font-size: 32px;
-  color: #92400e;
-}
-
-.legacy-document-info .document-name {
-  color: #92400e;
-  font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 12px;
-}
-
-/* Documents Grid */
+/* Document Styles */
 .documents-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 20px;
   margin-top: 20px;
 }
 
-/* Enhanced Document Card */
 .enhanced-document-card {
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   position: relative;
 }
 
 .enhanced-document-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-  border-color: #3b82f6;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
 }
 
-/* Document Preview */
 .document-preview {
-  height: 180px;
+  height: 160px;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
   cursor: pointer;
-  overflow: hidden;
 }
 
 .image-preview {
@@ -1959,59 +1855,6 @@ body > div:not(.navbar):not(.sidebar) {
   object-fit: cover;
 }
 
-.file-type-preview {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.pdf-preview {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-}
-
-.doc-preview {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-}
-
-.excel-preview {
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-}
-
-.default-preview {
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-}
-
-.file-type-icon {
-  font-size: 48px;
-  margin-bottom: 8px;
-}
-
-.pdf-preview .file-type-icon {
-  color: #dc2626;
-}
-
-.doc-preview .file-type-icon {
-  color: #2563eb;
-}
-
-.excel-preview .file-type-icon {
-  color: #16a34a;
-}
-
-.default-preview .file-type-icon {
-  color: #6b7280;
-}
-
-.file-type-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-}
-
 .preview-overlay {
   position: absolute;
   top: 0;
@@ -2023,7 +1866,7 @@ body > div:not(.navbar):not(.sidebar) {
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease;
 }
 
 .document-preview:hover .preview-overlay {
@@ -2031,8 +1874,50 @@ body > div:not(.navbar):not(.sidebar) {
 }
 
 .preview-icon {
+  font-size: 32px;
   color: white;
-  font-size: 24px;
+}
+
+.file-type-preview {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.file-type-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.file-type-label {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pdf-preview {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+  color: white;
+}
+
+.doc-preview {
+  background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+  color: white;
+}
+
+.excel-preview {
+  background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+  color: white;
+}
+
+.default-preview {
+  background: linear-gradient(135deg, #858796 0%, #60616f 100%);
+  color: white;
 }
 
 /* Document Info */
@@ -2043,455 +1928,279 @@ body > div:not(.navbar):not(.sidebar) {
 .document-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: start;
   margin-bottom: 12px;
 }
 
 .document-title {
-  color: #1e293b;
+  font-size: 14px;
   font-weight: 600;
-  font-size: 16px;
+  color: #2c3e50;
   margin: 0;
-  flex: 1;
-  margin-right: 8px;
+  line-height: 1.4;
 }
 
 .document-type-badge {
-  background: #e0f2fe;
-  color: #0369a1;
-  font-size: 11px;
-  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
   padding: 4px 8px;
   border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .document-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .meta-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  font-size: 12px;
+  color: #6c757d;
 }
 
 .meta-icon {
-  color: #9ca3af;
-  font-size: 12px;
+  margin-right: 6px;
+  font-size: 14px;
 }
 
 .meta-text {
-  color: #6b7280;
-  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Document Actions */
 .document-actions {
-  padding: 12px 16px 16px;
-  border-top: 1px solid #f1f5f9;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
 }
 
 .action-buttons {
   display: flex;
   gap: 8px;
-  justify-content: center;
 }
 
 .action-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  flex: 1;
+  padding: 8px;
   border: none;
+  background: white;
+  border-radius: 8px;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-  font-size: 14px;
-  cursor: pointer;
-  text-decoration: none;
 }
 
-.download-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+.action-btn:hover {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  transform: translateY(-2px);
 }
 
 .download-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-  color: white;
-}
-
-.preview-btn {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
 }
 
 .preview-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-}
-
-.share-btn {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-  color: white;
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
 }
 
 .share-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
-}
-
-.delete-btn {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: white;
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
 }
 
 .delete-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-  color: white;
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
 }
 
-/* Empty State */
+/* Empty States */
 .empty-documents-state {
   text-align: center;
   padding: 60px 20px;
+  color: #6c757d;
 }
 
 .empty-state-icon {
   font-size: 64px;
-  color: #cbd5e1;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  opacity: 0.3;
 }
 
 .empty-state-title {
-  color: #1e293b;
+  font-size: 18px;
   font-weight: 600;
-  margin-bottom: 12px;
-  font-size: 20px;
+  color: #495057;
+  margin-bottom: 8px;
 }
 
 .empty-state-subtitle {
-  color: #64748b;
-  margin-bottom: 24px;
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
-  line-height: 1.6;
+  font-size: 14px;
+  color: #6c757d;
+  margin: 0;
 }
 
-.empty-state-actions .btn {
-  padding: 12px 24px;
-  font-weight: 600;
+/* Enhanced Profile Display */
+.enhanced-profile-display {
+  margin-top: 16px;
 }
 
-/* Preview Modal */
-.preview-container {
-  min-height: 400px;
+.profile-image-card {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.profile-image-preview {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  cursor: pointer;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.profile-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8fafc;
-  border-radius: 8px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.preview-container img {
-  max-width: 100%;
-  max-height: 500px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.profile-image-preview:hover .profile-overlay {
+  opacity: 1;
 }
 
-.preview-container iframe {
-  width: 100%;
-  height: 500px;
-  border: none;
-  border-radius: 8px;
+.profile-info {
+  flex: 1;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .documents-grid,
-  .legacy-documents-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .profile-image-card {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .profile-actions {
-    justify-content: center;
-  }
-
-  .action-buttons {
-    gap: 6px;
-  }
-
-  .action-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 12px;
-  }
+.profile-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
 }
 
-/* Animation classes for document cards */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.profile-meta {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
 }
 
-.enhanced-document-card {
-  animation: fadeInUp 0.6s ease forwards;
+.profile-actions {
+  display: flex;
+  gap: 8px;
 }
 
-/* Progress bar animation */
-@keyframes shimmer {
-  0% {
-    background-position: -468px 0;
-  }
-  100% {
-    background-position: 468px 0;
-  }
+/* Legacy Documents */
+.legacy-documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
 }
 
-.progress-bar-animated {
-  background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
-  background-size: 1rem 1rem;
-  animation: shimmer 2s infinite linear;
-}
-
-/* Policy Card */
-.policy-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+.legacy-document-card {
+  background: #f8f9fa;
   border-radius: 8px;
   padding: 16px;
+  text-align: center;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
 }
 
-/* Bottom Actions */
-.bottom-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-start;
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid #e2e8f0;
+.legacy-document-card:hover {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .customer-header-card {
-    padding: 16px;
-  }
+.legacy-document-preview {
+  margin-bottom: 12px;
+}
 
-  .customer-credentials {
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-end;
-  }
+.file-icon {
+  font-size: 48px;
+  color: #6c757d;
+}
 
-  .section-header {
-    padding: 12px 16px;
-  }
+.document-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  margin: 0 0 12px 0;
+  word-break: break-word;
+}
 
-  .section-body {
-    padding: 16px;
-  }
+/* Family Members Table */
+.table-responsive {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px #e9ecef;
+}
 
-  .bottom-actions {
-    flex-direction: column;
-  }
-
-  .bottom-actions .btn {
-    width: 100%;
-  }
+/* Copy button functionality */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 </style>
 
 <script>
-// Copy credentials function
 function copyCredentials() {
-  const customerIdElement = document.getElementById('customer-id-value');
-  const passwordElement = document.getElementById('customer-password-value');
-
-  const customerId = customerIdElement ? customerIdElement.textContent.trim() : '';
-  const password = passwordElement ? passwordElement.textContent.trim() : '';
-
-  if (!customerId || customerId === '-' || !password || password === '-') {
-    showNotification('No credentials to copy', 'error');
-    return;
-  }
-
-  const text = `Username: ${customerId}\nPassword: ${password}`;
-
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text).then(function() {
-      showNotification('Credentials copied to clipboard!');
-    });
-  } else {
-    // Fallback for older browsers
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.style.position = "fixed";
-    textArea.style.left = "-999999px";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    try {
-      document.execCommand('copy');
-      showNotification('Credentials copied to clipboard!');
-    } catch (err) {
-      showNotification('Failed to copy', 'error');
-    }
-    document.body.removeChild(textArea);
-  }
-}
-
-function showNotification(message, type = 'success') {
-  const notification = document.createElement('div');
-  notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
-  notification.style.cssText = `
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-    min-width: 250px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  `;
-  notification.innerHTML = `
-    <i class="bi bi-${type === 'success' ? 'check-circle' : 'x-circle'} me-2"></i>
-    ${message}
-  `;
-
-  document.body.appendChild(notification);
-  setTimeout(() => {
-    notification.remove();
-  }, 3000);
-}
-
-// Enhanced Document Interface JavaScript
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialize all collapse elements
-  const collapseElements = document.querySelectorAll('.collapse');
-  collapseElements.forEach(element => {
-    new bootstrap.Collapse(element, {
-      toggle: false
-    });
+  const username = document.getElementById('customer-id-value').textContent.trim();
+  const password = document.getElementById('customer-password-value').textContent.trim();
+  
+  const text = `Username: ${username}\nPassword: ${password}`;
+  
+  navigator.clipboard.writeText(text).then(function() {
+    // Show success message or change button text temporarily
+    const btn = event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+    btn.classList.add('btn-success');
+    btn.classList.remove('btn-outline-primary');
+    
+    setTimeout(() => {
+      btn.innerHTML = originalHTML;
+      btn.classList.remove('btn-success');
+      btn.classList.add('btn-outline-primary');
+    }, 2000);
   });
-
-  // Handle click events on section headers
-  const sectionHeaders = document.querySelectorAll('.section-header');
-  sectionHeaders.forEach(header => {
-    header.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const targetId = this.getAttribute('data-bs-target');
-      const targetElement = document.querySelector(targetId);
-
-      if (targetElement) {
-        // Toggle the collapse
-        const bsCollapse = bootstrap.Collapse.getInstance(targetElement);
-        if (bsCollapse) {
-          bsCollapse.toggle();
-        }
-
-        // Update aria-expanded attribute
-        const isExpanded = targetElement.classList.contains('show');
-        this.setAttribute('aria-expanded', !isExpanded);
-
-        // Toggle collapsed class on header
-        if (!isExpanded) {
-          this.classList.remove('collapsed');
-        } else {
-          this.classList.add('collapsed');
-        }
-      }
-    });
-  });
-
-
-  // Initialize document preview modals
-  initializeDocumentPreviews();
-});
-
-
-function initializeDocumentPreviews() {
-  // This function would be called to initialize preview functionality
-  console.log('Document preview functionality initialized');
 }
 
 function openPreviewModal(documentId) {
+  // Implementation for document preview
   const modal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
-  const previewContainer = document.getElementById('previewContainer');
-  const downloadBtn = document.getElementById('downloadPreviewBtn');
-
-  // Clear previous content
-  previewContainer.innerHTML = '<div class="d-flex justify-content-center align-items-center h-100"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-
-  // Show modal
+  // Load document preview content based on documentId
   modal.show();
-
-  // In a real application, you would fetch document details via AJAX
-  // For now, we'll show a placeholder
-  setTimeout(() => {
-    // Find document data from the page (this is a simplified approach)
-    const documentCard = document.querySelector(`[onclick*="${documentId}"]`);
-    if (documentCard) {
-      const img = documentCard.querySelector('img');
-      if (img) {
-        // Image preview
-        previewContainer.innerHTML = `<img src="${img.src}" alt="Document Preview" style="max-width: 100%; max-height: 500px; border-radius: 8px;">`;
-      } else {
-        // File preview placeholder
-        const fileIcon = documentCard.querySelector('.file-type-icon').className;
-        const fileLabel = documentCard.querySelector('.file-type-label').textContent;
-        const bgClass = documentCard.querySelector('.file-type-preview').className;
-
-        previewContainer.innerHTML = `
-          <div class="${bgClass}" style="width: 300px; height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px;">
-            <i class="${fileIcon}" style="font-size: 80px; margin-bottom: 20px;"></i>
-            <h4>${fileLabel} Document</h4>
-            <p class="text-muted">Click download to view this document</p>
-          </div>
-        `;
-      }
-    }
-  }, 500);
-}
-
-function shareDocument(documentId) {
-  // Get document URL
-  const documentCard = document.querySelector(`[onclick*="${documentId}"]`).closest('.enhanced-document-card');
-  const downloadLink = documentCard.querySelector('.download-btn').href;
-
-  if (navigator.share) {
-    // Use native sharing if available
-    navigator.share({
-      title: 'Shared Document',
-      url: downloadLink
-    }).catch(err => console.log('Error sharing:', err));
-  } else {
-    // Fallback: Copy to clipboard
-    navigator.clipboard.writeText(downloadLink).then(() => {
-      showNotification('Document link copied to clipboard!', 'success');
-    }).catch(() => {
-      showNotification('Unable to copy link', 'error');
-    });
-  }
 }
 
 function openProfileModal() {
@@ -2499,106 +2208,8 @@ function openProfileModal() {
   modal.show();
 }
 
-// Enhanced notification function with better styling
-function showNotification(message, type = 'success') {
-  const notification = document.createElement('div');
-  notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
-  notification.style.cssText = `
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-    min-width: 300px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-    border-radius: 12px;
-    border: none;
-    backdrop-filter: blur(10px);
-    animation: slideInRight 0.3s ease;
-  `;
-
-  const icon = type === 'success' ? 'check-circle-fill' : 'exclamation-triangle-fill';
-  const bgColor = type === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)';
-
-  notification.style.background = bgColor;
-  notification.style.color = 'white';
-  notification.style.border = 'none';
-
-  notification.innerHTML = `
-    <div class="d-flex align-items-center">
-      <i class="bi bi-${icon} me-3" style="font-size: 1.2em;"></i>
-      <span style="font-weight: 500;">${message}</span>
-    </div>
-  `;
-
-  document.body.appendChild(notification);
-
-  // Auto remove after 4 seconds
-  setTimeout(() => {
-    notification.style.animation = 'slideOutRight 0.3s ease';
-    setTimeout(() => notification.remove(), 300);
-  }, 4000);
-
-  // Click to dismiss
-  notification.addEventListener('click', () => {
-    notification.style.animation = 'slideOutRight 0.3s ease';
-    setTimeout(() => notification.remove(), 300);
-  });
+function shareDocument(documentId) {
+  // Implementation for sharing document
+  alert('Share functionality coming soon!');
 }
-
-// Add CSS animations for notifications
-const notificationStyles = document.createElement('style');
-notificationStyles.textContent = `
-  @keyframes slideInRight {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-
-  @keyframes slideOutRight {
-    from {
-      transform: translateX(0);
-      opacity: 1;
-    }
-    to {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-  }
-`;
-document.head.appendChild(notificationStyles);
-
-// Handle collapse/expand chevron rotation
-document.addEventListener('DOMContentLoaded', function() {
-  // Family Members section
-  const familyMembersCollapse = document.getElementById('familyMembersCollapse');
-  const familyMembersChevron = document.getElementById('familyMembersChevron');
-
-  if (familyMembersCollapse && familyMembersChevron) {
-    familyMembersCollapse.addEventListener('hide.bs.collapse', function() {
-      familyMembersChevron.style.transform = 'rotate(-90deg)';
-    });
-
-    familyMembersCollapse.addEventListener('show.bs.collapse', function() {
-      familyMembersChevron.style.transform = 'rotate(0deg)';
-    });
-  }
-
-  // Associated Leads section
-  const associatedLeadsCollapse = document.getElementById('associatedLeadsCollapse');
-  const associatedLeadsChevron = document.getElementById('associatedLeadsChevron');
-
-  if (associatedLeadsCollapse && associatedLeadsChevron) {
-    associatedLeadsCollapse.addEventListener('hide.bs.collapse', function() {
-      associatedLeadsChevron.style.transform = 'rotate(-90deg)';
-    });
-
-    associatedLeadsCollapse.addEventListener('show.bs.collapse', function() {
-      associatedLeadsChevron.style.transform = 'rotate(0deg)';
-    });
-  }
-});
 </script>

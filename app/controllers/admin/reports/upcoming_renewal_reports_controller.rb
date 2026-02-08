@@ -59,7 +59,7 @@ class Admin::Reports::UpcomingRenewalReportsController < Admin::Reports::BaseCon
   def create_report
     filters = {
       start_date: params[:start_date].present? ? Date.parse(params[:start_date]) : Date.current,
-      end_date: params[:end_date].present? ? Date.parse(params[:end_date]) : 30.days.from_now.to_date,
+      end_date: params[:end_date].present? ? Date.parse(params[:end_date]) : 45.days.from_now.to_date,
       policy_type: params[:policy_type].presence,
       status: params[:status].presence
     }.compact
@@ -171,9 +171,9 @@ class Admin::Reports::UpcomingRenewalReportsController < Admin::Reports::BaseCon
   end
 
   def build_policy_query(filters)
-    # Default date range for upcoming renewals (today to next 30 days)
+    # Default date range for upcoming renewals (today to next 45 days)
     start_date = filters[:start_date] || Date.current
-    end_date = filters[:end_date] || 30.days.from_now.to_date
+    end_date = filters[:end_date] || 45.days.from_now.to_date
 
     # Start with base query depending on policy type filter
     if filters[:policy_type].present?

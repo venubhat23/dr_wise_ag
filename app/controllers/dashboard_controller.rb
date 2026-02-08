@@ -139,15 +139,15 @@ class DashboardController < ApplicationController
     # These sections should always show current real-time data, not filtered by date
     results = {}
     current_date = Date.current
-    thirty_days_from_now = current_date + 30.days
+    forty_five_days_from_now = current_date + 45.days
 
     # Renewal Alerts - always based on current date
-    results[:renewal_due_count] = get_renewal_due_count(thirty_days_from_now)
+    results[:renewal_due_count] = get_renewal_due_count(forty_five_days_from_now)
     results[:recently_expired_count] = get_recently_expired_count
     results[:renewal_status] = get_renewal_status_counts
 
     # Policy Alerts - always based on current date
-    results[:policies_expiring_soon] = get_renewal_due_count(thirty_days_from_now)
+    results[:policies_expiring_soon] = get_renewal_due_count(forty_five_days_from_now)
     results[:expired_this_month] = get_expired_this_month_count
     results[:renewal_opportunities] = get_renewal_opportunities_count
 
@@ -371,14 +371,14 @@ class DashboardController < ApplicationController
 
   # Helper methods for filtered data
   def get_renewal_due_count_for_period(start_date, end_date)
-    thirty_days_from_end = end_date + 30.days
+    forty_five_days_from_end = end_date + 45.days
 
     # Use direct SQL interpolation instead of bound parameters to avoid array issues
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{thirty_days_from_end}'
+        SELECT id FROM health_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{forty_five_days_from_end}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{thirty_days_from_end}'
+        SELECT id FROM life_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{forty_five_days_from_end}'
       ) as renewals
     "
 
@@ -388,12 +388,12 @@ class DashboardController < ApplicationController
 
     # Add motor and other insurances if they exist
     begin
-      count += MotorInsurance.where(created_at: start_date..end_date, policy_end_date: end_date..thirty_days_from_end).count
+      count += MotorInsurance.where(created_at: start_date..end_date, policy_end_date: end_date..forty_five_days_from_end).count
     rescue
     end
 
     begin
-      count += OtherInsurance.where(created_at: start_date..end_date, policy_end_date: end_date..thirty_days_from_end).count
+      count += OtherInsurance.where(created_at: start_date..end_date, policy_end_date: end_date..forty_five_days_from_end).count
     rescue
     end
 
@@ -689,8 +689,8 @@ class DashboardController < ApplicationController
     results[:pending_leads] = Lead.where(current_stage: pending_stages).count
 
     # Renewals and expired policies (date-based queries)
-    thirty_days_from_now = Date.current + 30.days
-    results[:renewal_due_count] = get_renewal_due_count(thirty_days_from_now)
+    forty_five_days_from_now = Date.current + 45.days
+    results[:renewal_due_count] = get_renewal_due_count(forty_five_days_from_now)
     results[:expired_policies_count] = get_expired_policies_count
     results[:renewal_status] = get_renewal_status_counts
 
@@ -748,14 +748,14 @@ class DashboardController < ApplicationController
     }
   end
 
-  def get_renewal_due_count(thirty_days_from_now)
+  def get_renewal_due_count(forty_five_days_from_now)
     # Use single UNION query for better performance with string interpolation
     current_date = Date.current
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE policy_end_date BETWEEN '#{current_date}' AND '#{thirty_days_from_now}'
+        SELECT id FROM health_insurances WHERE policy_end_date BETWEEN '#{current_date}' AND '#{forty_five_days_from_now}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE policy_end_date BETWEEN '#{current_date}' AND '#{thirty_days_from_now}'
+        SELECT id FROM life_insurances WHERE policy_end_date BETWEEN '#{current_date}' AND '#{forty_five_days_from_now}'
       ) as renewals
     "
 
@@ -765,14 +765,14 @@ class DashboardController < ApplicationController
     # Add motor and other insurances if they exist
     begin
       if ActiveRecord::Base.connection.table_exists?('motor_insurances')
-        count += MotorInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, thirty_days_from_now).count
+        count += MotorInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, forty_five_days_from_now).count
       end
     rescue
     end
 
     begin
       if ActiveRecord::Base.connection.table_exists?('other_insurances')
-        count += OtherInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, thirty_days_from_now).count
+        count += OtherInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, forty_five_days_from_now).count
       end
     rescue
     end
@@ -929,13 +929,13 @@ class DashboardController < ApplicationController
   end
 
   def get_renewals_count_for_period(start_date, end_date)
-    thirty_days_ahead = end_date + 30.days
+    forty_five_days_ahead = end_date + 45.days
     health = HealthInsurance.where(created_at: start_date..end_date)
-                           .where('policy_end_date BETWEEN ? AND ?', end_date, thirty_days_ahead).count
+                           .where('policy_end_date BETWEEN ? AND ?', end_date, forty_five_days_ahead).count
     life = LifeInsurance.where(created_at: start_date..end_date)
-                        .where('policy_end_date BETWEEN ? AND ?', end_date, thirty_days_ahead).count
+                        .where('policy_end_date BETWEEN ? AND ?', end_date, forty_five_days_ahead).count
     motor = (MotorInsurance.where(created_at: start_date..end_date)
-                          .where('policy_end_date BETWEEN ? AND ?', end_date, thirty_days_ahead).count rescue 0)
+                          .where('policy_end_date BETWEEN ? AND ?', end_date, forty_five_days_ahead).count rescue 0)
     health + life + motor
   end
 
@@ -988,7 +988,7 @@ class DashboardController < ApplicationController
 
     {
       'Renewed' => renewed_count,
-      'Pending' => get_renewal_due_count(Date.current + 30.days),
+      'Pending' => get_renewal_due_count(Date.current + 45.days),
       'Expired' => get_expired_policies_count
     }
   end
@@ -1094,15 +1094,15 @@ class DashboardController < ApplicationController
   end
 
   def get_recently_expired_count
-    # Get policies that expired in the last 30 days
+    # Get policies that expired in the last 45 days
     current_date = Date.current
-    thirty_days_ago = current_date - 30.days
+    forty_five_days_ago = current_date - 45.days
 
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE policy_end_date BETWEEN '#{thirty_days_ago}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
+        SELECT id FROM health_insurances WHERE policy_end_date BETWEEN '#{forty_five_days_ago}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE policy_end_date BETWEEN '#{thirty_days_ago}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
+        SELECT id FROM life_insurances WHERE policy_end_date BETWEEN '#{forty_five_days_ago}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
       ) as recently_expired
     "
 
@@ -1112,7 +1112,7 @@ class DashboardController < ApplicationController
     # Add motor and other insurances if they exist
     begin
       if ActiveRecord::Base.connection.table_exists?('motor_insurances')
-        count += MotorInsurance.where(policy_end_date: thirty_days_ago..current_date).where('policy_end_date < ?', current_date).count
+        count += MotorInsurance.where(policy_end_date: forty_five_days_ago..current_date).where('policy_end_date < ?', current_date).count
       end
     rescue
     end

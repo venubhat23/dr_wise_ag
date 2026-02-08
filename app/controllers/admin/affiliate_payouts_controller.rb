@@ -808,24 +808,28 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     sub_agent = SubAgent.find_by(id: affiliate_id)
     return unless sub_agent
 
-    # Check if there's already an invoice for this affiliate today
-    today = Date.current
+    # Check if there's already an invoice for this affiliate this month
+    current_month_start = Date.current.beginning_of_month
+    current_month_end = Date.current.end_of_month
     existing_invoice = Invoice.where(
       payout_type: 'affiliate',
       payout_id: affiliate_id,
-      invoice_date: today
+      invoice_date: current_month_start..current_month_end
     ).first
 
-    # Get all paid commission payouts for this affiliate
-    paid_payouts = CommissionPayout.where(payout_to: 'affiliate', status: 'paid')
-                                   .select do |payout|
+    # Get all paid commission payouts for this affiliate in the current month
+    paid_payouts = CommissionPayout.where(
+      payout_to: 'affiliate',
+      status: 'paid',
+      payout_date: current_month_start..current_month_end
+    ).select do |payout|
       policy = get_policy_from_commission_payout(payout)
       policy && policy.respond_to?(:sub_agent_id) && policy.sub_agent_id == affiliate_id.to_i
     end
 
     return if paid_payouts.empty?
 
-    # Calculate total commission from all paid payouts
+    # Calculate total commission from paid payouts in current month
     total_commission = paid_payouts.sum(&:payout_amount)
     return if total_commission <= 0
 
@@ -837,17 +841,17 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
 
     begin
       if existing_invoice
-        # Update existing invoice with new total
+        # Update existing invoice with new total (consolidating all payouts for the month)
         existing_invoice.update!(
           total_amount: total_commission,
-          notes: "Affiliate commission for #{paid_payouts.count} policies: #{policies_processed.join(', ')}",
+          notes: "Affiliate commission for #{paid_payouts.count} policies in #{Date.current.strftime('%B %Y')}: #{policies_processed.join(', ')}",
           updated_at: Time.current
         )
-        Rails.logger.info "Updated existing invoice #{existing_invoice.invoice_number} for affiliate #{sub_agent.first_name} #{sub_agent.last_name} (#{sub_agent.id})"
+        Rails.logger.info "Updated existing monthly invoice #{existing_invoice.invoice_number} for affiliate #{sub_agent.first_name} #{sub_agent.last_name} (#{sub_agent.id})"
         existing_invoice
       else
-        # Create new consolidated invoice
-        invoice_number = generate_unique_invoice_number(affiliate_id)
+        # Create new monthly consolidated invoice
+        invoice_number = generate_unique_monthly_invoice_number(affiliate_id)
 
         invoice = Invoice.create!(
           invoice_number: invoice_number,
@@ -860,19 +864,36 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
           paid_at: Time.current,
           recipient_name: "#{sub_agent.first_name} #{sub_agent.last_name}",
           recipient_email: sub_agent.email,
-          notes: "Affiliate commission for #{paid_payouts.count} policies: #{policies_processed.join(', ')}"
+          notes: "Monthly affiliate commission for #{paid_payouts.count} policies in #{Date.current.strftime('%B %Y')}: #{policies_processed.join(', ')}"
         )
 
-        Rails.logger.info "Generated consolidated invoice #{invoice.invoice_number} for affiliate #{sub_agent.first_name} #{sub_agent.last_name} (#{sub_agent.id})"
+        Rails.logger.info "Generated monthly consolidated invoice #{invoice.invoice_number} for affiliate #{sub_agent.first_name} #{sub_agent.last_name} (#{sub_agent.id})"
         invoice
       end
     rescue ActiveRecord::RecordInvalid => e
-      Rails.logger.error "Failed to create/update invoice for affiliate #{affiliate_id}: #{e.message}"
+      Rails.logger.error "Failed to create/update monthly invoice for affiliate #{affiliate_id}: #{e.message}"
       nil
     rescue => e
-      Rails.logger.error "Unexpected error creating/updating invoice for affiliate #{affiliate_id}: #{e.message}"
+      Rails.logger.error "Unexpected error creating/updating monthly invoice for affiliate #{affiliate_id}: #{e.message}"
       nil
     end
+  end
+
+  def generate_unique_monthly_invoice_number(affiliate_id)
+    # Generate a deterministic invoice number based on affiliate and month
+    year_month = Date.current.strftime('%Y%m')
+    base_number = "INV-AFF-#{year_month}-#{affiliate_id.to_s.rjust(5, '0')}"
+
+    # Check if this exact number exists
+    counter = 1
+    invoice_number = base_number
+
+    while Invoice.exists?(invoice_number: invoice_number)
+      invoice_number = "#{base_number}-#{counter}"
+      counter += 1
+    end
+
+    invoice_number
   end
 
   def generate_unique_invoice_number(affiliate_id)

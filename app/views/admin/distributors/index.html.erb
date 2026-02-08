@@ -97,22 +97,23 @@
   </div>
 </div>
 
-<!-- Ambassadors Table -->
-<div class="card shadow-sm">
-  <div class="card-body">
+<!-- Ambassadors List -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0">
+    <h5 class="mb-0">Ambassador List</h5>
+  </div>
+  <div class="card-body p-0">
     <% if @distributors.any? %>
       <div class="table-responsive">
-        <table class="table table-hover align-middle">
-          <thead class="table-light">
+        <table class="table table-hover mb-0">
+          <thead class="bg-light">
             <tr>
-              <th>Name</th>
-              <th>Mobile</th>
-              <th>Login Credentials</th>
-              <th>Role</th>
-              <th>Affiliates</th>
-              <th>Status</th>
-              <th>Created</th>
-              <th>Actions</th>
+              <th class="border-0">Ambassador</th>
+              <th class="border-0">Contact</th>
+              <th class="border-0">Affiliates</th>
+              <th class="border-0">Created</th>
+              <th class="border-0">Status</th>
+              <th class="border-0">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -120,126 +121,99 @@
               <tr class="<%= distributor.deactivated? ? 'table-warning opacity-75' : '' %>">
                 <td>
                   <div class="d-flex align-items-center">
-                    <div class="avatar-sm bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3">
-                      <i class="bi bi-person text-primary"></i>
+                    <!-- Profile Image Circle -->
+                    <div class="me-3">
+                      <% if distributor.respond_to?(:profile_image) && distributor.profile_image.attached? %>
+                        <%= image_tag url_for(distributor.profile_image),
+                            class: "rounded-circle",
+                            style: "width: 40px; height: 40px; object-fit: cover;",
+                            alt: "Profile",
+                            onerror: "this.onerror=null; this.src='/assets/placeholder-avatar.svg';" %>
+                      <% else %>
+                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                             style="width: 40px; height: 40px;">
+                          <span class="text-primary fw-bold">
+                            <%= distributor.display_name.present? ? distributor.display_name[0].upcase : "?" %>
+                          </span>
+                        </div>
+                      <% end %>
                     </div>
+                    <!-- Ambassador Details -->
                     <div>
-                      <h6 class="mb-0"><%= distributor.display_name %></h6>
-                      <small class="text-muted"><%= distributor.full_name %></small>
+                      <h6 class="mb-0">
+                        <%= distributor.display_name.present? ? distributor.display_name : "Unnamed Ambassador" %>
+                      </h6>
+                      <small class="text-muted d-block">
+                        <% if distributor.respond_to?(:email) && distributor.email.present? %>
+                          <i class="bi bi-envelope me-1"></i><%= distributor.email %>
+                        <% end %>
+                      </small>
                     </div>
                   </div>
                 </td>
                 <td>
-                  <span class="badge bg-light text-dark border">
-                    <i class="bi bi-telephone me-1"></i>
-                    <%= distributor.formatted_mobile %>
-                  </span>
-                </td>
-                <td>
-                  <div class="login-credentials">
-                    <div class="mb-1">
-                      <small class="text-muted d-block">Username:</small>
-                      <div class="d-flex align-items-center">
-                        <code class="bg-light border rounded px-2 py-1 me-2" id="username_<%= distributor.id %>"><%= distributor.email %></code>
-                        <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-copy="<%= distributor.email %>" title="Copy Username">
-                          <i class="bi bi-copy"></i>
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <small class="text-muted d-block">Password:</small>
-                      <div class="d-flex align-items-center">
-                        <code class="bg-light border rounded px-2 py-1 me-2" id="password_<%= distributor.id %>">Ganesha@123</code>
-                        <button class="btn btn-sm btn-outline-secondary copy-btn" type="button" data-copy="Ganesha@123" title="Copy Password">
-                          <i class="bi bi-copy"></i>
-                        </button>
-                      </div>
-                    </div>
+                  <div>
+                    <%= distributor.formatted_mobile.present? ? distributor.formatted_mobile : "No mobile number" %>
                   </div>
                 </td>
                 <td>
-                  <span class="badge bg-info">Role <%= distributor.role_id %></span>
-                </td>
-                <td>
-                  <span class="badge bg-primary">
-                    <i class="bi bi-people me-1"></i>
-                    <%= distributor.assigned_sub_agents.count %>
-                  </span>
-                </td>
-                <td>
-                  <% if distributor.deactivated? %>
-                    <span class="badge bg-danger">Deactivated</span>
-                  <% elsif distributor.active? %>
-                    <span class="badge bg-success">Active</span>
-                  <% else %>
-                    <span class="badge bg-secondary">Inactive</span>
-                  <% end %>
+                  <%= distributor.assigned_sub_agents.count %>
                 </td>
                 <td>
                   <small class="text-muted">
-                    <%= time_ago_in_words(distributor.created_at) %> ago
+                    <i class="bi bi-calendar me-1"></i><%= distributor.created_at.strftime('%d %b %Y') %>
                   </small>
                 </td>
                 <td>
-                  <%
-                    has_view = can_view?('distributors')
-                    has_edit = can_edit?('distributors')
-                    has_delete = can_delete?('distributors')
-                    has_any_action = has_view || has_edit || has_delete
-                  %>
-                  <% if has_any_action %>
-                    <div class="dropdown">
-                      <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-three-dots"></i>
-                      </button>
-                      <ul class="dropdown-menu">
-                        <% if has_view %>
-                          <li><%= link_to "View", admin_distributor_path(distributor), class: "dropdown-item" %></li>
-                        <% end %>
-                        <% if has_edit %>
-                          <li><%= link_to "Edit", edit_admin_distributor_path(distributor), class: "dropdown-item" %></li>
-                        <% end %>
-                        <% if has_edit && (has_view || has_edit) %>
-                          <li><hr class="dropdown-divider"></li>
-                        <% end %>
-                        <% if has_edit %>
-                          <% if distributor.deactivated? %>
-                            <li>
-                              <a href="javascript:void(0)"
-                                 class="dropdown-item text-success"
-                                 onclick="handleDeactivationAction('<%= activate_admin_distributor_path(distributor) %>', 'PATCH', 'Are you sure you want to activate this ambassador?'); return false;">
-                                <i class="bi bi-check-circle text-success me-2"></i>Activate
-                              </a>
-                            </li>
-                          <% else %>
-                            <li>
-                              <a href="javascript:void(0)"
-                                 class="dropdown-item text-warning"
-                                 onclick="handleDeactivationAction('<%= deactivate_admin_distributor_path(distributor) %>', 'PATCH', 'Are you sure you want to deactivate this ambassador?'); return false;">
-                                <i class="bi bi-x-circle text-warning me-2"></i>Deactivate
-                              </a>
-                            </li>
-                          <% end %>
-                        <% end %>
-                        <% if has_delete %>
-                          <li><hr class="dropdown-divider"></li>
-                          <li>
-                            <%= link_to "#",
-                                       class: "dropdown-item text-danger delete-distributor-btn",
-                                       data: {
-                                         "distributor-id": distributor.id,
-                                         "distributor-name": distributor.display_name,
-                                         "delete-url": admin_distributor_path(distributor)
-                                       } do %>
-                              <i class="bi bi-trash text-danger me-2"></i>Delete
-                            <% end %>
-                          </li>
-                        <% end %>
-                      </ul>
-                    </div>
+                  <% if distributor.deactivated? %>
+                    Deactivated
+                  <% elsif distributor.active? %>
+                    Active
                   <% else %>
-                    <span class="text-muted">-</span>
+                    Inactive
                   <% end %>
+                </td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <% if can_view?('distributors') %>
+                      <%= link_to admin_distributor_path(distributor), class: "btn btn-sm btn-outline-primary", title: "View" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    <% end %>
+
+                    <% if can_edit?('distributors') %>
+                      <%= link_to edit_admin_distributor_path(distributor), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
+                        <i class="bi bi-pencil"></i>
+                      <% end %>
+                    <% end %>
+
+                    <% if can_edit?('distributors') %>
+                      <% if distributor.deactivated? %>
+                        <button type="button"
+                            class="btn btn-sm btn-outline-success"
+                            title="Activate"
+                            onclick="handleDeactivationAction('<%= activate_admin_distributor_path(distributor) %>', 'PATCH', 'Are you sure you want to activate this ambassador?')">
+                          <i class="bi bi-check-circle"></i>
+                        </button>
+                      <% else %>
+                        <button type="button"
+                            class="btn btn-sm btn-outline-danger"
+                            title="Deactivate"
+                            onclick="handleDeactivationAction('<%= deactivate_admin_distributor_path(distributor) %>', 'PATCH', 'Are you sure you want to deactivate this ambassador?')">
+                          <i class="bi bi-x-circle"></i>
+                        </button>
+                      <% end %>
+                    <% end %>
+
+                    <% if can_delete?('distributors') %>
+                      <button type="button"
+                          class="btn btn-sm btn-outline-danger delete-distributor"
+                          data-url="<%= admin_distributor_path(distributor) %>"
+                          data-confirm="Are you sure you want to delete this ambassador?"
+                          title="Delete">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    <% end %>
                   </div>
                 </td>
               </tr>
@@ -273,24 +247,20 @@
         </div>
       </div>
     <% else %>
-      <!-- Empty State -->
       <div class="text-center py-5">
-        <div class="mb-3">
-          <i class="bi bi-people display-1 text-muted"></i>
-        </div>
-        <h5 class="mb-3">No Ambassadors Found</h5>
-        <p class="text-muted mb-4">
+        <i class="bi bi-people fs-1 text-muted d-block mb-3"></i>
+        <h5 class="text-muted">No ambassadors found</h5>
+        <p class="text-muted mb-3">
           <% if params[:search].present? || params[:status].present? %>
-            No ambassadors match your current filters. Try adjusting your search criteria.
+            Try adjusting your search criteria or
+            <%= link_to "view all ambassadors", admin_distributors_path, class: "text-decoration-none" %>.
           <% else %>
-            Start building your ambassador network by adding your first ambassador.
+            Start by adding your first ambassador to the system.
           <% end %>
         </p>
-        <% unless params[:search].present? || params[:status].present? %>
-          <%= link_to new_admin_distributor_path, class: "btn btn-primary" do %>
-            <i class="bi bi-plus-lg me-1"></i>
-            Create First Ambassador
-          <% end %>
+        <%= link_to new_admin_distributor_path, class: "btn btn-primary" do %>
+          <i class="bi bi-plus-lg me-1"></i>
+          Add First Ambassador
         <% end %>
       </div>
     <% end %>
@@ -302,9 +272,31 @@
   min-width: 250px;
 }
 
-.avatar-sm {
-  width: 38px;
-  height: 38px;
+/* Ambassador Profile Image Styles */
+.rounded-circle {
+  border: 2px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rounded-circle img {
+  border-radius: 50%;
+}
+
+/* Hover effect for profile images */
+tr:hover .rounded-circle {
+  border-color: #007bff;
+  transition: border-color 0.3s ease;
+}
+
+/* Initial letter avatar */
+.bg-primary.bg-opacity-10 {
+  background-color: rgba(13, 110, 253, 0.1) !important;
+  border: 2px solid #e9ecef;
+}
+
+tr:hover .bg-primary.bg-opacity-10 {
+  border-color: #007bff;
+  transition: border-color 0.3s ease;
 }
 </style>
 
@@ -401,189 +393,44 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Delete confirmation functionality
-  const deleteButtons = document.querySelectorAll('.delete-distributor-btn');
-  deleteButtons.forEach(button => {
-    button.addEventListener('click', function(e) {
+  // Handle distributor delete buttons
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.delete-distributor')) {
       e.preventDefault();
 
-      const distributorId = this.dataset.distributorId;
-      const distributorName = this.dataset.distributorName;
-      const deleteUrl = this.dataset.deleteUrl;
+      const button = e.target.closest('.delete-distributor');
+      const url = button.dataset.url;
+      const confirmMessage = button.dataset.confirm;
 
-      showDeleteConfirmation(distributorName, deleteUrl);
-    });
+      if (confirm(confirmMessage)) {
+        // Create and submit a form for DELETE request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        form.style.display = 'none';
+
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+          const csrfInput = document.createElement('input');
+          csrfInput.type = 'hidden';
+          csrfInput.name = 'authenticity_token';
+          csrfInput.value = csrfToken.content;
+          form.appendChild(csrfInput);
+        }
+
+        // Add method override for DELETE
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        form.appendChild(methodInput);
+
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
   });
 
-  function showDeleteConfirmation(distributorName, deleteUrl) {
-    // Create modal HTML
-    const modalHtml = `
-      <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header border-bottom-0">
-              <h5 class="modal-title text-danger" id="deleteConfirmationModalLabel">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                Delete Ambassador
-              </h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center py-4">
-              <div class="mb-4">
-                <i class="bi bi-trash text-danger" style="font-size: 3rem;"></i>
-              </div>
-              <h6 class="mb-3">Are you sure you want to delete this ambassador?</h6>
-              <p class="text-muted mb-0">
-                <strong>${distributorName}</strong> will be permanently removed from the system.
-              </p>
-              <p class="text-danger small mt-2 mb-0">
-                <i class="bi bi-exclamation-circle me-1"></i>
-                This action cannot be undone.
-              </p>
-            </div>
-            <div class="modal-footer border-top-0 justify-content-center">
-              <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">
-                <i class="bi bi-x-lg me-1"></i>Cancel
-              </button>
-              <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
-                <i class="bi bi-trash me-1"></i>Delete Ambassador
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Remove any existing modal
-    const existingModal = document.getElementById('deleteConfirmationModal');
-    if (existingModal) {
-      existingModal.remove();
-    }
-
-    // Add modal to body
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmationModal'));
-    modal.show();
-
-    // Handle confirmation
-    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-      // Create and submit delete form
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = deleteUrl;
-
-      // Add CSRF token
-      const csrfToken = document.querySelector('meta[name="csrf-token"]');
-      if (csrfToken) {
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'authenticity_token';
-        csrfInput.value = csrfToken.getAttribute('content');
-        form.appendChild(csrfInput);
-      }
-
-      // Add method override for DELETE
-      const methodInput = document.createElement('input');
-      methodInput.type = 'hidden';
-      methodInput.name = '_method';
-      methodInput.value = 'DELETE';
-      form.appendChild(methodInput);
-
-      document.body.appendChild(form);
-      form.submit();
-
-      modal.hide();
-    });
-
-    // Clean up modal when hidden
-    document.getElementById('deleteConfirmationModal').addEventListener('hidden.bs.modal', function () {
-      this.remove();
-    });
-  }
-
-  // Copy to clipboard functionality
-  const copyButtons = document.querySelectorAll('.copy-btn');
-  copyButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const textToCopy = this.getAttribute('data-copy');
-
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(textToCopy).then(() => {
-          showCopyNotification(this, 'Copied!');
-        }).catch(err => {
-          fallbackCopyTextToClipboard(textToCopy, this);
-        });
-      } else {
-        fallbackCopyTextToClipboard(textToCopy, this);
-      }
-    });
-  });
-
-  function fallbackCopyTextToClipboard(text, button) {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.style.position = "fixed";
-    textArea.style.top = "-1000px";
-    textArea.style.left = "-1000px";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-
-    try {
-      const successful = document.execCommand('copy');
-      if (successful) {
-        showCopyNotification(button, 'Copied!');
-      } else {
-        showCopyNotification(button, 'Failed to copy', true);
-      }
-    } catch (err) {
-      showCopyNotification(button, 'Failed to copy', true);
-    }
-
-    document.body.removeChild(textArea);
-  }
-
-  function showCopyNotification(button, message, isError = false) {
-    const originalIcon = button.innerHTML;
-    const originalClass = button.className;
-
-    button.innerHTML = `<i class="bi bi-check"></i>`;
-    button.className = isError ? 'btn btn-sm btn-outline-danger' : 'btn btn-sm btn-outline-success';
-
-    setTimeout(() => {
-      button.innerHTML = originalIcon;
-      button.className = originalClass;
-    }, 1000);
-  }
 });
 </script>
-
-<!-- Additional Styling for Login Credentials -->
-<style>
-.login-credentials code {
-  font-size: 0.75rem;
-  max-width: 120px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: inline-block;
-}
-
-.login-credentials .copy-btn {
-  padding: 0.125rem 0.25rem;
-}
-
-.login-credentials .copy-btn i {
-  font-size: 0.75rem;
-}
-
-.table td {
-  vertical-align: middle;
-}
-
-.login-credentials {
-  min-width: 180px;
-}
-</style>

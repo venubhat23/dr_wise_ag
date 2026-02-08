@@ -1,9 +1,9 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-0">Banner Management</h2>
+    <h2 class="mb-1">Banner Management</h2>
   </div>
-  <div class="d-flex gap-2">
+  <div>
     <%= link_to new_admin_banner_path, class: "btn btn-primary" do %>
       <i class="bi bi-plus-lg me-1"></i>
       Add New Banner
@@ -78,38 +78,164 @@
   </div>
 </div>
 
-<!-- Filters with onChange -->
-<div class="card border-0 shadow-sm mb-4">
+<!-- Filters and Search -->
+<div class="card shadow-sm mb-4">
   <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-3">
-        <select id="status_filter" class="form-select" onchange="applyFilters()">
-          <option value="">All Status</option>
-          <option value="active" <%= 'selected' if params[:status] == 'active' %>>Active</option>
-          <option value="inactive" <%= 'selected' if params[:status] == 'inactive' %>>Inactive</option>
-          <option value="current" <%= 'selected' if params[:status] == 'current' %>>Currently Displayed</option>
-        </select>
+    <%= form_with url: admin_banners_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end", id: "search_form" do |form| %>
+      <!-- Search -->
+      <div class="flex-grow-1 min-width-250">
+        <%= form.text_field :search, placeholder: "Search by title or description... (min 4 characters)",
+                           value: params[:search],
+                           class: "form-control",
+                           id: "search_input",
+                           data: { min_length: 4 } %>
       </div>
-      <div class="col-md-3">
+
+      <!-- Status Filter -->
+      <div>
+        <%= form.select :status,
+                       options_for_select([
+                         ['All Status', ''],
+                         ['Active', 'active'],
+                         ['Inactive', 'inactive'],
+                         ['Currently Displayed', 'current']
+                       ], params[:status]),
+                       {},
+                       { class: "form-select", id: "status_filter" } %>
+      </div>
+
+      <!-- Actions -->
+      <div class="d-flex gap-2">
         <%= link_to "Clear", admin_banners_path, class: "btn btn-outline-secondary" %>
       </div>
-    </div>
+    <% end %>
   </div>
 </div>
 
-<script>
-function applyFilters() {
-  const statusFilter = document.getElementById('status_filter').value;
-
-  const url = new URL(window.location.href);
-  url.searchParams.delete('status');
-
-  if (statusFilter) {
-    url.searchParams.set('status', statusFilter);
-  }
-
-  window.location.href = url.toString();
+<style>
+.min-width-250 {
+  min-width: 250px;
 }
+
+/* Banner Image Styles */
+.banner-thumbnail {
+  border: 2px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: border-color 0.3s ease;
+}
+
+.banner-placeholder {
+  border: 2px solid #e9ecef;
+  transition: border-color 0.3s ease;
+}
+
+/* Hover effect for banner images */
+tr:hover .banner-thumbnail,
+tr:hover .banner-placeholder {
+  border-color: #007bff;
+}
+
+/* Table styling consistency */
+.table td {
+  vertical-align: middle;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('search_input');
+  const statusFilter = document.getElementById('status_filter');
+  const searchForm = document.getElementById('search_form');
+  let searchTimeout;
+
+  // Auto-search on typing after 4 characters
+  searchInput.addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    const searchValue = this.value;
+
+    searchTimeout = setTimeout(() => {
+      if (searchValue.length >= 4 || searchValue.length === 0) {
+        searchForm.submit();
+      }
+    }, 500); // 500ms delay after typing stops
+  });
+
+  // Auto-submit on status filter change
+  statusFilter.addEventListener('change', function() {
+    searchForm.submit();
+  });
+});
+
+// Global function to handle status toggle
+function handleStatusToggle(url, method, confirmMessage) {
+  if (confirm(confirmMessage)) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.style.display = 'none';
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'authenticity_token';
+      csrfInput.value = csrfToken.getAttribute('content');
+      form.appendChild(csrfInput);
+    }
+
+    // Add method override
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = method;
+    form.appendChild(methodInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Handle banner delete buttons
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.delete-banner')) {
+      e.preventDefault();
+
+      const button = e.target.closest('.delete-banner');
+      const url = button.dataset.url;
+      const confirmMessage = button.dataset.confirm;
+
+      if (confirm(confirmMessage)) {
+        // Create and submit a form for DELETE request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        form.style.display = 'none';
+
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+          const csrfInput = document.createElement('input');
+          csrfInput.type = 'hidden';
+          csrfInput.name = 'authenticity_token';
+          csrfInput.value = csrfToken.content;
+          form.appendChild(csrfInput);
+        }
+
+        // Add method override for DELETE
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        form.appendChild(methodInput);
+
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+  });
+});
 </script>
 
 <!-- Banners List -->
@@ -135,13 +261,15 @@ function applyFilters() {
             <% @banners.each do |banner| %>
               <tr>
                 <td>
-                  <% if banner.banner_image.attached? %>
-                    <%= image_tag banner.banner_image, class: "rounded", style: "width: 60px; height: 40px; object-fit: cover;" %>
-                  <% else %>
-                    <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 60px; height: 40px;">
-                      <i class="bi bi-image text-muted"></i>
-                    </div>
-                  <% end %>
+                  <div class="banner-preview">
+                    <% if banner.banner_image.attached? %>
+                      <%= image_tag banner.banner_image, class: "rounded banner-thumbnail", style: "width: 60px; height: 40px; object-fit: cover;" %>
+                    <% else %>
+                      <div class="bg-light rounded d-flex align-items-center justify-content-center banner-placeholder" style="width: 60px; height: 40px;">
+                        <i class="bi bi-image text-muted"></i>
+                      </div>
+                    <% end %>
+                  </div>
                 </td>
                 <td>
                   <div>
@@ -176,32 +304,28 @@ function applyFilters() {
                 </td>
                 <td>
                   <div class="d-flex gap-1">
-                    <%= link_to admin_banner_path(banner), class: "btn btn-sm btn-primary text-white", title: "View" do %>
+                    <%= link_to admin_banner_path(banner), class: "btn btn-sm btn-outline-primary", title: "View" do %>
                       <i class="bi bi-eye"></i>
                     <% end %>
-                    <%= link_to edit_admin_banner_path(banner), class: "btn btn-sm btn-warning", title: "Edit" do %>
+
+                    <%= link_to edit_admin_banner_path(banner), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
                       <i class="bi bi-pencil"></i>
                     <% end %>
-                    <%= button_to toggle_status_admin_banner_path(banner),
-                        method: :patch,
-                        class: "btn btn-sm btn-#{banner.status? ? 'secondary' : 'success'} text-white",
-                        title: banner.status? ? 'Deactivate' : 'Activate',
-                        data: {
-                          confirm: "Are you sure you want to #{banner.status? ? 'deactivate' : 'activate'} this banner?"
-                        },
-                        form: { style: "display: inline;" } do %>
+
+                    <button type="button"
+                        class="btn btn-sm btn-outline-#{banner.status? ? 'secondary' : 'success'}"
+                        title="#{banner.status? ? 'Deactivate' : 'Activate'}"
+                        onclick="handleStatusToggle('<%= toggle_status_admin_banner_path(banner) %>', 'PATCH', 'Are you sure you want to #{banner.status? ? 'deactivate' : 'activate'} this banner?')">
                       <i class="bi bi-#{banner.status? ? 'pause-circle' : 'play-circle'}"></i>
-                    <% end %>
-                    <%= button_to admin_banner_path(banner),
-                        method: :delete,
-                        class: "btn btn-sm btn-danger text-white",
-                        title: "Delete",
-                        data: {
-                          confirm: "Are you sure you want to delete this banner?"
-                        },
-                        form: { style: "display: inline;" } do %>
+                    </button>
+
+                    <button type="button"
+                        class="btn btn-sm btn-outline-danger delete-banner"
+                        data-url="<%= admin_banner_path(banner) %>"
+                        data-confirm="Are you sure you want to delete this banner?"
+                        title="Delete">
                       <i class="bi bi-trash"></i>
-                    <% end %>
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -211,18 +335,36 @@ function applyFilters() {
       </div>
 
       <!-- Pagination -->
-      <% if @banners.respond_to?(:total_pages) %>
-        <div class="card-footer bg-transparent border-0">
-          <%= paginate @banners %>
+      <div class="card-footer bg-transparent border-0">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+          <small class="text-muted mb-2 mb-md-0">
+            <% if defined?(@total_filtered_count) && @total_filtered_count.present? %>
+              Showing <%= @banners.current_page == 1 ? 1 : ((@banners.current_page - 1) * @banners.limit_value + 1) %>
+              to <%= [@banners.current_page * @banners.limit_value, @total_filtered_count].min %>
+              of <%= number_with_delimiter(@total_filtered_count) %> banners
+            <% elsif @banners.respond_to?(:total_count) %>
+              Showing <%= @banners.current_page == 1 ? 1 : ((@banners.current_page - 1) * @banners.limit_value + 1) %>
+              to <%= [@banners.current_page * @banners.limit_value, @banners.total_count].min %>
+              of <%= number_with_delimiter(@banners.total_count) %> banners
+            <% else %>
+              Showing <%= @banners.count %> banners
+            <% end %>
+          </small>
+
+          <% if @banners.respond_to?(:total_pages) && @banners.total_pages > 1 %>
+            <div class="pagination-wrapper">
+              <%= paginate @banners %>
+            </div>
+          <% end %>
         </div>
-      <% end %>
+      </div>
     <% else %>
       <div class="text-center py-5">
         <i class="bi bi-image fs-1 text-muted d-block mb-3"></i>
         <h5 class="text-muted">No banners found</h5>
         <p class="text-muted mb-3">
-          <% if params[:status].present? || params[:location].present? %>
-            Try adjusting your filters or
+          <% if params[:search].present? || params[:status].present? %>
+            Try adjusting your search criteria or
             <%= link_to "view all banners", admin_banners_path, class: "text-decoration-none" %>.
           <% else %>
             Start by creating your first banner for the platform.
@@ -230,7 +372,7 @@ function applyFilters() {
         </p>
         <%= link_to new_admin_banner_path, class: "btn btn-primary" do %>
           <i class="bi bi-plus-lg me-1"></i>
-          Create First Banner
+          Add First Banner
         <% end %>
       </div>
     <% end %>

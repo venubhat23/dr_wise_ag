@@ -494,8 +494,8 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     @investors = Investor.active.order(:first_name, :last_name)
     @agency_codes = AgencyCode.where(insurance_type: 'Health Insurance')
     @brokers = Broker.active.order(:name)
-    # Load only health insurance companies
-    @insurance_companies = HealthInsurance.health_insurance_companies.map { |company| company[:name] }
+    # Load only health insurance companies - sorted alphabetically
+    @insurance_companies = HealthInsurance.health_insurance_companies.map { |company| company[:name] }.sort
   end
 
   def health_insurance_params

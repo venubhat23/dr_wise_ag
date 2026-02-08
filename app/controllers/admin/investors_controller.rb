@@ -58,6 +58,11 @@ class Admin::InvestorsController < Admin::ApplicationController
     @total_investors = stats_scope.count
     @active_investors = stats_scope.active.count
     @inactive_investors = stats_scope.inactive.count
+
+    # Calculate total investor commission amounts
+    @total_investor_amount = CommissionPayout.where(payout_to: 'investor').sum(:payout_amount) || 0
+    @paid_investor_amount = CommissionPayout.where(payout_to: 'investor', status: 'paid').sum(:payout_amount) || 0
+    @pending_investor_amount = CommissionPayout.where(payout_to: 'investor', status: 'pending').sum(:payout_amount) || 0
   end
 
   # GET /admin/investors/1

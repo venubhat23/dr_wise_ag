@@ -585,7 +585,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
       # Fallback to constants if database is empty
       if @insurance_companies.empty?
-        @insurance_companies = LifeInsurance.life_insurance_companies.map { |company| company[:name] || company['name'] }
+        @insurance_companies = LifeInsurance.life_insurance_companies.map { |company| company[:name] || company['name'] }.sort
       end
 
       # Ensure current life insurance company is in the options (for edit forms)
