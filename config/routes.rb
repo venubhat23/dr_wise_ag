@@ -10,7 +10,7 @@ Rails.application.routes.draw do
   end
 
   # Root route
-  root to: redirect('/dashboard')
+  root to: redirect('/admin/customers')
 
   # Favicon route
   get '/favicon.ico', to: redirect('/icon.png')
