@@ -165,6 +165,7 @@ Rails.application.routes.draw do
     resources :invoices do
       member do
         patch :mark_as_paid
+        get :mark_as_paid
         get :download_pdf
         get :show_premium
         get :download_premium_pdf

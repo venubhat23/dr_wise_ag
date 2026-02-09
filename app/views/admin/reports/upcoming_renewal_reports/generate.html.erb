@@ -30,7 +30,9 @@
           <%= form.label :start_date, "Start Date", class: "form-label" %>
           <%= form.date_field :start_date,
                              value: Date.current,
-                             class: "form-control" %>
+                             class: "form-control",
+                             min: "1900-01-01",
+                             max: "2099-12-31" %>
         </div>
 
         <!-- End Date -->
@@ -38,7 +40,9 @@
           <%= form.label :end_date, "End Date", class: "form-label" %>
           <%= form.date_field :end_date,
                              value: 30.days.from_now.to_date,
-                             class: "form-control" %>
+                             class: "form-control",
+                             min: "1900-01-01",
+                             max: "2099-12-31" %>
         </div>
       </div>
 

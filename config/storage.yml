@@ -7,6 +7,12 @@ local:
   root: <%= Rails.root.join("storage") %>
   public: true
 
+# Enhanced local storage for development with better persistence
+local_persistent:
+  service: Disk
+  root: <%= Rails.root.join("public", "uploads") %>
+  public: true
+
 # For production cloud storage - configure with your cloud provider
 # Use bin/rails credentials:edit to set the AWS secrets (as aws:access_key_id|secret_access_key)
 amazon:

@@ -703,12 +703,16 @@
                              value: @filter_start_date&.strftime('%Y-%m-%d'),
                              class: "form-control",
                              id: "start_date_field",
-                             placeholder: "Start Date" %>
+                             placeholder: "Start Date",
+                             min: "1900-01-01",
+                             max: "2099-12-31" %>
           <%= form.date_field :end_date,
                              value: @filter_end_date&.strftime('%Y-%m-%d'),
                              class: "form-control",
                              id: "end_date_field",
-                             placeholder: "End Date" %>
+                             placeholder: "End Date",
+                             min: "1900-01-01",
+                             max: "2099-12-31" %>
         </div>
 
         <!-- Actions -->

@@ -138,7 +138,7 @@
           </div>
           <div class="col-md-6 mb-3">
             <%= form.label :birth_date, "Date of Birth", class: "form-label" %>
-            <%= form.date_field :birth_date, class: "form-control" %>
+            <%= form.date_field :birth_date, class: "form-control", min: "1900-01-01", max: "2099-12-31" %>
           </div>
           <div class="col-md-6 mb-3">
             <%= form.label :gender, "Gender", class: "form-label" %>
@@ -374,7 +374,7 @@
 
         <div class="col-md-6 mb-3">
           <%= form.label :created_date, "Lead Date", class: "form-label" %>
-          <%= form.date_field :created_date, class: "form-control", value: Date.current.strftime("%Y-%m-%d") %>
+          <%= form.date_field :created_date, class: "form-control", value: Date.current.strftime("%Y-%m-%d"), min: "1900-01-01", max: "2099-12-31" %>
         </div>
 
         <div class="col-md-6 mb-3">

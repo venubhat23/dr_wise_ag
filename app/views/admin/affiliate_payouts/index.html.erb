@@ -521,7 +521,7 @@ body.modal-open {
                 </div>
                 <div class="mb-3">
                   <label class="form-label">Payment Date</label>
-                  <input type="date" class="form-control" id="bulkPaymentDate" value="<%= Date.current.strftime('%Y-%m-%d') %>">
+                  <input type="date" class="form-control" id="bulkPaymentDate" min="1900-01-01" max="2099-12-31" value="<%= Date.current.strftime('%Y-%m-%d') %>">
                 </div>
                 <div class="mb-0">
                   <label class="form-label">Notes</label>

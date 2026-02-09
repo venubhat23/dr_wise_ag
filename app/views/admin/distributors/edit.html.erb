@@ -79,7 +79,7 @@
         </div>
         <div class="col-md-6">
           <%= form.label :birth_date, "Birth Date", class: "form-label" %>
-          <%= form.date_field :birth_date, class: "form-control" %>
+          <%= form.date_field :birth_date, class: "form-control", min: "1900-01-01", max: "2099-12-31" %>
         </div>
       </div>
 

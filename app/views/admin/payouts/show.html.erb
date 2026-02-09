@@ -397,7 +397,7 @@
           <div class="row g-3">
             <div class="col-md-6">
               <%= form.label :payout_date, "Payment Date", class: "form-label" %>
-              <%= form.date_field :payout_date, value: Date.current, class: "form-control" %>
+              <%= form.date_field :payout_date, value: Date.current, class: "form-control", min: "1900-01-01", max: "2099-12-31" %>
             </div>
             <div class="col-md-6">
               <%= form.label :payment_mode, "Payment Mode", class: "form-label" %>

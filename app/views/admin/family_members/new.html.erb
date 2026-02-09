@@ -64,7 +64,7 @@
           <%= form.label :birth_date, "Date of Birth", class: "form-label" do %>
             Date of Birth <span class="text-danger">*</span>
           <% end %>
-          <%= form.date_field :birth_date, class: "form-control", required: true %>
+          <%= form.date_field :birth_date, class: "form-control", required: true, min: "1900-01-01", max: "2099-12-31" %>
         </div>
 
         <div class="col-md-4">

@@ -139,7 +139,9 @@
             <%= form.label :date_of_birth, "Birth Date", class: "form-label fw-semibold" %>
             <%= form.date_field :date_of_birth,
                 class: "form-control",
-                placeholder: "DD-MM-YYYY" %>
+                placeholder: "DD-MM-YYYY",
+                min: "1900-01-01",
+                max: "2099-12-31" %>
           </div>
 
           <!-- Gender -->

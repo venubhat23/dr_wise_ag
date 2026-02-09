@@ -93,11 +93,11 @@
         </div>
         <div class="col-md-3">
           <%= f.label :received_date_gteq, "From Date", class: "form-label" %>
-          <%= f.date_field :received_date_gteq, class: "form-control" %>
+          <%= f.date_field :received_date_gteq, class: "form-control", min: "1900-01-01", max: "2099-12-31" %>
         </div>
         <div class="col-md-3">
           <%= f.label :received_date_lteq, "To Date", class: "form-label" %>
-          <%= f.date_field :received_date_lteq, class: "form-control" %>
+          <%= f.date_field :received_date_lteq, class: "form-control", min: "1900-01-01", max: "2099-12-31" %>
         </div>
         <div class="col-md-3">
           <div class="d-flex gap-2">

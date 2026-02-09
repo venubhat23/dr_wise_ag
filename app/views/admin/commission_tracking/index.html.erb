@@ -534,7 +534,7 @@ body.modal-open {
             <div class="mb-3">
               <label for="paidDate" class="form-label">Date Received</label>
               <input type="date" class="form-control" id="paidDate"
-                     name="paid_date" value="<%= Date.current.strftime('%Y-%m-%d') %>">
+                     name="paid_date" min="1900-01-01" max="2099-12-31" value="<%= Date.current.strftime('%Y-%m-%d') %>">
             </div>
 
             <div class="mb-3">

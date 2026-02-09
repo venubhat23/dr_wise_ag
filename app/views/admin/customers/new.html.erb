@@ -498,7 +498,7 @@
           </div>
           <div class="col-md-4">
             <%= form.label :birth_date, "Birth Date", class: "form-label" %>
-            <%= form.date_field :birth_date, class: "form-control" %>
+            <%= form.date_field :birth_date, class: "form-control", min: "1900-01-01", max: "2099-12-31" %>
             <small class="form-text text-muted">Format: DD-MM-YYYY</small>
           </div>
           <div class="col-md-4">
@@ -726,7 +726,9 @@
           <%= form.label :nominee_date_of_birth, "Date of Birth *", class: "form-label" %>
           <%= form.date_field :nominee_date_of_birth,
               class: "form-control",
-              required: true %>
+              required: true,
+              min: "1900-01-01",
+              max: "2099-12-31" %>
           <div class="invalid-feedback">
             Please provide nominee date of birth.
           </div>
@@ -1295,7 +1297,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <div class="col-md-4">
             <label class="form-label">Birth Date</label>
-            <input type="date" name="customer[family_members_attributes][${familyMemberIndex}][birth_date]" class="form-control">
+            <input type="date" name="customer[family_members_attributes][${familyMemberIndex}][birth_date]" class="form-control" min="1900-01-01" max="2099-12-31">
           </div>
           <div class="col-md-4">
             <label class="form-label">Age</label>
@@ -1432,7 +1434,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <div class="col-md-4">
             <label class="form-label">Birth Date</label>
-            <input type="date" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][birth_date]" class="form-control">
+            <input type="date" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][birth_date]" class="form-control" min="1900-01-01" max="2099-12-31">
           </div>
           <div class="col-md-4">
             <label class="form-label">Age</label>

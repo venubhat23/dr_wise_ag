@@ -109,7 +109,9 @@
           <%= form.label :payout_date, "Payout Date", class: "form-label" %>
           <%= form.date_field :payout_date,
               class: "form-control #{'is-invalid' if @payout.errors[:payout_date].any?}",
-              value: @payout.payout_date || Date.current %>
+              value: @payout.payout_date || Date.current,
+              min: "1900-01-01",
+              max: "2099-12-31" %>
           <% if @payout.errors[:payout_date].any? %>
             <div class="invalid-feedback">
               <%= @payout.errors[:payout_date].first %>

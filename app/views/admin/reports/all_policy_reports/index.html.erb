@@ -170,7 +170,7 @@
                   <div class="text-end">
                     <% total_policies = report.report_data&.dig('statistics', 'total_policies') || 0 %>
                     <strong class="text-primary d-block"><%= number_with_delimiter(total_policies) %></strong>
-                    <% total_premium = report.report_data&.dig('statistics', 'total_premium') || 0 %>
+                    <% total_premium = (report.report_data&.dig('statistics', 'total_premium') || 0).to_f %>
                     <% if total_premium > 0 %>
                       <small class="text-muted">
                         ₹<%= number_to_currency(total_premium.to_f.round(2), unit: '', precision: 2, delimiter: ',') %>

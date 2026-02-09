@@ -295,7 +295,7 @@
       <%= f.select :status, options_for_select([['All Statuses', ''], ['Paid ✓', 'paid'], ['Pending ⏳', 'pending'], ['Processing 🔄', 'processing'], ['Failed ❌', 'cancelled']], params[:status]), {}, { class: "form-select" } %>
     </div>
     <div class="col-md-2">
-      <%= f.date_field :date_from, value: params[:date_from], class: "form-control", placeholder: "From Date" %>
+      <%= f.date_field :date_from, value: params[:date_from], class: "form-control", placeholder: "From Date", min: "1900-01-01", max: "2099-12-31" %>
     </div>
     <div class="col-md-1">
       <%= f.submit "Filter", class: "btn btn-primary w-100" %>
