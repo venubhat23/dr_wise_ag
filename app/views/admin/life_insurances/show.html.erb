@@ -272,38 +272,38 @@
         </div>
       </div>
 
-    <!-- Sub Agent Commission -->
+    <!-- Affiliate Commission -->
     <% if @life_insurance.sub_agent_commission_percentage.present? && @life_insurance.sub_agent_commission_percentage > 0 %>
-      <hr class="my-4">
-      <h6 class="mb-3">Sub Agent Commission</h6>
+      <hr class="my-2">
+      <h6 class="mb-2">Affiliate Commission</h6>
       <div class="row g-4">
         <div class="col-md-6 col-lg-4">
           <div class="info-field">
-            <label>SUB AGENT COMMISSION %</label>
+            <label>AFFILIATE COMMISSION %</label>
             <div class="info-value"><%= @life_insurance.sub_agent_commission_percentage ? "#{@life_insurance.sub_agent_commission_percentage}%" : '-' %></div>
           </div>
         </div>
         <div class="col-md-6 col-lg-4">
           <div class="info-field">
-            <label>SUB AGENT COMMISSION AMOUNT</label>
+            <label>AFFILIATE COMMISSION AMOUNT</label>
             <div class="info-value"><%= indian_currency(@life_insurance.sub_agent_commission_amount) || '-' %></div>
           </div>
         </div>
         <div class="col-md-6 col-lg-4">
           <div class="info-field">
-            <label>SUB AGENT TDS %</label>
+            <label>AFFILIATE TDS %</label>
             <div class="info-value"><%= @life_insurance.sub_agent_tds_percentage ? "#{@life_insurance.sub_agent_tds_percentage}%" : '-' %></div>
           </div>
         </div>
         <div class="col-md-6 col-lg-4">
           <div class="info-field">
-            <label>SUB AGENT TDS AMOUNT</label>
+            <label>AFFILIATE TDS AMOUNT</label>
             <div class="info-value"><%= indian_currency(@life_insurance.sub_agent_tds_amount) || '-' %></div>
           </div>
         </div>
         <div class="col-md-6 col-lg-4">
           <div class="info-field">
-            <label>SUB AGENT AFTER TDS VALUE</label>
+            <label>AFFILIATE AFTER TDS VALUE</label>
             <div class="info-value"><%= indian_currency(@life_insurance.sub_agent_after_tds_value) || '-' %></div>
           </div>
         </div>
@@ -312,8 +312,8 @@
 
     <!-- Ambassador Commission -->
     <% if @life_insurance.ambassador_commission_percentage.present? && @life_insurance.ambassador_commission_percentage > 0 %>
-      <hr class="my-4">
-      <h6 class="mb-3">Ambassador Commission</h6>
+      <hr class="my-2">
+      <h6 class="mb-2">Ambassador Commission</h6>
       <div class="row g-4">
         <div class="col-md-6 col-lg-4">
           <div class="info-field">
@@ -350,8 +350,8 @@
 
     <!-- Investor Commission -->
     <% if @life_insurance.investor_commission_percentage.present? && @life_insurance.investor_commission_percentage > 0 %>
-      <hr class="my-4">
-      <h6 class="mb-3">Investor Commission</h6>
+      <hr class="my-2">
+      <h6 class="mb-2">Investor Commission</h6>
       <div class="row g-4">
         <div class="col-md-6 col-lg-4">
           <div class="info-field">
@@ -387,8 +387,8 @@
     <% end %>
 
     <!-- Company Expenses & Profit -->
-    <hr class="my-4">
-    <h6 class="mb-3">Company Expenses & Profit</h6>
+    <hr class="my-2">
+    <h6 class="mb-2">Company Expenses & Profit</h6>
     <div class="row g-4">
       <div class="col-md-6 col-lg-4">
         <div class="info-field">
@@ -766,7 +766,7 @@
 
   /* Info Fields - Customer page style */
   .info-field {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .info-field label {
@@ -775,19 +775,22 @@
     color: #6c757d;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 4px;
+    margin-bottom: 1px;
     display: block;
+    line-height: 1;
   }
 
   .info-value {
     font-size: 15px;
     color: #2c3e50;
     font-weight: 500;
+    line-height: 1.2;
+    margin-top: -2px;
   }
 
   /* Row spacing for info fields */
   .section-body .row + .row {
-    margin-top: 1.5rem;
+    margin-top: 0.25rem;
   }
 
   /* Action buttons top spacing */
