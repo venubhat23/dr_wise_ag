@@ -180,14 +180,18 @@
           <%= form.label :policy_booking_date, "Policy Booking Date", class: "form-label" %>
           <%= form.date_field :policy_booking_date,
               class: "form-control",
-              value: @health_insurance.policy_booking_date || Date.current %>
+              value: @health_insurance.policy_booking_date || Date.current,
+              min: "1900-01-01",
+              max: "2099-12-31" %>
         </div>
 
         <div class="col-md-4 mb-3">
           <%= form.label :policy_start_date, "Policy Start Date*", class: "form-label" %>
           <%= form.date_field :policy_start_date,
               class: "form-control #{'is-invalid' if @health_insurance.errors[:policy_start_date].any?}",
-              required: true, id: "start_date" %>
+              required: true, id: "start_date",
+              min: "1900-01-01",
+              max: "2099-12-31" %>
           <% if @health_insurance.errors[:policy_start_date].any? %>
             <div class="invalid-feedback"><%= @health_insurance.errors[:policy_start_date].first %></div>
           <% end %>
@@ -197,7 +201,9 @@
           <%= form.label :policy_end_date, "Policy End Date*", class: "form-label" %>
           <%= form.date_field :policy_end_date,
               class: "form-control #{'is-invalid' if @health_insurance.errors[:policy_end_date].any?}",
-              required: true, id: "end_date" %>
+              required: true, id: "end_date",
+              min: "1900-01-01",
+              max: "2099-12-31" %>
           <% if @health_insurance.errors[:policy_end_date].any? %>
             <div class="invalid-feedback"><%= @health_insurance.errors[:policy_end_date].first %></div>
           <% end %>
@@ -664,7 +670,9 @@
           <%= form.date_field :nominee_dob,
               class: "form-control #{'is-invalid' if @health_insurance.errors[:nominee_dob].any?}",
               required: true,
-              id: "nominee_dob" %>
+              id: "nominee_dob",
+              min: "1900-01-01",
+              max: "2099-12-31" %>
           <% if @health_insurance.errors[:nominee_dob].any? %>
             <div class="invalid-feedback"><%= @health_insurance.errors[:nominee_dob].first %></div>
           <% end %>
@@ -693,14 +701,18 @@
           <%= form.date_field :installment_autopay_start_date,
               class: "form-control",
               id: "autopay_start_date",
-              value: @health_insurance.installment_autopay_start_date || Date.current %>
+              value: @health_insurance.installment_autopay_start_date || Date.current,
+              min: "1900-01-01",
+              max: "2099-12-31" %>
         </div>
         <div class="col-md-6 mb-3">
           <%= form.label :installment_autopay_end_date, "Installment Autopay End Date", class: "form-label" %>
           <%= form.date_field :installment_autopay_end_date,
               class: "form-control",
               id: "autopay_end_date",
-              value: @health_insurance.installment_autopay_end_date || Date.current %>
+              value: @health_insurance.installment_autopay_end_date || Date.current,
+              min: "1900-01-01",
+              max: "2099-12-31" %>
         </div>
       </div>
     </div>
@@ -1809,6 +1821,45 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.querySelector('.company-expenses-percentage')) {
       document.querySelector('.company-expenses-percentage').addEventListener('input', calculateProfitAndExpenses);
     }
+
+    // Initialize date pickers with proper constraints
+    function initializeDatePickers() {
+      const dateFields = [
+        'policy_booking_date',
+        'start_date',
+        'end_date',
+        'nominee_dob',
+        'autopay_start_date',
+        'autopay_end_date'
+      ];
+
+      dateFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId) || document.querySelector(`[name*="${fieldId}"]`);
+        if (field) {
+          // Ensure proper min/max attributes are set
+          field.setAttribute('min', '1900-01-01');
+          field.setAttribute('max', '2099-12-31');
+
+          // Fix any existing invalid values
+          if (field.value && (field.value.includes('275760') || field.value.length > 10)) {
+            field.value = new Date().toISOString().split('T')[0];
+          }
+
+          // Add event listener to prevent manual entry of invalid dates
+          field.addEventListener('input', function() {
+            const value = this.value;
+            if (value && value.length > 10) {
+              this.value = value.substring(0, 10);
+            }
+          });
+
+          console.log(`✅ Initialized date picker for ${fieldId}`);
+        }
+      });
+    }
+
+    // Call date picker initialization
+    initializeDatePickers();
 
     // Initialize calculations and summary on page load
     calculateAllCommissions();

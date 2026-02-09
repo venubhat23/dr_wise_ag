@@ -1,6 +1,9 @@
 class Customer < ApplicationRecord
   include PgSearch::Model
 
+  # Callbacks
+  before_validation :format_mobile_number
+
   # Associations
   has_many :family_members, dependent: :destroy
   has_many :policies, dependent: :destroy
@@ -18,6 +21,7 @@ class Customer < ApplicationRecord
   has_many :health_insurances, dependent: :destroy
   has_many :life_insurances, dependent: :destroy
   has_many :motor_insurances, dependent: :destroy
+  has_many :other_insurances, dependent: :destroy
 
   # New product associations
   has_many :investments, dependent: :destroy
@@ -39,12 +43,16 @@ class Customer < ApplicationRecord
   validates :last_name, presence: true, if: :individual?
   validates :mobile, presence: true, if: :individual?
   validates :mobile, uniqueness: true, allow_blank: true, if: :individual?
+  validates :mobile, format: { with: /\A[6-9]\d{9}\z/, message: "must be a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9" }, if: :individual?
+  validates :birth_date, presence: true, if: :individual?
 
   # Corporate Customer Required Fields
   validates :company_name, presence: true, if: :corporate?
   validates :mobile, presence: true, if: :corporate?
   validates :mobile, uniqueness: true, allow_blank: true, if: :corporate?
+  validates :mobile, format: { with: /\A[6-9]\d{9}\z/, message: "must be a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9" }, if: :corporate?
   validates :gst_no, presence: true, if: :corporate?
+  validates :birth_date, presence: true, if: :corporate?
 
   # Nominee Details (Mandatory for all customers)
   validates :nominee_name, presence: true
@@ -244,6 +252,35 @@ class Customer < ApplicationRecord
   end
 
   private
+
+  def format_mobile_number
+    return if mobile.blank?
+
+    # Remove all non-digit characters
+    clean_mobile = mobile.to_s.gsub(/\D/, '')
+
+    # Handle different input formats
+    if clean_mobile.length == 13 && clean_mobile.start_with?('91')
+      # Remove country code +91 (91XXXXXXXXXX)
+      self.mobile = clean_mobile[2..-1]
+    elsif clean_mobile.length == 12 && clean_mobile.start_with?('91')
+      # Remove country code 91 (91XXXXXXXXXX)
+      self.mobile = clean_mobile[2..-1]
+    elsif clean_mobile.length == 11 && clean_mobile.start_with?('0')
+      # Remove leading zero (0XXXXXXXXXX)
+      self.mobile = clean_mobile[1..-1]
+    elsif clean_mobile.length == 11 && clean_mobile[0] != '0'
+      # Remove the first digit if it's not 0 and length is 11 (XXXXXXXXXXX)
+      # This handles cases like 98989898989 -> 8989898989
+      self.mobile = clean_mobile[1..-1]
+    elsif clean_mobile.length == 10
+      # Already 10 digits, keep as is
+      self.mobile = clean_mobile
+    else
+      # Invalid length, keep original for validation to catch
+      self.mobile = clean_mobile
+    end
+  end
 
   def bust_cache
     Rails.cache.delete("customer_#{id}_full_name")

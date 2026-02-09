@@ -31,29 +31,32 @@
   </div>
   <div id="clientAgentCollapse" class="collapse show">
     <div class="section-body">
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Client Name*</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.customer&.display_name %>" readonly>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-3">
+          <div class="info-field">
+            <label>CLIENT NAME</label>
+            <div class="info-value"><%= @life_insurance.customer&.display_name || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="info-field">
+            <label>POLICY HOLDER</label>
+            <div class="info-value"><%= @life_insurance.policy_holder || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="info-field">
+            <label>AFFILIATE</label>
+            <div class="info-value"><%= @life_insurance.sub_agent&.display_name || 'Self' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="info-field">
+            <label>INSURED NAME</label>
+            <div class="info-value"><%= @life_insurance.insured_name || '-' %></div>
+          </div>
+        </div>
       </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Policy Holder*</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.policy_holder %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Affiliate</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.sub_agent&.display_name || 'Self' %>" readonly>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <label class="form-label">Insured Name</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.insured_name %>" readonly>
-      </div>
-    </div>
     </div>
   </div>
 </div>
@@ -71,90 +74,101 @@
   </div>
   <div id="policyDetailsCollapse" class="collapse">
     <div class="section-body">
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Broker Code</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.broker_code_type %>" readonly>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>BROKER CODE</label>
+            <div class="info-value"><%= @life_insurance.broker_code_type || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>AGENCY CODE</label>
+            <div class="info-value"><%= @life_insurance.agency_code&.code || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>INSURANCE COMPANY NAME</label>
+            <div class="info-value"><%= @life_insurance.insurance_company_name || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>POLICY TYPE</label>
+            <div class="info-value"><%= @life_insurance.policy_type || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>PAYMENT MODE</label>
+            <div class="info-value"><%= @life_insurance.payment_mode || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>POLICY NUMBER</label>
+            <div class="info-value"><%= @life_insurance.policy_number || '-' %></div>
+          </div>
+        </div>
       </div>
 
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Agency Code (All Agents)*</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.agency_code&.code %>" readonly>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>POLICY BOOKING DATE</label>
+            <div class="info-value"><%= @life_insurance.policy_booking_date&.strftime('%Y-%m-%d') || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>POLICY START DATE</label>
+            <div class="info-value"><%= @life_insurance.policy_start_date&.strftime('%Y-%m-%d') || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>POLICY END DATE</label>
+            <div class="info-value"><%= @life_insurance.policy_end_date&.strftime('%Y-%m-%d') || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>RISK START DATE</label>
+            <div class="info-value"><%= @life_insurance.risk_start_date&.strftime('%Y-%m-%d') if @life_insurance.risk_start_date || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>PLAN NAME</label>
+            <div class="info-value"><%= @life_insurance.plan_name || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>POLICY TERM (YEARS)</label>
+            <div class="info-value"><%= @life_insurance.policy_term || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>PREMIUM PAYMENT TERM (YEARS)</label>
+            <div class="info-value"><%= @life_insurance.premium_payment_term || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>PPT ENTRY AGE</label>
+            <div class="info-value"><%= @life_insurance.respond_to?(:ppt_entry_age) ? (@life_insurance.ppt_entry_age || '-') : '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>MATURITY AGE</label>
+            <div class="info-value"><%= @life_insurance.respond_to?(:maturity_age) ? (@life_insurance.maturity_age || '-') : '-' %></div>
+          </div>
+        </div>
       </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Insurance Company Name*</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.insurance_company_name %>" readonly>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Policy Type*</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.policy_type %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Payment Mode*</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.payment_mode %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Policy Number*</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.policy_number %>" readonly>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Policy Booking Date</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.policy_booking_date&.strftime('%Y-%m-%d') %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Policy Start Date*</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.policy_start_date&.strftime('%Y-%m-%d') %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Policy End Date*</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.policy_end_date&.strftime('%Y-%m-%d') %>" readonly>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Risk Start Date</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.risk_start_date&.strftime('%Y-%m-%d') if @life_insurance.risk_start_date %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Plan Name</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.plan_name %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Policy Term (Years)</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.policy_term %>" readonly>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Premium Payment Term (Years)</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.premium_payment_term %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">PPT Entry Age</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.respond_to?(:ppt_entry_age) ? @life_insurance.ppt_entry_age : '' %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Maturity Age</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.respond_to?(:maturity_age) ? @life_insurance.maturity_age : '' %>" readonly>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -171,39 +185,44 @@
   </div>
   <div id="premiumDetailsCollapse" class="collapse">
     <div class="section-body">
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Sum Insured</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.sum_insured) %>" readonly>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>SUM INSURED</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.sum_insured) || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>NET PREMIUM</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.net_premium) || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>1ST YEAR GST %</label>
+            <div class="info-value"><%= @life_insurance.first_year_gst_percentage ? "#{@life_insurance.first_year_gst_percentage}%" : '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>2ND YEAR GST %</label>
+            <div class="info-value"><%= @life_insurance.second_year_gst_percentage ? "#{@life_insurance.second_year_gst_percentage}%" : '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>3RD YEAR GST %</label>
+            <div class="info-value"><%= @life_insurance.third_year_gst_percentage ? "#{@life_insurance.third_year_gst_percentage}%" : '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>TOTAL PREMIUM</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.total_premium) || '-' %></div>
+          </div>
+        </div>
       </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Net Premium*</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.net_premium) %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">1st Year GST %*</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.first_year_gst_percentage %> %" readonly>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">2nd Year GST %</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.second_year_gst_percentage %> %" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">3rd Year GST %</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.third_year_gst_percentage %> %" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Total Premium*</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.total_premium) %>" readonly>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -220,65 +239,73 @@
   </div>
   <div id="commissionDetailsCollapse" class="collapse">
     <div class="section-body">
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Main Agent Commission %</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.main_agent_commission_percentage %> %" readonly>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>MAIN AGENT COMMISSION %</label>
+            <div class="info-value"><%= @life_insurance.main_agent_commission_percentage ? "#{@life_insurance.main_agent_commission_percentage}%" : '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>COMMISSION AMOUNT</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.commission_amount) || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>TDS %</label>
+            <div class="info-value"><%= @life_insurance.tds_percentage ? "#{@life_insurance.tds_percentage}%" : '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>TDS AMOUNT</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.tds_amount) || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>AFTER TDS VALUE</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.after_tds_value) || '-' %></div>
+          </div>
+        </div>
       </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Commission Amount</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.commission_amount) %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">TDS %</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.tds_percentage %> %" readonly>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">TDS Amount</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.tds_amount) %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">After TDS Value</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.after_tds_value) %>" readonly>
-      </div>
-    </div>
 
     <!-- Sub Agent Commission -->
     <% if @life_insurance.sub_agent_commission_percentage.present? && @life_insurance.sub_agent_commission_percentage > 0 %>
       <hr class="my-4">
       <h6 class="mb-3">Sub Agent Commission</h6>
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Sub Agent Commission %</label>
-          <input type="text" class="form-control" value="<%= @life_insurance.sub_agent_commission_percentage %> %" readonly>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>SUB AGENT COMMISSION %</label>
+            <div class="info-value"><%= @life_insurance.sub_agent_commission_percentage ? "#{@life_insurance.sub_agent_commission_percentage}%" : '-' %></div>
+          </div>
         </div>
-
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Sub Agent Commission Amount</label>
-          <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.sub_agent_commission_amount) %>" readonly>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>SUB AGENT COMMISSION AMOUNT</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.sub_agent_commission_amount) || '-' %></div>
+          </div>
         </div>
-
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Sub Agent TDS %</label>
-          <input type="text" class="form-control" value="<%= @life_insurance.sub_agent_tds_percentage %> %" readonly>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>SUB AGENT TDS %</label>
+            <div class="info-value"><%= @life_insurance.sub_agent_tds_percentage ? "#{@life_insurance.sub_agent_tds_percentage}%" : '-' %></div>
+          </div>
         </div>
-      </div>
-
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Sub Agent TDS Amount</label>
-          <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.sub_agent_tds_amount) %>" readonly>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>SUB AGENT TDS AMOUNT</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.sub_agent_tds_amount) || '-' %></div>
+          </div>
         </div>
-
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Sub Agent After TDS Value</label>
-          <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.sub_agent_after_tds_value) %>" readonly>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>SUB AGENT AFTER TDS VALUE</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.sub_agent_after_tds_value) || '-' %></div>
+          </div>
         </div>
       </div>
     <% end %>
@@ -287,32 +314,36 @@
     <% if @life_insurance.ambassador_commission_percentage.present? && @life_insurance.ambassador_commission_percentage > 0 %>
       <hr class="my-4">
       <h6 class="mb-3">Ambassador Commission</h6>
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Ambassador Commission %</label>
-          <input type="text" class="form-control" value="<%= @life_insurance.ambassador_commission_percentage %> %" readonly>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>AMBASSADOR COMMISSION %</label>
+            <div class="info-value"><%= @life_insurance.ambassador_commission_percentage ? "#{@life_insurance.ambassador_commission_percentage}%" : '-' %></div>
+          </div>
         </div>
-
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Ambassador Commission Amount</label>
-          <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.ambassador_commission_amount) %>" readonly>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>AMBASSADOR COMMISSION AMOUNT</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.ambassador_commission_amount) || '-' %></div>
+          </div>
         </div>
-
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Ambassador TDS %</label>
-          <input type="text" class="form-control" value="<%= @life_insurance.ambassador_tds_percentage %> %" readonly>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>AMBASSADOR TDS %</label>
+            <div class="info-value"><%= @life_insurance.ambassador_tds_percentage ? "#{@life_insurance.ambassador_tds_percentage}%" : '-' %></div>
+          </div>
         </div>
-      </div>
-
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Ambassador TDS Amount</label>
-          <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.ambassador_tds_amount) %>" readonly>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>AMBASSADOR TDS AMOUNT</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.ambassador_tds_amount) || '-' %></div>
+          </div>
         </div>
-
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Ambassador After TDS Value</label>
-          <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.ambassador_after_tds_value) %>" readonly>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>AMBASSADOR AFTER TDS VALUE</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.ambassador_after_tds_value) || '-' %></div>
+          </div>
         </div>
       </div>
     <% end %>
@@ -321,32 +352,36 @@
     <% if @life_insurance.investor_commission_percentage.present? && @life_insurance.investor_commission_percentage > 0 %>
       <hr class="my-4">
       <h6 class="mb-3">Investor Commission</h6>
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Investor Commission %</label>
-          <input type="text" class="form-control" value="<%= @life_insurance.investor_commission_percentage %> %" readonly>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>INVESTOR COMMISSION %</label>
+            <div class="info-value"><%= @life_insurance.investor_commission_percentage ? "#{@life_insurance.investor_commission_percentage}%" : '-' %></div>
+          </div>
         </div>
-
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Investor Commission Amount</label>
-          <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.investor_commission_amount) %>" readonly>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>INVESTOR COMMISSION AMOUNT</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.investor_commission_amount) || '-' %></div>
+          </div>
         </div>
-
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Investor TDS %</label>
-          <input type="text" class="form-control" value="<%= @life_insurance.investor_tds_percentage %> %" readonly>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>INVESTOR TDS %</label>
+            <div class="info-value"><%= @life_insurance.investor_tds_percentage ? "#{@life_insurance.investor_tds_percentage}%" : '-' %></div>
+          </div>
         </div>
-      </div>
-
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Investor TDS Amount</label>
-          <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.investor_tds_amount) %>" readonly>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>INVESTOR TDS AMOUNT</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.investor_tds_amount) || '-' %></div>
+          </div>
         </div>
-
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Investor After TDS Value</label>
-          <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.investor_after_tds_value) %>" readonly>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>INVESTOR AFTER TDS VALUE</label>
+            <div class="info-value"><%= indian_currency(@life_insurance.investor_after_tds_value) || '-' %></div>
+          </div>
         </div>
       </div>
     <% end %>
@@ -354,20 +389,24 @@
     <!-- Company Expenses & Profit -->
     <hr class="my-4">
     <h6 class="mb-3">Company Expenses & Profit</h6>
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Company Expenses %</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.company_expenses_percentage %> %" readonly>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4">
+        <div class="info-field">
+          <label>COMPANY EXPENSES %</label>
+          <div class="info-value"><%= @life_insurance.company_expenses_percentage ? "#{@life_insurance.company_expenses_percentage}%" : '-' %></div>
+        </div>
       </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Profit %</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.profit_percentage %> %" readonly>
+      <div class="col-md-6 col-lg-4">
+        <div class="info-field">
+          <label>PROFIT %</label>
+          <div class="info-value"><%= @life_insurance.profit_percentage ? "#{@life_insurance.profit_percentage}%" : '-' %></div>
+        </div>
       </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Profit Amount</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@life_insurance.profit_amount) %>" readonly>
+      <div class="col-md-6 col-lg-4">
+        <div class="info-field">
+          <label>PROFIT AMOUNT</label>
+          <div class="info-value"><%= indian_currency(@life_insurance.profit_amount) || '-' %></div>
+        </div>
       </div>
     </div>
   </div>
@@ -386,34 +425,38 @@
   </div>
   <div id="bankDetailsCollapse" class="collapse">
     <div class="section-body">
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Bank Name</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.bank_name %>" readonly>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>BANK NAME</label>
+            <div class="info-value"><%= @life_insurance.bank_name || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>ACCOUNT TYPE</label>
+            <div class="info-value"><%= @life_insurance.account_type || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>ACCOUNT NUMBER</label>
+            <div class="info-value"><%= @life_insurance.account_number || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>IFSC CODE</label>
+            <div class="info-value"><%= @life_insurance.ifsc_code || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>ACCOUNT HOLDER NAME</label>
+            <div class="info-value"><%= @life_insurance.account_holder_name || '-' %></div>
+          </div>
+        </div>
       </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Account Type</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.account_type %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Account Number</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.account_number %>" readonly>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">IFSC Code</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.ifsc_code %>" readonly>
-      </div>
-
-      <div class="col-md-8 mb-3">
-        <label class="form-label">Account Holder Name</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.account_holder_name %>" readonly>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -430,22 +473,26 @@
   </div>
   <div id="nomineeDetailsCollapse" class="collapse">
     <div class="section-body">
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Nominee Name</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.nominee_name %>" readonly>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>NOMINEE NAME</label>
+            <div class="info-value"><%= @life_insurance.nominee_name || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>NOMINEE RELATIONSHIP</label>
+            <div class="info-value"><%= @life_insurance.nominee_relationship || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>NOMINEE AGE</label>
+            <div class="info-value"><%= @life_insurance.nominee_age || '-' %></div>
+          </div>
+        </div>
       </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Nominee Relationship</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.nominee_relationship %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Nominee Age</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.nominee_age %>" readonly>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -462,40 +509,42 @@
   </div>
   <div id="notificationSettingsCollapse" class="collapse">
     <div class="section-body">
-    <div class="row">
-      <div class="col-md-12 mb-3">
-        <label class="form-label">Notification Dates (Days before policy end date)</label>
-        <textarea class="form-control" rows="3" readonly><%
-          if @life_insurance.notification_dates.present?
-            begin
-              # Try to parse as JSON first
-              notifications = JSON.parse(@life_insurance.notification_dates)
-              if notifications.is_a?(Array)
-                # If it's an array of hashes, extract dates
-                if notifications.first.is_a?(Hash)
-                  notifications.map { |n| n['date'] }.join(', ')
-                else
-                  # If it's a simple array
-                  notifications.join(', ')
+      <div class="row g-4">
+        <div class="col-12">
+          <div class="info-field">
+            <label>NOTIFICATION DATES (DAYS BEFORE POLICY END DATE)</label>
+            <div class="info-value"><%
+              if @life_insurance.notification_dates.present?
+                begin
+                  # Try to parse as JSON first
+                  notifications = JSON.parse(@life_insurance.notification_dates)
+                  if notifications.is_a?(Array)
+                    # If it's an array of hashes, extract dates
+                    if notifications.first.is_a?(Hash)
+                      notifications.map { |n| n['date'] }.join(', ')
+                    else
+                      # If it's a simple array
+                      notifications.join(', ')
+                    end
+                  else
+                    @life_insurance.notification_dates
+                  end
+                rescue JSON::ParserError
+                  # If not JSON, assume it's already a string or array
+                  if @life_insurance.notification_dates.is_a?(Array)
+                    @life_insurance.notification_dates.join(', ')
+                  else
+                    @life_insurance.notification_dates
+                  end
                 end
               else
-                @life_insurance.notification_dates
+                '-'
               end
-            rescue JSON::ParserError
-              # If not JSON, assume it's already a string or array
-              if @life_insurance.notification_dates.is_a?(Array)
-                @life_insurance.notification_dates.join(', ')
-              else
-                @life_insurance.notification_dates
-              end
-            end
-          end
-        %></textarea>
-        <div class="form-text">
-          <small class="text-muted">Example: Enter 365 for 1 year before, 180 for 6 months before</small>
+            %></div>
+            <small class="text-muted">Example: Enter 365 for 1 year before, 180 for 6 months before</small>
+          </div>
         </div>
       </div>
-    </div>
   </div>
 </div>
 
@@ -512,76 +561,91 @@
   </div>
   <div id="additionalInfoCollapse" class="collapse">
     <div class="section-body">
-    <div class="row">
-      <div class="col-md-12 mb-3">
-        <label class="form-label">Extra Note</label>
-        <textarea class="form-control" rows="3" readonly><%= @life_insurance.extra_note %></textarea>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Lead ID</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.lead_id %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Status</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.status || 'Active' %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Days Until Expiry</label>
-        <% if @life_insurance.policy_end_date.present? %>
-          <% days_until_expiry = (@life_insurance.policy_end_date - Date.current).to_i %>
-          <input type="text" class="form-control <%= days_until_expiry <= 30 ? 'text-danger' : days_until_expiry <= 60 ? 'text-warning' : 'text-success' %>"
-                 value="<%= days_until_expiry %> days" readonly>
-        <% else %>
-          <input type="text" class="form-control" value="N/A" readonly>
-        <% end %>
-      </div>
-    </div>
-
-    <!-- Entry Source Information -->
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Added By Admin</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.is_admin_added ? 'Yes' : 'No' %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Added By Customer</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.is_customer_added ? 'Yes' : 'No' %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Added By Agent</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.is_agent_added ? 'Yes' : 'No' %>" readonly>
-      </div>
-    </div>
-
-    <!-- Product Through Dr -->
-    <% if @life_insurance.respond_to?(:product_through_dr) %>
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Product Through Dr</label>
-          <input type="text" class="form-control" value="<%= @life_insurance.product_through_dr ? 'Yes' : 'No' %>" readonly>
+      <div class="row g-4">
+        <div class="col-12">
+          <div class="info-field">
+            <label>EXTRA NOTE</label>
+            <div class="info-value"><%= @life_insurance.extra_note || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>LEAD ID</label>
+            <div class="info-value"><%= @life_insurance.lead_id || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>STATUS</label>
+            <div class="info-value"><%= @life_insurance.status || 'Active' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>DAYS UNTIL EXPIRY</label>
+            <div class="info-value">
+              <% if @life_insurance.policy_end_date.present? %>
+                <% days_until_expiry = (@life_insurance.policy_end_date - Date.current).to_i %>
+                <span class="<%= days_until_expiry <= 30 ? 'text-danger' : days_until_expiry <= 60 ? 'text-warning' : 'text-success' %>">
+                  <%= days_until_expiry %> days
+                </span>
+              <% else %>
+                N/A
+              <% end %>
+            </div>
+          </div>
         </div>
       </div>
-    <% end %>
 
-    <!-- Timestamps -->
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <label class="form-label">Created At</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.created_at&.strftime('%B %d, %Y at %I:%M %p') %>" readonly>
+      <!-- Entry Source Information -->
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>ADDED BY ADMIN</label>
+            <div class="info-value"><%= @life_insurance.is_admin_added ? 'Yes' : 'No' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>ADDED BY CUSTOMER</label>
+            <div class="info-value"><%= @life_insurance.is_customer_added ? 'Yes' : 'No' %></div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="info-field">
+            <label>ADDED BY AGENT</label>
+            <div class="info-value"><%= @life_insurance.is_agent_added ? 'Yes' : 'No' %></div>
+          </div>
+        </div>
       </div>
 
-      <div class="col-md-6 mb-3">
-        <label class="form-label">Last Updated At</label>
-        <input type="text" class="form-control" value="<%= @life_insurance.updated_at&.strftime('%B %d, %Y at %I:%M %p') %>" readonly>
+      <!-- Product Through Dr -->
+      <% if @life_insurance.respond_to?(:product_through_dr) %>
+        <div class="row g-4">
+          <div class="col-md-6 col-lg-4">
+            <div class="info-field">
+              <label>PRODUCT THROUGH DR</label>
+              <div class="info-value"><%= @life_insurance.product_through_dr ? 'Yes' : 'No' %></div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Timestamps -->
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="info-field">
+            <label>CREATED AT</label>
+            <div class="info-value"><%= @life_insurance.created_at&.strftime('%B %d, %Y at %I:%M %p') || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="info-field">
+            <label>LAST UPDATED AT</label>
+            <div class="info-value"><%= @life_insurance.updated_at&.strftime('%B %d, %Y at %I:%M %p') || '-' %></div>
+          </div>
+        </div>
       </div>
-    </div>
     </div>
   </div>
 </div>
@@ -596,15 +660,11 @@
     box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
   }
 
-  /* Make all readonly inputs have a light gray background for better visibility */
-  input[readonly], textarea[readonly] {
-    background-color: #f8f9fa !important;
-    cursor: default;
-  }
-
-  /* Add subtle border on hover for better UX */
-  .form-control[readonly]:hover {
-    border-color: #dee2e6;
+  /* Improved info value styling for better readability */
+  .info-value {
+    min-height: 20px;
+    padding: 2px 0;
+    word-wrap: break-word;
   }
 
   /* Info Section Card Styles */
@@ -701,18 +761,33 @@
 
   /* Section body proper padding */
   .section-body {
-    padding: 1.5rem !important;
+    padding: 20px !important;
   }
 
-  /* Form elements spacing within sections */
-  .section-body .row {
-    margin-bottom: 0.5rem;
+  /* Info Fields - Customer page style */
+  .info-field {
+    margin-bottom: 12px;
   }
 
-  .section-body .col-md-4,
-  .section-body .col-md-6,
-  .section-body .col-md-3 {
-    margin-bottom: 1rem !important;
+  .info-field label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  .info-value {
+    font-size: 15px;
+    color: #2c3e50;
+    font-weight: 500;
+  }
+
+  /* Row spacing for info fields */
+  .section-body .row + .row {
+    margin-top: 1.5rem;
   }
 
   /* Action buttons top spacing */
@@ -745,20 +820,7 @@
     margin-top: 0 !important;
   }
 
-  /* Proper form spacing inside sections */
-  .section-body .form-label {
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-  }
-
-  .section-body .form-control {
-    margin-bottom: 0.75rem;
-  }
-
-  /* Ensure consistent row spacing */
-  .section-body .row + .row {
-    margin-top: 1rem;
-  }
+  /* Remove unused form styles - now using info-field pattern */
 
   /* Page structure - ensure clean ending */
   .container-fluid {

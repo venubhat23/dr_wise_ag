@@ -47,7 +47,7 @@ class Admin::LeadsController < Admin::ApplicationController
       @leads = @leads.where("referred_by ILIKE ?", "%#{params[:referred_by]}%")
     end
 
-    @leads = paginate_records(@leads.order(created_at: :desc).includes(:converted_customer, :created_policy))
+    @leads = paginate_records(@leads.order(created_at: :desc).includes(:converted_customer, :created_policy, :affiliate, :ambassador))
 
     # Statistics for dashboard - updated to reflect active leads only (those without customers)
     active_leads_scope = Lead.where(converted_customer_id: nil)

@@ -190,7 +190,7 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     insurance_type = params[:insurance_type] || 'General Insurance'
 
     # Get companies for general/other insurance
-    companies = InsuranceCompany.where(insurance_type: "motor_other").pluck(:name)
+    companies = InsuranceCompany.where(insurance_type: "motor_other").order('LOWER(name) ASC').pluck(:name)
 
     companies_data = companies.map { |name|
       {

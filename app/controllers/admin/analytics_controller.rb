@@ -204,28 +204,26 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_top_affiliates_for_period(start_date, end_date)
-    # Get top affiliates based on policies created in the period
-    affiliate_data = []
+    # Optimized query to avoid N+1 - calculate all at once using SQL
+    affiliate_data = SubAgent.joins(
+      "LEFT JOIN health_insurances hi ON hi.sub_agent_id = sub_agents.id AND hi.created_at BETWEEN '#{start_date}' AND '#{end_date}'" +
+      " LEFT JOIN life_insurances li ON li.sub_agent_id = sub_agents.id AND li.created_at BETWEEN '#{start_date}' AND '#{end_date}'" +
+      " LEFT JOIN motor_insurances mi ON mi.sub_agent_id = sub_agents.id AND mi.created_at BETWEEN '#{start_date}' AND '#{end_date}'"
+    )
+    .select("sub_agents.id, sub_agents.first_name, sub_agents.last_name, sub_agents.status,
+             (COALESCE(COUNT(DISTINCT hi.id), 0) + COALESCE(COUNT(DISTINCT li.id), 0) + COALESCE(COUNT(DISTINCT mi.id), 0)) as policies_count")
+    .group("sub_agents.id, sub_agents.first_name, sub_agents.last_name, sub_agents.status")
+    .having("(COALESCE(COUNT(DISTINCT hi.id), 0) + COALESCE(COUNT(DISTINCT li.id), 0) + COALESCE(COUNT(DISTINCT mi.id), 0)) > 0")
+    .order("policies_count DESC")
+    .limit(10)
 
-    SubAgent.limit(50).each do |agent|
-      health_count = HealthInsurance.where(sub_agent_id: agent.id, created_at: start_date..end_date).count
-      life_count = LifeInsurance.where(sub_agent_id: agent.id, created_at: start_date..end_date).count
-      motor_count = MotorInsurance.where(sub_agent_id: agent.id, created_at: start_date..end_date).count
-      total_policies = health_count + life_count + motor_count
-
-      if total_policies > 0
-        affiliate_data << {
-          id: agent.id,
-          first_name: agent.first_name,
-          last_name: agent.last_name,
-          status: agent.status || 'active',
-          policies_count: total_policies
-        }
-      end
-    end
-
-    # Sort and convert to OpenStruct
-    affiliate_data.sort_by { |a| -a[:policies_count] }.first(10).map { |data| OpenStruct.new(data) }
+    affiliate_data.map { |agent| OpenStruct.new(
+      id: agent.id,
+      first_name: agent.first_name,
+      last_name: agent.last_name,
+      status: agent.status || 'active',
+      policies_count: agent.policies_count
+    )}
   rescue => e
     Rails.logger.error "Error calculating top affiliates for period: #{e.message}"
     []

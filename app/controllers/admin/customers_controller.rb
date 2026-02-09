@@ -139,8 +139,18 @@ class Admin::CustomersController < Admin::ApplicationController
 
   # GET /admin/customers/1
   def show
+    # Eager load all associations to avoid N+1 queries
+    @customer = Customer.includes(
+      :family_members,
+      :health_insurances,
+      :life_insurances,
+      :motor_insurances,
+      :other_insurances,
+      uploaded_documents: { file_attachment: :blob }
+    ).find(params[:id])
+
     @family_members = @customer.family_members.order(:created_at)
-    @uploaded_documents = @customer.uploaded_documents.includes(file_attachment: :blob).order(:created_at)
+    @uploaded_documents = @customer.uploaded_documents.order(:created_at)
 
     # Find all associated leads for this customer
     @associated_leads = Lead.where(converted_customer_id: @customer.id)
@@ -150,10 +160,10 @@ class Admin::CustomersController < Admin::ApplicationController
     # Keep the original @lead for backward compatibility
     @lead = @associated_leads.first
 
-    # Gather all policies from different insurance types
+    # Gather all policies from different insurance types - using preloaded associations
     @all_policies = []
 
-    # Health Insurance policies
+    # Health Insurance policies - no additional queries due to includes
     @customer.health_insurances.each do |policy|
       @all_policies << {
         type: 'Health Insurance',

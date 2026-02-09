@@ -480,19 +480,18 @@ class Admin::AgencyCodesController < Admin::ApplicationController
                          else
                            'motor_other'
                          end
-
       if db_insurance_type
         # Get companies from InsuranceCompany model based on insurance_type
         companies = InsuranceCompany.where(insurance_type: db_insurance_type)
                                   .where(status: true)
-                                  .order(:name)
+                                  .order('LOWER(name) ASC')
                                   .pluck(:name)
                                   .compact
                                   .reject(&:blank?)
       else
         # If no specific type matched, return all active companies
         companies = InsuranceCompany.where(status: true)
-                                  .order(:name)
+                                  .order('LOWER(name) ASC')
                                   .pluck(:name)
                                   .compact
                                   .reject(&:blank?)
@@ -500,7 +499,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     else
       # Return all active companies if no type specified
       companies = InsuranceCompany.where(status: true)
-                                .order(:name)
+                                .order('LOWER(name) ASC')
                                 .pluck(:name)
                                 .compact
                                 .reject(&:blank?)
@@ -511,7 +510,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
       agency_code = AgencyCode.find_by(id: agency_code_id)
       if agency_code&.company_name.present? && !companies.include?(agency_code.company_name)
         companies << agency_code.company_name
-        companies.sort!
+        companies.sort_by!(&:downcase)
       end
     end
 

@@ -578,7 +578,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     # API response format: { company1, company2 }
 
     # For motor insurance, use the motor/general insurance companies
-    companies = InsuranceCompany.where(insurance_type: "motor_other").pluck(:name)
+    companies = InsuranceCompany.where(insurance_type: "motor_other").order('LOWER(name) ASC').pluck(:name)
 
     companies_data = companies.map { |name|
       {

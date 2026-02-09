@@ -231,7 +231,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     # API response format: { company1, company2 }
 
     # For health insurance, use the health insurance companies
-    companies = InsuranceCompany.where(insurance_type: "health").pluck(:name)
+    companies = InsuranceCompany.where(insurance_type: "health").order('LOWER(name) ASC').pluck(:name)
 
     companies_data = companies.map { |name|
       {

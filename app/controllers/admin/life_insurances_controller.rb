@@ -549,7 +549,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
     render json: {
       success: true,
-      data: companies.map { |name| { id: name, text: name } }
+      data: companies.sort_by(&:downcase).map { |name| { id: name, text: name } }
     }
   end
 
