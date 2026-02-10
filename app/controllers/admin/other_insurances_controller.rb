@@ -160,6 +160,10 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     if @other_insurance.update(other_insurance_params)
       redirect_to admin_other_insurance_path(@other_insurance), notice: 'Other insurance policy was successfully updated.'
     else
+      # Reload form data for re-rendering
+      load_form_data
+      @selected_customer = @other_insurance.customer
+      @customer_family_members = @selected_customer.family_members if @selected_customer
       render :edit, status: :unprocessable_entity
     end
   end
@@ -348,14 +352,43 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     @renewed_policy.is_customer_added = @other_insurance.is_customer_added
     @renewed_policy.is_agent_added = @other_insurance.is_agent_added
 
-    # Calculate commission fields if net_premium is present
+    # Calculate all commission fields if net_premium is present
     if @renewed_policy.net_premium.present?
       net_premium = @renewed_policy.net_premium
+
+      # Calculate main agent commission
       if @renewed_policy.main_agent_commission_percentage.present?
         @renewed_policy.commission_amount = (net_premium * @renewed_policy.main_agent_commission_percentage) / 100
         if @renewed_policy.tds_percentage.present?
           @renewed_policy.tds_amount = (@renewed_policy.commission_amount * @renewed_policy.tds_percentage) / 100
           @renewed_policy.after_tds_value = @renewed_policy.commission_amount - @renewed_policy.tds_amount
+        end
+      end
+
+      # Calculate sub-agent commission
+      if @renewed_policy.sub_agent_commission_percentage.present?
+        @renewed_policy.sub_agent_commission_amount = (net_premium * @renewed_policy.sub_agent_commission_percentage) / 100
+        if @renewed_policy.sub_agent_tds_percentage.present?
+          @renewed_policy.sub_agent_tds_amount = (@renewed_policy.sub_agent_commission_amount * @renewed_policy.sub_agent_tds_percentage) / 100
+          @renewed_policy.sub_agent_after_tds_value = @renewed_policy.sub_agent_commission_amount - @renewed_policy.sub_agent_tds_amount
+        end
+      end
+
+      # Calculate ambassador commission
+      if @renewed_policy.ambassador_commission_percentage.present?
+        @renewed_policy.ambassador_commission_amount = (net_premium * @renewed_policy.ambassador_commission_percentage) / 100
+        if @renewed_policy.ambassador_tds_percentage.present?
+          @renewed_policy.ambassador_tds_amount = (@renewed_policy.ambassador_commission_amount * @renewed_policy.ambassador_tds_percentage) / 100
+          @renewed_policy.ambassador_after_tds_value = @renewed_policy.ambassador_commission_amount - @renewed_policy.ambassador_tds_amount
+        end
+      end
+
+      # Calculate investor commission
+      if @renewed_policy.investor_commission_percentage.present?
+        @renewed_policy.investor_commission_amount = (net_premium * @renewed_policy.investor_commission_percentage) / 100
+        if @renewed_policy.investor_tds_percentage.present?
+          @renewed_policy.investor_tds_amount = (@renewed_policy.investor_commission_amount * @renewed_policy.investor_tds_percentage) / 100
+          @renewed_policy.investor_after_tds_value = @renewed_policy.investor_commission_amount - @renewed_policy.investor_tds_amount
         end
       end
     end
@@ -529,7 +562,35 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
       end
     end
 
-    # Similar calculations for other commissions can be added here
+    # Calculate sub-agent commission
+    if @other_insurance.sub_agent_commission_percentage.present?
+      @other_insurance.sub_agent_commission_amount = (net_premium * @other_insurance.sub_agent_commission_percentage) / 100
+
+      if @other_insurance.sub_agent_tds_percentage.present?
+        @other_insurance.sub_agent_tds_amount = (@other_insurance.sub_agent_commission_amount * @other_insurance.sub_agent_tds_percentage) / 100
+        @other_insurance.sub_agent_after_tds_value = @other_insurance.sub_agent_commission_amount - @other_insurance.sub_agent_tds_amount
+      end
+    end
+
+    # Calculate ambassador commission
+    if @other_insurance.ambassador_commission_percentage.present?
+      @other_insurance.ambassador_commission_amount = (net_premium * @other_insurance.ambassador_commission_percentage) / 100
+
+      if @other_insurance.ambassador_tds_percentage.present?
+        @other_insurance.ambassador_tds_amount = (@other_insurance.ambassador_commission_amount * @other_insurance.ambassador_tds_percentage) / 100
+        @other_insurance.ambassador_after_tds_value = @other_insurance.ambassador_commission_amount - @other_insurance.ambassador_tds_amount
+      end
+    end
+
+    # Calculate investor commission
+    if @other_insurance.investor_commission_percentage.present?
+      @other_insurance.investor_commission_amount = (net_premium * @other_insurance.investor_commission_percentage) / 100
+
+      if @other_insurance.investor_tds_percentage.present?
+        @other_insurance.investor_tds_amount = (@other_insurance.investor_commission_amount * @other_insurance.investor_tds_percentage) / 100
+        @other_insurance.investor_after_tds_value = @other_insurance.investor_commission_amount - @other_insurance.investor_tds_amount
+      end
+    end
   end
 
 end

@@ -17,9 +17,13 @@ class OtherInsurance < ApplicationRecord
   after_create :create_lead_record
 
   # Validations
+  validates :customer_id, presence: { message: "Client name is required" }
   validates :policy_start_date, presence: true
   validates :policy_end_date, presence: true
   validates :policy_number, presence: true, uniqueness: true
+  validates :insurance_company_name, presence: { message: "Insurance company name is required" }
+  validates :insurance_type, presence: { message: "Insurance type is required" }
+  validates :policy_type, presence: { message: "Policy type is required" }
 
   # Scopes
   scope :active, -> { where('policy_end_date >= ?', Date.current) }

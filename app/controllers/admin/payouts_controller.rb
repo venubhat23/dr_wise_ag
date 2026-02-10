@@ -115,7 +115,19 @@ class Admin::PayoutsController < Admin::ApplicationController
     }
 
     if @payout.mark_as_paid!(payment_details)
-      redirect_to admin_payout_path(@payout), notice: 'Payout marked as paid successfully.'
+      # Generate invoice for ambassador payouts
+      invoice_message = ""
+      if @payout.payout_to == 'ambassador'
+        begin
+          invoice_generated = generate_or_update_ambassador_invoice(@payout)
+          invoice_message = invoice_generated ? " Invoice has been generated/updated." : ""
+        rescue => e
+          Rails.logger.error "Ambassador invoice generation failed: #{e.message}"
+          Rails.logger.error e.backtrace.first(5).join("\n")
+        end
+      end
+
+      redirect_to admin_payout_path(@payout), notice: "Payout marked as paid successfully.#{invoice_message}"
     else
       redirect_to admin_payout_path(@payout), alert: 'Failed to mark payout as paid.'
     end
@@ -659,5 +671,100 @@ class Admin::PayoutsController < Admin::ApplicationController
     when 'deleted' then 'danger'
     else 'secondary'
     end
+  end
+
+  def generate_or_update_ambassador_invoice(payout)
+    return false unless payout.payout_to == 'ambassador'
+
+    # Get the policy associated with this payout
+    policy = payout.policy
+    return false unless policy
+
+    # Get the distributor from the policy
+    distributor_id = policy.respond_to?(:distributor_id) ? policy.distributor_id : nil
+    return false unless distributor_id
+
+    distributor = Distributor.find_by(id: distributor_id)
+    return false unless distributor
+
+    # Use consistent month calculation
+    invoice_month = Date.current
+    current_month_start = invoice_month.beginning_of_month
+    current_month_end = invoice_month.end_of_month
+
+    # Check if invoice already exists for this distributor this month
+    existing_invoice = Invoice.find_by(
+      payout_type: 'ambassador',
+      payout_id: distributor_id,
+      invoice_date: current_month_start..current_month_end
+    )
+
+    # Get all ambassador commission payouts for this distributor in current month
+    ambassador_payouts = CommissionPayout.where(
+      payout_to: 'ambassador',
+      status: 'paid',
+      payout_date: current_month_start..current_month_end
+    ).select do |p|
+      policy = p.policy
+      policy&.respond_to?(:distributor_id) && policy.distributor_id == distributor_id
+    end
+
+    return false if ambassador_payouts.empty?
+
+    total_amount = ambassador_payouts.sum(&:payout_amount).to_f
+    return false if total_amount <= 0
+
+    begin
+      if existing_invoice
+        # Update existing monthly invoice
+        existing_invoice.update!(
+          total_amount: total_amount,
+          notes: "Monthly ambassador commission for #{ambassador_payouts.count} payouts in #{invoice_month.strftime('%B %Y')}",
+          recipient_name: distributor.display_name,
+          recipient_email: distributor.email,
+          updated_at: Time.current
+        )
+        Rails.logger.info "Updated existing monthly ambassador invoice #{existing_invoice.invoice_number}"
+        return true
+      else
+        # Create new monthly invoice
+        invoice_number = generate_monthly_ambassador_invoice_number(distributor_id)
+
+        invoice = Invoice.create!(
+          invoice_number: invoice_number,
+          payout_type: 'ambassador',
+          payout_id: distributor_id,
+          total_amount: total_amount,
+          status: 'paid',
+          invoice_date: Date.current,
+          due_date: Date.current + 7.days,
+          notes: "Monthly ambassador commission for #{ambassador_payouts.count} payouts in #{invoice_month.strftime('%B %Y')}",
+          recipient_name: distributor.display_name,
+          recipient_email: distributor.email
+        )
+        Rails.logger.info "Created new monthly ambassador invoice #{invoice.invoice_number}"
+        return true
+      end
+    rescue => e
+      Rails.logger.error "Failed to create/update ambassador invoice: #{e.message}"
+      return false
+    end
+  end
+
+  def generate_monthly_ambassador_invoice_number(distributor_id)
+    # Generate a deterministic invoice number based on distributor and month
+    year_month = Date.current.strftime('%Y%m')
+    base_number = "INV-AMB-#{year_month}-#{distributor_id.to_s.rjust(5, '0')}"
+
+    # Check if this exact number exists
+    counter = 1
+    invoice_number = base_number
+
+    while Invoice.exists?(invoice_number: invoice_number)
+      invoice_number = "#{base_number}-#{counter}"
+      counter += 1
+    end
+
+    invoice_number
   end
 end

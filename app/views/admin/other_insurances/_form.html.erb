@@ -1257,6 +1257,13 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Customer cleared, showing all affiliates');
   });
 
+  // Check if customer is already selected on page load (for edit forms)
+  const initialCustomerId = $('#customer_select').val();
+  if (initialCustomerId) {
+    // Trigger the customer selection to load family members
+    $('#customer_select').trigger('select2:select');
+  }
+
   // Broker code type handling
   const brokerCodeType = document.getElementById('other_insurance_broker_code_type');
   const brokerContainer = document.getElementById('broker_id_container');
