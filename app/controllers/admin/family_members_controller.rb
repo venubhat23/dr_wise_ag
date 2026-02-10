@@ -22,7 +22,24 @@ class Admin::FamilyMembersController < Admin::ApplicationController
 
   # POST /admin/customers/:customer_id/family_members
   def create
-    @family_member = @customer.family_members.build(family_member_params)
+    @family_member = @customer.family_members.build(family_member_params.except(:documents))
+
+    # Handle document uploads separately
+    documents = params[:family_member][:documents]
+    if documents.present? && documents.is_a?(Array)
+      documents.each do |document_file|
+        # Skip if the file is blank, empty string, or not a file object
+        next if document_file.blank? || document_file == "" || !document_file.respond_to?(:original_filename)
+
+        # Create document with required attributes
+        @family_member.documents.build(
+          file: document_file,
+          title: document_file.original_filename,
+          document_type: 'other', # Default to 'other' or you can add logic to determine type
+          uploaded_by: current_user&.email || 'system'
+        )
+      end
+    end
 
     if @family_member.save
       redirect_to admin_customer_family_member_path(@customer, @family_member), notice: 'Family member was successfully created.'
@@ -33,7 +50,27 @@ class Admin::FamilyMembersController < Admin::ApplicationController
 
   # PATCH/PUT /admin/customers/:customer_id/family_members/1
   def update
-    if @family_member.update(family_member_params)
+    # Update family member attributes except documents
+    @family_member.assign_attributes(family_member_params.except(:documents))
+
+    # Handle document uploads separately
+    documents = params[:family_member][:documents]
+    if documents.present? && documents.is_a?(Array)
+      documents.each do |document_file|
+        # Skip if the file is blank, empty string, or not a file object
+        next if document_file.blank? || document_file == "" || !document_file.respond_to?(:original_filename)
+
+        # Create document with required attributes
+        @family_member.documents.build(
+          file: document_file,
+          title: document_file.original_filename,
+          document_type: 'other', # Default to 'other' or you can add logic to determine type
+          uploaded_by: current_user&.email || 'system'
+        )
+      end
+    end
+
+    if @family_member.save
       redirect_to admin_customer_family_member_path(@customer, @family_member), notice: 'Family member was successfully updated.'
     else
       render :edit, status: :unprocessable_entity
@@ -59,7 +96,7 @@ class Admin::FamilyMembersController < Admin::ApplicationController
   def family_member_params
     params.require(:family_member).permit(
       :first_name, :middle_name, :last_name, :birth_date, :age, :height, :weight, :gender, :relationship,
-      :pan_no, :mobile, documents: []
+      :pan_no, :mobile
     )
   end
 end

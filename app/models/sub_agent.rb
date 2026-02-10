@@ -17,8 +17,10 @@ class SubAgent < ApplicationRecord
   attr_accessor :store_plain_password, :plain_password
   # Note: state and city are now real database columns, not virtual attributes
   before_validation :set_default_password, on: :create
+  before_validation :normalize_mobile_number
   before_save :store_password_if_changed
   before_save :set_location_ids_from_names
+  before_save :add_country_code_to_mobile
 
   # Associations
   belongs_to :role
@@ -131,6 +133,35 @@ class SubAgent < ApplicationRecord
       self.password = 'admin123'
       self.password_confirmation = 'admin123'
       self.original_password = 'admin123'
+    end
+  end
+
+  def normalize_mobile_number
+    return unless mobile.present?
+
+    # Remove any non-digit characters
+    clean_number = mobile.gsub(/\D/, '')
+
+    # Remove country code if present (handles +91, 91, 0091 etc.)
+    clean_number = clean_number.sub(/^(91|0091)/, '')
+
+    # Remove leading zero if present
+    clean_number = clean_number.sub(/^0/, '')
+
+    # Keep only last 10 digits if longer
+    if clean_number.length > 10
+      clean_number = clean_number[-10..]
+    end
+
+    self.mobile = clean_number
+  end
+
+  def add_country_code_to_mobile
+    return unless mobile.present?
+
+    # Only add +91 if it's a 10-digit number
+    if mobile.length == 10 && mobile.match?(/^\d{10}$/)
+      self.mobile = "+91 #{mobile}"
     end
   end
 

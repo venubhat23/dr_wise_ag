@@ -119,9 +119,29 @@ class Admin::DistributorPayoutsController < ApplicationController
         redirect_to admin_distributor_payouts_path, alert: "Some payouts failed: #{errors.join(', ')}"
       else
         # Generate invoices after successful payouts
-        generate_distributor_invoices(distributor_id, lead_ids, payout_type)
-        generate_ambassador_invoices(distributor_id, lead_ids, payout_type)
-        redirect_to admin_distributor_payouts_path, notice: "#{success_count} distributor payout(s) marked as paid successfully! Invoices have been generated."
+        invoice_errors = []
+
+        begin
+          generate_distributor_invoices(distributor_id, lead_ids, payout_type)
+        rescue => e
+          Rails.logger.error "Distributor invoice generation failed: #{e.message}"
+          Rails.logger.error e.backtrace.first(5).join("\n")
+          invoice_errors << "Distributor invoice generation failed: #{e.message}"
+        end
+
+        begin
+          generate_ambassador_invoices(distributor_id, lead_ids, payout_type)
+        rescue => e
+          Rails.logger.error "Ambassador invoice generation failed: #{e.message}"
+          Rails.logger.error e.backtrace.first(5).join("\n")
+          invoice_errors << "Ambassador invoice generation failed: #{e.message}"
+        end
+
+        if invoice_errors.any?
+          redirect_to admin_distributor_payouts_path, alert: "#{success_count} distributor payout(s) marked as paid successfully! However, invoice generation had issues: #{invoice_errors.join('; ')}"
+        else
+          redirect_to admin_distributor_payouts_path, notice: "#{success_count} distributor payout(s) marked as paid successfully! Invoices have been generated."
+        end
       end
 
     rescue StandardError => e
@@ -547,6 +567,9 @@ class Admin::DistributorPayoutsController < ApplicationController
     Rails.logger.info "=== GENERATING SINGLE DISTRIBUTOR INVOICE ==="
     Rails.logger.info "Looking for distributor with ID: #{distributor_id}"
 
+    # Return early if distributor_id is nil or invalid
+    return false if distributor_id.blank?
+
     distributor = Distributor.find_by(id: distributor_id)
     unless distributor
       Rails.logger.error "Distributor not found for ID: #{distributor_id}"
@@ -555,9 +578,13 @@ class Admin::DistributorPayoutsController < ApplicationController
 
     Rails.logger.info "Found distributor: #{distributor.display_name} (#{distributor.id})"
 
+    # Use the payout date or fall back to current date for month calculation
+    # This ensures invoices are generated for the correct period
+    invoice_month = Date.current
+    current_month_start = invoice_month.beginning_of_month
+    current_month_end = invoice_month.end_of_month
+
     # Check if invoice already exists for this distributor this month
-    current_month_start = Date.current.beginning_of_month
-    current_month_end = Date.current.end_of_month
     existing_invoice = Invoice.find_by(
       payout_type: 'distributor',
       payout_id: distributor_id,
@@ -571,8 +598,8 @@ class Admin::DistributorPayoutsController < ApplicationController
       payout_date: current_month_start..current_month_end
     )
 
-    total_commission = paid_payouts.sum(&:payout_amount)
-    Rails.logger.info "Calculated monthly commission: #{total_commission}"
+    total_commission = paid_payouts.sum(&:payout_amount).to_f
+    Rails.logger.info "Calculated monthly commission: #{total_commission} for #{paid_payouts.count} payouts"
 
     if total_commission <= 0
       Rails.logger.info "No commission to invoice for distributor #{distributor_id} this month"
@@ -584,7 +611,9 @@ class Admin::DistributorPayoutsController < ApplicationController
         # Update existing invoice with current month's total
         existing_invoice.update!(
           total_amount: total_commission,
-          notes: "Monthly distributor commission for #{paid_payouts.count} payouts in #{Date.current.strftime('%B %Y')}",
+          notes: "Monthly distributor commission for #{paid_payouts.count} payouts in #{invoice_month.strftime('%B %Y')}",
+          recipient_name: distributor.display_name,  # Update in case name changed
+          recipient_email: distributor.email,  # Update in case email changed
           updated_at: Time.current
         )
         Rails.logger.info "Updated existing monthly invoice #{existing_invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
@@ -597,21 +626,26 @@ class Admin::DistributorPayoutsController < ApplicationController
           payout_id: distributor_id,
           total_amount: total_commission,
           status: 'paid',
-          invoice_date: Date.current,
-          due_date: Date.current,
+          invoice_date: invoice_month,
+          due_date: invoice_month,
           paid_at: Time.current,
           recipient_name: distributor.display_name,
-          recipient_email: distributor.email,
-          notes: "Monthly distributor commission for #{paid_payouts.count} payouts in #{Date.current.strftime('%B %Y')}"
+          recipient_email: distributor.email || 'no-email@example.com',  # Handle missing email
+          notes: "Monthly distributor commission for #{paid_payouts.count} payouts in #{invoice_month.strftime('%B %Y')}"
         )
 
-        Rails.logger.info "Generated monthly invoice #{invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
+        Rails.logger.info "✅ Generated monthly invoice #{invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
+        Rails.logger.info "   Amount: ₹#{total_commission}, Payouts: #{paid_payouts.count}"
         return true
       end
     rescue => e
-      Rails.logger.error "Failed to create/update distributor invoice: #{e.message}"
+      Rails.logger.error "❌ Failed to create/update distributor invoice: #{e.message}"
+      Rails.logger.error "   Distributor: #{distributor.display_name} (#{distributor_id})"
+      Rails.logger.error "   Total Commission: #{total_commission}"
       Rails.logger.error e.backtrace.first(5).join("\n")
-      return false
+
+      # Re-raise the error so it can be caught by the calling method
+      raise e
     end
   end
 
@@ -747,12 +781,26 @@ class Admin::DistributorPayoutsController < ApplicationController
   end
 
   def generate_single_ambassador_invoice(distributor_id)
+    Rails.logger.info "=== GENERATING SINGLE AMBASSADOR INVOICE ==="
+    Rails.logger.info "Looking for distributor with ID: #{distributor_id}"
+
+    # Return early if distributor_id is nil or invalid
+    return false if distributor_id.blank?
+
     distributor = Distributor.find_by(id: distributor_id)
-    return unless distributor
+    unless distributor
+      Rails.logger.error "Distributor not found for ID: #{distributor_id}"
+      return false
+    end
+
+    Rails.logger.info "Found distributor: #{distributor.display_name} (#{distributor.id})"
+
+    # Use consistent month calculation
+    invoice_month = Date.current
+    current_month_start = invoice_month.beginning_of_month
+    current_month_end = invoice_month.end_of_month
 
     # Check if invoice already exists for this distributor this month
-    current_month_start = Date.current.beginning_of_month
-    current_month_end = Date.current.end_of_month
     existing_invoice = Invoice.find_by(
       payout_type: 'ambassador',
       payout_id: distributor_id,
@@ -769,20 +817,31 @@ class Admin::DistributorPayoutsController < ApplicationController
       policy&.respond_to?(:distributor_id) && policy.distributor_id == distributor_id.to_i
     end
 
-    return if ambassador_payouts.empty?
+    if ambassador_payouts.empty?
+      Rails.logger.info "No ambassador payouts found for distributor #{distributor_id} this month"
+      return false
+    end
 
-    total_amount = ambassador_payouts.sum(&:payout_amount)
-    return if total_amount <= 0
+    total_amount = ambassador_payouts.sum(&:payout_amount).to_f
+    Rails.logger.info "Calculated monthly ambassador commission: #{total_amount} for #{ambassador_payouts.count} payouts"
+
+    if total_amount <= 0
+      Rails.logger.info "No ambassador commission to invoice for distributor #{distributor_id} this month"
+      return false
+    end
 
     begin
       if existing_invoice
         # Update existing monthly invoice
         existing_invoice.update!(
           total_amount: total_amount,
-          notes: "Monthly ambassador commission for #{ambassador_payouts.count} payouts in #{Date.current.strftime('%B %Y')}",
+          notes: "Monthly ambassador commission for #{ambassador_payouts.count} payouts in #{invoice_month.strftime('%B %Y')}",
+          recipient_name: distributor.display_name,  # Update in case name changed
+          recipient_email: distributor.email,  # Update in case email changed
           updated_at: Time.current
         )
         Rails.logger.info "Updated existing monthly ambassador invoice #{existing_invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
+        return true
       else
         # Create new monthly invoice
         invoice = Invoice.create!(
@@ -791,18 +850,26 @@ class Admin::DistributorPayoutsController < ApplicationController
           payout_id: distributor_id,
           total_amount: total_amount,
           status: 'paid',
-          invoice_date: Date.current,
-          due_date: Date.current,
+          invoice_date: invoice_month,
+          due_date: invoice_month,
           paid_at: Time.current,
           recipient_name: distributor.display_name,
-          recipient_email: distributor.email,
-          notes: "Monthly ambassador commission for #{ambassador_payouts.count} payouts in #{Date.current.strftime('%B %Y')}"
+          recipient_email: distributor.email || 'no-email@example.com',  # Handle missing email
+          notes: "Monthly ambassador commission for #{ambassador_payouts.count} payouts in #{invoice_month.strftime('%B %Y')}"
         )
 
-        Rails.logger.info "Generated monthly ambassador invoice #{invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
+        Rails.logger.info "✅ Generated monthly ambassador invoice #{invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
+        Rails.logger.info "   Amount: ₹#{total_amount}, Payouts: #{ambassador_payouts.count}"
+        return true
       end
     rescue => e
-      Rails.logger.error "Failed to create/update ambassador invoice: #{e.message}"
+      Rails.logger.error "❌ Failed to create/update ambassador invoice: #{e.message}"
+      Rails.logger.error "   Distributor: #{distributor.display_name} (#{distributor_id})"
+      Rails.logger.error "   Total Amount: #{total_amount}"
+      Rails.logger.error e.backtrace.first(5).join("\n")
+
+      # Re-raise the error so it can be caught by the calling method
+      raise e
     end
   end
 

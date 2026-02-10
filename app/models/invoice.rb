@@ -22,11 +22,35 @@ class Invoice < ApplicationRecord
       CommissionPayout.find_by(id: payout_id, payout_to: 'affiliate') ||
       CommissionPayout.find_by(id: payout_id)
     when 'distributor'
-      DistributorPayout.find_by(id: payout_id)
+      # For distributor, payout_id is the distributor ID, not DistributorPayout ID
+      # Return the first paid payout for display purposes
+      DistributorPayout.where(distributor_id: payout_id, status: 'paid').first
     when 'ambassador'
-      # First try with payout_to filter, if not found try without filter for backward compatibility
-      CommissionPayout.find_by(id: payout_id, payout_to: 'ambassador') ||
-      CommissionPayout.find_by(id: payout_id)
+      # For ambassador, payout_id is the distributor ID
+      # Find relevant commission payout
+      distributor = Distributor.find_by(id: payout_id)
+      if distributor
+        # Find a paid ambassador commission payout for this distributor
+        policies = []
+        ['HealthInsurance', 'LifeInsurance', 'MotorInsurance', 'OtherInsurance'].each do |model_name|
+          model = model_name.constantize
+          if model.column_names.include?('distributor_id')
+            policies += model.where(distributor_id: distributor.id).pluck(:id, :class)
+          end
+        end
+
+        policies.each do |policy_id, policy_class|
+          policy_type = policy_class.gsub('Insurance', '').downcase
+          payout = CommissionPayout.find_by(
+            policy_type: policy_type == 'other' ? 'other' : policy_type,
+            policy_id: policy_id,
+            payout_to: 'ambassador',
+            status: 'paid'
+          )
+          return payout if payout
+        end
+      end
+      nil
     when 'commission'
       Payout.find_by(id: payout_id)
     end
@@ -43,19 +67,13 @@ class Invoice < ApplicationRecord
         'Unknown Affiliate'
       end
     when 'distributor'
-      payout = payout_record
-      distributor = payout&.distributor
+      # For distributor invoices, payout_id is the distributor ID
+      distributor = Distributor.find_by(id: payout_id)
       distributor&.display_name || 'Unknown Distributor'
     when 'ambassador'
-      payout = payout_record
-      # For ambassador, get distributor info from policy
-      if payout
-        policy = get_policy_from_commission_payout(payout)
-        distributor = Distributor.find_by(id: policy&.distributor_id) if policy&.respond_to?(:distributor_id)
-        distributor&.display_name || 'Unknown Ambassador'
-      else
-        'Unknown Ambassador'
-      end
+      # For ambassador invoices, payout_id is the distributor ID
+      distributor = Distributor.find_by(id: payout_id)
+      distributor&.display_name || 'Unknown Ambassador'
     when 'commission'
       'Main Agent Commission'
     else
@@ -64,6 +82,12 @@ class Invoice < ApplicationRecord
   end
 
   def payout_amount
+    # For affiliate invoices, payout_id is the SubAgent ID, not a payout record ID
+    # The total_amount already contains the correct sum of all commissions
+    if payout_type == 'affiliate'
+      return total_amount
+    end
+
     payout = payout_record
     return total_amount unless payout
 

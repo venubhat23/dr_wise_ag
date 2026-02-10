@@ -330,6 +330,47 @@
       </div>
     <% end %>
 
+    <!-- Login Credentials -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0">
+        <h6 class="mb-0">
+          <i class="bi bi-key me-2 text-danger"></i>
+          Ambassador Login Credentials
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label text-muted">Username</label>
+          <div class="input-group">
+            <input type="text" class="form-control" value="<%= @distributor.username || 'Not generated' %>" readonly>
+            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('<%= @distributor.username %>')">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-muted">Password</label>
+          <div class="input-group">
+            <input type="text" class="form-control" value="<%= @distributor.original_password || 'Not available' %>" readonly>
+            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('<%= @distributor.original_password %>')">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </div>
+        </div>
+        <% if @distributor.username.blank? || @distributor.original_password.blank? %>
+          <div class="alert alert-warning mb-0">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Login credentials not yet generated. They will be created when the ambassador account is saved.
+          </div>
+        <% else %>
+          <div class="alert alert-info mb-0">
+            <i class="bi bi-info-circle me-2"></i>
+            Share these credentials securely with the ambassador for portal access.
+          </div>
+        <% end %>
+      </div>
+    </div>
+
     <!-- Account Details -->
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-transparent border-0">
@@ -353,3 +394,30 @@
     </div>
   </div>
 </div>
+
+<script>
+function copyToClipboard(text) {
+  if (text && text !== 'Not generated' && text !== 'Not available') {
+    navigator.clipboard.writeText(text).then(function() {
+      // Show success message
+      const toast = document.createElement('div');
+      toast.className = 'position-fixed top-0 end-0 p-3';
+      toast.style.zIndex = '11';
+      toast.innerHTML = `
+        <div class="toast show align-items-center text-bg-success border-0" role="alert">
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="bi bi-check-circle me-2"></i>Copied to clipboard!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }).catch(function(err) {
+      alert('Failed to copy: ' + err);
+    });
+  }
+}
+</script>

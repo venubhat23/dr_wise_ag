@@ -797,21 +797,24 @@ class Admin::CommissionTrackingController < ApplicationController
     net_premium_value = (saved_payout.policy&.net_premium || saved_payout.total_commission_amount || 0).to_f.round(2)
     policy_premium = (saved_payout.policy&.total_premium || net_premium_value || 0).to_f.round(2)
 
-    # Use stored percentages from payout when available, otherwise calculate
+    # Use stored percentages from payout when available, otherwise calculate based on net premium
+    # Percentages should be calculated on net_premium (the commissionable amount), not total_premium
+    commission_base = net_premium_value > 0 ? net_premium_value : policy_premium
+
     main_agent_amount = (saved_payout.main_agent_commission_amount || 0).to_f.round(2)
-    main_agent_percentage = saved_payout.main_agent_percentage || (policy_premium > 0 ? (main_agent_amount / policy_premium * 100).round(1) : 0)
+    main_agent_percentage = saved_payout.main_agent_percentage || (commission_base > 0 ? (main_agent_amount / commission_base * 100).round(1) : 0)
 
     affiliate_amount = (saved_payout.affiliate_commission_amount || 0).to_f.round(2)
-    affiliate_percentage = saved_payout.affiliate_percentage || (policy_premium > 0 ? (affiliate_amount / policy_premium * 100).round(1) : 0)
+    affiliate_percentage = saved_payout.affiliate_percentage || (commission_base > 0 ? (affiliate_amount / commission_base * 100).round(1) : 0)
 
     ambassador_amount = (saved_payout.ambassador_commission_amount || 0).to_f.round(2)
-    ambassador_percentage = saved_payout.ambassador_percentage || (policy_premium > 0 ? (ambassador_amount / policy_premium * 100).round(1) : 0)
+    ambassador_percentage = saved_payout.ambassador_percentage || (commission_base > 0 ? (ambassador_amount / commission_base * 100).round(1) : 0)
 
     investor_amount = (saved_payout.investor_commission_amount || 0).to_f.round(2)
-    investor_percentage = saved_payout.investor_percentage || (policy_premium > 0 ? (investor_amount / policy_premium * 100).round(1) : 0)
+    investor_percentage = saved_payout.investor_percentage || (commission_base > 0 ? (investor_amount / commission_base * 100).round(1) : 0)
 
     company_expense_amount = (saved_payout.company_expense_amount || 0).to_f.round(2)
-    company_expense_percentage = saved_payout.company_expense_percentage || (policy_premium > 0 ? (company_expense_amount / policy_premium * 100).round(1) : 0)
+    company_expense_percentage = saved_payout.company_expense_percentage || (commission_base > 0 ? (company_expense_amount / commission_base * 100).round(1) : 0)
 
     {
       summary: {

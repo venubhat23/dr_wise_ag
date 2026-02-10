@@ -1007,6 +1007,7 @@ class Admin::CustomersController < Admin::ApplicationController
       { name: 'Health Insurance', path: new_admin_health_insurance_path(customer_id: @customer.id), icon: 'heart-pulse', description: 'Medical coverage and health protection' },
       { name: 'Life Insurance', path: new_admin_life_insurance_path(customer_id: @customer.id), icon: 'shield-heart', description: 'Life coverage and financial security' },
       { name: 'Motor Insurance', path: new_admin_motor_insurance_path(customer_id: @customer.id), icon: 'car-front', description: 'Vehicle insurance coverage' },
+      { name: 'Other Insurance', path: new_admin_other_insurance_path(customer_id: @customer.id), icon: 'shield-check', description: 'General insurance - Travel, Property, Cyber, etc.' },
       { name: 'Investment', path: '#', icon: 'graph-up', description: 'Investment opportunities and plans' },
       { name: 'Loans', path: '#', icon: 'cash-coin', description: 'Personal and business loan options' },
       { name: 'Tax Services', path: '#', icon: 'receipt', description: 'Tax planning and consultation' },
