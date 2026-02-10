@@ -60,9 +60,14 @@ class Admin::BannersController < Admin::ApplicationController
 
   # PATCH/PUT /admin/banners/1
   def update
+    Rails.logger.info "Banner update attempt - ID: #{@banner.id}, Params: #{banner_params.inspect}"
+
     if @banner.update(banner_params)
+      Rails.logger.info "Banner successfully updated - ID: #{@banner.id}, Title: #{@banner.title}"
       redirect_to admin_banner_path(@banner), notice: 'Banner was successfully updated.'
     else
+      Rails.logger.error "Banner update failed - ID: #{@banner.id}, Errors: #{@banner.errors.full_messages}"
+      flash.now[:alert] = "Unable to update banner. Please check the errors below."
       render :edit, status: :unprocessable_entity
     end
   end

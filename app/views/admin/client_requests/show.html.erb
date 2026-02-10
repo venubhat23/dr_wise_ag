@@ -265,31 +265,6 @@
       </div>
     </div>
 
-    <!-- Contact Actions Card -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0">
-        <h5 class="mb-0">
-          <i class="bi bi-telephone me-2"></i>
-          Contact Customer
-        </h5>
-      </div>
-      <div class="card-body">
-        <div class="d-grid gap-2">
-          <a href="mailto:<%= @client_request.email %>?subject=Re: Your Support Request" class="btn btn-outline-primary">
-            <i class="bi bi-envelope me-2"></i> Send Email
-          </a>
-          <% if @client_request.phone_number.present? %>
-            <a href="tel:<%= @client_request.phone_number %>" class="btn btn-outline-success">
-              <i class="bi bi-telephone me-2"></i> Call Customer
-            </a>
-          <% else %>
-            <button class="btn btn-outline-secondary disabled">
-              <i class="bi bi-telephone-x me-2"></i> No Phone Number
-            </button>
-          <% end %>
-        </div>
-      </div>
-    </div>
 
     <!-- Request Summary Card -->
     <div class="card border-0 shadow-sm">

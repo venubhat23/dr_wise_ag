@@ -104,6 +104,103 @@ class Admin::DocumentsController < Admin::ApplicationController
     end
   end
 
+  # Handle blob access with proper error handling
+  def blob_access
+    blob = ActiveStorage::Blob.find_by(key: params[:key])
+
+    if blob.nil?
+      render_document_error("Document not found")
+      return
+    end
+
+    service = blob.service
+    file_path = service.send(:path_for, blob.key)
+
+    if File.exist?(file_path)
+      # Set proper URL options
+      ActiveStorage::Current.url_options = {
+        host: request.host,
+        port: request.port,
+        protocol: request.protocol
+      }
+
+      redirect_to blob.url, allow_other_host: true
+    else
+      render_document_error("Document file missing from storage", blob.filename)
+    end
+  rescue => e
+    Rails.logger.error "Error accessing document: #{e.message}"
+    render_document_error("Error accessing document: #{e.message}")
+  end
+
+  private
+
+  def render_document_error(message, filename = nil)
+    render html: generate_error_html(message, filename), status: :not_found
+  end
+
+  def generate_error_html(message, filename = nil)
+    <<~HTML.html_safe
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Document Error</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 50px;
+            background-color: #f8f9fa;
+          }
+          .error-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+          }
+          .error-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #dc3545;
+          }
+          .error-message {
+            color: #dc3545;
+            margin-bottom: 20px;
+            font-size: 18px;
+          }
+          .filename {
+            color: #6c757d;
+            font-style: italic;
+            margin-bottom: 30px;
+          }
+          .btn-back {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 4px;
+            display: inline-block;
+          }
+          .btn-back:hover {
+            background-color: #0056b3;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="error-container">
+          <div class="error-icon">📄❌</div>
+          <div class="error-message">#{message}</div>
+          #{filename ? "<div class=\"filename\">File: #{filename}</div>" : ''}
+          <a href="javascript:window.close()" class="btn-back">Close Window</a>
+          <a href="javascript:history.back()" class="btn-back" style="margin-left: 10px;">Go Back</a>
+        </div>
+      </body>
+      </html>
+    HTML
+  end
+
   private
 
   def set_document

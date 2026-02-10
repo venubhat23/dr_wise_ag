@@ -86,14 +86,26 @@
       </div>
 
       <!-- Display End Date -->
-      <div class="col-md-6">
+      <div class="col-md-4">
         <%= form.label :display_end_date, class: "form-label" %>
         <%= form.date_field :display_end_date, class: "form-control" %>
         <div class="form-text">Date after which the banner should stop displaying</div>
       </div>
 
+      <!-- Display Location -->
+      <div class="col-md-4">
+        <%= form.label :display_location, class: "form-label" %>
+        <%= form.select :display_location, options_for_select([
+          ['Dashboard', 'dashboard'],
+          ['Login Page', 'login'],
+          ['Home Page', 'home'],
+          ['Sidebar', 'sidebar']
+        ], @banner.display_location), {}, { class: "form-select" } %>
+        <div class="form-text">Where the banner should be displayed</div>
+      </div>
+
       <!-- Status -->
-      <div class="col-md-6">
+      <div class="col-md-4">
         <div class="form-check form-switch">
           <%= form.check_box :status, class: "form-check-input" %>
           <%= form.label :status, "Active", class: "form-check-label" %>

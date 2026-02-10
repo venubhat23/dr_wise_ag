@@ -31,23 +31,25 @@ class Invoice < ApplicationRecord
       distributor = Distributor.find_by(id: payout_id)
       if distributor
         # Find a paid ambassador commission payout for this distributor
-        policies = []
-        ['HealthInsurance', 'LifeInsurance', 'MotorInsurance', 'OtherInsurance'].each do |model_name|
-          model = model_name.constantize
-          if model.column_names.include?('distributor_id')
-            policies += model.where(distributor_id: distributor.id).pluck(:id, :class)
-          end
-        end
+        # Check each insurance type for policies with this distributor
+        ['health', 'life', 'motor', 'other'].each do |policy_type|
+          model_name = "#{policy_type.capitalize}Insurance"
+          model = model_name.constantize rescue nil
+          next unless model
 
-        policies.each do |policy_id, policy_class|
-          policy_type = policy_class.gsub('Insurance', '').downcase
-          payout = CommissionPayout.find_by(
-            policy_type: policy_type == 'other' ? 'other' : policy_type,
-            policy_id: policy_id,
-            payout_to: 'ambassador',
-            status: 'paid'
-          )
-          return payout if payout
+          if model.column_names.include?('distributor_id')
+            policy_ids = model.where(distributor_id: distributor.id).pluck(:id)
+
+            policy_ids.each do |policy_id|
+              payout = CommissionPayout.find_by(
+                policy_type: policy_type,
+                policy_id: policy_id,
+                payout_to: 'ambassador',
+                status: 'paid'
+              )
+              return payout if payout
+            end
+          end
         end
       end
       nil

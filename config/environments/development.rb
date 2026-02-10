@@ -43,6 +43,11 @@ Rails.application.configure do
   # Set default URL options for Rails routes (including Active Storage URLs)
   Rails.application.routes.default_url_options = { host: "localhost", port: 3000 }
 
+  # Configure Active Storage to generate URLs correctly
+  config.after_initialize do
+    ActiveStorage::Current.url_options = { host: "localhost", port: 3000, protocol: 'http' }
+  end
+
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
 

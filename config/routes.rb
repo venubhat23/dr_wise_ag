@@ -88,6 +88,9 @@ Rails.application.routes.draw do
       member do
         get :download
       end
+      collection do
+        get 'blob/:key', to: 'documents#blob_access', as: 'blob_access'
+      end
     end
 
     # Nested document routes for different models
