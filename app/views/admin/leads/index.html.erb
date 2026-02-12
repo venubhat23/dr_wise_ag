@@ -170,8 +170,10 @@
           <tr>
             <th class="border-0">Lead Details</th>
             <th class="border-0">Contact Information</th>
+            <th class="border-0">Product Category</th>
+            <th class="border-0">Product Type</th>
+            <th class="border-0">Affiliate Name</th>
             <th class="border-0">Current Stage</th>
-            <th class="border-0">Created Date</th>
             <th class="border-0">Actions</th>
           </tr>
         </thead>
@@ -181,13 +183,17 @@
               <tr class="lead-row <%= 'branch-out-lead' if lead.is_branch_out? %>" data-id="<%= lead.id %>">
                 <td>
                   <div>
-                    <span class="badge bg-primary mb-1 d-block"><%= lead.lead_id.presence || "LEAD-#{lead.id}" %></span>
+                    <span class="badge bg-primary mb-1"><%= lead.lead_id.presence || "LEAD-#{lead.id}" %></span>
                     <% if lead.is_branch_out? %>
-                      <span class="badge bg-success mb-1 d-block">
-                        <i class="bi bi-diagram-3 me-1"></i>Branch Out Lead
+                      <span class="badge bg-success mb-1">
+                        <i class="bi bi-diagram-3 me-1"></i>Branch Out
                       </span>
                     <% end %>
                     <h6 class="mb-1"><%= lead.name %></h6>
+                    <small class="text-muted">
+                      <%= lead.created_date&.strftime('%d/%m/%Y') || lead.created_at&.strftime('%d/%m/%Y') %>
+                      (<%= time_ago_in_words(lead.created_at) %> ago)
+                    </small>
                   </div>
                 </td>
                 <td>
@@ -196,13 +202,20 @@
                   </div>
                 </td>
                 <td>
-                  <%= lead.current_stage&.humanize || 'Unknown' %>
+                  <span class="badge bg-info"><%= lead.product_category&.humanize || 'N/A' %></span>
                 </td>
                 <td>
-                  <div>
-                    <div><%= lead.created_date&.strftime('%d/%m/%Y') || lead.created_at&.strftime('%d/%m/%Y') %></div>
-                    <small class="text-muted"><%= time_ago_in_words(lead.created_at) %> ago</small>
-                  </div>
+                  <%= lead.product_subcategory || 'N/A' %>
+                </td>
+                <td>
+                  <% if lead.is_direct %>
+                    <span class="badge bg-warning text-dark">Direct</span>
+                  <% else %>
+                    <%= lead.affiliate&.full_name || 'N/A' %>
+                  <% end %>
+                </td>
+                <td>
+                  <%= lead.current_stage&.humanize || 'Unknown' %>
                 </td>
                 <td>
                   <div class="d-flex gap-1">

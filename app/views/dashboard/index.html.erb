@@ -924,9 +924,9 @@
             <%= link_to admin_analytics_path, class: "btn btn-outline-warning btn-sm d-flex align-items-center" do %>
               <i class="bi bi-bar-chart me-2"></i>View Analytics
             <% end %>
-            <%= link_to admin_health_insurances_path, class: "btn btn-outline-info btn-sm d-flex align-items-center" do %>
-              <i class="bi bi-file-earmark-plus me-2"></i>New Policy
-            <% end %>
+            <button type="button" class="btn btn-outline-info btn-sm d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#policyTypeModal">
+              <i class="bi bi-file-earmark-plus me-2"></i>Add New Policy
+            </button>
           </div>
         </div>
       </div>
@@ -2712,7 +2712,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Modal cleanup
-  ['renewalModal', 'policyModal', 'systemStatusModal'].forEach(modalId => {
+  ['renewalModal', 'policyModal', 'systemStatusModal', 'policyTypeModal'].forEach(modalId => {
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.addEventListener('hidden.bs.modal', function() {
@@ -2727,3 +2727,67 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+
+<!-- Policy Type Selection Modal -->
+<div class="modal fade" id="policyTypeModal" tabindex="-1" aria-labelledby="policyTypeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-gradient-primary text-white border-0">
+        <h5 class="modal-title fw-bold" id="policyTypeModalLabel">
+          <i class="bi bi-plus-circle me-2"></i>Select Policy Type
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="text-muted mb-4">Choose the type of insurance policy you want to create:</p>
+        <div class="d-grid gap-3">
+          <%= link_to new_admin_health_insurance_path, class: "btn btn-outline-primary btn-lg d-flex align-items-center justify-content-start p-3", style: "text-decoration: none;" do %>
+            <div class="me-3">
+              <i class="bi bi-hospital fs-3 text-primary"></i>
+            </div>
+            <div class="text-start">
+              <div class="fw-bold">Health Insurance</div>
+              <small class="text-muted">Medical coverage and health plans</small>
+            </div>
+          <% end %>
+
+          <%= link_to new_admin_life_insurance_path, class: "btn btn-outline-danger btn-lg d-flex align-items-center justify-content-start p-3", style: "text-decoration: none;" do %>
+            <div class="me-3">
+              <i class="bi bi-heart-fill fs-3 text-danger"></i>
+            </div>
+            <div class="text-start">
+              <div class="fw-bold">Life Insurance</div>
+              <small class="text-muted">Life coverage and protection plans</small>
+            </div>
+          <% end %>
+
+          <%= link_to new_admin_motor_insurance_path, class: "btn btn-outline-warning btn-lg d-flex align-items-center justify-content-start p-3", style: "text-decoration: none;" do %>
+            <div class="me-3">
+              <i class="bi bi-car-front fs-3 text-warning"></i>
+            </div>
+            <div class="text-start">
+              <div class="fw-bold">Motor Insurance</div>
+              <small class="text-muted">Vehicle insurance and auto coverage</small>
+            </div>
+          <% end %>
+
+          <%= link_to new_admin_other_insurance_path, class: "btn btn-outline-info btn-lg d-flex align-items-center justify-content-start p-3", style: "text-decoration: none;" do %>
+            <div class="me-3">
+              <i class="bi bi-shield-check fs-3 text-info"></i>
+            </div>
+            <div class="text-start">
+              <div class="fw-bold">General Insurance</div>
+              <small class="text-muted">Other insurance products and plans</small>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+</style>

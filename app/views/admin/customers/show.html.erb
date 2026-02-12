@@ -834,12 +834,16 @@
 %>
 <div class="info-section-card">
   <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#activePoliciesCollapse" aria-expanded="false">
-    <div class="d-flex align-items-center">
-      <div class="section-icon">
-        <i class="bi bi-clipboard-check"></i>
+    <div class="d-flex align-items-center justify-content-between w-100">
+      <div class="d-flex align-items-center">
+        <div class="section-icon">
+          <i class="bi bi-clipboard-check"></i>
+        </div>
+        <h5 class="section-title">Active Policies (<%= active_policies.count %>)</h5>
       </div>
-      <h5 class="section-title">Active Policies (<%= active_policies.count %>)</h5>
-
+        <button type="button" class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#addPolicyModal" title="Add New Policy" onclick="event.stopPropagation();">
+          <i class="bi bi-plus-lg me-1"></i>Add Policy
+        </button>
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
@@ -962,9 +966,13 @@
           </table>
         </div>
       <% else %>
-        <div class="text-center text-muted py-4">
-          <i class="bi bi-shield-x fs-3 d-block mb-2"></i>
-          <p class="mb-0">No active policies found</p>
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-shield-x fs-2 d-block mb-3 text-primary"></i>
+          <h6 class="mb-2">No active policies found</h6>
+          <p class="text-muted mb-3">This customer doesn't have any active policies yet.</p>
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPolicyModal">
+            <i class="bi bi-plus-lg me-1"></i>Add First Policy
+          </button>
         </div>
       <% end %>
     </div>
@@ -2356,3 +2364,67 @@ setTimeout(cleanupEmptyContainers, 2000); // Final cleanup
 document.addEventListener('turbo:load', cleanupEmptyContainers);
 document.addEventListener('turbo:frame-load', cleanupEmptyContainers);
 </script>
+
+<!-- Add Policy Modal -->
+<div class="modal fade" id="addPolicyModal" tabindex="-1" aria-labelledby="addPolicyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-gradient-primary text-white border-0">
+        <h5 class="modal-title fw-bold" id="addPolicyModalLabel">
+          <i class="bi bi-plus-circle me-2"></i>Add Policy for <%= @customer.display_name %>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="text-muted mb-4">Choose the type of insurance policy you want to create for this customer:</p>
+        <div class="d-grid gap-3">
+          <%= link_to new_admin_health_insurance_path(customer_id: @customer.id), class: "btn btn-outline-primary btn-lg d-flex align-items-center justify-content-start p-3", style: "text-decoration: none;" do %>
+            <div class="me-3">
+              <i class="bi bi-hospital fs-3 text-primary"></i>
+            </div>
+            <div class="text-start">
+              <div class="fw-bold">Health Insurance</div>
+              <small class="text-muted">Medical coverage and health plans</small>
+            </div>
+          <% end %>
+
+          <%= link_to new_admin_life_insurance_path(customer_id: @customer.id), class: "btn btn-outline-danger btn-lg d-flex align-items-center justify-content-start p-3", style: "text-decoration: none;" do %>
+            <div class="me-3">
+              <i class="bi bi-heart-fill fs-3 text-danger"></i>
+            </div>
+            <div class="text-start">
+              <div class="fw-bold">Life Insurance</div>
+              <small class="text-muted">Life coverage and protection plans</small>
+            </div>
+          <% end %>
+
+          <%= link_to new_admin_motor_insurance_path(customer_id: @customer.id), class: "btn btn-outline-warning btn-lg d-flex align-items-center justify-content-start p-3", style: "text-decoration: none;" do %>
+            <div class="me-3">
+              <i class="bi bi-car-front fs-3 text-warning"></i>
+            </div>
+            <div class="text-start">
+              <div class="fw-bold">Motor Insurance</div>
+              <small class="text-muted">Vehicle insurance and auto coverage</small>
+            </div>
+          <% end %>
+
+          <%= link_to new_admin_other_insurance_path(customer_id: @customer.id), class: "btn btn-outline-info btn-lg d-flex align-items-center justify-content-start p-3", style: "text-decoration: none;" do %>
+            <div class="me-3">
+              <i class="bi bi-shield-check fs-3 text-info"></i>
+            </div>
+            <div class="text-start">
+              <div class="fw-bold">General Insurance</div>
+              <small class="text-muted">Other insurance products and plans</small>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+</style>

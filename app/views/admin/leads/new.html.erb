@@ -168,9 +168,13 @@
             <%= form.text_field :birth_place, class: "form-control", placeholder: "Enter birth place" %>
           </div>
           <div class="col-md-6 mb-3">
-            <%= form.label :height, "Height (Feet)", class: "form-label" %>
-            <%= form.number_field :height, class: "form-control", placeholder: "7.9", step: 0.1, min: 3.5, max: 8.0 %>
-            <div class="form-text">Range: 3.5 - 8.0 feet</div>
+            <%= form.label :height, "Height (Feet.Inches)", class: "form-label" %>
+            <%= form.text_field :height, class: "form-control height-input",
+                placeholder: "5.11 (5 feet 11 inches)",
+                pattern: "^[3-8]\.[0-9]{1,2}$",
+                value: @lead&.formatted_height %>
+            <div class="form-text">Enter as feet.inches (e.g., 5.11 for 5'11"). Range: 3.5 - 8.0 feet</div>
+            <div class="invalid-feedback">Please enter height in format: feet.inches (e.g., 5.11)</div>
           </div>
           <div class="col-md-6 mb-3">
             <%= form.label :weight, "Weight (Kg)", class: "form-label" %>
@@ -1901,5 +1905,56 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   }, 1000);
+
+  // Height field handling - convert feet.inches format to decimal
+  const heightField = document.querySelector('.height-input');
+  if (heightField) {
+    const form = document.querySelector('form');
+
+    // On input, validate format
+    heightField.addEventListener('input', function() {
+      const value = this.value;
+
+      // Allow format like 5.11 (feet.inches)
+      if (value && !/^[3-8](\.[0-9]{0,2})?$/.test(value)) {
+        this.setCustomValidity('Please enter height as feet.inches (e.g., 5.11 for 5 feet 11 inches)');
+      } else {
+        this.setCustomValidity('');
+
+        // Check if inches part is valid (0-11)
+        const parts = value.split('.');
+        if (parts.length === 2) {
+          const inches = parseInt(parts[1]);
+          if (inches > 11) {
+            this.setCustomValidity('Inches must be between 0 and 11');
+          }
+        }
+      }
+    });
+
+    // Before form submission, convert feet.inches to decimal feet
+    form.addEventListener('submit', function(e) {
+      if (heightField.value) {
+        const parts = heightField.value.split('.');
+        if (parts.length === 2) {
+          const feet = parseFloat(parts[0]);
+          const inches = parseFloat(parts[1]);
+
+          // Convert to decimal feet (inches/12)
+          const decimalFeet = feet + (inches / 12);
+
+          // Create a hidden field with the converted value
+          const hiddenHeight = document.createElement('input');
+          hiddenHeight.type = 'hidden';
+          hiddenHeight.name = 'lead[height]';
+          hiddenHeight.value = decimalFeet.toFixed(2);
+          form.appendChild(hiddenHeight);
+
+          // Disable the visible field so it's not submitted
+          heightField.disabled = true;
+        }
+      }
+    });
+  }
 });
 </script>

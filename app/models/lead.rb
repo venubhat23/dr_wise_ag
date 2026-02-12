@@ -32,7 +32,7 @@ class Lead < ApplicationRecord
   validates :marital_status, inclusion: { in: ['single', 'married', 'divorced', 'widowed'] }, allow_blank: true
   validates :pan_no, uniqueness: { message: "PAN number already exists", scope: :is_branch_out, conditions: -> { where(is_branch_out: [false, nil]) } }, format: { with: /\A[A-Z]{5}\d{4}[A-Z]\z/ }, allow_blank: true, unless: :is_branch_out?
   validates :gst_no, format: { with: /\A\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z\d][A-Z\d]\z/ }, allow_blank: true
-  validates :height, numericality: { greater_than: 3.5, less_than_or_equal_to: 8.0 }, allow_blank: true
+  validates :height, numericality: { greater_than_or_equal_to: 3.5, less_than_or_equal_to: 8.0 }, allow_blank: true
   validates :weight, numericality: { greater_than: 10, less_than_or_equal_to: 300 }, allow_blank: true
   validates :annual_income, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   validates :business_job, inclusion: { in: ['salaried', 'self_employed', 'business', 'professional', 'student', 'retired', 'unemployed', 'other'] }, allow_blank: true
@@ -305,6 +305,31 @@ class Lead < ApplicationRecord
     end
   end
 
+  def product_subcategory_display
+    case product_subcategory
+    # Insurance subcategories
+    when 'life' then 'Life Insurance'
+    when 'health' then 'Health Insurance'
+    when 'motor' then 'Motor Insurance'
+    when 'general' then 'General Insurance'
+    when 'travel' then 'Travel Insurance'
+    # Investment subcategories
+    when 'mutual_fund' then 'Mutual Fund'
+    when 'gold' then 'Gold Investment'
+    when 'nps' then 'NPS'
+    when 'bonds' then 'Bonds'
+    # Loan subcategories
+    when 'personal' then 'Personal Loan'
+    when 'home' then 'Home Loan'
+    when 'business' then 'Business Loan'
+    # Taxation subcategories
+    when 'itr' then 'ITR Filing'
+    # Default cases
+    when 'other' then 'Other'
+    else product_subcategory&.humanize || 'N/A'
+    end
+  end
+
   def can_advance?
     next_stage_options.any?
   end
@@ -457,6 +482,22 @@ class Lead < ApplicationRecord
     age = today.year - birth_date.year
     age -= 1 if today < birth_date + age.years
     age
+  end
+
+  # Format height for display (convert decimal feet to feet.inches)
+  def formatted_height
+    return nil unless height.present?
+
+    feet = height.floor
+    inches = ((height - feet) * 12).round
+
+    # Handle edge case where rounding gives 12 inches
+    if inches == 12
+      feet += 1
+      inches = 0
+    end
+
+    "#{feet}.#{inches.to_s.rjust(2, '0')}"
   end
 
   # Custom validation for unique contact number and product combination

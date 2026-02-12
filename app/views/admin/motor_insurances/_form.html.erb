@@ -83,12 +83,17 @@
 
         <div class="col-md-6 mb-3">
           <%= form.label :vehicle_type, "Vehicle Type*", class: "form-label" %>
-          <%= form.select :vehicle_type,
-              options_for_select(@vehicle_types.map { |t| [t, t] }, @motor_insurance.vehicle_type),
-              { prompt: 'Select Vehicle Type' },
-              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:vehicle_type].any?}", required: true, id: "vehicle_type_select" } %>
-          <% if @motor_insurance.errors[:vehicle_type].any? %>
-            <div class="invalid-feedback"><%= @motor_insurance.errors[:vehicle_type].first %></div>
+          <% if @vehicle_types.nil? || @vehicle_types.empty? %>
+            <div class="alert alert-danger">Vehicle types not loaded! Please refresh the page.</div>
+            <%= form.text_field :vehicle_type, class: "form-control", value: @motor_insurance.vehicle_type, placeholder: "Vehicle type not available" %>
+          <% else %>
+            <%= form.select :vehicle_type,
+                options_for_select(@vehicle_types.map { |t| [t, t] }, @motor_insurance.vehicle_type),
+                { prompt: 'Select Vehicle Type' },
+                { class: "form-control #{'is-invalid' if @motor_insurance.errors[:vehicle_type].any?}", required: true, id: "vehicle_type_select" } %>
+            <% if @motor_insurance.errors[:vehicle_type].any? %>
+              <div class="invalid-feedback"><%= @motor_insurance.errors[:vehicle_type].first %></div>
+            <% end %>
           <% end %>
         </div>
       </div>
@@ -1087,22 +1092,71 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('vehicle_idv').addEventListener('input', calculateTotalIDV);
   document.getElementById('cng_idv').addEventListener('input', calculateTotalIDV);
 
-  // Show/Hide TP Premium based on insurance type
+  // Show/Hide TP Premium based on insurance type and handle IDV for Third Party
   const insuranceTypeSelect = document.getElementById('insurance_type_select');
   if (insuranceTypeSelect) {
     insuranceTypeSelect.addEventListener('change', function() {
       const insuranceType = this.value;
       const tpPremiumField = document.querySelector('.tp-premium-field');
+      const vehicleIDVField = document.getElementById('vehicle_idv');
+      const cngIDVField = document.getElementById('cng_idv');
+      const totalIDVField = document.getElementById('total_idv');
 
       if (insuranceType === 'Third Party') {
+        // Show TP Premium field
         tpPremiumField.style.display = 'block';
         document.getElementById('tp_premium').required = true;
+
+        // Set all IDV fields to 0 and make them readonly for Third Party
+        vehicleIDVField.value = 0;
+        vehicleIDVField.readOnly = true;
+        vehicleIDVField.style.backgroundColor = '#f5f5f5';
+
+        cngIDVField.value = 0;
+        cngIDVField.readOnly = true;
+        cngIDVField.style.backgroundColor = '#f5f5f5';
+
+        totalIDVField.value = 0;
+
+        // Add visual indication that IDV is not applicable
+        const idvLabels = document.querySelectorAll('label[for="vehicle_idv"], label[for="cng_idv"], label[for="total_idv"]');
+        idvLabels.forEach(label => {
+          if (!label.textContent.includes('(N/A for TP)')) {
+            label.innerHTML = label.textContent.replace('*', '') + ' <small class="text-muted">(N/A for TP)</small>';
+          }
+        });
       } else {
+        // Hide TP Premium field
         tpPremiumField.style.display = 'none';
         document.getElementById('tp_premium').required = false;
         document.getElementById('tp_premium').value = 0;
+
+        // Re-enable IDV fields for Comprehensive and Own Damage
+        vehicleIDVField.readOnly = false;
+        vehicleIDVField.style.backgroundColor = '';
+
+        cngIDVField.readOnly = false;
+        cngIDVField.style.backgroundColor = '';
+
+        // Remove the N/A text from labels
+        const idvLabels = document.querySelectorAll('label[for="vehicle_idv"], label[for="cng_idv"], label[for="total_idv"]');
+        idvLabels.forEach(label => {
+          label.innerHTML = label.innerHTML.replace(' <small class="text-muted">(N/A for TP)</small>', '');
+          // Restore asterisk for required vehicle IDV
+          if (label.getAttribute('for') === 'vehicle_idv' && !label.textContent.includes('*')) {
+            label.innerHTML = label.textContent + '*';
+          }
+        });
+
+        // Recalculate total IDV
+        calculateTotalIDV();
       }
     });
+
+    // Trigger the change event on page load to handle edit mode
+    if (insuranceTypeSelect.value) {
+      insuranceTypeSelect.dispatchEvent(new Event('change'));
+    }
   }
 
   // Customer selection and policy holder options
@@ -1913,15 +1967,23 @@ $(document).ready(function() {
   });
 
   // Initialize Select2 for Vehicle Type dropdown
-  $('#vehicle_type_select').select2({
-    theme: 'bootstrap-5',
-    placeholder: 'Select Vehicle Type',
-    allowClear: false,
-    width: '100%',
-    dropdownParent: $('body'),
-    minimumResultsForSearch: 0,
-    closeOnSelect: true
-  });
+  console.log('Vehicle Type Select Element:', $('#vehicle_type_select').length);
+  console.log('Vehicle Type Options:', $('#vehicle_type_select option').length);
+
+  if ($('#vehicle_type_select').length > 0) {
+    $('#vehicle_type_select').select2({
+      theme: 'bootstrap-5',
+      placeholder: 'Select Vehicle Type',
+      allowClear: false,
+      width: '100%',
+      dropdownParent: $('body'),
+      minimumResultsForSearch: 0,
+      closeOnSelect: true
+    });
+    console.log('Vehicle Type Select2 initialized');
+  } else {
+    console.error('Vehicle Type select element not found!');
+  }
 
 
   // Initialize Select2 for Insurance Type dropdown
