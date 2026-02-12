@@ -27,7 +27,8 @@ class MotorInsurance < ApplicationRecord
   validates :policy_start_date, presence: true
   validates :policy_end_date, presence: true
   validates :registration_number, presence: true
-  validates :vehicle_idv, presence: true, numericality: { greater_than: 0 }
+  validates :vehicle_idv, numericality: { greater_than: 0 }, unless: :third_party_insurance?
+  validates :vehicle_idv, presence: true, unless: :third_party_insurance?
   validates :net_premium, presence: true, numericality: { greater_than: 0 }
   validates :gst_percentage, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :total_premium, presence: true, numericality: { greater_than: 0 }
@@ -76,6 +77,10 @@ class MotorInsurance < ApplicationRecord
 
   def expiring_soon?
     policy_end_date.between?(Date.current, 30.days.from_now)
+  end
+
+  def third_party_insurance?
+    insurance_type == 'Third Party'
   end
 
   def days_until_expiry

@@ -1092,72 +1092,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('vehicle_idv').addEventListener('input', calculateTotalIDV);
   document.getElementById('cng_idv').addEventListener('input', calculateTotalIDV);
 
-  // Show/Hide TP Premium based on insurance type and handle IDV for Third Party
-  const insuranceTypeSelect = document.getElementById('insurance_type_select');
-  if (insuranceTypeSelect) {
-    insuranceTypeSelect.addEventListener('change', function() {
-      const insuranceType = this.value;
-      const tpPremiumField = document.querySelector('.tp-premium-field');
-      const vehicleIDVField = document.getElementById('vehicle_idv');
-      const cngIDVField = document.getElementById('cng_idv');
-      const totalIDVField = document.getElementById('total_idv');
-
-      if (insuranceType === 'Third Party') {
-        // Show TP Premium field
-        tpPremiumField.style.display = 'block';
-        document.getElementById('tp_premium').required = true;
-
-        // Set all IDV fields to 0 and make them readonly for Third Party
-        vehicleIDVField.value = 0;
-        vehicleIDVField.readOnly = true;
-        vehicleIDVField.style.backgroundColor = '#f5f5f5';
-
-        cngIDVField.value = 0;
-        cngIDVField.readOnly = true;
-        cngIDVField.style.backgroundColor = '#f5f5f5';
-
-        totalIDVField.value = 0;
-
-        // Add visual indication that IDV is not applicable
-        const idvLabels = document.querySelectorAll('label[for="vehicle_idv"], label[for="cng_idv"], label[for="total_idv"]');
-        idvLabels.forEach(label => {
-          if (!label.textContent.includes('(N/A for TP)')) {
-            label.innerHTML = label.textContent.replace('*', '') + ' <small class="text-muted">(N/A for TP)</small>';
-          }
-        });
-      } else {
-        // Hide TP Premium field
-        tpPremiumField.style.display = 'none';
-        document.getElementById('tp_premium').required = false;
-        document.getElementById('tp_premium').value = 0;
-
-        // Re-enable IDV fields for Comprehensive and Own Damage
-        vehicleIDVField.readOnly = false;
-        vehicleIDVField.style.backgroundColor = '';
-
-        cngIDVField.readOnly = false;
-        cngIDVField.style.backgroundColor = '';
-
-        // Remove the N/A text from labels
-        const idvLabels = document.querySelectorAll('label[for="vehicle_idv"], label[for="cng_idv"], label[for="total_idv"]');
-        idvLabels.forEach(label => {
-          label.innerHTML = label.innerHTML.replace(' <small class="text-muted">(N/A for TP)</small>', '');
-          // Restore asterisk for required vehicle IDV
-          if (label.getAttribute('for') === 'vehicle_idv' && !label.textContent.includes('*')) {
-            label.innerHTML = label.textContent + '*';
-          }
-        });
-
-        // Recalculate total IDV
-        calculateTotalIDV();
-      }
-    });
-
-    // Trigger the change event on page load to handle edit mode
-    if (insuranceTypeSelect.value) {
-      insuranceTypeSelect.dispatchEvent(new Event('change'));
-    }
-  }
 
   // Customer selection and policy holder options
   const customerSelect = document.getElementById('customer_select');
@@ -1996,6 +1930,156 @@ $(document).ready(function() {
     minimumResultsForSearch: 0,
     closeOnSelect: true
   });
+
+  // Handle IDV fields for Third Party insurance type
+  $('#insurance_type_select').on('change', function() {
+    const insuranceType = $(this).val();
+    console.log('🔥 Insurance Type Changed to:', insuranceType);
+
+    const tpPremiumField = document.querySelector('.tp-premium-field');
+    const vehicleIDVField = document.getElementById('vehicle_idv');
+    const cngIDVField = document.getElementById('cng_idv');
+    const totalIDVField = document.getElementById('total_idv');
+
+    if (insuranceType === 'Third Party') {
+      console.log('✅ Third Party selected - disabling IDV fields');
+
+      // Show TP Premium field
+      if (tpPremiumField) {
+        tpPremiumField.style.display = 'block';
+        const tpPremiumInput = document.getElementById('tp_premium');
+        if (tpPremiumInput) tpPremiumInput.required = true;
+      }
+
+      // Set all IDV fields to 0 and make them readonly for Third Party
+      if (vehicleIDVField) {
+        vehicleIDVField.value = 0;
+        vehicleIDVField.readOnly = true;
+        vehicleIDVField.required = false; // Remove required validation
+        vehicleIDVField.style.backgroundColor = '#f5f5f5';
+        vehicleIDVField.style.cursor = 'not-allowed';
+      }
+
+      if (cngIDVField) {
+        cngIDVField.value = 0;
+        cngIDVField.readOnly = true;
+        cngIDVField.required = false; // Remove required validation
+        cngIDVField.style.backgroundColor = '#f5f5f5';
+        cngIDVField.style.cursor = 'not-allowed';
+      }
+
+      if (totalIDVField) {
+        totalIDVField.value = 0;
+      }
+
+      // Add visual indication that IDV is not applicable
+      console.log('🔍 Looking for IDV labels...');
+      const idvLabels = document.querySelectorAll('label[for="vehicle_idv"], label[for="cng_idv"], label[for="total_idv"]');
+      console.log('🔍 Found', idvLabels.length, 'IDV labels');
+
+      idvLabels.forEach((label, index) => {
+        console.log(`🔍 Label ${index + 1}:`, label.getAttribute('for'), 'Text:', label.textContent);
+
+        if (!label.textContent.includes('(N/A for TP)')) {
+          // Store original text for potential restoration later
+          if (!label.dataset.originalText) {
+            label.dataset.originalText = label.textContent;
+          }
+
+          // Remove all asterisks and trim whitespace
+          const cleanText = label.textContent.replace(/\*/g, '').trim();
+          label.innerHTML = cleanText + ' <small class="text-muted">(N/A for TP)</small>';
+          console.log('🏷️ Updated label:', label.getAttribute('for'));
+          console.log('   Before:', label.dataset.originalText);
+          console.log('   After:', label.innerHTML);
+        }
+      });
+
+      // Double-check that all vehicle IDV labels are updated
+      const vehicleIdvLabels = document.querySelectorAll('label[for="vehicle_idv"]');
+      console.log('🔍 Double-checking vehicle IDV labels:', vehicleIdvLabels.length);
+      vehicleIdvLabels.forEach((label, index) => {
+        console.log(`🔍 Vehicle IDV Label ${index + 1}:`, label.textContent);
+        if (label.textContent.includes('*')) {
+          console.log('⚠️ Still has asterisk, forcing update...');
+          const cleanText = label.textContent.replace(/\*/g, '').replace(/\(N\/A for TP\)/g, '').trim();
+          label.innerHTML = cleanText + ' <small class="text-muted">(N/A for TP)</small>';
+          console.log('✅ Force updated to:', label.innerHTML);
+        }
+      });
+
+    } else {
+      console.log('✅ Non-Third Party selected - enabling IDV fields');
+
+      // Hide TP Premium field
+      if (tpPremiumField) {
+        tpPremiumField.style.display = 'none';
+        const tpPremiumInput = document.getElementById('tp_premium');
+        if (tpPremiumInput) {
+          tpPremiumInput.required = false;
+          tpPremiumInput.value = 0;
+        }
+      }
+
+      // Re-enable IDV fields for Comprehensive and Own Damage
+      if (vehicleIDVField) {
+        vehicleIDVField.readOnly = false;
+        vehicleIDVField.required = true; // Restore required validation
+        vehicleIDVField.style.backgroundColor = '';
+        vehicleIDVField.style.cursor = '';
+      }
+
+      if (cngIDVField) {
+        cngIDVField.readOnly = false;
+        cngIDVField.required = false; // CNG IDV is optional
+        cngIDVField.style.backgroundColor = '';
+        cngIDVField.style.cursor = '';
+      }
+
+      // Remove the N/A text from labels and restore original text
+      console.log('🔄 Restoring IDV labels...');
+      const idvLabels = document.querySelectorAll('label[for="vehicle_idv"], label[for="cng_idv"], label[for="total_idv"]');
+
+      idvLabels.forEach(label => {
+        console.log('🔄 Restoring label:', label.getAttribute('for'));
+        console.log('   Current:', label.innerHTML);
+
+        // Restore original text if we stored it
+        if (label.dataset.originalText) {
+          label.innerHTML = label.dataset.originalText;
+          console.log('   Restored to original:', label.innerHTML);
+        } else {
+          // Fallback: remove N/A indicator and restore manually
+          label.innerHTML = label.innerHTML.replace(' <small class="text-muted">(N/A for TP)</small>', '');
+
+          // Restore asterisk for required vehicle IDV only
+          if (label.getAttribute('for') === 'vehicle_idv') {
+            const currentText = label.textContent.trim();
+            if (!currentText.includes('*')) {
+              label.innerHTML = currentText + '*';
+              console.log('   Manually restored asterisk:', label.innerHTML);
+            }
+          }
+        }
+      });
+
+      // Recalculate total IDV
+      const vehicleIDV = parseFloat(vehicleIDVField?.value) || 0;
+      const cngIDV = parseFloat(cngIDVField?.value) || 0;
+      if (totalIDVField) {
+        totalIDVField.value = (vehicleIDV + cngIDV).toFixed(2);
+      }
+    }
+  });
+
+  // Trigger the change event on page load to handle edit mode
+  setTimeout(function() {
+    const currentValue = $('#insurance_type_select').val();
+    if (currentValue) {
+      console.log('🔄 Triggering insurance type change on page load:', currentValue);
+      $('#insurance_type_select').trigger('change');
+    }
+  }, 1000);
 
   // Initialize Select2 for Class of Vehicle dropdown
   $('#class_of_vehicle_select').select2({
