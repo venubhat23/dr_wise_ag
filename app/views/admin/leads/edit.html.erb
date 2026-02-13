@@ -146,13 +146,17 @@
             </div>
 
             <div class="col-md-6">
-              <%= form.label :height, "Height (Feet.Inches)", class: "form-label" %>
-              <%= form.text_field :height, class: "form-control height-input",
-                  placeholder: "5.11 (5 feet 11 inches)",
-                  pattern: "^[3-8]\.[0-9]{1,2}$",
-                  value: @lead.formatted_height %>
-              <div class="form-text">Enter as feet.inches (e.g., 5.11 for 5'11"). Range: 3.5 - 8.0 feet</div>
-              <div class="invalid-feedback">Please enter height in format: feet.inches (e.g., 5.11)</div>
+              <%= form.label :height, "Height", class: "form-label" %>
+              <%= form.select :height, options_for_select([
+                ['Select Height', ''],
+                ['3.0 feet', 3.0], ['3.1 feet', 3.08], ['3.2 feet', 3.17], ['3.3 feet', 3.25], ['3.4 feet', 3.33], ['3.5 feet', 3.42], ['3.6 feet', 3.5], ['3.7 feet', 3.58], ['3.8 feet', 3.67], ['3.9 feet', 3.75], ['3.10 feet', 3.83], ['3.11 feet', 3.92],
+                ['4.0 feet', 4.0], ['4.1 feet', 4.08], ['4.2 feet', 4.17], ['4.3 feet', 4.25], ['4.4 feet', 4.33], ['4.5 feet', 4.42], ['4.6 feet', 4.5], ['4.7 feet', 4.58], ['4.8 feet', 4.67], ['4.9 feet', 4.75], ['4.10 feet', 4.83], ['4.11 feet', 4.92],
+                ['5.0 feet', 5.0], ['5.1 feet', 5.08], ['5.2 feet', 5.17], ['5.3 feet', 5.25], ['5.4 feet', 5.33], ['5.5 feet', 5.42], ['5.6 feet', 5.5], ['5.7 feet', 5.58], ['5.8 feet', 5.67], ['5.9 feet', 5.75], ['5.10 feet', 5.83], ['5.11 feet', 5.92],
+                ['6.0 feet', 6.0], ['6.1 feet', 6.08], ['6.2 feet', 6.17], ['6.3 feet', 6.25], ['6.4 feet', 6.33], ['6.5 feet', 6.42], ['6.6 feet', 6.5], ['6.7 feet', 6.58], ['6.8 feet', 6.67], ['6.9 feet', 6.75], ['6.10 feet', 6.83], ['6.11 feet', 6.92],
+                ['7.0 feet', 7.0], ['7.1 feet', 7.08], ['7.2 feet', 7.17], ['7.3 feet', 7.25], ['7.4 feet', 7.33], ['7.5 feet', 7.42], ['7.6 feet', 7.5], ['7.7 feet', 7.58], ['7.8 feet', 7.67], ['7.9 feet', 7.75], ['7.10 feet', 7.83], ['7.11 feet', 7.92],
+                ['8.0 feet', 8.0], ['8.1 feet', 8.08], ['8.2 feet', 8.17], ['8.3 feet', 8.25], ['8.4 feet', 8.33], ['8.5 feet', 8.42], ['8.6 feet', 8.5], ['8.7 feet', 8.58], ['8.8 feet', 8.67], ['8.9 feet', 8.75], ['8.10 feet', 8.83], ['8.11 feet', 8.92]
+              ], @lead.height), {}, { class: "form-select" } %>
+              <div class="form-text">Select height from the dropdown</div>
             </div>
 
             <div class="col-md-6">
@@ -1389,53 +1393,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Height field handling - convert feet.inches format to decimal
-  const heightField = document.querySelector('.height-input');
-  if (heightField) {
-    // On input, validate format
-    heightField.addEventListener('input', function() {
-      const value = this.value;
-
-      // Allow format like 5.11 (feet.inches)
-      if (value && !/^[3-8](\.[0-9]{0,2})?$/.test(value)) {
-        this.setCustomValidity('Please enter height as feet.inches (e.g., 5.11 for 5 feet 11 inches)');
-      } else {
-        this.setCustomValidity('');
-
-        // Check if inches part is valid (0-11)
-        const parts = value.split('.');
-        if (parts.length === 2) {
-          const inches = parseInt(parts[1]);
-          if (inches > 11) {
-            this.setCustomValidity('Inches must be between 0 and 11');
-          }
-        }
-      }
-    });
-
-    // Before form submission, convert feet.inches to decimal feet
-    form.addEventListener('submit', function(e) {
-      if (heightField.value) {
-        const parts = heightField.value.split('.');
-        if (parts.length === 2) {
-          const feet = parseFloat(parts[0]);
-          const inches = parseFloat(parts[1]);
-
-          // Convert to decimal feet (inches/12)
-          const decimalFeet = feet + (inches / 12);
-
-          // Create a hidden field with the converted value
-          const hiddenHeight = document.createElement('input');
-          hiddenHeight.type = 'hidden';
-          hiddenHeight.name = 'lead[height]';
-          hiddenHeight.value = decimalFeet.toFixed(2);
-          form.appendChild(hiddenHeight);
-
-          // Disable the visible field so it's not submitted
-          heightField.disabled = true;
-        }
-      }
-    });
-  }
 });
 </script>

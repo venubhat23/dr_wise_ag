@@ -7,9 +7,11 @@ class OtherInsurance < ApplicationRecord
   has_many_attached :policy_documents
   has_many_attached :additional_documents
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
+  has_many :other_insurance_nominees, dependent: :destroy
 
   # Nested attributes
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
+  accepts_nested_attributes_for :other_insurance_nominees, allow_destroy: true, reject_if: :all_blank
 
   # Callbacks
   before_create :inherit_customer_lead_id

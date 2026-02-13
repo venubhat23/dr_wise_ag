@@ -125,7 +125,7 @@
           <%= form.select :insurance_company_name,
               options_for_select(@insurance_companies.map { |c| [c, c] }, @health_insurance.insurance_company_name),
               { prompt: 'Search and select company...' },
-              { class: "form-control #{'is-invalid' if @health_insurance.errors[:insurance_company_name].any?}", required: true, id: "health_insurance_insurance_company_name", data: { placeholder: "Type to search companies..." } } %>
+              { class: "form-control #{'is-invalid' if @health_insurance.errors[:insurance_company_name].any?}", required: true, id: "health_insurance_insurance_company_name", data: { placeholder: "Type to search companies..." }, disabled: @health_insurance.new_record? } %>
           <% if @health_insurance.errors[:insurance_company_name].any? %>
             <div class="invalid-feedback"><%= @health_insurance.errors[:insurance_company_name].first %></div>
           <% end %>
@@ -335,6 +335,68 @@
                   <i class="bi bi-trash"></i>
                 </button>
                 <%= member_form.check_box :_destroy, style: "display: none;" %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nominee Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-person-check me-2 text-primary"></i>
+        Nominee Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">Nominees</h6>
+        <div>
+          <button type="button" id="load_customer_nominees_btn" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-download me-1"></i>Load from Client
+          </button>
+          <button type="button" id="add_nominee" class="btn btn-primary">
+            <i class="bi bi-plus me-1"></i>Add Nominee
+          </button>
+        </div>
+      </div>
+
+      <div id="nominees">
+        <div class="text-center py-4 text-muted" id="no_nominees_message">
+          <i class="bi bi-person-check display-4 mb-3"></i>
+          <p class="mb-0">No nominees added yet.</p>
+        </div>
+
+        <%= form.fields_for :health_insurance_nominees do |nominee_form| %>
+          <div class="nominee-row border rounded p-3 mb-3 bg-light">
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <%= nominee_form.label :nominee_name, "Nominee Name", class: "form-label required" %>
+                <%= nominee_form.text_field :nominee_name, class: "form-control", placeholder: "Full Name", required: true %>
+              </div>
+              <div class="col-md-3 mb-3">
+                <%= nominee_form.label :relationship, "Relationship", class: "form-label required" %>
+                <%= nominee_form.select :relationship,
+                    options_for_select(HealthInsuranceNominee::RELATIONSHIPS.map { |rel| [rel.humanize, rel] }),
+                    { prompt: 'Select Relationship' },
+                    { class: "form-select", required: true } %>
+              </div>
+              <div class="col-md-2 mb-3">
+                <%= nominee_form.label :age, "Age", class: "form-label required" %>
+                <%= nominee_form.number_field :age, class: "form-control", min: 1, max: 120, required: true %>
+              </div>
+              <div class="col-md-2 mb-3">
+                <%= nominee_form.label :share_percentage, "Share %", class: "form-label" %>
+                <%= nominee_form.number_field :share_percentage, class: "form-control", min: 0, max: 100, step: 0.01, placeholder: "100" %>
+              </div>
+              <div class="col-md-1 d-flex align-items-end mb-3">
+                <button type="button" class="btn btn-outline-danger remove-nominee-btn">
+                  <i class="bi bi-trash"></i>
+                </button>
+                <%= nominee_form.check_box :_destroy, style: "display: none;" %>
               </div>
             </div>
           </div>
@@ -1723,6 +1785,165 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
 
+    // Dynamic nominee management
+    let nomineeIndex = <%= @health_insurance.health_insurance_nominees.length %>;
+
+    function toggleNoNomineesMessage() {
+      const nomineeRows = document.querySelectorAll('.nominee-row');
+      const noNomineesMsg = document.getElementById('no_nominees_message');
+      if (nomineeRows.length === 0 || Array.from(nomineeRows).every(row => row.style.display === 'none')) {
+        noNomineesMsg.style.display = 'block';
+      } else {
+        noNomineesMsg.style.display = 'none';
+      }
+    }
+
+    document.getElementById('add_nominee').addEventListener('click', function() {
+      const nomineeTemplate = `
+        <div class="nominee-row border rounded p-3 mb-3 bg-light">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label required">Nominee Name</label>
+              <input type="text" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][nominee_name]" class="form-control" placeholder="Full Name" required>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label required">Relationship</label>
+              <select name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][relationship]" class="form-select" required>
+                <option value="">Select Relationship</option>
+                <option value="father">Father</option>
+                <option value="mother">Mother</option>
+                <option value="spouse">Spouse</option>
+                <option value="son">Son</option>
+                <option value="daughter">Daughter</option>
+                <option value="brother">Brother</option>
+                <option value="sister">Sister</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-2 mb-3">
+              <label class="form-label required">Age</label>
+              <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][age]" class="form-control" min="1" max="120" required>
+            </div>
+            <div class="col-md-2 mb-3">
+              <label class="form-label">Share %</label>
+              <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][share_percentage]" class="form-control" min="0" max="100" step="0.01" placeholder="100">
+            </div>
+            <div class="col-md-1 d-flex align-items-end mb-3">
+              <button type="button" class="btn btn-outline-danger remove-nominee-btn">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.getElementById('nominees').insertAdjacentHTML('beforeend', nomineeTemplate);
+      nomineeIndex++;
+      toggleNoNomineesMessage();
+    });
+
+    // Remove nominee
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.remove-nominee-btn')) {
+        const nomineeRow = e.target.closest('.nominee-row');
+        const destroyInput = nomineeRow.querySelector('input[name*="_destroy"]');
+        if (destroyInput) {
+          destroyInput.value = '1';
+          nomineeRow.style.display = 'none';
+        } else {
+          nomineeRow.remove();
+        }
+        toggleNoNomineesMessage();
+      }
+    });
+
+    // Load customer nominees functionality
+    document.getElementById('load_customer_nominees_btn').addEventListener('click', function() {
+      const customerSelect = document.getElementById('health_insurance_customer_id');
+      const customerId = customerSelect ? customerSelect.value : null;
+
+      if (!customerId) {
+        alert('Please select a client first');
+        return;
+      }
+
+      // Show loading state
+      const btn = this;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="bi bi-spinner bi-spin me-1"></i>Loading...';
+      btn.disabled = true;
+
+      // Make AJAX request to load nominees
+      fetch(`/admin/insurance/health/load_customer_nominees?customer_id=${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && data.nominees && data.nominees.length > 0) {
+            // Clear existing nominees
+            const existingNominees = document.querySelectorAll('.nominee-row');
+            existingNominees.forEach(row => row.remove());
+
+            // Add loaded nominees
+            data.nominees.forEach((nominee, index) => {
+              const nomineeTemplate = `
+                <div class="nominee-row border rounded p-3 mb-3 bg-light">
+                  <div class="row">
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label required">Nominee Name</label>
+                      <input type="text" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][nominee_name]" class="form-control" value="${nominee.nominee_name}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                      <label class="form-label required">Relationship</label>
+                      <select name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][relationship]" class="form-select" required>
+                        <option value="">Select Relationship</option>
+                        <option value="father" ${nominee.relationship === 'father' ? 'selected' : ''}>Father</option>
+                        <option value="mother" ${nominee.relationship === 'mother' ? 'selected' : ''}>Mother</option>
+                        <option value="spouse" ${nominee.relationship === 'spouse' ? 'selected' : ''}>Spouse</option>
+                        <option value="son" ${nominee.relationship === 'son' ? 'selected' : ''}>Son</option>
+                        <option value="daughter" ${nominee.relationship === 'daughter' ? 'selected' : ''}>Daughter</option>
+                        <option value="brother" ${nominee.relationship === 'brother' ? 'selected' : ''}>Brother</option>
+                        <option value="sister" ${nominee.relationship === 'sister' ? 'selected' : ''}>Sister</option>
+                        <option value="other" ${nominee.relationship === 'other' ? 'selected' : ''}>Other</option>
+                      </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                      <label class="form-label required">Age</label>
+                      <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][age]" class="form-control" value="${nominee.age}" min="1" max="120" required>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                      <label class="form-label">Share %</label>
+                      <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][share_percentage]" class="form-control" min="0" max="100" step="0.01" placeholder="100">
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end mb-3">
+                      <button type="button" class="btn btn-outline-danger remove-nominee-btn">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `;
+              document.getElementById('nominees').insertAdjacentHTML('beforeend', nomineeTemplate);
+              nomineeIndex++;
+            });
+
+            toggleNoNomineesMessage();
+            alert(`Loaded ${data.nominees.length} nominee(s) from ${data.customer_name}`);
+          } else {
+            alert(data.message || 'No nominees found for this client');
+          }
+        })
+        .catch(error => {
+          console.error('Error loading nominees:', error);
+          alert('Error loading nominees. Please try again.');
+        })
+        .finally(() => {
+          // Reset button state
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        });
+    });
+
+    // Initialize nominee display
+    toggleNoNomineesMessage();
+
     // Event listeners
     document.getElementById('net_premium').addEventListener('input', function() {
       calculateTotalPremium();
@@ -1892,9 +2113,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
       if (brokerCodeSelect) {
         console.log('🎧 Adding direct event listener to broker code select...');
+
+        // Enable Insurance Company dropdown on click
+        brokerCodeSelect.addEventListener('click', function() {
+          if (insuranceCompanySelect && insuranceCompanySelect.disabled) {
+            insuranceCompanySelect.disabled = false;
+            console.log('✅ Insurance Company Name dropdown enabled');
+
+            // Also enable it for Select2 if initialized
+            if (window.jQuery && $('#health_insurance_insurance_company_name').hasClass('select2-hidden-accessible')) {
+              $('#health_insurance_insurance_company_name').prop('disabled', false);
+            }
+          }
+        });
+
         brokerCodeSelect.addEventListener('change', function() {
           const brokerType = this.value;
           console.log('🔥 BROKER CODE CHANGED! Value:', brokerType);
+
+          // Enable Insurance Company dropdown when any option is selected
+          if (insuranceCompanySelect && insuranceCompanySelect.disabled) {
+            insuranceCompanySelect.disabled = false;
+            console.log('✅ Insurance Company Name dropdown enabled on selection');
+
+            // Also enable it for Select2 if initialized
+            if (window.jQuery && $('#health_insurance_insurance_company_name').hasClass('select2-hidden-accessible')) {
+              $('#health_insurance_insurance_company_name').prop('disabled', false);
+            }
+          }
 
           // Clear dependent dropdowns
           if (agencyCodeSelect) {

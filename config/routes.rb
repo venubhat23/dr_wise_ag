@@ -316,6 +316,7 @@ Rails.application.routes.draw do
         get :agency_codes_for_broker_type
         get :insurance_companies_for_type
         get :company_name_by_agent
+        get :load_customer_nominees
         post :insurance_companies_by_agency
       end
       member do
@@ -334,6 +335,7 @@ Rails.application.routes.draw do
         get :company_name_by_agent
         get :insurance_companies_for_type
         get :insurance_companies_by_agency
+        get :load_customer_nominees
       end
       member do
         get :renew
@@ -349,6 +351,7 @@ Rails.application.routes.draw do
         get :all_brokers
         get :insurance_companies_for_type
         get :insurance_companies_by_agency
+        get :load_customer_nominees
       end
       member do
         get :renew

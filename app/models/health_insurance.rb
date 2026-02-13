@@ -11,6 +11,7 @@ class HealthInsurance < ApplicationRecord
   belongs_to :agency_code, optional: true
   belongs_to :broker, optional: true
   has_many :health_insurance_members, dependent: :destroy
+  has_many :health_insurance_nominees, dependent: :destroy
   has_many_attached :documents
   has_many_attached :policy_documents
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
@@ -21,6 +22,7 @@ class HealthInsurance < ApplicationRecord
 
   # Nested attributes
   accepts_nested_attributes_for :health_insurance_members, allow_destroy: true, reject_if: :all_blank
+  accepts_nested_attributes_for :health_insurance_nominees, allow_destroy: true, reject_if: :all_blank
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations
@@ -37,13 +39,13 @@ class HealthInsurance < ApplicationRecord
   validates :gst_percentage, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :total_premium, presence: true, numericality: { greater_than: 0 }
 
-  # Nominee validations (mandatory)
-  validates :nominee_name, presence: true
-  validates :nominee_relation, presence: true, inclusion: {
-    in: ['father', 'mother', 'spouse', 'son', 'daughter', 'brother', 'sister', 'other'],
-    message: "must be a valid relationship"
-  }
-  validates :nominee_dob, presence: true
+  # Nominee validations (now optional since we use separate nominee model)
+  # validates :nominee_name, presence: true
+  # validates :nominee_relation, presence: true, inclusion: {
+  #   in: ['father', 'mother', 'spouse', 'son', 'daughter', 'brother', 'sister', 'other'],
+  #   message: "must be a valid relationship"
+  # }
+  # validates :nominee_dob, presence: true
 
   # Custom validation
   # validate :company_name_must_be_valid

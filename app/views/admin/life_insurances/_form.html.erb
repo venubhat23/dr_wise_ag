@@ -158,7 +158,7 @@
           <%= form.select :insurance_company_name,
               options_for_select(@insurance_companies.map { |c| [c, c] }, @life_insurance.insurance_company_name),
               { prompt: 'Search and select company...' },
-              { class: "form-control #{'is-invalid' if @life_insurance.errors[:insurance_company_name].any?}", required: true, id: "life_insurance_insurance_company_name", data: { placeholder: "Type to search companies..." } } %>
+              { class: "form-control #{'is-invalid' if @life_insurance.errors[:insurance_company_name].any?}", required: true, id: "life_insurance_insurance_company_name", data: { placeholder: "Type to search companies..." }, disabled: @life_insurance.new_record? } %>
           <% if @life_insurance.errors[:insurance_company_name].any? %>
             <div class="invalid-feedback"><%= @life_insurance.errors[:insurance_company_name].first %></div>
           <% end %>
@@ -3337,9 +3337,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Event listener for broker code type change
   if (brokerCodeTypeSelect) {
+    // Enable Insurance Company dropdown on click
+    brokerCodeTypeSelect.addEventListener('click', function() {
+      const insuranceCompanySelect = document.getElementById('life_insurance_insurance_company_name');
+      if (insuranceCompanySelect && insuranceCompanySelect.disabled) {
+        insuranceCompanySelect.disabled = false;
+        console.log('✅ Insurance Company Name dropdown enabled');
+
+        // Also enable it for Select2 if initialized
+        if (window.jQuery && jQuery('#life_insurance_insurance_company_name').hasClass('select2-hidden-accessible')) {
+          jQuery('#life_insurance_insurance_company_name').prop('disabled', false);
+        }
+      }
+    });
+
     brokerCodeTypeSelect.addEventListener('change', function() {
       const selectedType = this.value;
       console.log('Broker code type changed to:', selectedType);
+
+      // Enable Insurance Company dropdown when any option is selected
+      const insuranceCompanySelect = document.getElementById('life_insurance_insurance_company_name');
+      if (insuranceCompanySelect && insuranceCompanySelect.disabled) {
+        insuranceCompanySelect.disabled = false;
+        console.log('✅ Insurance Company Name dropdown enabled on selection');
+
+        // Also enable it for Select2 if initialized
+        if (window.jQuery && jQuery('#life_insurance_insurance_company_name').hasClass('select2-hidden-accessible')) {
+          jQuery('#life_insurance_insurance_company_name').prop('disabled', false);
+        }
+      }
 
       // Clear insurance company dropdown first
       clearInsuranceCompanyDropdown();

@@ -43,6 +43,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   def new
     @health_insurance = HealthInsurance.new
     @health_insurance.health_insurance_members.build
+    @health_insurance.health_insurance_nominees.build
 
     # Pre-fill customer data if coming from customer page
     if params[:customer_id].present?
@@ -518,6 +519,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       # Company expenses and profit fields
       :company_expenses_percentage, :total_distribution_percentage, :profit_percentage, :profit_amount,
       health_insurance_members_attributes: [:id, :member_name, :age, :relationship, :sum_insured, :_destroy],
+      health_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
       documents: [], policy_documents: [],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
     )
@@ -636,6 +638,49 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     else
       # Build at least one empty member for the form if no members exist
       @health_insurance.health_insurance_members.build
+    end
+  end
+
+  # API endpoint for loading customer nominees
+  def load_customer_nominees
+    customer_id = params[:customer_id]
+
+    if customer_id.present?
+      begin
+        customer = Customer.find(customer_id)
+        family_members = customer.family_members.includes(:customer)
+
+        # Build nominee options from family members
+        nominee_options = []
+
+        family_members.each do |member|
+          if member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
+            nominee_options << {
+              nominee_name: member.name,
+              relationship: member.relationship&.downcase || 'other',
+              age: member.age || 0
+            }
+          end
+        end
+
+        render json: {
+          success: true,
+          nominees: nominee_options,
+          customer_name: customer.display_name
+        }
+      rescue ActiveRecord::RecordNotFound
+        render json: {
+          success: false,
+          message: 'Customer not found',
+          nominees: []
+        }
+      end
+    else
+      render json: {
+        success: false,
+        message: 'Customer ID is required',
+        nominees: []
+      }
     end
   end
 

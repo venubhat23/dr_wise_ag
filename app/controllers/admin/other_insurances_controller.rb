@@ -105,6 +105,7 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
 
   def new
     @other_insurance = OtherInsurance.new
+    @other_insurance.other_insurance_nominees.build
 
     # Pre-fill customer data if coming from customer page
     if params[:customer_id].present?
@@ -498,6 +499,49 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     }
   end
 
+  # API endpoint for loading customer nominees
+  def load_customer_nominees
+    customer_id = params[:customer_id]
+
+    if customer_id.present?
+      begin
+        customer = Customer.find(customer_id)
+        family_members = customer.family_members.includes(:customer)
+
+        # Build nominee options from family members
+        nominee_options = []
+
+        family_members.each do |member|
+          if member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
+            nominee_options << {
+              nominee_name: member.name,
+              relationship: member.relationship&.downcase || 'other',
+              age: member.age || 0
+            }
+          end
+        end
+
+        render json: {
+          success: true,
+          nominees: nominee_options,
+          customer_name: customer.display_name
+        }
+      rescue ActiveRecord::RecordNotFound
+        render json: {
+          success: false,
+          message: 'Customer not found',
+          nominees: []
+        }
+      end
+    else
+      render json: {
+        success: false,
+        message: 'Customer ID is required',
+        nominees: []
+      }
+    end
+  end
+
   private
 
   def set_other_insurance
@@ -543,7 +587,8 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
       :profit_percentage, :profit_amount,
       :installment_autopay_start_date, :installment_autopay_end_date,
       policy_documents: [], documents: [], additional_documents: [],
-      uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
+      uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy],
+      other_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy]
     )
   end
 
