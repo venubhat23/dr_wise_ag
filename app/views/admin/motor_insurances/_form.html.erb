@@ -1446,6 +1446,24 @@ document.addEventListener('DOMContentLoaded', function() {
     -webkit-overflow-scrolling: touch;
   }
 
+  /* Fix Select2 dropdown positioning issues */
+  .select2-dropdown {
+    position: absolute !important;
+    z-index: 1050 !important;
+  }
+
+  /* Ensure form doesn't block scrolling */
+  form {
+    overflow: visible !important;
+    height: auto !important;
+    position: relative !important;
+  }
+
+  /* Prevent body scroll lock */
+  body.select2-dropdown-open {
+    overflow: auto !important;
+  }
+
   /* Enhanced Commission Summary Styling */
   .commission-summary-item {
     padding: 8px 12px;
@@ -1736,7 +1754,6 @@ $(document).ready(function() {
     placeholder: 'Search and select client...',
     allowClear: true,
     width: '100%',
-    dropdownParent: $('body'),
     dropdownCssClass: 'select2-dropdown-large',
     minimumResultsForSearch: 0,
     closeOnSelect: true,
@@ -1776,7 +1793,6 @@ $(document).ready(function() {
     placeholder: 'Search and select policy holder...',
     allowClear: false,
     width: '100%',
-    dropdownParent: $('body'),
     dropdownCssClass: 'select2-dropdown-large',
     minimumResultsForSearch: 0,
     closeOnSelect: true
@@ -1788,7 +1804,6 @@ $(document).ready(function() {
     placeholder: 'Search and select affiliate...',
     allowClear: true,
     width: '100%',
-    dropdownParent: $('body'),
     dropdownCssClass: 'select2-dropdown-large',
     minimumResultsForSearch: 0,
     closeOnSelect: true,
@@ -1910,7 +1925,6 @@ $(document).ready(function() {
       placeholder: 'Select Vehicle Type',
       allowClear: false,
       width: '100%',
-      dropdownParent: $('body'),
       minimumResultsForSearch: 0,
       closeOnSelect: true
     });
@@ -1988,7 +2002,6 @@ $(document).ready(function() {
     placeholder: 'Select Class of Vehicle',
     allowClear: false,
     width: '100%',
-    dropdownParent: $('body'),
     minimumResultsForSearch: 0,
     closeOnSelect: true
   });
@@ -1999,7 +2012,6 @@ $(document).ready(function() {
     placeholder: 'Select Policy Type',
     allowClear: false,
     width: '100%',
-    dropdownParent: $('body'),
     minimumResultsForSearch: 0,
     closeOnSelect: true
   });
