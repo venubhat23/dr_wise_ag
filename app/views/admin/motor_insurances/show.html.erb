@@ -53,6 +53,11 @@
         <label class="form-label">Vehicle Registration Number*</label>
         <input type="text" class="form-control" value="<%= @motor_insurance.registration_number %>" readonly>
       </div>
+
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Vehicle Type*</label>
+        <input type="text" class="form-control" value="<%= @motor_insurance.vehicle_type %>" readonly>
+      </div>
     </div>
     </div>
   </div>
@@ -169,25 +174,38 @@
     <div class="section-body">
     <div class="row">
       <div class="col-md-4 mb-3">
-        <label class="form-label">Vehicle Number*</label>
-        <input type="text" class="form-control" value="<%= @motor_insurance.vehicle_number %>" readonly>
+        <label class="form-label">Vehicle IDV*</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.vehicle_idv) if @motor_insurance.vehicle_idv %>" readonly>
       </div>
 
       <div class="col-md-4 mb-3">
-        <label class="form-label">Vehicle Type</label>
-        <input type="text" class="form-control" value="<%= @motor_insurance.vehicle_type %>" readonly>
+        <label class="form-label">CNG IDV</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.cng_idv) if @motor_insurance.cng_idv %>" readonly>
       </div>
 
       <div class="col-md-4 mb-3">
-        <label class="form-label">Vehicle Make</label>
-        <input type="text" class="form-control" value="<%= @motor_insurance.vehicle_make %>" readonly>
+        <label class="form-label">Total IDV (Auto-calculated)</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.total_idv) if @motor_insurance.total_idv %>" readonly>
       </div>
-    </div>
 
-    <div class="row">
       <div class="col-md-4 mb-3">
-        <label class="form-label">Vehicle Model</label>
-        <input type="text" class="form-control" value="<%= @motor_insurance.vehicle_model %>" readonly>
+        <label class="form-label">Make</label>
+        <input type="text" class="form-control" value="<%= @motor_insurance.make %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Model</label>
+        <input type="text" class="form-control" value="<%= @motor_insurance.model %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Variant</label>
+        <input type="text" class="form-control" value="<%= @motor_insurance.variant %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">MFY (Year of Manufacture)</label>
+        <input type="text" class="form-control" value="<%= @motor_insurance.mfy %>" readonly>
       </div>
 
       <div class="col-md-4 mb-3">
@@ -199,24 +217,11 @@
         <label class="form-label">Chassis Number</label>
         <input type="text" class="form-control" value="<%= @motor_insurance.chassis_number %>" readonly>
       </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Manufacturing Year</label>
-        <input type="text" class="form-control" value="<%= @motor_insurance.mfy %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Variant</label>
-        <input type="text" class="form-control" value="<%= @motor_insurance.variant %>" readonly>
-      </div>
 
       <div class="col-md-4 mb-3">
         <label class="form-label">Seating Capacity</label>
         <input type="text" class="form-control" value="<%= @motor_insurance.seating_capacity %>" readonly>
       </div>
-    </div>
     </div>
   </div>
 </div>
@@ -257,22 +262,6 @@
         <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.total_premium) if @motor_insurance.total_premium %>" readonly>
       </div>
 
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Vehicle IDV</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.vehicle_idv) if @motor_insurance.vehicle_idv %>" readonly>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <label class="form-label">CNG IDV</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.cng_idv) if @motor_insurance.cng_idv %>" readonly>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Total IDV</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.total_idv) if @motor_insurance.total_idv %>" readonly>
-      </div>
 
       <div class="col-md-4 mb-3">
         <label class="form-label">NCB</label>
@@ -315,20 +304,76 @@
       </div>
 
       <div class="col-md-4 mb-3">
-        <label class="form-label">Ambassador Commission %</label>
-        <input type="text" class="form-control" value="<%= @motor_insurance.ambassador_commission_percentage %>%" readonly>
+        <label class="form-label">Sub Agent Commission Amount</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.sub_agent_commission_amount) if @motor_insurance.sub_agent_commission_amount %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Sub Agent TDS %</label>
+        <input type="text" class="form-control" value="<%= @motor_insurance.sub_agent_tds_percentage ? "#{@motor_insurance.sub_agent_tds_percentage}%" : 'N/A' %>" readonly>
       </div>
     </div>
 
     <div class="row">
       <div class="col-md-4 mb-3">
-        <label class="form-label">Investor Commission %</label>
-        <input type="text" class="form-control" value="<%= @motor_insurance.investor_commission_percentage %>%" readonly>
+        <label class="form-label">Sub Agent TDS Amount</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.sub_agent_tds_amount) if @motor_insurance.sub_agent_tds_amount %>" readonly>
       </div>
 
       <div class="col-md-4 mb-3">
+        <label class="form-label">Sub Agent After TDS Value</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.sub_agent_after_tds_value) if @motor_insurance.sub_agent_after_tds_value %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Investor Commission %</label>
+        <input type="text" class="form-control" value="<%= @motor_insurance.investor_commission_percentage %>%" readonly>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Investor Commission Amount</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.investor_commission_amount) if @motor_insurance.investor_commission_amount %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Ambassador Commission %</label>
+        <input type="text" class="form-control" value="<%= @motor_insurance.ambassador_commission_percentage %>%" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Ambassador Commission Amount</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.ambassador_commission_amount) if @motor_insurance.ambassador_commission_amount %>" readonly>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Ambassador TDS %</label>
+        <input type="text" class="form-control" value="<%= @motor_insurance.ambassador_tds_percentage ? "#{@motor_insurance.ambassador_tds_percentage}%" : 'N/A' %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Ambassador TDS Amount</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.ambassador_tds_amount) if @motor_insurance.ambassador_tds_amount %>" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Ambassador After TDS Value</label>
+        <input type="text" class="form-control" value="<%= indian_currency(@motor_insurance.ambassador_after_tds_value) if @motor_insurance.ambassador_after_tds_value %>" readonly>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 mb-3">
         <label class="form-label">Company Expenses %</label>
         <input type="text" class="form-control" value="<%= @motor_insurance.company_expenses_percentage %>%" readonly>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Total Distribution %</label>
+        <input type="text" class="form-control" value="<%= @motor_insurance.total_distribution_percentage ? "#{@motor_insurance.total_distribution_percentage}%" : 'N/A' %>" readonly>
       </div>
 
       <div class="col-md-4 mb-3">
