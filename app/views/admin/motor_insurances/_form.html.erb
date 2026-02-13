@@ -531,14 +531,14 @@
                   <%= nominee_form.select :relationship,
                       options_for_select([
                         ['Select Relationship', ''],
-                        ['Spouse', 'Spouse'],
-                        ['Son', 'Son'],
-                        ['Daughter', 'Daughter'],
-                        ['Father', 'Father'],
-                        ['Mother', 'Mother'],
-                        ['Brother', 'Brother'],
-                        ['Sister', 'Sister'],
-                        ['Other', 'Other']
+                        ['Spouse', 'spouse'],
+                        ['Son', 'son'],
+                        ['Daughter', 'daughter'],
+                        ['Father', 'father'],
+                        ['Mother', 'mother'],
+                        ['Brother', 'brother'],
+                        ['Sister', 'sister'],
+                        ['Other', 'other']
                       ], nominee_form.object.relationship),
                       {},
                       { class: "form-control", required: true } %>
@@ -2880,14 +2880,14 @@ $(document).ready(function() {
             <label class="form-label">Relationship <span class="text-danger">*</span></label>
             <select class="form-control" required="required" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeIndex}][relationship]" id="motor_insurance_motor_insurance_nominees_attributes_${nomineeIndex}_relationship">
               <option value="">Select Relationship</option>
-              <option value="Spouse" ${member.relationship === 'Spouse' ? 'selected' : ''}>Spouse</option>
-              <option value="Son" ${member.relationship === 'Son' ? 'selected' : ''}>Son</option>
-              <option value="Daughter" ${member.relationship === 'Daughter' ? 'selected' : ''}>Daughter</option>
-              <option value="Father" ${member.relationship === 'Father' ? 'selected' : ''}>Father</option>
-              <option value="Mother" ${member.relationship === 'Mother' ? 'selected' : ''}>Mother</option>
-              <option value="Brother" ${member.relationship === 'Brother' ? 'selected' : ''}>Brother</option>
-              <option value="Sister" ${member.relationship === 'Sister' ? 'selected' : ''}>Sister</option>
-              <option value="Other" ${member.relationship === 'Other' ? 'selected' : ''}>Other</option>
+              <option value="spouse" ${member.relationship === 'spouse' ? 'selected' : ''}>Spouse</option>
+              <option value="son" ${member.relationship === 'son' ? 'selected' : ''}>Son</option>
+              <option value="daughter" ${member.relationship === 'daughter' ? 'selected' : ''}>Daughter</option>
+              <option value="father" ${member.relationship === 'father' ? 'selected' : ''}>Father</option>
+              <option value="mother" ${member.relationship === 'mother' ? 'selected' : ''}>Mother</option>
+              <option value="brother" ${member.relationship === 'brother' ? 'selected' : ''}>Brother</option>
+              <option value="sister" ${member.relationship === 'sister' ? 'selected' : ''}>Sister</option>
+              <option value="other" ${member.relationship === 'other' ? 'selected' : ''}>Other</option>
             </select>
           </div>
           <div class="col-md-2 mb-3">
@@ -2949,14 +2949,14 @@ function addNewNominee() {
           <label class="form-label">Relationship <span class="text-danger">*</span></label>
           <select class="form-control" required="required" name="motor_insurance[motor_insurance_nominees_attributes][${index}][relationship]" id="motor_insurance_motor_insurance_nominees_attributes_${index}_relationship">
             <option value="">Select Relationship</option>
-            <option value="Spouse">Spouse</option>
-            <option value="Son">Son</option>
-            <option value="Daughter">Daughter</option>
-            <option value="Father">Father</option>
-            <option value="Mother">Mother</option>
-            <option value="Brother">Brother</option>
-            <option value="Sister">Sister</option>
-            <option value="Other">Other</option>
+            <option value="spouse">Spouse</option>
+            <option value="son">Son</option>
+            <option value="daughter">Daughter</option>
+            <option value="father">Father</option>
+            <option value="mother">Mother</option>
+            <option value="brother">Brother</option>
+            <option value="sister">Sister</option>
+            <option value="other">Other</option>
           </select>
         </div>
         <div class="col-md-2 mb-3">
