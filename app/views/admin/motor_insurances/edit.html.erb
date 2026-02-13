@@ -11,8 +11,8 @@
     </div>
   </div>
 
-  <!-- Include the same form content as new.html.erb but with different heading and submit button text -->
+  <!-- Include the simplified form content with only required fields -->
   <% content_for :form_title, "Edit Motor Insurance" %>
   <% content_for :submit_text, "Update Motor Insurance" %>
-  <%= render 'form' %>
+  <%= render 'simplified_form' %>
 </div>

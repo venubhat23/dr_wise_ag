@@ -756,7 +756,8 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       :company_expenses_percentage, :company_expenses_amount, :total_distribution_percentage,
       :profit_percentage, :profit_amount,
       policy_documents: [], documents: [],
-      uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
+      uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy],
+      life_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy]
     )
   end
 

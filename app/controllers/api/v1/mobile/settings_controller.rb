@@ -139,6 +139,11 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
             if user.respond_to?(:plain_password) && user.class.column_names.include?('plain_password')
               user.update_columns(plain_password: new_password)
             end
+
+            # Update original_password if the field exists (for admin UI display)
+            if user.respond_to?(:original_password) && user.class.column_names.include?('original_password')
+              user.update_columns(original_password: new_password)
+            end
           else
             # For User with Devise
             user.password = new_password
@@ -156,6 +161,7 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
               corresponding_user.password = new_password
               corresponding_user.password_confirmation = new_password
               corresponding_user.plain_password = new_password if corresponding_user.respond_to?(:plain_password)
+              corresponding_user.original_password = new_password if corresponding_user.respond_to?(:original_password)
               corresponding_user.save(validate: false)
               Rails.logger.info "Also updated User account for email: #{user.email}"
             end
@@ -195,8 +201,16 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
       # Update password using Devise
       corresponding_user.password = new_password
       corresponding_user.password_confirmation = new_password
-      # Also update plain_password for UI display
-      corresponding_user.plain_password = new_password
+
+      # Also update plain_password for UI display if field exists
+      if corresponding_user.respond_to?(:plain_password=) && corresponding_user.class.column_names.include?('plain_password')
+        corresponding_user.plain_password = new_password
+      end
+
+      # Update original_password for admin UI display if field exists
+      if corresponding_user.respond_to?(:original_password=) && corresponding_user.class.column_names.include?('original_password')
+        corresponding_user.original_password = new_password
+      end
 
       if corresponding_user.save(validate: false)
         Rails.logger.info "Password updated for customer's User account: #{corresponding_user.email}"

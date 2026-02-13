@@ -1205,8 +1205,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
   # GET /api/v1/mobile/agent/insurance_companies
   def insurance_companies
-    page = params[:page] || 1
-    per_page = params[:per_page] || 20
+    page = params[:page]
+    per_page = params[:per_page]
     search = params[:search]
     status_filter = params[:status] # 'active', 'inactive', or 'all'
 
@@ -1226,7 +1226,16 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # 'all' or nil shows all companies
     end
 
-    companies = companies.order(:name).page(page).per(per_page)
+    companies = companies.order(:name)
+
+    # Apply pagination only if page and per_page parameters are provided
+    if page.present? && per_page.present?
+      companies = companies.page(page).per(per_page)
+      paginated = true
+    else
+      # Return all companies if no pagination parameters
+      paginated = false
+    end
 
     companies_data = companies.map do |company|
       # Map insurance_type to simplified categories
@@ -1253,22 +1262,35 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       }
     end
 
+    response_data = {
+      insurance_companies: companies_data,
+      statistics: {
+        total_companies: InsuranceCompany.count,
+        active_companies: InsuranceCompany.where(status: true).count,
+        inactive_companies: InsuranceCompany.where(status: false).count
+      }
+    }
+
+    # Add pagination info only if paginated
+    if paginated
+      response_data[:pagination] = {
+        current_page: page.to_i,
+        per_page: per_page.to_i,
+        total_companies: companies.total_count,
+        total_pages: companies.total_pages
+      }
+    else
+      response_data[:pagination] = {
+        current_page: 1,
+        per_page: companies_data.length,
+        total_companies: companies_data.length,
+        total_pages: 1
+      }
+    end
+
     render json: {
       success: true,
-      data: {
-        insurance_companies: companies_data,
-        statistics: {
-          total_companies: InsuranceCompany.count,
-          active_companies: InsuranceCompany.where(status: true).count,
-          inactive_companies: InsuranceCompany.where(status: false).count
-        },
-        pagination: {
-          current_page: page.to_i,
-          per_page: per_page.to_i,
-          total_companies: companies.total_count,
-          total_pages: companies.total_pages
-        }
-      }
+      data: response_data
     }
   end
 
@@ -2793,10 +2815,14 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     life_sum_insured = life_policies.sum(:sum_insured) || 0
     motor_sum_insured = motor_policies.sum(:sum_insured) || 0
 
-    # Commission
-    health_commission = health_policies.sum(:sub_agent_commission_amount) || 0
-    life_commission = life_policies.sum(:sub_agent_commission_amount) || 0
-    motor_commission = motor_policies.sum(:sub_agent_commission_amount) || 0
+    # Commission - Use commission payouts table for accuracy
+    health_policy_ids = health_policies.pluck(:id)
+    life_policy_ids = life_policies.pluck(:id)
+    motor_policy_ids = motor_policies.pluck(:id)
+
+    health_commission = CommissionPayout.where(policy_type: 'health', policy_id: health_policy_ids, payout_to: 'affiliate').sum(:payout_amount) || 0
+    life_commission = CommissionPayout.where(policy_type: 'life', policy_id: life_policy_ids, payout_to: 'affiliate').sum(:payout_amount) || 0
+    motor_commission = CommissionPayout.where(policy_type: 'motor', policy_id: motor_policy_ids, payout_to: 'affiliate').sum(:payout_amount) || 0
     total_commission = health_commission + life_commission + motor_commission
 
     # Monthly data
@@ -2806,9 +2832,14 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     monthly_health_premium = health_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
     monthly_life_premium = life_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
     monthly_motor_premium = motor_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
-    monthly_commission = (health_policies.where(created_at: current_month_start..current_month_end).sum(:sub_agent_commission_amount) || 0) +
-                        (life_policies.where(created_at: current_month_start..current_month_end).sum(:sub_agent_commission_amount) || 0) +
-                        (motor_policies.where(created_at: current_month_start..current_month_end).sum(:sub_agent_commission_amount) || 0)
+    # Monthly commission - Use commission payouts for consistency
+    monthly_health_policy_ids = health_policies.where(created_at: current_month_start..current_month_end).pluck(:id)
+    monthly_life_policy_ids = life_policies.where(created_at: current_month_start..current_month_end).pluck(:id)
+    monthly_motor_policy_ids = motor_policies.where(created_at: current_month_start..current_month_end).pluck(:id)
+
+    monthly_commission = (CommissionPayout.where(policy_type: 'health', policy_id: monthly_health_policy_ids, payout_to: 'affiliate').sum(:payout_amount) || 0) +
+                        (CommissionPayout.where(policy_type: 'life', policy_id: monthly_life_policy_ids, payout_to: 'affiliate').sum(:payout_amount) || 0) +
+                        (CommissionPayout.where(policy_type: 'motor', policy_id: monthly_motor_policy_ids, payout_to: 'affiliate').sum(:payout_amount) || 0)
 
     # Get unique customer IDs for real-time count
     customer_ids = (health_policies.pluck(:customer_id) + life_policies.pluck(:customer_id) + motor_policies.pluck(:customer_id)).uniq

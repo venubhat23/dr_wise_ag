@@ -473,26 +473,98 @@
   </div>
   <div id="nomineeDetailsCollapse" class="collapse">
     <div class="section-body">
-      <div class="row g-4">
-        <div class="col-md-6 col-lg-4">
-          <div class="info-field">
-            <label>NOMINEE NAME</label>
-            <div class="info-value"><%= @life_insurance.nominee_name || '-' %></div>
+      <% if @life_insurance.life_insurance_nominees.any? %>
+        <!-- Display nominees from life_insurance_nominees association -->
+        <% @life_insurance.life_insurance_nominees.each_with_index do |nominee, index| %>
+          <div class="nominee-card <%= 'mb-4' if index < @life_insurance.life_insurance_nominees.count - 1 %>" style="border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; background-color: #f8f9fa;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="mb-0" style="color: #495057; font-weight: 600;">
+                <i class="bi bi-person-circle me-2"></i>Nominee <%= index + 1 %>
+              </h6>
+              <span class="badge bg-primary"><%= nominee.share_percentage || 0 %>% Share</span>
+            </div>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="info-field">
+                  <label>NOMINEE NAME</label>
+                  <div class="info-value"><%= nominee.nominee_name %></div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="info-field">
+                  <label>RELATIONSHIP</label>
+                  <div class="info-value"><%= nominee.relationship&.titleize || '-' %></div>
+                </div>
+              </div>
+              <div class="col-md-2">
+                <div class="info-field">
+                  <label>AGE</label>
+                  <div class="info-value"><%= nominee.age ? "#{nominee.age} years" : '-' %></div>
+                </div>
+              </div>
+              <div class="col-md-2">
+                <div class="info-field">
+                  <label>SHARE %</label>
+                  <div class="info-value"><%= nominee.share_percentage ? "#{nominee.share_percentage}%" : '-' %></div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="col-md-6 col-lg-4">
-          <div class="info-field">
-            <label>NOMINEE RELATIONSHIP</label>
-            <div class="info-value"><%= @life_insurance.nominee_relationship || '-' %></div>
+        <% end %>
+
+        <!-- Summary section for multiple nominees -->
+        <% if @life_insurance.life_insurance_nominees.count > 1 %>
+          <div class="mt-4 p-3" style="background-color: #e7f3ff; border-radius: 6px; border-left: 4px solid #0d6efd;">
+            <div class="row">
+              <div class="col-md-6">
+                <strong>Total Nominees: <%= @life_insurance.life_insurance_nominees.count %></strong>
+              </div>
+              <div class="col-md-6">
+                <strong>Total Share: <%= @life_insurance.life_insurance_nominees.sum(:share_percentage) || 0 %>%</strong>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="col-md-6 col-lg-4">
-          <div class="info-field">
-            <label>NOMINEE AGE</label>
-            <div class="info-value"><%= @life_insurance.nominee_age || '-' %></div>
+        <% end %>
+      <% else %>
+        <!-- Fallback to legacy nominee fields if no associated nominees -->
+        <% if @life_insurance.nominee_name.present? || @life_insurance.nominee_relationship.present? || @life_insurance.nominee_age.present? %>
+          <div class="nominee-card" style="border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; background-color: #f8f9fa;">
+            <div class="d-flex align-items-center mb-3">
+              <h6 class="mb-0" style="color: #495057; font-weight: 600;">
+                <i class="bi bi-person-circle me-2"></i>Nominee Details
+              </h6>
+              <span class="badge bg-secondary ms-2">Legacy Data</span>
+            </div>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="info-field">
+                  <label>NOMINEE NAME</label>
+                  <div class="info-value"><%= @life_insurance.nominee_name || '-' %></div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="info-field">
+                  <label>RELATIONSHIP</label>
+                  <div class="info-value"><%= @life_insurance.nominee_relationship || '-' %></div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="info-field">
+                  <label>AGE</label>
+                  <div class="info-value"><%= @life_insurance.nominee_age ? "#{@life_insurance.nominee_age} years" : '-' %></div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        <% else %>
+          <!-- No nominee data at all -->
+          <div class="text-center py-4" style="color: #6c757d;">
+            <i class="bi bi-person-x" style="font-size: 2rem; opacity: 0.5;"></i>
+            <p class="mt-2 mb-0">No nominee details available</p>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
   </div>
 </div>
 

@@ -1,0 +1,968 @@
+<%= form_with model: [:admin, @motor_insurance], local: true, class: "needs-validation", novalidate: true do |form| %>
+
+  <!-- Client & Agent Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-person me-2 text-primary"></i>
+        Client & Agent Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <% if @motor_insurance.errors.any? %>
+        <div class="alert alert-danger alert-dismissible fade show">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Please correct the following errors:</strong>
+          <ul class="mb-0 mt-2">
+            <% @motor_insurance.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :customer_id, "Client Name*", class: "form-label" %>
+          <%= form.select :customer_id,
+              options_for_select(@customers.map { |c| [c.display_name, c.id] }, @selected_customer&.id || @motor_insurance.customer_id),
+              { prompt: 'Search and select client...' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:customer_id].any?}", required: true, id: "customer_select", data: { placeholder: "Type to search clients..." } } %>
+          <% if @motor_insurance.errors[:customer_id].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:customer_id].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :policy_holder, "Policy Holder", class: "form-label" %>
+          <%
+            policy_holder_options = [['Select Policy Holder', '']]
+            selected_policy_holder = @selected_policy_holder || @motor_insurance.policy_holder
+
+            if @customer_family_members&.any?
+              @customer_family_members.each do |member|
+                option_text = "#{member.name} (#{member.relationship.humanize})"
+                option_value = member.name
+                policy_holder_options << [option_text, option_value]
+              end
+            end
+          %>
+          <%= form.select :policy_holder,
+              options_for_select(policy_holder_options, selected_policy_holder),
+              {},
+              { class: "form-control", id: "policy_holder_select", data: { placeholder: "Select Policy Holder" } } %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :sub_agent_id, "Affiliate", class: "form-label" %>
+          <%= form.select :sub_agent_id,
+              options_for_select(@sub_agents.map { |sa| [sa.full_name, sa.id] }, @motor_insurance.sub_agent_id),
+              { prompt: 'Search and select affiliate...' },
+              { class: "form-control", id: "affiliate_select", data: { placeholder: "Type to search affiliates..." } } %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :registration_number, "Vehicle Registration Number*", class: "form-label" %>
+          <%= form.text_field :registration_number,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:registration_number].any?}",
+              placeholder: "Enter vehicle registration number", required: true %>
+          <% if @motor_insurance.errors[:registration_number].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:registration_number].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :vehicle_type, "Vehicle Type*", class: "form-label" %>
+          <%= form.select :vehicle_type,
+              options_for_select([
+                ['New Vehicle', 'New Vehicle'],
+                ['Old Vehicle', 'Old Vehicle']
+              ], @motor_insurance.vehicle_type),
+              { prompt: 'Select Vehicle Type' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:vehicle_type].any?}", required: true } %>
+          <% if @motor_insurance.errors[:vehicle_type].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:vehicle_type].first %></div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Policy Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-file-text me-2 text-primary"></i>
+        Policy Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :broker_code, "Broker Code", class: "form-label" %>
+          <%= form.text_field :broker_code, class: "form-control", placeholder: "Enter broker code" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :agency_code, "Agency Code", class: "form-label" %>
+          <%= form.text_field :agency_code, class: "form-control", placeholder: "Enter agency code" %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :insurance_company_name, "Insurance Company Name*", class: "form-label" %>
+          <%= form.text_field :insurance_company_name,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:insurance_company_name].any?}",
+              placeholder: "Enter insurance company name", required: true %>
+          <% if @motor_insurance.errors[:insurance_company_name].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:insurance_company_name].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :insurance_type, "Insurance Type*", class: "form-label" %>
+          <%= form.select :insurance_type,
+              options_for_select([
+                ['Comprehensive', 'Comprehensive'],
+                ['Third Party', 'Third Party']
+              ], @motor_insurance.insurance_type),
+              { prompt: 'Select Insurance Type' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:insurance_type].any?}", required: true } %>
+          <% if @motor_insurance.errors[:insurance_type].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:insurance_type].first %></div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :class_of_vehicle, "Class of Vehicle*", class: "form-label" %>
+          <%= form.text_field :class_of_vehicle,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:class_of_vehicle].any?}",
+              placeholder: "Enter class of vehicle", required: true %>
+          <% if @motor_insurance.errors[:class_of_vehicle].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:class_of_vehicle].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :policy_type, "Policy Type*", class: "form-label" %>
+          <%= form.select :policy_type,
+              options_for_select([
+                ['New', 'New'],
+                ['Renewal', 'Renewal'],
+                ['Rollover', 'Rollover']
+              ], @motor_insurance.policy_type),
+              { prompt: 'Select Policy Type' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:policy_type].any?}", required: true } %>
+          <% if @motor_insurance.errors[:policy_type].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:policy_type].first %></div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :policy_number, "Policy Number*", class: "form-label" %>
+          <%= form.text_field :policy_number,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:policy_number].any?}",
+              placeholder: "Enter policy number", required: true %>
+          <% if @motor_insurance.errors[:policy_number].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:policy_number].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :policy_booking_date, "Policy Booking Date", class: "form-label" %>
+          <%= form.date_field :policy_booking_date, class: "form-control" %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :policy_start_date, "Policy Start Date*", class: "form-label" %>
+          <%= form.date_field :policy_start_date,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:policy_start_date].any?}",
+              required: true %>
+          <% if @motor_insurance.errors[:policy_start_date].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:policy_start_date].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :policy_end_date, "Policy End Date*", class: "form-label" %>
+          <%= form.date_field :policy_end_date,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:policy_end_date].any?}",
+              required: true %>
+          <% if @motor_insurance.errors[:policy_end_date].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:policy_end_date].first %></div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :payment_mode, "Payment Mode*", class: "form-label" %>
+          <%= form.select :payment_mode,
+              options_for_select([
+                ['Yearly', 'Yearly'],
+                ['Half Yearly', 'Half Yearly'],
+                ['Quarterly', 'Quarterly'],
+                ['Monthly', 'Monthly']
+              ], @motor_insurance.payment_mode),
+              { prompt: 'Select Payment Mode' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:payment_mode].any?}", required: true } %>
+          <% if @motor_insurance.errors[:payment_mode].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:payment_mode].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :installment_autopay_start_date, "Installment Autopay Start Date", class: "form-label" %>
+          <%= form.date_field :installment_autopay_start_date, class: "form-control" %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :installment_autopay_end_date, "Installment Autopay End Date", class: "form-label" %>
+          <%= form.date_field :installment_autopay_end_date, class: "form-control" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Premium Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-currency-rupee me-2 text-primary"></i>
+        Premium Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :net_premium, "Net Premium*", class: "form-label" %>
+          <%= form.number_field :net_premium,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:net_premium].any?}",
+              step: 0.01, placeholder: "Enter net premium", required: true, id: "net_premium" %>
+          <% if @motor_insurance.errors[:net_premium].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:net_premium].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :gst_percentage, "GST %*", class: "form-label" %>
+          <%= form.number_field :gst_percentage,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:gst_percentage].any?}",
+              step: 0.01, placeholder: "Enter GST percentage", required: true, id: "gst_percentage" %>
+          <% if @motor_insurance.errors[:gst_percentage].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:gst_percentage].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :total_premium, "Total Premium (Auto-calculated)*", class: "form-label" %>
+          <%= form.number_field :total_premium,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:total_premium].any?}",
+              step: 0.01, readonly: true, id: "total_premium" %>
+          <% if @motor_insurance.errors[:total_premium].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:total_premium].first %></div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vehicle Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-car-front me-2 text-primary"></i>
+        Vehicle Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :vehicle_idv, "Vehicle IDV*", class: "form-label" %>
+          <%= form.number_field :vehicle_idv,
+              class: "form-control #{'is-invalid' if @motor_insurance.errors[:vehicle_idv].any?}",
+              step: 0.01, placeholder: "Enter vehicle IDV", required: true, id: "vehicle_idv" %>
+          <% if @motor_insurance.errors[:vehicle_idv].any? %>
+            <div class="invalid-feedback"><%= @motor_insurance.errors[:vehicle_idv].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :cng_idv, "CNG IDV", class: "form-label" %>
+          <%= form.number_field :cng_idv,
+              class: "form-control",
+              step: 0.01, placeholder: "Enter CNG IDV", value: @motor_insurance.cng_idv || 0, id: "cng_idv" %>
+        </div>
+
+        <div class="col-md-4 mb-3">
+          <%= form.label :total_idv, "Total IDV (Auto-calculated)", class: "form-label" %>
+          <%= form.number_field :total_idv,
+              class: "form-control",
+              step: 0.01, readonly: true, id: "total_idv" %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :make, "Make", class: "form-label" %>
+          <%= form.text_field :make, class: "form-control", placeholder: "Vehicle make" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :model, "Model", class: "form-label" %>
+          <%= form.text_field :model, class: "form-control", placeholder: "Vehicle model" %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :variant, "Variant", class: "form-label" %>
+          <%= form.text_field :variant, class: "form-control", placeholder: "Vehicle variant" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :mfy, "MFY (Year of Manufacture)", class: "form-label" %>
+          <%= form.text_field :mfy, class: "form-control", placeholder: "Manufacturing year" %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :engine_number, "Engine Number", class: "form-label" %>
+          <%= form.text_field :engine_number, class: "form-control", placeholder: "Engine number" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :chassis_number, "Chassis Number", class: "form-label" %>
+          <%= form.text_field :chassis_number, class: "form-control", placeholder: "Chassis number" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Optional Covers & Additional Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-shield-check me-2 text-primary"></i>
+        Optional Covers & Additional Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row mb-3">
+        <div class="col-12">
+          <label class="form-label">Optional Covers</label>
+          <div class="row">
+            <div class="col-md-3 mb-2">
+              <div class="form-check">
+                <%= form.check_box :zero_depreciation, class: "form-check-input" %>
+                <%= form.label :zero_depreciation, "Zero Depreciation", class: "form-check-label" %>
+              </div>
+            </div>
+            <div class="col-md-3 mb-2">
+              <div class="form-check">
+                <%= form.check_box :roadside_assistance, class: "form-check-input" %>
+                <%= form.label :roadside_assistance, "Roadside Assistance", class: "form-check-label" %>
+              </div>
+            </div>
+            <div class="col-md-3 mb-2">
+              <div class="form-check">
+                <%= form.check_box :engine_protector, class: "form-check-input" %>
+                <%= form.label :engine_protector, "Engine Protector", class: "form-check-label" %>
+              </div>
+            </div>
+            <div class="col-md-3 mb-2">
+              <div class="form-check">
+                <%= form.check_box :key_replacement, class: "form-check-input" %>
+                <%= form.label :key_replacement, "Key Replacement", class: "form-check-label" %>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-3 mb-2">
+              <div class="form-check">
+                <%= form.check_box :return_to_invoice, class: "form-check-input" %>
+                <%= form.label :return_to_invoice, "Return to Invoice", class: "form-check-label" %>
+              </div>
+            </div>
+            <div class="col-md-3 mb-2">
+              <div class="form-check">
+                <%= form.check_box :consumable_cover, class: "form-check-input" %>
+                <%= form.label :consumable_cover, "Consumable Cover", class: "form-check-label" %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :financier, "Financier / HPA", class: "form-label" %>
+          <%= form.text_field :financier, class: "form-control", placeholder: "Enter financier details" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :reference_by, "Reference By", class: "form-label" %>
+          <%= form.text_field :reference_by, class: "form-control", placeholder: "Enter reference name" %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-12 mb-3">
+          <%= form.label :extra_note, "Extra Note", class: "form-label" %>
+          <%= form.text_area :extra_note, class: "form-control", rows: 3, placeholder: "Enter additional notes or comments..." %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nominee Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-people me-2 text-primary"></i>
+        Nominee Details
+        <span class="text-danger">*</span>
+      </h5>
+    </div>
+    <div class="card-body">
+      <p class="text-muted mb-3">Add nominee details for this motor insurance policy.</p>
+
+      <div id="nominees-container">
+        <% if @motor_insurance.motor_insurance_nominees.any? %>
+          <% @motor_insurance.motor_insurance_nominees.each_with_index do |nominee, index| %>
+            <div class="nominee-entry border rounded p-3 mb-3" data-index="<%= index %>">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Nominee <%= index + 1 %></h6>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-nominee">
+                  <i class="bi bi-trash"></i> Remove
+                </button>
+              </div>
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Nominee Name</label>
+                  <%= text_field_tag "motor_insurance[motor_insurance_nominees_attributes][#{index}][nominee_name]", nominee.nominee_name,
+                      class: "form-control", placeholder: "Enter nominee name" %>
+                  <%= hidden_field_tag "motor_insurance[motor_insurance_nominees_attributes][#{index}][id]", nominee.id if nominee.persisted? %>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">Relationship</label>
+                  <%= select_tag "motor_insurance[motor_insurance_nominees_attributes][#{index}][relationship]",
+                      options_for_select([
+                        ['Spouse', 'spouse'],
+                        ['Son', 'son'],
+                        ['Daughter', 'daughter'],
+                        ['Father', 'father'],
+                        ['Mother', 'mother'],
+                        ['Brother', 'brother'],
+                        ['Sister', 'sister'],
+                        ['Other', 'other']
+                      ], nominee.relationship),
+                      { prompt: 'Select relationship', class: "form-control" } %>
+                </div>
+                <div class="col-md-2 mb-3">
+                  <label class="form-label">Age</label>
+                  <%= number_field_tag "motor_insurance[motor_insurance_nominees_attributes][#{index}][age]", nominee.age,
+                      class: "form-control", placeholder: "Age", min: 1, max: 120 %>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label class="form-label">Share Percentage</label>
+                  <%= number_field_tag "motor_insurance[motor_insurance_nominees_attributes][#{index}][share_percentage]", nominee.share_percentage,
+                      class: "form-control", placeholder: "Share %", min: 0, max: 100, step: 0.01 %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="text-center py-4">
+            <i class="bi bi-people text-muted" style="font-size: 2rem;"></i>
+            <p class="text-muted mb-0 mt-2">No nominees added yet. Click "Add Nominee" to add nominee details.</p>
+          </div>
+        <% end %>
+      </div>
+
+      <button type="button" class="btn btn-outline-primary" id="add-nominee">
+        <i class="bi bi-plus-circle me-1"></i>Add Nominee
+      </button>
+    </div>
+  </div>
+
+  <!-- Commission Details Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-percent me-2 text-primary"></i>
+        Commission Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <!-- Main Agent Commission -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <h6 class="text-primary mb-3">Main Agent Commission</h6>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <%= form.label :main_agent_commission_percentage, "1st year (%)", class: "form-label" %>
+              <%= form.number_field :main_agent_commission_percentage,
+                  class: "form-control commission-field",
+                  step: 0.01, placeholder: "Enter percentage",
+                  data: { target: "main_agent" }, id: "main_agent_commission_percentage" %>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Commission Amount</label>
+              <input type="number" class="form-control" readonly id="main_agent_commission_amount" step="0.01">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">TDS %</label>
+              <input type="number" class="form-control" value="2.0" step="0.01" id="main_agent_tds_percentage">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">TDS Amount</label>
+              <input type="number" class="form-control" readonly id="main_agent_tds_amount" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <label class="form-label">After TDS Value</label>
+              <input type="number" class="form-control" readonly id="main_agent_after_tds" step="0.01">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Affiliate Commission -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <h6 class="text-primary mb-3">Affiliate Commission</h6>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <%= form.label :sub_agent_commission_percentage, "1st year (%)", class: "form-label" %>
+              <%= form.number_field :sub_agent_commission_percentage,
+                  class: "form-control commission-field",
+                  step: 0.01, placeholder: "Enter percentage",
+                  data: { target: "sub_agent" }, id: "sub_agent_commission_percentage" %>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Commission Amount</label>
+              <input type="number" class="form-control" readonly id="sub_agent_commission_amount" step="0.01">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">TDS %</label>
+              <input type="number" class="form-control" value="2.0" step="0.01" id="sub_agent_tds_percentage">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">TDS Amount</label>
+              <input type="number" class="form-control" readonly id="sub_agent_tds_amount" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <label class="form-label">After TDS Value</label>
+              <input type="number" class="form-control" readonly id="sub_agent_after_tds" step="0.01">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Investor Portion -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <h6 class="text-primary mb-3">Investor Portion</h6>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <%= form.label :investor_commission_percentage, "1st year (%)", class: "form-label" %>
+              <%= form.number_field :investor_commission_percentage,
+                  class: "form-control commission-field",
+                  step: 0.01, placeholder: "Enter percentage",
+                  data: { target: "investor" }, id: "investor_commission_percentage" %>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Amount</label>
+              <input type="number" class="form-control" readonly id="investor_commission_amount" step="0.01">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ambassador Commission -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <h6 class="text-primary mb-3">Ambassador Commission</h6>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <%= form.label :ambassador_commission_percentage, "1st year (%)", class: "form-label" %>
+              <%= form.number_field :ambassador_commission_percentage,
+                  class: "form-control commission-field",
+                  step: 0.01, placeholder: "Enter percentage",
+                  data: { target: "ambassador" }, id: "ambassador_commission_percentage" %>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Commission Amount</label>
+              <input type="number" class="form-control" readonly id="ambassador_commission_amount" step="0.01">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">TDS %</label>
+              <input type="number" class="form-control" value="2.0" step="0.01" id="ambassador_tds_percentage">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">TDS Amount</label>
+              <input type="number" class="form-control" readonly id="ambassador_tds_amount" step="0.01">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <label class="form-label">After TDS Value</label>
+              <input type="number" class="form-control" readonly id="ambassador_after_tds" step="0.01">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Company Expenses & Profit Calculation -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <h6 class="text-primary mb-3">Company Expenses & Profit Calculation</h6>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <%= form.label :company_expenses_percentage, "Company Expenses (%)", class: "form-label" %>
+              <%= form.number_field :company_expenses_percentage,
+                  class: "form-control",
+                  step: 0.01, placeholder: "Enter percentage", id: "company_expenses_percentage" %>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Total Distribution (%)</label>
+              <input type="number" class="form-control" readonly id="total_distribution_percentage" step="0.01">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Profit (%)</label>
+              <input type="number" class="form-control" readonly id="profit_percentage" step="0.01">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label">Profit Amount (₹)</label>
+              <input type="number" class="form-control" readonly id="profit_amount" step="0.01">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Commission Summary -->
+      <div class="alert alert-info">
+        <h6 class="mb-2">Commission Calculation Summary:</h6>
+        <ul class="mb-0">
+          <li>Main Agent Commission: <span id="summary_main_agent">0</span>% of Net Premium</li>
+          <li>Total Distribution: <span id="summary_distribution">0</span>% (Affiliate + Investor + Ambassador)</li>
+          <li>Company Expenses: <span id="summary_expenses">0</span>% of Net Premium</li>
+          <li>Profit: Main Agent Commission - Total Distribution - Company Expenses</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Policy Documents Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-file-earmark me-2 text-primary"></i>
+        Policy Documents Manager
+      </h5>
+      <p class="mb-0 text-muted small">Upload, organize and manage all policy-related documents with secure storage</p>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :policy_documents, "Policy Documents", class: "form-label" %>
+          <%= form.file_field :policy_documents,
+              multiple: true,
+              class: "form-control",
+              accept: ".pdf,.jpg,.jpeg,.png",
+              data: { max_size: "10485760" } %>
+          <div class="form-text">Supports PDF, JPEG, PNG files (Max: 10MB each)</div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :documents, "Additional Documents", class: "form-label" %>
+          <span class="text-muted small">Optional</span>
+          <%= form.file_field :documents,
+              multiple: true,
+              class: "form-control",
+              accept: ".pdf,.jpg,.jpeg,.png,.doc,.docx",
+              data: { max_size: "10485760" } %>
+          <div class="form-text">Supports PDF, Images, Word files - RC, PUC, Insurance copy, etc.</div>
+        </div>
+      </div>
+
+      <!-- Show existing documents if available -->
+      <% if @motor_insurance.policy_documents.attached? || @motor_insurance.documents.attached? %>
+        <div class="mt-4">
+          <h6 class="mb-3">Existing Documents</h6>
+          <div class="row">
+            <% if @motor_insurance.policy_documents.attached? %>
+              <div class="col-md-6">
+                <h6 class="text-muted">Policy Documents</h6>
+                <% @motor_insurance.policy_documents.each do |document| %>
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>
+                    <%= link_to document.filename, rails_blob_path(document, disposition: "attachment"),
+                        class: "text-decoration-none", target: "_blank" %>
+                    <small class="text-muted ms-2">(<%= number_to_human_size(document.byte_size) %>)</small>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+            <% if @motor_insurance.documents.attached? %>
+              <div class="col-md-6">
+                <h6 class="text-muted">Additional Documents</h6>
+                <% @motor_insurance.documents.each do |document| %>
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-file-earmark me-2"></i>
+                    <%= link_to document.filename, rails_blob_path(document, disposition: "attachment"),
+                        class: "text-decoration-none", target: "_blank" %>
+                    <small class="text-muted ms-2">(<%= number_to_human_size(document.byte_size) %>)</small>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Form Actions -->
+  <div class="d-flex justify-content-between align-items-center">
+    <%= link_to admin_motor_insurances_path, class: "btn btn-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>Cancel
+    <% end %>
+
+    <%= form.submit content_for?(:submit_text) ? content_for(:submit_text) : "Update Motor Insurance",
+        class: "btn btn-primary btn-lg" %>
+  </div>
+
+<% end %>
+
+<style>
+/* Custom styling for the simplified form */
+.card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-header h5 {
+  color: #495057;
+  font-weight: 600;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+  border-color: #004085;
+}
+
+.nominee-entry {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6 !important;
+}
+
+.commission-field {
+  border-color: #007bff;
+}
+
+.alert-info {
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+  color: #0c5460;
+}
+
+#customer_select, #policy_holder_select, #affiliate_select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Auto-calculate total premium
+  function calculateTotalPremium() {
+    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+    const gstPercentage = parseFloat(document.getElementById('gst_percentage').value) || 0;
+    const gstAmount = (netPremium * gstPercentage) / 100;
+    const totalPremium = netPremium + gstAmount;
+    document.getElementById('total_premium').value = totalPremium.toFixed(2);
+  }
+
+  // Auto-calculate total IDV
+  function calculateTotalIDV() {
+    const vehicleIdv = parseFloat(document.getElementById('vehicle_idv').value) || 0;
+    const cngIdv = parseFloat(document.getElementById('cng_idv').value) || 0;
+    const totalIdv = vehicleIdv + cngIdv;
+    document.getElementById('total_idv').value = totalIdv.toFixed(2);
+  }
+
+  // Calculate commission amounts
+  function calculateCommissions() {
+    const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+
+    // Main Agent Commission
+    const mainAgentPercent = parseFloat(document.getElementById('main_agent_commission_percentage').value) || 0;
+    const mainAgentAmount = (netPremium * mainAgentPercent) / 100;
+    document.getElementById('main_agent_commission_amount').value = mainAgentAmount.toFixed(2);
+
+    const mainAgentTdsPercent = parseFloat(document.getElementById('main_agent_tds_percentage').value) || 0;
+    const mainAgentTdsAmount = (mainAgentAmount * mainAgentTdsPercent) / 100;
+    document.getElementById('main_agent_tds_amount').value = mainAgentTdsAmount.toFixed(2);
+    document.getElementById('main_agent_after_tds').value = (mainAgentAmount - mainAgentTdsAmount).toFixed(2);
+
+    // Sub Agent Commission
+    const subAgentPercent = parseFloat(document.getElementById('sub_agent_commission_percentage').value) || 0;
+    const subAgentAmount = (netPremium * subAgentPercent) / 100;
+    document.getElementById('sub_agent_commission_amount').value = subAgentAmount.toFixed(2);
+
+    const subAgentTdsPercent = parseFloat(document.getElementById('sub_agent_tds_percentage').value) || 0;
+    const subAgentTdsAmount = (subAgentAmount * subAgentTdsPercent) / 100;
+    document.getElementById('sub_agent_tds_amount').value = subAgentTdsAmount.toFixed(2);
+    document.getElementById('sub_agent_after_tds').value = (subAgentAmount - subAgentTdsAmount).toFixed(2);
+
+    // Investor Commission
+    const investorPercent = parseFloat(document.getElementById('investor_commission_percentage').value) || 0;
+    const investorAmount = (netPremium * investorPercent) / 100;
+    document.getElementById('investor_commission_amount').value = investorAmount.toFixed(2);
+
+    // Ambassador Commission
+    const ambassadorPercent = parseFloat(document.getElementById('ambassador_commission_percentage').value) || 0;
+    const ambassadorAmount = (netPremium * ambassadorPercent) / 100;
+    document.getElementById('ambassador_commission_amount').value = ambassadorAmount.toFixed(2);
+
+    const ambassadorTdsPercent = parseFloat(document.getElementById('ambassador_tds_percentage').value) || 0;
+    const ambassadorTdsAmount = (ambassadorAmount * ambassadorTdsPercent) / 100;
+    document.getElementById('ambassador_tds_amount').value = ambassadorTdsAmount.toFixed(2);
+    document.getElementById('ambassador_after_tds').value = (ambassadorAmount - ambassadorTdsAmount).toFixed(2);
+
+    // Calculate totals
+    const totalDistribution = subAgentPercent + investorPercent + ambassadorPercent;
+    const companyExpenses = parseFloat(document.getElementById('company_expenses_percentage').value) || 0;
+    const profit = mainAgentPercent - totalDistribution - companyExpenses;
+    const profitAmount = (netPremium * profit) / 100;
+
+    document.getElementById('total_distribution_percentage').value = totalDistribution.toFixed(2);
+    document.getElementById('profit_percentage').value = profit.toFixed(2);
+    document.getElementById('profit_amount').value = profitAmount.toFixed(2);
+
+    // Update summary
+    document.getElementById('summary_main_agent').textContent = mainAgentPercent.toFixed(1);
+    document.getElementById('summary_distribution').textContent = totalDistribution.toFixed(1);
+    document.getElementById('summary_expenses').textContent = companyExpenses.toFixed(1);
+  }
+
+  // Event listeners for calculations
+  ['net_premium', 'gst_percentage'].forEach(id => {
+    document.getElementById(id).addEventListener('input', calculateTotalPremium);
+  });
+
+  ['vehicle_idv', 'cng_idv'].forEach(id => {
+    document.getElementById(id).addEventListener('input', calculateTotalIDV);
+  });
+
+  [
+    'main_agent_commission_percentage', 'sub_agent_commission_percentage',
+    'investor_commission_percentage', 'ambassador_commission_percentage',
+    'company_expenses_percentage', 'main_agent_tds_percentage',
+    'sub_agent_tds_percentage', 'ambassador_tds_percentage'
+  ].forEach(id => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener('input', calculateCommissions);
+    }
+  });
+
+  // Nominee management
+  let nomineeCount = document.querySelectorAll('.nominee-entry').length;
+
+  document.getElementById('add-nominee').addEventListener('click', function() {
+    const container = document.getElementById('nominees-container');
+    const nomineeHtml = `
+      <div class="nominee-entry border rounded p-3 mb-3" data-index="${nomineeCount}">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0">Nominee ${nomineeCount + 1}</h6>
+          <button type="button" class="btn btn-sm btn-outline-danger remove-nominee">
+            <i class="bi bi-trash"></i> Remove
+          </button>
+        </div>
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Nominee Name</label>
+            <input type="text" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeCount}][nominee_name]"
+                   class="form-control" placeholder="Enter nominee name">
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Relationship</label>
+            <select name="motor_insurance[motor_insurance_nominees_attributes][${nomineeCount}][relationship]"
+                    class="form-control">
+              <option value="">Select relationship</option>
+              <option value="spouse">Spouse</option>
+              <option value="son">Son</option>
+              <option value="daughter">Daughter</option>
+              <option value="father">Father</option>
+              <option value="mother">Mother</option>
+              <option value="brother">Brother</option>
+              <option value="sister">Sister</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-2 mb-3">
+            <label class="form-label">Age</label>
+            <input type="number" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeCount}][age]"
+                   class="form-control" placeholder="Age" min="1" max="120">
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="form-label">Share Percentage</label>
+            <input type="number" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeCount}][share_percentage]"
+                   class="form-control" placeholder="Share %" min="0" max="100" step="0.01">
+          </div>
+        </div>
+      </div>
+    `;
+    container.insertAdjacentHTML('beforeend', nomineeHtml);
+    nomineeCount++;
+  });
+
+  // Remove nominee
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-nominee')) {
+      e.target.closest('.nominee-entry').remove();
+    }
+  });
+
+  // Initial calculations
+  calculateTotalPremium();
+  calculateTotalIDV();
+  calculateCommissions();
+});
+</script>
