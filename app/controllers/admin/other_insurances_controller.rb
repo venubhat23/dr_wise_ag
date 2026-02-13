@@ -190,6 +190,58 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     }
   end
 
+  # API endpoint for getting agency codes or brokers based on broker type
+  def agency_codes_for_broker_type
+    broker_type = params[:broker_type]
+    case broker_type
+    when 'direct'
+      # FLOW 1: Direct mode - Fetch agents for other insurance
+      # API response format: { agent1: company_name_1, agent2: company_name_2 }
+      agency_codes = AgencyCode.where('insurance_type ILIKE ?', '%general%')
+                               .select(:id, :agent_name, :code, :company_name)
+                               .order(:agent_name)
+      # Transform to required format for dropdown
+      agents_data = agency_codes.map { |ac|
+        {
+          id: ac.id,
+          text: ac.agent_name,  # Show only agent name in dropdown
+          agent_name: ac.agent_name,
+          code: ac.code,
+          company_name: ac.company_name
+        }
+      }
+      render json: {
+        success: true,
+        data: agents_data
+      }
+
+    when 'broking'
+      # FLOW 2: Broking mode - Fetch all brokers with their codes for other insurance
+      # API response format: { broker1 with code, broker2 with code }
+      brokers = Broker.active.includes(:broker_codes).order(:name)
+
+      brokers_data = brokers.map { |broker|
+        # Get the first active broker code for this broker
+        first_code = broker.broker_codes.active.first
+
+        {
+          id: "broker_#{broker.id}",  # Use broker_X format for proper processing
+          text: broker.name,  # Show broker name in dropdown
+          broker_name: broker.name,
+          code: first_code&.broker_code  # Include the broker code at root level
+        }
+      }
+
+      render json: {
+        success: true,
+        data: brokers_data
+      }
+
+    else
+      render json: { success: false, message: 'Invalid broker type. Use "direct" or "broking".' }
+    end
+  end
+
   # API endpoint for getting insurance companies by type
   def insurance_companies_for_type
     insurance_type = params[:insurance_type] || 'General Insurance'

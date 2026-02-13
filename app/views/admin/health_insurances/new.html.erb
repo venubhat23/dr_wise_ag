@@ -1222,7 +1222,7 @@ document.addEventListener('DOMContentLoaded', function() {
             '<div class="agency-option-avatar">' + initials + '</div>' +
             '<div class="agency-option-details">' +
               '<div class="agency-option-name">' + agentName + '</div>' +
-              '<div class="agency-option-code">Code: ' + agencyCode + '</div>' +
+              '<div class="agency-option-code">' + agencyCode + '</div>' +
             '</div>' +
           '</div>'
         );
@@ -2376,7 +2376,14 @@ document.addEventListener('DOMContentLoaded', function() {
       data.forEach(item => {
         const option = document.createElement('option');
         option.value = item.id;
-        option.textContent = item.text;
+        // For brokers with codes, append the code to the text
+        if (item.code && !item.text.includes(' - ')) {
+          option.textContent = item.text + ' - ' + item.code;
+        } else {
+          option.textContent = item.text;
+        }
+        option.setAttribute('data-code', item.code || '');
+        option.setAttribute('data-name', item.broker_name || item.agent_name || item.text);
         agencyCodeSelect.appendChild(option);
       });
 
@@ -2395,11 +2402,20 @@ document.addEventListener('DOMContentLoaded', function() {
             return option.text;
           }
 
+          // Get the name and code from the option text or data attributes
           var parts = option.text.split(' - ');
-          var agentName = parts[0] || option.text;
-          var agencyCode = parts[1] || '';
+          var name = parts[0] || option.text;
+          var code = parts[1] || '';
 
-          var initials = agentName.split(' ').map(function(word) {
+          // If we have data attributes, use them
+          if (option.element && option.element.getAttribute) {
+            var dataCode = option.element.getAttribute('data-code');
+            var dataName = option.element.getAttribute('data-name');
+            if (dataName) name = dataName;
+            if (dataCode) code = dataCode;
+          }
+
+          var initials = name.split(' ').map(function(word) {
             return word.charAt(0).toUpperCase();
           }).join('').substring(0, 2);
 
@@ -2407,8 +2423,8 @@ document.addEventListener('DOMContentLoaded', function() {
             '<div class="agency-option">' +
               '<div class="agency-option-avatar">' + initials + '</div>' +
               '<div class="agency-option-details">' +
-                '<div class="agency-option-name">' + agentName + '</div>' +
-                '<div class="agency-option-code">Code: ' + agencyCode + '</div>' +
+                '<div class="agency-option-name">' + name + '</div>' +
+                '<div class="agency-option-code">' + code + '</div>' +
               '</div>' +
             '</div>'
           );

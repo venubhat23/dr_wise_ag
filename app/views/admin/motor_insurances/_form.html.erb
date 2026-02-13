@@ -505,9 +505,14 @@
       <div id="nominees-section">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <p class="mb-0">Add nominee details for this motor insurance policy.</p>
-          <button type="button" class="btn btn-primary btn-sm" onclick="addNewNominee()">
-            <i class="bi bi-plus-circle me-1"></i>Add Nominee
-          </button>
+          <div>
+            <button type="button" id="load_customer_nominees_btn" class="btn btn-outline-secondary btn-sm me-2" onclick="loadNomineesFromCustomer()">
+              <i class="bi bi-download me-1"></i>Load from Client
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="addNewNominee()">
+              <i class="bi bi-plus-circle me-1"></i>Add Nominee
+            </button>
+          </div>
         </div>
 
         <div id="nominees-container">
@@ -1777,43 +1782,44 @@ document.addEventListener('DOMContentLoaded', function() {
     color: #6c757d;
   }
 
-  /* Custom agency option styling */
+  /* Agency Code option styling - matching health insurance form */
   .agency-option {
     display: flex;
     align-items: center;
     padding: 8px 0;
+    min-height: 45px;
   }
 
   .agency-option-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(45deg, #6f42c1, #e83e8c);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    margin-right: 12px;
-    font-size: 14px;
+    margin-right: 10px;
+    font-size: 12px;
     flex-shrink: 0;
   }
 
   .agency-option-details {
-    display: flex;
-    flex-direction: column;
+    flex: 1;
   }
 
   .agency-option-name {
-    font-weight: 500;
+    font-weight: 600;
     color: #212529;
-    font-size: 14px;
+    margin-bottom: 2px;
   }
 
   .agency-option-code {
-    font-size: 12px;
+    font-size: 11px;
     color: #6c757d;
   }
+
 
   /* Style for read-only commission fields in edit mode */
   .form-control[readonly] {
@@ -1970,20 +1976,45 @@ $(document).ready(function() {
         return option.text;
       }
 
-      var parts = option.text.split(' - ');
-      var agentName = parts[0] || option.text;
-      var agencyCode = parts[1] || '';
+      // Get agent name and code from data attributes first, then parse from text
+      var agentName = option.element ? option.element.getAttribute('data-agent-name') : null;
+      var agencyCode = option.element ? option.element.getAttribute('data-agent-code') : null;
+
+      // If data attributes not available, parse from text
+      if (!agentName || !agencyCode) {
+        var text = option.text;
+
+        // Handle both formats: "Agent Name - Code" and "Agent Name (Code)"
+        if (text.includes(' - ')) {
+          var parts = text.split(' - ');
+          agentName = parts[0];
+          agencyCode = parts[1];
+        } else if (text.includes('(') && text.includes(')')) {
+          var match = text.match(/^(.+?)\s*\((.+?)\)$/);
+          if (match) {
+            agentName = match[1].trim();
+            agencyCode = match[2];
+          } else {
+            agentName = text;
+            agencyCode = '';
+          }
+        } else {
+          agentName = text;
+          agencyCode = '';
+        }
+      }
 
       var initials = agentName.split(' ').map(function(word) {
         return word.charAt(0).toUpperCase();
       }).join('').substring(0, 2);
 
+      // Custom template with only name on first line and only code on second line
       var $option = $(
         '<div class="agency-option">' +
           '<div class="agency-option-avatar">' + initials + '</div>' +
           '<div class="agency-option-details">' +
-            '<div class="agency-option-name">' + agentName + '</div>' +
-            '<div class="agency-option-code">Code: ' + agencyCode + '</div>' +
+            '<div class="agency-option-name" style="font-weight: 500;">' + agentName + '</div>' +
+            '<div class="agency-option-code" style="font-size: 12px; color: #6c757d;">' + agencyCode + '</div>' +
           '</div>' +
         '</div>'
       );
@@ -2218,10 +2249,14 @@ $(document).ready(function() {
         }
       });
 
+      // Load customer nominees when customer is selected
+      loadCustomerNominees(customerId);
     } else {
       // Clear options when no customer is selected
       $policyHolderSelect.empty().append('<option value="">Select Policy Holder</option>').trigger('change');
       $affiliateSelect.val('').trigger('change');
+      // Clear nominees when no customer is selected
+      clearNominees();
     }
   });
 
@@ -2448,18 +2483,81 @@ $(document).ready(function() {
     data.forEach(item => {
       const option = document.createElement('option');
       option.value = item.id;
-      option.textContent = item.text;
+
+      // Extract name and code from the item
+      let name = '';
+      let code = '';
+
+      // Check if item has broker_name/agent_name and code properties (from backend)
+      if (item.broker_name && item.code) {
+        // Broker with code
+        name = item.broker_name;
+        code = item.code;
+        option.textContent = `${name} - ${code}`;
+      } else if (item.agent_name && item.code) {
+        // Agent with code
+        name = item.agent_name;
+        code = item.code;
+        option.textContent = `${name} - ${code}`;
+      } else if (item.text) {
+        // Parse from text if not structured data
+        name = item.text;
+        code = item.code || '';
+        option.textContent = code ? `${name} - ${code}` : name;
+      }
+
+      // Set data attributes for the template to use
+      if (name) option.setAttribute('data-name', name);
+      if (code) option.setAttribute('data-code', code);
+
       agencySelect.appendChild(option);
     });
 
-    // Reinitialize Select2
+    // Reinitialize Select2 with custom templates
     $(agencySelect).select2({
       theme: 'bootstrap-5',
       placeholder: placeholder,
       allowClear: true,
       width: '100%',
       dropdownParent: $('body'),
-      minimumResultsForSearch: 0
+      minimumResultsForSearch: 0,
+      templateResult: function(option) {
+        if (!option.id || !option.element) {
+          return option.text;
+        }
+
+        // Get name and code from data attributes
+        const name = option.element.getAttribute('data-name') || '';
+        const code = option.element.getAttribute('data-code') || '';
+
+        if (!name && !code) {
+          // Try to parse from text if attributes not found
+          const parts = option.text.split(' - ');
+          const parsedName = parts[0] || option.text;
+          const parsedCode = parts[1] || '';
+
+          if (parsedCode) {
+            return $('<div>' +
+              '<div style="font-weight: 600;">' + parsedName + '</div>' +
+              '<div style="font-size: 12px; color: #6c757d;">' + parsedCode + '</div>' +
+            '</div>');
+          }
+          return option.text;
+        }
+
+        // Create two-line display
+        if (code) {
+          return $('<div>' +
+            '<div style="font-weight: 600;">' + name + '</div>' +
+            '<div style="font-size: 12px; color: #6c757d;">' + code + '</div>' +
+          '</div>');
+        }
+
+        return name || option.text;
+      },
+      templateSelection: function(option) {
+        return option.text || placeholder;
+      }
     });
 
     // Attach change listener for agency selection
@@ -2835,27 +2933,19 @@ $(document).ready(function() {
   // Nominee Management Functions
   let nomineeIndex = <%= @motor_insurance.motor_insurance_nominees.length %>;
 
-  // Auto-load nominees when customer is selected
-  $('#customer_select').on('change', function() {
-    const customerId = this.value;
-    if (customerId) {
-      loadCustomerNominees(customerId);
-    } else {
-      clearNominees();
-    }
-  });
+  // Note: Customer change handler is already defined above, which will call loadCustomerNominees
 
   // Function to load customer nominees via AJAX
-  function loadCustomerNominees(customerId) {
+  window.loadCustomerNominees = function(customerId) {
     $.ajax({
       url: '<%= load_customer_nominees_admin_motor_insurances_path %>',
       method: 'GET',
       data: { customer_id: customerId },
-      success: function(data) {
-        clearNominees();
-        if (data && data.length > 0) {
-          data.forEach(function(member) {
-            addNomineeFromFamilyMember(member);
+      success: function(response) {
+        if (response.success && response.nominees && response.nominees.length > 0) {
+          clearNominees();
+          response.nominees.forEach(function(nominee) {
+            addNomineeFromFamilyMember(nominee);
           });
           toggleNoNomineesMessage();
         }
@@ -2867,36 +2957,36 @@ $(document).ready(function() {
   }
 
   // Function to add nominee from family member data
-  function addNomineeFromFamilyMember(member) {
+  window.addNomineeFromFamilyMember = function(nominee) {
     const nomineeHtml = `
       <div class="nominee-row border rounded p-3 mb-3" style="background-color: #f8f9fa;">
         <input type="hidden" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeIndex}][id]" id="motor_insurance_motor_insurance_nominees_attributes_${nomineeIndex}_id">
         <div class="row">
           <div class="col-md-4 mb-3">
             <label class="form-label">Nominee Name <span class="text-danger">*</span></label>
-            <input class="form-control" placeholder="Enter nominee name" required="required" type="text" value="${member.full_name}" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeIndex}][nominee_name]" id="motor_insurance_motor_insurance_nominees_attributes_${nomineeIndex}_nominee_name">
+            <input class="form-control" placeholder="Enter nominee name" required="required" type="text" value="${nominee.nominee_name || ''}" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeIndex}][nominee_name]" id="motor_insurance_motor_insurance_nominees_attributes_${nomineeIndex}_nominee_name">
           </div>
           <div class="col-md-3 mb-3">
             <label class="form-label">Relationship <span class="text-danger">*</span></label>
             <select class="form-control" required="required" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeIndex}][relationship]" id="motor_insurance_motor_insurance_nominees_attributes_${nomineeIndex}_relationship">
               <option value="">Select Relationship</option>
-              <option value="spouse" ${member.relationship === 'spouse' ? 'selected' : ''}>Spouse</option>
-              <option value="son" ${member.relationship === 'son' ? 'selected' : ''}>Son</option>
-              <option value="daughter" ${member.relationship === 'daughter' ? 'selected' : ''}>Daughter</option>
-              <option value="father" ${member.relationship === 'father' ? 'selected' : ''}>Father</option>
-              <option value="mother" ${member.relationship === 'mother' ? 'selected' : ''}>Mother</option>
-              <option value="brother" ${member.relationship === 'brother' ? 'selected' : ''}>Brother</option>
-              <option value="sister" ${member.relationship === 'sister' ? 'selected' : ''}>Sister</option>
-              <option value="other" ${member.relationship === 'other' ? 'selected' : ''}>Other</option>
+              <option value="spouse" ${nominee.relationship === 'spouse' ? 'selected' : ''}>Spouse</option>
+              <option value="son" ${nominee.relationship === 'son' ? 'selected' : ''}>Son</option>
+              <option value="daughter" ${nominee.relationship === 'daughter' ? 'selected' : ''}>Daughter</option>
+              <option value="father" ${nominee.relationship === 'father' ? 'selected' : ''}>Father</option>
+              <option value="mother" ${nominee.relationship === 'mother' ? 'selected' : ''}>Mother</option>
+              <option value="brother" ${nominee.relationship === 'brother' ? 'selected' : ''}>Brother</option>
+              <option value="sister" ${nominee.relationship === 'sister' ? 'selected' : ''}>Sister</option>
+              <option value="other" ${nominee.relationship === 'other' ? 'selected' : ''}>Other</option>
             </select>
           </div>
           <div class="col-md-2 mb-3">
             <label class="form-label">Age <span class="text-danger">*</span></label>
-            <input class="form-control" placeholder="Age" required="required" min="0" max="120" type="number" value="${member.age || ''}" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeIndex}][age]" id="motor_insurance_motor_insurance_nominees_attributes_${nomineeIndex}_age">
+            <input class="form-control" placeholder="Age" required="required" min="0" max="120" type="number" value="${nominee.age || ''}" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeIndex}][age]" id="motor_insurance_motor_insurance_nominees_attributes_${nomineeIndex}_age">
           </div>
           <div class="col-md-2 mb-3">
             <label class="form-label">Share (%)</label>
-            <input class="form-control" placeholder="100" min="0" max="100" step="0.01" type="number" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeIndex}][share_percentage]" id="motor_insurance_motor_insurance_nominees_attributes_${nomineeIndex}_share_percentage">
+            <input class="form-control" placeholder="100" min="0" max="100" step="0.01" type="number" value="100" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeIndex}][share_percentage]" id="motor_insurance_motor_insurance_nominees_attributes_${nomineeIndex}_share_percentage">
           </div>
           <div class="col-md-1 mb-3 d-flex align-items-end">
             <button type="button" class="btn btn-danger btn-sm" onclick="removeNominee(this)" title="Remove nominee">
@@ -2913,7 +3003,7 @@ $(document).ready(function() {
   }
 
   // Function to clear all nominees
-  function clearNominees() {
+  window.clearNominees = function() {
     $('.nominee-row').remove();
     toggleNoNomineesMessage();
   }
@@ -2934,6 +3024,52 @@ $(document).ready(function() {
 });
 
 // Global nominee management functions (outside jQuery)
+function loadNomineesFromCustomer() {
+  const customerSelect = document.getElementById('customer_select');
+  const customerId = customerSelect ? customerSelect.value : null;
+
+  if (!customerId) {
+    alert('Please select a client first');
+    return;
+  }
+
+  // Show loading state on button
+  const btn = document.getElementById('load_customer_nominees_btn');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Loading...';
+  btn.disabled = true;
+
+  $.ajax({
+    url: '<%= load_customer_nominees_admin_motor_insurances_path %>',
+    method: 'GET',
+    data: { customer_id: customerId },
+    success: function(response) {
+      if (response.success && response.nominees && response.nominees.length > 0) {
+        clearNominees();
+        response.nominees.forEach(function(nominee) {
+          addNomineeFromFamilyMember(nominee);
+        });
+        toggleNoNomineesMessage();
+        alert(`Successfully loaded ${response.nominees.length} nominee(s) from client's family members.`);
+      } else {
+        alert('No family members found for this client.');
+      }
+
+      // Restore button state
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    },
+    error: function(xhr, status, error) {
+      console.error('Error loading customer nominees:', error);
+      alert('Error loading nominees. Please try again.');
+
+      // Restore button state
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  });
+}
+
 function addNewNominee() {
   const index = document.querySelectorAll('.nominee-row').length;
 

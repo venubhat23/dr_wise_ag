@@ -509,15 +509,19 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       }
 
     when 'broking'
-      # FLOW 2: Broking mode - Fetch all brokers for motor insurance
-      # API response format: { broker1, broker2 }
-      brokers = Broker.active.order(:name)
+      # FLOW 2: Broking mode - Fetch all brokers with their codes for motor insurance
+      # API response format: { broker1 with code, broker2 with code }
+      brokers = Broker.active.includes(:broker_codes).order(:name)
 
       brokers_data = brokers.map { |broker|
+        # Get the first active broker code for this broker
+        first_code = broker.broker_codes.active.first
+
         {
           id: "broker_#{broker.id}",  # Use broker_X format for proper processing
           text: broker.name,  # Show broker name in dropdown
-          broker_name: broker.name
+          broker_name: broker.name,
+          code: first_code&.broker_code  # Include the broker code at root level
         }
       }
 

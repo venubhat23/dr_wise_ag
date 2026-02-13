@@ -148,7 +148,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       agents_data = agency_codes.map { |ac|
         {
           id: ac.id,
-          text: ac.agent_name,  # Show only agent name in dropdown
+          text: "#{ac.agent_name} - #{ac.code}",  # Show agent name with code in dropdown
           agent_name: ac.agent_name,
           code: ac.code,
           company_name: ac.company_name
@@ -161,15 +161,19 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       }
 
     when 'broking'
-      # FLOW 2: Broking mode - Fetch all brokers for health insurance
-      # API response format: { broker1, broker2 }
-      brokers = Broker.active.order(:name)
+      # FLOW 2: Broking mode - Fetch all brokers with their codes for health insurance
+      # API response format: { broker1 with code, broker2 with code }
+      brokers = Broker.active.includes(:broker_codes).order(:name)
 
       brokers_data = brokers.map { |broker|
+        # Get the first active broker code for this broker
+        first_code = broker.broker_codes.active.first
+
         {
           id: broker.id,
           text: broker.name,  # Show broker name in dropdown
-          broker_name: broker.name
+          broker_name: broker.name,
+          code: first_code&.broker_code  # Include the broker code at root level
         }
       }
 

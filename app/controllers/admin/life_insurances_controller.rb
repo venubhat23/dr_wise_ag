@@ -553,6 +553,49 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     }
   end
 
+  # API endpoint to load customer nominees for auto-population
+  def load_customer_nominees
+    customer_id = params[:customer_id]
+
+    if customer_id.present?
+      begin
+        customer = Customer.find(customer_id)
+        family_members = customer.family_members.includes(:customer)
+
+        # Build nominee options from family members
+        nominee_options = []
+
+        family_members.each do |member|
+          if member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
+            nominee_options << {
+              nominee_name: member.name,
+              relationship: member.relationship&.downcase || 'other',
+              age: member.age || 0
+            }
+          end
+        end
+
+        render json: {
+          success: true,
+          nominees: nominee_options,
+          customer_name: customer.display_name
+        }
+      rescue ActiveRecord::RecordNotFound
+        render json: {
+          success: false,
+          message: 'Customer not found',
+          nominees: []
+        }
+      end
+    else
+      render json: {
+        success: false,
+        message: 'Customer ID is required',
+        nominees: []
+      }
+    end
+  end
+
   private
 
   def set_life_insurance

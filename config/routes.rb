@@ -297,6 +297,7 @@ Rails.application.routes.draw do
         get :all_brokers
         get :agency_codes_for_broker_type
         get :insurance_companies_for_type
+        get :load_customer_nominees
       end
       member do
         get :commission_details
@@ -349,6 +350,7 @@ Rails.application.routes.draw do
       collection do
         get :all_agency_codes
         get :all_brokers
+        get :agency_codes_for_broker_type
         get :insurance_companies_for_type
         get :insurance_companies_by_agency
         get :load_customer_nominees

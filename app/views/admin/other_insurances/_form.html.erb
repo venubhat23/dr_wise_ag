@@ -98,7 +98,7 @@
     </div>
     <div class="card-body">
       <div class="row">
-        <!-- Broker Code dropdown -->
+        <!-- 1st: Broker Code dropdown with Direct/Broking options -->
         <div class="col-md-4 mb-3">
           <%= form.label :broker_code_type, "Broker Code", class: "form-label" %>
           <%= form.select :broker_code_type,
@@ -110,40 +110,61 @@
               { class: "form-control", id: "other_insurance_broker_code_type" } %>
         </div>
 
-        <!-- Agency Code -->
+        <!-- 2nd: Agency Code (shows Agents when Direct selected, Brokers when Broking selected) -->
         <div class="col-md-4 mb-3">
           <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
           <span class="dynamic-label" id="agency_code_label_text"></span>
+          <%
+            # Build options based on broker_code_type for edit mode
+            agency_options = []
+            selected_value = nil
+
+            if @other_insurance.persisted?
+              if @other_insurance.broker_code_type == 'direct' && @other_insurance.agency_code_id.present?
+                # For direct mode, load the specific agency code
+                agency_code = AgencyCode.find_by(id: @other_insurance.agency_code_id)
+                if agency_code
+                  agency_options << ["#{agency_code.agent_name} - #{agency_code.code}", agency_code.id]
+                  selected_value = agency_code.id
+                end
+              elsif @other_insurance.broker_code_type == 'broking' && @other_insurance.broker_id.present?
+                # For broking mode, load the specific broker
+                broker = Broker.find_by(id: @other_insurance.broker_id)
+                if broker
+                  agency_options << [broker.name, "broker_#{broker.id}"]
+                  selected_value = "broker_#{broker.id}"
+                end
+              end
+            end
+
+            # If no specific options loaded (new record), use default agency codes
+            if agency_options.empty?
+              agency_options = @agency_codes.map { |a| ["#{a.agent_name} - #{a.code}", a.id] }
+            end
+          %>
           <%= form.select :agency_code_id,
-              options_for_select(@agency_codes.map { |a| ["#{a.agent_name} - #{a.code}", a.id] }, @other_insurance.agency_code_id),
+              options_for_select(agency_options, selected_value),
               { prompt: 'Search and select agency code...' },
               { class: "form-control", id: "other_insurance_agency_code_id", data: { placeholder: "Type to search agency codes..." } } %>
         </div>
 
-        <!-- Broker ID (when Broking selected) -->
-        <div class="col-md-4 mb-3" id="broker_id_container" style="<%= @other_insurance.broker_code_type == 'broking' ? '' : 'display:none;' %>">
-          <%= form.label :broker_id, "Select Broker", class: "form-label" %>
-          <%= form.select :broker_id,
-              options_for_select(@brokers&.map { |b| [b.name, b.id] } || [], @other_insurance.broker_id),
-              { prompt: 'Select Broker' },
-              { class: "form-control", id: "other_insurance_broker_id" } %>
-        </div>
-      </div>
+        <!-- Hidden field for broker_id when needed -->
+        <%= form.hidden_field :broker_id, id: "broker_id_hidden" %>
 
-      <div class="row">
+        <!-- 3rd: Insurance Company Name (Dynamic based on Agent/Broker selection) -->
         <div class="col-md-4 mb-3">
           <%= form.label :insurance_company_name, "Insurance Company Name*", class: "form-label" %>
           <%= form.select :insurance_company_name,
-              options_for_select(InsuranceCompany.pluck(:name, :name), @other_insurance.insurance_company_name),
+              options_for_select(@insurance_companies&.map { |c| [c, c] } || [], @other_insurance.insurance_company_name),
               { prompt: 'Search and select company...' },
-              { class: "form-control #{'is-invalid' if @other_insurance.errors[:insurance_company_name].any?}",
-                required: true,
-                id: "insurance_company_select",
-                data: { placeholder: "Type to search companies..." } } %>
+              { class: "form-control #{'is-invalid' if @other_insurance.errors[:insurance_company_name].any?}", required: true, id: "other_insurance_insurance_company_name", data: { placeholder: "Type to search companies..." }, disabled: @other_insurance.new_record? } %>
           <% if @other_insurance.errors[:insurance_company_name].any? %>
             <div class="invalid-feedback"><%= @other_insurance.errors[:insurance_company_name].first %></div>
           <% end %>
         </div>
+      </div>
+
+      <div class="row">
 
         <div class="col-md-4 mb-3">
           <%= form.label :insurance_type, "Insurance Type*", class: "form-label" %>
@@ -1264,20 +1285,139 @@ document.addEventListener('DOMContentLoaded', function() {
     $('#customer_select').trigger('select2:select');
   }
 
-  // Broker code type handling
+  // Broker code type handling - Dynamic Agency/Broker Loading
   const brokerCodeType = document.getElementById('other_insurance_broker_code_type');
   const brokerContainer = document.getElementById('broker_id_container');
   const agencyCodeSelect = document.getElementById('other_insurance_agency_code_id');
+  const companyNameSelect = document.getElementById('other_insurance_insurance_company_name');
+  const brokerIdHidden = document.getElementById('broker_id_hidden');
+  const labelText = document.getElementById('agency_code_label_text');
 
   if (brokerCodeType) {
     brokerCodeType.addEventListener('change', function() {
-      if (this.value === 'broking') {
-        if (brokerContainer) brokerContainer.style.display = 'block';
-        // You can add AJAX call here to load brokers if needed
-      } else {
-        if (brokerContainer) brokerContainer.style.display = 'none';
+      const brokerType = this.value;
+
+      if (brokerType) {
+        // Update label based on selection
+        if (labelText) {
+          labelText.textContent = brokerType === 'direct' ? ' (Select Agent)' : ' (Select Broker)';
+        }
+
+        // Clear existing options
+        $('#other_insurance_agency_code_id').empty();
+        $('#other_insurance_agency_code_id').append('<option value="">Loading...</option>');
+
+        // Fetch agency codes or brokers based on type
+        fetch(`/admin/insurance/other/agency_codes_for_broker_type?broker_type=${brokerType}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success && data.data) {
+              // Clear and rebuild options
+              $('#other_insurance_agency_code_id').empty();
+              $('#other_insurance_agency_code_id').append('<option value="">Search and select...</option>');
+
+              data.data.forEach(item => {
+                let optionText = item.text;
+                if (item.code) {
+                  optionText += ` - ${item.code}`;
+                }
+                $('#other_insurance_agency_code_id').append(
+                  `<option value="${item.id}" data-company="${item.company_name || ''}" data-broker-name="${item.broker_name || ''}">${optionText}</option>`
+                );
+              });
+
+              // Reinitialize Select2
+              $('#other_insurance_agency_code_id').select2('destroy');
+              $('#other_insurance_agency_code_id').select2({
+                theme: 'bootstrap-5',
+                placeholder: brokerType === 'direct' ? 'Type to search agents...' : 'Type to search brokers...',
+                allowClear: true,
+                width: '100%'
+              });
+
+              // Enable company name dropdown
+              $('#other_insurance_insurance_company_name').prop('disabled', false);
+            }
+          })
+          .catch(error => {
+            console.error('Error loading agency codes:', error);
+            $('#other_insurance_agency_code_id').empty();
+            $('#other_insurance_agency_code_id').append('<option value="">Error loading data</option>');
+          });
       }
     });
+
+    // Handle agency/broker selection
+    $('#other_insurance_agency_code_id').on('change', function() {
+      const selectedOption = $(this).find('option:selected');
+      const selectedValue = $(this).val();
+      const brokerType = brokerCodeType.value;
+
+      if (selectedValue) {
+        if (brokerType === 'broking' && selectedValue.startsWith('broker_')) {
+          // Extract broker ID and set it in hidden field
+          const brokerId = selectedValue.replace('broker_', '');
+          if (brokerIdHidden) brokerIdHidden.value = brokerId;
+        } else if (brokerType === 'direct') {
+          // Clear broker ID for direct mode
+          if (brokerIdHidden) brokerIdHidden.value = '';
+
+          // Auto-populate company name if available
+          const companyName = selectedOption.data('company');
+          if (companyName && companyNameSelect) {
+            // Check if company exists in select options
+            const existingOption = Array.from(companyNameSelect.options).find(opt => opt.value === companyName);
+            if (!existingOption) {
+              // Add the company as an option
+              $(companyNameSelect).append(`<option value="${companyName}">${companyName}</option>`);
+            }
+            $(companyNameSelect).val(companyName).trigger('change');
+          }
+        }
+
+        // Load insurance companies based on selection
+        loadInsuranceCompanies(brokerType, selectedValue);
+      }
+    });
+
+    // Function to load insurance companies
+    function loadInsuranceCompanies(brokerType, agencyOrBrokerId) {
+      $('#other_insurance_insurance_company_name').empty();
+      $('#other_insurance_insurance_company_name').append('<option value="">Loading companies...</option>');
+
+      // Fetch insurance companies
+      fetch(`/admin/insurance/other/insurance_companies_for_type?insurance_type=General%20Insurance`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && data.data) {
+            $('#other_insurance_insurance_company_name').empty();
+            $('#other_insurance_insurance_company_name').append('<option value="">Search and select company...</option>');
+
+            data.data.forEach(company => {
+              $('#other_insurance_insurance_company_name').append(
+                `<option value="${company.id}">${company.text}</option>`
+              );
+            });
+
+            // Reinitialize Select2
+            $('#other_insurance_insurance_company_name').select2('destroy');
+            $('#other_insurance_insurance_company_name').select2({
+              theme: 'bootstrap-5',
+              placeholder: 'Type to search companies...',
+              allowClear: false,
+              width: '100%'
+            });
+          }
+        })
+        .catch(error => {
+          console.error('Error loading companies:', error);
+        });
+    }
+
+    // Trigger initial load if broker type is selected
+    if (brokerCodeType.value) {
+      brokerCodeType.dispatchEvent(new Event('change'));
+    }
   }
 
   // Auto-calculation functions
