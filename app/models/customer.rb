@@ -113,7 +113,7 @@ class Customer < ApplicationRecord
   # Instance methods
   def full_name
     if individual?
-      "#{first_name} #{middle_name} #{last_name}".strip.squeeze(' ')
+      [first_name, middle_name, last_name].compact.join(' ').strip
     else
       company_name
     end
