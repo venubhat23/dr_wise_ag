@@ -93,27 +93,26 @@
       </div>
 
       <!-- Insurance Type Filter -->
-      <div>
+      <div class="filter-type-small">
         <%= form.select :insurance_type,
                        options_for_select([
                          ['All Types', ''],
-                         ['Health', 'Health'],
-                         ['Motor', 'Motor'],
-                         ['Life', 'Life'],
-                         ['General', 'General'],
-                         ['Other', 'Other']
+                         ['Health Insurance', 'Health Insurance'],
+                         ['Life Insurance', 'Life Insurance'],
+                         ['Motor and Other Insurance', 'Motor and Other Insurance']
                        ], params[:insurance_type]),
                        {},
                        { class: "form-select", id: "insurance_type_filter" } %>
       </div>
 
       <!-- Company Filter -->
-      <div>
+      <div class="filter-company-large">
         <%= form.select :company,
                        options_for_select([['All Companies', '']] + @insurance_companies.map { |company| [company, company] }, params[:company]),
                        {},
-                       { class: "form-select", id: "company_filter" } %>
+                       { class: "form-select searchable-company-select", id: "company_filter", data: { placeholder: "Search companies..." } } %>
       </div>
+
 
       <!-- Actions -->
       <div class="d-flex gap-2">
@@ -126,6 +125,55 @@
 <style>
 .min-width-250 {
   min-width: 250px;
+}
+
+/* Filter spacing adjustments */
+.filter-type-small {
+  min-width: 180px;
+  max-width: 200px;
+}
+
+.filter-company-large {
+  min-width: 280px;
+  flex: 1;
+}
+
+/* Ensure consistent heights for ALL filter elements */
+#search_input,
+.filter-type-small .form-select,
+.filter-company-large .form-select,
+.select2-container--bootstrap-5 .select2-selection--single {
+  height: 38px !important;
+  line-height: 1.5 !important;
+  padding: 6px 12px !important;
+  font-size: 1rem !important;
+  border: 1px solid #ced4da !important;
+  border-radius: 6px !important;
+  box-sizing: border-box !important;
+}
+
+/* Fix Select2 specific styling to match form-select */
+.select2-container--bootstrap-5 .select2-selection__rendered {
+  line-height: 26px !important;
+  padding-left: 12px !important;
+  padding-right: 20px !important;
+}
+
+/* Ensure search input matches exactly */
+#search_input {
+  min-height: 38px !important;
+  max-height: 38px !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .filter-type-small,
+  .filter-company-large {
+    min-width: unset;
+    max-width: unset;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
 }
 </style>
 
@@ -259,3 +307,94 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 </script>
+
+<!-- jQuery and Select2 for searchable company dropdown -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function() {
+  // Initialize Select2 for company dropdown
+  $('.searchable-company-select').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Search and select company...',
+    allowClear: true,
+    width: '100%',
+    minimumResultsForSearch: 0, // Show search box always
+    dropdownParent: $('body'),
+    matcher: function(params, data) {
+      // If there are no search terms, return all data
+      if ($.trim(params.term) === '') {
+        return data;
+      }
+
+      // Skip if there is no 'children' property
+      if (typeof data.children === 'undefined') {
+        // Check if the text contains the term (case insensitive)
+        if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+          return data;
+        }
+      }
+
+      // Return null if the term should not be displayed
+      return null;
+    }
+  });
+
+  // Handle Select2 change event for company filter
+  $('.searchable-company-select').on('select2:select select2:clear', function() {
+    // Trigger form submission when company is selected or cleared
+    setTimeout(() => {
+      $('#search_form').submit();
+    }, 100);
+  });
+});
+</script>
+
+<style>
+/* Select2 Bootstrap 5 styling for company dropdown */
+.select2-container--bootstrap-5 .select2-selection--single:focus-within {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.select2-container--bootstrap-5 .select2-selection__rendered {
+  color: #212529;
+}
+
+.select2-container--bootstrap-5 .select2-results__option {
+  padding: 6px 12px;
+  font-size: 1rem;
+}
+
+.select2-container--bootstrap-5 .select2-results__option--highlighted {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.select2-dropdown {
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.select2-results__options {
+  max-height: 300px !important;
+  overflow-y: auto;
+}
+
+.select2-search__field {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 1rem;
+}
+
+.select2-search__field:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  outline: 0;
+}
+</style>

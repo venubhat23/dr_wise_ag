@@ -22,6 +22,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
       @agency_codes = @agency_codes.by_insurance_type(params[:insurance_type])
     end
 
+
     respond_to do |format|
       format.html do
         # Get total count before pagination for display purposes
@@ -30,8 +31,8 @@ class Admin::AgencyCodesController < Admin::ApplicationController
         # Apply pagination (10 records per page)
         @agency_codes = @agency_codes.order(created_at: :desc).page(params[:page]).per(10)
 
-        # For filters
-        @insurance_companies = insurance_companies_list
+        # For filters - get all companies sorted alphabetically
+        @insurance_companies = get_all_companies_sorted
 
         # Statistics (use unfiltered counts for stats cards)
         @total_codes = AgencyCode.count
@@ -142,6 +143,7 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     if params[:insurance_type].present?
       @agency_codes = @agency_codes.by_insurance_type(params[:insurance_type])
     end
+
 
     # Get total count before pagination for display purposes
     @total_filtered_count = @agency_codes.count
@@ -640,5 +642,31 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     render json: companies
   rescue ActiveRecord::RecordNotFound
     render json: [], status: :not_found
+  end
+
+  # Get all companies sorted alphabetically
+  def get_all_companies_sorted
+    # Get companies from database first (active insurance companies)
+    db_companies = InsuranceCompany.where(status: true)
+                                 .order('LOWER(name) ASC')
+                                 .pluck(:name)
+                                 .compact
+                                 .reject(&:blank?)
+
+    # Get companies from agency codes if database is empty
+    if db_companies.empty?
+      agency_companies = AgencyCode.select(:company_name)
+                                 .where.not(company_name: [nil, ''])
+                                 .group(:company_name)
+                                 .order('LOWER(company_name) ASC')
+                                 .pluck(:company_name)
+                                 .compact
+                                 .reject(&:blank?)
+
+      return agency_companies
+    end
+
+    # Return database companies sorted alphabetically
+    db_companies
   end
 end
