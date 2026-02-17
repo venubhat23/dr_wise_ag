@@ -1,10 +1,13 @@
-<!-- Page Header -->
+<!-- Enhanced Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-0">Insurance Companies</h2>
+    <h2 class="mb-0 text-primary">
+      <i class="bi bi-building me-2"></i>Insurance Companies
+    </h2>
+    <p class="text-muted mb-0">Manage insurance company partnerships and policies</p>
   </div>
-  <div>
-    <%= link_to new_admin_insurance_company_path, class: "btn btn-primary" do %>
+  <div class="d-flex gap-2">
+    <%= link_to new_admin_insurance_company_path, class: "btn btn-primary shadow-sm" do %>
       <i class="bi bi-plus-lg me-1"></i>
       Add Insurance Company
     <% end %>
@@ -19,7 +22,7 @@
         <div class="d-flex align-items-center">
           <div class="flex-grow-1">
             <h6 class="text-muted mb-1">Total Companies</h6>
-            <h4 class="mb-0"><%= @total_companies %></h4>
+            <h4 class="mb-0" data-stat="total"><%= @total_companies %></h4>
           </div>
           <div class="text-primary">
             <i class="bi bi-building fs-2"></i>
@@ -34,7 +37,7 @@
         <div class="d-flex align-items-center">
           <div class="flex-grow-1">
             <h6 class="text-muted mb-1">Life Insurance Companies</h6>
-            <h4 class="mb-0"><%= @life_companies %></h4>
+            <h4 class="mb-0" data-stat="life"><%= @life_companies %></h4>
           </div>
           <div class="text-success">
             <i class="bi bi-heart-pulse fs-2"></i>
@@ -49,7 +52,7 @@
         <div class="d-flex align-items-center">
           <div class="flex-grow-1">
             <h6 class="text-muted mb-1">Health Insurance Companies</h6>
-            <h4 class="mb-0"><%= @health_companies %></h4>
+            <h4 class="mb-0" data-stat="health"><%= @health_companies %></h4>
           </div>
           <div class="text-info">
             <i class="bi bi-shield-plus fs-2"></i>
@@ -64,7 +67,7 @@
         <div class="d-flex align-items-center">
           <div class="flex-grow-1">
             <h6 class="text-muted mb-1">General Insurance Companies</h6>
-            <h4 class="mb-0"><%= @general_companies %></h4>
+            <h4 class="mb-0" data-stat="motor"><%= @general_companies %></h4>
           </div>
           <div class="text-warning">
             <i class="bi bi-shield-check fs-2"></i>
@@ -150,29 +153,19 @@
                     </div>
                     <div>
                       <h6 class="mb-0"><%= company.name %></h6>
-                      <small class="text-muted">ID: #<%= company.id %></small>
                     </div>
                   </div>
                 </td>
                 <td class="align-middle">
                   <% case company.insurance_type %>
-                  <% when 'Life' %>
-                    <span class="badge bg-success-subtle text-success">
-                      <i class="bi bi-heart-pulse me-1"></i>
-                      Life
-                    </span>
-                  <% when 'Health' %>
-                    <span class="badge bg-info-subtle text-info">
-                      <i class="bi bi-shield-plus me-1"></i>
-                      Health
-                    </span>
-                  <% when 'General' %>
-                    <span class="badge bg-warning-subtle text-warning">
-                      <i class="bi bi-shield-check me-1"></i>
-                      General
-                    </span>
+                  <% when 'life' %>
+                    Life Insurance
+                  <% when 'health' %>
+                    Health Insurance
+                  <% when 'motor_other' %>
+                    General Insurance
                   <% else %>
-                    <span class="badge bg-secondary-subtle text-secondary">N/A</span>
+                    Not Specified
                   <% end %>
                 </td>
                 <td class="align-middle">
@@ -248,9 +241,22 @@
   </div>
 </div>
 
+<!-- Set body data attributes for optimized JavaScript -->
+<script>
+  document.body.dataset.controller = 'insurance_companies';
+  document.body.dataset.action = 'index';
+</script>
+
+
+<!-- Fallback JavaScript for browsers without module support -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Search functionality - submit form on input change
+  // Only run fallback if optimized version didn't load
+  if (window.InsuranceCompaniesOptimized) return;
+
+  console.warn('Loading fallback JavaScript for Insurance Companies');
+
+  // Basic search functionality fallback
   const searchInput = document.getElementById('searchInput');
   const searchForm = searchInput?.closest('form');
 
@@ -258,16 +264,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let searchTimeout;
 
     searchInput.addEventListener('input', function() {
-      // Clear the previous timeout
       clearTimeout(searchTimeout);
-
-      // Set a new timeout to submit the form after user stops typing
       searchTimeout = setTimeout(() => {
         searchForm.submit();
-      }, 500); // Wait 500ms after user stops typing
+      }, 500);
     });
 
-    // Also submit on Enter key
     searchInput.addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -277,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Handle delete functionality with confirmation
+  // Basic delete functionality fallback
   document.addEventListener('click', function(e) {
     if (e.target.closest('.delete-company')) {
       e.preventDefault();
@@ -287,15 +289,12 @@ document.addEventListener('DOMContentLoaded', function() {
       const companyName = button.dataset.companyName;
       const confirmMessage = button.dataset.confirm;
 
-      // Show confirmation dialog
       if (confirm(confirmMessage)) {
-        // Create and submit a form for DELETE request
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = url;
         form.style.display = 'none';
 
-        // Add CSRF token
         const csrfToken = document.querySelector('meta[name="csrf-token"]');
         if (csrfToken) {
           const csrfInput = document.createElement('input');
@@ -305,14 +304,12 @@ document.addEventListener('DOMContentLoaded', function() {
           form.appendChild(csrfInput);
         }
 
-        // Add method override for DELETE
         const methodInput = document.createElement('input');
         methodInput.type = 'hidden';
         methodInput.name = '_method';
         methodInput.value = 'DELETE';
         form.appendChild(methodInput);
 
-        // Append form to body and submit
         document.body.appendChild(form);
         form.submit();
       }

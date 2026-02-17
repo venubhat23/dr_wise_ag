@@ -415,8 +415,13 @@ Rails.application.routes.draw do
       end
     end
 
-    # Insurance companies
-    resources :insurance_companies
+    # Insurance companies with API endpoints
+    resources :insurance_companies do
+      collection do
+        get :search      # AJAX search endpoint
+        get :statistics  # AJAX statistics endpoint
+      end
+    end
 
     # Helpdesk management
     resources :helpdesk, path: 'helpdesk' do
