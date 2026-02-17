@@ -20,7 +20,7 @@
 
 <!-- Statistics Cards -->
 <div class="row mb-4">
-  <div class="col-xl-3 col-md-6 mb-3">
+  <div class="col-lg-4 col-md-6 mb-3">
     <div class="card h-100 border-0 shadow-sm">
       <div class="card-body">
         <div class="d-flex justify-content-between">
@@ -38,7 +38,7 @@
     </div>
   </div>
 
-  <div class="col-xl-3 col-md-6 mb-3">
+  <div class="col-lg-4 col-md-6 mb-3">
     <div class="card h-100 border-0 shadow-sm">
       <div class="card-body">
         <div class="d-flex justify-content-between">
@@ -65,7 +65,7 @@
     </div>
   </div>
 
-  <div class="col-xl-3 col-md-6 mb-3">
+  <div class="col-lg-4 col-md-6 mb-3">
     <div class="card h-100 border-0 shadow-sm">
       <div class="card-body">
         <div class="d-flex justify-content-between">
@@ -310,13 +310,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 }
 
-.row .col-xl-3 {
+.row .col-lg-4 {
   animation: fadeInUp 0.6s ease forwards;
 }
 
-.row .col-xl-3:nth-child(2) { animation-delay: 0.1s; }
-.row .col-xl-3:nth-child(3) { animation-delay: 0.2s; }
-.row .col-xl-3:nth-child(4) { animation-delay: 0.3s; }
+.row .col-lg-4:nth-child(2) { animation-delay: 0.1s; }
+.row .col-lg-4:nth-child(3) { animation-delay: 0.2s; }
 
 /* Enhanced card headers */
 .card-header {
@@ -368,20 +367,20 @@ a[href^="mailto:"]:hover, a[href^="tel:"]:hover {
 }
 
 /* Enhanced statistics cards layout */
-.row.mb-4 .col-xl-3 {
-  flex: 0 0 25%;
-  max-width: 25%;
+.row.mb-4 .col-lg-4 {
+  flex: 0 0 33.333333%;
+  max-width: 33.333333%;
 }
 
-@media (max-width: 1199.98px) {
-  .row.mb-4 .col-xl-3 {
+@media (max-width: 991.98px) {
+  .row.mb-4 .col-lg-4 {
     flex: 0 0 50%;
     max-width: 50%;
   }
 }
 
 @media (max-width: 767.98px) {
-  .row.mb-4 .col-xl-3 {
+  .row.mb-4 .col-lg-4 {
     flex: 0 0 100%;
     max-width: 100%;
   }
