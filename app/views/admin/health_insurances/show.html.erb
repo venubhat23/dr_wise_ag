@@ -399,10 +399,10 @@
         <tbody>
           <% @health_insurance.health_insurance_members.each do |member| %>
             <tr>
-              <td><%= member.name %></td>
+              <td><%= member.member_name %></td>
               <td><%= member.relationship %></td>
               <td><%= member.age %></td>
-              <td><%= member.gender %></td>
+              <td>-</td>
               <td><%= indian_currency(member.sum_insured) if member.sum_insured %></td>
             </tr>
           <% end %>

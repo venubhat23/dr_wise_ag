@@ -5,6 +5,7 @@ class Distributor < ApplicationRecord
   has_secure_password validations: false
 
   # Associations
+  belongs_to :investor, optional: true
 
   has_many :distributor_documents, dependent: :destroy
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy

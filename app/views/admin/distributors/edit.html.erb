@@ -60,19 +60,13 @@
           <%= form.label :mobile, class: "form-label" do %>
             Mobile <span class="text-danger">*</span>
           <% end %>
-          <div class="input-group">
-            <span class="input-group-text">+91</span>
-            <%= form.telephone_field :mobile,
-                class: "form-control",
-                placeholder: "10 digit mobile number",
-                pattern: "[0-9]{10}",
-                maxlength: "10",
-                title: "Please enter exactly 10 digits",
-                required: true %>
-          </div>
-          <small class="form-text text-muted">Enter 10 digit mobile number without +91</small>
+          <%= form.telephone_field :mobile,
+              class: "form-control",
+              placeholder: "9876543210 or +919876543210",
+              required: true %>
+          <small class="form-text text-muted">Enter 10-digit number (6-9 as first digit) or +91 format</small>
           <div class="invalid-feedback">
-            Please enter a valid 10-digit mobile number
+            Please enter a valid 10-digit Indian mobile number
           </div>
         </div>
         <div class="col-md-6">
@@ -84,13 +78,20 @@
       </div>
 
       <div class="row mt-3">
-        <div class="col-md-6">
+        <div class="col-md-4">
           <%= form.label :role_id, class: "form-label" do %>
             Role <span class="text-danger">*</span>
           <% end %>
           <%= form.text_field :role_id, class: "form-control", value: 'distributor', readonly: true %>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
+          <%= form.label :investor_id, "Investor (Optional)", class: "form-label" %>
+          <%= form.select :investor_id,
+              options_for_select([['Select Investor', '']] + @investors.map { |investor| [investor.display_name, investor.id] }, @distributor.investor_id),
+              {},
+              { class: "form-select searchable-select", data: { placeholder: "Choose investor..." } } %>
+        </div>
+        <div class="col-md-4">
           <%= form.label :birth_date, "Birth Date", class: "form-label" %>
           <%= form.date_field :birth_date, class: "form-control", min: "1900-01-01", max: "2099-12-31" %>
         </div>
@@ -123,15 +124,15 @@
       </div>
 
       <div class="row mt-3">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <%= form.label :pan_no, "PAN No", class: "form-label" %>
           <%= form.text_field :pan_no, class: "form-control", placeholder: "Enter PAN number" %>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <%= form.label :gst_no, "GST No", class: "form-label" %>
           <%= form.text_field :gst_no, class: "form-control", placeholder: "Enter GST number" %>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
           <%= form.label :company_name, "Company Name", class: "form-label" %>
           <%= form.text_field :company_name, class: "form-control", placeholder: "Enter company name" %>
         </div>

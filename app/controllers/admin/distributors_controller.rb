@@ -58,12 +58,14 @@ class Admin::DistributorsController < Admin::ApplicationController
     @distributor = Distributor.new
     @distributor.role_id = 'distributor'
     @distributor.distributor_documents.build
+    @investors = Investor.all
   end
 
   # GET /admin/distributors/1/edit
   def edit
     # Documents are already loaded via set_distributor before_action
     @distributor.distributor_documents.build if @distributor.distributor_documents.empty?
+    @investors = Investor.all
   end
 
   # POST /admin/distributors
@@ -244,7 +246,7 @@ class Admin::DistributorsController < Admin::ApplicationController
       :first_name, :middle_name, :last_name, :mobile, :email, :role_id,
       :state_id, :city_id, :state, :city, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
-      :account_holder_name, :account_type, :upi_id, :status, :upload_main_document,
+      :account_holder_name, :account_type, :upi_id, :status, :upload_main_document, :investor_id,
       assigned_affiliate_ids: [],
       distributor_documents_attributes: [:id, :document_type, :document_file, :_destroy],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
