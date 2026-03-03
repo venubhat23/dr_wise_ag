@@ -185,10 +185,10 @@
                     <% if can_edit?('distributors') %>
                       <% if distributor.deactivated? %>
                         <button type="button"
-                            class="btn btn-sm btn-outline-success"
+                            class="btn btn-sm btn-success"
                             title="Activate"
                             onclick="handleDeactivationAction('<%= activate_admin_distributor_path(distributor) %>', 'PATCH', 'Are you sure you want to activate this ambassador?')">
-                          <i class="bi bi-check-circle"></i>
+                          <i class="bi bi-check-circle me-1"></i>Activate
                         </button>
                       <% else %>
                         <button type="button"

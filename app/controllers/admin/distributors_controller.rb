@@ -400,6 +400,7 @@ class Admin::DistributorsController < Admin::ApplicationController
                    .limit(3)
                    .each do |policy|
       policies << {
+        id: policy.id,
         type: 'Health',
         policy_number: policy.policy_number,
         customer: policy.customer&.display_name || 'Unknown',
@@ -415,6 +416,7 @@ class Admin::DistributorsController < Admin::ApplicationController
                  .limit(3)
                  .each do |policy|
       policies << {
+        id: policy.id,
         type: 'Life',
         policy_number: policy.policy_number,
         customer: policy.customer&.display_name || 'Unknown',
@@ -430,6 +432,7 @@ class Admin::DistributorsController < Admin::ApplicationController
                   .limit(2)
                   .each do |policy|
       policies << {
+        id: policy.id,
         type: 'Motor',
         policy_number: policy.policy_number,
         customer: policy.customer&.display_name || 'Unknown',

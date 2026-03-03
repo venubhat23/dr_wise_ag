@@ -171,20 +171,28 @@
                                   <%= policy[:type] %>
                                 </span>
                                 <%
-                                  policy_path = case policy[:type].downcase
-                                  when 'health'
-                                    admin_health_insurance_path(policy[:id])
-                                  when 'life'
-                                    admin_life_insurance_path(policy[:id])
-                                  when 'motor'
-                                    admin_motor_insurance_path(policy[:id])
-                                  when 'other'
-                                    admin_other_insurance_path(policy[:id])
+                                  if policy[:id].present?
+                                    policy_path = case policy[:type].downcase
+                                    when 'health'
+                                      admin_health_insurance_path(policy[:id])
+                                    when 'life'
+                                      admin_life_insurance_path(policy[:id])
+                                    when 'motor'
+                                      admin_motor_insurance_path(policy[:id])
+                                    when 'other'
+                                      admin_other_insurance_path(policy[:id])
+                                    else
+                                      '#'
+                                    end
                                   else
-                                    '#'
+                                    policy_path = '#'
                                   end
                                 %>
-                                <%= link_to policy[:policy_number], policy_path, class: "ms-2 text-decoration-none fw-bold", target: "_blank" %>
+                                <% if policy[:id].present? %>
+                                  <%= link_to policy[:policy_number], policy_path, class: "ms-2 text-decoration-none fw-bold", target: "_blank" %>
+                                <% else %>
+                                  <span class="ms-2 text-muted fw-bold"><%= policy[:policy_number] || 'N/A' %></span>
+                                <% end %>
                               </small>
                               <small class="text-muted d-block">
                                 <%= policy[:customer] %> - <%= indian_currency(policy[:premium].to_i) %>
