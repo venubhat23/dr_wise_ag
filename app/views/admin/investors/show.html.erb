@@ -166,12 +166,82 @@
       </div>
     <% end %>
 
+    <!-- Login Credentials -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-key me-2 text-warning"></i>
+          Login Credentials
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-info d-flex align-items-center mb-3">
+          <i class="bi bi-info-circle me-2"></i>
+          <div>
+            <strong>Portal Access:</strong> The investor can log in using their email or mobile number with the password below.
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <strong>Login Options:</strong>
+            <div class="mt-2">
+              <div class="badge bg-light text-dark border me-2 mb-2">
+                <i class="bi bi-envelope me-1"></i>
+                <%= @investor.email %>
+              </div>
+              <div class="badge bg-light text-dark border mb-2">
+                <i class="bi bi-telephone me-1"></i>
+                <%= @investor.mobile %>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <strong>Password:</strong>
+            <div class="input-group mt-2">
+              <input type="password"
+                     class="form-control font-monospace bg-light"
+                     value="<%= @investor.original_password || 'Not Set' %>"
+                     readonly
+                     id="password-field">
+              <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                <i class="bi bi-eye" id="password-icon"></i>
+              </button>
+            </div>
+            <% unless @investor.original_password.present? %>
+              <small class="text-muted">No password set for this investor</small>
+            <% end %>
+          </div>
+          <% if @investor.username.present? %>
+            <div class="col-md-6">
+              <strong>Username:</strong>
+              <div class="text-muted font-monospace mt-1"><%= @investor.username %></div>
+            </div>
+          <% end %>
+          <div class="col-12">
+            <div class="bg-light rounded p-3">
+              <h6 class="fw-semibold mb-2">
+                <i class="bi bi-shield-check me-1 text-success"></i>
+                Security Information
+              </h6>
+              <ul class="mb-0 text-sm">
+                <li>Investor can use either email or mobile number to log in</li>
+                <li>Password is case-sensitive</li>
+                <li>Account access is restricted to investor portal only</li>
+                <li>Sessions expire after 30 days of inactivity</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Documents -->
     <% if @investor.investor_documents.any? %>
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-transparent border-0">
           <h5 class="mb-0">
-            <i class="bi bi-files me-2 text-warning"></i>
+            <i class="bi bi-files me-2 text-info"></i>
             Documents
           </h5>
         </div>
@@ -300,3 +370,20 @@
     </div>
   </div>
 </div>
+
+<script>
+function togglePassword() {
+  const passwordField = document.getElementById('password-field');
+  const passwordIcon = document.getElementById('password-icon');
+
+  if (passwordField.type === 'password') {
+    passwordField.type = 'text';
+    passwordIcon.classList.remove('bi-eye');
+    passwordIcon.classList.add('bi-eye-slash');
+  } else {
+    passwordField.type = 'password';
+    passwordIcon.classList.remove('bi-eye-slash');
+    passwordIcon.classList.add('bi-eye');
+  }
+}
+</script>

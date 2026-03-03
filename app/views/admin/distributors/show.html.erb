@@ -167,10 +167,24 @@
                           <% stats[:recent_policies].each do |policy| %>
                             <div class="col-md-6 mb-2">
                               <small class="d-block">
-                                <span class="badge bg-<%= policy[:type].downcase == 'health' ? 'success' : policy[:type].downcase == 'life' ? 'primary' : 'warning' %>">
+                                <span class="badge bg-<%= policy[:type].downcase == 'health' ? 'success' : policy[:type].downcase == 'life' ? 'primary' : policy[:type].downcase == 'motor' ? 'warning' : 'info' %>">
                                   <%= policy[:type] %>
                                 </span>
-                                <strong class="ms-2"><%= policy[:policy_number] %></strong>
+                                <%
+                                  policy_path = case policy[:type].downcase
+                                  when 'health'
+                                    admin_health_insurance_path(policy[:id])
+                                  when 'life'
+                                    admin_life_insurance_path(policy[:id])
+                                  when 'motor'
+                                    admin_motor_insurance_path(policy[:id])
+                                  when 'other'
+                                    admin_other_insurance_path(policy[:id])
+                                  else
+                                    '#'
+                                  end
+                                %>
+                                <%= link_to policy[:policy_number], policy_path, class: "ms-2 text-decoration-none fw-bold", target: "_blank" %>
                               </small>
                               <small class="text-muted d-block">
                                 <%= policy[:customer] %> - <%= indian_currency(policy[:premium].to_i) %>

@@ -70,11 +70,11 @@
     <%= form_with url: admin_distributors_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end", id: "search_form" do |form| %>
       <!-- Search -->
       <div class="flex-grow-1 min-width-250">
-        <%= form.text_field :search, placeholder: "Search by name, mobile, or email... (min 4 characters)",
+        <%= form.text_field :search, placeholder: "Search by name or mobile... (min 3 characters)",
                            value: params[:search],
                            class: "form-control",
                            id: "search_input",
-                           data: { min_length: 4 } %>
+                           data: { min_length: 3 } %>
       </div>
 
       <!-- Status Filter -->
@@ -143,11 +143,6 @@
                       <h6 class="mb-0">
                         <%= distributor.display_name.present? ? distributor.display_name : "Unnamed Ambassador" %>
                       </h6>
-                      <small class="text-muted d-block">
-                        <% if distributor.respond_to?(:email) && distributor.email.present? %>
-                          <i class="bi bi-envelope me-1"></i><%= distributor.email %>
-                        <% end %>
-                      </small>
                     </div>
                   </div>
                 </td>
@@ -337,13 +332,13 @@ document.addEventListener('DOMContentLoaded', function() {
   const searchForm = document.getElementById('search_form');
   let searchTimeout;
 
-  // Auto-search on typing after 4 characters
+  // Auto-search on typing after 3 characters
   searchInput.addEventListener('input', function() {
     clearTimeout(searchTimeout);
     const searchValue = this.value;
 
     searchTimeout = setTimeout(() => {
-      if (searchValue.length >= 4 || searchValue.length === 0) {
+      if (searchValue.length >= 3 || searchValue.length === 0) {
         searchForm.submit();
       }
     }, 500); // 500ms delay after typing stops
