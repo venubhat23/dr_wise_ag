@@ -166,6 +166,34 @@
       </div>
     <% end %>
 
+    <!-- Investment Details -->
+    <% if @investor.invested_amount.present? || @investor.investment_percentage.present? %>
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0">
+          <h5 class="mb-0">
+            <i class="bi bi-currency-rupee me-2 text-primary"></i>
+            Investment Details
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <% if @investor.invested_amount.present? %>
+              <div class="col-md-6">
+                <strong>Invested Amount:</strong>
+                <div class="text-muted">₹<%= number_with_delimiter(@investor.invested_amount) %></div>
+              </div>
+            <% end %>
+            <% if @investor.investment_percentage.present? %>
+              <div class="col-md-6">
+                <strong>Investment Percentage:</strong>
+                <div class="text-muted"><%= @investor.investment_percentage %>%</div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
     <!-- Login Credentials -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0">
@@ -356,16 +384,56 @@
       </div>
     </div>
 
-    <!-- Investment Summary (Placeholder) -->
+    <!-- Investment Details -->
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-transparent border-0">
-        <h6 class="mb-0">Investment Summary</h6>
+        <h6 class="mb-0">
+          <i class="bi bi-currency-rupee me-2 text-primary"></i>
+          Investment Details
+        </h6>
       </div>
-      <div class="card-body text-center">
-        <div class="border rounded-3 p-4 bg-light">
-          <i class="bi bi-graph-up fs-1 text-muted mb-3"></i>
-          <p class="text-muted mb-0">Investment tracking features coming soon</p>
-        </div>
+      <div class="card-body">
+        <% if @investor.invested_amount.present? || @investor.investment_percentage.present? %>
+          <div class="row g-3 text-sm">
+            <% if @investor.invested_amount.present? %>
+              <div class="col-12">
+                <div class="d-flex justify-content-between">
+                  <strong>Invested Amount:</strong>
+                  <span class="text-success fw-bold">₹<%= number_with_delimiter(@investor.invested_amount) %></span>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @investor.investment_percentage.present? %>
+              <div class="col-12">
+                <div class="d-flex justify-content-between">
+                  <strong>Investment Percentage:</strong>
+                  <span class="text-primary fw-bold"><%= @investor.investment_percentage %>%</span>
+                </div>
+              </div>
+            <% end %>
+
+            <% if @investor.invested_amount.present? && @investor.investment_percentage.present? %>
+              <div class="col-12">
+                <hr class="my-2">
+                <div class="bg-light rounded-2 p-2">
+                  <small class="text-muted d-block">Investment Contribution</small>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">Total Share:</span>
+                    <span class="badge bg-primary"><%= @investor.investment_percentage %>% of ₹<%= number_with_delimiter(@investor.invested_amount) %></span>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-center">
+            <div class="border rounded-3 p-3 bg-light">
+              <i class="bi bi-currency-rupee fs-3 text-muted mb-2"></i>
+              <p class="text-muted mb-0 small">No investment details added</p>
+            </div>
+          </div>
+        <% end %>
       </div>
     </div>
   </div>

@@ -59,10 +59,13 @@ class Admin::InvestorsController < Admin::ApplicationController
     @active_investors = stats_scope.active.count
     @inactive_investors = stats_scope.inactive.count
 
-    # Calculate total investor commission amounts
+    # Calculate total investor commission amounts (for existing functionality)
     @total_investor_amount = CommissionPayout.where(payout_to: 'investor').sum(:payout_amount) || 0
     @paid_investor_amount = CommissionPayout.where(payout_to: 'investor', status: 'paid').sum(:payout_amount) || 0
     @pending_investor_amount = CommissionPayout.where(payout_to: 'investor', status: 'pending').sum(:payout_amount) || 0
+
+    # Calculate total invested amount from investors (for share calculations)
+    @total_invested_amount = stats_scope.where.not(invested_amount: nil).sum(:invested_amount) || 0
   end
 
   # GET /admin/investors/1
@@ -133,53 +136,11 @@ class Admin::InvestorsController < Admin::ApplicationController
   # DELETE /admin/investors/1
   def destroy
     begin
-      # Get counts for confirmation message
-      health_insurances_count = @investor.health_insurances.count
-      motor_insurances_count = @investor.motor_insurances.count
-      other_insurances_count = @investor.other_insurances.count
-      documents_count = @investor.investor_documents.count
-
-      # Delete commission payouts related to this investor
-      commission_payouts_deleted = 0
-      ['health', 'motor', 'other'].each do |insurance_type|
-        # Find policies where this investor was involved
-        case insurance_type
-        when 'health'
-          policy_ids = @investor.health_insurances.pluck(:id)
-        when 'motor'
-          policy_ids = @investor.motor_insurances.pluck(:id)
-        when 'other'
-          policy_ids = @investor.other_insurances.pluck(:id)
-        end
-
-        if policy_ids.any?
-          deleted_count = CommissionPayout.where(
-            policy_type: insurance_type,
-            policy_id: policy_ids,
-            payout_to: 'investor'
-          ).delete_all
-          commission_payouts_deleted += deleted_count
-        end
-      end
-
-      # Delete the investor (associations will be handled by dependent: options)
+      # Simply delete the investor record only
+      investor_name = @investor.display_name
       @investor.destroy!
 
-      # Create detailed success message
-      message_parts = ["Investor was successfully deleted."]
-      if documents_count > 0
-        message_parts << "#{documents_count} document(s) removed"
-      end
-      if health_insurances_count > 0 || motor_insurances_count > 0 || other_insurances_count > 0
-        total_policies = health_insurances_count + motor_insurances_count + other_insurances_count
-        message_parts << "#{total_policies} insurance policy/policies updated (investor reference removed)"
-      end
-      if commission_payouts_deleted > 0
-        message_parts << "#{commission_payouts_deleted} commission payout(s) cleaned up"
-      end
-
-      notice_message = message_parts.join(", ")
-      redirect_to admin_investors_path, notice: notice_message
+      redirect_to admin_investors_path, notice: "Investor #{investor_name} was successfully deleted."
 
     rescue StandardError => e
       Rails.logger.error "Failed to delete investor #{@investor.id}: #{e.message}"
@@ -211,6 +172,7 @@ class Admin::InvestorsController < Admin::ApplicationController
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
       :account_holder_name, :account_type, :upi_id, :status, :upload_main_document,
       :username, :password, :password_confirmation, :original_password,
+      :invested_amount, :investment_percentage,
       investor_documents_attributes: [:id, :document_type, :document_file, :_destroy]
     )
   end

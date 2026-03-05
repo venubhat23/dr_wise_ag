@@ -37,8 +37,11 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Total Investor Amount</h6>
-            <h3 class="mb-0 text-success">₹<%= number_with_delimiter(@total_investor_amount.to_i) %></h3>
+            <h6 class="text-muted mb-2">Total Invested Amount</h6>
+            <h3 class="mb-0 text-success">₹<%= number_with_delimiter(@total_invested_amount.to_i) %></h3>
+            <% if @total_investor_amount != @total_invested_amount %>
+              <small class="text-muted">Commission Pool: ₹<%= number_with_delimiter(@total_investor_amount.to_i) %></small>
+            <% end %>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
             <i class="bi bi-currency-rupee text-success fs-4"></i>
@@ -80,8 +83,9 @@
           <thead class="table-light">
             <tr>
               <th>Name</th>
-              <th>Mobile</th>
-              <th>Email</th>
+              <th>Contact Info</th>
+              <th>Investment Amount</th>
+              <th>Investor Share</th>
               <th>Created</th>
               <th>Actions</th>
             </tr>
@@ -101,16 +105,47 @@
                   </div>
                 </td>
                 <td>
-                  <span class="badge bg-light text-dark border">
-                    <i class="bi bi-telephone me-1"></i>
-                    <%= investor.formatted_mobile %>
-                  </span>
+                  <div class="d-flex flex-column gap-1">
+                    <span class="badge bg-light text-dark border">
+                      <i class="bi bi-telephone me-1"></i>
+                      <%= investor.formatted_mobile %>
+                    </span>
+                    <span class="badge bg-light text-dark border">
+                      <i class="bi bi-envelope me-1"></i>
+                      <%= investor.formatted_email %>
+                    </span>
+                  </div>
                 </td>
                 <td>
-                  <span class="badge bg-light text-dark border">
-                    <i class="bi bi-envelope me-1"></i>
-                    <%= investor.formatted_email %>
-                  </span>
+                  <% if investor.invested_amount.present? %>
+                    <span class="text-success fw-semibold">
+                      ₹<%= number_with_delimiter(investor.invested_amount) %>
+                    </span>
+                  <% else %>
+                    <span class="text-muted">-</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if investor.investment_percentage.present? && @total_investor_amount > 0 %>
+                    <% investor_share = (@total_investor_amount * investor.investment_percentage / 100).round(2) %>
+                    <div class="text-center">
+                      <small class="text-success fw-bold d-block">₹<%= number_with_delimiter(investor_share) %></small>
+                      <div class="progress mt-1" style="height: 5px; width: 80px;">
+                        <div class="progress-bar bg-gradient"
+                             style="background: linear-gradient(45deg, #28a745, #20c997); width: <%= [investor.investment_percentage, 100].min %>%"
+                             role="progressbar"
+                             title="<%= investor.investment_percentage %>% of Commission Pool ₹<%= number_with_delimiter(@total_investor_amount) %>">
+                        </div>
+                      </div>
+                      <small class="text-muted" style="font-size: 0.7rem;"><%= investor.investment_percentage %>% of commission pool</small>
+                    </div>
+                  <% elsif investor.investment_percentage.present? %>
+                    <div class="text-center">
+                      <small class="text-warning">No commission pool</small>
+                    </div>
+                  <% else %>
+                    <span class="text-muted">-</span>
+                  <% end %>
                 </td>
                 <td>
                   <small class="text-muted">
@@ -125,14 +160,11 @@
                     <%= link_to edit_admin_investor_path(investor), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
                       <i class="bi bi-pencil"></i>
                     <% end %>
-                    <%= link_to admin_investor_path(investor),
+                    <%= button_to admin_investor_path(investor),
                         method: :delete,
+                        form: { data: { "turbo-confirm": "Are you sure you want to delete investor #{investor.display_name}? This action cannot be undone!" } },
                         class: "btn btn-sm btn-outline-danger",
-                        title: "Delete",
-                        data: {
-                          confirm: "⚠️ PERMANENT DELETE WARNING ⚠️\n\nThis will PERMANENTLY delete:\n• Investor: #{investor.display_name}\n• All investor documents\n• Remove investor reference from insurance policies\n• Clean up related commission payouts\n\nThis action CANNOT be undone!\n\nAre you absolutely sure you want to proceed?",
-                          turbo_method: :delete
-                        } do %>
+                        title: "Delete" do %>
                       <i class="bi bi-trash"></i>
                     <% end %>
                   </div>
@@ -296,6 +328,33 @@
   transform: scale(1.05);
   transition: transform 0.2s;
 }
+
+/* Style button_to forms to look like inline buttons */
+form[data-turbo-confirm] {
+  display: inline-block;
+  margin: 0;
+}
+
+form[data-turbo-confirm] input[type="submit"] {
+  all: unset;
+  background: none;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.775rem;
+  border-radius: 0.2rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+form[data-turbo-confirm] input[type="submit"]:hover {
+  background-color: #dc3545;
+  color: white;
+  transform: scale(1.05);
+}
 </style>
 
 <script>
@@ -315,5 +374,54 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }, 500); // 500ms delay after typing stops
   });
+
+  // Debug delete button functionality
+  console.log('🔧 Debugging delete buttons...');
+
+  // Check if Turbo is available
+  if (typeof Turbo !== 'undefined') {
+    console.log('✅ Turbo is loaded');
+  } else {
+    console.log('❌ Turbo is not loaded');
+  }
+
+  // Add click event listeners to debug delete buttons
+  const deleteForms = document.querySelectorAll('form[data-turbo-confirm]');
+  console.log(`Found ${deleteForms.length} delete forms`);
+
+  deleteForms.forEach((form, index) => {
+    form.addEventListener('submit', function(e) {
+      console.log(`Delete form ${index + 1} submitted`);
+      const confirmMessage = this.dataset.turboConfirm;
+      console.log('Confirm message:', confirmMessage);
+
+      // Ensure the confirmation shows
+      if (confirmMessage) {
+        const confirmed = confirm(confirmMessage);
+        if (!confirmed) {
+          console.log('User cancelled deletion');
+          e.preventDefault();
+          return false;
+        }
+        console.log('User confirmed deletion');
+      }
+    });
+
+    const submitButton = form.querySelector('input[type="submit"]');
+    if (submitButton) {
+      submitButton.addEventListener('click', function(e) {
+        console.log(`Delete button ${index + 1} clicked`);
+      });
+    }
+  });
+});
+
+// Debug Turbo events
+document.addEventListener('turbo:before-visit', function(event) {
+  console.log('🚀 Turbo navigation starting to:', event.detail.url);
+});
+
+document.addEventListener('turbo:visit', function(event) {
+  console.log('🔄 Turbo visit to:', event.detail.url);
 });
 </script>

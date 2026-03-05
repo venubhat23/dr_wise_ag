@@ -176,6 +176,25 @@
     </div>
   </div>
 
+  <!-- 3. Investment Details -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-currency-rupee me-2 text-primary"></i>
+      <h5 class="mb-0">Investment Details</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <%= form.label :invested_amount, "Invested Amount (₹)", class: "form-label" %>
+          <%= form.number_field :invested_amount, class: "form-control", placeholder: "Enter invested amount", step: :any, min: 0 %>
+        </div>
+        <div class="col-md-6">
+          <%= form.label :investment_percentage, "Investment Percentage (%)", class: "form-label" %>
+          <%= form.number_field :investment_percentage, class: "form-control", placeholder: "Enter investment percentage", step: :any, min: 0, max: 100 %>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- 4. Documents & QR Code -->
   <div class="card border-0 shadow-sm mb-4">
