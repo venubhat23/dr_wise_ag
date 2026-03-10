@@ -70,7 +70,7 @@
           <div>
             <h6 class="text-muted mb-2">Unassigned</h6>
             <h3 class="mb-0 text-info">
-              <%= number_with_delimiter(@sub_agents.select { |s| s.assigned_distributor.blank? }.count) %>
+              <%= number_with_delimiter(@unassigned_sub_agents) %>
             </h3>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">
@@ -88,11 +88,11 @@
     <%= form_with url: admin_sub_agents_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end", id: "search_form" do |form| %>
       <!-- Search -->
       <div class="flex-grow-1 min-width-250">
-        <%= form.text_field :search, placeholder: "Search by name, mobile, or email... (min 4 characters)",
+        <%= form.text_field :search, placeholder: "Search by name, mobile, or email... (min 3 characters)",
                            value: params[:search],
                            class: "form-control",
                            id: "search_input",
-                           data: { min_length: 4 } %>
+                           data: { min_length: 3 } %>
       </div>
 
       <!-- Status Filter -->
@@ -193,14 +193,7 @@
                   </div>
                 </td>
                 <td>
-                  <%
-                    # Count policies associated with this sub_agent
-                    policy_count = 0
-                    policy_count += HealthInsurance.where(sub_agent_id: sub_agent.id).count
-                    policy_count += LifeInsurance.where(sub_agent_id: sub_agent.id).count
-                    policy_count += MotorInsurance.where(sub_agent_id: sub_agent.id).count
-                  %>
-                  <%= policy_count %>
+                  <%= total_policy_count_for_sub_agent(sub_agent.id, @health_policy_counts, @life_policy_counts, @motor_policy_counts) %>
                 </td>
                 <td>
                   <% if sub_agent.deactivated? %>
@@ -335,13 +328,13 @@ document.addEventListener('DOMContentLoaded', function() {
   const searchForm = document.getElementById('search_form');
   let searchTimeout;
 
-  // Auto-search on typing after 4 characters
+  // Auto-search on typing after 3 characters
   searchInput.addEventListener('input', function() {
     clearTimeout(searchTimeout);
     const searchValue = this.value;
 
     searchTimeout = setTimeout(() => {
-      if (searchValue.length >= 4 || searchValue.length === 0) {
+      if (searchValue.length >= 3 || searchValue.length === 0) {
         searchForm.submit();
       }
     }, 500); // 500ms delay after typing stops

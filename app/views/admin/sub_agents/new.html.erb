@@ -60,17 +60,14 @@
           <%= form.label :mobile, class: "form-label" do %>
             Mobile <span class="text-danger">*</span>
           <% end %>
-          <div class="input-group">
-            <span class="input-group-text">+91</span>
-            <%= form.telephone_field :mobile,
-                class: "form-control",
-                placeholder: "10 digit mobile number",
-                pattern: "[0-9]{10}",
-                maxlength: "10",
-                title: "Please enter exactly 10 digits",
-                required: true %>
+          <%= form.telephone_field :mobile,
+              class: "form-control",
+              placeholder: "9876543210 or +919876543210",
+              required: true %>
+          <small class="form-text text-muted">Enter 10-digit number (6-9 as first digit) or +91 format</small>
+          <div class="invalid-feedback">
+            Please enter a valid 10-digit Indian mobile number
           </div>
-          <small class="form-text text-muted">Enter 10 digit mobile number without +91</small>
         </div>
         <div class="col-md-6">
           <%= form.label :email, class: "form-label" do %>
@@ -335,6 +332,16 @@ document.addEventListener('DOMContentLoaded', function() {
       // Limit to 10 digits
       if (this.value.length > 10) {
         this.value = this.value.slice(0, 10);
+      }
+
+      // Remove validation classes
+      this.classList.remove('is-invalid', 'is-valid');
+
+      // Check if valid
+      if (this.value.length === 10) {
+        this.classList.add('is-valid');
+      } else if (this.value.length > 0) {
+        this.classList.add('is-invalid');
       }
     });
   }

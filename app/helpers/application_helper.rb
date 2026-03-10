@@ -470,4 +470,11 @@ module ApplicationHelper
       model_name.to_s.humanize
     end
   end
+
+  # Sub Agent performance optimization helpers
+  def total_policy_count_for_sub_agent(sub_agent_id, health_counts, life_counts, motor_counts)
+    (health_counts[sub_agent_id] || 0) +
+    (life_counts[sub_agent_id] || 0) +
+    (motor_counts[sub_agent_id] || 0)
+  end
 end

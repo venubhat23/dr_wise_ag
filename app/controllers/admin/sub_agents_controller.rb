@@ -4,7 +4,8 @@ class Admin::SubAgentsController < Admin::ApplicationController
 
   # GET /admin/sub_agents
   def index
-    @sub_agents = SubAgent.all
+    # Eager load associations to prevent N+1 queries
+    @sub_agents = SubAgent.includes(:assigned_distributor, :profile_image_attachment)
 
     # Search functionality
     if params[:search].present?
@@ -29,6 +30,23 @@ class Admin::SubAgentsController < Admin::ApplicationController
     @total_sub_agents = SubAgent.count
     @active_sub_agents = SubAgent.active.count
     @inactive_sub_agents = SubAgent.inactive.count
+
+    # Calculate unassigned count efficiently using the already loaded sub_agents
+    @unassigned_sub_agents = @sub_agents.select { |s| s.assigned_distributor.blank? }.count
+
+    # Preload policy counts for all sub_agents to avoid N+1 queries
+    sub_agent_ids = @sub_agents.map(&:id)
+
+    # Get policy counts in single queries
+    @health_policy_counts = HealthInsurance.where(sub_agent_id: sub_agent_ids)
+                                          .group(:sub_agent_id)
+                                          .count
+    @life_policy_counts = LifeInsurance.where(sub_agent_id: sub_agent_ids)
+                                       .group(:sub_agent_id)
+                                       .count
+    @motor_policy_counts = MotorInsurance.where(sub_agent_id: sub_agent_ids)
+                                         .group(:sub_agent_id)
+                                         .count
   end
 
   # GET /admin/sub_agents/1
