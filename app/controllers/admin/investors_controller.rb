@@ -87,10 +87,19 @@ class Admin::InvestorsController < Admin::ApplicationController
 
   # POST /admin/investors
   def create
-    @investor = Investor.new(investor_params)
+    # Extract documents and main file from params to handle R2 upload separately
+    documents_attributes = investor_params[:investor_documents_attributes]
+    investor_data = investor_params.except(:upload_main_document, :investor_documents_attributes)
+    @investor = Investor.new(investor_data)
     @investor.role_id = 'investor'
 
     if @investor.save
+      # Handle R2 file upload for main document
+      handle_r2_upload(@investor) if params[:investor][:upload_main_document].present?
+
+      # Handle nested documents upload to R2
+      handle_nested_documents_r2_upload(documents_attributes) if documents_attributes.present?
+
       redirect_to admin_investors_path, notice: 'Investor was successfully created.'
     else
       # Build a new document for the form if none exist
@@ -101,6 +110,18 @@ class Admin::InvestorsController < Admin::ApplicationController
 
   # PATCH/PUT /admin/investors/1
   def update
+    # Handle R2 document deletion
+    if params[:delete_document] == 'true'
+      if @investor.has_r2_document?
+        @investor.delete_from_r2
+        redirect_to edit_admin_investor_path(@investor), notice: 'Document was successfully deleted.'
+        return
+      else
+        redirect_to edit_admin_investor_path(@investor), alert: 'No document to delete.'
+        return
+      end
+    end
+
     # Handle password reset
     if params[:reset_password] == 'true' || params[:reset_password] == '1'
       if params[:new_password_option] == 'manual' && investor_params[:password].present?
@@ -115,13 +136,31 @@ class Admin::InvestorsController < Admin::ApplicationController
       end
     end
 
-    # Remove password fields from update params if not resetting password
-    update_params = investor_params
+    # Extract new documents from params to handle R2 upload separately
+    documents_attributes = investor_params[:investor_documents_attributes]
+    update_params = investor_params.except(:upload_main_document, :investor_documents_attributes)
     unless params[:reset_password] == 'true' || params[:reset_password] == '1'
       update_params = update_params.except(:password, :password_confirmation)
     end
 
+# Debug logging (temporarily enabled for troubleshooting)
+    Rails.logger.info "=== INVESTOR UPDATE DEBUG ==="
+    Rails.logger.info "Documents attributes: #{documents_attributes.inspect}"
+    Rails.logger.info "Documents present: #{documents_attributes.present?}"
+    Rails.logger.info "Raw params documents: #{params[:investor][:investor_documents_attributes].inspect}"
+
     if @investor.update(update_params)
+      # Handle R2 file upload for main document
+      handle_r2_upload(@investor) if params[:investor][:upload_main_document].present?
+
+      # Handle nested documents upload to R2
+      if documents_attributes.present?
+        Rails.logger.info "Processing #{documents_attributes.keys.length} document(s)"
+        handle_nested_documents_r2_upload(documents_attributes)
+      else
+        Rails.logger.info "No documents to process"
+      end
+
       if params[:reset_password] == 'true' || params[:reset_password] == '1'
         redirect_to admin_investors_path, notice: 'Investor was successfully updated and password was reset.'
       else
@@ -170,10 +209,98 @@ class Admin::InvestorsController < Admin::ApplicationController
       :first_name, :middle_name, :last_name, :mobile, :email, :role_id,
       :state_id, :city_id, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
-      :account_holder_name, :account_type, :upi_id, :status, :upload_main_document,
+      :account_holder_name, :account_type, :upi_id, :status,
       :username, :password, :password_confirmation, :original_password,
       :invested_amount, :investment_percentage,
       investor_documents_attributes: [:id, :document_type, :document_file, :_destroy]
     )
+  end
+
+  # R2 Upload Helper
+  def handle_r2_upload(investor)
+    file = params[:investor][:upload_main_document]
+    return unless file.present?
+
+    # Delete old R2 file if exists
+    investor.delete_from_r2 if investor.has_r2_document?
+
+    # Upload new file to R2
+    result = investor.upload_to_r2(file)
+
+    if result.is_a?(Hash) && !result[:error]
+      flash[:notice] = (flash[:notice] || '') + " File uploaded successfully to R2."
+    elsif result.is_a?(Hash) && result[:error]
+      error_msg = result[:error]
+      flash[:alert] = (flash[:alert] || '') + " File upload failed: #{error_msg}"
+    elsif result == false
+      flash[:alert] = (flash[:alert] || '') + " File upload failed: Unknown error"
+    else
+      flash[:notice] = (flash[:notice] || '') + " File uploaded successfully to R2."
+    end
+  end
+
+  # R2 Upload Helper for nested documents
+  def handle_nested_documents_r2_upload(documents_attributes)
+    return unless documents_attributes.present?
+
+    Rails.logger.info "=== NESTED DOCUMENTS UPLOAD DEBUG ==="
+    Rails.logger.info "Documents attributes: #{documents_attributes.inspect}"
+
+    uploaded_count = 0
+    error_count = 0
+
+    documents_attributes.each do |index, document_attrs|
+      Rails.logger.info "Processing document #{index}: #{document_attrs.inspect}"
+
+      unless document_attrs[:document_file].present? && document_attrs[:document_type].present?
+        Rails.logger.info "Skipping document #{index}: missing file or type"
+        next
+      end
+
+      Rails.logger.info "Creating document: type=#{document_attrs[:document_type]}, file=#{document_attrs[:document_file].original_filename}"
+
+      file = document_attrs[:document_file]
+
+      # First upload to R2
+      Rails.logger.info "Uploading file to R2..."
+      result = R2Service.upload(file, folder: "investors/#{@investor.id}/documents")
+      Rails.logger.info "R2 upload result: #{result.inspect}"
+
+      if result[:error]
+        Rails.logger.error "R2 upload failed: #{result[:error]}"
+        error_count += 1
+        next
+      end
+
+      # Create document with R2 information
+      document = @investor.investor_documents.build(
+        document_type: document_attrs[:document_type],
+        r2_file_key: result[:key],
+        r2_filename: result[:filename],
+        r2_content_type: result[:content_type],
+        r2_file_size: result[:size]
+      )
+
+      if document.save
+        Rails.logger.info "Document saved with ID: #{document.id}"
+        uploaded_count += 1
+      else
+        Rails.logger.error "Document save failed: #{document.errors.full_messages}"
+        # Delete the uploaded file from R2 since document save failed
+        R2Service.delete(result[:key])
+        error_count += 1
+      end
+    end
+
+    Rails.logger.info "Upload summary: #{uploaded_count} uploaded, #{error_count} failed"
+
+    # Add flash messages for upload results
+    if uploaded_count > 0
+      flash[:notice] = (flash[:notice] || '') + " #{uploaded_count} document(s) uploaded successfully to R2."
+    end
+
+    if error_count > 0
+      flash[:alert] = (flash[:alert] || '') + " #{error_count} document(s) failed to upload."
+    end
   end
 end

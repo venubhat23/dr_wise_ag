@@ -1,15 +1,16 @@
-class CustomerDocument < ApplicationRecord
+class MotorInsuranceDocument < ApplicationRecord
   # Associations
-  belongs_to :customer
+  belongs_to :motor_insurance
 
   # Validations
   validates :document_type, presence: true
+  validates :title, presence: true
   validates :document_type, inclusion: {
-    in: ['Aadhaar Card', 'Pancard', 'Driving License', 'Mediclaim', 'RC Book', 'Other File']
+    in: ['Policy Document', 'RC Book', 'Driving License', 'Previous Policy', 'ID Proof', 'Address Proof', 'Medical Certificate', 'Other']
   }
 
-  # R2 File Storage - Direct upload to Cloudflare R2 (no ActiveStorage)
-  # Uses columns: r2_file_key, r2_filename, r2_content_type, r2_file_size (to be added via migration)
+  # R2 File Storage - Direct upload to Cloudflare R2 (similar to CustomerDocument)
+  # Uses columns: r2_file_key, r2_filename, r2_content_type, r2_file_size
 
   # Instance methods
   def document_name
@@ -23,8 +24,7 @@ class CustomerDocument < ApplicationRecord
 
   def document_url
     return nil unless r2_file_key.present?
-    # Use public R2 domain for direct access
-    "https://pub-54653c57ac144e4a820943b13bf076de.r2.dev/#{r2_file_key}"
+    R2Service.public_url(r2_file_key)
   end
 
   def public_document_url
@@ -59,17 +59,13 @@ class CustomerDocument < ApplicationRecord
     ) if has_file?
   end
 
-  def document_file
-    file
-  end
-
   # R2 Upload method (to be used by controller)
   def upload_to_r2(file_param)
     return false unless file_param.present?
 
     # Validate file
     unless valid_file_type?(file_param.content_type)
-      errors.add(:base, 'File must be a JPEG, PNG, or PDF')
+      errors.add(:base, 'File must be a JPEG, PNG, PDF, or DOC/DOCX')
       return false
     end
 
@@ -82,22 +78,21 @@ class CustomerDocument < ApplicationRecord
     timestamp = Time.current.strftime('%Y%m%d_%H%M%S')
     random_string = SecureRandom.hex(8)
     file_extension = File.extname(file_param.original_filename)
-    unique_filename = "customer_documents/#{customer_id}/#{document_type.downcase.gsub(' ', '_')}_#{timestamp}_#{random_string}#{file_extension}"
+    unique_filename = "motor_insurance_documents/#{motor_insurance_id}/#{document_type.downcase.gsub(' ', '_')}_#{timestamp}_#{random_string}#{file_extension}"
 
     begin
       # Use R2Service to upload
-      r2_service = R2Service.new
-      result = r2_service.upload_file(file_param.tempfile, unique_filename, file_param.content_type)
+      result = R2Service.upload(file_param, folder: "motor_insurance_documents/#{motor_insurance_id}")
 
-      if result[:success]
+      if result[:key]
         # Update record with R2 file information
         update!(
-          r2_file_key: unique_filename,
+          r2_file_key: result[:key],
           r2_filename: file_param.original_filename,
           r2_content_type: file_param.content_type,
           r2_file_size: file_param.size
         )
-        return { success: true, key: unique_filename }
+        return { success: true, key: result[:key] }
       else
         errors.add(:base, "Upload failed: #{result[:error]}")
         return { error: result[:error] }
@@ -113,8 +108,7 @@ class CustomerDocument < ApplicationRecord
     return true unless r2_file_key.present?
 
     begin
-      r2_service = R2Service.new
-      result = r2_service.delete_file(r2_file_key)
+      R2Service.delete(r2_file_key)
 
       # Clear R2 fields regardless of deletion result
       update!(
@@ -124,7 +118,7 @@ class CustomerDocument < ApplicationRecord
         r2_file_size: nil
       )
 
-      return result[:success]
+      return true
     rescue => e
       Rails.logger.error "Failed to delete file from R2: #{e.message}"
       return false
@@ -138,7 +132,12 @@ class CustomerDocument < ApplicationRecord
   end
 
   def valid_file_type?(content_type)
-    allowed_types = %w[image/jpeg image/jpg image/png application/pdf]
+    allowed_types = %w[
+      image/jpeg image/jpg image/png
+      application/pdf
+      application/msword
+      application/vnd.openxmlformats-officedocument.wordprocessingml.document
+    ]
     allowed_types.include?(content_type)
   end
 end

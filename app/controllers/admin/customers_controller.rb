@@ -1126,7 +1126,7 @@ class Admin::CustomersController < Admin::ApplicationController
       :profile_image,
       profile_images: [],
       documents: [],
-      documents_attributes: [:id, :document_type, :file, :_destroy],
+      documents_attributes: [:id, :document_type, :_destroy],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy],
       family_members_attributes: [
         :id, :first_name, :middle_name, :last_name, :birth_date, :age, :height_feet, :weight_kg,

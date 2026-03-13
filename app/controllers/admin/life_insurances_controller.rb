@@ -151,6 +151,9 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       set_distributor_from_affiliate(@life_insurance)
 
       if @life_insurance.save
+        # Handle R2 main policy document upload
+        handle_main_policy_r2_upload(@life_insurance) if params[:life_insurance][:main_policy_document].present?
+
         redirect_to admin_life_insurances_path,
                     notice: 'Life insurance policy was successfully created.'
       else
@@ -172,12 +175,27 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
   # PATCH/PUT /admin/insurance/life/1
   def update
+    # Handle R2 main policy document deletion
+    if params[:delete_main_policy_document] == 'true'
+      if @life_insurance.has_main_policy_r2_document?
+        @life_insurance.delete_main_policy_from_r2
+        redirect_to edit_admin_life_insurance_path(@life_insurance), notice: 'Main policy document was successfully deleted.'
+        return
+      else
+        redirect_to edit_admin_life_insurance_path(@life_insurance), alert: 'No main policy document to delete.'
+        return
+      end
+    end
+
     processed_params = process_broker_params(life_insurance_params)
     @life_insurance.assign_attributes(processed_params)
     set_distributor_from_affiliate(@life_insurance)
 
     begin
       if @life_insurance.save
+        # Handle R2 main policy document upload
+        handle_main_policy_r2_upload(@life_insurance) if params[:life_insurance][:main_policy_document].present?
+
         redirect_to admin_life_insurances_path,
                     notice: 'Life insurance policy was successfully updated.'
       else
@@ -755,7 +773,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       # Company expenses and profit fields
       :company_expenses_percentage, :company_expenses_amount, :total_distribution_percentage,
       :profit_percentage, :profit_amount,
-      policy_documents: [], documents: [],
+      :main_policy_document, policy_documents: [], documents: [],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy],
       life_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy]
     )
@@ -827,6 +845,29 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       @total_premium_amount = @non_drwise_premium
       @total_coverage_amount = @non_drwise_coverage
       @covered_lives_count = non_drwise_policies.joins(:customer).distinct.count('customers.id')
+    end
+  end
+
+  # R2 Upload Helper for main policy document
+  def handle_main_policy_r2_upload(life_insurance)
+    file = params[:life_insurance][:main_policy_document]
+    return unless file.present?
+
+    # Delete old R2 file if exists
+    life_insurance.delete_main_policy_from_r2 if life_insurance.has_main_policy_r2_document?
+
+    # Upload new file to R2
+    result = life_insurance.upload_main_policy_to_r2(file)
+
+    if result.is_a?(Hash) && !result[:error]
+      flash[:notice] = (flash[:notice] || '') + " Main policy document uploaded successfully to R2."
+    elsif result.is_a?(Hash) && result[:error]
+      error_msg = result[:error]
+      flash[:alert] = (flash[:alert] || '') + " Main policy document upload failed: #{error_msg}"
+    elsif result == false
+      flash[:alert] = (flash[:alert] || '') + " Main policy document upload failed: Unknown error"
+    else
+      flash[:notice] = (flash[:notice] || '') + " Main policy document uploaded successfully to R2."
     end
   end
 end

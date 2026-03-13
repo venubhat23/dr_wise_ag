@@ -1,0 +1,520 @@
+<%#
+  Policy Document Manager Component
+  Usage: <%= render 'admin/policy_documents/document_manager', policy: @health_insurance, policy_type: 'health' %>
+%>
+
+<div class="card mt-4" id="policy-documents-manager" data-policy-type="<%= policy_type %>" data-policy-id="<%= policy.id %>">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      <i class="fas fa-folder-open"></i> Policy Documents
+    </h5>
+    <button type="button" class="btn btn-primary btn-sm" onclick="toggleDocumentUploader()">
+      <i class="fas fa-plus"></i> Add Documents
+    </button>
+  </div>
+
+  <div class="card-body">
+    <!-- Document Upload Section -->
+    <div id="document-upload-section" class="border rounded p-3 mb-3" style="display: none;">
+      <h6 class="text-primary mb-3">
+        <i class="fas fa-cloud-upload-alt"></i> Upload Documents
+      </h6>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="upload-area border-dashed rounded p-4 text-center" id="policy-documents-dropzone">
+            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+            <p class="mb-2">Drop files here or <a href="#" onclick="triggerFileInput()">choose files</a></p>
+            <small class="text-muted">Supports PDF, JPEG, PNG, Word files (Max: 10MB each)</small>
+            <input type="file" id="policy-document-files" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display: none;">
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div id="selected-files-preview"></div>
+        </div>
+      </div>
+
+      <!-- Upload Progress -->
+      <div id="upload-progress" class="mt-3" style="display: none;">
+        <div class="progress">
+          <div class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <small id="upload-status" class="text-muted"></small>
+      </div>
+
+      <!-- Upload Actions -->
+      <div class="mt-3 text-end">
+        <button type="button" class="btn btn-secondary btn-sm me-2" onclick="cancelUpload()">Cancel</button>
+        <button type="button" class="btn btn-success btn-sm" id="upload-selected-files" onclick="uploadSelectedFiles()" disabled>
+          <i class="fas fa-upload"></i> Upload Files
+        </button>
+      </div>
+    </div>
+
+    <!-- Existing Documents List -->
+    <div id="existing-documents">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">Uploaded Documents (<span id="document-count">0</span>)</h6>
+        <div class="btn-group btn-group-sm" role="group">
+          <button type="button" class="btn btn-outline-secondary" onclick="refreshDocumentsList()">
+            <i class="fas fa-sync"></i> Refresh
+          </button>
+          <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-filter"></i> Filter
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="filterDocuments('')">All Documents</a></li>
+              <li><a class="dropdown-item" href="#" onclick="filterDocuments('Policy Document')">Policy Documents</a></li>
+              <li><a class="dropdown-item" href="#" onclick="filterDocuments('Additional Document')">Additional Documents</a></li>
+              <li><a class="dropdown-item" href="#" onclick="filterDocuments('Identity Proof')">Identity Proofs</a></li>
+              <li><a class="dropdown-item" href="#" onclick="filterDocuments('Medical Report')">Medical Reports</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div id="documents-list">
+        <!-- Documents will be loaded here via AJAX -->
+      </div>
+
+      <div id="no-documents-message" class="text-center text-muted py-4" style="display: none;">
+        <i class="fas fa-folder-open fa-3x mb-3"></i>
+        <p>No documents uploaded yet.</p>
+        <button type="button" class="btn btn-primary" onclick="toggleDocumentUploader()">
+          <i class="fas fa-plus"></i> Upload First Document
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Document Item Template -->
+<script type="text/template" id="document-item-template">
+  <div class="document-item border rounded p-3 mb-2" data-document-id="{{id}}">
+    <div class="row align-items-center">
+      <div class="col-md-1">
+        <i class="{{fileIcon}} fa-2x text-{{iconColor}}"></i>
+      </div>
+      <div class="col-md-6">
+        <h6 class="mb-1">{{title}}</h6>
+        <small class="text-muted d-block">{{document_type}}</small>
+        <small class="text-muted">{{filename}} • {{document_size}}</small>
+        {{#if description}}
+        <p class="mb-0 mt-1 text-muted small">{{description}}</p>
+        {{/if}}
+      </div>
+      <div class="col-md-3">
+        <small class="text-muted">Uploaded by {{uploaded_by}}</small><br>
+        <small class="text-muted">{{created_at}}</small>
+      </div>
+      <div class="col-md-2 text-end">
+        <div class="btn-group btn-group-sm">
+          <a href="{{document_url}}" target="_blank" class="btn btn-outline-primary" title="View">
+            <i class="fas fa-eye"></i>
+          </a>
+          <button type="button" class="btn btn-outline-success" onclick="downloadDocument({{id}})" title="Download">
+            <i class="fas fa-download"></i>
+          </button>
+          <button type="button" class="btn btn-outline-danger" onclick="deleteDocument({{id}}, '{{title}}')" title="Delete">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<style>
+.upload-area {
+  border: 2px dashed #dee2e6;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.upload-area:hover {
+  border-color: #0d6efd;
+  background-color: #e7f3ff;
+}
+
+.upload-area.dragover {
+  border-color: #198754;
+  background-color: #e8f5e9;
+}
+
+.border-dashed {
+  border-style: dashed !important;
+}
+
+.document-item {
+  transition: all 0.2s ease;
+}
+
+.document-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.file-preview-item {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.file-preview-item .remove-file {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  cursor: pointer;
+}
+</style>
+
+<script>
+// Policy Document Manager JavaScript
+let selectedFiles = [];
+let currentFilter = '';
+
+// Initialize the document manager
+function initializePolicyDocumentManager() {
+  loadExistingDocuments();
+  setupDragAndDrop();
+  setupFileInput();
+}
+
+// Load existing documents
+function loadExistingDocuments() {
+  const policyType = document.querySelector('#policy-documents-manager').dataset.policyType;
+  const policyId = document.querySelector('#policy-documents-manager').dataset.policyId;
+
+  fetch(`/admin/policy_documents?policy_type=${policyType}&policy_id=${policyId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'Accept': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      renderDocumentsList(data.policy_documents);
+      updateDocumentCount(data.policy_documents.length);
+    } else {
+      showNoDocumentsMessage();
+    }
+  })
+  .catch(error => {
+    console.error('Error loading documents:', error);
+    showNoDocumentsMessage();
+  });
+}
+
+// Render documents list
+function renderDocumentsList(documents) {
+  const listContainer = document.getElementById('documents-list');
+  const noDocsMessage = document.getElementById('no-documents-message');
+
+  if (documents.length === 0) {
+    showNoDocumentsMessage();
+    return;
+  }
+
+  noDocsMessage.style.display = 'none';
+  listContainer.innerHTML = documents.map(doc => renderDocumentItem(doc)).join('');
+}
+
+// Render individual document item
+function renderDocumentItem(doc) {
+  const template = document.getElementById('document-item-template').innerHTML;
+
+  // Determine file icon based on content type
+  let fileIcon = 'fas fa-file';
+  let iconColor = 'secondary';
+
+  if (doc.r2_content_type) {
+    if (doc.r2_content_type.includes('pdf')) {
+      fileIcon = 'fas fa-file-pdf';
+      iconColor = 'danger';
+    } else if (doc.r2_content_type.includes('image')) {
+      fileIcon = 'fas fa-file-image';
+      iconColor = 'success';
+    } else if (doc.r2_content_type.includes('word')) {
+      fileIcon = 'fas fa-file-word';
+      iconColor = 'primary';
+    }
+  }
+
+  return template
+    .replace(/{{id}}/g, doc.id)
+    .replace(/{{title}}/g, doc.title)
+    .replace(/{{document_type}}/g, doc.document_type)
+    .replace(/{{description}}/g, doc.description || '')
+    .replace(/{{filename}}/g, doc.filename)
+    .replace(/{{document_size}}/g, doc.document_size)
+    .replace(/{{document_url}}/g, doc.document_url)
+    .replace(/{{uploaded_by}}/g, doc.uploaded_by)
+    .replace(/{{created_at}}/g, doc.created_at)
+    .replace(/{{fileIcon}}/g, fileIcon)
+    .replace(/{{iconColor}}/g, iconColor);
+}
+
+// Show no documents message
+function showNoDocumentsMessage() {
+  document.getElementById('documents-list').innerHTML = '';
+  document.getElementById('no-documents-message').style.display = 'block';
+  updateDocumentCount(0);
+}
+
+// Update document count
+function updateDocumentCount(count) {
+  document.getElementById('document-count').textContent = count;
+}
+
+// Toggle document uploader
+function toggleDocumentUploader() {
+  const uploadSection = document.getElementById('document-upload-section');
+  const isVisible = uploadSection.style.display !== 'none';
+  uploadSection.style.display = isVisible ? 'none' : 'block';
+
+  if (!isVisible) {
+    document.getElementById('policy-document-files').value = '';
+    selectedFiles = [];
+    updateFilePreview();
+  }
+}
+
+// Setup drag and drop
+function setupDragAndDrop() {
+  const dropzone = document.getElementById('policy-documents-dropzone');
+
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, preventDefaults, false);
+  });
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, () => dropzone.classList.add('dragover'), false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, () => dropzone.classList.remove('dragover'), false);
+  });
+
+  dropzone.addEventListener('drop', handleDrop, false);
+}
+
+// Handle file drop
+function handleDrop(e) {
+  const dt = e.dataTransfer;
+  const files = dt.files;
+  handleFiles(files);
+}
+
+// Setup file input
+function setupFileInput() {
+  document.getElementById('policy-document-files').addEventListener('change', function(e) {
+    handleFiles(e.target.files);
+  });
+}
+
+// Trigger file input
+function triggerFileInput() {
+  document.getElementById('policy-document-files').click();
+}
+
+// Handle selected files
+function handleFiles(files) {
+  selectedFiles = Array.from(files);
+  updateFilePreview();
+  updateUploadButton();
+}
+
+// Update file preview
+function updateFilePreview() {
+  const preview = document.getElementById('selected-files-preview');
+
+  if (selectedFiles.length === 0) {
+    preview.innerHTML = '<p class="text-muted">No files selected</p>';
+    return;
+  }
+
+  preview.innerHTML = selectedFiles.map((file, index) => `
+    <div class="file-preview-item">
+      <button type="button" class="remove-file" onclick="removeFile(${index})">&times;</button>
+      <strong>${file.name}</strong><br>
+      <small class="text-muted">${formatFileSize(file.size)} • ${file.type}</small>
+      <div class="mt-2">
+        <select class="form-select form-select-sm" id="doc-type-${index}">
+          <option value="Policy Document">Policy Document</option>
+          <option value="Additional Document">Additional Document</option>
+          <option value="Identity Proof">Identity Proof</option>
+          <option value="Medical Report">Medical Report</option>
+          <option value="RC Book">RC Book</option>
+          <option value="Other">Other</option>
+        </select>
+        <input type="text" class="form-control form-control-sm mt-1" placeholder="Document title" id="doc-title-${index}" value="${file.name}">
+        <textarea class="form-control form-control-sm mt-1" placeholder="Description (optional)" id="doc-desc-${index}" rows="2"></textarea>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Remove file from selection
+function removeFile(index) {
+  selectedFiles.splice(index, 1);
+  updateFilePreview();
+  updateUploadButton();
+}
+
+// Update upload button state
+function updateUploadButton() {
+  const uploadButton = document.getElementById('upload-selected-files');
+  uploadButton.disabled = selectedFiles.length === 0;
+}
+
+// Format file size
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Upload selected files
+function uploadSelectedFiles() {
+  if (selectedFiles.length === 0) return;
+
+  const policyType = document.querySelector('#policy-documents-manager').dataset.policyType;
+  const policyId = document.querySelector('#policy-documents-manager').dataset.policyId;
+
+  showUploadProgress(true);
+
+  const uploadPromises = selectedFiles.map((file, index) => {
+    const formData = new FormData();
+    formData.append('policy_type', policyType);
+    formData.append('policy_id', policyId);
+
+    const docType = document.getElementById(`doc-type-${index}`)?.value || 'Other';
+    const docTitle = document.getElementById(`doc-title-${index}`)?.value || file.name;
+    const docDesc = document.getElementById(`doc-desc-${index}`)?.value || '';
+
+    formData.append('policy_document[document_type]', docType);
+    formData.append('policy_document[title]', docTitle);
+    formData.append('policy_document[description]', docDesc);
+    formData.append('policy_document[file]', file);
+
+    return fetch('/admin/policy_documents', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
+      }
+    });
+  });
+
+  Promise.all(uploadPromises)
+    .then(responses => Promise.all(responses.map(r => r.json())))
+    .then(results => {
+      showUploadProgress(false);
+
+      const errors = results.filter(r => !r.success);
+      if (errors.length > 0) {
+        alert(`Some uploads failed: ${errors.map(e => e.error).join(', ')}`);
+      } else {
+        showToast('All documents uploaded successfully!', 'success');
+      }
+
+      // Refresh documents list and reset form
+      loadExistingDocuments();
+      cancelUpload();
+    })
+    .catch(error => {
+      console.error('Upload error:', error);
+      showUploadProgress(false);
+      alert('Upload failed. Please try again.');
+    });
+}
+
+// Show/hide upload progress
+function showUploadProgress(show) {
+  document.getElementById('upload-progress').style.display = show ? 'block' : 'none';
+  document.getElementById('upload-selected-files').disabled = show;
+}
+
+// Cancel upload
+function cancelUpload() {
+  selectedFiles = [];
+  updateFilePreview();
+  updateUploadButton();
+  toggleDocumentUploader();
+}
+
+// Refresh documents list
+function refreshDocumentsList() {
+  loadExistingDocuments();
+}
+
+// Filter documents
+function filterDocuments(documentType) {
+  currentFilter = documentType;
+  loadExistingDocuments();
+}
+
+// Download document
+function downloadDocument(documentId) {
+  window.open(`/admin/policy_documents/${documentId}/download`, '_blank');
+}
+
+// Delete document
+function deleteDocument(documentId, title) {
+  if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+
+  fetch(`/admin/policy_documents/${documentId}`, {
+    method: 'DELETE',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      showToast('Document deleted successfully', 'success');
+      loadExistingDocuments();
+    } else {
+      alert('Failed to delete document: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Delete error:', error);
+    alert('Failed to delete document');
+  });
+}
+
+// Show toast notification
+function showToast(message, type = 'info') {
+  // You can implement a toast notification system here
+  console.log(`Toast [${type}]: ${message}`);
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  if (document.getElementById('policy-documents-manager')) {
+    initializePolicyDocumentManager();
+  }
+});
+</script>

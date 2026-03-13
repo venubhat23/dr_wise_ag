@@ -296,8 +296,24 @@
       <div class="row mb-4">
         <div class="col-md-12">
           <%= form.label :upload_main_document, "Upload Main Document", class: "form-label" %>
-          <%= form.file_field :upload_main_document, class: "form-control", accept: "image/*,application/pdf" %>
-          <small class="form-text text-muted">Upload main identification document (JPG, PNG, PDF)</small>
+          <div class="upload-area border-2 border-dashed rounded p-4 text-center position-relative"
+               onclick="document.getElementById('investor_upload_main_document').click()"
+               ondragover="event.preventDefault(); this.classList.add('border-primary', 'bg-light')"
+               ondragenter="event.preventDefault(); this.classList.add('border-primary', 'bg-light')"
+               ondragleave="this.classList.remove('border-primary', 'bg-light')"
+               ondrop="handleFileDrop(event, 'investor_upload_main_document')"
+               id="main-upload-area">
+            <div id="upload-placeholder">
+              <i class="bi bi-cloud-upload fs-1 text-muted mb-3"></i>
+              <h6 class="text-muted mb-2">Upload Main Document</h6>
+              <p class="mb-2">Click to upload or drag and drop</p>
+              <small class="text-muted">JPG, PNG, PDF (Max: 10MB)</small>
+            </div>
+            <%= form.file_field :upload_main_document, class: "form-control d-none",
+                accept: "image/jpeg,image/jpg,image/png,application/pdf",
+                onchange: "previewMainFile(this)" %>
+            <div id="main-document-preview" class="mt-3"></div>
+          </div>
         </div>
       </div>
 
@@ -345,6 +361,50 @@
   position: absolute;
   top: 10px;
   right: 10px;
+}
+
+.upload-area {
+  border: 2px dashed #dee2e6;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  min-height: 120px;
+  background: #fafbfc;
+}
+
+.upload-area:hover {
+  border-color: #6c757d;
+  background: #f8f9fa;
+}
+
+.upload-area.border-primary {
+  border-color: #0d6efd !important;
+  background: #e7f1ff !important;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.img-thumbnail {
+  border: 3px solid #fff;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.preview-container {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.file-icon-large {
+  font-size: 4rem;
+  opacity: 0.8;
+}
+
+.badge.fs-6 {
+  font-size: 0.9rem !important;
+  padding: 0.5rem 0.75rem;
 }
 </style>
 
@@ -578,7 +638,10 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <div class="col-md-6">
             <label class="form-label">Document File <span class="text-danger">*</span></label>
-            <input type="file" name="investor[investor_documents_attributes][${documentIndex}][document_file]" class="form-control" accept="image/*,application/pdf" required>
+            <input type="file" name="investor[investor_documents_attributes][${documentIndex}][document_file]"
+                   class="form-control" accept="image/jpeg,image/jpg,image/png,application/pdf" required
+                   onchange="previewFile(this, 'preview-${documentIndex}')">
+            <div id="preview-${documentIndex}" class="mt-2"></div>
           </div>
         </div>
       </div>
@@ -592,6 +655,243 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.target.closest('.remove-document')) {
       e.target.closest('.document-entry').remove();
     }
+  });
+
+  // File handling functions
+  window.handleFileDrop = function(event, inputId) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const files = event.dataTransfer.files;
+    if (files.length > 0) {
+      const input = document.getElementById(inputId);
+      input.files = files;
+
+      // Trigger change event for preview
+      const changeEvent = new Event('change', { bubbles: true });
+      input.dispatchEvent(changeEvent);
+    }
+
+    // Remove drag styling
+    event.target.classList.remove('border-primary', 'bg-light');
+  };
+
+  window.previewFile = function(input, previewId) {
+    const file = input.files[0];
+    const previewContainer = document.getElementById(previewId);
+
+    if (!file) {
+      previewContainer.innerHTML = '';
+      return;
+    }
+
+    // Validate file size (10MB = 10 * 1024 * 1024 bytes)
+    if (file.size > 10 * 1024 * 1024) {
+      previewContainer.innerHTML = '<div class="alert alert-danger p-2 mb-0"><small>File size must be less than 10MB</small></div>';
+      input.value = '';
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+      previewContainer.innerHTML = '<div class="alert alert-danger p-2 mb-0"><small>Only JPG, PNG, and PDF files are allowed</small></div>';
+      input.value = '';
+      return;
+    }
+
+    // Create preview based on file type
+    if (file.type.includes('image/')) {
+      // Image preview with thumbnail
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const imagePreview = `
+          <div class="border rounded p-3 bg-light">
+            <div class="row align-items-center">
+              <div class="col-auto">
+                <img src="${e.target.result}" alt="Preview" class="img-thumbnail" style="max-width: 80px; max-height: 80px; object-fit: cover;">
+              </div>
+              <div class="col">
+                <div class="fw-medium">${file.name}</div>
+                <small class="text-muted">${(file.size / (1024 * 1024)).toFixed(2)} MB • ${file.type}</small>
+                <div class="mt-1">
+                  <span class="badge bg-success">
+                    <i class="bi bi-check-circle me-1"></i>Ready to Upload
+                  </span>
+                </div>
+              </div>
+              <div class="col-auto">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePreview('${previewId}', '${input.id}')">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        previewContainer.innerHTML = imagePreview;
+      };
+      reader.readAsDataURL(file);
+    } else if (file.type === 'application/pdf') {
+      // PDF preview
+      const pdfPreview = `
+        <div class="border rounded p-3 bg-light">
+          <div class="row align-items-center">
+            <div class="col-auto">
+              <div class="bg-danger text-white rounded d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                <i class="bi bi-file-earmark-pdf fs-1"></i>
+              </div>
+            </div>
+            <div class="col">
+              <div class="fw-medium">${file.name}</div>
+              <small class="text-muted">${(file.size / (1024 * 1024)).toFixed(2)} MB • PDF Document</small>
+              <div class="mt-1">
+                <span class="badge bg-success">
+                  <i class="bi bi-check-circle me-1"></i>Ready to Upload
+                </span>
+              </div>
+            </div>
+            <div class="col-auto">
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePreview('${previewId}', '${input.id}')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      previewContainer.innerHTML = pdfPreview;
+    }
+  };
+
+  // Function to remove file preview
+  window.removePreview = function(previewId, inputId) {
+    document.getElementById(previewId).innerHTML = '';
+    document.getElementById(inputId).value = '';
+  };
+
+  // Special function for main document preview
+  window.previewMainFile = function(input) {
+    const file = input.files[0];
+    const uploadArea = document.getElementById('main-upload-area');
+    const placeholder = document.getElementById('upload-placeholder');
+    const previewContainer = document.getElementById('main-document-preview');
+
+    if (!file) {
+      placeholder.style.display = 'block';
+      previewContainer.innerHTML = '';
+      uploadArea.onclick = function() { document.getElementById('investor_upload_main_document').click(); };
+      return;
+    }
+
+    // Validate file size (10MB = 10 * 1024 * 1024 bytes)
+    if (file.size > 10 * 1024 * 1024) {
+      previewContainer.innerHTML = '<div class="alert alert-danger p-2 mb-0"><small>File size must be less than 10MB</small></div>';
+      input.value = '';
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+      previewContainer.innerHTML = '<div class="alert alert-danger p-2 mb-0"><small>Only JPG, PNG, and PDF files are allowed</small></div>';
+      input.value = '';
+      return;
+    }
+
+    // Hide placeholder and disable click
+    placeholder.style.display = 'none';
+    uploadArea.onclick = null;
+
+    // Create preview based on file type
+    if (file.type.includes('image/')) {
+      // Image preview with large thumbnail
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const imagePreview = `
+          <div class="text-center preview-container">
+            <div class="position-relative d-inline-block">
+              <img src="${e.target.result}" alt="Main Document Preview"
+                   class="img-thumbnail shadow-sm"
+                   style="max-width: 200px; max-height: 200px; object-fit: cover;">
+              <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 rounded-circle"
+                      style="transform: translate(25%, -25%); width: 30px; height: 30px; padding: 0;"
+                      onclick="removeMainPreview()"
+                      title="Remove file">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+            <div class="mt-3">
+              <div class="fw-medium text-dark">${file.name}</div>
+              <small class="text-muted">${(file.size / (1024 * 1024)).toFixed(2)} MB • Image</small>
+              <div class="mt-2">
+                <span class="badge bg-success fs-6">
+                  <i class="bi bi-check-circle me-1"></i>Main Document Ready
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+        previewContainer.innerHTML = imagePreview;
+      };
+      reader.readAsDataURL(file);
+    } else if (file.type === 'application/pdf') {
+      // PDF preview with large icon
+      const pdfPreview = `
+        <div class="text-center preview-container">
+          <div class="position-relative d-inline-block">
+            <div class="bg-danger text-white rounded shadow-sm d-flex align-items-center justify-content-center"
+                 style="width: 200px; height: 200px;">
+              <i class="bi bi-file-earmark-pdf file-icon-large"></i>
+            </div>
+            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 rounded-circle"
+                    style="transform: translate(25%, -25%); width: 30px; height: 30px; padding: 0;"
+                    onclick="removeMainPreview()"
+                    title="Remove file">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+          <div class="mt-3">
+            <div class="fw-medium text-dark">${file.name}</div>
+            <small class="text-muted">${(file.size / (1024 * 1024)).toFixed(2)} MB • PDF Document</small>
+            <div class="mt-2">
+              <span class="badge bg-success fs-6">
+                <i class="bi bi-check-circle me-1"></i>Main Document Ready
+              </span>
+            </div>
+          </div>
+        </div>
+      `;
+      previewContainer.innerHTML = pdfPreview;
+    }
+  };
+
+  // Function to remove main document preview
+  window.removeMainPreview = function() {
+    const uploadArea = document.getElementById('main-upload-area');
+    const placeholder = document.getElementById('upload-placeholder');
+    const previewContainer = document.getElementById('main-document-preview');
+    const input = document.getElementById('investor_upload_main_document');
+
+    placeholder.style.display = 'block';
+    previewContainer.innerHTML = '';
+    input.value = '';
+    uploadArea.onclick = function() { document.getElementById('investor_upload_main_document').click(); };
+  };
+
+  // Add styling for upload areas
+  const uploadAreas = document.querySelectorAll('.upload-area');
+  uploadAreas.forEach(area => {
+    area.style.cursor = 'pointer';
+    area.style.transition = 'all 0.3s ease';
+
+    area.addEventListener('mouseenter', function() {
+      this.style.backgroundColor = '#f8f9fa';
+    });
+
+    area.addEventListener('mouseleave', function() {
+      if (!this.classList.contains('bg-light')) {
+        this.style.backgroundColor = '';
+      }
+    });
   });
 });
 </script>

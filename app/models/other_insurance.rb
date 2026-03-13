@@ -8,6 +8,10 @@ class OtherInsurance < ApplicationRecord
   has_many_attached :additional_documents
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
   has_many :other_insurance_nominees, dependent: :destroy
+  has_many :policy_documents_records, -> { where(policy_type: 'other') },
+           class_name: 'PolicyDocument',
+           foreign_key: 'policy_id',
+           dependent: :destroy
 
   # Nested attributes
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank

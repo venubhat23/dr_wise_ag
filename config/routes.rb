@@ -90,6 +90,10 @@ Rails.application.routes.draw do
       end
       collection do
         get 'blob/:key', to: 'documents#blob_access', as: 'blob_access'
+        get 'investors/:investor_id/documents/:document_id', to: 'documents#show_investor_document', as: 'show_investor_document'
+        get 'investors/:investor_id/documents/:document_id/download', to: 'documents#download_investor_document', as: 'download_investor_document'
+        get 'investors/:investor_id/main_document', to: 'documents#show_investor_document', defaults: { type: 'main' }, as: 'show_investor_main_document'
+        get 'investors/:investor_id/main_document/download', to: 'documents#download_investor_document', defaults: { type: 'main' }, as: 'download_investor_main_document'
       end
     end
 
@@ -100,7 +104,11 @@ Rails.application.routes.draw do
 
 
     resources :customers do
-      resources :documents, except: [:edit, :update]
+      resources :documents, controller: 'customer_documents', except: [:edit, :update] do
+        member do
+          get :download
+        end
+      end
     end
     resources :payouts do
       member do
@@ -253,8 +261,17 @@ Rails.application.routes.draw do
     resources :investors do
       member do
         patch :toggle_status
+        get :download_r2_document
+        delete :delete_r2_document
       end
       resources :investor_documents, only: [:destroy]
+    end
+
+    # R2 File Operations
+    namespace :r2 do
+      post :upload, to: 'files#upload'
+      get :download, to: 'files#download'
+      delete :delete, to: 'files#delete'
     end
 
     # Customer management
@@ -343,6 +360,11 @@ Rails.application.routes.draw do
         post :create_renewal
         delete :delete_document
       end
+      resources :motor_insurance_documents, path: 'documents', except: [:edit, :update] do
+        member do
+          get :download
+        end
+      end
     end
 
     # Other Insurance
@@ -420,6 +442,16 @@ Rails.application.routes.draw do
       collection do
         get :search      # AJAX search endpoint
         get :statistics  # AJAX statistics endpoint
+      end
+    end
+
+    # Policy Documents Management
+    resources :policy_documents, except: [:edit, :update] do
+      member do
+        get :download
+      end
+      collection do
+        post :bulk_upload
       end
     end
 
@@ -750,6 +782,16 @@ Rails.application.routes.draw do
           get :form_data
           get :policy_holder_options
         end
+      end
+    end
+
+    # Policy Documents Management
+    resources :policy_documents, except: [:edit, :update] do
+      member do
+        get :download
+      end
+      collection do
+        get 'for/:policy_type/:policy_id', action: :index, as: :for_policy
       end
     end
 

@@ -2174,41 +2174,25 @@ document.addEventListener('DOMContentLoaded', function() {
         </button>
 
         <div class="row">
-          <div class="col-md-4">
-            <label class="form-label">Document Title <span class="text-danger">*</span></label>
-            <input type="text" name="customer[uploaded_documents_attributes][${customerDocumentIndex}][title]" class="form-control" placeholder="Enter document title" required>
-          </div>
-
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label class="form-label">Document Type <span class="text-danger">*</span></label>
-            <select name="customer[uploaded_documents_attributes][${customerDocumentIndex}][document_type]" class="form-select" required>
+            <select name="customer[documents_attributes][${customerDocumentIndex}][document_type]" class="form-select" required>
               <option value="">Select Document Type</option>
-              <option value="aadhar">Aadhaar Card</option>
-              <option value="pan_card">PAN Card</option>
-              <option value="driving_license">Driving License</option>
-              <option value="passport">Passport</option>
-              <option value="voter_id">Voter ID</option>
-              <option value="bank_statement">Bank Statement</option>
-              <option value="salary_slip">Salary Slip</option>
-              <option value="income_certificate">Income Certificate</option>
-              <option value="address_proof">Address Proof</option>
-              <option value="photo_id">Photo ID</option>
-              <option value="other">Other</option>
+              <option value="Aadhaar Card">Aadhaar Card</option>
+              <option value="Pancard">Pancard</option>
+              <option value="Driving License">Driving License</option>
+              <option value="Mediclaim">Mediclaim</option>
+              <option value="RC Book">RC Book</option>
+              <option value="Other File">Other File</option>
             </select>
           </div>
 
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label class="form-label">Document File <span class="text-danger">*</span></label>
-            <input type="file" name="customer[uploaded_documents_attributes][${customerDocumentIndex}][file]" class="form-control customer-doc-file" accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required id="customer_doc_file_${customerDocumentIndex}">
+            <input type="file" name="customer[documents_attributes][${customerDocumentIndex}][document_file]" class="form-control customer-doc-file" accept="application/pdf,image/jpeg,image/jpg,image/png" required id="customer_doc_file_${customerDocumentIndex}">
           </div>
         </div>
 
-        <div class="row mt-2">
-          <div class="col-md-12">
-            <label class="form-label">Description (Optional)</label>
-            <textarea name="customer[uploaded_documents_attributes][${customerDocumentIndex}][description]" class="form-control" rows="2" placeholder="Optional description about this document"></textarea>
-          </div>
-        </div>
 
         <!-- Document Preview Container -->
         <div id="customer_doc_preview_${customerDocumentIndex}" class="mt-3" style="display: none;">
@@ -2257,7 +2241,6 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
         </div>
 
-        <input type="hidden" name="customer[uploaded_documents_attributes][${customerDocumentIndex}][uploaded_by]" value="Admin User">
       </div>
     `;
     customerDocumentsContainer.insertAdjacentHTML('beforeend', documentHtml);

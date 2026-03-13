@@ -104,6 +104,44 @@ class Admin::DocumentsController < Admin::ApplicationController
     end
   end
 
+  # Serve investor documents securely
+  def show_investor_document
+    @investor = Investor.find(params[:investor_id])
+
+    if params[:type] == 'main' && @investor.upload_main_document.attached?
+      blob = @investor.upload_main_document
+    elsif params[:document_id].present?
+      document = @investor.investor_documents.find(params[:document_id])
+      blob = document.document_file if document&.document_file&.attached?
+    end
+
+    if blob
+      # Use Rails blob path which handles signed URLs properly
+      redirect_to rails_blob_path(blob, only_path: false), allow_other_host: true
+    else
+      redirect_to admin_investors_path, alert: 'Document not found'
+    end
+  end
+
+  # Download investor documents
+  def download_investor_document
+    @investor = Investor.find(params[:investor_id])
+
+    if params[:type] == 'main' && @investor.upload_main_document.attached?
+      blob = @investor.upload_main_document
+    elsif params[:document_id].present?
+      document = @investor.investor_documents.find(params[:document_id])
+      blob = document.document_file if document&.document_file&.attached?
+    end
+
+    if blob
+      # Use Rails blob path for downloads with proper content disposition
+      redirect_to rails_blob_path(blob, disposition: 'attachment', only_path: false), allow_other_host: true
+    else
+      redirect_to admin_investors_path, alert: 'Document not found'
+    end
+  end
+
   # Handle blob access with proper error handling
   def blob_access
     blob = ActiveStorage::Blob.find_by(key: params[:key])

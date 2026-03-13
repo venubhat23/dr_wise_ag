@@ -9,7 +9,12 @@ class Investor < ApplicationRecord
   has_many :health_insurances, dependent: :nullify
   has_many :motor_insurances, dependent: :nullify
   # Note: other_insurances don't have investor_id column, so no direct association
-  has_one_attached :upload_main_document
+
+  # R2 File Storage fields (direct upload to Cloudflare R2, no ActiveStorage)
+  # Columns: main_document_key, main_document_filename, main_document_content_type, main_document_size
+
+  # File upload validations (for direct R2 upload)
+  validate :r2_main_document_validation
 
   # Nested attributes for documents
   accepts_nested_attributes_for :investor_documents, allow_destroy: true, reject_if: :all_blank
@@ -59,6 +64,55 @@ class Investor < ApplicationRecord
 
   def formatted_email
     email.presence || "N/A"
+  end
+
+  def main_document_url
+    r2_document_url
+  end
+
+  def public_main_document_url
+    r2_document_url
+  end
+
+  # R2 Direct Upload Methods
+  def upload_to_r2(file)
+    result = R2Service.upload(file, folder: "investors/#{id}")
+
+    if result[:error]
+      errors.add(:upload_main_document, "Upload failed: #{result[:error]}")
+      return false
+    end
+
+    # Store R2 file information
+    update!(
+      main_document_key: result[:key],
+      main_document_filename: result[:filename],
+      main_document_content_type: result[:content_type],
+      main_document_size: result[:size]
+    )
+
+    result
+  end
+
+  def delete_from_r2
+    return unless main_document_key.present?
+
+    R2Service.delete(main_document_key)
+    update!(
+      main_document_key: nil,
+      main_document_filename: nil,
+      main_document_content_type: nil,
+      main_document_size: nil
+    )
+  end
+
+  def r2_document_url
+    return nil unless main_document_key.present?
+    R2Service.public_url(main_document_key)
+  end
+
+  def has_r2_document?
+    main_document_key.present?
   end
 
   private
@@ -138,5 +192,11 @@ class Investor < ApplicationRecord
       # If password is provided, store it in original_password too
       self.original_password = password
     end
+  end
+
+  def r2_main_document_validation
+    # This validation is handled during the upload process in the controller
+    # File type and size checks are performed in the R2Service.upload method
+    true
   end
 end

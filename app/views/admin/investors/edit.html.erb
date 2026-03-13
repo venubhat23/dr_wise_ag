@@ -207,13 +207,75 @@
       <div class="row mb-4">
         <div class="col-md-12">
           <%= form.label :upload_main_document, "Upload Main Document", class: "form-label" %>
-          <% if @investor.upload_main_document.attached? %>
+
+          <!-- Current R2 Document Display -->
+          <% if @investor.has_r2_document? %>
+            <div class="current-document mb-3 p-3 border rounded bg-light">
+              <div class="row align-items-center">
+                <div class="col-auto">
+                  <% if @investor.main_document_content_type&.start_with?('image/') %>
+                    <%= image_tag @investor.r2_document_url, class: "img-thumbnail",
+                        style: "width: 60px; height: 60px; object-fit: cover;" %>
+                  <% elsif @investor.main_document_content_type == 'application/pdf' %>
+                    <div class="bg-danger text-white rounded d-flex align-items-center justify-content-center"
+                         style="width: 60px; height: 60px;">
+                      <i class="bi bi-file-earmark-pdf fs-4"></i>
+                    </div>
+                  <% else %>
+                    <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center"
+                         style="width: 60px; height: 60px;">
+                      <i class="bi bi-file-earmark fs-4"></i>
+                    </div>
+                  <% end %>
+                </div>
+                <div class="col">
+                  <div class="fw-medium"><%= @investor.main_document_filename %></div>
+                  <small class="text-muted">
+                    <%= (@investor.main_document_size / 1024.0 / 1024.0).round(2) %> MB •
+                    <%= @investor.main_document_content_type %>
+                  </small>
+                  <div>
+                    <small class="text-success">
+                      <i class="bi bi-cloud-check me-1"></i>
+                      Stored in Cloudflare R2
+                    </small>
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <div class="d-flex gap-1">
+                    <%= link_to @investor.r2_document_url, class: "btn btn-sm btn-outline-primary",
+                        target: "_blank", title: "View" do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+                    <%= link_to "javascript:void(0)",
+                        class: "btn btn-sm btn-outline-danger delete-main-document",
+                        title: "Delete Document",
+                        data: {
+                          url: admin_investor_path(@investor, delete_document: true),
+                          filename: @investor.main_document_filename
+                        } do %>
+                      <i class="bi bi-trash"></i>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="mb-2">
-              <small class="text-muted">Current file: <%= @investor.upload_main_document.filename %></small>
+              <small class="text-muted">
+                <strong>Replace document:</strong> Upload a new file to replace the current document
+              </small>
             </div>
           <% end %>
+
           <%= form.file_field :upload_main_document, class: "form-control", accept: "image/*,application/pdf" %>
-          <small class="form-text text-muted">Upload main identification document (JPG, PNG, PDF) - leave empty to keep existing</small>
+          <small class="form-text text-muted">
+            Upload main identification document (JPG, PNG, PDF) -
+            <% if @investor.has_r2_document? %>
+              upload new file to replace existing document
+            <% else %>
+              leave empty to keep existing
+            <% end %>
+          </small>
         </div>
       </div>
 
@@ -226,25 +288,65 @@
               <div class="col-md-6 mb-3">
                 <div class="card h-100">
                   <div class="card-body">
-                    <h6 class="card-title"><%= document.document_type %></h6>
-                    <p class="card-text">
-                      <small class="text-muted">
-                        <%= document.document_name %><br>
-                        Uploaded: <%= document.created_at ? time_ago_in_words(document.created_at) + ' ago' : 'Date not available' %>
-                      </small>
-                    </p>
-                    <div class="d-flex gap-2">
-                      <% if document.document_file.attached? %>
+                    <div class="d-flex align-items-start">
+                      <div class="me-3">
+                        <% if document.content_type&.start_with?('image/') %>
+                          <% if document.document_url.present? %>
+                            <%= image_tag document.document_url, class: "img-thumbnail",
+                                style: "width: 50px; height: 50px; object-fit: cover;" %>
+                          <% else %>
+                            <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center"
+                                 style="width: 50px; height: 50px;">
+                              <i class="bi bi-image fs-6"></i>
+                            </div>
+                          <% end %>
+                        <% elsif document.content_type == 'application/pdf' %>
+                          <div class="bg-danger text-white rounded d-flex align-items-center justify-content-center"
+                               style="width: 50px; height: 50px;">
+                            <i class="bi bi-file-earmark-pdf fs-6"></i>
+                          </div>
+                        <% else %>
+                          <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center"
+                               style="width: 50px; height: 50px;">
+                            <i class="bi bi-file-earmark fs-6"></i>
+                          </div>
+                        <% end %>
+                      </div>
+                      <div class="flex-grow-1">
+                        <h6 class="card-title mb-1"><%= document.document_type %></h6>
+                        <p class="card-text mb-1">
+                          <small class="text-muted">
+                            <%= document.document_name %><br>
+                            <%= document.document_size %> •
+                            Uploaded: <%= document.created_at ? time_ago_in_words(document.created_at) + ' ago' : 'Date not available' %>
+                          </small>
+                        </p>
+                        <% if document.has_r2_document? %>
+                          <small class="text-success">
+                            <i class="bi bi-cloud-check me-1"></i>
+                            Stored in Cloudflare R2
+                          </small>
+                        <% elsif document.legacy_activestorage_document? %>
+                          <small class="text-info">
+                            <i class="bi bi-archive me-1"></i>
+                            Legacy storage (ActiveStorage)
+                          </small>
+                        <% end %>
+                      </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                      <% if document.document_url.present? %>
                         <%= link_to document.document_url, target: '_blank', class: "btn btn-sm btn-outline-primary" do %>
                           <i class="bi bi-eye me-1"></i>View
                         <% end %>
                       <% end %>
                       <% if document.persisted? %>
-                        <%= link_to admin_investor_investor_document_path(@investor, document),
-                                   class: "btn btn-sm btn-outline-danger",
+                        <%= link_to "javascript:void(0)",
+                                   class: "btn btn-sm btn-outline-danger delete-document",
                                    data: {
-                                     "turbo-method": :delete,
-                                     "turbo-confirm": "Are you sure you want to delete this document?"
+                                     url: admin_investor_investor_document_path(@investor, document),
+                                     filename: document.document_name,
+                                     type: document.document_type
                                    } do %>
                           <i class="bi bi-trash me-1"></i>Delete
                         <% end %>
@@ -290,6 +392,41 @@
   </div>
 
 <% end %>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteConfirmModalLabel">
+          <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+          Confirm Delete
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex align-items-center">
+          <div class="flex-shrink-0">
+            <i class="bi bi-trash text-danger" style="font-size: 2rem;"></i>
+          </div>
+          <div class="flex-grow-1 ms-3">
+            <p class="mb-2"><strong>Are you sure you want to delete this document?</strong></p>
+            <p class="mb-1 text-muted" id="documentInfo"></p>
+            <p class="mb-0 text-danger"><small><i class="bi bi-exclamation-circle me-1"></i>This action cannot be undone and will unlink the document from the investor.</small></p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i>Cancel
+        </button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+          <i class="bi bi-trash me-1"></i>Yes, Delete Document
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <style>
 .document-entry {
@@ -443,6 +580,77 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('click', function(e) {
     if (e.target.closest('.remove-document')) {
       e.target.closest('.document-entry').remove();
+    }
+  });
+
+  // Delete confirmation modal functionality
+  let deleteUrl = '';
+  const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+  const documentInfo = document.getElementById('documentInfo');
+  const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+  // Handle main document delete
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.delete-main-document')) {
+      e.preventDefault();
+      const button = e.target.closest('.delete-main-document');
+      deleteUrl = button.dataset.url;
+      const filename = button.dataset.filename;
+
+      documentInfo.textContent = `Main Document: ${filename}`;
+      deleteModal.show();
+    }
+  });
+
+  // Handle regular document delete
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.delete-document')) {
+      e.preventDefault();
+      const button = e.target.closest('.delete-document');
+      deleteUrl = button.dataset.url;
+      const filename = button.dataset.filename;
+      const type = button.dataset.type;
+
+      documentInfo.textContent = `${type}: ${filename}`;
+      deleteModal.show();
+    }
+  });
+
+  // Handle confirm delete
+  confirmDeleteBtn.addEventListener('click', function() {
+    if (deleteUrl) {
+      // Create form and submit
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = deleteUrl;
+
+      // Add CSRF token
+      const csrfToken = document.querySelector('meta[name="csrf-token"]');
+      if (csrfToken) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'authenticity_token';
+        csrfInput.value = csrfToken.content;
+        form.appendChild(csrfInput);
+      }
+
+      // Add method override for DELETE or PATCH
+      const methodInput = document.createElement('input');
+      methodInput.type = 'hidden';
+      methodInput.name = '_method';
+
+      if (deleteUrl.includes('delete_document=true')) {
+        // Main document delete uses PATCH
+        methodInput.value = 'PATCH';
+      } else {
+        // Regular document delete uses DELETE
+        methodInput.value = 'DELETE';
+      }
+      form.appendChild(methodInput);
+
+      // Submit form
+      document.body.appendChild(form);
+      form.submit();
     }
   });
 });

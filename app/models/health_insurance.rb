@@ -15,6 +15,10 @@ class HealthInsurance < ApplicationRecord
   has_many_attached :documents
   has_many_attached :policy_documents
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
+  has_many :policy_documents_records, -> { where(policy_type: 'health') },
+           class_name: 'PolicyDocument',
+           foreign_key: 'policy_id',
+           dependent: :destroy
 
   # Renewal relationships
   belongs_to :original_policy, class_name: 'HealthInsurance', foreign_key: 'original_policy_id', optional: true

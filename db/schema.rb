@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_05_083645) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_13_102347) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -280,6 +280,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_05_083645) do
     t.string "document_type"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "r2_file_key"
+    t.string "r2_filename"
+    t.string "r2_content_type"
+    t.bigint "r2_file_size"
     t.index ["customer_id"], name: "index_customer_documents_on_customer_id"
   end
 
