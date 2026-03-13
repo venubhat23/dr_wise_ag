@@ -27,6 +27,9 @@ class Admin::PolicyDocumentsController < Admin::ApplicationController
           }
         end
       }
+    else
+      # For non-AJAX requests, redirect to policy page
+      redirect_to "/admin/insurance/life/#{params[:policy_id]}", notice: 'Please access documents through the policy page.'
     end
   end
 

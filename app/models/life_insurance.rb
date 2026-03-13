@@ -312,6 +312,10 @@ class LifeInsurance < ApplicationRecord
     main_policy_document_key.present?
   end
 
+  def has_main_policy_r2_document?
+    has_main_policy_r2?
+  end
+
   def main_policy_r2_filename
     main_policy_document_filename
   end

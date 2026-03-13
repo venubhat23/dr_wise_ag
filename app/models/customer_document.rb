@@ -60,7 +60,40 @@ class CustomerDocument < ApplicationRecord
   end
 
   def document_file
-    file
+    # Return a compatible object that has an attached? method for backward compatibility
+    return DocumentFileProxy.new(self) if has_file?
+    nil
+  end
+
+  # Compatibility class for ActiveStorage-like behavior
+  class DocumentFileProxy
+    def initialize(document)
+      @document = document
+    end
+
+    def attached?
+      @document.has_file?
+    end
+
+    def filename
+      OpenStruct.new(to_s: @document.r2_filename)
+    end
+
+    def content_type
+      @document.r2_content_type
+    end
+
+    def byte_size
+      @document.r2_file_size
+    end
+
+    def key
+      @document.r2_file_key
+    end
+
+    def url
+      @document.document_url
+    end
   end
 
   # R2 Upload method (to be used by controller)

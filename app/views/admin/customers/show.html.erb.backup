@@ -1,262 +1,76 @@
-<!-- Fix Customer Detail Page Styling -->
-<style>
-/* Page Background */
-body {
-  background: #f3f4f6 !important;
-}
-
-/* Header Card */
-.customer-header-card {
-  background: white !important;
-  border-radius: 8px !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-  padding: 24px !important;
-  margin-bottom: 24px !important;
-  border: none !important;
-}
-
-/* Avatar */
-.customer-avatar {
-  width: 40px !important;
-  height: 40px !important;
-  flex-shrink: 0 !important;
-}
-
-.avatar-placeholder {
-  width: 40px !important;
-  height: 40px !important;
-  background: #7C3AED !important;
-  color: white !important;
-  border-radius: 50% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 18px !important;
-  font-weight: bold !important;
-  box-shadow: none !important;
-}
-
-/* Section Cards */
-.info-section-card {
-  background: white !important;
-  border-radius: 8px !important;
-  border: 1px solid #e5e7eb !important;
-  margin-bottom: 12px !important;
-  overflow: hidden !important;
-  box-shadow: none !important;
-}
-
-/* Section Headers */
-.section-header {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  padding: 16px 20px !important;
-  cursor: pointer !important;
-  background: white !important;
-  border-bottom: 1px solid #e5e7eb !important;
-  margin: 0 !important;
-}
-
-.section-header:hover {
-  background: #f9fafb !important;
-}
-
-/* Section Icons */
-.section-icon {
-  width: 32px !important;
-  height: 32px !important;
-  background: #EDE9FE !important;
-  border-radius: 6px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin-right: 12px !important;
-  flex-shrink: 0 !important;
-}
-
-.section-icon i {
-  color: #7C3AED !important;
-  font-size: 16px !important;
-}
-
-/* Section Titles */
-.section-title {
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  color: #374151 !important;
-  margin: 0 !important;
-  flex: 1 !important;
-}
-
-/* Collapse Icons */
-.collapse-icon {
-  color: #6B7280 !important;
-  font-size: 16px !important;
-  transition: transform 0.2s ease !important;
-  margin-left: auto !important;
-}
-
-.section-header.collapsed .collapse-icon {
-  transform: rotate(0deg) !important;
-}
-
-.section-header:not(.collapsed) .collapse-icon {
-  transform: rotate(180deg) !important;
-}
-
-/* Section Bodies */
-.section-body {
-  padding: 16px 20px !important;
-  background: white !important;
-}
-
-/* Info Fields */
-.info-field {
-  margin-bottom: 16px !important;
-}
-
-.info-field label {
-  font-size: 12px !important;
-  font-weight: 500 !important;
-  color: #6B7280 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
-  margin-bottom: 4px !important;
-  display: block !important;
-}
-
-.info-value {
-  font-size: 14px !important;
-  color: #111827 !important;
-  font-weight: 500 !important;
-  line-height: 1.4 !important;
-}
-
-/* Remove any conflicting styles */
-.customer-type-badge,
-.status-badge {
-  padding: 4px 8px !important;
-  border-radius: 12px !important;
-  font-size: 12px !important;
-  font-weight: 500 !important;
-}
-
-.customer-type-badge.individual {
-  background: #EBF8FF !important;
-  color: #2563EB !important;
-}
-
-.status-badge.active {
-  background: #D1FAE5 !important;
-  color: #065F46 !important;
-}
-
-.status-badge.inactive {
-  background: #FEE2E2 !important;
-  color: #991B1B !important;
-}
-
-.customer-name {
-  font-size: 24px !important;
-  font-weight: 600 !important;
-  color: #111827 !important;
-  margin: 0 !important;
-}
-
-/* Section Count */
-.section-count {
-  background: #F3F4F6 !important;
-  padding: 2px 8px !important;
-  border-radius: 8px !important;
-  font-size: 11px !important;
-  font-weight: 500 !important;
-  color: #6B7280 !important;
-  margin-left: 8px !important;
-}
-
-/* Override Bootstrap containers */
-.container, .container-fluid {
-  background: transparent !important;
-}
-
-/* Force grid layout */
-.row {
-  margin: 0 !important;
-}
-
-.col-md-3 {
-  padding: 0 8px !important;
-}
-</style>
-
-<!-- Customer Details Header -->
+<!-- Page Header with Customer Info -->
 <div class="customer-header-card">
   <div class="d-flex justify-content-between align-items-start">
-    <!-- Left Section with Customer Info -->
+    <!-- Left Section with Avatar and Basic Info -->
     <div class="d-flex align-items-center gap-3">
-      <!-- Avatar/Icon -->
+      <!-- Avatar -->
       <div class="customer-avatar">
-        <div class="avatar-placeholder">
-          <%= @customer.display_name&.first&.upcase || 'C' %>
-        </div>
+        <% if @customer.profile_image.attached? %>
+          <%= image_tag rails_blob_path(@customer.profile_image, only_path: true),
+              class: "avatar-img",
+              alt: @customer.display_name %>
+        <% else %>
+          <div class="avatar-placeholder">
+            <%= @customer.display_name.first.upcase %>
+          </div>
+        <% end %>
       </div>
 
       <!-- Customer Info -->
       <div>
         <h2 class="customer-name mb-2"><%= @customer.display_name %></h2>
         <div class="d-flex align-items-center gap-3 mb-2">
-          <span class="badge customer-type-badge individual">
-            ID: CUST-<%= @customer.id.to_s.rjust(4, '0') %>-<%= @customer.created_at.strftime('%Y') %>
+          <span class="badge customer-type-badge <%= @customer.customer_type == 'individual' ? 'individual' : 'corporate' %>">
+            <%= @customer.customer_type == 'individual' ? 'Individual Client' : 'Corporate Client' %>
           </span>
-          <span class="badge status-badge <%= @customer.status && !@customer.deactivated? ? 'active' : 'inactive' %>">
-            <%= @customer.status && !@customer.deactivated? ? 'ACTIVE' : 'INACTIVE' %>
+          <span class="badge status-badge <%= @customer.status ? 'active' : 'inactive' %>">
+            <%= @customer.status ? 'Active' : 'Inactive' %>
           </span>
         </div>
         <div class="text-muted small">
-          <i class="bi bi-calendar me-1"></i>Created: <%= @customer.created_at.strftime("%B %d, %Y") %>
+          <i class="bi bi-person me-1"></i>Agent:
+          <% if @customer.respond_to?(:sub_agent_id) && @customer.sub_agent_id.present? %>
+            <% sub_agent = SubAgent.find_by(id: @customer.sub_agent_id) %>
+            <%= sub_agent&.full_name || 'Krama Consulting' %>
+          <% elsif @customer.respond_to?(:sub_agent) && @customer.sub_agent.is_a?(String) %>
+            <%= @customer.sub_agent %>
+          <% else %>
+            Krama Consulting
+          <% end %>
         </div>
       </div>
     </div>
 
-    <!-- Right Section with Actions -->
+    <!-- Right Section with Password and Actions -->
     <div class="text-end">
-      <div class="d-flex gap-2 justify-content-end">
-        <%= link_to admin_customers_path, class: "btn btn-outline-secondary btn-sm" do %>
-          <i class="bi bi-arrow-left me-1"></i>Back to Customers
-        <% end %>
-
-        <button class="btn btn-info btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#customerGuideModal">
-          <i class="bi bi-question-circle me-1"></i>Customer Guide
-        </button>
-
-        <div class="dropdown">
-          <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="bi bi-gear me-1"></i>Actions
-          </button>
-          <ul class="dropdown-menu">
-            <li><%= link_to "Edit Customer", edit_admin_customer_path(@customer), class: "dropdown-item" %></li>
-            <li><%= link_to "Add Family Member", new_admin_customer_family_member_path(@customer), class: "dropdown-item" %></li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-              <a href="https://wa.me/<%= @customer.mobile&.gsub(/\D/, '') %>" class="dropdown-item" target="_blank">
-                <i class="bi bi-whatsapp me-2"></i>WhatsApp
-              </a>
-            </li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-              <%= link_to "#",
-                  class: "dropdown-item text-danger delete-customer-btn",
-                  data: {
-                    "customer-id": @customer.id,
-                    "customer-name": @customer.display_name,
-                    "delete-url": admin_customer_path(@customer)
-                  } do %>
-                <i class="bi bi-trash me-2"></i>Delete Customer
-              <% end %>
-            </li>
-          </ul>
+      <div class="customer-credentials mb-3">
+        <div class="credential-item">
+          <span class="credential-label">Username:</span>
+          <span class="credential-value fw-bold" id="customer-id-value">
+            <%= @customer.mobile.present? ? @customer.mobile : '-' %>
+          </span>
         </div>
+        <div class="credential-item">
+          <span class="credential-label">Password:</span>
+          <span class="credential-value fw-bold" id="customer-password-value">
+            <% user = User.find_by(email: @customer.email, user_type: 'customer') if @customer.email.present? %>
+            <% if user&.original_password.present? %>
+              <%= user.original_password %>
+            <% elsif @customer.respond_to?(:original_password) && @customer.original_password.present? %>
+              <%= @customer.original_password %>
+            <% else %>
+              -
+            <% end %>
+          </span>
+        </div>
+      </div>
+      <div class="d-flex gap-2 justify-content-end">
+        <button class="btn btn-outline-primary btn-sm" onclick="copyCredentials()">
+          <i class="bi bi-clipboard me-1"></i>Copy
+        </button>
+        <a href="https://wa.me/<%= @customer.mobile&.gsub(/\D/, '') %>" class="btn btn-success btn-sm" target="_blank">
+          <i class="bi bi-whatsapp"></i>
+        </a>
       </div>
     </div>
   </div>
@@ -267,7 +81,7 @@ body {
   <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#basicInfoCollapse" aria-expanded="false">
     <div class="d-flex align-items-center">
       <div class="section-icon">
-        <i class="bi bi-person-check"></i>
+        <i class="bi bi-person"></i>
       </div>
       <h5 class="section-title">Basic Information</h5>
       
@@ -277,71 +91,55 @@ body {
   <div id="basicInfoCollapse" class="collapse">
     <div class="section-body">
       <div class="row g-4">
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-3">
           <div class="info-field">
             <label>FIRST NAME</label>
             <div class="info-value"><%= @customer.first_name || '-' %></div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-3">
           <div class="info-field">
             <label>LAST NAME</label>
             <div class="info-value"><%= @customer.last_name || '-' %></div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-3">
           <div class="info-field">
             <label>MOBILE NO.</label>
-            <div class="info-value">
-              <% if @customer.mobile.present? %>
-                <a href="tel:<%= @customer.mobile %>" class="text-decoration-none">
-                  <%= @customer.mobile %>
-                </a>
-              <% else %>
-                -
-              <% end %>
-            </div>
+            <div class="info-value"><%= @customer.mobile || '-' %></div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-3">
           <div class="info-field">
             <label>EMAIL</label>
-            <div class="info-value">
-              <% if @customer.email.present? %>
-                <a href="mailto:<%= @customer.email %>" class="text-decoration-none">
-                  <%= @customer.email %>
-                </a>
-              <% else %>
-                -
-              <% end %>
-            </div>
+            <div class="info-value"><%= @customer.email || '-' %></div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-3">
           <div class="info-field">
             <label>GENDER</label>
             <div class="info-value"><%= @customer.gender&.humanize || '-' %></div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-3">
           <div class="info-field">
             <label>BIRTH DATE</label>
             <div class="info-value"><%= @customer.birth_date&.strftime("%B %d, %Y") || '-' %></div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-3">
           <div class="info-field">
             <label>BIRTH PLACE</label>
             <div class="info-value"><%= @customer.birth_place || '-' %></div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-3">
           <div class="info-field">
             <label>MARITAL STATUS</label>
             <div class="info-value"><%= @customer.marital_status&.humanize || '-' %></div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-3">
           <div class="info-field">
             <label>AGE</label>
             <div class="info-value"><%= @customer.age ? "#{@customer.age} years" : '-' %></div>
@@ -352,33 +150,34 @@ body {
   </div>
 </div>
 
-<!-- Professional Information Section -->
+<!-- Advance Details Section -->
 <div class="info-section-card">
-  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#professionalInfoCollapse" aria-expanded="false">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#advanceDetailsCollapse" aria-expanded="false">
     <div class="d-flex align-items-center">
       <div class="section-icon">
-        <i class="bi bi-briefcase"></i>
+        <i class="bi bi-info-circle"></i>
       </div>
-      <h5 class="section-title">Professional Information</h5>
+      <h5 class="section-title">Advance Details</h5>
+      
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
-  <div id="professionalInfoCollapse" class="collapse">
+  <div id="advanceDetailsCollapse" class="collapse">
     <div class="section-body">
       <div class="row g-4">
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-4">
           <div class="info-field">
             <label>OCCUPATION</label>
             <div class="info-value"><%= @customer.occupation || '-' %></div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-4">
           <div class="info-field">
             <label>EDUCATION</label>
             <div class="info-value"><%= @customer.education || '-' %></div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6 col-lg-4">
           <div class="info-field">
             <label>ANNUAL INCOME</label>
             <div class="info-value">
@@ -388,24 +187,6 @@ body {
                 -
               <% end %>
             </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>BUSINESS/JOB</label>
-            <div class="info-value"><%= @customer.business_job || '-' %></div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>BUSINESS NAME</label>
-            <div class="info-value"><%= @customer.business_name || '-' %></div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>JOB NAME</label>
-            <div class="info-value"><%= @customer.job_name || '-' %></div>
           </div>
         </div>
       </div>
@@ -434,83 +215,16 @@ body {
             <div class="info-value"><%= @customer.address || '-' %></div>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
           <div class="info-field">
             <label>CITY</label>
             <div class="info-value"><%= @customer.city || '-' %></div>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
           <div class="info-field">
             <label>STATE</label>
             <div class="info-value"><%= @customer.state || '-' %></div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="info-field">
-            <label>PINCODE</label>
-            <div class="info-value"><%= @customer.pincode || '-' %></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Product & Insurance Information Section -->
-<div class="info-section-card">
-  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#productInfoCollapse" aria-expanded="false">
-    <div class="d-flex align-items-center">
-      <div class="section-icon">
-        <i class="bi bi-info-circle"></i>
-      </div>
-      <h5 class="section-title">Product & Insurance Information</h5>
-    </div>
-    <i class="bi bi-chevron-down collapse-icon"></i>
-  </div>
-  <div id="productInfoCollapse" class="collapse">
-    <div class="section-body">
-      <div class="row g-4">
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>TOTAL POLICIES</label>
-            <div class="info-value"><%= @customer.policies_count || 0 %> Policies</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>HEALTH INSURANCE</label>
-            <div class="info-value"><%= @customer.health_insurances.count %> Policies</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>LIFE INSURANCE</label>
-            <div class="info-value"><%= @customer.life_insurances.count %> Policies</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>MOTOR INSURANCE</label>
-            <div class="info-value"><%= @customer.motor_insurances.count %> Policies</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>OTHER INSURANCE</label>
-            <div class="info-value"><%= @customer.other_insurances.count %> Policies</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>AFFILIATE</label>
-            <div class="info-value">
-              <% if @customer.affiliate.present? %>
-                <%= @customer.affiliate.full_name %>
-              <% else %>
-                Direct Customer
-              <% end %>
-            </div>
           </div>
         </div>
       </div>
@@ -695,45 +409,98 @@ body {
             <h6 class="mb-0">Customer Documents</h6>
             <span class="badge bg-primary ms-2"><%= @customer.documents.count %></span>
           </div>
-          <div class="simple-documents-list">
-            <% @customer.documents.each do |document| %>
-              <div class="simple-document-item">
-                <div class="document-icon">
-                  <% if document.document_file&.attached? %>
+          <div class="documents-grid">
+            <% @customer.documents.each_with_index do |document, index| %>
+              <div class="enhanced-document-card" data-aos="fade-up" data-aos-delay="<%= index * 100 %>">
+                <!-- Document Preview -->
+                <div class="document-preview" onclick="openPreviewModal('<%= document.id %>')">
+                  <% if document.document_file.attached? %>
                     <% file_extension = File.extname(document.document_file.filename.to_s).downcase %>
                     <% if ['.jpg', '.jpeg', '.png', '.gif'].include?(file_extension) %>
-                      <i class="bi bi-image text-info"></i>
+                      <div class="image-preview">
+                        <%= image_tag document.document_url, alt: document.document_type, class: "preview-image" %>
+                        <div class="preview-overlay">
+                          <i class="bi bi-eye preview-icon"></i>
+                        </div>
+                      </div>
                     <% elsif file_extension == '.pdf' %>
-                      <i class="bi bi-file-earmark-pdf text-danger"></i>
+                      <div class="pdf-preview">
+                        <i class="bi bi-file-earmark-pdf pdf-icon"></i>
+                        <div class="preview-overlay">
+                          <i class="bi bi-eye preview-icon"></i>
+                        </div>
+                      </div>
                     <% else %>
-                      <i class="bi bi-file-earmark text-secondary"></i>
+                      <div class="file-preview">
+                        <i class="bi bi-file-earmark file-icon"></i>
+                        <div class="preview-overlay">
+                          <i class="bi bi-eye preview-icon"></i>
+                        </div>
+                      </div>
                     <% end %>
                   <% else %>
-                    <i class="bi bi-file-earmark-x text-danger"></i>
+                    <div class="file-preview">
+                      <i class="bi bi-file-earmark-x text-danger file-icon"></i>
+                      <div class="preview-overlay">
+                        <span class="text-white small">File Missing</span>
+                      </div>
+                    </div>
                   <% end %>
                 </div>
-                <div class="document-details">
-                  <div class="document-name fw-medium"><%= document.document_type %></div>
-                  <div class="document-meta text-muted small">
-                    <%= document.document_name %> • <%= document.document_size %>
+
+                <!-- Document Info -->
+                <div class="document-info">
+                  <div class="document-header">
+                    <h6 class="document-title" title="<%= document.document_type %>"><%= truncate(document.document_type, length: 20) %></h6>
+                    <div class="document-type-badge">
+                      <%= document.document_type %>
+                    </div>
+                  </div>
+
+                  <div class="document-meta">
+                    <div class="meta-item">
+                      <i class="bi bi-file-earmark meta-icon"></i>
+                      <span class="meta-text"><%= truncate(document.document_name, length: 15) %></span>
+                    </div>
+                    <div class="meta-item">
+                      <i class="bi bi-hdd meta-icon"></i>
+                      <span class="meta-text"><%= document.document_size %></span>
+                    </div>
+                    <div class="meta-item">
+                      <i class="bi bi-calendar3 meta-icon"></i>
+                      <span class="meta-text"><%= document.created_at.strftime("%b %d") %></span>
+                    </div>
                   </div>
                 </div>
-                <div class="document-actions-simple">
-                  <% if document.document_file&.attached? %>
-                    <%= link_to document.document_url, class: "btn btn-sm btn-outline-primary", title: "View", target: "_blank" do %>
+
+                <!-- Document Actions -->
+                <div class="document-actions">
+                  <div class="action-buttons">
+                    <% if document.document_file.attached? %>
+                      <%= link_to document.document_url,
+                          class: "action-btn download-btn",
+                          title: "Download",
+                          target: "_blank" do %>
+                        <i class="bi bi-download"></i>
+                      <% end %>
+                    <% end %>
+
+                    <button class="action-btn preview-btn" title="View" onclick="window.open('<%= document.document_url %>', '_blank')">
                       <i class="bi bi-eye"></i>
+                    </button>
+
+                    <button class="action-btn share-btn" title="Copy Link" onclick="copyDocumentLink('<%= document.document_url %>')">
+                      <i class="bi bi-link-45deg"></i>
+                    </button>
+
+                    <%= link_to admin_customer_document_path(@customer, document),
+                        method: :delete,
+                        class: "action-btn delete-btn",
+                        title: "Delete",
+                        data: { confirm: "Are you sure you want to delete this document?", turbo_method: :delete } do %>
+                      <i class="bi bi-trash"></i>
                     <% end %>
-                    <%= link_to document.document_url, class: "btn btn-sm btn-outline-success", title: "Download", target: "_blank", download: true do %>
-                      <i class="bi bi-download"></i>
-                    <% end %>
-                  <% end %>
-                  <%= link_to admin_customer_document_path(@customer, document),
-                      method: :delete,
-                      class: "btn btn-sm btn-outline-danger",
-                      title: "Delete",
-                      data: { confirm: "Are you sure you want to delete this document?", turbo_method: :delete } do %>
-                    <i class="bi bi-trash"></i>
-                  <% end %>
+                  </div>
                 </div>
               </div>
             <% end %>
@@ -1880,83 +1647,6 @@ body {
 </div>
 <% end %>
 
-<!-- Additional Information Section -->
-<div class="info-section-card">
-  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#additionalInfoCollapse" aria-expanded="false">
-    <div class="d-flex align-items-center">
-      <div class="section-icon">
-        <i class="bi bi-journal-text"></i>
-      </div>
-      <h5 class="section-title">Additional Information</h5>
-    </div>
-    <i class="bi bi-chevron-down collapse-icon"></i>
-  </div>
-  <div id="additionalInfoCollapse" class="collapse">
-    <div class="section-body">
-      <div class="row g-4">
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>PAN NUMBER</label>
-            <div class="info-value"><%= @customer.pan_number || @customer.pan_no || '-' %></div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>GST NUMBER</label>
-            <div class="info-value"><%= @customer.gst_number || @customer.gst_no || '-' %></div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>HEIGHT</label>
-            <div class="info-value">
-              <% if @customer.height_feet.present? %>
-                <%= @customer.height_feet %> feet
-              <% elsif @customer.height.present? %>
-                <%= @customer.height %>
-              <% else %>
-                -
-              <% end %>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>WEIGHT</label>
-            <div class="info-value">
-              <% if @customer.weight_kg.present? %>
-                <%= @customer.weight_kg %> kg
-              <% elsif @customer.weight.present? %>
-                <%= @customer.weight %>
-              <% else %>
-                -
-              <% end %>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="info-field">
-            <label>TYPE OF DUTY</label>
-            <div class="info-value"><%= @customer.type_of_duty || '-' %></div>
-          </div>
-        </div>
-        <div class="col-12">
-          <div class="info-field">
-            <label>ADDITIONAL INFORMATION</label>
-            <div class="info-value">
-              <% if @customer.additional_information.present? %>
-                <%= simple_format(@customer.additional_information) %>
-              <% else %>
-                -
-              <% end %>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Bottom Actions -->
 <div class="bottom-actions">
   <%= link_to edit_admin_customer_path(@customer), class: "btn btn-primary" do %>
@@ -1968,14 +1658,304 @@ body {
 </div>
 
 <style>
-/* Bottom Actions */
-.bottom-actions {
-  margin-top: 2rem;
-  margin-bottom: 3rem;
-  padding: 1.5rem 0;
+/* Hide any empty cards and containers */
+.info-section-card:empty {
+  display: none !important;
 }
 
-/* Modal and Document Styles */
+.info-section-card .section-body:empty {
+  display: none !important;
+}
+
+/* SPACING: Consistent spacing between all cards */
+.info-section-card {
+  margin-bottom: 2rem !important;
+}
+
+.info-section-card:last-of-type {
+  margin-bottom: 2.5rem !important;
+}
+
+/* Ensure no extra spacing from nested elements */
+.info-section-card .section-body > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Layout wrapper controls - prevent empty space */
+.main-content {
+  min-height: calc(100vh - 80px) !important;
+}
+
+.content-area {
+  position: relative;
+  min-height: calc(100vh - 120px) !important;
+  padding-bottom: 0 !important;
+}
+
+.content-area::after {
+  content: "";
+  display: block;
+  height: 0;
+  clear: both;
+}
+
+/* Bottom actions proper spacing and positioning */
+.bottom-actions {
+  margin-top: 2rem !important;
+  margin-bottom: 3rem !important;
+  padding: 1.5rem 0 !important;
+  clear: both !important;
+  position: relative;
+  z-index: 10;
+}
+
+/* Aggressive empty container cleanup */
+div:empty:not(.bottom-actions):not([class*="modal"]):not([class*="tooltip"]):not([class*="popover"]):not([class*="dropdown"]):not(.collapse):not([id*="Collapse"]) {
+  display: none !important;
+}
+
+/* Container cleanup at page bottom */
+.container-fluid > div:empty:last-child,
+.content-area > div:empty:last-child,
+.main-content > div:empty:last-child {
+  display: none !important;
+}
+
+/* Customer Header Card */
+.customer-header-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.customer-avatar {
+  width: 80px;
+  height: 80px;
+  position: relative;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #f8f9fa;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: white;
+  font-weight: bold;
+}
+
+.customer-name {
+  font-size: 28px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.customer-type-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.customer-type-badge.individual {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.customer-type-badge.corporate {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-badge.inactive {
+  background: #ffebee;
+  color: #c62828;
+}
+
+/* Customer Credentials */
+.customer-credentials {
+  background: #f8f9fa;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px dashed #dee2e6;
+}
+
+.credential-item {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.credential-item:last-child {
+  margin-bottom: 0;
+}
+
+.credential-label {
+  font-size: 16px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.credential-value {
+  font-size: 18px;
+  color: #2c3e50;
+  font-family: 'Courier New', monospace;
+}
+
+/* Make copy and WhatsApp icons smaller */
+.customer-credentials + .d-flex .btn i {
+  font-size: 0.8rem;
+}
+
+.customer-credentials + .d-flex .btn .bi-clipboard {
+  font-size: 0.75rem;
+}
+
+.customer-credentials + .d-flex .btn .bi-whatsapp {
+  font-size: 0.75rem;
+}
+
+/* Prevent empty containers from rendering */
+.info-section-card:empty {
+  display: none !important;
+}
+
+.section-body:empty {
+  display: none !important;
+}
+
+/* Ensure page ends cleanly */
+.info-section-card:last-child {
+  margin-bottom: 1rem;
+}
+
+/* Info Section Cards */
+.info-section-card {
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.info-section-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.section-header {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-bottom: 1px solid #e9ecef;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.section-header:hover {
+  background: linear-gradient(135deg, #f0f2f5 0%, #ffffff 100%);
+}
+
+.section-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  margin-right: 12px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.section-count {
+  background: #e9ecef;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6c757d;
+  margin-left: auto;
+  margin-right: 12px;
+}
+
+.collapse-icon {
+  color: #6c757d;
+  transition: transform 0.3s ease;
+}
+
+.section-header.collapsed .collapse-icon {
+  transform: rotate(0deg);
+}
+
+.section-header:not(.collapsed) .collapse-icon {
+  transform: rotate(180deg);
+}
+
+.section-body {
+  padding: 20px;
+}
+
+/* Info Fields */
+.info-field {
+  margin-bottom: 12px;
+}
+
+.info-field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.info-value {
+  font-size: 15px;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+/* Bottom Actions - Removed duplicate definition */
+
+/* Document Styles */
 .documents-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -2185,37 +2165,6 @@ body {
 
 .delete-btn:hover {
   background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-}
-/* Simple Document Styles */
-.simple-documents-list {
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-}
-.simple-document-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  gap: 12px;
-}
-.simple-document-item:last-child {
-  border-bottom: none;
-}
-.document-icon {
-  font-size: 24px;
-  width: 40px;
-  text-align: center;
-}
-.document-details {
-  flex: 1;
-}
-.document-name {
-  margin-bottom: 2px;
-}
-.document-actions-simple {
-  display: flex;
-  gap: 6px;
 }
 
 /* Empty States */
@@ -2514,51 +2463,6 @@ setTimeout(cleanupEmptyContainers, 2000); // Final cleanup
 // Also run on turbo events
 document.addEventListener('turbo:load', cleanupEmptyContainers);
 document.addEventListener('turbo:frame-load', cleanupEmptyContainers);
-
-// Delete Customer Confirmation
-document.addEventListener('DOMContentLoaded', function() {
-  const deleteButtons = document.querySelectorAll('.delete-customer-btn');
-
-  deleteButtons.forEach(button => {
-    button.addEventListener('click', function(e) {
-      e.preventDefault();
-
-      const customerId = this.dataset.customerId;
-      const customerName = this.dataset.customerName;
-      const deleteUrl = this.dataset.deleteUrl;
-
-      const confirmed = confirm(`Are you sure you want to delete customer "${customerName}" (ID: ${customerId})?\n\nThis action cannot be undone and will also delete all associated policies and data.`);
-
-      if (confirmed) {
-        // Create a form to submit the DELETE request
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = deleteUrl;
-
-        // Add CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        if (csrfToken) {
-          const csrfInput = document.createElement('input');
-          csrfInput.type = 'hidden';
-          csrfInput.name = 'authenticity_token';
-          csrfInput.value = csrfToken;
-          form.appendChild(csrfInput);
-        }
-
-        // Add method override for DELETE
-        const methodInput = document.createElement('input');
-        methodInput.type = 'hidden';
-        methodInput.name = '_method';
-        methodInput.value = 'DELETE';
-        form.appendChild(methodInput);
-
-        // Submit the form
-        document.body.appendChild(form);
-        form.submit();
-      }
-    });
-  });
-});
 </script>
 
 <!-- Add Policy Modal -->
@@ -2619,155 +2523,9 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
-<!-- Customer Guide Modal -->
-<div class="modal fade" id="customerGuideModal" tabindex="-1" aria-labelledby="customerGuideModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="customerGuideModalLabel">
-          <i class="bi bi-person-check me-2"></i>Customer Management Guide
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row">
-          <!-- Customer Management -->
-          <div class="col-md-6">
-            <h6 class="text-primary mb-3">
-              <i class="bi bi-person-gear me-1"></i>Customer Management
-            </h6>
-            <div class="guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="guide-icon me-2">👤</span>
-                <div>
-                  <h6 class="mb-1">Profile Management</h6>
-                  <small class="text-muted">Update customer details, contact information, and personal data</small>
-                </div>
-              </div>
-            </div>
-            <div class="guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="guide-icon me-2">👥</span>
-                <div>
-                  <h6 class="mb-1">Family Members</h6>
-                  <small class="text-muted">Add family members for comprehensive coverage planning</small>
-                </div>
-              </div>
-            </div>
-            <div class="guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="guide-icon me-2">📄</span>
-                <div>
-                  <h6 class="mb-1">Document Management</h6>
-                  <small class="text-muted">Upload and manage customer documents and certificates</small>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Policy Management -->
-          <div class="col-md-6">
-            <h6 class="text-success mb-3">
-              <i class="bi bi-shield-check me-1"></i>Policy Management
-            </h6>
-            <div class="guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="guide-icon me-2">🏥</span>
-                <div>
-                  <h6 class="mb-1">Health Insurance</h6>
-                  <small class="text-muted">Medical coverage and health protection plans</small>
-                </div>
-              </div>
-            </div>
-            <div class="guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="guide-icon me-2">❤️</span>
-                <div>
-                  <h6 class="mb-1">Life Insurance</h6>
-                  <small class="text-muted">Life coverage and financial protection</small>
-                </div>
-              </div>
-            </div>
-            <div class="guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="guide-icon me-2">🚗</span>
-                <div>
-                  <h6 class="mb-1">Motor Insurance</h6>
-                  <small class="text-muted">Vehicle insurance and auto coverage</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <hr class="my-4">
-        <div class="row">
-          <div class="col-12">
-            <h6 class="mb-3"><i class="bi bi-lightning me-2"></i>Quick Actions</h6>
-            <div class="row">
-              <div class="col-md-3">
-                <div class="text-center p-3 border rounded">
-                  <i class="bi bi-plus-circle fs-3 text-primary mb-2"></i>
-                  <div class="small fw-bold">Add Policy</div>
-                  <small class="text-muted">Create new insurance policy</small>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="text-center p-3 border rounded">
-                  <i class="bi bi-arrow-clockwise fs-3 text-warning mb-2"></i>
-                  <div class="small fw-bold">Renew Policy</div>
-                  <small class="text-muted">Renew expiring policies</small>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="text-center p-3 border rounded">
-                  <i class="bi bi-credit-card fs-3 text-success mb-2"></i>
-                  <div class="small fw-bold">Payment Tracking</div>
-                  <small class="text-muted">Track premium payments</small>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="text-center p-3 border rounded">
-                  <i class="bi bi-telephone fs-3 text-info mb-2"></i>
-                  <div class="small fw-bold">Contact Customer</div>
-                  <small class="text-muted">WhatsApp or call customer</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <style>
 .bg-gradient-primary {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
-
-/* Customer Guide Modal Styles */
-.guide-item {
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border-left: 4px solid #28a745;
-  transition: all 0.2s ease;
-}
-
-.guide-item:hover {
-  background: #e9ecef;
-  transform: translateX(5px);
-}
-
-.guide-icon {
-  font-size: 1.5rem;
-  line-height: 1;
-}
 </style>
-<% end %>
 <!-- End of customer show page -->

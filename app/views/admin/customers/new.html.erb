@@ -264,25 +264,6 @@
       </div>
     </div>
 
-    <!-- Upload Documents (Corporate) -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-          <i class="bi bi-upload me-2 text-primary"></i>
-          <h5 class="mb-0">Upload Documents</h5>
-        </div>
-        <button type="button" class="btn btn-sm btn-outline-primary" id="add_corporate_document">
-          <i class="bi bi-plus-lg me-1"></i>
-          Add Document
-        </button>
-      </div>
-      <div class="card-body">
-        <div id="corporate_documents_container">
-          <!-- Corporate documents will be added here dynamically -->
-        </div>
-        <p class="text-muted mb-0">Click "Add Document" button above to add corporate documents. This is a repeatable list.</p>
-      </div>
-    </div>
 
     <!-- Family Details (Corporate) -->
     <div class="card border-0 shadow-sm mb-4">
@@ -497,7 +478,9 @@
             <%= form.text_field :birth_place, class: "form-control", placeholder: "Enter birth place" %>
           </div>
           <div class="col-md-4">
-            <%= form.label :birth_date, "Birth Date", class: "form-label" %>
+            <%= form.label :birth_date, class: "form-label" do %>
+              Birth Date <span class="text-danger">*</span>
+            <% end %>
             <%= form.date_field :birth_date, class: "form-control", min: "1900-01-01", max: "2099-12-31" %>
             <small class="form-text text-muted">Format: DD-MM-YYYY</small>
           </div>
@@ -590,25 +573,6 @@
       </div>
     </div>
 
-    <!-- 4. Upload Documents (Individual) -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-          <i class="bi bi-upload me-2 text-primary"></i>
-          <h5 class="mb-0">Upload Documents</h5>
-        </div>
-        <button type="button" class="btn btn-sm btn-outline-primary" id="add_document">
-          <i class="bi bi-plus-lg me-1"></i>
-          Add Document
-        </button>
-      </div>
-      <div class="card-body">
-        <div id="documents_container">
-          <!-- Documents will be added here dynamically -->
-        </div>
-        <p class="text-muted mb-0">This is a repeatable list. Add multiple documents as needed.</p>
-      </div>
-    </div>
 
     <!-- 5. Family Details (Repeatable Group) -->
     <div class="card border-0 shadow-sm mb-4">

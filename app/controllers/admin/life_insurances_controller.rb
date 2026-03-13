@@ -154,6 +154,9 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
         # Handle R2 main policy document upload
         handle_main_policy_r2_upload(@life_insurance) if params[:life_insurance][:main_policy_document].present?
 
+        # Handle additional document uploads to R2
+        handle_additional_documents_r2_upload(@life_insurance)
+
         redirect_to admin_life_insurances_path,
                     notice: 'Life insurance policy was successfully created.'
       else
@@ -195,6 +198,9 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       if @life_insurance.save
         # Handle R2 main policy document upload
         handle_main_policy_r2_upload(@life_insurance) if params[:life_insurance][:main_policy_document].present?
+
+        # Handle additional document uploads to R2
+        handle_additional_documents_r2_upload(@life_insurance)
 
         redirect_to admin_life_insurances_path,
                     notice: 'Life insurance policy was successfully updated.'
@@ -751,7 +757,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
   def life_insurance_params
     params.require(:life_insurance).permit(
       :customer_id, :sub_agent_id, :distributor_id, :agency_code_id, :broker_id, :broker_code_type,
-      :policy_holder, :insured_name, :insurance_company_name, :policy_type,
+      :policy_holder, :insured_name, :insurance_company_name, :insurance_company_code, :policy_type,
       :payment_mode, :policy_number, :policy_booking_date, :policy_start_date,
       :policy_end_date, :risk_start_date, :policy_term, :premium_payment_term,
       :plan_name, :sum_insured, :sum_insured_text, :net_premium, :first_year_gst_percentage,
@@ -773,7 +779,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       # Company expenses and profit fields
       :company_expenses_percentage, :company_expenses_amount, :total_distribution_percentage,
       :profit_percentage, :profit_amount,
-      :main_policy_document, policy_documents: [], documents: [],
+      # Note: main_policy_document is handled separately in handle_main_policy_r2_upload
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy],
       life_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy]
     )
@@ -868,6 +874,91 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       flash[:alert] = (flash[:alert] || '') + " Main policy document upload failed: Unknown error"
     else
       flash[:notice] = (flash[:notice] || '') + " Main policy document uploaded successfully to R2."
+    end
+  end
+
+  # R2 Upload Helper for additional documents (policy_documents and documents)
+  def handle_additional_documents_r2_upload(life_insurance)
+    uploaded_count = 0
+    failed_count = 0
+
+    # Handle policy_documents array
+    if params[:life_insurance][:policy_documents].present?
+      params[:life_insurance][:policy_documents].each do |file|
+        next if file.blank? || file == ""
+
+        begin
+          result = R2Service.upload(file, folder: "life_insurance/#{life_insurance.id}/policy_documents")
+
+          if result[:error]
+            Rails.logger.error "Failed to upload policy document: #{result[:error]}"
+            failed_count += 1
+          else
+            # Create PolicyDocument record
+            PolicyDocument.create!(
+              policy_type: 'life',
+              policy_id: life_insurance.id,
+              document_type: 'Policy Document',
+              title: result[:filename],
+              description: "Policy document uploaded on #{Date.current}",
+              uploaded_by: current_user.email,
+              r2_file_key: result[:key],
+              r2_filename: result[:filename],
+              r2_content_type: result[:content_type],
+              r2_file_size: result[:size]
+            )
+            uploaded_count += 1
+            Rails.logger.info "Uploaded policy document: #{result[:filename]}"
+          end
+        rescue => e
+          Rails.logger.error "Error uploading policy document: #{e.message}"
+          failed_count += 1
+        end
+      end
+    end
+
+    # Handle documents array
+    if params[:life_insurance][:documents].present?
+      params[:life_insurance][:documents].each do |file|
+        next if file.blank? || file == ""
+
+        begin
+          result = R2Service.upload(file, folder: "life_insurance/#{life_insurance.id}/documents")
+
+          if result[:error]
+            Rails.logger.error "Failed to upload document: #{result[:error]}"
+            failed_count += 1
+          else
+            # Create PolicyDocument record
+            PolicyDocument.create!(
+              policy_type: 'life',
+              policy_id: life_insurance.id,
+              document_type: 'General Document',
+              title: result[:filename],
+              description: "Document uploaded on #{Date.current}",
+              uploaded_by: current_user.email,
+              r2_file_key: result[:key],
+              r2_filename: result[:filename],
+              r2_content_type: result[:content_type],
+              r2_file_size: result[:size]
+            )
+            uploaded_count += 1
+            Rails.logger.info "Uploaded document: #{result[:filename]}"
+          end
+        rescue => e
+          Rails.logger.error "Error uploading document: #{e.message}"
+          failed_count += 1
+        end
+      end
+    end
+
+    # Add feedback messages
+    if uploaded_count > 0
+      flash[:notice] = (flash[:notice] || '') + " #{uploaded_count} additional document(s) uploaded successfully to Cloudflare R2."
+    end
+
+    if failed_count > 0
+      flash[:alert] = (flash[:alert] || '') + " #{failed_count} document(s) failed to upload."
     end
   end
 end

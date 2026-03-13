@@ -199,7 +199,8 @@ function loadExistingDocuments() {
   fetch(`/admin/policy_documents?policy_type=${policyType}&policy_id=${policyId}`, {
     headers: {
       'X-Requested-With': 'XMLHttpRequest',
-      'Accept': 'application/json'
+      'Accept': 'application/json',
+      'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
     }
   })
   .then(response => response.json())
