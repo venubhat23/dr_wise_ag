@@ -59,24 +59,13 @@
       <div class="d-flex justify-content-between align-items-center mb-3">
         <% policy_documents_count = PolicyDocument.for_policy(policy_type, policy.id).count %>
         <h6 class="mb-0">Uploaded Documents (<span id="document-count"><%= policy_documents_count %></span>)</h6>
-
-        <!-- View Toggle Buttons -->
-        <div class="btn-group btn-group-sm" role="group" aria-label="View toggle">
-          <button type="button" class="btn btn-outline-secondary active" id="list-view-btn" onclick="switchToListView()">
-            <i class="fas fa-list"></i> List
-          </button>
-          <button type="button" class="btn btn-outline-secondary" id="grid-view-btn" onclick="switchToGridView()">
-            <i class="fas fa-th"></i> Grid
-          </button>
-        </div>
       </div>
 
-      <!-- List View Container -->
-      <div id="documents-list" class="view-container">
+      <div id="documents-list">
         <% policy_documents = PolicyDocument.for_policy(policy_type, policy.id).order(created_at: :desc) %>
         <% if policy_documents.any? %>
           <% policy_documents.each do |document| %>
-            <div class="list-document-item d-flex justify-content-between align-items-center p-2 mb-2 border rounded" data-document-id="<%= document.id %>">
+            <div class="document-item d-flex justify-content-between align-items-center p-2 mb-2 border rounded" data-document-id="<%= document.id %>">
               <div class="d-flex align-items-center">
                 <% if document.r2_content_type&.include?('pdf') %>
                   <i class="fas fa-file-pdf text-danger me-2"></i>
@@ -110,78 +99,25 @@
               </div>
             </div>
           <% end %>
-        <% end %>
-      </div>
-
-      <!-- Grid View Container -->
-      <div id="documents-grid" class="view-container" style="display: none;">
-        <% if policy_documents.any? %>
-          <div class="row">
-            <% policy_documents.each do |document| %>
-              <div class="col-md-4 col-lg-3 mb-3">
-                <div class="grid-document-item card h-100" data-document-id="<%= document.id %>">
-                  <div class="card-body text-center p-3">
-                    <% if document.r2_content_type&.include?('pdf') %>
-                      <i class="fas fa-file-pdf fa-3x text-danger mb-2"></i>
-                    <% elsif document.r2_content_type&.include?('image') %>
-                      <i class="fas fa-file-image fa-3x text-primary mb-2"></i>
-                    <% elsif document.r2_content_type&.include?('word') || document.r2_content_type&.include?('document') %>
-                      <i class="fas fa-file-word fa-3x text-info mb-2"></i>
-                    <% else %>
-                      <i class="fas fa-file fa-3x text-secondary mb-2"></i>
-                    <% end %>
-                    <h6 class="card-title mb-1" style="font-size: 0.9rem;"><%= document.title %></h6>
-                    <small class="text-muted d-block mb-3"><%= document.document_type %></small>
-
-                    <div class="btn-group btn-group-sm w-100">
-                      <% if document.document_url.present? %>
-                        <a href="<%= document.document_url %>" target="_blank" class="btn btn-outline-primary btn-sm" title="View">
-                          <i class="fas fa-eye"></i>
-                        </a>
-                      <% end %>
-                      <% if document.download_url.present? %>
-                        <a href="<%= document.download_url %>" class="btn btn-outline-success btn-sm" title="Download">
-                          <i class="fas fa-download"></i>
-                        </a>
-                      <% end %>
-                      <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteDocument(<%= document.id %>, '<%= document.title.gsub("'", "\\'") %>')" title="Delete">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            <% end %>
+        <% else %>
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-folder-open fa-3x mb-3"></i>
+            <p>No documents uploaded yet.</p>
+            <button type="button" class="btn btn-primary" onclick="toggleDocumentUploader()">
+              <i class="fas fa-plus"></i> Upload First Document
+            </button>
           </div>
         <% end %>
       </div>
-
-      <!-- No documents message for both views -->
-      <% if policy_documents.empty? %>
-        <div class="text-center text-muted py-4">
-          <i class="fas fa-folder-open fa-3x mb-3"></i>
-          <p>No documents uploaded yet.</p>
-          <button type="button" class="btn btn-primary" onclick="toggleDocumentUploader()">
-            <i class="fas fa-plus"></i> Upload First Document
-          </button>
-        </div>
-      <% end %>
       </div>
 
-      <div id="no-documents-message" class="text-center text-muted py-4" style="display: none;">
-        <i class="fas fa-folder-open fa-3x mb-3"></i>
-        <p>No documents uploaded yet.</p>
-        <button type="button" class="btn btn-primary" onclick="toggleDocumentUploader()">
-          <i class="fas fa-plus"></i> Upload First Document
-        </button>
-      </div>
     </div>
   </div>
 </div>
 
 <!-- Document Item Template -->
 <script type="text/template" id="document-item-template">
-  <div class="simple-document-item d-flex justify-content-between align-items-center p-2 mb-2 border rounded" data-document-id="{{id}}">
+  <div class="document-item d-flex justify-content-between align-items-center p-2 mb-2 border rounded" data-document-id="{{id}}">
     <div class="d-flex align-items-center">
       <i class="{{fileIcon}} text-{{iconColor}} me-2"></i>
       <div>
@@ -226,27 +162,14 @@
   border-style: dashed !important;
 }
 
-.list-document-item {
+.document-item {
   transition: all 0.2s ease;
   background-color: #f8f9fa;
 }
 
-.list-document-item:hover {
+.document-item:hover {
   background-color: #e9ecef;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.grid-document-item {
-  transition: all 0.2s ease;
-}
-
-.grid-document-item:hover {
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  transform: translateY(-2px);
-}
-
-.view-container {
-  transition: opacity 0.3s ease;
 }
 
 .file-preview-item {
@@ -282,7 +205,6 @@ function initializePolicyDocumentManager() {
   // Skip loadExistingDocuments() since we render them server-side
   setupDragAndDrop();
   setupFileInput();
-  initializeViewMode();
 }
 
 // Load existing documents
@@ -592,40 +514,6 @@ function deleteDocument(documentId, title) {
   });
 }
 
-// View switching functions
-function switchToListView() {
-  document.getElementById('documents-list').style.display = 'block';
-  document.getElementById('documents-grid').style.display = 'none';
-
-  // Update button states
-  document.getElementById('list-view-btn').classList.add('active');
-  document.getElementById('grid-view-btn').classList.remove('active');
-
-  // Save preference
-  localStorage.setItem('documentViewMode', 'list');
-}
-
-function switchToGridView() {
-  document.getElementById('documents-list').style.display = 'none';
-  document.getElementById('documents-grid').style.display = 'block';
-
-  // Update button states
-  document.getElementById('list-view-btn').classList.remove('active');
-  document.getElementById('grid-view-btn').classList.add('active');
-
-  // Save preference
-  localStorage.setItem('documentViewMode', 'grid');
-}
-
-// Initialize view mode based on user preference
-function initializeViewMode() {
-  const savedMode = localStorage.getItem('documentViewMode') || 'list';
-  if (savedMode === 'grid') {
-    switchToGridView();
-  } else {
-    switchToListView();
-  }
-}
 
 // Copy URL to clipboard
 function copyToClipboard(text) {

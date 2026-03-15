@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_15_070711) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_15_135834) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -138,6 +138,21 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_15_070711) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["cache_identifier"], name: "index_analytics_caches_on_cache_identifier", unique: true
+  end
+
+  create_table "banner_documents", force: :cascade do |t|
+    t.bigint "banner_id", null: false
+    t.string "document_type"
+    t.string "title"
+    t.text "description"
+    t.string "r2_file_key"
+    t.string "r2_filename"
+    t.string "r2_content_type"
+    t.bigint "r2_file_size"
+    t.string "uploaded_by"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["banner_id"], name: "index_banner_documents_on_banner_id"
   end
 
   create_table "banners", force: :cascade do |t|
@@ -426,41 +441,4 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_15_070711) do
     t.index ["mobile"], name: "index_distributors_on_mobile", unique: true
     t.index ["role_id"], name: "index_distributors_on_role_id"
     t.index ["status"], name: "index_distributors_on_status"
-  end
-
-  create_table "documents", force: :cascade do |t|
-    t.string "document_type"
-    t.string "documentable_type", null: false
-    t.bigint "documentable_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "title"
-    t.text "description"
-    t.string "uploaded_by"
-    t.string "r2_file_key"
-    t.string "r2_filename"
-    t.string "r2_content_type"
-    t.bigint "r2_file_size"
-    t.index ["documentable_type", "documentable_id"], name: "index_documents_on_documentable"
-  end
-
-  create_table "family_members", force: :cascade do |t|
-    t.bigint "customer_id", null: false
-    t.string "first_name"
-    t.date "birth_date"
-    t.integer "age"
-    t.string "height"
-    t.string "weight"
-    t.string "gender"
-    t.string "relationship"
-    t.string "pan_no"
-    t.string "mobile"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "middle_name"
-    t.string "last_name"
-    t.string "height_feet"
-    t.decimal "weight_kg", precision: 5, scale: 2
-    t.text "additional_information"
-    t.index ["customer_id"], name: "index_family_members_on_customer_id"
   end

@@ -1,6 +1,10 @@
 class Banner < ApplicationRecord
-  # Image attachment
+  # Image attachment (Legacy - keeping for backward compatibility)
   has_one_attached :banner_image
+
+  # R2 Document Management
+  has_many :banner_documents, dependent: :destroy
+  accepts_nested_attributes_for :banner_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations
   validates :title, presence: true, length: { maximum: 255 }
