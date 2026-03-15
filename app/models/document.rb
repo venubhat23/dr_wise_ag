@@ -1,11 +1,17 @@
 class Document < ApplicationRecord
   belongs_to :documentable, polymorphic: true
-  has_one_attached :file
 
-  validates :title, presence: true
+  # Virtual attribute for file uploads during form processing
+  attr_accessor :document_file
+
+  # Callbacks
+  after_save :upload_document_file, if: :should_upload_file?
+
+  # R2 File Storage - Direct upload to Cloudflare R2 (no ActiveStorage)
+  # Uses columns: r2_file_key, r2_filename, r2_content_type, r2_file_size
+
   validates :document_type, presence: true
-  validates :file, presence: true
-  validates :uploaded_by, presence: true
+  # Note: file validation moved to custom method since we're not using ActiveStorage
 
   # File validation
   validate :acceptable_file_type
@@ -25,31 +31,54 @@ class Document < ApplicationRecord
   scope :by_type, ->(type) { where(document_type: type) }
   scope :recent, -> { order(created_at: :desc) }
 
-  # Instance methods
+  # Instance methods for R2 file handling
   def file_name
-    file.attached? ? file.filename.to_s : 'No file attached'
+    r2_filename.present? ? r2_filename : 'No file attached'
   end
 
   def file_size
-    file.attached? ? file.blob.byte_size : 0
+    r2_file_size || 0
   end
 
   def file_type
-    file.attached? ? file.blob.content_type : 'Unknown'
+    r2_content_type || 'Unknown'
   end
 
   def file_size_mb
-    return 0 unless file.attached?
-    (file_size.to_f / 1.megabyte).round(2)
+    return 0 unless r2_file_size
+    (r2_file_size.to_f / 1.megabyte).round(2)
   end
 
   def file_extension
-    return '' unless file.attached?
-    File.extname(file.filename.to_s).downcase
+    return '' unless r2_filename
+    File.extname(r2_filename).downcase
   end
 
   def downloadable?
-    file.attached?
+    has_file?
+  end
+
+  def has_file?
+    r2_file_key.present?
+  end
+
+  def document_url
+    return nil unless r2_file_key.present?
+    "#{R2_CONFIG[:public_url]}/#{r2_file_key}"
+  end
+
+  def public_document_url
+    document_url
+  end
+
+  # Generate a download URL with proper filename
+  def download_url
+    return nil unless r2_file_key.present?
+    base_url = document_url
+    return base_url unless base_url.present?
+
+    # Add content-disposition for proper download with filename
+    "#{base_url}?response-content-disposition=attachment;filename=#{CGI.escape(r2_filename || 'document')}"
   end
 
   def human_file_type
@@ -140,21 +169,104 @@ class Document < ApplicationRecord
     end
   end
 
-  private
+  # R2 Upload method (to be used by controller)
+  def upload_to_r2(file_param)
+    return false unless file_param.present?
 
-  def acceptable_file_type
-    return unless file.attached?
-
-    unless ALLOWED_FILE_TYPES.include?(file.blob.content_type)
+    # Validate file
+    unless valid_file_type?(file_param.content_type)
       errors.add(:file, 'must be PDF, JPG, PNG, or DOC format')
+      return false
+    end
+
+    if file_param.size > 10.megabytes
+      errors.add(:file, 'must be less than 10MB')
+      return false
+    end
+
+    begin
+      # Use R2Service to upload
+      folder = case documentable_type
+               when 'Customer'
+                 "customer_documents/#{documentable_id}"
+               else
+                 "documents/#{documentable_type.downcase}/#{documentable_id}"
+               end
+
+      result = R2Service.upload(file_param, folder: folder)
+
+      if result[:key]
+        # Update record with R2 file information
+        update!(
+          r2_file_key: result[:key],
+          r2_filename: result[:filename],
+          r2_content_type: result[:content_type],
+          r2_file_size: result[:size]
+        )
+        return { success: true, key: result[:key], public_url: result[:public_url] }
+      else
+        errors.add(:file, "Upload failed: #{result[:error]}")
+        return { error: result[:error] }
+      end
+    rescue => e
+      errors.add(:file, "Upload failed: #{e.message}")
+      return { error: e.message }
     end
   end
 
-  def acceptable_file_size
-    return unless file.attached?
+  # Delete from R2
+  def delete_from_r2
+    return true unless r2_file_key.present?
 
-    if file.blob.byte_size > 10.megabytes
-      errors.add(:file, 'must be less than 10MB')
+    begin
+      result = R2Service.delete(r2_file_key)
+
+      # Clear R2 fields regardless of deletion result
+      update!(
+        r2_file_key: nil,
+        r2_filename: nil,
+        r2_content_type: nil,
+        r2_file_size: nil
+      )
+
+      return result
+    rescue => e
+      Rails.logger.error "Failed to delete file from R2: #{e.message}"
+      return false
+    end
+  end
+
+  private
+
+  def number_to_human_size(number)
+    ActionController::Base.helpers.number_to_human_size(number)
+  end
+
+  def valid_file_type?(content_type)
+    ALLOWED_FILE_TYPES.include?(content_type)
+  end
+
+  def acceptable_file_type
+    # This validation is now handled in upload_to_r2 method
+    return true
+  end
+
+  def acceptable_file_size
+    # This validation is now handled in upload_to_r2 method
+    return true
+  end
+
+  # Callback methods for automatic file upload
+  def should_upload_file?
+    document_file.present? && r2_file_key.blank?
+  end
+
+  def upload_document_file
+    return unless document_file.present?
+
+    result = upload_to_r2(document_file)
+    unless result[:success]
+      Rails.logger.error "Failed to upload document file in callback: #{result[:error]}"
     end
   end
 end

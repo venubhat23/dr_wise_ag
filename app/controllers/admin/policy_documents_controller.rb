@@ -21,6 +21,7 @@ class Admin::PolicyDocumentsController < Admin::ApplicationController
             filename: doc.document_name,
             document_size: doc.document_size,
             document_url: doc.document_url,
+            download_url: doc.download_url,
             r2_content_type: doc.r2_content_type,
             uploaded_by: doc.uploaded_by,
             created_at: doc.created_at.strftime('%B %d, %Y at %I:%M %p')

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_13_102347) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_15_070711) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -437,6 +437,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_13_102347) do
     t.string "title"
     t.text "description"
     t.string "uploaded_by"
+    t.string "r2_file_key"
+    t.string "r2_filename"
+    t.string "r2_content_type"
+    t.bigint "r2_file_size"
     t.index ["documentable_type", "documentable_id"], name: "index_documents_on_documentable"
   end
 

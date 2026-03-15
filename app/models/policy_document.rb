@@ -39,6 +39,21 @@ class PolicyDocument < ApplicationRecord
     document_url
   end
 
+  # Generate a download URL with proper filename
+  def download_url
+    return nil unless has_r2_document?
+    base_url = document_url
+    return base_url unless base_url.present?
+
+    # Add content-disposition for proper download with filename
+    "#{base_url}?response-content-disposition=attachment;filename=#{CGI.escape(r2_filename || 'document')}"
+  end
+
+  # Provide filename for compatibility
+  def filename
+    r2_filename || title || "document"
+  end
+
   def upload_to_r2(file)
     return { error: 'No file provided' } unless file.present?
 

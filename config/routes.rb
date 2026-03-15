@@ -109,6 +109,7 @@ Rails.application.routes.draw do
           get :download
         end
       end
+      resources :uploaded_documents, only: [:destroy]
     end
     resources :payouts do
       member do

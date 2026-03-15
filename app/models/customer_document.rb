@@ -2,6 +2,12 @@ class CustomerDocument < ApplicationRecord
   # Associations
   belongs_to :customer
 
+  # Virtual attribute for file uploads during form processing
+  attr_accessor :document_file
+
+  # Callbacks
+  after_save :upload_document_file, if: :should_upload_file?
+
   # Validations
   validates :document_type, presence: true
   validates :document_type, inclusion: {
@@ -23,8 +29,8 @@ class CustomerDocument < ApplicationRecord
 
   def document_url
     return nil unless r2_file_key.present?
-    # Use public R2 domain for direct access
-    "https://pub-54653c57ac144e4a820943b13bf076de.r2.dev/#{r2_file_key}"
+    # Use configured public R2 domain from R2_CONFIG
+    "#{R2_CONFIG[:public_url]}/#{r2_file_key}"
   end
 
   def public_document_url
@@ -78,7 +84,7 @@ class CustomerDocument < ApplicationRecord
     file_proxy
   end
 
-  def document_file
+  def document_file_proxy
     # Return a compatible object that has an attached? method for backward compatibility
     return DocumentFileProxy.new(self) if has_file?
     nil
@@ -138,18 +144,17 @@ class CustomerDocument < ApplicationRecord
 
     begin
       # Use R2Service to upload
-      r2_service = R2Service.new
-      result = r2_service.upload_file(file_param.tempfile, unique_filename, file_param.content_type)
+      result = R2Service.upload(file_param, folder: "customer_documents/#{customer_id}")
 
-      if result[:success]
+      if result[:key]
         # Update record with R2 file information
         update!(
-          r2_file_key: unique_filename,
-          r2_filename: file_param.original_filename,
-          r2_content_type: file_param.content_type,
-          r2_file_size: file_param.size
+          r2_file_key: result[:key],
+          r2_filename: result[:filename],
+          r2_content_type: result[:content_type],
+          r2_file_size: result[:size]
         )
-        return { success: true, key: unique_filename }
+        return { success: true, key: result[:key], public_url: result[:public_url] }
       else
         errors.add(:base, "Upload failed: #{result[:error]}")
         return { error: result[:error] }
@@ -165,8 +170,7 @@ class CustomerDocument < ApplicationRecord
     return true unless r2_file_key.present?
 
     begin
-      r2_service = R2Service.new
-      result = r2_service.delete_file(r2_file_key)
+      result = R2Service.delete(r2_file_key)
 
       # Clear R2 fields regardless of deletion result
       update!(
@@ -176,7 +180,7 @@ class CustomerDocument < ApplicationRecord
         r2_file_size: nil
       )
 
-      return result[:success]
+      return result
     rescue => e
       Rails.logger.error "Failed to delete file from R2: #{e.message}"
       return false
@@ -193,4 +197,20 @@ class CustomerDocument < ApplicationRecord
     allowed_types = %w[image/jpeg image/jpg image/png application/pdf]
     allowed_types.include?(content_type)
   end
+
+  # Public methods for callbacks
+  def should_upload_file?
+    document_file.present? && r2_file_key.blank?
+  end
+
+  def upload_document_file
+    return unless document_file.present?
+
+    result = upload_to_r2(document_file)
+    unless result[:success]
+      Rails.logger.error "Failed to upload document file in callback: #{result[:error]}"
+    end
+  end
+
+  private
 end

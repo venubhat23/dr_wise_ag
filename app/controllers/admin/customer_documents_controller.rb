@@ -56,19 +56,27 @@ class Admin::CustomerDocumentsController < Admin::ApplicationController
 
   # DELETE /admin/customers/:customer_id/documents/:id
   def destroy
-    # Delete from R2 first
-    @document.delete_from_r2 if @document.has_file?
-
+    # Just unlink from customer - do NOT delete from R2 storage
     if @document.destroy
-      render json: {
-        success: true,
-        message: 'Document deleted successfully!'
-      }
+      if request.format.json?
+        render json: {
+          success: true,
+          message: 'Document unlinked from customer successfully! File remains in cloud storage.'
+        }
+      else
+        redirect_to edit_admin_customer_path(@customer),
+                    notice: 'Document unlinked successfully! File remains in cloud storage.'
+      end
     else
-      render json: {
-        success: false,
-        message: 'Failed to delete document'
-      }, status: :unprocessable_entity
+      if request.format.json?
+        render json: {
+          success: false,
+          message: 'Failed to unlink document'
+        }, status: :unprocessable_entity
+      else
+        redirect_to edit_admin_customer_path(@customer),
+                    alert: 'Failed to unlink document.'
+      end
     end
   end
 

@@ -457,108 +457,149 @@
       </div>
 
       <!-- Current Files -->
-      <% if @customer.profile_image.attached? || @customer.documents.any? || @customer.uploaded_documents.any? %>
+      <% if @customer.documents.any? || @customer.uploaded_documents.any? %>
         <div class="card border-0 shadow-sm mb-4">
           <div class="card-header bg-transparent border-0">
             <h5 class="mb-0">Current Files</h5>
           </div>
           <div class="card-body">
-            <% if @customer.has_profile_image? %>
-              <h6>Profile Image</h6>
-              <div class="row g-2 mb-3">
-                <div class="col-md-3">
-                  <% image_data = @customer.safe_profile_image_display %>
-                  <% if image_data %>
-                    <div class="position-relative">
-                      <%= image_tag image_data[:url],
-                          class: "img-thumbnail",
-                          style: "max-height: 100px; width: auto;",
-                          onerror: "this.src='/assets/placeholder-avatar.png'; this.onerror=null;",
-                          loading: "lazy" %>
-                      <small class="d-block text-muted mt-1">
-                        <i class="bi bi-file-image me-1"></i><%= image_data[:filename] %>
-                        <br><span class="text-success">(<%= number_to_human_size(image_data[:size]) %>)</span>
-                      </small>
-                    </div>
-                    <div class="btn-group mt-2" role="group">
-                      <button type="button" class="btn btn-outline-primary btn-sm"
-                              data-bs-toggle="modal"
-                              data-bs-target="#profilePreviewModal">
-                        <i class="bi bi-eye me-1"></i>Preview
-                      </button>
-                      <a href="<%= image_data[:url] %>"
-                         class="btn btn-outline-secondary btn-sm"
-                         download="<%= image_data[:filename] %>">
-                        <i class="bi bi-download me-1"></i>Download
-                      </a>
-                    </div>
-                  <% else %>
-                    <div class="alert alert-warning alert-sm">
-                      <i class="bi bi-exclamation-triangle me-1"></i>
-                      Image unavailable or corrupted
-                    </div>
-                  <% end %>
-                </div>
-              </div>
-            <% end %>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="mb-0">Customer Documents</h6>
+              <button type="button" class="btn btn-sm btn-success" id="add_legacy_document">
+                <i class="bi bi-plus-lg me-1"></i>
+                Add Document
+              </button>
+            </div>
 
             <% if @customer.documents.any? %>
-              <h6>Legacy Documents</h6>
               <div class="list-group mb-3">
                 <% @customer.documents.each do |document| %>
-                  <div class="list-group-item d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-file-earmark me-2"></i><%= document.filename %></span>
-                    <%= link_to url_for(document.file), class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
-                      <i class="bi bi-download"></i> Download
-                    <% end %>
+                  <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div class="d-flex align-items-center">
+                        <i class="bi bi-file-earmark me-2"></i>
+                        <div>
+                          <span class="fw-medium"><%= document.document_type %></span>
+                          <% if document.has_file? %>
+                            <br><small class="text-muted"><%= document.document_name %></small>
+                          <% end %>
+                        </div>
+                      </div>
+                      <div class="d-flex gap-2 align-items-center">
+                        <% if document.has_file? %>
+                          <span class="badge bg-success">✓ Cloud Stored</span>
+                          <%= link_to document.document_url, class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
+                            <i class="bi bi-download"></i> Download
+                          <% end %>
+                        <% else %>
+                          <span class="badge bg-warning text-dark">⚠ No file attached</span>
+                        <% end %>
+                        <%= link_to admin_customer_document_path(@customer, document),
+                            method: :delete,
+                            data: {
+                              confirm: "Are you sure you want to unlink this document from the customer? The file will remain in cloud storage.",
+                              turbo_method: :delete
+                            },
+                            class: "btn btn-sm btn-outline-danger",
+                            title: "Unlink Document" do %>
+                          <i class="bi bi-unlink"></i>
+                        <% end %>
+                      </div>
+                    </div>
                   </div>
                 <% end %>
               </div>
             <% end %>
 
-            <!-- Enhanced Document System -->
+            <!-- Add New Document Form -->
+            <div id="legacy_document_form" style="display: none;" class="border rounded p-3 mb-3 bg-light">
+              <h6 class="mb-3">Add New Document</h6>
+              <%= form_with url: admin_customer_documents_path(@customer), method: :post,
+                           multipart: true, id: "new_document_form", local: false do |f| %>
+                <div class="row">
+                  <div class="col-md-6">
+                    <%= f.label :document_type, "Document Type", class: "form-label" %>
+                    <%= f.select :document_type, options_for_select([
+                      ['Aadhaar Card', 'Aadhaar Card'],
+                      ['PAN Card', 'Pancard'],
+                      ['Driving License', 'Driving License'],
+                      ['Mediclaim', 'Mediclaim'],
+                      ['RC Book', 'RC Book'],
+                      ['Other File', 'Other File']
+                    ]), { prompt: 'Select Document Type' }, { class: "form-select", required: true } %>
+                  </div>
+                  <div class="col-md-6">
+                    <%= f.label :document_file, "Upload File", class: "form-label" %>
+                    <%= f.file_field :document_file, class: "form-control",
+                                   accept: "application/pdf,image/jpeg,image/jpg,image/png", required: true %>
+                  </div>
+                </div>
+                <div class="d-flex gap-2 mt-3">
+                  <%= f.submit "Upload Document", class: "btn btn-primary btn-sm" %>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="cancelAddDocument()">Cancel</button>
+                </div>
+              <% end %>
+            </div>
+
+            <!-- Customer Documents System -->
             <% if @customer.uploaded_documents.any? %>
-              <%= render 'shared/existing_documents_display',
-                         documents: @customer.uploaded_documents,
-                         title: 'Customer Documents',
-                         show_actions: true,
-                         record_type: 'customer',
-                         container_class: '' %>
+              <h6>Customer Documents</h6>
+              <div class="list-group mb-3">
+                <% @customer.uploaded_documents.each do |document| %>
+                  <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div class="d-flex align-items-center">
+                        <i class="bi bi-<%= document.file_icon %> me-2"></i>
+                        <div>
+                          <span class="fw-medium"><%= document.title %></span>
+                          <br><small class="text-muted"><%= document.human_document_type %></small>
+                          <% if document.has_file? %>
+                            <br><small class="text-muted"><%= document.file_name %> (<%= number_to_human_size(document.file_size) %>)</small>
+                          <% end %>
+                        </div>
+                      </div>
+                      <div class="d-flex gap-2 align-items-center">
+                        <% if document.has_file? %>
+                          <span class="badge bg-success">✓ Cloud Stored</span>
+                          <%= link_to document.document_url, class: "btn btn-sm btn-outline-primary", target: "_blank" do %>
+                            <i class="bi bi-download"></i> Download
+                          <% end %>
+                        <% else %>
+                          <span class="badge bg-danger">✗ Upload failed</span>
+                        <% end %>
+                        <%= link_to admin_customer_uploaded_document_path(@customer, document),
+                            method: :delete,
+                            data: {
+                              confirm: "Are you sure you want to unlink this document from the customer? The file will remain in cloud storage.",
+                              turbo_method: :delete
+                            },
+                            class: "btn btn-sm btn-outline-danger",
+                            title: "Unlink Document" do %>
+                          <i class="bi bi-unlink"></i>
+                        <% end %>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
             <% end %>
           </div>
         </div>
       <% end %>
 
-      <!-- File Uploads -->
+      <!-- Document Management System -->
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-transparent border-0">
-          <h5 class="mb-0">Upload New Files</h5>
-        </div>
-        <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <%= form.label :profile_images, "Profile Images", class: "form-label" %>
-              <%= form.file_field :profile_images, class: "form-control", multiple: true, accept: "image/*" %>
-              <div class="form-text">Upload additional profile image(s)</div>
-            </div>
-            <div class="col-md-6">
-              <%= form.label :documents, class: "form-label" %>
-              <%= form.file_field :documents, class: "form-control", multiple: true %>
-              <div class="form-text">Upload additional documents</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- New Document System -->
-        <div class="border-top pt-4 mt-4">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="mb-0">Document Management System</h6>
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Document Management System</h5>
             <button type="button" class="btn btn-sm btn-primary" id="add_customer_document">
               <i class="bi bi-plus-lg me-1"></i>
               Add Document
             </button>
           </div>
-
+        </div>
+        <div class="card-body">
           <div id="customer_documents_container">
             <!-- New document system will be added here -->
           </div>
@@ -980,6 +1021,78 @@ document.addEventListener('DOMContentLoaded', function() {
     customerDocumentsContainer.insertAdjacentHTML('beforeend', documentHtml);
     customerDocumentIndex++;
   });
+
+  // Legacy Document Management System
+  const addLegacyDocumentBtn = document.getElementById('add_legacy_document');
+  const legacyDocumentForm = document.getElementById('legacy_document_form');
+  const newDocumentForm = document.getElementById('new_document_form');
+
+  // Show legacy document form
+  addLegacyDocumentBtn?.addEventListener('click', function() {
+    legacyDocumentForm.style.display = 'block';
+    addLegacyDocumentBtn.style.display = 'none';
+  });
+
+  // Handle legacy document form submission
+  newDocumentForm?.addEventListener('ajax:success', function(event) {
+    const response = event.detail[0];
+    if (response.success) {
+      // Show success message
+      const alertDiv = document.createElement('div');
+      alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
+      alertDiv.innerHTML = `
+        <i class="bi bi-check-circle me-2"></i>
+        ${response.message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      legacyDocumentForm.insertAdjacentElement('afterend', alertDiv);
+
+      // Reset and hide form
+      newDocumentForm.reset();
+      cancelAddDocument();
+
+      // Reload the page after a short delay to show the new document
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    }
+  });
+
+  newDocumentForm?.addEventListener('ajax:error', function(event) {
+    const response = event.detail[0];
+    let errorMessage = 'Upload failed';
+
+    if (response && response.message) {
+      errorMessage = response.message;
+    } else if (response && response.errors && Array.isArray(response.errors)) {
+      errorMessage = response.errors.join(', ');
+    }
+
+    // Show error message
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
+    alertDiv.innerHTML = `
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      ${errorMessage}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    legacyDocumentForm.insertAdjacentElement('afterend', alertDiv);
+  });
+
+  // Cancel add document function (global scope for onclick handler)
+  window.cancelAddDocument = function() {
+    legacyDocumentForm.style.display = 'none';
+    addLegacyDocumentBtn.style.display = 'inline-block';
+    newDocumentForm.reset();
+
+    // Remove any existing alerts
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+      if (alert.parentElement === legacyDocumentForm.parentElement) {
+        alert.remove();
+      }
+    });
+  };
 
   // Form validation
   const forms = document.querySelectorAll('.needs-validation');

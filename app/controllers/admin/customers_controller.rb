@@ -834,6 +834,9 @@ class Admin::CustomersController < Admin::ApplicationController
     begin
       ActiveRecord::Base.transaction do
         if @customer.save
+          # Handle document file uploads after customer creation
+          handle_customer_document_uploads if params[:customer]&.[](:documents_attributes).present?
+
           # Update lead if customer was created from a lead
           if @customer.lead_id.present?
             lead = Lead.find_by(lead_id: @customer.lead_id)
@@ -911,8 +914,19 @@ class Admin::CustomersController < Admin::ApplicationController
   # PATCH/PUT /admin/customers/1
   def update
     begin
-      if @customer.update(customer_params)
-        redirect_to admin_customer_path(@customer), notice: 'Customer was successfully updated.'
+      # Handle uploaded_documents separately for R2 upload
+      uploaded_documents_attrs = params[:customer]&.[](:uploaded_documents_attributes)
+
+      if @customer.update(customer_params.except(:uploaded_documents_attributes))
+        # Handle R2 document uploads after customer is saved
+        upload_success = handle_document_uploads(uploaded_documents_attrs) if uploaded_documents_attrs.present?
+
+        success_message = 'Customer was successfully updated.'
+        if uploaded_documents_attrs.present? && !upload_success
+          success_message += ' Some documents failed to upload to cloud storage.'
+        end
+
+        redirect_to admin_customer_path(@customer), notice: success_message
       else
         @sub_agents = SubAgent.active.order(:first_name, :last_name)
         render :edit, status: :unprocessable_entity
@@ -922,7 +936,7 @@ class Admin::CustomersController < Admin::ApplicationController
       Rails.logger.error "Customer params: #{customer_params.inspect}"
 
       # Clear problematic association data and retry without it
-      safe_params = customer_params.except(:documents)
+      safe_params = customer_params.except(:documents, :uploaded_documents_attributes)
       if @customer.update(safe_params)
         redirect_to admin_customer_path(@customer), notice: 'Customer was successfully updated (documents skipped due to error).'
       else
@@ -1115,6 +1129,51 @@ class Admin::CustomersController < Admin::ApplicationController
     @customer = Customer.find(params[:id])
   end
 
+  def handle_document_uploads(uploaded_documents_attrs)
+    return true unless uploaded_documents_attrs.present?
+
+    all_success = true
+
+    uploaded_documents_attrs.each do |index, doc_attrs|
+      next if doc_attrs[:_destroy] == '1' || doc_attrs[:file].blank?
+
+      # Skip if no file provided
+      file_param = doc_attrs[:file]
+      next unless file_param.present?
+
+      begin
+        # Create document record first
+        document = @customer.uploaded_documents.build(
+          title: doc_attrs[:title],
+          description: doc_attrs[:description],
+          document_type: doc_attrs[:document_type],
+          uploaded_by: doc_attrs[:uploaded_by] || current_user&.email || 'Admin User'
+        )
+
+        if document.save
+          # Upload file to R2
+          upload_result = document.upload_to_r2(file_param)
+
+          if upload_result[:success]
+            Rails.logger.info "Successfully uploaded document: #{document.title}"
+          else
+            Rails.logger.error "Failed to upload document: #{upload_result[:error]}"
+            document.destroy # Clean up failed document record
+            all_success = false
+          end
+        else
+          Rails.logger.error "Failed to create document: #{document.errors.full_messages}"
+          all_success = false
+        end
+      rescue => e
+        Rails.logger.error "Document upload error: #{e.message}"
+        all_success = false
+      end
+    end
+
+    all_success
+  end
+
   def customer_params
     permitted_params = params.require(:customer).permit(
       :customer_type, :first_name, :middle_name, :last_name, :company_name, :email, :mobile,
@@ -1126,7 +1185,7 @@ class Admin::CustomersController < Admin::ApplicationController
       :profile_image,
       profile_images: [],
       documents: [],
-      documents_attributes: [:id, :document_type, :_destroy],
+      documents_attributes: [:id, :document_type, :document_file, :_destroy],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy],
       family_members_attributes: [
         :id, :first_name, :middle_name, :last_name, :birth_date, :age, :height_feet, :weight_kg,
@@ -1146,6 +1205,25 @@ class Admin::CustomersController < Admin::ApplicationController
     end
 
     permitted_params
+  end
+
+  def handle_customer_document_uploads
+    return unless @customer&.documents&.any?
+
+    @customer.documents.each do |document|
+      # Check if document has a file uploaded via the virtual attribute
+      if document.document_file.present?
+        # Upload file to R2
+        upload_result = document.upload_to_r2(document.document_file)
+
+        if upload_result[:success]
+          Rails.logger.info "Successfully uploaded customer document to R2: #{upload_result[:key]}"
+        else
+          Rails.logger.error "Failed to upload customer document to R2: #{upload_result[:error]}"
+          # Don't fail the whole transaction, just log the error
+        end
+      end
+    end
   end
 
   def generate_customers_csv(customers)
