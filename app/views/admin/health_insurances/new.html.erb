@@ -787,11 +787,11 @@
         <div>
           <%= link_to admin_health_insurances_path, class: "btn btn-outline-secondary" do %>
             <i class="bi bi-x-lg me-2"></i>
-            Back to List
+            Cancel
           <% end %>
         </div>
         <div>
-          <%= form.submit "Save Policy", class: "btn btn-primary btn-lg" %>
+          <%= form.submit @health_insurance.persisted? ? "Update Policy" : "Create Policy", class: "btn btn-primary btn-lg" %>
         </div>
       </div>
     </div>
