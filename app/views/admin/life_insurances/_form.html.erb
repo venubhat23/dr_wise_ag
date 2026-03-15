@@ -943,20 +943,10 @@
             <% if @life_insurance.uploaded_documents.any? || @life_insurance.policy_documents_records.any? || @life_insurance.life_insurance_documents.any? %>
               <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-transparent border-0">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 text-primary">
-                      <i class="bi bi-folder2-open me-2"></i>
-                      Policy Documents
-                    </h5>
-                    <div class="btn-group" role="group">
-                      <button type="button" class="btn btn-sm btn-outline-primary toggle-view" data-view="grid">
-                        <i class="bi bi-grid-3x3-gap"></i> Grid
-                      </button>
-                      <button type="button" class="btn btn-sm btn-outline-primary toggle-view active" data-view="list">
-                        <i class="bi bi-list"></i> List
-                      </button>
-                    </div>
-                  </div>
+                  <h5 class="mb-0 text-primary">
+                    <i class="bi bi-folder2-open me-2"></i>
+                    Policy Documents
+                  </h5>
                 </div>
                 <div class="card-body p-0">
                   <!-- List View -->
@@ -1026,52 +1016,6 @@
                     </div>
                   </div>
 
-                  <!-- Grid View (Hidden by default) -->
-                  <div class="documents-grid-view p-3" style="display: none;">
-                    <div class="row g-3">
-                      <% @life_insurance.uploaded_documents.each_with_index do |document, index| %>
-                        <div class="col-xl-3 col-lg-4 col-md-6">
-                          <div class="card h-100 border-0 shadow-sm document-card">
-                            <div class="card-body p-3 text-center">
-                              <div class="mb-3">
-                                <div class="bg-primary bg-opacity-10 rounded d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                                  <i class="bi bi-<%= document.file_icon %> text-primary" style="font-size: 2.5rem;"></i>
-                                </div>
-                              </div>
-                              <h6 class="card-title mb-2"><%= truncate(document.title, length: 25) %></h6>
-                              <span class="badge bg-light text-dark mb-2 small"><%= document.human_document_type %></span>
-                              <% if document.file&.byte_size %>
-                                <p class="small text-muted mb-3">
-                                  <i class="bi bi-file-earmark me-1"></i><%= number_to_human_size(document.file.byte_size) %>
-                                </p>
-                              <% end %>
-                              <div class="btn-group-vertical btn-group-sm w-100">
-                                <% if document.file.present? %>
-                                  <%= link_to rails_blob_path(document.file, disposition: "inline"),
-                                      class: "btn btn-outline-primary btn-sm",
-                                      target: "_blank" do %>
-                                    <i class="bi bi-eye me-1"></i>Preview
-                                  <% end %>
-                                  <%= link_to rails_blob_path(document.file, disposition: "attachment"),
-                                      class: "btn btn-outline-success btn-sm" do %>
-                                    <i class="bi bi-download me-1"></i>Download
-                                  <% end %>
-                                  <%= link_to admin_document_path(document),
-                                      method: :delete,
-                                      class: "btn btn-outline-danger btn-sm",
-                                      data: {
-                                        confirm: "Delete this document?"
-                                      } do %>
-                                    <i class="bi bi-trash me-1"></i>Delete
-                                  <% end %>
-                                <% end %>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      <% end %>
-                    </div>
-                  </div>
                 </div>
               </div>
             <% end %>
@@ -1372,22 +1316,6 @@
     </div>
   </div>
 
-  <!-- Form Actions -->
-  <div class="card">
-    <div class="card-body">
-      <div class="d-flex justify-content-between">
-        <div>
-          <%= link_to admin_life_insurances_path, class: "btn btn-outline-secondary" do %>
-            <i class="bi bi-x-lg me-2"></i>
-            Back to List
-          <% end %>
-        </div>
-        <div>
-          <%= form.submit "Save Policy", class: "btn btn-primary btn-lg" %>
-        </div>
-      </div>
-    </div>
-  </div>
 
 <% end %>
 
@@ -1645,11 +1573,6 @@
     background-color: #f8f9fa;
   }
 
-  .toggle-view.active {
-    background-color: var(--bs-primary);
-    color: white;
-    border-color: var(--bs-primary);
-  }
 
   .btn-group-vertical .btn {
     margin-bottom: 2px;
@@ -1734,29 +1657,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Document view toggle functionality
-  const toggleButtons = document.querySelectorAll('.toggle-view');
-  const listView = document.querySelector('.documents-list-view');
-  const gridView = document.querySelector('.documents-grid-view');
-
-  toggleButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const view = this.getAttribute('data-view');
-
-      // Update active button
-      toggleButtons.forEach(btn => btn.classList.remove('active'));
-      this.classList.add('active');
-
-      // Switch views
-      if (view === 'grid') {
-        if (listView) listView.style.display = 'none';
-        if (gridView) gridView.style.display = 'block';
-      } else {
-        if (listView) listView.style.display = 'block';
-        if (gridView) gridView.style.display = 'none';
-      }
-    });
-  });
 
   // Function to load policy holder options when customer changes
   function loadPolicyHolderOptions() {
@@ -4412,5 +4312,3 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 </script>
-
-<% end %>
