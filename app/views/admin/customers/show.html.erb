@@ -686,11 +686,25 @@ body {
                       <span class="meta-text"><%= number_to_human_size(image_data[:size]) %></span>
                     </div>
                   </div>
+                  <div class="public-url-section mt-2 mb-3">
+                    <small class="text-muted">Public URL:</small>
+                    <div class="url-display d-flex">
+                      <input type="text" class="form-control form-control-sm me-2" readonly
+                             value="<%= image_data[:public_url] || image_data[:url] %>"
+                             onclick="this.select()"
+                             style="font-size: 11px;">
+                      <button class="btn btn-sm btn-outline-secondary"
+                              onclick="copyToClipboard('<%= image_data[:public_url] || image_data[:url] %>')"
+                              title="Copy URL">
+                        <i class="bi bi-copy"></i>
+                      </button>
+                    </div>
+                  </div>
                   <div class="profile-actions">
                     <button type="button" class="action-btn preview-btn" title="Preview" onclick="openProfileModal()">
                       <i class="bi bi-eye"></i>
                     </button>
-                    <a href="<%= image_data[:url] %>" class="action-btn download-btn" title="Download" download="<%= image_data[:filename] %>">
+                    <a href="<%= image_data[:public_url] || image_data[:url] %>" class="action-btn download-btn" title="Download" download="<%= image_data[:filename] %>" target="_blank">
                       <i class="bi bi-download"></i>
                     </a>
                   </div>
@@ -736,13 +750,29 @@ body {
                   <div class="document-meta text-muted small">
                     <%= document.document_name %> • <%= document.document_size %>
                   </div>
+                  <% if document.has_file? %>
+                    <div class="public-url-section mt-2">
+                      <small class="text-muted">Public URL:</small>
+                      <div class="url-display">
+                        <input type="text" class="form-control form-control-sm" readonly
+                               value="<%= document.download_url || document.document_url %>"
+                               onclick="this.select()"
+                               style="font-size: 11px;">
+                        <button class="btn btn-sm btn-outline-secondary ms-1"
+                                onclick="copyToClipboard('<%= document.download_url || document.document_url %>')"
+                                title="Copy URL">
+                          <i class="bi bi-copy"></i>
+                        </button>
+                      </div>
+                    </div>
+                  <% end %>
                 </div>
                 <div class="document-actions-simple">
                   <% if document.document_file&.attached? %>
                     <%= link_to document.document_url, class: "btn btn-sm btn-outline-primary", title: "View", target: "_blank" do %>
                       <i class="bi bi-eye"></i>
                     <% end %>
-                    <%= link_to document.document_url, class: "btn btn-sm btn-outline-success", title: "Download", target: "_blank", download: true do %>
+                    <%= link_to (document.download_url || document.document_url), class: "btn btn-sm btn-outline-success", title: "Download", target: "_blank", download: true do %>
                       <i class="bi bi-download"></i>
                     <% end %>
                   <% end %>
@@ -950,7 +980,7 @@ body {
         <% if @customer.profile_image.attached? %>
           <% image_data = @customer.safe_profile_image_display %>
           <% if image_data %>
-            <a href="<%= image_data[:url] %>" class="btn btn-primary" download="<%= image_data[:filename] %>" target="_blank">
+            <a href="<%= image_data[:public_url] || image_data[:url] %>" class="btn btn-primary" download="<%= image_data[:filename] %>" target="_blank">
               <i class="bi bi-download me-1"></i>Download
             </a>
           <% end %>
@@ -2451,6 +2481,24 @@ function copyDocumentLink(url) {
     }, 2000);
   }).catch(function() {
     alert('Unable to copy link to clipboard');
+  });
+}
+
+// Generic copy to clipboard function
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(function() {
+    // Show success feedback
+    const btn = event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check text-success"></i>';
+    btn.classList.add('text-success');
+
+    setTimeout(() => {
+      btn.innerHTML = originalHTML;
+      btn.classList.remove('text-success');
+    }, 2000);
+  }).catch(function() {
+    alert('Unable to copy URL to clipboard');
   });
 }
 
