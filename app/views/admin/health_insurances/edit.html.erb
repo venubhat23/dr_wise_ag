@@ -977,7 +977,7 @@
           <% end %>
         </div>
         <div>
-          <%= form.submit "Update Policy", class: "btn btn-primary btn-lg" %>
+          <%= form.submit @health_insurance.persisted? ? "Update Policy" : "Create Policy", class: "btn btn-primary btn-lg" %>
         </div>
       </div>
     </div>
