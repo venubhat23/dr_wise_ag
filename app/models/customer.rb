@@ -181,12 +181,37 @@ class Customer < ApplicationRecord
 
     {
       url: url,
+      public_url: public_profile_image_url,
       filename: profile_image.filename.to_s,
       size: profile_image.byte_size,
       content_type: profile_image.content_type
     }
   rescue => e
     Rails.logger.error "Error generating safe profile image display for customer #{id}: #{e.message}"
+    nil
+  end
+
+  def public_profile_image_url
+    if profile_image.attached?
+      begin
+        # Generate a direct public URL for downloading
+        if Rails.env.development?
+          # For development, use localhost
+          host = Rails.application.config.hosts.first || 'localhost:3000'
+          "http://#{host}#{Rails.application.routes.url_helpers.rails_blob_path(profile_image)}"
+        else
+          # For production, use the configured host
+          Rails.application.routes.url_helpers.rails_blob_url(profile_image, only_path: false)
+        end
+      rescue => e
+        Rails.logger.warn "Could not generate public URL: #{e.message}"
+        profile_image_url
+      end
+    else
+      nil
+    end
+  rescue => e
+    Rails.logger.error "Error generating public profile image URL for customer #{id}: #{e.message}"
     nil
   end
 

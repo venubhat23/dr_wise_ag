@@ -1,5 +1,21 @@
-class CloudflareR2Service < ActiveStorage::Service::S3Service
+# Load AWS SDK if available
+begin
+  require 'aws-sdk-s3'
+  # S3Service is only available when aws-sdk-s3 is loaded
+  require 'active_storage/service/s3_service'
+  parent_class = ActiveStorage::Service::S3Service
+rescue LoadError
+  # Fallback to base service if AWS SDK is not available
+  parent_class = ActiveStorage::Service
+end
+
+class CloudflareR2Service < parent_class
   def upload(key, io, content_type:, filename:, content_length: nil, **options)
+    # If AWS SDK is not available, fallback to error
+    unless defined?(Aws::S3::Client)
+      raise NotImplementedError, "CloudflareR2Service requires aws-sdk-s3 gem to be available"
+    end
+
     instrument :upload, key: key, content_type: content_type, filename: filename do
       # Remove all checksum options for R2 compatibility
       clean_options = options.except(:content_md5, :checksum_sha256, :checksum_sha1, :checksum_crc32, :checksum_crc32c)
@@ -9,6 +25,14 @@ class CloudflareR2Service < ActiveStorage::Service::S3Service
       else
         upload_with_multipart(key, io, content_type: content_type, **clean_options)
       end
+    end
+  end
+
+  # Add bucket method if not available from parent
+  def bucket
+    @bucket ||= begin
+      raise NotImplementedError, "CloudflareR2Service requires aws-sdk-s3" unless defined?(R2_CLIENT)
+      R2_CLIENT # R2_CLIENT is now a direct constant reference
     end
   end
 

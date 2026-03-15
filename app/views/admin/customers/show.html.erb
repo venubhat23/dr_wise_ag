@@ -197,9 +197,27 @@ body {
     <div class="d-flex align-items-center gap-3">
       <!-- Avatar/Icon -->
       <div class="customer-avatar">
-        <div class="avatar-placeholder">
-          <%= @customer.display_name&.first&.upcase || 'C' %>
-        </div>
+        <% if @customer.profile_image.attached? %>
+          <% image_data = @customer.safe_profile_image_display %>
+          <% if image_data %>
+            <%= image_tag image_data[:url],
+                class: "rounded-circle",
+                style: "width: 40px; height: 40px; object-fit: cover;",
+                alt: @customer.display_name,
+                onerror: "this.style.display='none'; this.nextElementSibling.style.display='flex';" %>
+            <div class="avatar-placeholder" style="display: none;">
+              <%= @customer.display_name&.first&.upcase || 'C' %>
+            </div>
+          <% else %>
+            <div class="avatar-placeholder">
+              <%= @customer.display_name&.first&.upcase || 'C' %>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="avatar-placeholder">
+            <%= @customer.display_name&.first&.upcase || 'C' %>
+          </div>
+        <% end %>
       </div>
 
       <!-- Customer Info -->
@@ -226,9 +244,9 @@ body {
           <i class="bi bi-arrow-left me-1"></i>Back to Customers
         <% end %>
 
-        <button class="btn btn-info btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#customerGuideModal">
-          <i class="bi bi-question-circle me-1"></i>Customer Guide
-        </button>
+        <%= link_to edit_admin_customer_path(@customer), class: "btn btn-primary btn-sm" do %>
+          <i class="bi bi-pencil-square me-1"></i>Edit Client
+        <% end %>
 
         <div class="dropdown">
           <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -261,6 +279,7 @@ body {
     </div>
   </div>
 </div>
+
 
 <!-- Basic Information Section -->
 <div class="info-section-card">
@@ -2629,155 +2648,13 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
-<!-- Customer Guide Modal -->
-<div class="modal fade" id="customerGuideModal" tabindex="-1" aria-labelledby="customerGuideModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="customerGuideModalLabel">
-          <i class="bi bi-person-check me-2"></i>Customer Management Guide
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row">
-          <!-- Customer Management -->
-          <div class="col-md-6">
-            <h6 class="text-primary mb-3">
-              <i class="bi bi-person-gear me-1"></i>Customer Management
-            </h6>
-            <div class="guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="guide-icon me-2">👤</span>
-                <div>
-                  <h6 class="mb-1">Profile Management</h6>
-                  <small class="text-muted">Update customer details, contact information, and personal data</small>
-                </div>
-              </div>
-            </div>
-            <div class="guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="guide-icon me-2">👥</span>
-                <div>
-                  <h6 class="mb-1">Family Members</h6>
-                  <small class="text-muted">Add family members for comprehensive coverage planning</small>
-                </div>
-              </div>
-            </div>
-            <div class="guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="guide-icon me-2">📄</span>
-                <div>
-                  <h6 class="mb-1">Document Management</h6>
-                  <small class="text-muted">Upload and manage customer documents and certificates</small>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Policy Management -->
-          <div class="col-md-6">
-            <h6 class="text-success mb-3">
-              <i class="bi bi-shield-check me-1"></i>Policy Management
-            </h6>
-            <div class="guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="guide-icon me-2">🏥</span>
-                <div>
-                  <h6 class="mb-1">Health Insurance</h6>
-                  <small class="text-muted">Medical coverage and health protection plans</small>
-                </div>
-              </div>
-            </div>
-            <div class="guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="guide-icon me-2">❤️</span>
-                <div>
-                  <h6 class="mb-1">Life Insurance</h6>
-                  <small class="text-muted">Life coverage and financial protection</small>
-                </div>
-              </div>
-            </div>
-            <div class="guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="guide-icon me-2">🚗</span>
-                <div>
-                  <h6 class="mb-1">Motor Insurance</h6>
-                  <small class="text-muted">Vehicle insurance and auto coverage</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <hr class="my-4">
-        <div class="row">
-          <div class="col-12">
-            <h6 class="mb-3"><i class="bi bi-lightning me-2"></i>Quick Actions</h6>
-            <div class="row">
-              <div class="col-md-3">
-                <div class="text-center p-3 border rounded">
-                  <i class="bi bi-plus-circle fs-3 text-primary mb-2"></i>
-                  <div class="small fw-bold">Add Policy</div>
-                  <small class="text-muted">Create new insurance policy</small>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="text-center p-3 border rounded">
-                  <i class="bi bi-arrow-clockwise fs-3 text-warning mb-2"></i>
-                  <div class="small fw-bold">Renew Policy</div>
-                  <small class="text-muted">Renew expiring policies</small>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="text-center p-3 border rounded">
-                  <i class="bi bi-credit-card fs-3 text-success mb-2"></i>
-                  <div class="small fw-bold">Payment Tracking</div>
-                  <small class="text-muted">Track premium payments</small>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="text-center p-3 border rounded">
-                  <i class="bi bi-telephone fs-3 text-info mb-2"></i>
-                  <div class="small fw-bold">Contact Customer</div>
-                  <small class="text-muted">WhatsApp or call customer</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <style>
 .bg-gradient-primary {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-/* Customer Guide Modal Styles */
-.guide-item {
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border-left: 4px solid #28a745;
-  transition: all 0.2s ease;
-}
 
-.guide-item:hover {
-  background: #e9ecef;
-  transform: translateX(5px);
-}
-
-.guide-icon {
-  font-size: 1.5rem;
-  line-height: 1;
-}
 </style>
 <% end %>
 <!-- End of customer show page -->
