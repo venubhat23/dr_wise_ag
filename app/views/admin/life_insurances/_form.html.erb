@@ -1,4 +1,4 @@
-<%= form_with model: [:admin, @life_insurance], local: true, class: "needs-validation", novalidate: true do |form| %>
+<%= form_with model: [:admin, @life_insurance], local: true, class: "needs-validation", novalidate: true, id: "life-insurance-form" do |form| %>
 
   <!-- Client & Agent Details Section -->
   <div class="card mb-4">
@@ -821,31 +821,7 @@
       </div>
 
       <div class="row">
-        <div class="col-md-6 mb-4">
-          <div class="border border-primary border-2 rounded p-4" style="background-color: #f8f9ff;">
-            <%= form.label :policy_documents, class: "form-label fw-bold" do %>
-              <i class="bi bi-file-earmark-pdf me-2 text-primary"></i>
-              Policy Documents (Legacy)
-            <% end %>
-            <%= form.file_field :policy_documents,
-                class: "form-control",
-                multiple: true,
-                id: "policy_documents_upload",
-                accept: "application/pdf,image/jpeg,image/jpg,image/png" %>
-            <div class="form-text mt-2">
-              <i class="bi bi-info-circle me-1"></i>
-              Supports PDF, JPEG, PNG files (Max: 10MB each)
-            </div>
-          </div>
-
-          <!-- Policy Documents Preview -->
-          <%= render 'shared/file_upload_preview',
-                     field_id: 'policy_documents_upload',
-                     preview_id: 'policy_documents_preview',
-                     accept: 'application/pdf,image/jpeg,image/jpg,image/png',
-                     show_file_info: true,
-                     max_file_size: '10MB' %>
-        </div>
+        <!-- Policy Documents (Legacy) section removed -->
         <div class="col-md-6 mb-4">
           <div class="border border-secondary border-2 rounded p-4" style="background-color: #f8f9fa;">
             <%= form.label :documents, class: "form-label fw-bold" do %>

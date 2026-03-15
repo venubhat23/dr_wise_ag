@@ -33,6 +33,16 @@
   <%= render 'admin/policy_documents/document_manager', policy: @life_insurance, policy_type: 'life' %>
 </div>
 
+<!-- Final Update Button -->
+<div class="card mt-4">
+  <div class="card-body text-center">
+    <button type="submit" form="life-insurance-form" class="btn btn-success btn-lg px-5">
+      <i class="bi bi-check-circle me-2"></i>
+      Update Life Insurance Policy
+    </button>
+  </div>
+</div>
+
 <script>
 function toggleDocumentSection() {
   const documentSection = document.getElementById('document-management-section');
