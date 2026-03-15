@@ -51,12 +51,21 @@ class CustomerDocument < ApplicationRecord
 
   def file
     # For compatibility, return a simple object with key attributes
-    OpenStruct.new(
+    return nil unless has_file?
+
+    file_proxy = OpenStruct.new(
       filename: r2_filename,
       content_type: r2_content_type,
       byte_size: r2_file_size,
       key: r2_file_key
-    ) if has_file?
+    )
+
+    # Add Rails-compatible methods
+    file_proxy.define_singleton_method(:persisted?) { true }
+    file_proxy.define_singleton_method(:attached?) { true }
+    file_proxy.define_singleton_method(:url) { document_url }
+
+    file_proxy
   end
 
   def document_file

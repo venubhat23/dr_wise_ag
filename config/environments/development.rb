@@ -29,7 +29,7 @@ Rails.application.configure do
   config.cache_store = :memory_store
 
   # Set minimal ActiveStorage configuration to avoid errors
-  config.active_storage.service = :development
+  config.active_storage.service = :local_persistent
   # Set ActiveStorage URL options for proper blob URLs
   config.after_initialize do
     ActiveStorage::Current.url_options = { host: "localhost", port: 3000, protocol: "http" }

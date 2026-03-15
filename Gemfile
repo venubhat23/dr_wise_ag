@@ -38,6 +38,8 @@ gem "bootstrap", "~> 5.3"
 
 # File uploading (using Active Storage - built into Rails)
 gem "mini_magick"
+# AWS SDK for S3-compatible storage (Cloudflare R2)
+gem "aws-sdk-s3"
 
 # Charts and data visualization
 gem "chartkick"

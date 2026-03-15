@@ -747,44 +747,54 @@ body {
             <div class="enhanced-document-card" data-aos="fade-up" data-aos-delay="<%= index * 100 %>">
               <!-- Document Preview -->
               <div class="document-preview" onclick="openPreviewModal('<%= document.id %>')">
-                <% file_extension = File.extname(document.file.filename.to_s).downcase %>
-                <% if ['.jpg', '.jpeg', '.png', '.gif'].include?(file_extension) %>
-                  <div class="image-preview">
-                    <%= image_tag rails_blob_url(document.file), alt: document.title, class: "preview-image" %>
-                    <div class="preview-overlay">
-                      <i class="bi bi-eye preview-icon"></i>
+                <% if document.file&.attached? %>
+                  <% file_extension = File.extname(document.file.filename.to_s).downcase %>
+                  <% if ['.jpg', '.jpeg', '.png', '.gif'].include?(file_extension) %>
+                    <div class="image-preview">
+                      <%= image_tag rails_blob_url(document.file), alt: document.title, class: "preview-image" %>
+                      <div class="preview-overlay">
+                        <i class="bi bi-eye preview-icon"></i>
+                      </div>
                     </div>
-                  </div>
-                <% elsif file_extension == '.pdf' %>
-                  <div class="file-type-preview pdf-preview">
-                    <i class="bi bi-file-pdf file-type-icon"></i>
-                    <span class="file-type-label">PDF</span>
-                    <div class="preview-overlay">
-                      <i class="bi bi-eye preview-icon"></i>
+                  <% elsif file_extension == '.pdf' %>
+                    <div class="file-type-preview pdf-preview">
+                      <i class="bi bi-file-pdf file-type-icon"></i>
+                      <span class="file-type-label">PDF</span>
+                      <div class="preview-overlay">
+                        <i class="bi bi-eye preview-icon"></i>
+                      </div>
                     </div>
-                  </div>
-                <% elsif ['.doc', '.docx'].include?(file_extension) %>
-                  <div class="file-type-preview doc-preview">
-                    <i class="bi bi-file-word file-type-icon"></i>
-                    <span class="file-type-label">DOC</span>
-                    <div class="preview-overlay">
-                      <i class="bi bi-download preview-icon"></i>
+                  <% elsif ['.doc', '.docx'].include?(file_extension) %>
+                    <div class="file-type-preview doc-preview">
+                      <i class="bi bi-file-word file-type-icon"></i>
+                      <span class="file-type-label">DOC</span>
+                      <div class="preview-overlay">
+                        <i class="bi bi-download preview-icon"></i>
+                      </div>
                     </div>
-                  </div>
-                <% elsif ['.xls', '.xlsx'].include?(file_extension) %>
-                  <div class="file-type-preview excel-preview">
-                    <i class="bi bi-file-excel file-type-icon"></i>
-                    <span class="file-type-label">XLS</span>
-                    <div class="preview-overlay">
-                      <i class="bi bi-download preview-icon"></i>
+                  <% elsif ['.xls', '.xlsx'].include?(file_extension) %>
+                    <div class="file-type-preview excel-preview">
+                      <i class="bi bi-file-excel file-type-icon"></i>
+                      <span class="file-type-label">XLS</span>
+                      <div class="preview-overlay">
+                        <i class="bi bi-download preview-icon"></i>
+                      </div>
                     </div>
-                  </div>
+                  <% else %>
+                    <div class="file-type-preview default-preview">
+                      <i class="bi bi-file-earmark file-type-icon"></i>
+                      <span class="file-type-label">FILE</span>
+                      <div class="preview-overlay">
+                        <i class="bi bi-download preview-icon"></i>
+                      </div>
+                    </div>
+                  <% end %>
                 <% else %>
                   <div class="file-type-preview default-preview">
                     <i class="bi bi-file-earmark file-type-icon"></i>
-                    <span class="file-type-label">FILE</span>
+                    <span class="file-type-label">NO FILE</span>
                     <div class="preview-overlay">
-                      <i class="bi bi-download preview-icon"></i>
+                      <i class="bi bi-exclamation-triangle preview-icon"></i>
                     </div>
                   </div>
                 <% end %>
@@ -802,11 +812,11 @@ body {
                 <div class="document-meta">
                   <div class="meta-item">
                     <i class="bi bi-file-earmark meta-icon"></i>
-                    <span class="meta-text"><%= truncate(document.file.filename.to_s, length: 15) %></span>
+                    <span class="meta-text"><%= document.file&.attached? ? truncate(document.file.filename.to_s, length: 15) : 'No file' %></span>
                   </div>
                   <div class="meta-item">
                     <i class="bi bi-hdd meta-icon"></i>
-                    <span class="meta-text"><%= number_to_human_size(document.file.byte_size) %></span>
+                    <span class="meta-text"><%= document.file&.attached? ? number_to_human_size(document.file.byte_size) : '0 B' %></span>
                   </div>
                   <div class="meta-item">
                     <i class="bi bi-calendar3 meta-icon"></i>
@@ -818,7 +828,7 @@ body {
               <!-- Document Actions -->
               <div class="document-actions">
                 <div class="action-buttons">
-                  <% if document.downloadable? %>
+                  <% if document.downloadable? && document.file&.attached? %>
                     <%= link_to rails_blob_url(document.file, disposition: "attachment"),
                         class: "action-btn download-btn",
                         title: "Download",
