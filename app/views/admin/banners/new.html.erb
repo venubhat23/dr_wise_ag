@@ -125,6 +125,11 @@
   </div>
 </div>
 
+<!-- Banner Documents Section (Only show after banner is created) -->
+<% if @banner.persisted? %>
+  <%= render 'banner_document_manager', banner: @banner %>
+<% end %>
+
 <!-- Best Practices Note -->
 <div class="card border-0 shadow-sm mt-4">
   <div class="card-header bg-light border-0">

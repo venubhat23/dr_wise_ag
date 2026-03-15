@@ -518,6 +518,13 @@ Rails.application.routes.draw do
       end
     end
 
+    # Banner Documents
+    resources :banner_documents, only: [:create, :show, :destroy] do
+      member do
+        get :download
+      end
+    end
+
     # Reports namespace
     namespace :reports do
       resources :commission_reports, only: [:index] do
