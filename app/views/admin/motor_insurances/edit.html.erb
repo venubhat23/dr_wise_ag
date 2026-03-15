@@ -15,4 +15,7 @@
   <% content_for :form_title, "Edit Motor Insurance" %>
   <% content_for :submit_text, "Update Motor Insurance" %>
   <%= render 'simplified_form' %>
+
+  <!-- Policy Documents Section -->
+  <%= render 'admin/policy_documents/document_manager', policy: @motor_insurance, policy_type: 'motor' %>
 </div>

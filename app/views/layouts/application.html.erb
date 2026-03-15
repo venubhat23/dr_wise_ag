@@ -108,6 +108,28 @@
         filter: brightness(1.1);
       }
 
+      /* Header Layout Fixes */
+      .header {
+        width: 100%;
+        position: relative;
+        z-index: 1000;
+      }
+
+      .header .container-fluid {
+        width: 100%;
+        padding-left: 15px;
+        padding-right: 15px;
+      }
+
+      .header .d-flex.justify-content-between {
+        width: 100%;
+      }
+
+      /* Ensure Admin button stays at far right */
+      .header .d-flex.align-items-center:last-child {
+        margin-left: auto;
+      }
+
       /* Responsive adjustments */
       @media (max-width: 768px) {
         .drwise-header-text {
@@ -158,9 +180,9 @@
       <!-- Enhanced Insurance-themed Header -->
       <header class="header">
         <div class="container-fluid h-100">
-          <div class="d-flex align-items-center h-100 px-3">
+          <div class="d-flex justify-content-between align-items-center h-100 px-3">
             <!-- Left side: Toggle buttons and DrWise Admin -->
-            <div class="d-flex align-items-center flex-grow-0">
+            <div class="d-flex align-items-center">
               <!-- Mobile Toggle -->
               <button class="mobile-toggle d-md-none" type="button" data-bs-toggle="sidebar">
                 <i class="fas fa-bars"></i>
@@ -177,15 +199,12 @@
               </div>
             </div>
 
-            <!-- Spacer to push right content to the right -->
-            <div class="flex-grow-1"></div>
-
             <!-- Right side: Header Actions -->
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center">
               <div class="dropdown">
                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
                   <i class="fas fa-user-circle me-2"></i>
-                  <span class="d-none d-sm-inline">Admin</span>
+                  <span class="d-none d-sm-inline">ADMIN</span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
                   <li><%= link_to admin_profile_path, class: "dropdown-item" do %><i class="fas fa-user me-2"></i>Profile<% end %></li>

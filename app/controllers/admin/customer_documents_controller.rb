@@ -4,7 +4,8 @@ class Admin::CustomerDocumentsController < Admin::ApplicationController
 
   # GET /admin/customers/:customer_id/documents
   def index
-    @documents = @customer.documents.order(:created_at)
+    # Always redirect to the customer edit page since this route isn't meant to be accessed directly
+    redirect_to edit_admin_customer_path(@customer)
   end
 
   # POST /admin/customers/:customer_id/documents
@@ -17,40 +18,68 @@ class Admin::CustomerDocumentsController < Admin::ApplicationController
         result = @document.upload_to_r2(params[:customer_document][:document_file])
 
         if result.is_a?(Hash) && result[:success]
-          render json: {
-            success: true,
-            message: 'Document uploaded successfully!',
-            document: {
-              id: @document.id,
-              name: @document.document_name,
-              type: @document.document_type,
-              size: @document.document_size,
-              url: @document.document_url
+          respond_to do |format|
+            format.json {
+              render json: {
+                success: true,
+                message: 'Document uploaded successfully!',
+                document: {
+                  id: @document.id,
+                  name: @document.document_name,
+                  type: @document.document_type,
+                  size: @document.document_size,
+                  url: @document.document_url
+                }
+              }
             }
-          }
+            format.html {
+              redirect_to edit_admin_customer_path(@customer), notice: 'Document uploaded successfully!'
+            }
+          end
         else
           @document.destroy
           error_message = result.is_a?(Hash) ? result[:error] : 'Upload failed'
-          render json: {
-            success: false,
-            message: "Upload failed: #{error_message}",
-            errors: @document.errors.full_messages
-          }, status: :unprocessable_entity
+          respond_to do |format|
+            format.json {
+              render json: {
+                success: false,
+                message: "Upload failed: #{error_message}",
+                errors: @document.errors.full_messages
+              }, status: :unprocessable_entity
+            }
+            format.html {
+              redirect_to edit_admin_customer_path(@customer), alert: "Upload failed: #{error_message}"
+            }
+          end
         end
       else
         @document.destroy
-        render json: {
-          success: false,
-          message: 'No file provided',
-          errors: ['Document file is required']
-        }, status: :unprocessable_entity
+        respond_to do |format|
+          format.json {
+            render json: {
+              success: false,
+              message: 'No file provided',
+              errors: ['Document file is required']
+            }, status: :unprocessable_entity
+          }
+          format.html {
+            redirect_to edit_admin_customer_path(@customer), alert: 'No file provided'
+          }
+        end
       end
     else
-      render json: {
-        success: false,
-        message: 'Failed to create document record',
-        errors: @document.errors.full_messages
-      }, status: :unprocessable_entity
+      respond_to do |format|
+        format.json {
+          render json: {
+            success: false,
+            message: 'Failed to create document record',
+            errors: @document.errors.full_messages
+          }, status: :unprocessable_entity
+        }
+        format.html {
+          redirect_to edit_admin_customer_path(@customer), alert: 'Failed to create document record'
+        }
+      end
     end
   end
 

@@ -512,34 +512,9 @@
               </div>
             <% end %>
 
-            <!-- Add New Document Form -->
-            <div id="legacy_document_form" style="display: none;" class="border rounded p-3 mb-3 bg-light">
-              <h6 class="mb-3">Add New Document</h6>
-              <%= form_with url: admin_customer_documents_path(@customer), method: :post,
-                           multipart: true, id: "new_document_form", local: false do |f| %>
-                <div class="row">
-                  <div class="col-md-6">
-                    <%= f.label :document_type, "Document Type", class: "form-label" %>
-                    <%= f.select :document_type, options_for_select([
-                      ['Aadhaar Card', 'Aadhaar Card'],
-                      ['PAN Card', 'Pancard'],
-                      ['Driving License', 'Driving License'],
-                      ['Mediclaim', 'Mediclaim'],
-                      ['RC Book', 'RC Book'],
-                      ['Other File', 'Other File']
-                    ]), { prompt: 'Select Document Type' }, { class: "form-select", required: true } %>
-                  </div>
-                  <div class="col-md-6">
-                    <%= f.label :document_file, "Upload File", class: "form-label" %>
-                    <%= f.file_field :document_file, class: "form-control",
-                                   accept: "application/pdf,image/jpeg,image/jpg,image/png", required: true %>
-                  </div>
-                </div>
-                <div class="d-flex gap-2 mt-3">
-                  <%= f.submit "Upload Document", class: "btn btn-primary btn-sm" %>
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="cancelAddDocument()">Cancel</button>
-                </div>
-              <% end %>
+            <!-- Add New Document Form Placeholder -->
+            <div id="legacy_document_form_placeholder" style="display: none;">
+              <!-- Form will be moved here by JavaScript -->
             </div>
 
             <!-- Customer Documents System -->
@@ -588,27 +563,6 @@
         </div>
       <% end %>
 
-      <!-- Document Management System -->
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-transparent border-0">
-          <div class="d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Document Management System</h5>
-            <button type="button" class="btn btn-sm btn-primary" id="add_customer_document">
-              <i class="bi bi-plus-lg me-1"></i>
-              Add Document
-            </button>
-          </div>
-        </div>
-        <div class="card-body">
-          <div id="customer_documents_container">
-            <!-- New document system will be added here -->
-          </div>
-
-          <p class="text-muted mb-0 mt-2">
-            <small>Use this system to add organized documents with titles and types</small>
-          </p>
-        </div>
-      </div>
 
       <!-- Additional Info -->
       <div class="card border-0 shadow-sm mb-4">
@@ -635,6 +589,36 @@
       <div class="d-flex gap-2">
         <%= form.submit "Update Client", class: "btn btn-primary" %>
         <%= link_to "Cancel", admin_customer_path(@customer), class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Add New Document Form (Outside main form to avoid nesting) -->
+  <div id="legacy_document_form" style="display: none;" class="border rounded p-3 mb-3 bg-light">
+    <h6 class="mb-3">Add New Document</h6>
+    <%= form_with url: admin_customer_documents_path(@customer), method: :post,
+                 model: CustomerDocument.new, multipart: true, id: "new_document_form", local: false do |f| %>
+      <div class="row">
+        <div class="col-md-6">
+          <%= f.label :document_type, "Document Type", class: "form-label" %>
+          <%= f.select :document_type, options_for_select([
+            ['Aadhaar Card', 'Aadhaar Card'],
+            ['PAN Card', 'Pancard'],
+            ['Driving License', 'Driving License'],
+            ['Mediclaim', 'Mediclaim'],
+            ['RC Book', 'RC Book'],
+            ['Other File', 'Other File']
+          ]), { prompt: 'Select Document Type' }, { class: "form-select", required: true } %>
+        </div>
+        <div class="col-md-6">
+          <%= f.label :document_file, "Upload File", class: "form-label" %>
+          <%= f.file_field :document_file, class: "form-control",
+                         accept: "application/pdf,image/jpeg,image/jpg,image/png", required: true %>
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-3">
+        <%= f.submit "Upload Document", class: "btn btn-primary btn-sm" %>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="cancelAddDocument()">Cancel</button>
       </div>
     <% end %>
   </div>
@@ -972,63 +956,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Customer Document Management System
-  let customerDocumentIndex = 0;
-  const addCustomerDocumentBtn = document.getElementById('add_customer_document');
-  const customerDocumentsContainer = document.getElementById('customer_documents_container');
-
-  addCustomerDocumentBtn?.addEventListener('click', function() {
-    const documentHtml = `
-      <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${customerDocumentIndex}" style="background: #f8f9fa;">
-        <button type="button" class="btn btn-sm btn-outline-danger position-absolute" style="top: 10px; right: 10px;" onclick="this.closest('.document-entry').remove()">
-          <i class="bi bi-trash"></i>
-        </button>
-        <div class="row">
-          <div class="col-md-4">
-            <label class="form-label">Document Title <span class="text-danger">*</span></label>
-            <input type="text" name="customer[uploaded_documents_attributes][${customerDocumentIndex}][title]" class="form-control" placeholder="Enter document title" required>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Document Type <span class="text-danger">*</span></label>
-            <select name="customer[uploaded_documents_attributes][${customerDocumentIndex}][document_type]" class="form-select" required>
-              <option value="">Select Document Type</option>
-              <option value="aadhar">Aadhaar Card</option>
-              <option value="pan_card">PAN Card</option>
-              <option value="driving_license">Driving License</option>
-              <option value="passport">Passport</option>
-              <option value="voter_id">Voter ID</option>
-              <option value="birth_certificate">Birth Certificate</option>
-              <option value="income_certificate">Income Certificate</option>
-              <option value="salary_slip">Salary Slip</option>
-              <option value="bank_statement">Bank Statement</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Document File <span class="text-danger">*</span></label>
-            <input type="file" name="customer[uploaded_documents_attributes][${customerDocumentIndex}][file]" class="form-control" accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
-          </div>
-        </div>
-        <div class="row mt-2">
-          <div class="col-md-12">
-            <label class="form-label">Description (Optional)</label>
-            <textarea name="customer[uploaded_documents_attributes][${customerDocumentIndex}][description]" class="form-control" rows="2" placeholder="Optional description"></textarea>
-          </div>
-        </div>
-        <input type="hidden" name="customer[uploaded_documents_attributes][${customerDocumentIndex}][uploaded_by]" value="Admin User">
-      </div>
-    `;
-    customerDocumentsContainer.insertAdjacentHTML('beforeend', documentHtml);
-    customerDocumentIndex++;
-  });
 
   // Legacy Document Management System
   const addLegacyDocumentBtn = document.getElementById('add_legacy_document');
   const legacyDocumentForm = document.getElementById('legacy_document_form');
+  const legacyDocumentFormPlaceholder = document.getElementById('legacy_document_form_placeholder');
   const newDocumentForm = document.getElementById('new_document_form');
 
   // Show legacy document form
   addLegacyDocumentBtn?.addEventListener('click', function() {
+    // Move the form to the placeholder position
+    if (legacyDocumentForm && legacyDocumentFormPlaceholder) {
+      legacyDocumentFormPlaceholder.appendChild(legacyDocumentForm);
+      legacyDocumentFormPlaceholder.style.display = 'block';
+    }
     legacyDocumentForm.style.display = 'block';
     addLegacyDocumentBtn.style.display = 'none';
   });
@@ -1047,16 +988,81 @@ document.addEventListener('DOMContentLoaded', function() {
       `;
       legacyDocumentForm.insertAdjacentElement('afterend', alertDiv);
 
+      // Add the new document to the existing list
+      addDocumentToList(response.document);
+
       // Reset and hide form
       newDocumentForm.reset();
       cancelAddDocument();
 
-      // Reload the page after a short delay to show the new document
+      // Auto-dismiss success message after 3 seconds
       setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+        alertDiv.remove();
+      }, 3000);
     }
   });
+
+  // Function to add new document to the existing list without page reload
+  function addDocumentToList(uploadedDoc) {
+    // Find the documents list container
+    let documentsContainer = document.querySelector('.list-group');
+
+    // If no documents exist yet, create the list structure
+    if (!documentsContainer) {
+      const currentFilesCard = document.querySelector('#legacy_document_form_placeholder').closest('.card-body');
+      if (currentFilesCard) {
+        const existingContainer = currentFilesCard.querySelector('.list-group');
+        if (!existingContainer) {
+          // Create new list group
+          const listGroup = document.createElement('div');
+          listGroup.className = 'list-group mb-3';
+
+          // Find the add document button container and insert before it
+          const addButtonContainer = currentFilesCard.querySelector('.d-flex.justify-content-between');
+          if (addButtonContainer) {
+            addButtonContainer.insertAdjacentElement('afterend', listGroup);
+          }
+          documentsContainer = listGroup;
+        } else {
+          documentsContainer = existingContainer;
+        }
+      }
+    }
+
+    if (documentsContainer) {
+      // Create new document list item
+      const documentItem = document.createElement('div');
+      documentItem.className = 'list-group-item';
+      documentItem.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-file-earmark me-2"></i>
+            <div>
+              <span class="fw-medium">${uploadedDoc.type}</span>
+              <br><small class="text-muted">${uploadedDoc.name} • ${uploadedDoc.size}</small>
+            </div>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-success">✓ Cloud Stored</span>
+            <a href="${uploadedDoc.url}" class="btn btn-sm btn-outline-primary" target="_blank">
+              <i class="bi bi-download"></i> Download
+            </a>
+            <a href="/admin/customers/${window.location.pathname.split('/')[3]}/documents/${uploadedDoc.id}"
+               data-method="delete"
+               data-confirm="Are you sure you want to unlink this document from the customer? The file will remain in cloud storage."
+               data-turbo-method="delete"
+               class="btn btn-sm btn-outline-danger"
+               title="Unlink Document">
+              <i class="bi bi-unlink"></i>
+            </a>
+          </div>
+        </div>
+      `;
+
+      // Add to the beginning of the list
+      documentsContainer.insertAdjacentElement('afterbegin', documentItem);
+    }
+  }
 
   newDocumentForm?.addEventListener('ajax:error', function(event) {
     const response = event.detail[0];
@@ -1082,8 +1088,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // Cancel add document function (global scope for onclick handler)
   window.cancelAddDocument = function() {
     legacyDocumentForm.style.display = 'none';
+    legacyDocumentFormPlaceholder.style.display = 'none';
     addLegacyDocumentBtn.style.display = 'inline-block';
     newDocumentForm.reset();
+
+    // Move form back to original position (outside main form)
+    document.body.appendChild(legacyDocumentForm);
 
     // Remove any existing alerts
     const alerts = document.querySelectorAll('.alert');

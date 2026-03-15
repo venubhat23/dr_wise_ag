@@ -933,7 +933,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
             PolicyDocument.create!(
               policy_type: 'life',
               policy_id: life_insurance.id,
-              document_type: 'General Document',
+              document_type: 'Additional Document',
               title: result[:filename],
               description: "Document uploaded on #{Date.current}",
               uploaded_by: current_user.email,

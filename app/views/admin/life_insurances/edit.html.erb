@@ -15,6 +15,10 @@
       <i class="bi bi-eye me-2"></i>
       View Policy
     <% end %>
+    <button type="button" class="btn btn-outline-success" onclick="toggleDocumentSection()">
+      <i class="bi bi-file-earmark-plus me-2"></i>
+      Update Documents
+    </button>
     <div class="trust-seal">
       <i class="bi bi-shield-check seal-icon"></i>
       <span>Update Policy</span>
@@ -23,3 +27,30 @@
 </div>
 
 <%= render 'form' %>
+
+<!-- Document Management Section (Hidden by default) -->
+<div id="document-management-section" style="display: none;">
+  <%= render 'admin/policy_documents/document_manager', policy: @life_insurance, policy_type: 'life' %>
+</div>
+
+<script>
+function toggleDocumentSection() {
+  const documentSection = document.getElementById('document-management-section');
+  const button = event.target.closest('button');
+
+  if (documentSection.style.display === 'none') {
+    documentSection.style.display = 'block';
+    button.innerHTML = '<i class="bi bi-file-earmark-minus me-2"></i>Hide Documents';
+    button.className = 'btn btn-outline-warning';
+
+    // Scroll to document section
+    setTimeout(() => {
+      documentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  } else {
+    documentSection.style.display = 'none';
+    button.innerHTML = '<i class="bi bi-file-earmark-plus me-2"></i>Update Documents';
+    button.className = 'btn btn-outline-success';
+  }
+}
+</script>

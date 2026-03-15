@@ -1,6 +1,6 @@
 <%#
   Policy Document Manager Component
-  Usage: <%= render 'admin/policy_documents/document_manager', policy: @health_insurance, policy_type: 'health' %>
+  Usage: render 'admin/policy_documents/document_manager', policy: @health_insurance, policy_type: 'health'
 %>
 
 <div class="card mt-4" id="policy-documents-manager" data-policy-type="<%= policy_type %>" data-policy-id="<%= policy.id %>">
@@ -8,9 +8,11 @@
     <h5 class="mb-0">
       <i class="fas fa-folder-open"></i> Policy Documents
     </h5>
-    <button type="button" class="btn btn-primary btn-sm" onclick="toggleDocumentUploader()">
-      <i class="fas fa-plus"></i> Add Documents
-    </button>
+    <div class="ms-auto">
+      <button type="button" class="btn btn-primary btn-sm" onclick="toggleDocumentUploader()">
+        <i class="fas fa-plus"></i> ADD DOCUMENTS
+      </button>
+    </div>
   </div>
 
   <div class="card-body">
@@ -55,28 +57,84 @@
     <!-- Existing Documents List -->
     <div id="existing-documents">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="mb-0">Uploaded Documents (<span id="document-count">0</span>)</h6>
-        <div class="btn-group btn-group-sm" role="group">
-          <button type="button" class="btn btn-outline-secondary" onclick="refreshDocumentsList()">
-            <i class="fas fa-sync"></i> Refresh
-          </button>
-          <div class="dropdown">
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-              <i class="fas fa-filter"></i> Filter
-            </button>
-            <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="#" onclick="filterDocuments('')">All Documents</a></li>
-              <li><a class="dropdown-item" href="#" onclick="filterDocuments('Policy Document')">Policy Documents</a></li>
-              <li><a class="dropdown-item" href="#" onclick="filterDocuments('Additional Document')">Additional Documents</a></li>
-              <li><a class="dropdown-item" href="#" onclick="filterDocuments('Identity Proof')">Identity Proofs</a></li>
-              <li><a class="dropdown-item" href="#" onclick="filterDocuments('Medical Report')">Medical Reports</a></li>
-            </ul>
-          </div>
-        </div>
+        <% policy_documents_count = PolicyDocument.for_policy(policy_type, policy.id).count %>
+        <h6 class="mb-0">Uploaded Documents (<span id="document-count"><%= policy_documents_count %></span>)</h6>
       </div>
 
       <div id="documents-list">
-        <!-- Documents will be loaded here via AJAX -->
+        <% policy_documents = PolicyDocument.for_policy(policy_type, policy.id).order(created_at: :desc) %>
+        <% if policy_documents.any? %>
+          <% policy_documents.each do |document| %>
+            <div class="document-item border rounded p-3 mb-2" data-document-id="<%= document.id %>">
+              <div class="row align-items-center">
+                <div class="col-md-1">
+                  <% if document.r2_content_type&.include?('pdf') %>
+                    <i class="fas fa-file-pdf fa-2x text-danger"></i>
+                  <% elsif document.r2_content_type&.include?('image') %>
+                    <i class="fas fa-file-image fa-2x text-primary"></i>
+                  <% elsif document.r2_content_type&.include?('word') || document.r2_content_type&.include?('document') %>
+                    <i class="fas fa-file-word fa-2x text-info"></i>
+                  <% else %>
+                    <i class="fas fa-file fa-2x text-secondary"></i>
+                  <% end %>
+                </div>
+                <div class="col-md-6">
+                  <h6 class="mb-1"><%= document.title %></h6>
+                  <small class="text-muted d-block"><%= document.document_type %></small>
+                  <small class="text-muted"><%= document.document_name %> • <%= document.document_size %></small>
+                  <% if document.description.present? %>
+                    <p class="mb-0 mt-1 text-muted small"><%= document.description %></p>
+                  <% end %>
+                  <% if document.document_url.present? %>
+                    <div class="mt-2">
+                      <small class="text-muted">Public URL:</small>
+                      <div class="input-group input-group-sm">
+                        <input type="text" class="form-control form-control-sm" readonly
+                               value="<%= document.document_url %>"
+                               onclick="this.select()"
+                               style="font-size: 10px;">
+                        <button class="btn btn-outline-secondary btn-sm"
+                                onclick="copyToClipboard('<%= document.document_url %>')"
+                                title="Copy URL">
+                          <i class="fas fa-copy"></i>
+                        </button>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+                <div class="col-md-3">
+                  <small class="text-muted">Uploaded by <%= document.uploaded_by %></small><br>
+                  <small class="text-muted"><%= document.created_at.strftime('%B %d, %Y at %I:%M %p') %></small>
+                </div>
+                <div class="col-md-2 text-end">
+                  <div class="btn-group btn-group-sm">
+                    <% if document.document_url.present? %>
+                      <a href="<%= document.document_url %>" target="_blank" class="btn btn-outline-primary" title="View">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                    <% end %>
+                    <% if document.download_url.present? %>
+                      <a href="<%= document.download_url %>" class="btn btn-outline-success" title="Download">
+                        <i class="fas fa-download"></i>
+                      </a>
+                    <% end %>
+                    <button type="button" class="btn btn-outline-danger" onclick="deleteDocument(<%= document.id %>, '<%= document.title.gsub("'", "\\'") %>')" title="Delete">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="text-center text-muted py-4">
+            <i class="fas fa-folder-open fa-3x mb-3"></i>
+            <p>No documents uploaded yet.</p>
+            <button type="button" class="btn btn-primary" onclick="toggleDocumentUploader()">
+              <i class="fas fa-plus"></i> Upload First Document
+            </button>
+          </div>
+        <% end %>
       </div>
 
       <div id="no-documents-message" class="text-center text-muted py-4" style="display: none;">
@@ -202,7 +260,7 @@ let currentFilter = '';
 
 // Initialize the document manager
 function initializePolicyDocumentManager() {
-  loadExistingDocuments();
+  // Skip loadExistingDocuments() since we render them server-side
   setupDragAndDrop();
   setupFileInput();
 }
@@ -481,16 +539,7 @@ function cancelUpload() {
   toggleDocumentUploader();
 }
 
-// Refresh documents list
-function refreshDocumentsList() {
-  loadExistingDocuments();
-}
-
-// Filter documents
-function filterDocuments(documentType) {
-  currentFilter = documentType;
-  loadExistingDocuments();
-}
+// Removed refresh and filter functionality since documents are rendered server-side
 
 // Download document
 function downloadDocument(documentId) {

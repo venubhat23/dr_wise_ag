@@ -320,6 +320,11 @@ class LifeInsurance < ApplicationRecord
     main_policy_document_filename
   end
 
+  # Alias for compatibility with view expectations
+  def main_policy_r2_document_url
+    main_policy_r2_url
+  end
+
   private
 
   def parse_amount_text(text)
