@@ -81,6 +81,17 @@ class Admin::DistributorsController < Admin::ApplicationController
     # Handle upload_main_document separately to avoid ActiveStorage issues
     main_document = permitted_params.delete(:upload_main_document)
 
+    # Process document files before creating distributor
+    documents_attributes = permitted_params[:distributor_documents_attributes]
+    if documents_attributes.present?
+      documents_attributes.each do |key, doc_attrs|
+        if doc_attrs[:document_file].present?
+          # Store the file in the document attributes for processing by the model
+          # The DistributorDocument model will handle the R2 upload in its before_save callback
+        end
+      end
+    end
+
     @distributor = Distributor.new(permitted_params)
     @distributor.role_id = 'distributor'
 
@@ -103,6 +114,7 @@ class Admin::DistributorsController < Admin::ApplicationController
     else
       Rails.logger.error "Create errors: #{@distributor.errors.full_messages}"
       @distributor.distributor_documents.build if @distributor.distributor_documents.empty?
+      @investors = Investor.all  # Reload investors for form rendering
       render :new, status: :unprocessable_entity
     end
   end
@@ -136,6 +148,7 @@ class Admin::DistributorsController < Admin::ApplicationController
     else
       Rails.logger.error "Update errors: #{@distributor.errors.full_messages}"
       @distributor.distributor_documents.build if @distributor.distributor_documents.empty?
+      @investors = Investor.all  # Reload investors for form rendering
       render :edit, status: :unprocessable_entity
     end
   end

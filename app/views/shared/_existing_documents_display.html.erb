@@ -43,7 +43,23 @@
                 <!-- Document Preview -->
                 <div class="col-auto">
                   <div class="document-thumbnail">
-                    <% if document.respond_to?(:file) && document.file.present? %>
+                    <% if document.respond_to?(:r2_file_key) && document.r2_file_key.present? %>
+                      <!-- R2 Document -->
+                      <% if document.is_image? %>
+                        <%= image_tag document.document_url,
+                            class: "rounded border",
+                            style: "width: 80px; height: 80px; object-fit: cover;",
+                            alt: "Document preview",
+                            onerror: "this.style.display='none'; this.nextElementSibling.style.display='block';" %>
+                        <div class="file-icon-fallback d-none">
+                          <i class="bi bi-file-earmark-image text-info" style="font-size: 3rem;"></i>
+                        </div>
+                      <% else %>
+                        <div class="file-icon-display text-center">
+                          <i class="<%= get_file_icon_class_r2(document.r2_content_type) %>" style="font-size: 3rem;"></i>
+                        </div>
+                      <% end %>
+                    <% elsif document.respond_to?(:file) && document.file.present? %>
                       <% if document.file.content_type&.include?('image') %>
                         <%= image_tag document.file,
                             class: "rounded border",
@@ -104,7 +120,12 @@
                           </span>
                         <% end %>
 
-                        <% if document.respond_to?(:file) && document.file.present? %>
+                        <% if document.respond_to?(:r2_file_size) && document.r2_file_size.present? %>
+                          <span class="me-3">
+                            <i class="bi bi-file-earmark me-1"></i>
+                            Size: <%= number_to_human_size(document.r2_file_size) %>
+                          </span>
+                        <% elsif document.respond_to?(:file) && document.file.present? %>
                           <span class="me-3">
                             <i class="bi bi-file-earmark me-1"></i>
                             Size: <%= number_to_human_size(document.file.byte_size) if document.file.respond_to?(:byte_size) %>
@@ -128,7 +149,22 @@
                     <!-- Actions -->
                     <% if show_actions %>
                       <div class="btn-group-vertical btn-group-sm">
-                        <% if document.respond_to?(:file) && document.file.present? %>
+                        <% if document.respond_to?(:r2_file_key) && document.r2_file_key.present? %>
+                          <%= link_to document.document_url,
+                              class: "btn btn-outline-primary btn-sm",
+                              target: "_blank",
+                              title: "View Document",
+                              data: { toggle: "tooltip" } do %>
+                            <i class="bi bi-eye"></i>
+                          <% end %>
+                          <%= link_to document.document_url,
+                              class: "btn btn-outline-success btn-sm",
+                              download: document.document_name,
+                              title: "Download Document",
+                              data: { toggle: "tooltip" } do %>
+                            <i class="bi bi-download"></i>
+                          <% end %>
+                        <% elsif document.respond_to?(:file) && document.file.present? %>
                           <%= link_to document.file,
                               class: "btn btn-outline-primary btn-sm",
                               target: "_blank",
@@ -179,7 +215,23 @@
               <div class="card-body p-3 text-center">
                 <!-- Document Preview -->
                 <div class="document-thumbnail mb-3">
-                  <% if document.respond_to?(:file) && document.file.present? %>
+                  <% if document.respond_to?(:r2_file_key) && document.r2_file_key.present? %>
+                    <!-- R2 Document -->
+                    <% if document.is_image? %>
+                      <%= image_tag document.document_url,
+                          class: "rounded border",
+                          style: "width: 100px; height: 100px; object-fit: cover;",
+                          alt: "Document preview",
+                          onerror: "this.style.display='none'; this.nextElementSibling.style.display='block';" %>
+                      <div class="file-icon-fallback d-none">
+                        <i class="bi bi-file-earmark-image text-info" style="font-size: 4rem;"></i>
+                      </div>
+                    <% else %>
+                      <div class="file-icon-display">
+                        <i class="<%= get_file_icon_class_r2(document.r2_content_type) %>" style="font-size: 4rem;"></i>
+                      </div>
+                    <% end %>
+                  <% elsif document.respond_to?(:file) && document.file.present? %>
                     <% if document.file.content_type&.include?('image') %>
                       <%= image_tag document.file,
                           class: "rounded border",
@@ -234,7 +286,20 @@
                 <!-- Actions -->
                 <% if show_actions %>
                   <div class="btn-group btn-group-sm">
-                    <% if document.respond_to?(:file) && document.file.present? %>
+                    <% if document.respond_to?(:r2_file_key) && document.r2_file_key.present? %>
+                      <%= link_to document.document_url,
+                          class: "btn btn-outline-primary btn-sm",
+                          target: "_blank",
+                          title: "View" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                      <%= link_to document.document_url,
+                          class: "btn btn-outline-success btn-sm",
+                          download: document.document_name,
+                          title: "Download" do %>
+                        <i class="bi bi-download"></i>
+                      <% end %>
+                    <% elsif document.respond_to?(:file) && document.file.present? %>
                       <%= link_to document.file,
                           class: "btn btn-outline-primary btn-sm",
                           target: "_blank",
@@ -372,6 +437,30 @@
 <%
   # Helper method for file icon classes
   def get_file_icon_class(content_type)
+    return 'bi bi-file-earmark text-muted' unless content_type
+
+    case content_type.downcase
+    when /pdf/
+      'bi bi-file-earmark-pdf text-danger'
+    when /image/
+      'bi bi-file-earmark-image text-info'
+    when /word|document/
+      'bi bi-file-earmark-word text-primary'
+    when /excel|spreadsheet/
+      'bi bi-file-earmark-excel text-success'
+    when /powerpoint|presentation/
+      'bi bi-file-earmark-ppt text-warning'
+    when /text/
+      'bi bi-file-earmark-text text-secondary'
+    when /zip|rar|archive/
+      'bi bi-file-earmark-zip text-dark'
+    else
+      'bi bi-file-earmark text-muted'
+    end
+  end
+
+  # Helper method for R2 file icon classes
+  def get_file_icon_class_r2(content_type)
     return 'bi bi-file-earmark text-muted' unless content_type
 
     case content_type.downcase
