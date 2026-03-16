@@ -75,6 +75,21 @@ function initializeDynamicDropdowns() {
 
   // Mark as initialized
   window.dynamicDropdownsInitialized = true;
+
+  // Check if broker code type is already selected and trigger appropriate loading
+  setTimeout(() => {
+    console.log('🔍 Checking initial broker code type selection...');
+    const currentBrokerType = brokerCodeSelect.value;
+    console.log('Current broker type on page load:', currentBrokerType);
+
+    if (currentBrokerType === 'direct') {
+      console.log('🎯 Triggering Direct mode on page load');
+      handleDirectMode(baseUrl, agencyCodeSelect, insuranceCompanySelect);
+    } else if (currentBrokerType === 'broking') {
+      console.log('🏢 Triggering Broking mode on page load');
+      handleBrokingMode(baseUrl, agencyCodeSelect, insuranceCompanySelect);
+    }
+  }, 200);
 }
 
 // FLOW 1: Handle Direct Mode
