@@ -78,10 +78,23 @@ class Admin::DistributorsController < Admin::ApplicationController
     permitted_params = distributor_params
     assigned_affiliate_ids = permitted_params.delete(:assigned_affiliate_ids)
 
+    # Handle upload_main_document separately to avoid ActiveStorage issues
+    main_document = permitted_params.delete(:upload_main_document)
+
     @distributor = Distributor.new(permitted_params)
     @distributor.role_id = 'distributor'
 
     if @distributor.save
+      # Attach main document after distributor is saved
+      if main_document.present?
+        begin
+          @distributor.upload_main_document.attach(main_document)
+        rescue => e
+          Rails.logger.error "Failed to attach main document: #{e.message}"
+          # Don't fail the whole creation for document attachment issues
+        end
+      end
+
       # Create user account for ambassador login (same logic as customers)
       create_ambassador_user_account(@distributor)
       handle_affiliate_assignments(@distributor, assigned_affiliate_ids)
@@ -104,7 +117,19 @@ class Admin::DistributorsController < Admin::ApplicationController
     permitted_params = distributor_params
     assigned_affiliate_ids = permitted_params.delete(:assigned_affiliate_ids)
 
+    # Handle upload_main_document separately to avoid ActiveStorage issues
+    main_document = permitted_params.delete(:upload_main_document)
+
     if @distributor.update(permitted_params)
+      # Attach main document after distributor is updated
+      if main_document.present?
+        begin
+          @distributor.upload_main_document.attach(main_document)
+        rescue => e
+          Rails.logger.error "Failed to attach main document during update: #{e.message}"
+          # Don't fail the whole update for document attachment issues
+        end
+      end
       handle_affiliate_assignments(@distributor, assigned_affiliate_ids)
       Rails.logger.info "Documents after update: #{@distributor.distributor_documents.count}"
       redirect_to admin_distributors_path, notice: 'Ambassador was successfully updated.'
