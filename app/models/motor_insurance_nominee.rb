@@ -7,7 +7,7 @@ class MotorInsuranceNominee < ApplicationRecord
     message: "must be a valid relationship"
   }
   validates :age, presence: true, numericality: { greater_than: 0, less_than: 150 }
-  validates :share_percentage, numericality: { greater_than: 0, less_than_or_equal_to: 100 }, allow_blank: true
+  validates :share_percentage, presence: true, numericality: { greater_than: 0, less_than_or_equal_to: 100 }
 
   RELATIONSHIPS = ['father', 'mother', 'spouse', 'son', 'daughter', 'brother', 'sister', 'other'].freeze
 end

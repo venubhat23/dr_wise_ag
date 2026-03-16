@@ -125,7 +125,7 @@
           <%= form.select :insurance_company_name,
               options_for_select(@insurance_companies.map { |c| [c, c] }, @health_insurance.insurance_company_name),
               { prompt: 'Search and select company...' },
-              { class: "form-control #{'is-invalid' if @health_insurance.errors[:insurance_company_name].any?}", required: true, id: "health_insurance_insurance_company_name", data: { placeholder: "Type to search companies..." }, disabled: @health_insurance.new_record? } %>
+              { class: "form-control #{'is-invalid' if @health_insurance.errors[:insurance_company_name].any?}", required: true, id: "health_insurance_insurance_company_name", data: { placeholder: "Type to search companies..." } } %>
           <% if @health_insurance.errors[:insurance_company_name].any? %>
             <div class="invalid-feedback"><%= @health_insurance.errors[:insurance_company_name].first %></div>
           <% end %>
@@ -389,8 +389,8 @@
                 <%= nominee_form.number_field :age, class: "form-control", min: 1, max: 120, required: true %>
               </div>
               <div class="col-md-2 mb-3">
-                <%= nominee_form.label :share_percentage, "Share %", class: "form-label" %>
-                <%= nominee_form.number_field :share_percentage, class: "form-control", min: 0, max: 100, step: 0.01, placeholder: "100" %>
+                <%= nominee_form.label :share_percentage, "Share %", class: "form-label required" %>
+                <%= nominee_form.number_field :share_percentage, class: "form-control", min: 0, max: 100, step: 0.01, placeholder: "100", required: true %>
               </div>
               <div class="col-md-1 d-flex align-items-end mb-3">
                 <button type="button" class="btn btn-outline-danger remove-nominee-btn">
@@ -685,100 +685,6 @@
     </div>
   </div>
 
-  <!-- Nominee Details Section -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="mb-0">
-        <i class="bi bi-person-check me-2 text-primary"></i>
-        Nominee Details <span class="text-danger">*</span>
-      </h5>
-    </div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <%= form.label :nominee_name, "Nominee Name*", class: "form-label" %>
-          <%= form.text_field :nominee_name,
-              class: "form-control #{'is-invalid' if @health_insurance.errors[:nominee_name].any?}",
-              placeholder: "Enter nominee name",
-              required: true,
-              id: "nominee_name" %>
-          <% if @health_insurance.errors[:nominee_name].any? %>
-            <div class="invalid-feedback"><%= @health_insurance.errors[:nominee_name].first %></div>
-          <% end %>
-        </div>
-
-        <div class="col-md-4 mb-3">
-          <%= form.label :nominee_relation, "Relationship*", class: "form-label" %>
-          <%= form.select :nominee_relation,
-              options_for_select([
-                ['Father', 'father'],
-                ['Mother', 'mother'],
-                ['Spouse', 'spouse'],
-                ['Son', 'son'],
-                ['Daughter', 'daughter'],
-                ['Brother', 'brother'],
-                ['Sister', 'sister'],
-                ['Other', 'other']
-              ], @health_insurance.nominee_relation),
-              { prompt: 'Select relationship' },
-              { class: "form-control #{'is-invalid' if @health_insurance.errors[:nominee_relation].any?}", required: true, id: "nominee_relation" } %>
-          <% if @health_insurance.errors[:nominee_relation].any? %>
-            <div class="invalid-feedback"><%= @health_insurance.errors[:nominee_relation].first %></div>
-          <% end %>
-        </div>
-
-        <div class="col-md-4 mb-3">
-          <%= form.label :nominee_dob, "Date of Birth*", class: "form-label" %>
-          <%= form.date_field :nominee_dob,
-              class: "form-control #{'is-invalid' if @health_insurance.errors[:nominee_dob].any?}",
-              required: true,
-              id: "nominee_dob",
-              min: "1900-01-01",
-              max: "2099-12-31" %>
-          <% if @health_insurance.errors[:nominee_dob].any? %>
-            <div class="invalid-feedback"><%= @health_insurance.errors[:nominee_dob].first %></div>
-          <% end %>
-        </div>
-      </div>
-
-      <div class="alert alert-info">
-        <i class="bi bi-info-circle me-2"></i>
-        <strong>Auto-fill from Client:</strong> When you select a client, nominee details will be automatically populated if available in the customer profile.
-      </div>
-    </div>
-  </div>
-
-  <!-- Autopay Installment Section -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="mb-0">
-        <i class="bi bi-calendar-event me-2 text-primary"></i>
-        Autopay Installment
-      </h5>
-    </div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <%= form.label :installment_autopay_start_date, "Installment Autopay Start Date", class: "form-label" %>
-          <%= form.date_field :installment_autopay_start_date,
-              class: "form-control",
-              id: "autopay_start_date",
-              value: @health_insurance.installment_autopay_start_date || Date.current,
-              min: "1900-01-01",
-              max: "2099-12-31" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :installment_autopay_end_date, "Installment Autopay End Date", class: "form-label" %>
-          <%= form.date_field :installment_autopay_end_date,
-              class: "form-control",
-              id: "autopay_end_date",
-              value: @health_insurance.installment_autopay_end_date || Date.current,
-              min: "1900-01-01",
-              max: "2099-12-31" %>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Form Actions -->
   <div class="card">
@@ -1514,8 +1420,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Auto-calculate autopay end date based on payment mode
     function calculateAutopayEndDate() {
-      const paymentMode = document.getElementById('payment_mode_select').value;
-      const startDate = document.getElementById('autopay_start_date').value;
+      const paymentModeElement = document.getElementById('payment_mode_select');
+      const startDateElement = document.getElementById('autopay_start_date');
+
+      if (!paymentModeElement || !startDateElement) {
+        console.log('Autopay calculation skipped - elements not found');
+        return;
+      }
+
+      const paymentMode = paymentModeElement.value;
+      const startDate = startDateElement.value;
 
       if (startDate && paymentMode) {
         const start = new Date(startDate);
@@ -1560,9 +1474,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Update autopay start date when policy start date changes
     function updateAutopayStartDate() {
-      const policyStartDate = document.getElementById('start_date').value;
+      const policyStartDateElement = document.getElementById('start_date');
+      const autopayStartDateElement = document.getElementById('autopay_start_date');
+
+      if (!policyStartDateElement || !autopayStartDateElement) {
+        console.log('Autopay start date update skipped - elements not found');
+        return;
+      }
+
+      const policyStartDate = policyStartDateElement.value;
       if (policyStartDate) {
-        document.getElementById('autopay_start_date').value = policyStartDate;
+        autopayStartDateElement.value = policyStartDate;
         calculateAutopayEndDate(); // Recalculate end date
       }
     }
@@ -1612,64 +1534,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load nominee details when customer changes
     function loadNomineeDetails() {
-      const customerId = document.getElementById('customer_select').value;
-      const nomineeNameField = document.getElementById('nominee_name');
-      const nomineeRelationField = document.getElementById('nominee_relation');
-      const nomineeDobField = document.getElementById('nominee_dob');
-
-      if (customerId) {
-        // Show loading state
-        nomineeNameField.value = 'Loading...';
-        nomineeNameField.disabled = true;
-        nomineeRelationField.disabled = true;
-        nomineeDobField.disabled = true;
-
-        fetch(`/admin/customers/${customerId}/nominee_details`)
-          .then(response => response.json())
-          .then(data => {
-            // Re-enable fields
-            nomineeNameField.disabled = false;
-            nomineeRelationField.disabled = false;
-            nomineeDobField.disabled = false;
-
-            if (data.nominee_name) {
-              // Auto-fill nominee details from customer
-              nomineeNameField.value = data.nominee_name || '';
-              nomineeRelationField.value = data.nominee_relation || '';
-              nomineeDobField.value = data.nominee_date_of_birth || '';
-
-              // Show success message
-              showNotification('Nominee details loaded from customer profile!', 'success');
-            } else {
-              // Clear fields if no nominee data
-              nomineeNameField.value = '';
-              nomineeRelationField.value = '';
-              nomineeDobField.value = '';
-
-              // Show warning message
-              showNotification('No nominee details found in customer profile. Please fill manually.', 'warning');
-            }
-          })
-          .catch(error => {
-            console.error('Error loading nominee details:', error);
-            // Re-enable fields
-            nomineeNameField.disabled = false;
-            nomineeRelationField.disabled = false;
-            nomineeDobField.disabled = false;
-
-            // Clear fields and show error
-            nomineeNameField.value = '';
-            nomineeRelationField.value = '';
-            nomineeDobField.value = '';
-
-            showNotification('Error loading nominee details. Please fill manually.', 'error');
-          });
-      } else {
-        // Clear fields when no customer selected
-        nomineeNameField.value = '';
-        nomineeRelationField.value = '';
-        nomineeDobField.value = '';
+      const customerElement = document.getElementById('customer_select');
+      if (!customerElement) {
+        console.log('Customer select element not found');
+        return;
       }
+
+      const customerId = customerElement.value;
+
+      // For health insurance, nominees are in a collection, not direct fields
+      // This function is kept for compatibility but doesn't update direct fields
+      console.log('Loading nominee details for customer:', customerId);
+
+      // For health insurance, nominees are managed via the "Load from Client" button
+      // This function is kept for compatibility but doesn't auto-load nominees
+      console.log('Customer selected, but nominee auto-loading is handled by the Load from Client button');
     }
 
     // Helper function to show notifications
@@ -1825,8 +1704,8 @@ document.addEventListener('DOMContentLoaded', function() {
               <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][age]" class="form-control" min="1" max="120" required>
             </div>
             <div class="col-md-2 mb-3">
-              <label class="form-label">Share %</label>
-              <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][share_percentage]" class="form-control" min="0" max="100" step="0.01" placeholder="100">
+              <label class="form-label required">Share %</label>
+              <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][share_percentage]" class="form-control" min="0" max="100" step="0.01" placeholder="100" required>
             </div>
             <div class="col-md-1 d-flex align-items-end mb-3">
               <button type="button" class="btn btn-outline-danger remove-nominee-btn">
@@ -1858,7 +1737,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load customer nominees functionality
     document.getElementById('load_customer_nominees_btn').addEventListener('click', function() {
-      const customerSelect = document.getElementById('health_insurance_customer_id');
+      const customerSelect = document.getElementById('customer_select');
       const customerId = customerSelect ? customerSelect.value : null;
 
       if (!customerId) {
@@ -1909,8 +1788,8 @@ document.addEventListener('DOMContentLoaded', function() {
                       <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][age]" class="form-control" value="${nominee.age}" min="1" max="120" required>
                     </div>
                     <div class="col-md-2 mb-3">
-                      <label class="form-label">Share %</label>
-                      <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][share_percentage]" class="form-control" min="0" max="100" step="0.01" placeholder="100">
+                      <label class="form-label required">Share %</label>
+                      <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][share_percentage]" class="form-control" min="0" max="100" step="0.01" placeholder="100" required>
                     </div>
                     <div class="col-md-1 d-flex align-items-end mb-3">
                       <button type="button" class="btn btn-outline-danger remove-nominee-btn">
@@ -2582,23 +2461,33 @@ document.addEventListener('DOMContentLoaded', function() {
       option.selected = true;
       insuranceCompanySelect.appendChild(option);
 
-      // Style and setup for auto-filled state
-      insuranceCompanySelect.disabled = true;
-      insuranceCompanySelect.style.backgroundColor = '#f8f9fa';
+      // Style and setup for auto-filled state (keep enabled for form submission)
+      insuranceCompanySelect.disabled = false;
+      insuranceCompanySelect.style.backgroundColor = '#e8f5e9';
       insuranceCompanySelect.style.fontStyle = 'italic';
 
       // Handle Select2 if present
       if (typeof $ !== 'undefined') {
+        // Destroy existing Select2 first
+        if ($(insuranceCompanySelect).hasClass('select2-hidden-accessible')) {
+          $(insuranceCompanySelect).select2('destroy');
+        }
+
         $(insuranceCompanySelect).select2({
           theme: 'bootstrap-5',
           placeholder: companyName,
           allowClear: false,
-          disabled: true,
+          disabled: false,
           width: '100%'
         });
+
+        // Set the value explicitly for Select2
+        $(insuranceCompanySelect).val(companyName).trigger('change');
       }
 
-      console.log('🔒 Insurance company auto-filled and locked:', companyName);
+      console.log('🔒 Insurance company auto-filled:', companyName);
+      console.log('🔍 Field value after auto-fill:', insuranceCompanySelect.value);
+      console.log('🔍 Field disabled status:', insuranceCompanySelect.disabled);
     }
 
     function populateMultipleCompanies(companyNames, agentName) {
@@ -2675,8 +2564,74 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('🚀 Starting dropdown debugging...');
       debugDropdownElements();
     }, 300);
+
+    // Add Document button handler
+    const addDocumentBtn = document.getElementById('add_policy_document');
+    if (addDocumentBtn) {
+      addDocumentBtn.addEventListener('click', function() {
+        console.log('📄 Add Document button clicked');
+
+        // Create a simple document upload section
+        const container = document.getElementById('policy_documents_container');
+        if (container) {
+          const documentIndex = container.children.length;
+
+          const documentHTML = `
+            <div class="border rounded p-3 mb-3 document-item" data-index="${documentIndex}">
+              <div class="row">
+                <div class="col-md-4">
+                  <label class="form-label">Document Title*</label>
+                  <input type="text" name="policy_documents[${documentIndex}][title]" class="form-control" placeholder="e.g., Policy Document" required>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Document Type*</label>
+                  <select name="policy_documents[${documentIndex}][document_type]" class="form-control" required>
+                    <option value="">Select type</option>
+                    <option value="Policy Document">Policy Document</option>
+                    <option value="Medical Report">Medical Report</option>
+                    <option value="Identity Proof">Identity Proof</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Upload File*</label>
+                  <input type="file" name="policy_documents[${documentIndex}][file]" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                  <button type="button" class="btn btn-outline-danger btn-sm remove-document-btn">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="row mt-2">
+                <div class="col-md-11">
+                  <label class="form-label">Description</label>
+                  <textarea name="policy_documents[${documentIndex}][description]" class="form-control" rows="2" placeholder="Optional description"></textarea>
+                </div>
+              </div>
+            </div>
+          `;
+
+          container.insertAdjacentHTML('beforeend', documentHTML);
+
+          // Add remove handler for the new document
+          const removeBtn = container.lastElementChild.querySelector('.remove-document-btn');
+          if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+              if (confirm('Remove this document?')) {
+                this.closest('.document-item').remove();
+              }
+            });
+          }
+
+          console.log('📄 Document upload section added');
+        }
+      });
+
+      console.log('📄 Add Document button handler initialized');
+    } else {
+      console.log('❌ Add Document button not found');
+    }
   });
 </script>
 
-<!-- Policy Documents Section -->
-<%= render 'admin/policy_documents/document_manager', policy: @health_insurance, policy_type: 'health' %>

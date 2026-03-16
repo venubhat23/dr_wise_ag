@@ -91,6 +91,9 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     set_distributor_from_affiliate(@health_insurance)
 
     if @health_insurance.save
+      # Handle document uploads to R2 after successful save
+      handle_document_uploads(@health_insurance)
+
       redirect_to admin_health_insurance_path(@health_insurance), notice: 'Health insurance policy was successfully created.'
     else
       load_form_data
@@ -103,6 +106,9 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     set_distributor_from_affiliate(@health_insurance)
 
     if @health_insurance.save
+      # Handle document uploads to R2 after successful update
+      handle_document_uploads(@health_insurance)
+
       redirect_to admin_health_insurance_path(@health_insurance), notice: 'Health insurance policy was successfully updated.'
     else
       render :edit, status: :unprocessable_entity
@@ -427,6 +433,100 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     end
   end
 
+  # API endpoint for loading customer nominees
+  def load_customer_nominees
+    customer_id = params[:customer_id]
+
+    if customer_id.present?
+      begin
+        customer = Customer.find(customer_id)
+        family_members = customer.family_members.includes(:customer)
+
+        # Build nominee options from family members
+        nominee_options = []
+        debug_info = []
+
+        family_members.each do |member|
+          # Debug info for each family member
+          debug_member = {
+            name: member.name,
+            name_present: member.name.present?,
+            name_stripped: member.name&.strip,
+            name_length: member.name&.strip&.length,
+            is_number: member.name&.strip&.match?(/^\d+$/),
+            relationship: member.relationship,
+            age: member.age
+          }
+          debug_info << debug_member
+
+          if member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
+            nominee_options << {
+              nominee_name: member.name,
+              relationship: member.relationship&.downcase || 'other',
+              age: member.age || 0
+            }
+          end
+        end
+
+        # If no valid family member nominees, check customer's direct nominee fields
+        if nominee_options.empty? && customer.nominee_name.present?
+          # Calculate age from date of birth if available
+          age = if customer.nominee_date_of_birth.present?
+                  Date.current.year - customer.nominee_date_of_birth.year
+                else
+                  0
+                end
+
+          nominee_options << {
+            nominee_name: customer.nominee_name,
+            relationship: customer.nominee_relation&.downcase || 'other',
+            age: age
+          }
+
+          debug_info << {
+            source: 'customer_direct_nominee',
+            name: customer.nominee_name,
+            relationship: customer.nominee_relation,
+            date_of_birth: customer.nominee_date_of_birth,
+            calculated_age: age
+          }
+        end
+
+        render json: {
+          success: true,
+          nominees: nominee_options,
+          customer_name: customer.display_name,
+          debug: {
+            total_family_members: family_members.count,
+            valid_nominees_from_family: nominee_options.count { |n| !debug_info.any? { |d| d[:source] == 'customer_direct_nominee' } },
+            valid_nominees_from_customer: nominee_options.count { |n| debug_info.any? { |d| d[:source] == 'customer_direct_nominee' } },
+            total_valid_nominees: nominee_options.count,
+            family_members_debug: debug_info.reject { |d| d[:source] == 'customer_direct_nominee' },
+            customer_nominee_debug: debug_info.select { |d| d[:source] == 'customer_direct_nominee' }
+          }
+        }
+      rescue ActiveRecord::RecordNotFound
+        render json: {
+          success: false,
+          message: 'Customer not found',
+          nominees: []
+        }
+      rescue => e
+        render json: {
+          success: false,
+          message: "Error: #{e.message}",
+          nominees: []
+        }
+      end
+    else
+      render json: {
+        success: false,
+        message: 'Customer ID is required',
+        nominees: []
+      }
+    end
+  end
+
   private
 
   def calculate_tab_statistics
@@ -500,7 +600,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     @agency_codes = AgencyCode.where(insurance_type: 'Health Insurance')
     @brokers = Broker.active.order(:name)
     # Load only health insurance companies - sorted alphabetically
-    @insurance_companies = HealthInsurance.health_insurance_companies.map { |company| company[:name] }.sort
+    @insurance_companies = InsuranceCompany.where(insurance_type: 'health').order('LOWER(name) ASC').pluck(:name)
   end
 
   def health_insurance_params
@@ -646,47 +746,6 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   end
 
   # API endpoint for loading customer nominees
-  def load_customer_nominees
-    customer_id = params[:customer_id]
-
-    if customer_id.present?
-      begin
-        customer = Customer.find(customer_id)
-        family_members = customer.family_members.includes(:customer)
-
-        # Build nominee options from family members
-        nominee_options = []
-
-        family_members.each do |member|
-          if member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
-            nominee_options << {
-              nominee_name: member.name,
-              relationship: member.relationship&.downcase || 'other',
-              age: member.age || 0
-            }
-          end
-        end
-
-        render json: {
-          success: true,
-          nominees: nominee_options,
-          customer_name: customer.display_name
-        }
-      rescue ActiveRecord::RecordNotFound
-        render json: {
-          success: false,
-          message: 'Customer not found',
-          nominees: []
-        }
-      end
-    else
-      render json: {
-        success: false,
-        message: 'Customer ID is required',
-        nominees: []
-      }
-    end
-  end
 
   private
 
@@ -703,5 +762,128 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   rescue StandardError => e
     # Log error but don't fail the form submission
     Rails.logger.error "Failed to set distributor from affiliate: #{e.message}"
+  end
+
+  # Handle document uploads to Cloudflare R2
+  def handle_document_uploads(health_insurance)
+    uploaded_count = 0
+    failed_count = 0
+
+    begin
+      # Handle policy_documents from the Add Document form
+      if params[:policy_documents].present?
+        params[:policy_documents].each do |index, document_data|
+          next if document_data.blank? || document_data[:file].blank?
+
+          file = document_data[:file]
+          title = document_data[:title].presence || file.original_filename
+          document_type = document_data[:document_type].presence || 'Policy Document'
+          description = document_data[:description].presence || ''
+
+          # Upload to R2
+          result = R2Service.upload(file, folder: "health_insurance/#{health_insurance.id}/policy_documents")
+
+          if result[:error]
+            Rails.logger.error "Failed to upload policy document: #{result[:error]}"
+            failed_count += 1
+            flash[:alert] = (flash[:alert] || '') + " Document upload failed: #{result[:error]}. "
+          else
+            # Create PolicyDocument record
+            PolicyDocument.create!(
+              policy_type: 'health',
+              policy_id: health_insurance.id,
+              document_type: document_type,
+              title: title,
+              description: description,
+              r2_file_key: result[:key],
+              r2_filename: result[:filename],
+              r2_content_type: file.content_type,
+              r2_file_size: file.size,
+              uploaded_by: current_user&.email || 'admin'
+            )
+            uploaded_count += 1
+            Rails.logger.info "PolicyDocument created for health insurance #{health_insurance.id}: #{title}"
+          end
+        end
+      end
+
+      # Handle legacy policy_documents array (from file upload fields)
+      if params[:health_insurance] && params[:health_insurance][:policy_documents].present?
+        params[:health_insurance][:policy_documents].each do |file|
+          next if file.blank? || file == ""
+
+          # Upload to R2
+          result = R2Service.upload(file, folder: "health_insurance/#{health_insurance.id}/documents")
+
+          if result[:error]
+            Rails.logger.error "Failed to upload document: #{result[:error]}"
+            failed_count += 1
+            flash[:alert] = (flash[:alert] || '') + " Document upload failed: #{result[:error]}. "
+          else
+            # Create PolicyDocument record
+            PolicyDocument.create!(
+              policy_type: 'health',
+              policy_id: health_insurance.id,
+              document_type: 'Policy Document',
+              title: file.original_filename,
+              description: 'Uploaded policy document',
+              r2_file_key: result[:key],
+              r2_filename: result[:filename],
+              r2_content_type: file.content_type,
+              r2_file_size: file.size,
+              uploaded_by: current_user&.email || 'admin'
+            )
+            uploaded_count += 1
+            Rails.logger.info "PolicyDocument created for health insurance #{health_insurance.id}: #{file.original_filename}"
+          end
+        end
+      end
+
+      # Handle documents array (additional documents)
+      if params[:health_insurance] && params[:health_insurance][:documents].present?
+        params[:health_insurance][:documents].each do |file|
+          next if file.blank? || file == ""
+
+          # Upload to R2
+          result = R2Service.upload(file, folder: "health_insurance/#{health_insurance.id}/additional_documents")
+
+          if result[:error]
+            Rails.logger.error "Failed to upload additional document: #{result[:error]}"
+            failed_count += 1
+            flash[:alert] = (flash[:alert] || '') + " Additional document upload failed: #{result[:error]}. "
+          else
+            # Create PolicyDocument record
+            PolicyDocument.create!(
+              policy_type: 'health',
+              policy_id: health_insurance.id,
+              document_type: 'Additional Document',
+              title: file.original_filename,
+              description: 'Additional uploaded document',
+              r2_file_key: result[:key],
+              r2_filename: result[:filename],
+              r2_content_type: file.content_type,
+              r2_file_size: file.size,
+              uploaded_by: current_user&.email || 'admin'
+            )
+            uploaded_count += 1
+            Rails.logger.info "Additional document created for health insurance #{health_insurance.id}: #{file.original_filename}"
+          end
+        end
+      end
+
+      # Update flash messages
+      if uploaded_count > 0
+        flash[:notice] = (flash[:notice] || '') + " #{uploaded_count} document(s) uploaded successfully to Cloudflare R2. "
+      end
+
+      if failed_count > 0
+        flash[:alert] = (flash[:alert] || '') + " #{failed_count} document(s) failed to upload. "
+      end
+
+    rescue => e
+      Rails.logger.error "Document upload error: #{e.message}"
+      Rails.logger.error e.backtrace.first(5).join("\n")
+      flash[:alert] = (flash[:alert] || '') + " Document upload failed: #{e.message}. "
+    end
   end
 end

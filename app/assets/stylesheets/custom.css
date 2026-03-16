@@ -1223,3 +1223,28 @@
     display: none;
   }
 }
+
+/* ============================================================
+   MANDATORY FIELD STYLING
+   ============================================================ */
+
+/* Add red asterisk for mandatory fields */
+.form-label.required::after {
+  content: " *";
+  color: #dc3545;
+  font-weight: bold;
+  margin-left: 2px;
+}
+
+/* Alternative styling for labels with required class */
+label.required::after {
+  content: " *";
+  color: #dc3545;
+  font-weight: bold;
+  margin-left: 2px;
+}
+
+/* Ensure the asterisk is visible in different themes */
+.required::after {
+  color: #dc3545 !important;
+}
