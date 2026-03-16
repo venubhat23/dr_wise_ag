@@ -135,7 +135,7 @@
         <div class="col-md-6 col-lg-4">
           <div class="info-field">
             <label>RISK START DATE</label>
-            <div class="info-value"><%= @life_insurance.risk_start_date&.strftime('%Y-%m-%d') if @life_insurance.risk_start_date || '-' %></div>
+            <div class="info-value"><%= @life_insurance.risk_start_date&.strftime('%Y-%m-%d') || '-' %></div>
           </div>
         </div>
         <div class="col-md-6 col-lg-4">

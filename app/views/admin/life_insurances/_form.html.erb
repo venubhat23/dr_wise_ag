@@ -2309,11 +2309,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function loadBrokersByCompany() {
     const companyName = document.getElementById('life_insurance_insurance_company_name').value;
     const brokerSelect = document.getElementById('broker_select');
-    const agencyCodeSelect = document.getElementById('life_insurance_agency_code_id');
+    const localAgencyCodeSelect = document.getElementById('life_insurance_agency_code_id');
 
     // Clear dependent dropdowns
     brokerSelect.innerHTML = '<option value="">Select Broker Code</option>';
-    agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
+    localAgencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
 
     if (companyName) {
       fetch(`/admin/insurance/life/brokers_by_company?company_name=${encodeURIComponent(companyName)}`)
@@ -2336,8 +2336,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Load all agency codes for Direct selection
   function loadAllAgencyCodes() {
-    const agencyCodeSelect = document.getElementById('life_insurance_agency_code_id');
-    agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
+    const localAgencyCodeSelect = document.getElementById('life_insurance_agency_code_id');
+    localAgencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
 
     fetch('/admin/insurance/life/all_agency_codes', {
       method: 'GET',
@@ -2351,7 +2351,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.agency_codes && data.agency_codes.length > 0) {
           data.agency_codes.forEach(agencyCode => {
             const option = new Option(agencyCode.name, agencyCode.id);
-            agencyCodeSelect.add(option);
+            localAgencyCodeSelect.add(option);
           });
         }
       })
@@ -2389,12 +2389,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // Load agency codes when broker changes (legacy function - keeping for compatibility)
   function loadAgencyCodesByBroker() {
     const brokerId = document.getElementById('broker_select').value;
-    const agencyCodeSelect = document.getElementById('life_insurance_agency_code_id');
+    const localAgencyCodeSelect = document.getElementById('life_insurance_agency_code_id');
 
     console.log('loadAgencyCodesByBroker called with brokerId:', brokerId);
 
     // Clear agency code dropdown
-    agencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
+    localAgencyCodeSelect.innerHTML = '<option value="">Select Agency Code</option>';
 
     if (brokerId) {
       console.log('Fetching agency codes for broker:', brokerId);
@@ -2418,21 +2418,21 @@ document.addEventListener('DOMContentLoaded', function() {
           if (data.agency_codes && data.agency_codes.length > 0) {
             data.agency_codes.forEach(agencyCode => {
               const option = new Option(agencyCode.name, agencyCode.id);
-              agencyCodeSelect.add(option);
+              localAgencyCodeSelect.add(option);
               console.log('Added option:', agencyCode.name);
             });
           } else {
             console.log('No agency codes found for this broker');
             const noOption = new Option('No agency codes available', '');
             noOption.disabled = true;
-            agencyCodeSelect.add(noOption);
+            localAgencyCodeSelect.add(noOption);
           }
         })
         .catch(error => {
           console.error('Error loading agency codes:', error);
           const errorOption = new Option('Error loading agency codes', '');
           errorOption.disabled = true;
-          agencyCodeSelect.add(errorOption);
+          localAgencyCodeSelect.add(errorOption);
         });
     } else {
       console.log('No broker selected');
@@ -2579,10 +2579,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Get dropdown elements
   const brokerCodeTypeSelect = document.getElementById('life_insurance_broker_code_type');
-  const agencyCodeSelect = document.getElementById('life_insurance_agency_code_id');
+  // const agencyCodeSelect = document.getElementById('life_insurance_agency_code_id'); // COMMENTED OUT - conflicts with dynamic_insurance_dropdowns.js
   const insuranceCompanySelect = document.getElementById('life_insurance_insurance_company_name');
   const brokerIdHidden = document.getElementById('broker_id_hidden');
   const agencyCodeLabelText = document.getElementById('agency_code_label_text');
+
+  // Get agencyCodeSelect from global scope instead
+  const agencyCodeSelect = window.agencyCodeSelect || document.getElementById('life_insurance_agency_code_id');
 
   // Debug: Check if elements are found
   console.log('Elements found:');
@@ -4022,8 +4025,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Ensure Agency Code field is visible with proper options
-    const agencyCodeSelect = document.getElementById('life_insurance_agency_code_id');
-    if (agencyCodeSelect) {
+    const agencyCodeField = document.getElementById('life_insurance_agency_code_id');
+    if (agencyCodeField) {
       console.log('🏢 Agency Code field found');
       // Trigger refresh if Select2 is initialized
       if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
@@ -4242,7 +4245,27 @@ document.addEventListener('DOMContentLoaded', function() {
           toggleNoNomineesMessage();
           alert(`Successfully loaded ${response.nominees.length} nominee(s) from client's family members.`);
         } else {
-          alert('No family members found for this client.');
+          // Enhanced error message with debug information
+          let debugMessage = 'No family members found for this client.';
+          if (response.debug) {
+            debugMessage += `\n\nDebug Info:`;
+            debugMessage += `\n- Total family members: ${response.debug.total_family_members}`;
+            debugMessage += `\n- Valid nominees: ${response.debug.valid_nominees}`;
+
+            if (response.debug.family_members_debug && response.debug.family_members_debug.length > 0) {
+              debugMessage += `\n\nFamily Members Analysis:`;
+              response.debug.family_members_debug.forEach((member, index) => {
+                debugMessage += `\n${index + 1}. Name: "${member.name}" (Valid: ${member.name_present && member.name_length > 0 && !member.is_number})`;
+                debugMessage += `\n   - Name present: ${member.name_present}`;
+                debugMessage += `\n   - Name length: ${member.name_length}`;
+                debugMessage += `\n   - Is number: ${member.is_number}`;
+                debugMessage += `\n   - Relationship: ${member.relationship}`;
+                debugMessage += `\n   - Age: ${member.age}`;
+              });
+            }
+          }
+          console.log('Load nominees debug:', response);
+          alert(debugMessage);
         }
 
         // Restore button state

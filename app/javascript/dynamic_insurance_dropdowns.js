@@ -325,10 +325,20 @@ console.log('✅ initializeDynamicDropdowns function exported to window');
 document.addEventListener('DOMContentLoaded', function() {
   // Add a small delay to ensure other scripts load first
   setTimeout(() => {
-    console.log('🚀 Auto-initializing dynamic dropdowns...');
+    console.log('🚀 Auto-initializing dynamic dropdowns on DOMContentLoaded...');
     if (!window.dynamicDropdownsInitialized) {
       initializeDynamicDropdowns();
       window.dynamicDropdownsInitialized = true;
     }
+  }, 100);
+});
+
+// Also initialize on Turbo navigation (for edit/show pages)
+document.addEventListener('turbo:load', function() {
+  setTimeout(() => {
+    console.log('🚀 Auto-initializing dynamic dropdowns on turbo:load...');
+    // Reset flag for Turbo navigation since elements might be new
+    window.dynamicDropdownsInitialized = false;
+    initializeDynamicDropdowns();
   }, 100);
 });

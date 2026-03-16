@@ -55,7 +55,6 @@
       <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <% end %>
     <%= stylesheet_link_tag "auth", "data-turbo-track": "reload" if !user_signed_in? %>
-    <%= javascript_importmap_tags %>
 
     <!-- Force cache refresh -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">

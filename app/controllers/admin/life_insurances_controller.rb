@@ -588,8 +588,21 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
         # Build nominee options from family members
         nominee_options = []
+        debug_info = []
 
         family_members.each do |member|
+          # Debug info for each family member
+          debug_member = {
+            name: member.name,
+            name_present: member.name.present?,
+            name_stripped: member.name&.strip,
+            name_length: member.name&.strip&.length,
+            is_number: member.name&.strip&.match?(/^\d+$/),
+            relationship: member.relationship,
+            age: member.age
+          }
+          debug_info << debug_member
+
           if member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
             nominee_options << {
               nominee_name: member.name,
@@ -599,15 +612,53 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
           end
         end
 
+        # If no valid family member nominees, check customer's direct nominee fields
+        if nominee_options.empty? && customer.nominee_name.present?
+          # Calculate age from date of birth if available
+          age = if customer.nominee_date_of_birth.present?
+                  Date.current.year - customer.nominee_date_of_birth.year
+                else
+                  0
+                end
+
+          nominee_options << {
+            nominee_name: customer.nominee_name,
+            relationship: customer.nominee_relation&.downcase || 'other',
+            age: age
+          }
+
+          debug_info << {
+            source: 'customer_direct_nominee',
+            name: customer.nominee_name,
+            relationship: customer.nominee_relation,
+            date_of_birth: customer.nominee_date_of_birth,
+            calculated_age: age
+          }
+        end
+
         render json: {
           success: true,
           nominees: nominee_options,
-          customer_name: customer.display_name
+          customer_name: customer.display_name,
+          debug: {
+            total_family_members: family_members.count,
+            valid_nominees_from_family: nominee_options.count { |n| !debug_info.any? { |d| d[:source] == 'customer_direct_nominee' } },
+            valid_nominees_from_customer: nominee_options.count { |n| debug_info.any? { |d| d[:source] == 'customer_direct_nominee' } },
+            total_valid_nominees: nominee_options.count,
+            family_members_debug: debug_info.reject { |d| d[:source] == 'customer_direct_nominee' },
+            customer_nominee_debug: debug_info.select { |d| d[:source] == 'customer_direct_nominee' }
+          }
         }
       rescue ActiveRecord::RecordNotFound
         render json: {
           success: false,
           message: 'Customer not found',
+          nominees: []
+        }
+      rescue => e
+        render json: {
+          success: false,
+          message: "Error: #{e.message}",
           nominees: []
         }
       end
