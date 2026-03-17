@@ -1,3 +1,5 @@
+require 'ostruct'
+
 class Document < ApplicationRecord
   belongs_to :documentable, polymorphic: true
 
@@ -143,6 +145,20 @@ class Document < ApplicationRecord
     else
       document_type.humanize
     end
+  end
+
+  # Compatibility method for views expecting 'file' attribute (for R2 storage)
+  def file
+    return nil unless has_file?
+
+    # Return an object that mimics ActiveStorage::Blob interface
+    OpenStruct.new(
+      filename: r2_filename,
+      content_type: r2_content_type,
+      byte_size: r2_file_size,
+      key: r2_file_key,
+      attached?: has_file?
+    )
   end
 
   def file_icon

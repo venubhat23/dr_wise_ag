@@ -653,9 +653,11 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
       :broker_id, :insurance_company_name, :policy_type, :insurance_type, :payment_mode,
       :policy_number, :policy_booking_date, :policy_start_date, :policy_end_date,
       :plan_name, :sum_insured, :net_premium, :gst_percentage, :total_premium,
-      :policy_term, :claim_process,
+      :policy_term, :claim_process, :status,
       :main_agent_commission_percentage, :commission_amount, :tds_percentage,
-      :tds_amount, :after_tds_value,
+      :tds_amount, :after_tds_value, :main_agent_commission_received,
+      :main_agent_commission_paid_date, :main_agent_commission_transaction_id,
+      :main_agent_commission_notes,
       :sub_agent_commission_percentage, :sub_agent_commission_amount,
       :sub_agent_tds_percentage, :sub_agent_tds_amount, :sub_agent_after_tds_value,
       :investor_commission_percentage, :investor_commission_amount,
@@ -733,11 +735,16 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
 
       upload_result = document.upload_to_r2(file)
 
-      if upload_result[:success]
+      if upload_result.is_a?(Hash) && upload_result[:success]
         document.save!
         Rails.logger.info "Successfully uploaded main policy document for Other Insurance ##{other_insurance.id}"
-      else
+      elsif upload_result.is_a?(Hash) && upload_result[:error]
         Rails.logger.error "Failed to upload main policy document for Other Insurance ##{other_insurance.id}: #{upload_result[:error]}"
+      elsif upload_result == false
+        error_messages = document.errors.full_messages.join(', ')
+        Rails.logger.error "Failed to upload main policy document for Other Insurance ##{other_insurance.id}: Validation failed: #{error_messages}"
+      else
+        Rails.logger.error "Failed to upload main policy document for Other Insurance ##{other_insurance.id}: Unknown upload result: #{upload_result.inspect}"
       end
     end
 
@@ -754,11 +761,16 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
 
         upload_result = document.upload_to_r2(file)
 
-        if upload_result[:success]
+        if upload_result.is_a?(Hash) && upload_result[:success]
           document.save!
           Rails.logger.info "Successfully uploaded additional document #{index + 1} for Other Insurance ##{other_insurance.id}"
-        else
+        elsif upload_result.is_a?(Hash) && upload_result[:error]
           Rails.logger.error "Failed to upload additional document #{index + 1} for Other Insurance ##{other_insurance.id}: #{upload_result[:error]}"
+        elsif upload_result == false
+          error_messages = document.errors.full_messages.join(', ')
+          Rails.logger.error "Failed to upload additional document #{index + 1} for Other Insurance ##{other_insurance.id}: Validation failed: #{error_messages}"
+        else
+          Rails.logger.error "Failed to upload additional document #{index + 1} for Other Insurance ##{other_insurance.id}: Unknown upload result: #{upload_result.inspect}"
         end
       end
     end
@@ -778,11 +790,16 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
 
       upload_result = document.upload_to_r2(file)
 
-      if upload_result[:success]
+      if upload_result.is_a?(Hash) && upload_result[:success]
         document.save!
         Rails.logger.info "Successfully uploaded main policy document for Other Insurance ##{other_insurance.id}"
-      else
+      elsif upload_result.is_a?(Hash) && upload_result[:error]
         Rails.logger.error "Failed to upload main policy document for Other Insurance ##{other_insurance.id}: #{upload_result[:error]}"
+      elsif upload_result == false
+        error_messages = document.errors.full_messages.join(', ')
+        Rails.logger.error "Failed to upload main policy document for Other Insurance ##{other_insurance.id}: Validation failed: #{error_messages}"
+      else
+        Rails.logger.error "Failed to upload main policy document for Other Insurance ##{other_insurance.id}: Unknown upload result: #{upload_result.inspect}"
       end
     end
 
@@ -801,11 +818,16 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
 
         upload_result = document.upload_to_r2(file)
 
-        if upload_result[:success]
+        if upload_result.is_a?(Hash) && upload_result[:success]
           document.save!
           Rails.logger.info "Successfully uploaded document '#{document.title}' for Other Insurance ##{other_insurance.id}"
-        else
+        elsif upload_result.is_a?(Hash) && upload_result[:error]
           Rails.logger.error "Failed to upload document '#{document.title}' for Other Insurance ##{other_insurance.id}: #{upload_result[:error]}"
+        elsif upload_result == false
+          error_messages = document.errors.full_messages.join(', ')
+          Rails.logger.error "Failed to upload document '#{document.title}' for Other Insurance ##{other_insurance.id}: Validation failed: #{error_messages}"
+        else
+          Rails.logger.error "Failed to upload document '#{document.title}' for Other Insurance ##{other_insurance.id}: Unknown upload result: #{upload_result.inspect}"
         end
       end
     end
@@ -834,11 +856,16 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
 
           upload_result = document.upload_to_r2(file)
 
-          if upload_result[:success]
+          if upload_result.is_a?(Hash) && upload_result[:success]
             document.save!
             Rails.logger.info "Successfully uploaded #{field} document for Other Insurance ##{other_insurance.id}"
-          else
+          elsif upload_result.is_a?(Hash) && upload_result[:error]
             Rails.logger.error "Failed to upload #{field} document for Other Insurance ##{other_insurance.id}: #{upload_result[:error]}"
+          elsif upload_result == false
+            error_messages = document.errors.full_messages.join(', ')
+            Rails.logger.error "Failed to upload #{field} document for Other Insurance ##{other_insurance.id}: Validation failed: #{error_messages}"
+          else
+            Rails.logger.error "Failed to upload #{field} document for Other Insurance ##{other_insurance.id}: Unknown upload result: #{upload_result.inspect}"
           end
         end
       end
@@ -895,11 +922,21 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
         # Upload file to R2
         upload_result = document.upload_to_r2(doc_data[:file])
 
-        if upload_result[:success]
+        # Handle different return types from upload_to_r2:
+        # - { success: true, ... } on successful upload
+        # - { error: "..." } on upload failure
+        # - false on validation errors or no file
+        if upload_result.is_a?(Hash) && upload_result[:success]
           document.save!
           Rails.logger.info "Successfully uploaded document '#{doc_data[:title]}' for Other Insurance ##{other_insurance.id}"
-        else
+        elsif upload_result.is_a?(Hash) && upload_result[:error]
           Rails.logger.error "Failed to upload document '#{doc_data[:title]}' for Other Insurance ##{other_insurance.id}: #{upload_result[:error]}"
+        elsif upload_result == false
+          # Document model returns false for validation errors - check document errors
+          error_messages = document.errors.full_messages.join(', ')
+          Rails.logger.error "Failed to upload document '#{doc_data[:title]}' for Other Insurance ##{other_insurance.id}: Validation failed: #{error_messages}"
+        else
+          Rails.logger.error "Failed to upload document '#{doc_data[:title]}' for Other Insurance ##{other_insurance.id}: Unknown upload result: #{upload_result.inspect}"
         end
       rescue => e
         Rails.logger.error "Error uploading document #{index + 1} for Other Insurance ##{other_insurance.id}: #{e.message}"

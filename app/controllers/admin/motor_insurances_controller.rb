@@ -904,7 +904,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     # Handle motor_insurance_documents_attributes (from form)
     # Note: file parameter is accessed directly from original params since it's not in nested attributes
     if params[:motor_insurance][:motor_insurance_documents_attributes].present?
-      Rails.logger.info "Found #{params[:motor_insurance][:motor_insurance_documents_attributes].count} document entries"
+      Rails.logger.info "Found #{params[:motor_insurance][:motor_insurance_documents_attributes].keys.size} document entries"
 
       params[:motor_insurance][:motor_insurance_documents_attributes].each do |key, doc_attrs|
         Rails.logger.info "Processing document #{key}: #{doc_attrs.inspect}"

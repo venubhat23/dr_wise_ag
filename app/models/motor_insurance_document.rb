@@ -6,7 +6,11 @@ class MotorInsuranceDocument < ApplicationRecord
   validates :document_type, presence: true
   validates :title, presence: true
   validates :document_type, inclusion: {
-    in: ['Policy Document', 'RC Book', 'Driving License', 'Previous Policy', 'ID Proof', 'Address Proof', 'Medical Certificate', 'Other']
+    in: [
+      'Policy Document', 'RC Book', 'Driving License', 'Previous Policy', 'ID Proof', 'Address Proof', 'Medical Certificate', 'Other',
+      'rc_book', 'insurance_copy', 'driving_license', 'aadhar', 'pan_card', 'passport', 'vehicle_photos',
+      'fitness_certificate', 'pollution_certificate', 'hypothecation', 'other'
+    ]
   }
 
   # R2 File Storage - Direct upload to Cloudflare R2 (similar to CustomerDocument)
