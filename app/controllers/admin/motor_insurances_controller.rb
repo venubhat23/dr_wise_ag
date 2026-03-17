@@ -204,6 +204,9 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     set_distributor_from_affiliate(@motor_insurance)
 
     if @motor_insurance.save
+      # Handle document uploads after successful save
+      handle_motor_documents_r2_upload(@motor_insurance)
+
       # Update lead status if this policy was created from a lead conversion
       if @motor_insurance.lead_id.present?
         lead = Lead.find_by(lead_id: @motor_insurance.lead_id)
@@ -806,7 +809,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       # Nominees
       motor_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
       # R2 Documents
-      motor_insurance_documents_attributes: [:id, :document_type, :title, :description, :_destroy]
+      motor_insurance_documents_attributes: [:id, :document_type, :title, :description, :file, :_destroy]
     )
   end
 
@@ -873,5 +876,48 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
         raise ActionController::InvalidAuthenticityToken
       end
     end
+  end
+
+  # Handle Motor Insurance documents R2 upload
+  def handle_motor_documents_r2_upload(motor_insurance)
+    uploaded_count = 0
+    failed_count = 0
+
+    # Handle motor_insurance_documents_attributes (from form)
+    if params[:motor_insurance][:motor_insurance_documents_attributes].present?
+      params[:motor_insurance][:motor_insurance_documents_attributes].each do |key, doc_attrs|
+        next if doc_attrs[:file].blank? || doc_attrs[:_destroy] == "true"
+
+        begin
+          file = doc_attrs[:file]
+          result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/documents")
+
+          if result[:success] && result[:key]
+            # Create MotorInsuranceDocument record with R2 info
+            motor_insurance.motor_insurance_documents.create!(
+              document_type: doc_attrs[:document_type],
+              title: doc_attrs[:title],
+              description: doc_attrs[:description],
+              r2_file_key: result[:key],
+              r2_filename: result[:filename],
+              r2_content_type: result[:content_type],
+              r2_file_size: result[:file_size]
+            )
+            uploaded_count += 1
+            Rails.logger.info "Uploaded motor document: #{result[:filename]} with title: #{doc_attrs[:title]}"
+          end
+        rescue => e
+          Rails.logger.error "Error uploading motor document: #{e.message}"
+          failed_count += 1
+        end
+      end
+    end
+
+    # Log upload results
+    if uploaded_count > 0
+      Rails.logger.info "Motor Insurance documents upload completed: #{uploaded_count} uploaded, #{failed_count} failed"
+    end
+
+    return { uploaded: uploaded_count, failed: failed_count }
   end
 end

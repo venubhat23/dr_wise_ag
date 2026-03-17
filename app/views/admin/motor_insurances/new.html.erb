@@ -16,7 +16,17 @@
   </div>
 </div>
 
-<%= render 'form' %>
+<%= form_with model: [:admin, @motor_insurance], local: true, class: "needs-validation", novalidate: true do |form| %>
+  <%= render 'form', form: form %>
 
-<!-- Policy Documents Section -->
-<%= render 'admin/policy_documents/document_manager', policy: @motor_insurance, policy_type: 'motor' %>
+  <!-- Policy Documents Section -->
+  <%= render 'admin/policy_documents/document_manager', policy: @motor_insurance, policy_type: 'motor' %>
+
+  <!-- Form Actions -->
+  <div class="text-center mt-4">
+    <%= link_to admin_motor_insurances_path, class: "btn btn-outline-secondary me-3" do %>
+      <i class="bi bi-x-circle me-1"></i>Cancel
+    <% end %>
+    <%= form.submit "Create Motor Insurance", class: "btn btn-primary btn-lg px-5" %>
+  </div>
+<% end %>

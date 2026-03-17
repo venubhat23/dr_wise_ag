@@ -100,7 +100,7 @@
                 ['Broking', 'broking']
               ], @other_insurance.broker_code_type),
               { prompt: 'Select Broker Code' },
-              { class: "form-control", id: "other_insurance_broker_code_type" } %>
+              { class: "form-control", id: "other_insurance_broker_code_type", data: { placeholder: "Select Broker Code..." } } %>
         </div>
 
         <!-- 2nd: Agency Code (shows Agents when Direct selected, Brokers when Broking selected) -->
@@ -589,50 +589,6 @@
     </div>
   </div>
 
-  <!-- Policy Upload Section -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="mb-0">
-        <i class="bi bi-cloud-upload me-2 text-primary"></i>
-        Policy Upload
-      </h5>
-    </div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <%= form.label :policy_documents, "Upload Policy", class: "form-label" %>
-          <%= form.file_field :policy_documents,
-              class: "form-control",
-              multiple: true,
-              id: "policy_documents_upload",
-              accept: "application/pdf,image/jpeg,image/jpg,image/png" %>
-          <div class="form-text">Click to upload or drag and drop</div>
-        </div>
-
-        <div class="col-md-6 mb-3">
-          <%= form.label :additional_documents, "Upload Documents", class: "form-label" %>
-          <%= form.file_field :additional_documents,
-              class: "form-control",
-              multiple: true,
-              id: "additional_documents_upload",
-              accept: "application/pdf,image/jpeg,image/jpg,image/png" %>
-          <div class="form-text">Upload additional documents</div>
-        </div>
-      </div>
-
-      <!-- Document Management System -->
-      <div class="mt-4">
-        <h6>Document Management System</h6>
-        <div class="form-text mb-3">Use this system to add organized documents with titles and types</div>
-        <div id="documents-container">
-          <!-- Documents will be added dynamically here -->
-        </div>
-        <button type="button" class="btn btn-outline-primary btn-sm" id="add-document-btn">
-          <i class="bi bi-plus-circle me-1"></i> Add Document
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- Autopay Installment Section -->
   <div class="card mb-4">
@@ -662,6 +618,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Policy Documents Section -->
+  <%= render 'admin/policy_documents/document_manager', policy: @other_insurance, policy_type: 'other' %>
 
   <!-- Form Actions -->
   <div class="card">
@@ -808,6 +767,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  // Initialize Select2 for Broker Code dropdown
+  $('#other_insurance_broker_code_type').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Select Broker Code...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    minimumResultsForSearch: -1 // Disable search for small lists
+  });
+
   $('#policy_holder_select').select2({
     theme: 'bootstrap-5',
     placeholder: 'Select policy holder...',
@@ -877,7 +846,7 @@ document.addEventListener('DOMContentLoaded', function() {
     minimumResultsForSearch: 0
   });
 
-  $('#other_insurance_insurance_company').select2({
+  $('#other_insurance_insurance_company_name').select2({
     theme: 'bootstrap-5',
     placeholder: 'Search and select company...',
     allowClear: true,
@@ -951,6 +920,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Refresh affiliate dropdown to filter by customer
       $('#affiliate_select').val(null).trigger('change');
       console.log('Customer selected, affiliate dropdown will now filter for customer ID:', customerId);
+
+      // Auto-load customer nominees (like Motor Insurance)
+      loadCustomerNominees(customerId);
     }
   });
 
@@ -980,6 +952,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Clear affiliate selection and refresh dropdown
     $('#affiliate_select').val(null).trigger('change');
     console.log('Customer cleared, affiliate dropdown will now show all affiliates');
+
+    // Clear nominees when customer is cleared (like Motor Insurance)
+    clearNominees();
   });
 
   // Handle broker code type change - matches Health Insurance functionality
@@ -1634,105 +1609,88 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Nominee Management Functions
-  let nomineeIndex = <%= @other_insurance.other_insurance_nominees.length %>;
+  // Global function to load customer nominees (like Motor Insurance)
+  window.loadCustomerNominees = function(customerId) {
+    if (!customerId) return;
 
-  // Auto-load nominees when customer is selected
-  $('#customer_select').on('change', function() {
-    const customerId = this.value;
-    if (customerId) {
-      loadCustomerNominees(customerId);
-    } else {
-      clearNominees();
-    }
-  });
-
-  // Function to load customer nominees via AJAX
-  function loadCustomerNominees(customerId) {
     $.ajax({
-      url: '<%= load_customer_nominees_admin_other_insurances_path %>',
+      url: '/admin/insurance/other/load_customer_nominees',
       method: 'GET',
       data: { customer_id: customerId },
       success: function(response) {
-        clearNominees();
         if (response.success && response.nominees && response.nominees.length > 0) {
-          response.nominees.forEach(function(member) {
-            addNomineeFromFamilyMember(member);
+          // Clear existing nominees
+          $('.nominee-row').remove();
+
+          // Add loaded nominees
+          response.nominees.forEach(function(nominee) {
+            addNomineeFromFamilyMember(nominee);
           });
+
           toggleNoNomineesMessage();
+          console.log(`Auto-loaded ${response.nominees.length} nominee(s) from ${response.customer_name}`);
+        } else {
+          console.log('No family members found for auto-loading');
         }
       },
       error: function(xhr, status, error) {
-        console.error('Error loading customer nominees:', error);
+        console.error('Error auto-loading customer nominees:', error);
       }
     });
-  }
+  };
 
-  // Function to add nominee from family member data
-  function addNomineeFromFamilyMember(member) {
+  // Clear nominees when customer changes
+  window.clearNominees = function() {
+    $('.nominee-row').remove();
+    toggleNoNomineesMessage();
+  };
+
+  // Function to add nominee from family member data (like Motor Insurance)
+  window.addNomineeFromFamilyMember = function(nominee) {
     const nomineeHtml = `
-      <div class="nominee-row border rounded p-3 mb-3" style="background-color: #f8f9fa;">
-        <input type="hidden" name="other_insurance[other_insurance_nominees_attributes][${nomineeIndex}][id]" id="other_insurance_other_insurance_nominees_attributes_${nomineeIndex}_id">
+      <div class="nominee-row border rounded p-3 mb-3 bg-light">
         <div class="row">
           <div class="col-md-4 mb-3">
-            <label class="form-label">Nominee Name <span class="text-danger">*</span></label>
-            <input class="form-control" placeholder="Enter nominee name" required="required" type="text" value="${member.nominee_name}" name="other_insurance[other_insurance_nominees_attributes][${nomineeIndex}][nominee_name]" id="other_insurance_other_insurance_nominees_attributes_${nomineeIndex}_nominee_name">
+            <label class="form-label required">Nominee Name</label>
+            <input type="text" name="other_insurance[other_insurance_nominees_attributes][${nomineeIndex}][nominee_name]"
+                   class="form-control" value="${nominee.nominee_name}" required>
           </div>
           <div class="col-md-3 mb-3">
-            <label class="form-label">Relationship <span class="text-danger">*</span></label>
-            <select class="form-control" required="required" name="other_insurance[other_insurance_nominees_attributes][${nomineeIndex}][relationship]" id="other_insurance_other_insurance_nominees_attributes_${nomineeIndex}_relationship">
+            <label class="form-label required">Relationship</label>
+            <select name="other_insurance[other_insurance_nominees_attributes][${nomineeIndex}][relationship]"
+                    class="form-select" required>
               <option value="">Select Relationship</option>
-              <option value="spouse" ${member.relationship === 'spouse' ? 'selected' : ''}>Spouse</option>
-              <option value="son" ${member.relationship === 'son' ? 'selected' : ''}>Son</option>
-              <option value="daughter" ${member.relationship === 'daughter' ? 'selected' : ''}>Daughter</option>
-              <option value="father" ${member.relationship === 'father' ? 'selected' : ''}>Father</option>
-              <option value="mother" ${member.relationship === 'mother' ? 'selected' : ''}>Mother</option>
-              <option value="brother" ${member.relationship === 'brother' ? 'selected' : ''}>Brother</option>
-              <option value="sister" ${member.relationship === 'sister' ? 'selected' : ''}>Sister</option>
-              <option value="other" ${member.relationship === 'other' ? 'selected' : ''}>Other</option>
+              <option value="father" ${nominee.relationship === 'father' ? 'selected' : ''}>Father</option>
+              <option value="mother" ${nominee.relationship === 'mother' ? 'selected' : ''}>Mother</option>
+              <option value="spouse" ${nominee.relationship === 'spouse' ? 'selected' : ''}>Spouse</option>
+              <option value="son" ${nominee.relationship === 'son' ? 'selected' : ''}>Son</option>
+              <option value="daughter" ${nominee.relationship === 'daughter' ? 'selected' : ''}>Daughter</option>
+              <option value="brother" ${nominee.relationship === 'brother' ? 'selected' : ''}>Brother</option>
+              <option value="sister" ${nominee.relationship === 'sister' ? 'selected' : ''}>Sister</option>
+              <option value="other" ${nominee.relationship === 'other' ? 'selected' : ''}>Other</option>
             </select>
           </div>
           <div class="col-md-2 mb-3">
-            <label class="form-label">Age <span class="text-danger">*</span></label>
-            <input class="form-control" placeholder="Age" required="required" min="0" max="120" type="number" value="${member.age || ''}" name="other_insurance[other_insurance_nominees_attributes][${nomineeIndex}][age]" id="other_insurance_other_insurance_nominees_attributes_${nomineeIndex}_age">
+            <label class="form-label required">Age</label>
+            <input type="number" name="other_insurance[other_insurance_nominees_attributes][${nomineeIndex}][age]"
+                   class="form-control" value="${nominee.age}" min="1" max="120" required>
           </div>
           <div class="col-md-2 mb-3">
-            <label class="form-label">Share (%)</label>
-            <input class="form-control" placeholder="100" min="0" max="100" step="0.01" type="number" name="other_insurance[other_insurance_nominees_attributes][${nomineeIndex}][share_percentage]" id="other_insurance_other_insurance_nominees_attributes_${nomineeIndex}_share_percentage">
+            <label class="form-label">Share %</label>
+            <input type="number" name="other_insurance[other_insurance_nominees_attributes][${nomineeIndex}][share_percentage]"
+                   class="form-control" min="0" max="100" step="0.01" placeholder="100">
           </div>
-          <div class="col-md-1 mb-3 d-flex align-items-end">
-            <button type="button" class="btn btn-danger btn-sm" onclick="removeNominee(this)" title="Remove nominee">
+          <div class="col-md-1 d-flex align-items-end mb-3">
+            <button type="button" class="btn btn-outline-danger remove-nominee-btn">
               <i class="bi bi-trash"></i>
             </button>
           </div>
         </div>
-        <input value="false" class="destroy-flag" type="hidden" name="other_insurance[other_insurance_nominees_attributes][${nomineeIndex}][_destroy]" id="other_insurance_other_insurance_nominees_attributes_${nomineeIndex}__destroy">
       </div>
     `;
-
-    $('#nominees-container').append(nomineeHtml);
+    document.getElementById('nominees').insertAdjacentHTML('beforeend', nomineeHtml);
     nomineeIndex++;
-  }
-
-  // Function to clear all nominees
-  function clearNominees() {
-    $('.nominee-row').remove();
-    toggleNoNomineesMessage();
-  }
-
-  // Function to toggle no nominees message
-  function toggleNoNomineesMessage() {
-    const nomineeRows = document.querySelectorAll('.nominee-row');
-    const noNomineesMsg = document.getElementById('no_nominees_message');
-    if (nomineeRows.length === 0 || Array.from(nomineeRows).every(row => row.style.display === 'none')) {
-      noNomineesMsg.style.display = 'block';
-    } else {
-      noNomineesMsg.style.display = 'none';
-    }
-  }
-
-  // Initial call to set correct message state
-  toggleNoNomineesMessage();
+  };
 });
 
 // Global nominee management functions (outside DOMContentLoaded)
@@ -1779,7 +1737,7 @@ function addNewNominee() {
     </div>
   `;
 
-  document.getElementById('nominees-container').insertAdjacentHTML('beforeend', nomineeHtml);
+  document.getElementById('nominees').insertAdjacentHTML('beforeend', nomineeHtml);
   toggleNoNomineesMessage();
 }
 
@@ -1811,5 +1769,3 @@ function toggleNoNomineesMessage() {
 }
 </script>
 
-<!-- Policy Documents Section -->
-<%= render 'admin/policy_documents/document_manager', policy: @other_insurance, policy_type: 'other' %>
