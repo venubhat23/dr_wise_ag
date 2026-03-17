@@ -143,6 +143,40 @@ class OtherInsurance < ApplicationRecord
     end
   end
 
+  # Document handling methods
+  def has_main_policy_r2_document?
+    has_main_policy_r2?
+  end
+
+  def has_main_policy_r2?
+    main_policy_document_key.present?
+  end
+
+  def main_policy_r2_url
+    return nil unless main_policy_document_key.present?
+    R2Service.public_url(main_policy_document_key) if defined?(R2Service)
+  end
+
+  def main_policy_r2_document_url
+    main_policy_r2_url
+  end
+
+  def main_policy_document_filename
+    read_attribute(:main_policy_document_filename)
+  end
+
+  def main_policy_document_size
+    read_attribute(:main_policy_document_size)
+  end
+
+  def main_policy_document_content_type
+    read_attribute(:main_policy_document_content_type)
+  end
+
+  def main_policy_document_key
+    read_attribute(:main_policy_document_key)
+  end
+
   # Customer association is now direct, not through policy
 
   def policy_number

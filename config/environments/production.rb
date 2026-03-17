@@ -22,7 +22,7 @@ Rails.application.configure do
   # config.asset_host = "http://assets.example.com"
 
   # ActiveStorage disabled - using direct R2Service instead
-  # config.active_storage.service = :local_persistent
+  config.active_storage.service = :production
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   config.assume_ssl = true

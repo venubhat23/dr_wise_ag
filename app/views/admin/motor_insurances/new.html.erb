@@ -19,8 +19,132 @@
 <%= form_with model: [:admin, @motor_insurance], local: true, class: "needs-validation", novalidate: true do |form| %>
   <%= render 'form', form: form %>
 
-  <!-- Policy Documents Section -->
-  <%= render 'admin/policy_documents/document_manager', policy: @motor_insurance, policy_type: 'motor' %>
+  <!-- Policy Documents Manager -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-cloud-upload me-2 text-primary"></i>
+        Policy Documents Manager
+      </h5>
+      <small class="text-muted">Upload, organize and manage all policy-related documents with secure storage</small>
+    </div>
+    <div class="card-body p-4">
+      <!-- R2 Main Policy Document Upload -->
+      <div class="row mb-4">
+        <div class="col-md-12">
+          <div class="border border-success border-2 rounded p-4" style="background-color: #f0fff0;">
+            <%= form.label :main_policy_document, class: "form-label fw-bold" do %>
+              <i class="bi bi-cloud-upload me-2 text-success"></i>
+              Main Policy Document (R2 Storage)
+            <% end %>
+            <%= form.file_field :main_policy_document,
+                class: "form-control",
+                accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
+            <div class="form-text mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              <strong>Secure R2 Storage:</strong> Supports PDF, JPEG, PNG, Word files (Max: 10MB) - files stored securely in Cloudflare R2
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12 mb-4">
+          <div class="border border-secondary border-2 rounded p-4" style="background-color: #f8f9fa;">
+            <%= form.label :documents, class: "form-label fw-bold" do %>
+              <i class="bi bi-file-earmark-plus me-2 text-secondary"></i>
+              Additional Documents
+              <span class="badge bg-secondary ms-2">Optional</span>
+            <% end %>
+            <%= form.file_field :documents,
+                class: "form-control",
+                multiple: true,
+                id: "additional_documents_upload",
+                accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
+            <div class="form-text mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              Supports PDF, Images, Word files - Identity proofs, Medical reports, etc.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Document Management System -->
+      <div class="border-top pt-4 mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0">Document Management System</h6>
+          <button type="button" class="btn btn-sm btn-primary" id="add_policy_document">
+            <i class="bi bi-plus-lg me-1"></i>
+            Add Document
+          </button>
+        </div>
+
+        <div id="policy_documents_container">
+          <!-- New document system will be added here -->
+        </div>
+
+        <p class="text-muted mb-0 mt-2">
+          <small>Use this system to add organized documents with titles and types</small>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Document Management System JavaScript -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Document Management System
+      let policyDocumentIndex = 0;
+      const addPolicyDocumentBtn = document.getElementById('add_policy_document');
+      const policyDocumentsContainer = document.getElementById('policy_documents_container');
+
+      addPolicyDocumentBtn?.addEventListener('click', function() {
+        const documentHtml = `
+          <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${policyDocumentIndex}" style="background: #f8f9fa;">
+            <button type="button" class="btn btn-sm btn-outline-danger position-absolute" style="top: 10px; right: 10px;" onclick="this.closest('.document-entry').remove()">
+              <i class="bi bi-trash"></i>
+            </button>
+            <div class="row">
+              <div class="col-md-4">
+                <label class="form-label">Document Title <span class="text-danger">*</span></label>
+                <input type="text" name="motor_insurance[motor_insurance_documents_attributes][${policyDocumentIndex}][title]" class="form-control" placeholder="Enter document title" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Document Type <span class="text-danger">*</span></label>
+                <select name="motor_insurance[motor_insurance_documents_attributes][${policyDocumentIndex}][document_type]" class="form-select" required>
+                  <option value="">Select Document Type</option>
+                  <option value="rc_book">RC Book</option>
+                  <option value="insurance_copy">Previous Insurance Copy</option>
+                  <option value="driving_license">Driving License</option>
+                  <option value="aadhar">Aadhar Card</option>
+                  <option value="pan_card">PAN Card</option>
+                  <option value="passport">Passport</option>
+                  <option value="vehicle_photos">Vehicle Photos</option>
+                  <option value="fitness_certificate">Fitness Certificate</option>
+                  <option value="pollution_certificate">Pollution Certificate</option>
+                  <option value="hypothecation">Hypothecation Documents</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Document File <span class="text-danger">*</span></label>
+                <input type="file" name="motor_insurance[motor_insurance_documents_attributes][${policyDocumentIndex}][file]" class="form-control" accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required id="doc_file_${policyDocumentIndex}">
+              </div>
+            </div>
+            <div class="row mt-2">
+              <div class="col-md-12">
+                <label class="form-label">Description (Optional)</label>
+                <textarea name="motor_insurance[motor_insurance_documents_attributes][${policyDocumentIndex}][description]" class="form-control" rows="2" placeholder="Optional description"></textarea>
+              </div>
+            </div>
+          </div>
+        `;
+
+        policyDocumentsContainer.insertAdjacentHTML('beforeend', documentHtml);
+        policyDocumentIndex++;
+      });
+    });
+  </script>
 
   <!-- Form Actions -->
   <div class="text-center mt-4">

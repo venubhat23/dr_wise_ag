@@ -28,8 +28,8 @@ Rails.application.configure do
   # Change to :null_store to avoid any caching.
   config.cache_store = :memory_store
 
-  # Set minimal ActiveStorage configuration to avoid errors
-  config.active_storage.service = :local_persistent
+  # Set ActiveStorage to use Cloudflare R2
+  config.active_storage.service = :development
   # Set ActiveStorage URL options for proper blob URLs
   config.after_initialize do
     ActiveStorage::Current.url_options = { host: "localhost", port: 3000, protocol: "http" }

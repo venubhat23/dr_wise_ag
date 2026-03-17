@@ -619,8 +619,150 @@
     </div>
   </div>
 
-  <!-- Policy Documents Section -->
-  <%= render 'admin/policy_documents/document_manager', policy: @other_insurance, policy_type: 'other' %>
+  <!-- Policy Documents Manager Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-cloud-upload me-2 text-primary"></i>
+        Policy Documents Manager
+      </h5>
+      <small class="text-muted">Upload, organize and manage all policy-related documents with secure storage</small>
+    </div>
+    <div class="card-body p-4">
+      <!-- R2 Main Policy Document Upload -->
+      <div class="row mb-4">
+        <div class="col-md-12">
+          <div class="border border-success border-2 rounded p-4" style="background-color: #f0fff0;">
+            <%= form.label :main_policy_document, class: "form-label fw-bold" do %>
+              <i class="bi bi-cloud-upload me-2 text-success"></i>
+              Main Policy Document (R2 Storage)
+            <% end %>
+
+            <!-- Current R2 Document Display -->
+            <% if @other_insurance.respond_to?(:has_main_policy_r2_document?) && @other_insurance.has_main_policy_r2_document? %>
+              <div class="current-document mb-3 p-3 border rounded bg-white">
+                <div class="row align-items-center">
+                  <div class="col-auto">
+                    <% if @other_insurance.main_policy_document_content_type&.start_with?('image/') %>
+                      <%= image_tag @other_insurance.main_policy_r2_document_url, class: "img-thumbnail",
+                          style: "width: 60px; height: 60px; object-fit: cover;" %>
+                    <% elsif @other_insurance.main_policy_document_content_type == 'application/pdf' %>
+                      <div class="bg-danger text-white rounded d-flex align-items-center justify-content-center"
+                           style="width: 60px; height: 60px;">
+                        <i class="bi bi-file-earmark-pdf fs-4"></i>
+                      </div>
+                    <% else %>
+                      <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center"
+                           style="width: 60px; height: 60px;">
+                        <i class="bi bi-file-earmark fs-4"></i>
+                      </div>
+                    <% end %>
+                  </div>
+                  <div class="col">
+                    <div class="fw-medium"><%= @other_insurance.main_policy_document_filename %></div>
+                    <small class="text-muted">
+                      <%= (@other_insurance.main_policy_document_size / 1024.0 / 1024.0).round(2) %> MB •
+                      <%= @other_insurance.main_policy_document_content_type %>
+                    </small>
+                    <div>
+                      <small class="text-success">
+                        <i class="bi bi-cloud-check me-1"></i>
+                        Stored in Cloudflare R2
+                      </small>
+                    </div>
+                  </div>
+                  <div class="col-auto">
+                    <div class="d-flex gap-1">
+                      <%= link_to @other_insurance.main_policy_r2_url, class: "btn btn-sm btn-outline-primary",
+                          target: "_blank", title: "View" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                      <button type="button" class="btn btn-sm btn-outline-danger"
+                              onclick="deleteMainPolicyDocument()" title="Delete Document">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-2">
+                <small class="text-muted">
+                  <strong>Replace document:</strong> Upload a new file to replace the current document
+                </small>
+              </div>
+            <% end %>
+
+            <%= form.file_field :main_policy_document,
+                class: "form-control",
+                accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
+            <div class="form-text mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              <strong>Secure R2 Storage:</strong> Supports PDF, JPEG, PNG, Word files (Max: 10MB) -
+              <% if @other_insurance.respond_to?(:has_main_policy_r2_document?) && @other_insurance.has_main_policy_r2_document? %>
+                upload new file to replace existing document
+              <% else %>
+                files stored securely in Cloudflare R2
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12 mb-4">
+          <div class="border border-secondary border-2 rounded p-4" style="background-color: #f8f9fa;">
+            <%= form.label :documents, class: "form-label fw-bold" do %>
+              <i class="bi bi-file-earmark-plus me-2 text-secondary"></i>
+              Additional Documents
+              <span class="badge bg-secondary ms-2">Optional</span>
+            <% end %>
+            <%= form.file_field :documents,
+                class: "form-control",
+                multiple: true,
+                id: "additional_documents_upload",
+                accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
+            <div class="form-text mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              Supports PDF, Images, Word files - Identity proofs, Medical reports, etc.
+            </div>
+          </div>
+
+          <!-- Additional Documents Preview -->
+          <%= render 'shared/file_upload_preview',
+                     field_id: 'additional_documents_upload',
+                     preview_id: 'additional_documents_preview',
+                     accept: 'application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                     show_file_info: true,
+                     max_file_size: '10MB' %>
+        </div>
+      </div>
+
+      <!-- New Document System -->
+      <div class="border-top pt-4 mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0">
+            <% if @other_insurance.persisted? %>
+              Add More Documents
+            <% else %>
+              Document Management System
+            <% end %>
+          </h6>
+          <button type="button" class="btn btn-sm btn-primary" id="add_policy_document">
+            <i class="bi bi-plus-lg me-1"></i>
+            Add Document
+          </button>
+        </div>
+
+        <div id="policy_documents_container">
+          <!-- New document system will be added here -->
+        </div>
+
+        <p class="text-muted mb-0 mt-2">
+          <small>Use this system to add organized documents with titles and types</small>
+        </p>
+      </div>
+    </div>
+  </div>
 
   <!-- Form Actions -->
   <div class="card">
@@ -1767,5 +1909,72 @@ function toggleNoNomineesMessage() {
     noNomineesMsg.style.display = 'none';
   }
 }
+
+// Document Management System
+let policyDocumentIndex = 0;
+
+const addPolicyDocumentBtn = document.getElementById('add_policy_document');
+const policyDocumentsContainer = document.getElementById('policy_documents_container');
+
+addPolicyDocumentBtn?.addEventListener('click', function() {
+  const documentHtml = `
+    <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${policyDocumentIndex}" style="background: #f8f9fa;">
+      <button type="button" class="btn btn-sm btn-outline-danger position-absolute" style="top: 10px; right: 10px;" onclick="this.closest('.document-entry').remove()">
+        <i class="bi bi-trash"></i>
+      </button>
+      <div class="row">
+        <div class="col-md-4">
+          <label class="form-label">Document Title <span class="text-danger">*</span></label>
+          <input type="text" name="other_insurance[uploaded_documents_attributes][${policyDocumentIndex}][title]" class="form-control" placeholder="Enter document title" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Document Type <span class="text-danger">*</span></label>
+          <select name="other_insurance[uploaded_documents_attributes][${policyDocumentIndex}][document_type]" class="form-select" required>
+            <option value="">Select Document Type</option>
+            <option value="aadhar">Aadhar</option>
+            <option value="pan_card">PAN Card</option>
+            <option value="driving_license">Driving License</option>
+            <option value="passport">Passport</option>
+            <option value="voter_id">Voter ID</option>
+            <option value="birth_certificate">Birth Certificate</option>
+            <option value="income_certificate">Income Certificate</option>
+            <option value="salary_slip">Salary Slip</option>
+            <option value="bank_statement">Bank Statement</option>
+            <option value="marriage_certificate">Marriage Certificate</option>
+            <option value="gst_certificate">GST Certificate</option>
+            <option value="travel_insurance_claim">Travel Insurance Claim</option>
+            <option value="property_insurance_claim">Property Insurance Claim</option>
+            <option value="cyber_insurance_claim">Cyber Insurance Claim</option>
+            <option value="policy_document">Policy Document</option>
+            <option value="claim_form">Claim Form</option>
+            <option value="medical_certificate">Medical Certificate</option>
+            <option value="financial_statement">Financial Statement</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Document File <span class="text-danger">*</span></label>
+          <input type="file" name="other_insurance[uploaded_documents_attributes][${policyDocumentIndex}][file]" class="form-control" accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required id="doc_file_${policyDocumentIndex}">
+        </div>
+      </div>
+      <div class="row mt-2">
+        <div class="col-md-12">
+          <label class="form-label">Description (Optional)</label>
+          <textarea name="other_insurance[uploaded_documents_attributes][${policyDocumentIndex}][description]" class="form-control" rows="2" placeholder="Optional description"></textarea>
+        </div>
+      </div>
+
+      <div class="mt-2">
+        <small class="text-muted">
+          <i class="bi bi-info-circle me-1"></i>
+          Supported formats: PDF, JPG, PNG, Word documents (Max: 10MB per file)
+        </small>
+      </div>
+    </div>
+  `;
+
+  policyDocumentsContainer.insertAdjacentHTML('beforeend', documentHtml);
+  policyDocumentIndex++;
+});
 </script>
 

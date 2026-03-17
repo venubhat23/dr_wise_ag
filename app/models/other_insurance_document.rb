@@ -6,7 +6,7 @@ class OtherInsuranceDocument < ApplicationRecord
   validates :document_type, presence: true
   validates :title, presence: true
   validates :document_type, inclusion: {
-    in: ['Policy Document', 'Previous Policy', 'ID Proof', 'Address Proof', 'Medical Certificate', 'Financial Statement', 'Income Proof', 'Bank Statement', 'Other']
+    in: ['Policy Document', 'Previous Policy', 'ID Proof', 'Address Proof', 'Medical Certificate', 'Financial Statement', 'Income Proof', 'Bank Statement', 'Additional Document', 'Travel Insurance Claim', 'Property Insurance Claim', 'Cyber Insurance Claim', 'Claim Form', 'Other']
   }
 
   # R2 File Storage - Direct upload to Cloudflare R2

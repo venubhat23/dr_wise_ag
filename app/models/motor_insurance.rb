@@ -11,6 +11,7 @@ class MotorInsurance < ApplicationRecord
   belongs_to :broker, optional: true
   has_many_attached :documents
   has_many_attached :policy_documents
+  has_one_attached :main_policy_document
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
   has_many :motor_insurance_nominees, dependent: :destroy
   has_many :motor_insurance_documents, dependent: :destroy  # R2 documents

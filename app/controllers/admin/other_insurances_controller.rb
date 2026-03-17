@@ -126,6 +126,13 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
   end
 
   def create
+    # Extract document files before creating the model
+    main_policy_document = params[:other_insurance]&.delete(:main_policy_document)
+    documents = params[:other_insurance]&.delete(:documents)
+
+    # Extract uploaded_documents_attributes and their files
+    uploaded_documents_data = extract_uploaded_documents_data
+
     @other_insurance = OtherInsurance.new(other_insurance_params)
 
     # Set admin tracking fields for policies created from admin panel
@@ -141,6 +148,13 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
 
     if @other_insurance.save
       Rails.logger.info "Successfully created OtherInsurance ##{@other_insurance.id}"
+
+      # Handle R2 document uploads with extracted files
+      handle_other_documents_r2_upload(@other_insurance, main_policy_document, documents)
+
+      # Handle uploaded documents separately
+      handle_uploaded_documents_r2_upload(@other_insurance, uploaded_documents_data)
+
       redirect_to admin_other_insurance_path(@other_insurance), notice: 'General insurance policy was successfully created.'
     else
       Rails.logger.error "Failed to create OtherInsurance: #{@other_insurance.errors.full_messages.join(', ')}"
@@ -158,7 +172,20 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
   end
 
   def update
+    # Extract document files before updating the model
+    main_policy_document = params[:other_insurance]&.delete(:main_policy_document)
+    documents = params[:other_insurance]&.delete(:documents)
+
+    # Extract uploaded_documents_attributes and their files
+    uploaded_documents_data = extract_uploaded_documents_data
+
     if @other_insurance.update(other_insurance_params)
+      # Handle R2 document uploads with extracted files
+      handle_other_documents_r2_upload(@other_insurance, main_policy_document, documents)
+
+      # Handle uploaded documents separately
+      handle_uploaded_documents_r2_upload(@other_insurance, uploaded_documents_data)
+
       redirect_to admin_other_insurance_path(@other_insurance), notice: 'Other insurance policy was successfully updated.'
     else
       # Reload form data for re-rendering
@@ -638,9 +665,10 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
       :company_expenses_percentage, :total_distribution_percentage,
       :profit_percentage, :profit_amount,
       :installment_autopay_start_date, :installment_autopay_end_date,
-      policy_documents: [], documents: [], additional_documents: [],
+      policy_documents: [], additional_documents: [],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy],
-      other_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy]
+      other_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
+      other_insurance_documents_attributes: [:id, :document_type, :title, :description, :file, :_destroy]
     )
   end
 
@@ -688,6 +716,198 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
         @other_insurance.investor_after_tds_value = @other_insurance.investor_commission_amount - @other_insurance.investor_tds_amount
       end
     end
+  end
+
+  # Handle R2 document uploads for Other Insurance
+  def handle_other_documents_r2_upload(other_insurance, main_policy_document = nil, documents = nil)
+    # Handle main policy document upload from parameter
+    if main_policy_document.present?
+      file = main_policy_document
+
+      # Create OtherInsuranceDocument for main policy document
+      document = other_insurance.other_insurance_documents.build(
+        document_type: 'Policy Document',
+        title: 'Main Policy Document',
+        description: 'Primary policy document for this insurance'
+      )
+
+      upload_result = document.upload_to_r2(file)
+
+      if upload_result[:success]
+        document.save!
+        Rails.logger.info "Successfully uploaded main policy document for Other Insurance ##{other_insurance.id}"
+      else
+        Rails.logger.error "Failed to upload main policy document for Other Insurance ##{other_insurance.id}: #{upload_result[:error]}"
+      end
+    end
+
+    # Handle additional documents array
+    if documents.present? && documents.is_a?(Array)
+      documents.each_with_index do |file, index|
+        next if file.blank? || !file.respond_to?(:original_filename)
+
+        document = other_insurance.other_insurance_documents.build(
+          document_type: 'Additional Document',
+          title: "Additional Document #{index + 1}",
+          description: "Additional document uploaded with policy"
+        )
+
+        upload_result = document.upload_to_r2(file)
+
+        if upload_result[:success]
+          document.save!
+          Rails.logger.info "Successfully uploaded additional document #{index + 1} for Other Insurance ##{other_insurance.id}"
+        else
+          Rails.logger.error "Failed to upload additional document #{index + 1} for Other Insurance ##{other_insurance.id}: #{upload_result[:error]}"
+        end
+      end
+    end
+
+    return unless params[:other_insurance].present?
+
+    # Handle legacy main policy document upload (for update method)
+    if params[:other_insurance][:main_policy_document].present?
+      file = params[:other_insurance][:main_policy_document]
+
+      # Create OtherInsuranceDocument for main policy document
+      document = other_insurance.other_insurance_documents.build(
+        document_type: 'Policy Document',
+        title: 'Main Policy Document',
+        description: 'Primary policy document for this insurance'
+      )
+
+      upload_result = document.upload_to_r2(file)
+
+      if upload_result[:success]
+        document.save!
+        Rails.logger.info "Successfully uploaded main policy document for Other Insurance ##{other_insurance.id}"
+      else
+        Rails.logger.error "Failed to upload main policy document for Other Insurance ##{other_insurance.id}: #{upload_result[:error]}"
+      end
+    end
+
+    # Handle additional documents from dynamic form
+    if params[:other_insurance][:other_insurance_documents_attributes].present?
+      params[:other_insurance][:other_insurance_documents_attributes].each do |index, doc_params|
+        next unless doc_params[:file].present? && doc_params[:document_type].present?
+
+        file = doc_params[:file]
+
+        document = other_insurance.other_insurance_documents.build(
+          document_type: doc_params[:document_type],
+          title: doc_params[:title].presence || "#{doc_params[:document_type]} Document",
+          description: doc_params[:description].presence || "Uploaded #{doc_params[:document_type]} document"
+        )
+
+        upload_result = document.upload_to_r2(file)
+
+        if upload_result[:success]
+          document.save!
+          Rails.logger.info "Successfully uploaded document '#{document.title}' for Other Insurance ##{other_insurance.id}"
+        else
+          Rails.logger.error "Failed to upload document '#{document.title}' for Other Insurance ##{other_insurance.id}: #{upload_result[:error]}"
+        end
+      end
+    end
+
+    # Handle documents uploaded through file fields (for backward compatibility)
+    [:documents, :additional_documents, :policy_documents].each do |field|
+      if params[:other_insurance][field].present?
+        params[:other_insurance][field].each do |file|
+          next unless file.present?
+
+          # Determine document type based on field name
+          document_type = case field
+                         when :policy_documents
+                           'Policy Document'
+                         when :additional_documents
+                           'Additional Document'
+                         else
+                           'Other'
+                         end
+
+          document = other_insurance.other_insurance_documents.build(
+            document_type: document_type,
+            title: "#{document_type} - #{file.original_filename}",
+            description: "Uploaded #{document_type.downcase}"
+          )
+
+          upload_result = document.upload_to_r2(file)
+
+          if upload_result[:success]
+            document.save!
+            Rails.logger.info "Successfully uploaded #{field} document for Other Insurance ##{other_insurance.id}"
+          else
+            Rails.logger.error "Failed to upload #{field} document for Other Insurance ##{other_insurance.id}: #{upload_result[:error]}"
+          end
+        end
+      end
+    end
+
+  rescue => e
+    Rails.logger.error "Error in handle_other_documents_r2_upload for Other Insurance ##{other_insurance&.id}: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+  end
+
+  # Extract uploaded documents data and files from nested attributes
+  def extract_uploaded_documents_data
+    uploaded_docs_data = []
+
+    if params[:other_insurance] && params[:other_insurance][:uploaded_documents_attributes]
+      params[:other_insurance][:uploaded_documents_attributes].each do |index, doc_params|
+        next unless doc_params.is_a?(Hash)
+
+        # Extract the file parameter
+        file = doc_params.delete(:file) if doc_params[:file].present?
+
+        # Only proceed if we have required fields
+        next unless file && doc_params[:title].present? && doc_params[:document_type].present?
+
+        uploaded_docs_data << {
+          file: file,
+          title: doc_params[:title],
+          document_type: doc_params[:document_type],
+          description: doc_params[:description]
+        }
+      end
+
+      # Remove the uploaded_documents_attributes from params to prevent nested attribute processing
+      params[:other_insurance].delete(:uploaded_documents_attributes)
+    end
+
+    uploaded_docs_data
+  end
+
+  # Handle uploaded documents through the Document model
+  def handle_uploaded_documents_r2_upload(other_insurance, uploaded_documents_data)
+    return unless uploaded_documents_data.present?
+
+    uploaded_documents_data.each_with_index do |doc_data, index|
+      begin
+        # Create Document record
+        document = other_insurance.uploaded_documents.build(
+          title: doc_data[:title],
+          document_type: doc_data[:document_type],
+          description: doc_data[:description],
+          uploaded_by: current_user&.email || 'admin'
+        )
+
+        # Upload file to R2
+        upload_result = document.upload_to_r2(doc_data[:file])
+
+        if upload_result[:success]
+          document.save!
+          Rails.logger.info "Successfully uploaded document '#{doc_data[:title]}' for Other Insurance ##{other_insurance.id}"
+        else
+          Rails.logger.error "Failed to upload document '#{doc_data[:title]}' for Other Insurance ##{other_insurance.id}: #{upload_result[:error]}"
+        end
+      rescue => e
+        Rails.logger.error "Error uploading document #{index + 1} for Other Insurance ##{other_insurance.id}: #{e.message}"
+      end
+    end
+  rescue => e
+    Rails.logger.error "Error in handle_uploaded_documents_r2_upload for Other Insurance ##{other_insurance&.id}: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
   end
 
 end

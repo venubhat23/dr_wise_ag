@@ -20,7 +20,9 @@ class Document < ApplicationRecord
   DOCUMENT_TYPES = [
     'aadhar', 'pan_card', 'driving_license', 'passport', 'voter_id',
     'birth_certificate', 'marriage_certificate', 'income_certificate',
-    'salary_slip', 'bank_statement', 'gst_certificate', 'other'
+    'salary_slip', 'bank_statement', 'gst_certificate', 'other',
+    'travel_insurance_claim', 'property_insurance_claim', 'cyber_insurance_claim',
+    'policy_document', 'claim_form', 'medical_certificate', 'financial_statement'
   ].freeze
 
   ALLOWED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png',
@@ -122,6 +124,20 @@ class Document < ApplicationRecord
       'Bank Statement'
     when 'gst_certificate'
       'GST Certificate'
+    when 'travel_insurance_claim'
+      'Travel Insurance Claim'
+    when 'property_insurance_claim'
+      'Property Insurance Claim'
+    when 'cyber_insurance_claim'
+      'Cyber Insurance Claim'
+    when 'policy_document'
+      'Policy Document'
+    when 'claim_form'
+      'Claim Form'
+    when 'medical_certificate'
+      'Medical Certificate'
+    when 'financial_statement'
+      'Financial Statement'
     when 'other'
       'Other Document'
     else
@@ -163,6 +179,16 @@ class Document < ApplicationRecord
         'bank'
       when 'gst_certificate'
         'building'
+      when 'travel_insurance_claim', 'property_insurance_claim', 'cyber_insurance_claim'
+        'shield-exclamation'
+      when 'policy_document'
+        'file-earmark-text'
+      when 'claim_form'
+        'clipboard-check'
+      when 'medical_certificate'
+        'heart-pulse'
+      when 'financial_statement'
+        'graph-up'
       else
         'file-earmark'
       end

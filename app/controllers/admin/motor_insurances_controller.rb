@@ -204,8 +204,14 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     set_distributor_from_affiliate(@motor_insurance)
 
     if @motor_insurance.save
-      # Handle document uploads after successful save
+      # Handle R2 main policy document upload
+      handle_main_policy_r2_upload(@motor_insurance) if params[:motor_insurance][:main_policy_document].present?
+
+      # Handle R2 document uploads after successful save
       handle_motor_documents_r2_upload(@motor_insurance)
+
+      # Handle additional document uploads to R2
+      handle_additional_documents_r2_upload(@motor_insurance)
 
       # Update lead status if this policy was created from a lead conversion
       if @motor_insurance.lead_id.present?
@@ -232,6 +238,15 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     set_distributor_from_affiliate(@motor_insurance)
 
     if @motor_insurance.save
+      # Handle R2 main policy document upload
+      handle_main_policy_r2_upload(@motor_insurance) if params[:motor_insurance][:main_policy_document].present?
+
+      # Handle R2 document uploads after successful save
+      handle_motor_documents_r2_upload(@motor_insurance)
+
+      # Handle additional document uploads to R2
+      handle_additional_documents_r2_upload(@motor_insurance)
+
       redirect_to admin_motor_insurance_path(@motor_insurance), notice: 'Motor insurance policy was successfully updated.'
     else
       load_form_data
@@ -774,6 +789,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       :class_of_vehicle, :insurance_type, :policy_type, :policy_booking_date,
       :policy_start_date, :policy_end_date, :policy_number, :registration_number,
       :registration_date, :tp_premium, :net_premium, :gst_percentage, :total_premium,
+      :payment_mode, :installment_autopay_start_date, :installment_autopay_end_date,
 
       # Vehicle Details
       :vehicle_idv, :cng_idv, :total_idv, :engine_number, :chassis_number,
@@ -805,11 +821,11 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       :return_to_invoice, :consumable_cover, :personal_accident_cover, :financier,
 
       # File Uploads
-      policy_documents: [], documents: [],
+      :main_policy_document, policy_documents: [], documents: [],
       # Nominees
       motor_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
-      # R2 Documents
-      motor_insurance_documents_attributes: [:id, :document_type, :title, :description, :file, :_destroy]
+      # R2 Documents (file handled separately in R2 upload methods)
+      motor_insurance_documents_attributes: [:id, :document_type, :title, :description, :_destroy]
     )
   end
 
@@ -883,16 +899,27 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     uploaded_count = 0
     failed_count = 0
 
+    Rails.logger.info "Starting R2 document upload for motor insurance #{motor_insurance.id}"
+
     # Handle motor_insurance_documents_attributes (from form)
+    # Note: file parameter is accessed directly from original params since it's not in nested attributes
     if params[:motor_insurance][:motor_insurance_documents_attributes].present?
+      Rails.logger.info "Found #{params[:motor_insurance][:motor_insurance_documents_attributes].count} document entries"
+
       params[:motor_insurance][:motor_insurance_documents_attributes].each do |key, doc_attrs|
-        next if doc_attrs[:file].blank? || doc_attrs[:_destroy] == "true"
+        Rails.logger.info "Processing document #{key}: #{doc_attrs.inspect}"
+        next if doc_attrs[:_destroy] == "true"
+
+        # Get the file from the original form data
+        file = request.params.dig('motor_insurance', 'motor_insurance_documents_attributes', key, 'file')
+        Rails.logger.info "File for document #{key}: #{file.present? ? file.original_filename : 'nil'}"
+
+        next if file.blank?
 
         begin
-          file = doc_attrs[:file]
           result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/documents")
 
-          if result[:success] && result[:key]
+          if result && result[:success] && result[:key]
             # Create MotorInsuranceDocument record with R2 info
             motor_insurance.motor_insurance_documents.create!(
               document_type: doc_attrs[:document_type],
@@ -905,9 +932,13 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
             )
             uploaded_count += 1
             Rails.logger.info "Uploaded motor document: #{result[:filename]} with title: #{doc_attrs[:title]}"
+          else
+            Rails.logger.error "R2 upload failed for document: #{doc_attrs[:title]}"
+            failed_count += 1
           end
         rescue => e
           Rails.logger.error "Error uploading motor document: #{e.message}"
+          Rails.logger.error "Document attributes: #{doc_attrs.inspect}"
           failed_count += 1
         end
       end
@@ -919,5 +950,107 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     end
 
     return { uploaded: uploaded_count, failed: failed_count }
+  end
+
+  # R2 Upload Helper for main policy document
+  def handle_main_policy_r2_upload(motor_insurance)
+    file = params[:motor_insurance][:main_policy_document]
+    return unless file.present?
+
+    begin
+      result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/main_policy")
+
+      if result[:success] && result[:key]
+        # Create MotorInsuranceDocument record for main policy
+        motor_insurance.motor_insurance_documents.create!(
+          document_type: 'main_policy',
+          title: 'Main Policy Document',
+          description: 'Main motor insurance policy document',
+          r2_file_key: result[:key],
+          r2_filename: result[:filename],
+          r2_content_type: result[:content_type],
+          r2_file_size: result[:file_size]
+        )
+        flash[:notice] = (flash[:notice] || '') + " Main policy document uploaded successfully to R2."
+      else
+        error_msg = result[:error] || "Unknown error"
+        flash[:alert] = (flash[:alert] || '') + " Main policy document upload failed: #{error_msg}"
+      end
+    rescue => e
+      Rails.logger.error "Error uploading main policy document: #{e.message}"
+      flash[:alert] = (flash[:alert] || '') + " Main policy document upload failed: #{e.message}"
+    end
+  end
+
+  # R2 Upload Helper for additional documents (policy_documents and documents)
+  def handle_additional_documents_r2_upload(motor_insurance)
+    uploaded_count = 0
+    failed_count = 0
+
+    # Handle policy_documents (Active Storage -> R2)
+    if params[:motor_insurance][:policy_documents].present?
+      params[:motor_insurance][:policy_documents].each do |file|
+        next if file.blank?
+
+        begin
+          result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/policy_documents")
+
+          if result[:success] && result[:key]
+            motor_insurance.motor_insurance_documents.create!(
+              document_type: 'policy_document',
+              title: file.original_filename,
+              description: 'Policy document uploaded via additional documents',
+              r2_file_key: result[:key],
+              r2_filename: result[:filename],
+              r2_content_type: result[:content_type],
+              r2_file_size: result[:file_size]
+            )
+            uploaded_count += 1
+          else
+            failed_count += 1
+          end
+        rescue => e
+          Rails.logger.error "Error uploading policy document: #{e.message}"
+          failed_count += 1
+        end
+      end
+    end
+
+    # Handle documents (Active Storage -> R2)
+    if params[:motor_insurance][:documents].present?
+      params[:motor_insurance][:documents].each do |file|
+        next if file.blank?
+
+        begin
+          result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/additional_documents")
+
+          if result[:success] && result[:key]
+            motor_insurance.motor_insurance_documents.create!(
+              document_type: 'additional_document',
+              title: file.original_filename,
+              description: 'Additional document',
+              r2_file_key: result[:key],
+              r2_filename: result[:filename],
+              r2_content_type: result[:content_type],
+              r2_file_size: result[:file_size]
+            )
+            uploaded_count += 1
+          else
+            failed_count += 1
+          end
+        rescue => e
+          Rails.logger.error "Error uploading additional document: #{e.message}"
+          failed_count += 1
+        end
+      end
+    end
+
+    if uploaded_count > 0
+      flash[:notice] = (flash[:notice] || '') + " #{uploaded_count} additional documents uploaded successfully to R2."
+    end
+
+    if failed_count > 0
+      flash[:alert] = (flash[:alert] || '') + " #{failed_count} additional documents failed to upload."
+    end
   end
 end

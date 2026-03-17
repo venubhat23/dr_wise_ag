@@ -1,5 +1,5 @@
 class Banner < ApplicationRecord
-  # Image attachment (Legacy - keeping for backward compatibility)
+  # Image attachment using Cloudflare R2
   has_one_attached :banner_image
 
   # R2 Document Management
@@ -50,6 +50,21 @@ class Banner < ApplicationRecord
 
   def display_location_humanized
     display_location.humanize
+  end
+
+  # Get banner image URL (R2 public URL)
+  def banner_image_url
+    if banner_image.attached?
+      # Use the standard Rails URL for ActiveStorage with R2
+      # This will generate the correct R2 URL based on the service configuration
+      banner_image.url
+    else
+      nil
+    end
+  rescue => e
+    Rails.logger.error "Error generating banner image URL: #{e.message}"
+    # Fallback to Rails blob path
+    banner_image.attached? ? Rails.application.routes.url_helpers.rails_blob_url(banner_image, only_path: false) : nil
   end
 
   private
