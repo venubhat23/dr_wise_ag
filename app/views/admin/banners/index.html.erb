@@ -313,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <% end %>
 
                     <button type="button"
-                        class="btn btn-sm btn-outline-#{banner.status? ? 'secondary' : 'success'}"
+                        class="btn btn-sm btn-outline-#{banner.status? ? 'dark' : 'info'}"
                         title="#{banner.status? ? 'Deactivate' : 'Activate'}"
                         onclick="handleStatusToggle('<%= toggle_status_admin_banner_path(banner) %>', 'PATCH', 'Are you sure you want to #{banner.status? ? 'deactivate' : 'activate'} this banner?')">
                       <i class="bi bi-#{banner.status? ? 'pause-circle' : 'play-circle'}"></i>
