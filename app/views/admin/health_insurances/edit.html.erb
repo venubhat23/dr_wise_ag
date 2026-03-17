@@ -966,22 +966,6 @@
     </div>
   </div>
 
-  <!-- Form Actions -->
-  <div class="card">
-    <div class="card-body">
-      <div class="d-flex justify-content-between">
-        <div>
-          <%= link_to admin_health_insurances_path, class: "btn btn-outline-secondary" do %>
-            <i class="bi bi-x-lg me-2"></i>
-            Cancel
-          <% end %>
-        </div>
-        <div>
-          <%= form.submit @health_insurance.persisted? ? "Update Policy" : "Create Policy", class: "btn btn-primary btn-lg" %>
-        </div>
-      </div>
-    </div>
-  </div>
 
 <% end %>
 
@@ -2009,3 +1993,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Policy Documents Section -->
 <%= render 'admin/policy_documents/document_manager', policy: @health_insurance, policy_type: 'health' %>
+
+<!-- Form Actions -->
+<%= form_with model: [:admin, @health_insurance], local: true, class: "needs-validation", novalidate: true do |form| %>
+  <div class="card mt-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between">
+        <div>
+          <%= link_to admin_health_insurances_path, class: "btn btn-outline-secondary btn-lg" do %>
+            <i class="bi bi-x-lg me-2"></i>
+            Cancel
+          <% end %>
+        </div>
+        <div>
+          <%= form.submit "Update Policy", class: "btn btn-primary btn-lg" %>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>

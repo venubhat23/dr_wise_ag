@@ -456,9 +456,8 @@ function uploadSelectedFiles() {
         showToast('All documents uploaded successfully!', 'success');
       }
 
-      // Refresh documents list and reset form
-      loadExistingDocuments();
-      cancelUpload();
+      // Refresh the page to show newly uploaded documents
+      window.location.href = window.location.href.split('#')[0];
     })
     .catch(error => {
       console.error('Upload error:', error);
@@ -503,7 +502,8 @@ function deleteDocument(documentId, title) {
   .then(data => {
     if (data.success) {
       showToast('Document deleted successfully', 'success');
-      loadExistingDocuments();
+      // Refresh the page to show updated documents list
+      window.location.href = window.location.href.split('#')[0];
     } else {
       alert('Failed to delete document: ' + data.error);
     }

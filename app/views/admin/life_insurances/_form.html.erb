@@ -4038,7 +4038,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Ensure Insurance Company field is visible with proper options
-    const insuranceCompanySelect = document.getElementById('life_insurance_insurance_company_name');
+    // Use existing insuranceCompanySelect variable from global scope
     if (insuranceCompanySelect) {
       console.log('🏭 Insurance Company field found');
       const currentCompany = '<%= @life_insurance.insurance_company_name %>';

@@ -191,7 +191,9 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     end
 
     processed_params = process_broker_params(life_insurance_params)
-    @life_insurance.assign_attributes(processed_params)
+    # Remove uploaded_documents_attributes from processed_params since we handle them separately
+    processed_params_without_docs = processed_params.except(:uploaded_documents_attributes)
+    @life_insurance.assign_attributes(processed_params_without_docs)
     set_distributor_from_affiliate(@life_insurance)
 
     begin
@@ -933,6 +935,45 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     uploaded_count = 0
     failed_count = 0
 
+    # Handle uploaded_documents_attributes (from form) and convert to PolicyDocument records
+    if params[:life_insurance][:uploaded_documents_attributes].present?
+      params[:life_insurance][:uploaded_documents_attributes].each do |key, doc_attrs|
+        next if doc_attrs[:file].blank? || doc_attrs[:_destroy] == "true"
+
+        begin
+          file = doc_attrs[:file]
+          result = R2Service.upload(file, folder: "life_insurance/#{life_insurance.id}/uploaded_documents")
+
+          if result[:error]
+            Rails.logger.error "Failed to upload document: #{result[:error]}"
+            failed_count += 1
+          else
+            # Map old document types to new PolicyDocument types
+            mapped_doc_type = map_document_type_to_policy_document(doc_attrs[:document_type])
+
+            # Create PolicyDocument record
+            PolicyDocument.create!(
+              policy_type: 'life',
+              policy_id: life_insurance.id,
+              document_type: mapped_doc_type,
+              title: doc_attrs[:title] || result[:filename],
+              description: doc_attrs[:description] || "Document uploaded on #{Date.current}",
+              uploaded_by: doc_attrs[:uploaded_by] || current_user.email,
+              r2_file_key: result[:key],
+              r2_filename: result[:filename],
+              r2_content_type: result[:content_type],
+              r2_file_size: result[:size]
+            )
+            uploaded_count += 1
+            Rails.logger.info "Uploaded document: #{result[:filename]} with title: #{doc_attrs[:title]}"
+          end
+        rescue => e
+          Rails.logger.error "Error uploading document from uploaded_documents_attributes: #{e.message}"
+          failed_count += 1
+        end
+      end
+    end
+
     # Handle policy_documents array
     if params[:life_insurance][:policy_documents].present?
       params[:life_insurance][:policy_documents].each do |file|
@@ -1010,6 +1051,28 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
     if failed_count > 0
       flash[:alert] = (flash[:alert] || '') + " #{failed_count} document(s) failed to upload."
+    end
+  end
+
+  # Map old Document model types to PolicyDocument types
+  def map_document_type_to_policy_document(old_type)
+    case old_type&.to_s&.downcase
+    when 'aadhar', 'pan_card', 'driving_license', 'passport', 'voter_id'
+      'Identity Proof'
+    when 'birth_certificate', 'marriage_certificate', 'income_certificate'
+      'Additional Document'
+    when 'salary_slip', 'bank_statement'
+      'Additional Document'
+    when 'gst_certificate'
+      'Additional Document'
+    when 'medical_report', 'medical'
+      'Medical Report'
+    when 'rc_book', 'rc'
+      'RC Book'
+    when 'policy_document', 'policy'
+      'Policy Document'
+    else
+      'Other'
     end
   end
 end
