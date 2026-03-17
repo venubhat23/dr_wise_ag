@@ -1055,11 +1055,11 @@ setTimeout(aggressiveCleanup, 1000);
                         </small>
                       </div>
                       <div class="btn-group" role="group">
-                        <% if document.file.attached? %>
-                          <%= link_to rails_blob_path(document.file, disposition: "inline"), class: "btn btn-outline-secondary btn-sm", target: "_blank", title: "View Document" do %>
+                        <% if document.respond_to?(:has_file?) && document.has_file? %>
+                          <%= link_to document.public_document_url, class: "btn btn-outline-secondary btn-sm", target: "_blank", title: "View Document" do %>
                             <i class="bi bi-eye"></i>
                           <% end %>
-                          <%= link_to rails_blob_path(document.file, disposition: "attachment"), class: "btn btn-outline-success btn-sm", title: "Download Document" do %>
+                          <%= link_to document.download_url, class: "btn btn-outline-success btn-sm", title: "Download Document" do %>
                             <i class="bi bi-download"></i>
                           <% end %>
                         <% end %>

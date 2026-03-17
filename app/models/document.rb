@@ -152,7 +152,7 @@ class Document < ApplicationRecord
     return nil unless has_file?
 
     # Return an object that mimics ActiveStorage::Blob interface
-    OpenStruct.new(
+    ::OpenStruct.new(
       filename: r2_filename,
       content_type: r2_content_type,
       byte_size: r2_file_size,

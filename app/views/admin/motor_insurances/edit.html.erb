@@ -16,6 +16,5 @@
   <% content_for :submit_text, "Update Motor Insurance" %>
   <%= render 'simplified_form' %>
 
-  <!-- Policy Documents Section -->
-  <%= render 'admin/policy_documents/document_manager', policy: @motor_insurance, policy_type: 'motor' %>
+  <!-- Policy Documents Section - REMOVED: Documents can only be uploaded during initial policy creation -->
 </div>

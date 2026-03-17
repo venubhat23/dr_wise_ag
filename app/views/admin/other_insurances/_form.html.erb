@@ -1384,6 +1384,58 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // Add Document Button Handler
+  let otherDocumentIndex = 0;
+
+  document.getElementById('add_other_document')?.addEventListener('click', function() {
+    const container = document.getElementById('other_documents_container');
+    const documentHtml = `
+      <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${otherDocumentIndex}" style="background: #f8f9fa;">
+        <button type="button" class="btn btn-sm btn-outline-danger position-absolute" style="top: 10px; right: 10px;" onclick="this.closest('.document-entry').remove()">
+          <i class="bi bi-trash"></i>
+        </button>
+        <div class="row">
+          <div class="col-md-4">
+            <label class="form-label">Document Title <span class="text-danger">*</span></label>
+            <input type="text" name="other_insurance[other_insurance_documents_attributes][${otherDocumentIndex}][title]" class="form-control" placeholder="Enter document title" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Document Type <span class="text-danger">*</span></label>
+            <select name="other_insurance[other_insurance_documents_attributes][${otherDocumentIndex}][document_type]" class="form-select" required>
+              <option value="">Select Document Type</option>
+              <option value="policy_document">Policy Document</option>
+              <option value="identity_proof">Identity Proof</option>
+              <option value="address_proof">Address Proof</option>
+              <option value="income_proof">Income Proof</option>
+              <option value="medical_report">Medical Report</option>
+              <option value="claim_form">Claim Form</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Document File <span class="text-danger">*</span></label>
+            <input type="file" name="other_insurance[other_insurance_documents_attributes][${otherDocumentIndex}][file]" class="form-control" accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
+          </div>
+        </div>
+        <div class="row mt-2">
+          <div class="col-md-12">
+            <label class="form-label">Description (Optional)</label>
+            <textarea name="other_insurance[other_insurance_documents_attributes][${otherDocumentIndex}][description]" class="form-control" rows="2" placeholder="Optional description"></textarea>
+          </div>
+        </div>
+        <div class="mt-2">
+          <small class="text-muted">
+            <i class="bi bi-info-circle me-1"></i>
+            Supported formats: PDF, JPG, PNG, Word documents (Max: 10MB per file)
+          </small>
+        </div>
+      </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', documentHtml);
+    otherDocumentIndex++;
+  });
+
   // Call date picker initialization
   initializeDatePickers();
 });

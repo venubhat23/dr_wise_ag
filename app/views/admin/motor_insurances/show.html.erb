@@ -952,11 +952,9 @@ setTimeout(aggressiveCleanup, 1000);
   <div id="policyDocumentsCollapse" class="collapse">
     <div class="section-body">
       <%
-        # Calculate total documents from different sources
+        # Calculate total documents from R2 CloudFlare only (Active Storage disabled)
         r2_documents = @motor_insurance.motor_insurance_documents.count
-        active_storage_documents = @motor_insurance.documents.attached? ? @motor_insurance.documents.count : 0
-        policy_documents = @motor_insurance.policy_documents.attached? ? @motor_insurance.policy_documents.count : 0
-        total_documents = r2_documents + active_storage_documents + policy_documents
+        total_documents = r2_documents
       %>
 
       <!-- Document Statistics -->
@@ -980,8 +978,8 @@ setTimeout(aggressiveCleanup, 1000);
         <div class="col-md-4">
           <div class="card border-0 bg-light">
             <div class="card-body text-center">
-              <h4 class="text-info mb-2"><%= active_storage_documents + policy_documents %></h4>
-              <p class="mb-0 text-muted">Active Storage</p>
+              <h4 class="text-info mb-2">0</h4>
+              <p class="mb-0 text-muted">Active Storage (Disabled)</p>
             </div>
           </div>
         </div>
@@ -1052,111 +1050,9 @@ setTimeout(aggressiveCleanup, 1000);
           </div>
         <% end %>
 
-        <!-- Active Storage Documents Section -->
-        <% if @motor_insurance.documents.attached? %>
-          <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent">
-              <h6 class="mb-0 text-primary">
-                <i class="bi bi-folder me-2"></i>
-                Additional Documents (<%= @motor_insurance.documents.count %>)
-              </h6>
-            </div>
-            <div class="card-body p-0">
-              <div class="list-group list-group-flush">
-                <% @motor_insurance.documents.each do |document| %>
-                  <div class="list-group-item border-0">
-                    <div class="d-flex align-items-center py-2">
-                      <div class="flex-shrink-0 me-3">
-                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                          <% if document.content_type&.include?('pdf') %>
-                            <i class="bi bi-file-earmark-pdf text-danger fs-5"></i>
-                          <% elsif document.content_type&.include?('image') %>
-                            <i class="bi bi-file-earmark-image text-success fs-5"></i>
-                          <% else %>
-                            <i class="bi bi-file-earmark text-primary fs-5"></i>
-                          <% end %>
-                        </div>
-                      </div>
-                      <div class="flex-grow-1">
-                        <h6 class="mb-1"><%= document.filename %></h6>
-                        <div class="mb-1">
-                          <span class="badge bg-light text-dark me-2">Additional Document</span>
-                          <span class="text-muted small">
-                            <i class="bi bi-file-earmark me-1"></i><%= number_to_human_size(document.byte_size) %>
-                          </span>
-                        </div>
-                        <small class="text-info">
-                          <i class="bi bi-server me-1"></i>Stored in Active Storage • <%= document.content_type %>
-                        </small>
-                      </div>
-                      <div class="btn-group" role="group">
-                        <%= link_to rails_blob_path(document, disposition: "inline"), class: "btn btn-outline-primary btn-sm", target: "_blank", title: "View Document" do %>
-                          <i class="bi bi-eye"></i>
-                        <% end %>
-                        <%= link_to rails_blob_path(document, disposition: "attachment"), class: "btn btn-outline-success btn-sm", title: "Download Document" do %>
-                          <i class="bi bi-download"></i>
-                        <% end %>
-                      </div>
-                    </div>
-                  </div>
-                <% end %>
-              </div>
-            </div>
-          </div>
-        <% end %>
+        <!-- Active Storage Documents Section - DISABLED (Using R2 CloudFlare only) -->
 
-        <!-- Policy Documents (Active Storage) Section -->
-        <% if @motor_insurance.policy_documents.attached? %>
-          <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent">
-              <h6 class="mb-0 text-warning">
-                <i class="bi bi-shield-check me-2"></i>
-                Policy Documents (<%= @motor_insurance.policy_documents.count %>)
-              </h6>
-            </div>
-            <div class="card-body p-0">
-              <div class="list-group list-group-flush">
-                <% @motor_insurance.policy_documents.each do |document| %>
-                  <div class="list-group-item border-0">
-                    <div class="d-flex align-items-center py-2">
-                      <div class="flex-shrink-0 me-3">
-                        <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                          <% if document.content_type&.include?('pdf') %>
-                            <i class="bi bi-file-earmark-pdf text-danger fs-5"></i>
-                          <% elsif document.content_type&.include?('image') %>
-                            <i class="bi bi-file-earmark-image text-success fs-5"></i>
-                          <% else %>
-                            <i class="bi bi-file-earmark text-primary fs-5"></i>
-                          <% end %>
-                        </div>
-                      </div>
-                      <div class="flex-grow-1">
-                        <h6 class="mb-1"><%= document.filename %></h6>
-                        <div class="mb-1">
-                          <span class="badge bg-warning text-dark me-2">Policy Document</span>
-                          <span class="text-muted small">
-                            <i class="bi bi-file-earmark me-1"></i><%= number_to_human_size(document.byte_size) %>
-                          </span>
-                        </div>
-                        <small class="text-warning">
-                          <i class="bi bi-server me-1"></i>Stored in Active Storage • <%= document.content_type %>
-                        </small>
-                      </div>
-                      <div class="btn-group" role="group">
-                        <%= link_to rails_blob_path(document, disposition: "inline"), class: "btn btn-outline-warning btn-sm", target: "_blank", title: "View Document" do %>
-                          <i class="bi bi-eye"></i>
-                        <% end %>
-                        <%= link_to rails_blob_path(document, disposition: "attachment"), class: "btn btn-outline-success btn-sm", title: "Download Document" do %>
-                          <i class="bi bi-download"></i>
-                        <% end %>
-                      </div>
-                    </div>
-                  </div>
-                <% end %>
-              </div>
-            </div>
-          </div>
-        <% end %>
+        <!-- Policy Documents (Active Storage) Section - DISABLED (Using R2 CloudFlare only) -->
 
       <% else %>
         <!-- No Documents Message -->

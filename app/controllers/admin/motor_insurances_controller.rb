@@ -820,8 +820,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       :zero_depreciation, :roadside_assistance, :engine_protector, :key_replacement,
       :return_to_invoice, :consumable_cover, :personal_accident_cover, :financier,
 
-      # File Uploads
-      :main_policy_document, policy_documents: [], documents: [],
+      # File Uploads - REMOVED: :main_policy_document, policy_documents: [], documents: [] (All handled via R2)
       # Nominees
       motor_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
       # R2 Documents (file handled separately in R2 upload methods)
