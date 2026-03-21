@@ -831,11 +831,21 @@ class Admin::CustomersController < Admin::ApplicationController
       @customer.lead_id = @lead.lead_id
     end
 
+    success = false
+    error_message = nil
+    generated_password = nil
+    user_created = false
+
     begin
       ActiveRecord::Base.transaction do
         if @customer.save
-          # Handle document file uploads after customer creation
-          handle_customer_document_uploads if params[:customer]&.[](:documents_attributes).present?
+          # Handle document file uploads after customer creation (with error handling)
+          begin
+            handle_customer_document_uploads if params[:customer]&.[](:documents_attributes).present?
+          rescue => upload_error
+            Rails.logger.error "Document upload failed: #{upload_error.message}"
+            # Continue with customer creation even if document upload fails
+          end
 
           # Update lead if customer was created from a lead
           if @customer.lead_id.present?
@@ -869,13 +879,12 @@ class Admin::CustomersController < Admin::ApplicationController
                   user_type: 'customer',
                   status: true
                 )
-                redirect_to product_selection_admin_customer_path(@customer), notice: 'Customer and login account created successfully.'
+                user_created = true
+                success = true
               else
                 @customer.destroy
                 @customer.errors.add(:password_confirmation, "doesn't match Password")
-                @sub_agents = SubAgent.active.order(:first_name, :last_name)
-                render :new, status: :unprocessable_entity
-                return
+                success = false
               end
             else
               # Auto-generate password if no password provided but user account creation requested
@@ -891,21 +900,40 @@ class Admin::CustomersController < Admin::ApplicationController
                 user_type: 'customer',
                 status: true
               )
-              # Store generated password in flash for display (in production, send via email/SMS)
-              flash[:generated_password] = generated_password
-              redirect_to product_selection_admin_customer_path(@customer),
-                         notice: "Customer created successfully. Auto-generated password: #{generated_password}"
+              user_created = true
+              success = true
             end
           else
-            redirect_to product_selection_admin_customer_path(@customer), notice: 'Customer was successfully created.'
+            success = true
           end
         else
-          @sub_agents = SubAgent.active.order(:first_name, :last_name)
-          render :new, status: :unprocessable_entity
+          success = false
         end
       end
     rescue => e
-      @customer.errors.add(:base, "Failed to create login account: #{e.message}")
+      Rails.logger.error "Customer creation error: #{e.message}"
+      error_message = "Failed to create customer: #{e.message}"
+      success = false
+    end
+
+    # Handle response based on success/failure - single render/redirect point
+    if success
+      if user_created && generated_password.present?
+        # Store generated password in flash for display
+        flash[:generated_password] = generated_password
+        redirect_to product_selection_admin_customer_path(@customer),
+                   notice: "Customer created successfully. Auto-generated password: #{generated_password}"
+      elsif user_created
+        redirect_to product_selection_admin_customer_path(@customer),
+                   notice: 'Customer and login account created successfully.'
+      else
+        redirect_to product_selection_admin_customer_path(@customer),
+                   notice: 'Customer was successfully created.'
+      end
+    else
+      if error_message
+        @customer.errors.add(:base, error_message)
+      end
       @sub_agents = SubAgent.active.order(:first_name, :last_name)
       render :new, status: :unprocessable_entity
     end
