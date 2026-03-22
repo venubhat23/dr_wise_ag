@@ -20,7 +20,7 @@
 </div>
 
 <!-- Kanban Board -->
-<div class="kanban-board" data-controller="drag-test">
+<div class="kanban-board" id="kanban-board">
   <div class="kanban-columns">
     <% @stages.each do |stage_key, stage_info| %>
       <div class="kanban-column" data-stage="<%= stage_key %>">
@@ -35,15 +35,14 @@
           </div>
         </div>
 
-        <div class="kanban-column-body" data-drop-target="<%= stage_key %>" data-drag-target="dropTarget">
+        <div class="kanban-column-body" data-drop-target="<%= stage_key %>">
           <% leads_in_stage = @leads_by_stage[stage_key] || [] %>
           <% if leads_in_stage.any? %>
             <% leads_in_stage.each do |lead| %>
               <div class="kanban-card"
                    draggable="true"
                    data-lead-id="<%= lead.id %>"
-                   data-current-stage="<%= lead.current_stage %>"
-                   data-drag-target="card">
+                   data-current-stage="<%= lead.current_stage %>">
 
                 <!-- Lead ID Badge -->
                 <div class="card-header">
@@ -388,3 +387,236 @@
   animation: cardMove 0.3s ease-out;
 }
 </style>
+
+<!-- Enhanced Debug Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('🎯 Kanban Drag & Drop: Initializing...');
+  console.log('🎴 Cards found:', document.querySelectorAll('.kanban-card[data-lead-id]').length);
+  console.log('🎯 Drop zones found:', document.querySelectorAll('[data-drop-target]').length);
+
+  // Test if cards are draggable
+  const firstCard = document.querySelector('.kanban-card[data-lead-id]');
+  if (firstCard) {
+    console.log('🐛 First card draggable:', firstCard.draggable);
+    console.log('🐛 First card lead ID:', firstCard.dataset.leadId);
+  }
+
+  // Test drop zones
+  const dropZones = document.querySelectorAll('[data-drop-target]');
+  dropZones.forEach((zone, index) => {
+    console.log(`🐛 Drop zone ${index}:`, zone.dataset.dropTarget);
+
+    // Add manual event listeners to test
+    zone.addEventListener('dragover', (e) => {
+      console.log('🎯 DRAGOVER detected on zone:', zone.dataset.dropTarget);
+      e.preventDefault();
+    });
+
+    zone.addEventListener('drop', (e) => {
+      console.log('📥 DROP detected on zone:', zone.dataset.dropTarget);
+      e.preventDefault();
+    });
+
+    zone.addEventListener('dragenter', (e) => {
+      console.log('🚪 DRAGENTER detected on zone:', zone.dataset.dropTarget);
+    });
+  });
+
+  // Test cards
+  const cards = document.querySelectorAll('.kanban-card[data-lead-id]');
+  cards.forEach((card, index) => {
+    console.log(`🐛 Setting up card ${index + 1}: Lead ${card.dataset.leadId}`);
+  });
+
+  // Add Direct Drag & Drop Implementation (Fallback)
+  let draggedCard = null;
+  let draggedLeadId = null;
+  let draggedCurrentStage = null;
+
+  // Enhanced card drag events
+  cards.forEach((card) => {
+    card.addEventListener('dragstart', (e) => {
+      console.log('🖱️ Direct DRAGSTART:', card.dataset.leadId);
+      draggedCard = card;
+      draggedLeadId = card.dataset.leadId;
+      draggedCurrentStage = card.dataset.currentStage;
+
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', draggedLeadId);
+    });
+
+    card.addEventListener('dragend', (e) => {
+      console.log('🛑 Direct DRAGEND:', card.dataset.leadId);
+      card.classList.remove('dragging');
+
+      // Clean up all drop zone styling
+      dropZones.forEach(zone => {
+        zone.classList.remove('drag-over', 'drop-valid', 'drop-invalid');
+      });
+    });
+  });
+
+  // Enhanced drop zone events
+  dropZones.forEach((zone) => {
+    zone.addEventListener('dragover', (e) => {
+      console.log('🎯 Direct DRAGOVER:', zone.dataset.dropTarget);
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+
+    zone.addEventListener('dragenter', (e) => {
+      console.log('🚪 Direct DRAGENTER:', zone.dataset.dropTarget);
+      e.preventDefault();
+      zone.classList.add('drag-over');
+    });
+
+    zone.addEventListener('dragleave', (e) => {
+      console.log('🚪 Direct DRAGLEAVE:', zone.dataset.dropTarget);
+      if (!zone.contains(e.relatedTarget)) {
+        zone.classList.remove('drag-over');
+      }
+    });
+
+    zone.addEventListener('drop', async (e) => {
+      console.log('📥 Direct DROP on zone:', zone.dataset.dropTarget);
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+
+      const targetStage = zone.dataset.dropTarget;
+
+      console.log(`🔄 Processing drop: ${draggedLeadId} from ${draggedCurrentStage} to ${targetStage}`);
+
+      if (targetStage === draggedCurrentStage) {
+        console.log('⚠️ Same stage, skipping');
+        return;
+      }
+
+      try {
+        console.log('🌐 Making direct AJAX call...');
+        const success = await updateLeadStageDirectly(draggedLeadId, targetStage);
+
+        if (success) {
+          console.log('✅ Direct update successful');
+          moveCardDirectly(draggedLeadId, targetStage);
+          showNotification('✅ Lead stage updated successfully!', 'success');
+        } else {
+          console.log('❌ Direct update failed');
+          showNotification('❌ Failed to update lead stage', 'error');
+        }
+      } catch (error) {
+        console.error('💥 Direct update error:', error);
+        showNotification('❌ Error: ' + error.message, 'error');
+      }
+    });
+  });
+
+  async function updateLeadStageDirectly(leadId, newStage) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (!csrfToken) {
+      console.error("❌ No CSRF token found");
+      return false;
+    }
+
+    const url = `/admin/leads/${leadId}/convert_stage`;
+    const payload = { stage: newStage };
+
+    console.log("📤 Direct payload:", payload);
+
+    try {
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      console.log(`📨 Direct response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Direct error response:", errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log("📬 Direct response data:", result);
+
+      return result.success !== false;
+    } catch (error) {
+      console.error("💥 Direct fetch error:", error);
+      throw error;
+    }
+  }
+
+  function moveCardDirectly(leadId, targetStage) {
+    const card = document.querySelector(`[data-lead-id="${leadId}"]`);
+    const targetColumn = document.querySelector(`[data-drop-target="${targetStage}"]`);
+
+    if (!card || !targetColumn) {
+      console.error("❌ Could not find card or target column for direct DOM move");
+      return;
+    }
+
+    console.log("🔄 Moving card directly in DOM");
+
+    // Update card's stage data
+    card.dataset.currentStage = targetStage;
+
+    // Remove any empty state
+    const emptyState = targetColumn.querySelector('.empty-column');
+    if (emptyState) {
+      emptyState.remove();
+    }
+
+    // Move card
+    targetColumn.appendChild(card);
+
+    // Update counts
+    updateColumnCountsDirectly();
+
+    console.log("✅ Card moved directly");
+  }
+
+  function updateColumnCountsDirectly() {
+    document.querySelectorAll('.kanban-column').forEach(column => {
+      const stage = column.querySelector('[data-drop-target]')?.dataset.dropTarget;
+      const cardCount = column.querySelectorAll('.kanban-card').length;
+      const badge = column.querySelector('.badge');
+
+      if (badge && stage) {
+        badge.textContent = cardCount;
+        console.log(`📊 Updated ${stage} count to: ${cardCount}`);
+      }
+    });
+  }
+
+  function showNotification(message, type) {
+    console.log(`💬 ${type.toUpperCase()}: ${message}`);
+
+    // Create a simple toast notification
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 10000; min-width: 300px; border-radius: 8px;';
+    notification.innerHTML = `
+      <div class="d-flex align-items-center">
+        <i class="bi bi-${type === 'success' ? 'check-circle' : 'x-circle'} me-2"></i>
+        ${message}
+      </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+  }
+
+  console.log('🚀 Kanban Drag & Drop: Ready!');
+});
+</script>

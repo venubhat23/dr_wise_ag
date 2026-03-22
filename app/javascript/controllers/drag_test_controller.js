@@ -1,12 +1,16 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["card", "dropTarget"]
+  static targets = ["card", "dropZone"]
 
   connect() {
     console.log("🚀 Drag test controller connected")
     console.log("Found cards:", this.cardTargets.length)
-    console.log("Found drop targets:", this.dropTargetTargets.length)
+    console.log("Found drop zones:", this.dropZoneTargets.length)
+
+    // Debug info
+    console.log("Cards found:", this.cardTargets.map(c => c.dataset.leadId))
+    console.log("Drop zones found:", this.dropZoneTargets.map(d => d.dataset.dropTarget))
 
     // Add drag listeners to cards
     this.cardTargets.forEach((card, index) => {
@@ -16,8 +20,8 @@ export default class extends Controller {
     })
 
     // Add drop listeners to drop zones
-    this.dropTargetTargets.forEach((target, index) => {
-      console.log(`Setting up drop target ${index}:`, target.dataset.dropTarget)
+    this.dropZoneTargets.forEach((target, index) => {
+      console.log(`Setting up drop zone ${index}:`, target.dataset.dropTarget)
       target.addEventListener('dragover', this.handleDragOver.bind(this))
       target.addEventListener('drop', this.handleDrop.bind(this))
       target.addEventListener('dragenter', this.handleDragEnter.bind(this))

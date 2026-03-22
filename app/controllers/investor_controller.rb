@@ -1,4 +1,6 @@
 class InvestorController < ApplicationController
+  include CurrencyHelper
+
   skip_load_and_authorize_resource
   before_action :authenticate_user!
   before_action :ensure_investor_user

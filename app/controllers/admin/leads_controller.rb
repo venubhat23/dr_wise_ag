@@ -103,7 +103,7 @@ class Admin::LeadsController < Admin::ApplicationController
   # GET /admin/leads/kanban_flow
   def kanban_flow
     # Load leads grouped by stage for Kanban board
-    @leads_by_stage = Lead.includes(:customer, :affiliate)
+    @leads_by_stage = Lead.includes(:converted_customer, :affiliate)
                           .where(converted_customer_id: nil) # Exclude converted leads
                           .group_by(&:current_stage)
 

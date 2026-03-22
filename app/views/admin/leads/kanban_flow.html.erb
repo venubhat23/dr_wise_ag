@@ -12,10 +12,6 @@
       <i class="bi bi-arrow-left me-1"></i>
       Back to Leads
     <% end %>
-    <%= link_to kanban_admin_leads_path, class: "btn btn-outline-primary" do %>
-      <i class="bi bi-kanban me-1"></i>
-      Kanban Board
-    <% end %>
     <%= link_to new_admin_lead_path, class: "btn btn-primary" do %>
       <i class="bi bi-plus-lg me-1"></i>
       Add New Lead
@@ -24,7 +20,7 @@
 </div>
 
 <!-- Kanban Board -->
-<div class="kanban-board" data-controller="drag">
+<div class="kanban-board" data-controller="drag-test">
   <div class="kanban-columns">
     <% @stages.each do |stage_key, stage_info| %>
       <div class="kanban-column" data-stage="<%= stage_key %>">
@@ -39,7 +35,7 @@
           </div>
         </div>
 
-        <div class="kanban-column-body" data-drop-target="<%= stage_key %>">
+        <div class="kanban-column-body" data-drop-target="<%= stage_key %>" data-drag-test-drop-zone-target>
           <% leads_in_stage = @leads_by_stage[stage_key] || [] %>
           <% if leads_in_stage.any? %>
             <% leads_in_stage.each do |lead| %>
@@ -47,7 +43,7 @@
                    draggable="true"
                    data-lead-id="<%= lead.id %>"
                    data-current-stage="<%= lead.current_stage %>"
-                   data-drag-target="card">
+                   data-drag-test-card-target>
 
                 <!-- Lead ID Badge -->
                 <div class="card-header">
@@ -392,3 +388,25 @@
   animation: cardMove 0.3s ease-out;
 }
 </style>
+
+<!-- Debug Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('🐛 Kanban Flow Debug: DOM loaded');
+  console.log('🐛 Drag controller element found:', document.querySelector('[data-controller="drag-test"]'));
+  console.log('🐛 Card targets found:', document.querySelectorAll('[data-drag-test-card-target]').length);
+  console.log('🐛 Drop zone targets found:', document.querySelectorAll('[data-drag-test-drop-zone-target]').length);
+
+  // Test if cards are draggable
+  const firstCard = document.querySelector('[data-drag-test-card-target]');
+  if (firstCard) {
+    console.log('🐛 First card draggable:', firstCard.draggable);
+    console.log('🐛 First card lead ID:', firstCard.dataset.leadId);
+  }
+
+  // Log Stimulus controllers
+  setTimeout(() => {
+    console.log('🐛 Active Stimulus controllers:', window.Stimulus?.controllers?.size || 'Unknown');
+  }, 1000);
+});
+</script>

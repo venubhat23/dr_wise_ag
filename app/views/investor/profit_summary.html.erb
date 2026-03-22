@@ -37,7 +37,7 @@
           <div class="d-flex justify-content-between">
             <div>
               <h6 class="text-muted mb-2">Commission Pool</h6>
-              <h4 class="mb-0 text-success">₹<%= number_with_delimiter(@total_commission_pool.to_i) %></h4>
+              <h4 class="mb-0 text-success"><%= indian_currency(@total_commission_pool.to_i) %></h4>
               <small class="text-muted">Company Total</small>
             </div>
             <div class="bg-success bg-opacity-10 rounded p-3">
@@ -71,7 +71,7 @@
           <div class="d-flex justify-content-between">
             <div>
               <h6 class="text-muted mb-2">Profit Per Share</h6>
-              <h4 class="mb-0 text-info">₹<%= number_with_delimiter(@profit_per_share.to_i) %></h4>
+              <h4 class="mb-0 text-info"><%= indian_currency(@profit_per_share.to_i) %></h4>
               <small class="text-muted">Current Rate</small>
             </div>
             <div class="bg-info bg-opacity-10 rounded p-3">
@@ -88,7 +88,7 @@
           <div class="d-flex justify-content-between">
             <div>
               <h6 class="text-muted mb-2">System Investment</h6>
-              <h4 class="mb-0 text-warning">₹<%= number_with_delimiter(@system_investment_amount.to_i) %></h4>
+              <h4 class="mb-0 text-warning"><%= indian_currency(@system_investment_amount.to_i) %></h4>
               <small class="text-muted">Total Investment</small>
             </div>
             <div class="bg-warning bg-opacity-10 rounded p-3">
@@ -112,7 +112,7 @@
             </div>
             <div>
               <small class="text-muted">
-                Calculation: ₹<%= number_with_delimiter(@total_commission_pool.to_i) %> ÷ <%= @total_shares %> shares = ₹<%= number_with_delimiter(@profit_per_share.to_i) %> per share
+                Calculation: <%= indian_currency(@total_commission_pool.to_i) %> ÷ <%= @total_shares %> shares = <%= indian_currency(@profit_per_share.to_i) %> per share
               </small>
             </div>
           </div>
@@ -155,19 +155,19 @@
                     <span class="badge bg-primary fs-6"><%= @investor_profit_data[:shares] %></span>
                   </td>
                   <td>
-                    <strong class="text-success">₹<%= number_with_delimiter(@investor_profit_data[:invested_amount].to_i) %></strong>
+                    <strong class="text-success"><%= indian_currency(@investor_profit_data[:invested_amount].to_i) %></strong>
                   </td>
                   <td>
                     <span class="text-info"><%= number_with_precision(@investor_profit_data[:sharing_percentage], precision: 2) %>%</span>
                   </td>
                   <td>
-                    <strong class="text-primary">₹<%= number_with_delimiter(@investor_profit_data[:profit_amount].to_i) %></strong>
+                    <strong class="text-primary"><%= indian_currency(@investor_profit_data[:profit_amount].to_i) %></strong>
                   </td>
                   <td>
                     <div>
                       <span class="badge bg-success"><%= @investor_profit_data[:actual_profit_shared_percentage] %>%</span>
                       <br>
-                      <strong class="text-success">₹<%= number_with_delimiter(@investor_profit_data[:actual_profit_shared].to_i) %></strong>
+                      <strong class="text-success"><%= indian_currency(@investor_profit_data[:actual_profit_shared].to_i) %></strong>
                     </div>
                   </td>
                   <td>
@@ -194,14 +194,14 @@
           <div class="row">
             <div class="col-md-4">
               <div class="text-center p-3 border rounded">
-                <h4 class="text-primary mb-2">₹<%= number_with_delimiter(@investor_profit_data[:invested_amount].to_i) %></h4>
+                <h4 class="text-primary mb-2"><%= indian_currency(@investor_profit_data[:invested_amount].to_i) %></h4>
                 <p class="text-muted mb-0">Your Investment</p>
                 <small class="text-muted">Initial Amount</small>
               </div>
             </div>
             <div class="col-md-4">
               <div class="text-center p-3 border rounded">
-                <h4 class="text-success mb-2">₹<%= number_with_delimiter(@investor_profit_data[:actual_profit_shared].to_i) %></h4>
+                <h4 class="text-success mb-2"><%= indian_currency(@investor_profit_data[:actual_profit_shared].to_i) %></h4>
                 <p class="text-muted mb-0">Your Profit</p>
                 <small class="text-success">
                   <%= @investor_profit_data[:actual_profit_shared_percentage] %>% of allocated profit
