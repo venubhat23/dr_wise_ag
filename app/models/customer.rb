@@ -216,6 +216,30 @@ class Customer < ApplicationRecord
   end
 
 
+  # R2 Profile Image methods
+  def r2_profile_image
+    documents.where(document_type: 'Profile Image').first
+  end
+
+  def has_r2_profile_image?
+    r2_profile_image&.has_file?
+  end
+
+  def r2_profile_image_url
+    r2_profile_image&.document_url
+  end
+
+  # Get profile image URL (prioritize R2, fallback to ActiveStorage)
+  def profile_image_display_url
+    if has_r2_profile_image?
+      r2_profile_image_url
+    elsif profile_image.attached?
+      profile_image_url
+    else
+      nil
+    end
+  end
+
   # Cache busting callback
   after_update :bust_cache
 

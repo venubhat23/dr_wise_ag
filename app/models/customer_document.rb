@@ -11,7 +11,7 @@ class CustomerDocument < ApplicationRecord
   # Validations
   validates :document_type, presence: true
   validates :document_type, inclusion: {
-    in: ['Aadhaar Card', 'Pancard', 'Driving License', 'Mediclaim', 'RC Book', 'Other File']
+    in: ['Profile Image', 'Aadhaar Card', 'Pancard', 'Driving License', 'Mediclaim', 'RC Book', 'Other File']
   }
 
   # R2 File Storage - Direct upload to Cloudflare R2 (no ActiveStorage)

@@ -184,11 +184,15 @@
     </div>
     <div class="card-body">
       <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-4">
+          <%= form.label :number_of_shares, "No. of Shares", class: "form-label" %>
+          <%= form.number_field :number_of_shares, class: "form-control", placeholder: "Enter number of shares", min: 0 %>
+        </div>
+        <div class="col-md-4">
           <%= form.label :invested_amount, "Invested Amount (₹)", class: "form-label" %>
           <%= form.number_field :invested_amount, class: "form-control", placeholder: "Enter invested amount", step: :any, min: 0 %>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
           <%= form.label :investment_percentage, "Investment Percentage (%)", class: "form-label" %>
           <%= form.number_field :investment_percentage, class: "form-control", placeholder: "Enter investment percentage", step: :any, min: 0, max: 100 %>
         </div>

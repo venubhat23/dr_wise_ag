@@ -112,4 +112,22 @@ class SystemSetting < ApplicationRecord
 
     setting.update!(terms_and_conditions: content)
   end
+
+  # Get investment amount
+  def self.investment_amount
+    setting = find_by(key: 'system_config')
+    setting&.investment_amount || 0.0
+  end
+
+  # Set investment amount
+  def self.set_investment_amount(amount)
+    setting = find_by(key: 'system_config') || create!(
+      key: 'system_config',
+      value: 'system configuration',
+      setting_type: 'configuration',
+      description: 'System configuration settings'
+    )
+
+    setting.update!(investment_amount: amount)
+  end
 end

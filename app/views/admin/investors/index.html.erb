@@ -7,6 +7,10 @@
     </h2>
   </div>
   <div class="d-flex gap-2">
+    <%= link_to investor_summary_admin_investors_path, class: "btn btn-info", target: "_blank" do %>
+      <i class="bi bi-bar-chart-line me-1"></i>
+      Investor Summary
+    <% end %>
     <%= link_to new_admin_investor_path, class: "btn btn-primary" do %>
       <i class="bi bi-plus-lg me-1"></i>
       Create Investor
@@ -85,7 +89,7 @@
               <th>Name</th>
               <th>Contact Info</th>
               <th>Investment Amount</th>
-              <th>Investor Share</th>
+              <th>No. of Shares</th>
               <th>Created</th>
               <th>Actions</th>
             </tr>
@@ -125,24 +129,9 @@
                     <span class="text-muted">-</span>
                   <% end %>
                 </td>
-                <td>
-                  <% if investor.investment_percentage.present? && @total_investor_amount > 0 %>
-                    <% investor_share = (@total_investor_amount * investor.investment_percentage / 100).round(2) %>
-                    <div class="text-center">
-                      <small class="text-success fw-bold d-block">₹<%= number_with_delimiter(investor_share) %></small>
-                      <div class="progress mt-1" style="height: 5px; width: 80px;">
-                        <div class="progress-bar bg-gradient"
-                             style="background: linear-gradient(45deg, #28a745, #20c997); width: <%= [investor.investment_percentage, 100].min %>%"
-                             role="progressbar"
-                             title="<%= investor.investment_percentage %>% of Commission Pool ₹<%= number_with_delimiter(@total_investor_amount) %>">
-                        </div>
-                      </div>
-                      <small class="text-muted" style="font-size: 0.7rem;"><%= investor.investment_percentage %>% of commission pool</small>
-                    </div>
-                  <% elsif investor.investment_percentage.present? %>
-                    <div class="text-center">
-                      <small class="text-warning">No commission pool</small>
-                    </div>
+                <td class="text-center">
+                  <% if investor.number_of_shares.present? && investor.number_of_shares > 0 %>
+                    <span class="badge bg-primary fs-6"><%= investor.number_of_shares %></span>
                   <% else %>
                     <span class="text-muted">-</span>
                   <% end %>

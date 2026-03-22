@@ -224,6 +224,36 @@
 
         <hr class="my-4">
 
+        <!-- Investment Amount Settings -->
+        <div class="mb-4">
+          <h6 class="text-muted mb-3">Investment Amount Configuration</h6>
+          <%= form_with url: admin_settings_system_path, method: :patch, local: true do |form| %>
+            <div class="bg-light rounded p-3">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="investment_amount" class="form-label">
+                    <i class="bi bi-piggy-bank me-1"></i>
+                    Total Investment Amount (₹)
+                  </label>
+                  <%= form.number_field :investment_amount,
+                        value: @investment_amount,
+                        step: 0.01,
+                        min: 0,
+                        class: "form-control",
+                        placeholder: "e.g., 1000000.00" %>
+                  <div class="form-text">Configure the total investment amount available for distribution</div>
+                </div>
+                <div class="col-md-6 mb-3 d-flex align-items-end">
+                  <%= form.hidden_field :investment_amount_update, value: "true" %>
+                  <%= form.submit "Update Investment Amount", class: "btn btn-primary" %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <hr class="my-4">
+
         <!-- Terms and Conditions Settings -->
         <div class="mb-4">
           <h6 class="text-muted mb-3">Terms and Conditions</h6>

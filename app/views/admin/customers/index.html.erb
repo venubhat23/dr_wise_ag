@@ -188,16 +188,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>
                   <div class="d-flex align-items-center">
                     <!-- Profile Image Circle -->
-                    <div class="me-3">
-                      <% if customer.profile_image.attached? %>
+                    <div class="me-3 <%= 'r2-profile-image' if customer.has_r2_profile_image? %>">
+                      <% if customer.has_r2_profile_image? %>
+                        <%= image_tag customer.r2_profile_image_url,
+                            class: "rounded-circle",
+                            style: "width: 40px; height: 40px; object-fit: cover;",
+                            alt: "Profile (R2)",
+                            title: "Profile image from Cloudflare R2",
+                            onerror: "this.onerror=null; this.parentNode.innerHTML='<div class=\"rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center\" style=\"width: 40px; height: 40px;\"><span class=\"text-primary fw-bold\">#{customer.display_name.present? ? customer.display_name[0].upcase : "?"}</span></div>';" %>
+                      <% elsif customer.profile_image.attached? %>
                         <%= image_tag url_for(customer.profile_image),
                             class: "rounded-circle",
                             style: "width: 40px; height: 40px; object-fit: cover;",
-                            alt: "Profile",
-                            onerror: "this.onerror=null; this.src='#{asset_path('placeholder-avatar.svg')}';" %>
+                            alt: "Profile (ActiveStorage)",
+                            title: "Profile image from ActiveStorage",
+                            onerror: "this.onerror=null; this.parentNode.innerHTML='<div class=\"rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center\" style=\"width: 40px; height: 40px;\"><span class=\"text-primary fw-bold\">#{customer.display_name.present? ? customer.display_name[0].upcase : "?"}</span></div>';" %>
                       <% else %>
                         <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
-                             style="width: 40px; height: 40px;">
+                             style="width: 40px; height: 40px;"
+                             title="No profile image">
                           <span class="text-primary fw-bold">
                             <%= customer.display_name.present? ? customer.display_name[0].upcase : "?" %>
                           </span>
@@ -424,16 +433,36 @@ document.addEventListener('DOMContentLoaded', function() {
 .rounded-circle {
   border: 2px solid #e9ecef;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .rounded-circle img {
   border-radius: 50%;
 }
 
+/* R2 Profile Image Indicator */
+.r2-profile-image {
+  position: relative;
+}
+
+.r2-profile-image::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(45deg, #28a745, #20c997);
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
 /* Hover effect for profile images */
 tr:hover .rounded-circle {
   border-color: #007bff;
   transition: border-color 0.3s ease;
+  transform: scale(1.05);
 }
 
 /* Initial letter avatar */
@@ -445,5 +474,18 @@ tr:hover .rounded-circle {
 tr:hover .bg-primary.bg-opacity-10 {
   border-color: #007bff;
   transition: border-color 0.3s ease;
+  transform: scale(1.05);
+}
+
+/* Profile image loading state */
+.profile-image-loading {
+  background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%, transparent 50%, #f8f9fa 50%, #f8f9fa 75%, transparent 75%, transparent);
+  background-size: 8px 8px;
+  animation: loading 1s linear infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 0 0; }
+  100% { background-position: 8px 8px; }
 }
 </style>

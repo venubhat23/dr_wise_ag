@@ -260,6 +260,9 @@ Rails.application.routes.draw do
 
     # Investor management
     resources :investors do
+      collection do
+        get :investor_summary
+      end
       member do
         patch :toggle_status
         get :download_r2_document

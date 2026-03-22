@@ -26,6 +26,9 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
 
     # Get terms and conditions
     @terms_and_conditions = SystemSetting.terms_and_conditions
+
+    # Get investment amount
+    @investment_amount = SystemSetting.investment_amount
   end
 
   def update
@@ -105,6 +108,24 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
       end
     end
 
+    # Handle investment amount update
+    if params[:investment_amount_update] == "true"
+      amount = params[:investment_amount]&.to_f
+
+      if amount.present? && amount >= 0
+        begin
+          SystemSetting.set_investment_amount(amount)
+          success_messages << 'Investment amount updated successfully!'
+        rescue => e
+          redirect_to admin_settings_system_path, alert: "Error updating investment amount: #{e.message}"
+          return
+        end
+      else
+        redirect_to admin_settings_system_path, alert: 'Please enter a valid investment amount (must be 0 or greater).'
+        return
+      end
+    end
+
     if success_messages.any?
       redirect_to admin_settings_system_path, notice: success_messages.join(' ')
     else
@@ -119,7 +140,8 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
       :maintenance_mode, :email_notifications, :backup_frequency, :session_timeout,
       :max_file_upload_size, :company_expenses_percentage, :default_pagination_per_page,
       :default_main_agent_commission, :default_affiliate_commission,
-      :default_ambassador_commission, :default_company_expenses, :terms_and_conditions
+      :default_ambassador_commission, :default_company_expenses, :terms_and_conditions,
+      :investment_amount
     )
   end
 end

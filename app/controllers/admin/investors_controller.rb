@@ -68,6 +68,98 @@ class Admin::InvestorsController < Admin::ApplicationController
     @total_invested_amount = stats_scope.where.not(invested_amount: nil).sum(:invested_amount) || 0
   end
 
+  # GET /admin/investors/investor_summary
+  def investor_summary
+    # Get all investors with their investment data
+    @investors = Investor.all.includes(:investor_documents)
+
+    # Calculate comprehensive statistics
+    @total_investors = @investors.count
+    @active_investors = @investors.active.count
+    @inactive_investors = @investors.inactive.count
+
+    # Investment statistics
+    @total_invested_amount = @investors.where.not(invested_amount: nil).sum(:invested_amount) || 0
+    @average_investment = @total_investors > 0 ? @total_invested_amount / @total_investors : 0
+
+    # Commission pool statistics (Gross Profit)
+    @total_commission_pool = CommissionPayout.where(payout_to: 'investor').sum(:payout_amount) || 0
+    @paid_commission_amount = CommissionPayout.where(payout_to: 'investor', status: 'paid').sum(:payout_amount) || 0
+    @pending_commission_amount = CommissionPayout.where(payout_to: 'investor', status: 'pending').sum(:payout_amount) || 0
+
+    # Share calculations for profit distribution
+    @investors_with_shares = @investors.where.not(number_of_shares: nil).where('number_of_shares > 0')
+    @total_shares = @investors_with_shares.sum(:number_of_shares) || 0
+
+    # Calculate profit per share
+    @profit_per_share = @total_shares > 0 ? @total_commission_pool / @total_shares : 0
+
+    # Get system investment amount
+    @system_investment_amount = SystemSetting.investment_amount
+
+    # Calculate detailed profit sharing data for each investor (sorted by shares descending)
+    @profit_sharing_data = []
+    @investors_with_shares.order(number_of_shares: :desc).each_with_index do |investor, index|
+      shares = investor.number_of_shares || 0
+      invested_amount = investor.invested_amount || 0
+
+      # Use actual investment percentage from investor table
+      sharing_percentage = investor.investment_percentage || 0
+
+      # Calculate profit amount (shares × profit per share)
+      profit_amount = shares * @profit_per_share
+
+      # Use actual investment percentage from investor table as profit sharing percentage
+      actual_profit_shared_percentage = investor.investment_percentage || 0
+      actual_profit_shared = profit_amount * (actual_profit_shared_percentage / 100)
+
+      # Calculate Return on Investment based on actual profit shared vs invested amount
+      roi = invested_amount > 0 ? (actual_profit_shared / invested_amount * 100) : 0
+
+      @profit_sharing_data << {
+        sl_no: index + 1,
+        investor: investor,
+        shares: shares,
+        invested_amount: invested_amount,
+        sharing_percentage: sharing_percentage,
+        profit_amount: profit_amount,
+        actual_profit_shared_percentage: actual_profit_shared_percentage,
+        actual_profit_shared: actual_profit_shared,
+        roi: roi
+      }
+    end
+
+    # Investment performance by percentage
+    @investors_with_percentage = @investors.where.not(investment_percentage: nil)
+    @total_percentage_allocated = @investors_with_percentage.sum(:investment_percentage) || 0
+
+    # Monthly data for charts (last 12 months)
+    @monthly_data = []
+    12.times do |i|
+      month_start = (Date.current - i.months).beginning_of_month
+      month_end = month_start.end_of_month
+
+      investors_count = Investor.where(created_at: month_start..month_end).count
+      investment_amount = Investor.where(created_at: month_start..month_end).sum(:invested_amount) || 0
+
+      @monthly_data.unshift({
+        month: month_start.strftime('%b %Y'),
+        investors_count: investors_count,
+        investment_amount: investment_amount
+      })
+    end
+
+    # Top investors by investment amount
+    @top_investors_by_amount = @investors.where.not(invested_amount: nil)
+                                        .order(invested_amount: :desc)
+                                        .limit(10)
+
+    # Top investors by percentage
+    @top_investors_by_percentage = @investors.where.not(investment_percentage: nil)
+                                            .order(investment_percentage: :desc)
+                                            .limit(10)
+  end
+
   # GET /admin/investors/1
   def show
     @documents = @investor.investor_documents.order(:created_at)
@@ -211,7 +303,7 @@ class Admin::InvestorsController < Admin::ApplicationController
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
       :account_holder_name, :account_type, :upi_id, :status,
       :username, :password, :password_confirmation, :original_password,
-      :invested_amount, :investment_percentage,
+      :number_of_shares, :invested_amount, :investment_percentage,
       investor_documents_attributes: [:id, :document_type, :document_file, :_destroy]
     )
   end

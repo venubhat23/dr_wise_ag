@@ -167,7 +167,7 @@
     <% end %>
 
     <!-- Investment Details -->
-    <% if @investor.invested_amount.present? || @investor.investment_percentage.present? %>
+    <% if @investor.number_of_shares.present? || @investor.invested_amount.present? || @investor.investment_percentage.present? %>
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-transparent border-0">
           <h5 class="mb-0">
@@ -177,14 +177,20 @@
         </div>
         <div class="card-body">
           <div class="row g-3">
+            <% if @investor.number_of_shares.present? %>
+              <div class="col-md-4">
+                <strong>No. of Shares:</strong>
+                <div class="text-muted"><%= number_with_delimiter(@investor.number_of_shares) %></div>
+              </div>
+            <% end %>
             <% if @investor.invested_amount.present? %>
-              <div class="col-md-6">
+              <div class="col-md-4">
                 <strong>Invested Amount:</strong>
                 <div class="text-muted">₹<%= number_with_delimiter(@investor.invested_amount) %></div>
               </div>
             <% end %>
             <% if @investor.investment_percentage.present? %>
-              <div class="col-md-6">
+              <div class="col-md-4">
                 <strong>Investment Percentage:</strong>
                 <div class="text-muted"><%= @investor.investment_percentage %>%</div>
               </div>
@@ -540,8 +546,17 @@
         </h6>
       </div>
       <div class="card-body">
-        <% if @investor.invested_amount.present? || @investor.investment_percentage.present? %>
+        <% if @investor.number_of_shares.present? || @investor.invested_amount.present? || @investor.investment_percentage.present? %>
           <div class="row g-3 text-sm">
+            <% if @investor.number_of_shares.present? %>
+              <div class="col-12">
+                <div class="d-flex justify-content-between">
+                  <strong>No. of Shares:</strong>
+                  <span class="text-info fw-bold"><%= number_with_delimiter(@investor.number_of_shares) %></span>
+                </div>
+              </div>
+            <% end %>
+
             <% if @investor.invested_amount.present? %>
               <div class="col-12">
                 <div class="d-flex justify-content-between">
