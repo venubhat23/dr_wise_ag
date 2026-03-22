@@ -89,16 +89,10 @@
         </div>
         <div class="col-md-4">
           <%= form.label :city, "City", class: "form-label" %>
-          <%
-            # Get cities for the current state, using state name
-            current_state_key = LocationData.states_for_select.find { |name, _| name == @investor.state }&.last
-            cities_for_current_state = current_state_key ? LocationData.cities_for_state(current_state_key) : []
-            city_options = cities_for_current_state.map { |city| [city, city] }
-          %>
           <%= form.select :city,
-              options_for_select(city_options, @investor.city),
+              options_for_select([], @investor.city),
               { prompt: 'Search and select city...' },
-              { class: "form-select searchable-select", id: "investor_city", disabled: @investor.state.blank?, data: { placeholder: "Type to search cities..." } } %>
+              { class: "form-select searchable-select", id: "investor_city", disabled: true, data: { placeholder: "Type to search cities..." } } %>
         </div>
         <div class="col-md-4">
           <%= form.label :gender, "Gender", class: "form-label" %>
@@ -460,173 +454,27 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-<!-- Include Location Data -->
+<!-- Include Form Enhancements -->
 <script>
 <%= File.read(Rails.root.join('app/assets/javascripts/location_data.js')).html_safe %>
+</script>
+<script>
+<%= File.read(Rails.root.join('app/assets/javascripts/form_enhancements.js')).html_safe %>
 </script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize searchable state-city dropdowns
+  console.log('🔄 Investor Edit: Initializing state-city dropdowns...');
+
+  // Initialize all form enhancements
+  if (window.FormEnhancements) {
+    window.FormEnhancements.init();
+  }
+
+  // Initialize Select2 on dropdowns
   const stateSelect = document.getElementById('investor_state');
   const citySelect = document.getElementById('investor_city');
 
-  // Use global location data
-  let citiesData = {};
-  if (window.LocationData && window.LocationData.states) {
-    citiesData = Object.keys(window.LocationData.states).reduce((acc, key) => {
-      acc[key] = window.LocationData.states[key].cities;
-      return acc;
-    }, {});
-  }
-
-  function loadCitiesForState(stateName, preserveSelection = true) {
-    console.log('Loading cities for investor state:', stateName, 'preserve:', preserveSelection);
-    if (!stateName) {
-      populateCityDropdown([], false);
-      citySelect.disabled = true;
-      return;
-    }
-
-    // Find the state key by name in LocationData using states_for_select format
-    let stateKey = null;
-    if (window.LocationData && window.LocationData.states) {
-      for (const [key, stateData] of Object.entries(window.LocationData.states)) {
-        if (stateData.name === stateName) {
-          stateKey = key;
-          break;
-        }
-      }
-    }
-
-    // Get cities for this state from local data
-    let cities = stateKey ? (citiesData[stateKey] || []) : [];
-    populateCityDropdown(cities, preserveSelection);
-  }
-
-  function loadCitiesForStateWithValue(stateName, cityValueToPreserve) {
-    console.log('Loading cities for investor state:', stateName, 'with explicit city value:', cityValueToPreserve);
-    if (!stateName) {
-      populateCityDropdown([], false);
-      citySelect.disabled = true;
-      return;
-    }
-
-    // Find the state key by name in LocationData using states_for_select format
-    let stateKey = null;
-    if (window.LocationData && window.LocationData.states) {
-      for (const [key, stateData] of Object.entries(window.LocationData.states)) {
-        if (stateData.name === stateName) {
-          stateKey = key;
-          break;
-        }
-      }
-    }
-
-    // Get cities for this state from local data
-    let cities = stateKey ? (citiesData[stateKey] || []) : [];
-    populateCityDropdownWithValue(cities, cityValueToPreserve);
-  }
-
-  function populateCityDropdown(cities, preserveSelection = true) {
-    // Store current value to preserve selection
-    const currentValue = preserveSelection ? citySelect.value : null;
-    console.log('Populating city dropdown with', cities.length, 'cities, preserving selection:', currentValue);
-
-    // First destroy Select2 if it exists
-    const $citySelect = $(citySelect);
-    if ($citySelect.hasClass('select2-hidden-accessible')) {
-      $citySelect.select2('destroy');
-    }
-
-    // Clear dropdown and add cities
-    citySelect.innerHTML = '<option value="">Search and select city...</option>';
-    cities.forEach(function(city) {
-      const option = document.createElement('option');
-      option.value = city;
-      option.textContent = city;
-      // Pre-select the option if it matches the current value
-      if (city === currentValue) {
-        option.selected = true;
-        console.log('Pre-selecting city option:', city);
-      }
-      citySelect.appendChild(option);
-    });
-
-    // Re-enable dropdown
-    citySelect.disabled = false;
-
-    // Re-initialize Select2 on city dropdown
-    $citySelect.select2({
-      theme: 'bootstrap-5',
-      placeholder: 'Search and select city...',
-      allowClear: true,
-      width: '100%',
-      minimumResultsForSearch: 0
-    });
-
-    // Double-check the value is set properly
-    if (currentValue && cities.includes(currentValue)) {
-      console.log('Confirming city selection after Select2 init:', currentValue);
-      // Use setTimeout to ensure Select2 is fully initialized
-      setTimeout(() => {
-        $citySelect.val(currentValue).trigger('change');
-        console.log('City value after setting:', $citySelect.val());
-      }, 100);
-    } else if (currentValue) {
-      console.log('City not found in new list:', currentValue, 'Available cities:', cities);
-    }
-  }
-
-  function populateCityDropdownWithValue(cities, explicitValue) {
-    console.log('Populating city dropdown with', cities.length, 'cities, explicit value:', explicitValue);
-
-    // First destroy Select2 if it exists
-    const $citySelect = $(citySelect);
-    if ($citySelect.hasClass('select2-hidden-accessible')) {
-      $citySelect.select2('destroy');
-    }
-
-    // Clear dropdown and add cities
-    citySelect.innerHTML = '<option value="">Search and select city...</option>';
-    cities.forEach(function(city) {
-      const option = document.createElement('option');
-      option.value = city;
-      option.textContent = city;
-      // Pre-select the option if it matches the explicit value
-      if (city === explicitValue) {
-        option.selected = true;
-        console.log('Pre-selecting city option:', city);
-      }
-      citySelect.appendChild(option);
-    });
-
-    // Re-enable dropdown
-    citySelect.disabled = false;
-
-    // Re-initialize Select2 on city dropdown
-    $citySelect.select2({
-      theme: 'bootstrap-5',
-      placeholder: 'Search and select city...',
-      allowClear: true,
-      width: '100%',
-      minimumResultsForSearch: 0
-    });
-
-    // Double-check the value is set properly
-    if (explicitValue && cities.includes(explicitValue)) {
-      console.log('Setting explicit city value after Select2 init:', explicitValue);
-      // Use setTimeout to ensure Select2 is fully initialized
-      setTimeout(() => {
-        $citySelect.val(explicitValue).trigger('change');
-        console.log('City value after explicit setting:', $citySelect.val());
-      }, 100);
-    } else if (explicitValue) {
-      console.log('Explicit city value not found in new list:', explicitValue, 'Available cities:', cities);
-    }
-  }
-
-  // Initialize Select2 on state dropdown
   if (stateSelect) {
     $('#investor_state').select2({
       theme: 'bootstrap-5',
@@ -637,60 +485,140 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Initialize Select2 on city dropdown initially (if it has options)
-  if (citySelect) {
-    console.log('Initial city dropdown setup - has options:', citySelect.options.length, 'current value:', citySelect.value);
-    if (citySelect.options.length > 1) { // More than just the prompt option
-      $('#investor_city').select2({
+  // Store initial values for restoration
+  const initialCityValue = '<%= @investor.city %>';
+  console.log('📍 Initial city value to preserve:', initialCityValue);
+
+  // Setup state-city dependency using the working form_enhancements approach
+  if (stateSelect && citySelect) {
+    setupInvestorStateCityDependency(stateSelect, citySelect, initialCityValue);
+  }
+
+  function setupInvestorStateCityDependency(stateSelect, citySelect, preserveCityValue) {
+    // Handle state change
+    function handleStateChange() {
+      const stateName = stateSelect.value;
+      console.log('🏛️ State changed to:', stateName);
+
+      if (!stateName) {
+        citySelect.innerHTML = '<option value="">Select State First</option>';
+        citySelect.disabled = true;
+        return;
+      }
+
+      // Show loading
+      citySelect.innerHTML = '<option value="">Loading cities...</option>';
+      citySelect.disabled = true;
+
+      // Find state key from state name using LocationData
+      let stateKey = null;
+      if (window.LocationData && window.LocationData.states) {
+        for (const [key, stateData] of Object.entries(window.LocationData.states)) {
+          if (stateData.name === stateName) {
+            stateKey = key;
+            break;
+          }
+        }
+      }
+
+      if (stateKey && window.LocationData.states[stateKey]) {
+        const cities = window.LocationData.states[stateKey].cities || [];
+        console.log('🏙️ Found', cities.length, 'cities for', stateName);
+        populateInvestorCityDropdown(cities, citySelect, preserveCityValue);
+        preserveCityValue = null; // Only preserve on first load
+      } else {
+        console.error('❌ State key not found for:', stateName);
+        citySelect.innerHTML = '<option value="">Error loading cities</option>';
+        citySelect.disabled = true;
+      }
+    }
+
+    // Bind events
+    stateSelect.addEventListener('change', handleStateChange);
+    $('#investor_state').on('select2:select', function (e) {
+      handleStateChange();
+    });
+
+    // Load initial cities if state is pre-selected
+    if (stateSelect.value) {
+      console.log('🔄 Loading initial cities for pre-selected state:', stateSelect.value);
+      setTimeout(() => {
+        handleStateChange();
+      }, 100);
+    }
+  }
+
+  function populateInvestorCityDropdown(cities, citySelect, restoreValue = null) {
+    console.log('🏙️ Populating city dropdown with', cities.length, 'cities, restore:', restoreValue);
+
+    // Destroy Select2 if exists
+    const $citySelect = $(citySelect);
+    if ($citySelect.hasClass('select2-hidden-accessible')) {
+      $citySelect.select2('destroy');
+    }
+
+    // Clear and populate
+    citySelect.innerHTML = '<option value="">Search and select city...</option>';
+
+    let optionToSelect = null;
+    cities.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      if (city === restoreValue) {
+        option.selected = true;
+        optionToSelect = option;
+        console.log('✅ Pre-selecting city:', city);
+      }
+      citySelect.appendChild(option);
+    });
+
+    citySelect.disabled = false;
+
+    // Initialize Select2 with error handling
+    try {
+      $citySelect.select2({
         theme: 'bootstrap-5',
         placeholder: 'Search and select city...',
         allowClear: true,
         width: '100%',
         minimumResultsForSearch: 0
       });
+      console.log('✅ Select2 initialized for city dropdown');
+    } catch (error) {
+      console.error('❌ Select2 initialization failed:', error);
     }
-  }
 
-  // Handle state change
-  stateSelect?.addEventListener('change', function() {
-    loadCitiesForState(this.value, false); // Don't preserve selection when user changes state
-  });
+    // Set value if needed
+    if (restoreValue && cities.includes(restoreValue)) {
+      console.log('🔄 Setting Select2 value:', restoreValue);
+      setTimeout(() => {
+        try {
+          $citySelect.val(restoreValue).trigger('change');
+          console.log('✅ City value set to:', $citySelect.val());
 
-  // Handle Select2 change event specifically
-  $('#investor_state').on('select2:select', function (e) {
-    const selectedValue = e.params.data.id;
-    loadCitiesForState(selectedValue, false); // Don't preserve selection when user changes state
-  });
+          // Force visual update
+          $citySelect.trigger('select2:select', {
+            data: { id: restoreValue, text: restoreValue }
+          });
 
-  // Load cities if state is pre-selected (preserve existing city selection)
-  if (stateSelect && stateSelect.value) {
-    const initialStateValue = stateSelect.value;
-    const initialCityValue = citySelect.value;
-
-    console.log('Initial page load - state is:', initialStateValue, 'city is:', initialCityValue);
-
-    // Check if city dropdown already has options and the correct value
-    const cityHasValue = initialCityValue && initialCityValue !== "";
-    const cityHasOptions = citySelect.options.length > 1;
-
-    console.log('City dropdown status:', {
-      hasValue: cityHasValue,
-      hasOptions: cityHasOptions,
-      currentValue: initialCityValue,
-      optionCount: citySelect.options.length
-    });
-
-    // Store the original city value to preserve it
-    const originalCityValue = initialCityValue;
-
-    // Always reload cities to ensure proper initialization and selection
-    console.log('Loading cities for state to ensure proper selection, preserving:', originalCityValue);
-    setTimeout(() => {
-      console.log('Delayed load - city value now:', citySelect.value, 'should preserve:', originalCityValue);
-
-      // Pass the original city value explicitly to preserve it
-      loadCitiesForStateWithValue(initialStateValue, originalCityValue);
-    }, 100); // Increased timeout to ensure DOM is ready
+          // Verify the visual state
+          setTimeout(() => {
+            const displayText = $citySelect.next('.select2-container').find('.select2-selection__rendered').text();
+            console.log('🔍 Final city display text:', displayText);
+            if (displayText === restoreValue) {
+              console.log('✅ City auto-loading successful!');
+            } else {
+              console.warn('⚠️ City display might not match:', displayText, 'vs', restoreValue);
+            }
+          }, 200);
+        } catch (error) {
+          console.error('❌ Error setting city value:', error);
+          // Fallback: set the native select value
+          citySelect.value = restoreValue;
+        }
+      }, 100);
+    }
   }
 
 

@@ -20,7 +20,7 @@
 </div>
 
 <!-- Kanban Board -->
-<div class="kanban-board" data-controller="drag-test">
+<div class="kanban-board" id="kanban-board">
   <div class="kanban-columns">
     <% @stages.each do |stage_key, stage_info| %>
       <div class="kanban-column" data-stage="<%= stage_key %>">
@@ -35,15 +35,14 @@
           </div>
         </div>
 
-        <div class="kanban-column-body" data-drop-target="<%= stage_key %>" data-drag-test-drop-zone-target>
+        <div class="kanban-column-body" data-drop-target="<%= stage_key %>">
           <% leads_in_stage = @leads_by_stage[stage_key] || [] %>
           <% if leads_in_stage.any? %>
             <% leads_in_stage.each do |lead| %>
               <div class="kanban-card"
                    draggable="true"
                    data-lead-id="<%= lead.id %>"
-                   data-current-stage="<%= lead.current_stage %>"
-                   data-drag-test-card-target>
+                   data-current-stage="<%= lead.current_stage %>">
 
                 <!-- Lead ID Badge -->
                 <div class="card-header">
@@ -389,24 +388,221 @@
 }
 </style>
 
-<!-- Debug Script -->
+<!-- Kanban Drag & Drop Script -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🐛 Kanban Flow Debug: DOM loaded');
-  console.log('🐛 Drag controller element found:', document.querySelector('[data-controller="drag-test"]'));
-  console.log('🐛 Card targets found:', document.querySelectorAll('[data-drag-test-card-target]').length);
-  console.log('🐛 Drop zone targets found:', document.querySelectorAll('[data-drag-test-drop-zone-target]').length);
+  console.log('🎯 Kanban Drag & Drop: Initializing...');
 
-  // Test if cards are draggable
-  const firstCard = document.querySelector('[data-drag-test-card-target]');
-  if (firstCard) {
-    console.log('🐛 First card draggable:', firstCard.draggable);
-    console.log('🐛 First card lead ID:', firstCard.dataset.leadId);
+  // Global variables for drag state
+  let draggedCard = null;
+  let draggedLeadId = null;
+  let draggedCurrentStage = null;
+
+  // Find all cards and drop zones
+  const cards = document.querySelectorAll('.kanban-card[data-lead-id]');
+  const dropZones = document.querySelectorAll('[data-drop-target]');
+
+  console.log(`📋 Found ${cards.length} cards and ${dropZones.length} drop zones`);
+
+  // Setup drag events for cards
+  cards.forEach((card, index) => {
+    console.log(`🎴 Setting up card ${index + 1}: Lead ${card.dataset.leadId}`);
+
+    card.addEventListener('dragstart', (e) => {
+      console.log('🖱️ DRAG START: Lead', card.dataset.leadId);
+      draggedCard = card;
+      draggedLeadId = card.dataset.leadId;
+      draggedCurrentStage = card.dataset.currentStage;
+
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', draggedLeadId);
+    });
+
+    card.addEventListener('dragend', (e) => {
+      console.log('🛑 DRAG END: Lead', card.dataset.leadId);
+      card.classList.remove('dragging');
+
+      // Clean up all drop zone styling
+      dropZones.forEach(zone => {
+        zone.classList.remove('drag-over');
+      });
+    });
+  });
+
+  // Setup drop events for drop zones
+  dropZones.forEach((zone, index) => {
+    console.log(`🎯 Setting up drop zone ${index + 1}: ${zone.dataset.dropTarget}`);
+
+    zone.addEventListener('dragover', (e) => {
+      console.log('🎯 DRAGOVER on zone:', zone.dataset.dropTarget);
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+
+    zone.addEventListener('dragenter', (e) => {
+      console.log('🚪 DRAGENTER on zone:', zone.dataset.dropTarget);
+      e.preventDefault();
+      zone.classList.add('drag-over');
+    });
+
+    zone.addEventListener('dragleave', (e) => {
+      if (!zone.contains(e.relatedTarget)) {
+        console.log('🚪 DRAGLEAVE from zone:', zone.dataset.dropTarget);
+        zone.classList.remove('drag-over');
+      }
+    });
+
+    zone.addEventListener('drop', async (e) => {
+      console.log('📥 DROP EVENT: Target zone', zone.dataset.dropTarget);
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+
+      const targetStage = zone.dataset.dropTarget;
+
+      if (!draggedLeadId || !targetStage) {
+        console.error('❌ Missing drag data');
+        return;
+      }
+
+      if (targetStage === draggedCurrentStage) {
+        console.log('⚠️ Same stage - no change needed');
+        return;
+      }
+
+      console.log(`🔄 Moving lead ${draggedLeadId} from ${draggedCurrentStage} to ${targetStage}`);
+
+      try {
+        const success = await updateLeadStage(draggedLeadId, targetStage);
+
+        if (success) {
+          console.log('✅ Backend update successful');
+          moveCardToColumn(draggedLeadId, targetStage);
+          showMessage('✅ Lead stage updated successfully!', 'success');
+        } else {
+          console.log('❌ Backend update failed');
+          showMessage('❌ Failed to update lead stage', 'error');
+        }
+      } catch (error) {
+        console.error('💥 Error updating lead:', error);
+        showMessage('❌ Error: ' + error.message, 'error');
+      }
+    });
+  });
+
+  async function updateLeadStage(leadId, newStage) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (!csrfToken) {
+      console.error('❌ No CSRF token found');
+      return false;
+    }
+
+    const url = `/admin/leads/${leadId}/convert_stage`;
+    console.log(`🌐 AJAX: ${url} with stage=${newStage}`);
+
+    try {
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ stage: newStage })
+      });
+
+      console.log(`📨 Response: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Server error:', errorText);
+        return false;
+      }
+
+      const result = await response.json();
+      console.log('📬 Server response:', result);
+      return result.success !== false;
+
+    } catch (error) {
+      console.error('💥 Network error:', error);
+      return false;
+    }
   }
 
-  // Log Stimulus controllers
-  setTimeout(() => {
-    console.log('🐛 Active Stimulus controllers:', window.Stimulus?.controllers?.size || 'Unknown');
-  }, 1000);
+  function moveCardToColumn(leadId, targetStage) {
+    const card = document.querySelector(`[data-lead-id="${leadId}"]`);
+    const targetColumn = document.querySelector(`[data-drop-target="${targetStage}"]`);
+
+    if (!card || !targetColumn) {
+      console.error('❌ Could not find card or target column');
+      return;
+    }
+
+    console.log('🔄 Moving card in DOM');
+
+    // Update card's stage data
+    card.dataset.currentStage = targetStage;
+
+    // Remove any empty state from target column
+    const emptyState = targetColumn.querySelector('.empty-column');
+    if (emptyState) {
+      emptyState.remove();
+    }
+
+    // Move card to new column
+    targetColumn.appendChild(card);
+
+    // Update column counts
+    updateColumnCounts();
+
+    console.log('✅ Card moved successfully');
+  }
+
+  function updateColumnCounts() {
+    document.querySelectorAll('.kanban-column').forEach(column => {
+      const stage = column.querySelector('[data-drop-target]')?.dataset.dropTarget;
+      const cardCount = column.querySelectorAll('.kanban-card').length;
+      const badge = column.querySelector('.badge');
+
+      if (badge && stage) {
+        badge.textContent = cardCount;
+      }
+    });
+  }
+
+  function showMessage(message, type) {
+    console.log(`💬 ${type}: ${message}`);
+
+    // Create a toast notification
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 10000; min-width: 300px; border-radius: 8px;';
+    notification.innerHTML = `
+      <div class="d-flex align-items-center">
+        <i class="bi bi-${type === 'success' ? 'check-circle' : 'x-circle'} me-2"></i>
+        ${message}
+      </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+
+    // Visual feedback
+    if (type === 'success') {
+      document.body.style.border = '3px solid #28a745';
+    } else {
+      document.body.style.border = '3px solid #dc3545';
+    }
+
+    setTimeout(() => {
+      document.body.style.border = 'none';
+    }, 1500);
+  }
+
+  console.log('🚀 Kanban Drag & Drop: Ready!');
 });
 </script>
