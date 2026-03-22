@@ -147,6 +147,28 @@ class Customer < ApplicationRecord
     customer_type == 'corporate'
   end
 
+  def initials
+    if individual?
+      # For individual customers, use first and last name
+      names = [first_name, last_name].compact.map(&:strip).reject(&:blank?)
+      names.map { |name| name[0].upcase }.join('')
+    else
+      # For corporate customers, use company name
+      return 'C' if company_name.blank?
+
+      # Get first letters of company name words
+      words = company_name.strip.split(/\s+/).reject(&:blank?)
+      if words.length >= 2
+        words.first(2).map { |word| word[0].upcase }.join('')
+      else
+        company_name.strip[0].upcase
+      end
+    end
+  rescue
+    # Fallback in case of any error
+    individual? ? 'U' : 'C'
+  end
+
   # Image helper methods
   def profile_image_url
     if profile_image.attached?

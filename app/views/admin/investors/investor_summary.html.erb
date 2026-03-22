@@ -55,7 +55,7 @@
           <div class="d-flex justify-content-between">
             <div>
               <h6 class="text-muted mb-2">Total Shares</h6>
-              <h4 class="mb-0 text-primary"><%= @total_shares %></h4>
+              <h4 class="mb-0 text-primary"><%= number_with_delimiter(@total_shares) %></h4>
             </div>
             <div class="bg-primary bg-opacity-10 rounded p-3">
               <i class="bi bi-pie-chart text-primary fs-4"></i>
@@ -109,7 +109,7 @@
               <small class="text-muted">Detailed calculation of profit distribution based on shares</small>
             </div>
             <div>
-              <small class="text-muted">Calculation: ₹<%= number_with_delimiter(@total_commission_pool.to_i) %> ÷ <%= @total_shares %> shares = ₹<%= number_with_delimiter(@profit_per_share.to_i) %> per share</small>
+              <small class="text-muted">Calculation: ₹<%= number_with_delimiter(@total_commission_pool.to_i) %> ÷ <%= number_with_delimiter(@total_shares) %> shares = ₹<%= number_with_delimiter(@profit_per_share.to_i) %> per share</small>
             </div>
           </div>
         </div>
@@ -149,7 +149,7 @@
                       </div>
                     </td>
                     <td class="text-center">
-                      <span class="badge bg-primary fs-6"><%= data[:shares] %></span>
+                      <span class="badge bg-primary fs-6"><%= number_with_delimiter(data[:shares]) %></span>
                     </td>
                     <td>
                       <strong class="text-success">₹<%= number_with_delimiter(data[:invested_amount].to_i) %></strong>
@@ -177,7 +177,7 @@
                   <td><strong></strong></td>
                   <td><strong>TOTAL</strong></td>
                   <td class="text-center">
-                    <span class="badge bg-dark fs-6"><%= @total_shares %></span>
+                    <span class="badge bg-dark fs-6"><%= number_with_delimiter(@total_shares) %></span>
                   </td>
                   <td>
                     <strong class="text-success">₹<%= number_with_delimiter(@total_invested_amount.to_i) %></strong>

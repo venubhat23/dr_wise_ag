@@ -79,6 +79,49 @@ class Admin::LeadsController < Admin::ApplicationController
     end
   end
 
+  # GET /admin/leads/kanban
+  def kanban
+    # Load leads grouped by stage for Kanban board
+    @leads_by_stage = Lead.includes(:converted_customer, :affiliate)
+                          .where(converted_customer_id: nil) # Exclude converted leads
+                          .group_by(&:current_stage)
+    # Get stage definitions with display names and colors
+    @stages = {
+      'lead_generated' => { name: 'Lead Generated', color: 'primary' },
+      'consultation_scheduled' => { name: 'Consultation', color: 'info' },
+      'one_on_one' => { name: 'One-on-One', color: 'warning' },
+      'follow_up' => { name: 'Follow-Up', color: 'secondary' },
+      'follow_up_successful' => { name: 'Follow-Up Success', color: 'success' },
+      'follow_up_unsuccessful' => { name: 'Follow-Up Failed', color: 'danger' },
+      'not_interested' => { name: 'Not Interested', color: 'dark' },
+      're_follow_up' => { name: 'Re-Follow Up', color: 'warning' },
+      'converted' => { name: 'Converted', color: 'success' },
+      'lead_closed' => { name: 'Closed', color: 'secondary' }
+    }
+  end
+
+  # GET /admin/leads/kanban_flow
+  def kanban_flow
+    # Load leads grouped by stage for Kanban board
+    @leads_by_stage = Lead.includes(:customer, :affiliate)
+                          .where(converted_customer_id: nil) # Exclude converted leads
+                          .group_by(&:current_stage)
+
+    # Get stage definitions with display names and colors
+    @stages = {
+      'lead_generated' => { name: 'Lead Generated', color: 'primary' },
+      'consultation_scheduled' => { name: 'Consultation', color: 'info' },
+      'one_on_one' => { name: 'One-on-One', color: 'warning' },
+      'follow_up' => { name: 'Follow-Up', color: 'secondary' },
+      'follow_up_successful' => { name: 'Follow-Up Success', color: 'success' },
+      'follow_up_unsuccessful' => { name: 'Follow-Up Failed', color: 'danger' },
+      'not_interested' => { name: 'Not Interested', color: 'dark' },
+      're_follow_up' => { name: 'Re-Follow Up', color: 'warning' },
+      'converted' => { name: 'Converted', color: 'success' },
+      'lead_closed' => { name: 'Closed', color: 'secondary' }
+    }
+  end
+
   # GET /admin/leads/1
   def show
     @activity_logs = []

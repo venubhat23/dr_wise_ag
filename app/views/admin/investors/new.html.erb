@@ -81,16 +81,16 @@
 
       <div class="row mt-3">
         <div class="col-md-4">
-          <%= form.label :state_id, "State", class: "form-label" %>
-          <%= form.select :state_id,
-              options_for_select(LocationData.states_for_select, @investor.state_id),
+          <%= form.label :state, "State", class: "form-label" %>
+          <%= form.select :state,
+              options_for_select(LocationData.states_for_select.map { |name, _| [name, name] }, @investor.state),
               { prompt: 'Search and select state...' },
               { class: "form-select searchable-select", id: "investor_state", data: { placeholder: "Type to search states..." } } %>
         </div>
         <div class="col-md-4">
-          <%= form.label :city_id, "City", class: "form-label" %>
-          <%= form.select :city_id,
-              options_for_select([], @investor.city_id),
+          <%= form.label :city, "City", class: "form-label" %>
+          <%= form.select :city,
+              options_for_select([], @investor.city),
               { prompt: 'Search and select city...' },
               { class: "form-select searchable-select", id: "investor_city", disabled: true, data: { placeholder: "Type to search cities..." } } %>
         </div>

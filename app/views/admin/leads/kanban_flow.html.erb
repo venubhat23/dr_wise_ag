@@ -1,0 +1,394 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">
+      <i class="bi bi-diagram-3 me-2 text-success"></i>
+      Kanban Flow
+    </h2>
+    <p class="text-muted mb-0">Visual workflow management for leads</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to admin_leads_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Leads
+    <% end %>
+    <%= link_to kanban_admin_leads_path, class: "btn btn-outline-primary" do %>
+      <i class="bi bi-kanban me-1"></i>
+      Kanban Board
+    <% end %>
+    <%= link_to new_admin_lead_path, class: "btn btn-primary" do %>
+      <i class="bi bi-plus-lg me-1"></i>
+      Add New Lead
+    <% end %>
+  </div>
+</div>
+
+<!-- Kanban Board -->
+<div class="kanban-board" data-controller="drag">
+  <div class="kanban-columns">
+    <% @stages.each do |stage_key, stage_info| %>
+      <div class="kanban-column" data-stage="<%= stage_key %>">
+        <div class="kanban-column-header bg-<%= stage_info[:color] %>">
+          <div class="column-title">
+            <h6 class="mb-0 text-white fw-bold">
+              <%= stage_info[:name] %>
+            </h6>
+            <span class="badge bg-white text-<%= stage_info[:color] %> ms-2">
+              <%= (@leads_by_stage[stage_key] || []).count %>
+            </span>
+          </div>
+        </div>
+
+        <div class="kanban-column-body" data-drop-target="<%= stage_key %>">
+          <% leads_in_stage = @leads_by_stage[stage_key] || [] %>
+          <% if leads_in_stage.any? %>
+            <% leads_in_stage.each do |lead| %>
+              <div class="kanban-card"
+                   draggable="true"
+                   data-lead-id="<%= lead.id %>"
+                   data-current-stage="<%= lead.current_stage %>"
+                   data-drag-target="card">
+
+                <!-- Lead ID Badge -->
+                <div class="card-header">
+                  <span class="badge bg-primary fs-7">
+                    <%= lead.lead_id.presence || "LEAD-#{lead.id}" %>
+                  </span>
+                  <% if lead.is_branch_out? %>
+                    <span class="badge bg-success fs-7">
+                      <i class="bi bi-diagram-3"></i> Branch
+                    </span>
+                  <% end %>
+                </div>
+
+                <!-- Lead Details -->
+                <div class="card-body">
+                  <h6 class="card-title mb-2"><%= lead.name %></h6>
+
+                  <div class="lead-meta">
+                    <div class="meta-item">
+                      <i class="bi bi-telephone text-muted"></i>
+                      <small><%= lead.contact_number %></small>
+                    </div>
+
+                    <% if lead.email.present? %>
+                      <div class="meta-item">
+                        <i class="bi bi-envelope text-muted"></i>
+                        <small><%= truncate(lead.email, length: 20) %></small>
+                      </div>
+                    <% end %>
+
+                    <div class="meta-item">
+                      <i class="bi bi-tag text-muted"></i>
+                      <small><%= lead.product_category&.humanize || 'N/A' %></small>
+                    </div>
+
+                    <% if lead.product_subcategory.present? %>
+                      <div class="meta-item">
+                        <i class="bi bi-tags text-muted"></i>
+                        <small><%= truncate(lead.product_subcategory, length: 15) %></small>
+                      </div>
+                    <% end %>
+                  </div>
+
+                  <!-- Affiliate Info -->
+                  <div class="affiliate-info mt-2">
+                    <% if lead.is_direct %>
+                      <span class="badge bg-warning text-dark fs-8">Direct</span>
+                    <% elsif lead.affiliate %>
+                      <span class="badge bg-info fs-8">
+                        <i class="bi bi-person"></i>
+                        <%= truncate(lead.affiliate.full_name, length: 15) %>
+                      </span>
+                    <% end %>
+                  </div>
+
+                  <!-- Created Date -->
+                  <div class="created-date mt-2">
+                    <small class="text-muted">
+                      <i class="bi bi-calendar"></i>
+                      <%= lead.created_date&.strftime('%d/%m/%Y') || lead.created_at&.strftime('%d/%m/%Y') %>
+                    </small>
+                  </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card-footer">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <%= link_to admin_lead_path(lead),
+                        class: "btn btn-sm btn-outline-primary",
+                        title: "View Details" do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+
+                    <%= link_to edit_admin_lead_path(lead),
+                        class: "btn btn-sm btn-outline-warning",
+                        title: "Edit" do %>
+                      <i class="bi bi-pencil"></i>
+                    <% end %>
+
+                    <% if lead.can_convert_to_customer? %>
+                      <%= link_to convert_to_customer_admin_lead_path(lead),
+                          method: :patch,
+                          class: "btn btn-sm btn-success",
+                          title: "Convert" do %>
+                        <i class="bi bi-person-plus"></i>
+                      <% end %>
+                    <% elsif lead.converted_customer.present? %>
+                      <%= link_to admin_customer_path(lead.converted_customer),
+                          class: "btn btn-sm btn-info",
+                          title: "View Customer" do %>
+                        <i class="bi bi-person-check"></i>
+                      <% end %>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="empty-column">
+              <i class="bi bi-inbox text-muted"></i>
+              <p class="text-muted mb-0">No leads</p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="kanban-loading" class="d-none position-fixed top-0 start-0 w-100 h-100" style="background: rgba(0,0,0,0.5); z-index: 9999;">
+  <div class="d-flex justify-content-center align-items-center h-100">
+    <div class="spinner-border text-light" role="status">
+      <span class="visually-hidden">Updating...</span>
+    </div>
+  </div>
+</div>
+
+<!-- Kanban Board Styles -->
+<style>
+/* Kanban Board Container */
+.kanban-board {
+  height: calc(100vh - 200px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.kanban-columns {
+  display: flex;
+  gap: 20px;
+  min-height: 100%;
+  align-items: flex-start;
+}
+
+/* Kanban Columns */
+.kanban-column {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 280px;
+  max-width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+  max-height: calc(100vh - 260px);
+}
+
+.kanban-column-header {
+  padding: 16px 20px;
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.column-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kanban-column-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  max-height: calc(100vh - 340px);
+  min-height: 200px;
+}
+
+/* Kanban Cards */
+.kanban-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  cursor: grab;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.kanban-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: #007bff;
+}
+
+.kanban-card.dragging {
+  opacity: 0.8;
+  transform: rotate(2deg);
+  cursor: grabbing;
+  z-index: 1000;
+}
+
+.kanban-card .card-header {
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  padding: 12px 16px 8px;
+  border-radius: 8px 8px 0 0;
+}
+
+.kanban-card .card-body {
+  padding: 12px 16px;
+}
+
+.kanban-card .card-footer {
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  padding: 8px 16px;
+  border-radius: 0 0 8px 8px;
+}
+
+.kanban-card .card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+/* Lead Meta Information */
+.lead-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+}
+
+.meta-item i {
+  width: 12px;
+  flex-shrink: 0;
+}
+
+/* Badges */
+.fs-7 {
+  font-size: 0.75rem !important;
+}
+
+.fs-8 {
+  font-size: 0.7rem !important;
+}
+
+/* Empty Column State */
+.empty-column {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+}
+
+.empty-column i {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+/* Drop Zone Styling */
+.kanban-column-body.drag-over {
+  background: rgba(13, 110, 253, 0.1);
+  border: 2px dashed #007bff;
+  border-radius: 8px;
+}
+
+.kanban-column-body.drop-valid {
+  background: rgba(25, 135, 84, 0.1);
+  border: 2px dashed #28a745;
+}
+
+.kanban-column-body.drop-invalid {
+  background: rgba(220, 53, 69, 0.1);
+  border: 2px dashed #dc3545;
+}
+
+/* Action Buttons */
+.kanban-card .btn-sm {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .kanban-columns {
+    gap: 16px;
+  }
+
+  .kanban-column {
+    min-width: 260px;
+    max-width: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  .kanban-board {
+    padding: 12px;
+    height: calc(100vh - 180px);
+  }
+
+  .kanban-columns {
+    gap: 12px;
+  }
+
+  .kanban-column {
+    min-width: 240px;
+    max-width: 260px;
+  }
+}
+
+/* Scrollbar Styling */
+.kanban-column-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.kanban-column-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.kanban-column-body::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.kanban-column-body::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Animation for card movement */
+@keyframes cardMove {
+  0% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.kanban-card.just-moved {
+  animation: cardMove 0.3s ease-out;
+}
+</style>

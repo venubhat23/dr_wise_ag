@@ -249,7 +249,7 @@
           <%= form.number_field :gst_percentage,
               class: "form-control",
               value: @health_insurance.gst_percentage || 18,
-              step: 0.01, id: "gst_percentage" %>
+              step: 0.01, min: 0, id: "gst_percentage" %>
         </div>
 
         <div class="col-md-4 mb-3">

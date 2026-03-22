@@ -302,7 +302,7 @@ class Admin::InvestorsController < Admin::ApplicationController
   def investor_params
     params.require(:investor).permit(
       :first_name, :middle_name, :last_name, :mobile, :email, :role_id,
-      :state_id, :city_id, :birth_date, :gender, :pan_no, :gst_no,
+      :state, :city, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
       :account_holder_name, :account_type, :upi_id, :status,
       :username, :password, :password_confirmation, :original_password,

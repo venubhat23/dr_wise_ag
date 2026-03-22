@@ -511,6 +511,8 @@ Rails.application.routes.draw do
         get :check_existing_customer
         get :search_sub_agents
         post :branch_out
+        get :kanban
+        get :kanban_flow
       end
     end
 

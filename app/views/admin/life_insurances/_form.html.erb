@@ -285,7 +285,7 @@
           <%= form.number_field :first_year_gst_percentage,
               class: "form-control",
               value: @life_insurance.first_year_gst_percentage || 18,
-              step: 0.01, id: "first_year_gst" %>
+              step: 0.01, min: 0, id: "first_year_gst" %>
         </div>
 
         <div class="col-md-4 mb-3">

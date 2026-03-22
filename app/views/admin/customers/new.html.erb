@@ -98,7 +98,7 @@
           <div class="col-md-6">
             <%= form.label :profile_image, "Profile Image", class: "form-label" %>
             <%= form.file_field :profile_image, class: "form-control", accept: "image/*", id: "corporate_profile_image" %>
-            <small class="form-text text-muted">No file chosen</small>
+            <small class="form-text text-muted">Profile image will be saved to cloud storage (R2)</small>
 
             <!-- Profile Image Preview -->
             <%= render 'shared/file_upload_preview',
@@ -318,7 +318,7 @@
           <div class="col-md-6">
             <%= form.label :profile_image, "Profile Image", class: "form-label" %>
             <%= form.file_field :profile_image, class: "form-control", accept: "image/*", id: "individual_profile_image" %>
-            <small class="form-text text-muted">Upload profile photo (optional)</small>
+            <small class="form-text text-muted">Profile image will be saved to cloud storage (R2)</small>
 
             <!-- Profile Image Preview -->
             <%= render 'shared/file_upload_preview',

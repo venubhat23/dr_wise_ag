@@ -839,6 +839,14 @@ class Admin::CustomersController < Admin::ApplicationController
     begin
       ActiveRecord::Base.transaction do
         if @customer.save
+          # Handle profile image upload to R2
+          begin
+            handle_profile_image_upload if params[:customer]&.[](:profile_image).present?
+          rescue => upload_error
+            Rails.logger.error "Profile image upload failed: #{upload_error.message}"
+            # Continue with customer creation even if profile image upload fails
+          end
+
           # Handle document file uploads after customer creation (with error handling)
           begin
             handle_customer_document_uploads if params[:customer]&.[](:documents_attributes).present?
@@ -946,6 +954,14 @@ class Admin::CustomersController < Admin::ApplicationController
       uploaded_documents_attrs = params[:customer]&.[](:uploaded_documents_attributes)
 
       if @customer.update(customer_params.except(:uploaded_documents_attributes))
+        # Handle profile image upload to R2
+        begin
+          handle_profile_image_upload if params[:customer]&.[](:profile_image).present?
+        rescue => upload_error
+          Rails.logger.error "Profile image upload failed: #{upload_error.message}"
+          # Continue with customer update even if profile image upload fails
+        end
+
         # Handle R2 document uploads after customer is saved
         upload_success = handle_document_uploads(uploaded_documents_attrs) if uploaded_documents_attrs.present?
 
@@ -1210,7 +1226,6 @@ class Admin::CustomersController < Admin::ApplicationController
       :nominee_date_of_birth, :status, :birth_place, :height_feet, :weight_kg, :education,
       :marital_status, :business_job, :business_name, :type_of_duty, :additional_information, :additional_info,
       :added_by, :sub_agent_id, :age, :lead_id,
-      :profile_image,
       profile_images: [],
       documents: [],
       documents_attributes: [:id, :document_type, :document_file, :_destroy],
@@ -1251,6 +1266,26 @@ class Admin::CustomersController < Admin::ApplicationController
           # Don't fail the whole transaction, just log the error
         end
       end
+    end
+  end
+
+  def handle_profile_image_upload
+    profile_image_file = params[:customer][:profile_image]
+    return unless profile_image_file.present?
+
+    # Create or find existing profile image document
+    profile_document = @customer.documents.find_or_initialize_by(document_type: 'Profile Image')
+
+    # Upload file to R2
+    upload_result = profile_document.upload_to_r2(profile_image_file)
+
+    if upload_result[:success]
+      # Save the document record if it's new
+      profile_document.save! if profile_document.new_record?
+      Rails.logger.info "Successfully uploaded profile image to R2: #{upload_result[:key]}"
+    else
+      Rails.logger.error "Failed to upload profile image to R2: #{upload_result[:error]}"
+      raise "Profile image upload failed: #{upload_result[:error]}"
     end
   end
 

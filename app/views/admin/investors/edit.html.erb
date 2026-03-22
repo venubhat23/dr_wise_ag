@@ -81,18 +81,24 @@
 
       <div class="row mt-3">
         <div class="col-md-4">
-          <%= form.label :state_id, "State", class: "form-label" %>
-          <%= form.select :state_id,
-              options_for_select(LocationData.states_for_select, @investor.state_id),
+          <%= form.label :state, "State", class: "form-label" %>
+          <%= form.select :state,
+              options_for_select(LocationData.states_for_select.map { |name, _| [name, name] }, @investor.state),
               { prompt: 'Search and select state...' },
               { class: "form-select searchable-select", id: "investor_state", data: { placeholder: "Type to search states..." } } %>
         </div>
         <div class="col-md-4">
-          <%= form.label :city_id, "City", class: "form-label" %>
-          <%= form.select :city_id,
-              options_for_select([], @investor.city_id),
+          <%= form.label :city, "City", class: "form-label" %>
+          <%
+            # Get cities for the current state, using state name
+            current_state_key = LocationData.states_for_select.find { |name, _| name == @investor.state }&.last
+            cities_for_current_state = current_state_key ? LocationData.cities_for_state(current_state_key) : []
+            city_options = cities_for_current_state.map { |city| [city, city] }
+          %>
+          <%= form.select :city,
+              options_for_select(city_options, @investor.city),
               { prompt: 'Search and select city...' },
-              { class: "form-select searchable-select", id: "investor_city", disabled: true, data: { placeholder: "Type to search cities..." } } %>
+              { class: "form-select searchable-select", id: "investor_city", disabled: @investor.state.blank?, data: { placeholder: "Type to search cities..." } } %>
         </div>
         <div class="col-md-4">
           <%= form.label :gender, "Gender", class: "form-label" %>
@@ -474,20 +480,34 @@ document.addEventListener('DOMContentLoaded', function() {
     }, {});
   }
 
-  function loadCitiesForState(stateValue) {
-    console.log('Loading cities for investor state:', stateValue);
-    if (!stateValue) {
+  function loadCitiesForState(stateName) {
+    console.log('Loading cities for investor state:', stateName);
+    if (!stateName) {
       populateCityDropdown([]);
       citySelect.disabled = true;
       return;
     }
 
+    // Find the state key by name in LocationData using states_for_select format
+    let stateKey = null;
+    if (window.LocationData && window.LocationData.states) {
+      for (const [key, stateData] of Object.entries(window.LocationData.states)) {
+        if (stateData.name === stateName) {
+          stateKey = key;
+          break;
+        }
+      }
+    }
+
     // Get cities for this state from local data
-    let cities = citiesData[stateValue] || [];
+    let cities = stateKey ? (citiesData[stateKey] || []) : [];
     populateCityDropdown(cities);
   }
 
   function populateCityDropdown(cities) {
+    // Store current value to preserve selection
+    const currentValue = citySelect.value;
+
     // First destroy Select2 if it exists
     const $citySelect = $(citySelect);
     if ($citySelect.hasClass('select2-hidden-accessible')) {
@@ -500,6 +520,10 @@ document.addEventListener('DOMContentLoaded', function() {
       const option = document.createElement('option');
       option.value = city;
       option.textContent = city;
+      // Preserve current selection
+      if (city === currentValue) {
+        option.selected = true;
+      }
       citySelect.appendChild(option);
     });
 
@@ -514,6 +538,11 @@ document.addEventListener('DOMContentLoaded', function() {
       width: '100%',
       minimumResultsForSearch: 0
     });
+
+    // Set the value again to ensure Select2 shows the correct selection
+    if (currentValue) {
+      $citySelect.val(currentValue).trigger('change');
+    }
   }
 
   // Initialize Select2 on state dropdown

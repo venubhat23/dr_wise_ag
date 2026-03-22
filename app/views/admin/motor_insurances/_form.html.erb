@@ -321,7 +321,7 @@
           <%= form.label :gst_percentage, "GST %*", class: "form-label" %>
           <%= form.number_field :gst_percentage,
               class: "form-control #{'is-invalid' if @motor_insurance.errors[:gst_percentage].any?}",
-              value: 18, step: 0.01, required: true, id: "gst_percentage" %>
+              value: 18, step: 0.01, min: 0, required: true, id: "gst_percentage" %>
           <% if @motor_insurance.errors[:gst_percentage].any? %>
             <div class="invalid-feedback"><%= @motor_insurance.errors[:gst_percentage].first %></div>
           <% end %>

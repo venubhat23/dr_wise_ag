@@ -29,8 +29,7 @@ class CustomerDocument < ApplicationRecord
 
   def document_url
     return nil unless r2_file_key.present?
-    # Use configured public R2 domain from R2_CONFIG
-    "#{R2_CONFIG[:public_url]}/#{r2_file_key}"
+    R2Service.public_url(r2_file_key)
   end
 
   def public_document_url
