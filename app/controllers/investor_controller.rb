@@ -10,17 +10,35 @@ class InvestorController < ApplicationController
   end
 
   def profit_summary
-    # Get detailed profit breakdown for this investor only
-    @profit_breakdown = calculate_detailed_profit_breakdown
+    # Get company-wide statistics for context
+    @total_commission_pool = CommissionPayout.where(payout_to: 'investor').sum(:payout_amount) || 0
+    @total_shares = Investor.where.not(number_of_shares: nil).where('number_of_shares > 0').sum(:number_of_shares) || 0
+    @profit_per_share = @total_shares > 0 ? @total_commission_pool / @total_shares : 0
+    @system_investment_amount = SystemSetting.investment_amount || 0
 
-    # Get policy-wise profit details
-    @policy_profits = calculate_policy_wise_profits
+    # Calculate this investor's specific profit data
+    shares = @investor.number_of_shares || 0
+    invested_amount = @investor.invested_amount || 0
+    sharing_percentage = @investor.investment_percentage || 0
 
-    # Get monthly profit trends
-    @monthly_profit_trends = calculate_monthly_profit_trends
+    # Calculate profit amounts for this investor
+    profit_amount = shares * @profit_per_share
+    actual_profit_shared_percentage = @investor.investment_percentage || 0
+    actual_profit_shared = profit_amount * (actual_profit_shared_percentage / 100)
+    roi = invested_amount > 0 ? (actual_profit_shared / invested_amount * 100) : 0
 
-    # Calculate total profit statistics
-    @total_profit_stats = calculate_total_profit_stats
+    # Store investor-specific data
+    @investor_profit_data = {
+      sl_no: 1,
+      investor: @investor,
+      shares: shares,
+      invested_amount: invested_amount,
+      sharing_percentage: sharing_percentage,
+      profit_amount: profit_amount,
+      actual_profit_shared_percentage: actual_profit_shared_percentage,
+      actual_profit_shared: actual_profit_shared,
+      roi: roi
+    }
   end
 
   private

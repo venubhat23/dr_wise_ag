@@ -186,6 +186,9 @@ class Admin::InvestorsController < Admin::ApplicationController
     @investor.role_id = 'investor'
 
     if @investor.save
+      # Create corresponding User account for investor authentication
+      create_investor_user_account(@investor)
+
       # Handle R2 file upload for main document
       handle_r2_upload(@investor) if params[:investor][:upload_main_document].present?
 
@@ -393,6 +396,44 @@ class Admin::InvestorsController < Admin::ApplicationController
 
     if error_count > 0
       flash[:alert] = (flash[:alert] || '') + " #{error_count} document(s) failed to upload."
+    end
+  end
+
+  # Create User account for investor authentication
+  def create_investor_user_account(investor)
+    return if User.find_by(email: investor.email) # Skip if user already exists
+
+    # Get investor role (create if not exists)
+    investor_role = Role.find_by(name: 'investor')
+    if investor_role.nil?
+      investor_role = Role.create!(
+        name: 'investor',
+        description: 'Investor role for profit sharing dashboard access',
+        status: 'active'
+      )
+    end
+
+    # Use investor's password or default
+    password = investor.original_password.presence || 'Ganesha@123'
+
+    # Create User account
+    user = User.new(
+      email: investor.email,
+      first_name: investor.first_name,
+      last_name: investor.last_name,
+      mobile: investor.mobile,
+      user_type: 'investor',
+      role: investor_role,
+      password: password,
+      password_confirmation: password
+    )
+
+    if user.save
+      Rails.logger.info "✅ Created User account for investor: #{investor.email}"
+      flash[:notice] = (flash[:notice] || '') + " User account created for investor login."
+    else
+      Rails.logger.error "❌ Failed to create User account for investor #{investor.email}: #{user.errors.full_messages}"
+      flash[:alert] = (flash[:alert] || '') + " Warning: Could not create user account for investor login."
     end
   end
 end

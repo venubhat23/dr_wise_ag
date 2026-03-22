@@ -1,27 +1,44 @@
-<div class="container-fluid">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Investment Summary - <%= @investor.full_name %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+</head>
+<body class="bg-light">
+
+<div class="container-fluid py-4">
   <!-- Page Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h2 class="mb-1">Profit Summary Dashboard</h2>
-      <p class="text-muted mb-0">Detailed profit breakdown for <%= @investor.full_name %></p>
+      <h1 class="h3 mb-1">
+        <i class="bi bi-person-circle text-primary me-2"></i>
+        My Investment Summary
+      </h1>
+      <p class="text-muted mb-0">Profit sharing details for <%= @investor.full_name %></p>
     </div>
-    <div>
-      <%= link_to investor_dashboard_path, class: "btn btn-outline-secondary" do %>
-        <i class="bi bi-arrow-left me-1"></i>
-        Back to Dashboard
+    <div class="d-flex align-items-center gap-3">
+      <small class="text-muted">Generated: <%= Time.current.strftime("%B %d, %Y at %I:%M %p") %></small>
+      <%= link_to destroy_user_session_path, method: :delete, class: "btn btn-outline-danger btn-sm",
+          data: { confirm: "Are you sure you want to logout?" } do %>
+        <i class="bi bi-box-arrow-right me-1"></i>
+        Logout
       <% end %>
     </div>
   </div>
 
-  <!-- Statistics Cards -->
+  <!-- Key Statistics Row -->
   <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-      <div class="card h-100 border-0 shadow-sm">
+      <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between">
             <div>
-              <h6 class="text-muted mb-2">Total Profit</h6>
-              <h3 class="mb-0 text-success"><%= indian_currency(@total_profit_stats[:total_profit], show_decimals: true) %></h3>
+              <h6 class="text-muted mb-2">Commission Pool</h6>
+              <h4 class="mb-0 text-success">₹<%= number_with_delimiter(@total_commission_pool.to_i) %></h4>
+              <small class="text-muted">Company Total</small>
             </div>
             <div class="bg-success bg-opacity-10 rounded p-3">
               <i class="bi bi-currency-rupee text-success fs-4"></i>
@@ -32,15 +49,16 @@
     </div>
 
     <div class="col-xl-3 col-md-6 mb-3">
-      <div class="card h-100 border-0 shadow-sm">
+      <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between">
             <div>
-              <h6 class="text-muted mb-2">Total Policies</h6>
-              <h3 class="mb-0 text-primary"><%= @total_profit_stats[:total_policies] %></h3>
+              <h6 class="text-muted mb-2">Total Shares</h6>
+              <h4 class="mb-0 text-primary"><%= @total_shares %></h4>
+              <small class="text-muted">All Investors</small>
             </div>
             <div class="bg-primary bg-opacity-10 rounded p-3">
-              <i class="bi bi-file-text text-primary fs-4"></i>
+              <i class="bi bi-pie-chart text-primary fs-4"></i>
             </div>
           </div>
         </div>
@@ -48,12 +66,13 @@
     </div>
 
     <div class="col-xl-3 col-md-6 mb-3">
-      <div class="card h-100 border-0 shadow-sm">
+      <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between">
             <div>
-              <h6 class="text-muted mb-2">Avg Profit/Policy</h6>
-              <h3 class="mb-0 text-info"><%= indian_currency(@total_profit_stats[:average_profit_per_policy], show_decimals: true) %></h3>
+              <h6 class="text-muted mb-2">Profit Per Share</h6>
+              <h4 class="mb-0 text-info">₹<%= number_with_delimiter(@profit_per_share.to_i) %></h4>
+              <small class="text-muted">Current Rate</small>
             </div>
             <div class="bg-info bg-opacity-10 rounded p-3">
               <i class="bi bi-graph-up text-info fs-4"></i>
@@ -64,15 +83,16 @@
     </div>
 
     <div class="col-xl-3 col-md-6 mb-3">
-      <div class="card h-100 border-0 shadow-sm">
+      <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between">
             <div>
-              <h6 class="text-muted mb-2">Profit Margin</h6>
-              <h3 class="mb-0 text-warning"><%= @total_profit_stats[:profit_margin] %>%</h3>
+              <h6 class="text-muted mb-2">System Investment</h6>
+              <h4 class="mb-0 text-warning">₹<%= number_with_delimiter(@system_investment_amount.to_i) %></h4>
+              <small class="text-muted">Total Investment</small>
             </div>
             <div class="bg-warning bg-opacity-10 rounded p-3">
-              <i class="bi bi-percent text-warning fs-4"></i>
+              <i class="bi bi-piggy-bank text-warning fs-4"></i>
             </div>
           </div>
         </div>
@@ -80,327 +100,178 @@
     </div>
   </div>
 
-  <!-- Profit by Policy Type -->
-  <div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-transparent border-0">
-      <h5 class="mb-0">
-        <i class="bi bi-pie-chart-fill text-primary me-2"></i>
-        Profit by Policy Type
-      </h5>
+  <!-- My Profit Sharing Details -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="mb-0">My Profit Sharing Details</h5>
+              <small class="text-muted">Your personal investment and profit calculation</small>
+            </div>
+            <div>
+              <small class="text-muted">
+                Calculation: ₹<%= number_with_delimiter(@total_commission_pool.to_i) %> ÷ <%= @total_shares %> shares = ₹<%= number_with_delimiter(@profit_per_share.to_i) %> per share
+              </small>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Sl No</th>
+                  <th>Investor Name</th>
+                  <th>No. of Shares</th>
+                  <th>Invested Amount</th>
+                  <th>Sharing %</th>
+                  <th data-bs-toggle="tooltip" data-bs-placement="top" title="Formula: Shares × Profit Per Share" style="cursor: help;">
+                    Profit Amt
+                    <i class="bi bi-info-circle text-muted ms-1"></i>
+                  </th>
+                  <th data-bs-toggle="tooltip" data-bs-placement="top" title="Formula: Profit Amount × Sharing %" style="cursor: help;">
+                    Actual Profit Shared
+                    <i class="bi bi-calculator text-muted ms-1"></i>
+                  </th>
+                  <th data-bs-toggle="tooltip" data-bs-placement="top" title="Formula: (Actual Profit Shared ÷ Invested Amount) × 100" style="cursor: help;">
+                    Return on Investment
+                    <i class="bi bi-graph-up-arrow text-muted ms-1"></i>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong><%= @investor_profit_data[:sl_no] %></strong></td>
+                  <td>
+                    <div>
+                      <strong><%= @investor_profit_data[:investor].full_name.upcase %></strong>
+                      <br>
+                      <small class="text-muted"><%= @investor_profit_data[:investor].email %></small>
+                    </div>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge bg-primary fs-6"><%= @investor_profit_data[:shares] %></span>
+                  </td>
+                  <td>
+                    <strong class="text-success">₹<%= number_with_delimiter(@investor_profit_data[:invested_amount].to_i) %></strong>
+                  </td>
+                  <td>
+                    <span class="text-info"><%= number_with_precision(@investor_profit_data[:sharing_percentage], precision: 2) %>%</span>
+                  </td>
+                  <td>
+                    <strong class="text-primary">₹<%= number_with_delimiter(@investor_profit_data[:profit_amount].to_i) %></strong>
+                  </td>
+                  <td>
+                    <div>
+                      <span class="badge bg-success"><%= @investor_profit_data[:actual_profit_shared_percentage] %>%</span>
+                      <br>
+                      <strong class="text-success">₹<%= number_with_delimiter(@investor_profit_data[:actual_profit_shared].to_i) %></strong>
+                    </div>
+                  </td>
+                  <td>
+                    <strong class="text-warning"><%= number_with_precision(@investor_profit_data[:roi], precision: 2) %>%</strong>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="card-body">
-      <div class="row">
-        <% ['health', 'life', 'motor', 'other'].each do |policy_type| %>
-          <% data = @profit_breakdown[policy_type.to_sym] %>
-          <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-left-<%= policy_type == 'health' ? 'success' : policy_type == 'life' ? 'warning' : policy_type == 'motor' ? 'info' : 'secondary' %> h-100">
-              <div class="card-body">
-                <h6 class="text-uppercase text-muted mb-3">
-                  <%= policy_type.capitalize %> Insurance
-                </h6>
-                <div class="mb-2">
-                  <span class="text-muted small">Policies:</span>
-                  <strong class="float-end"><%= data[:policies_count] %></strong>
-                </div>
-                <div class="mb-2">
-                  <span class="text-muted small">Premium:</span>
-                  <strong class="float-end"><%= indian_currency(data[:total_premium], show_decimals: true) %></strong>
-                </div>
-                <div class="mb-2">
-                  <span class="text-muted small">Commission:</span>
-                  <strong class="float-end"><%= indian_currency(data[:investor_commission], show_decimals: true) %></strong>
-                </div>
-                <div class="mb-2">
-                  <span class="text-muted small">Expenses:</span>
-                  <strong class="float-end"><%= indian_currency(data[:company_expenses], show_decimals: true) %></strong>
-                </div>
-                <hr class="my-2">
-                <div class="mb-0">
-                  <span class="text-muted small">Net Profit:</span>
-                  <strong class="float-end <%= data[:profit] >= 0 ? 'text-success' : 'text-danger' %>">
-                    <%= indian_currency(data[:profit], show_decimals: true) %>
-                  </strong>
-                </div>
-                <div class="progress mt-2" style="height: 6px;">
-                  <div class="progress-bar bg-<%= data[:profit] >= 0 ? 'success' : 'danger' %>"
-                       role="progressbar"
-                       style="width: <%= [data[:profit_margin].abs, 100].min %>%"
-                       aria-valuenow="<%= data[:profit_margin] %>"
-                       aria-valuemin="0"
-                       aria-valuemax="100">
-                  </div>
-                </div>
-                <small class="text-muted">Margin: <%= data[:profit_margin] %>%</small>
+  </div>
+
+  <!-- Investment Summary -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0">
+          <h5 class="mb-0">Investment Summary</h5>
+          <small class="text-muted">Your investment performance overview</small>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="text-center p-3 border rounded">
+                <h4 class="text-primary mb-2">₹<%= number_with_delimiter(@investor_profit_data[:invested_amount].to_i) %></h4>
+                <p class="text-muted mb-0">Your Investment</p>
+                <small class="text-muted">Initial Amount</small>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="text-center p-3 border rounded">
+                <h4 class="text-success mb-2">₹<%= number_with_delimiter(@investor_profit_data[:actual_profit_shared].to_i) %></h4>
+                <p class="text-muted mb-0">Your Profit</p>
+                <small class="text-success">
+                  <%= @investor_profit_data[:actual_profit_shared_percentage] %>% of allocated profit
+                </small>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="text-center p-3 border rounded">
+                <h4 class="text-warning mb-2"><%= number_with_precision(@investor_profit_data[:roi], precision: 2) %>%</h4>
+                <p class="text-muted mb-0">Return on Investment</p>
+                <small class="text-muted">
+                  <%= @investor_profit_data[:roi] > 0 ? 'Profitable' : 'No Profit Yet' %>
+                </small>
               </div>
             </div>
           </div>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Monthly Trends Chart -->
-  <div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-transparent border-0">
-      <h5 class="mb-0">
-        <i class="bi bi-graph-up text-primary me-2"></i>
-        Monthly Profit Trends (Last 12 Months)
-      </h5>
-    </div>
-    <div class="card-body">
-      <canvas id="monthlyProfitChart" height="100"></canvas>
-    </div>
-  </div>
-
-  <!-- Filters Section -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-3">
-          <label class="form-label small text-muted">Policy Type</label>
-          <select class="form-select" id="policyTypeFilter">
-            <option value="">All Types</option>
-            <option value="Health">Health</option>
-            <option value="Life">Life</option>
-            <option value="Motor">Motor</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label small text-muted">Sort By</label>
-          <select class="form-select" id="sortFilter">
-            <option value="profit_desc">Highest Profit</option>
-            <option value="profit_asc">Lowest Profit</option>
-            <option value="premium_desc">Highest Premium</option>
-            <option value="date_desc">Latest Policies</option>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label small text-muted">Profit Status</label>
-          <select class="form-select" id="profitFilter">
-            <option value="">All Policies</option>
-            <option value="profitable">Profitable Only</option>
-            <option value="unprofitable">Loss Making</option>
-          </select>
-        </div>
-        <div class="col-md-3 d-flex align-items-end">
-          <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
-            <i class="bi bi-arrow-clockwise me-1"></i>
-            Reset Filters
-          </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Policy Details Table -->
-  <div class="card border-0 shadow-sm">
-    <div class="card-header bg-transparent border-0">
-      <h5 class="mb-0">
-        <i class="bi bi-list-ul text-primary me-2"></i>
-        Individual Policy Profits
-      </h5>
-    </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-hover mb-0">
-          <thead class="bg-light">
-            <tr>
-              <th class="border-0">Policy Details</th>
-              <th class="border-0 text-end">Premium</th>
-              <th class="border-0 text-end">Commission</th>
-              <th class="border-0 text-end">Expenses</th>
-              <th class="border-0 text-end">Net Profit</th>
-              <th class="border-0 text-center">Margin</th>
-            </tr>
-          </thead>
-          <tbody id="policiesList">
-            <% @policy_profits.each do |policy| %>
-              <tr class="policy-item"
-                  data-type="<%= policy[:policy_type] %>"
-                  data-profit="<%= policy[:profit] %>"
-                  data-premium="<%= policy[:premium] %>"
-                  data-date="<%= policy[:policy_date] %>">
-                <td>
-                  <div>
-                    <h6 class="mb-1">
-                      <%= policy[:policy_number] %>
-                      <span class="badge bg-<%= policy[:policy_type].downcase == 'health' ? 'success' :
-                                               policy[:policy_type].downcase == 'life' ? 'warning' :
-                                               policy[:policy_type].downcase == 'motor' ? 'info' : 'secondary' %> ms-2">
-                        <%= policy[:policy_type] %>
-                      </span>
-                    </h6>
-                    <small class="text-muted">
-                      <%= policy[:customer_name] %> • <%= policy[:policy_date].strftime("%d %b %Y") %>
-                    </small>
-                  </div>
-                </td>
-                <td class="text-end align-middle">
-                  <strong><%= indian_currency(policy[:premium], show_decimals: true) %></strong>
-                </td>
-                <td class="text-end align-middle">
-                  <%= indian_currency(policy[:investor_commission], show_decimals: true) %>
-                </td>
-                <td class="text-end align-middle">
-                  <%= indian_currency(policy[:company_expenses], show_decimals: true) %>
-                </td>
-                <td class="text-end align-middle">
-                  <strong class="<%= policy[:profit] >= 0 ? 'text-success' : 'text-danger' %>">
-                    <%= indian_currency(policy[:profit], show_decimals: true) %>
-                  </strong>
-                </td>
-                <td class="text-center align-middle">
-                  <span class="badge bg-<%= policy[:profit_margin] >= 0 ? 'success' : 'danger' %>">
-                    <%= policy[:profit_margin] %>%
-                  </span>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <!-- Footer -->
+  <div class="text-center text-muted">
+    <small>
+      Report generated on <%= Date.current.strftime("%B %d, %Y") %> at <%= Time.current.strftime("%I:%M %p") %>
+      <br>
+      InsureBook Admin - Investor Portal
+    </small>
   </div>
 </div>
 
-<!-- Custom CSS for border-left style -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize Bootstrap tooltips
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
+});
+</script>
+
 <style>
-  .card.border-left-success {
-    border-left: 4px solid #28a745 !important;
+.card {
+  transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.table-responsive {
+  border-radius: 0.375rem;
+}
+
+.badge {
+  font-size: 0.75rem;
+}
+
+@media print {
+  .container-fluid {
+    padding: 0;
   }
-  .card.border-left-warning {
-    border-left: 4px solid #ffc107 !important;
+
+  .card {
+    border: 1px solid #dee2e6 !important;
+    box-shadow: none !important;
   }
-  .card.border-left-info {
-    border-left: 4px solid #17a2b8 !important;
-  }
-  .card.border-left-secondary {
-    border-left: 4px solid #6c757d !important;
-  }
-  .table-responsive {
-    max-height: 600px;
-    overflow-y: auto;
-  }
+}
 </style>
 
-<!-- Chart.js Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  // Monthly Profit Trends Chart
-  const profitCtx = document.getElementById('monthlyProfitChart').getContext('2d');
-  const monthlyTrends = <%= @monthly_profit_trends.to_json.html_safe %>;
-
-  new Chart(profitCtx, {
-    type: 'bar',
-    data: {
-      labels: Object.values(monthlyTrends).map(d => d.month.split(' ')[0].substr(0,3)),
-      datasets: [{
-        label: 'Monthly Profit (₹)',
-        data: Object.values(monthlyTrends).map(d => d.profit),
-        backgroundColor: 'rgba(40, 167, 69, 0.8)',
-        borderColor: 'rgba(40, 167, 69, 1)',
-        borderWidth: 2,
-        borderRadius: 4
-      }, {
-        label: 'Premium (₹)',
-        data: Object.values(monthlyTrends).map(d => d.premium),
-        type: 'line',
-        borderColor: 'rgba(0, 123, 255, 0.8)',
-        backgroundColor: 'transparent',
-        borderWidth: 2,
-        fill: false,
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top'
-        }
-      },
-      scales: {
-        x: {
-          grid: {
-            display: false
-          }
-        },
-        y: {
-          ticks: {
-            callback: function(value) {
-              // Format in Indian currency style with 2 decimals
-              return '₹' + value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            }
-          },
-          grid: {
-            borderDash: [2, 2]
-          }
-        }
-      }
-    }
-  });
-
-  // Filter functionality
-  document.getElementById('policyTypeFilter').addEventListener('change', filterPolicies);
-  document.getElementById('sortFilter').addEventListener('change', filterPolicies);
-  document.getElementById('profitFilter').addEventListener('change', filterPolicies);
-
-  function filterPolicies() {
-    const typeFilter = document.getElementById('policyTypeFilter').value;
-    const sortFilter = document.getElementById('sortFilter').value;
-    const profitFilter = document.getElementById('profitFilter').value;
-
-    const tbody = document.getElementById('policiesList');
-    const policies = Array.from(tbody.querySelectorAll('tr.policy-item'));
-
-    // Filter policies
-    policies.forEach(policy => {
-      let show = true;
-
-      if (typeFilter && !policy.dataset.type.includes(typeFilter)) {
-        show = false;
-      }
-
-      if (profitFilter === 'profitable' && parseFloat(policy.dataset.profit) <= 0) {
-        show = false;
-      }
-
-      if (profitFilter === 'unprofitable' && parseFloat(policy.dataset.profit) > 0) {
-        show = false;
-      }
-
-      policy.style.display = show ? '' : 'none';
-    });
-
-    // Sort policies
-    const visiblePolicies = policies.filter(p => p.style.display !== 'none');
-
-    visiblePolicies.sort((a, b) => {
-      switch (sortFilter) {
-        case 'profit_desc':
-          return parseFloat(b.dataset.profit) - parseFloat(a.dataset.profit);
-        case 'profit_asc':
-          return parseFloat(a.dataset.profit) - parseFloat(b.dataset.profit);
-        case 'premium_desc':
-          return parseFloat(b.dataset.premium) - parseFloat(a.dataset.premium);
-        case 'date_desc':
-          return new Date(b.dataset.date) - new Date(a.dataset.date);
-        default:
-          return 0;
-      }
-    });
-
-    // Re-append sorted policies
-    visiblePolicies.forEach(policy => tbody.appendChild(policy));
-  }
-
-  function resetFilters() {
-    document.getElementById('policyTypeFilter').value = '';
-    document.getElementById('sortFilter').value = 'profit_desc';
-    document.getElementById('profitFilter').value = '';
-    filterPolicies();
-  }
-</script>
+</body>
+</html>
