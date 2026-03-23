@@ -350,13 +350,20 @@
                     <% end %>
 
                     <% if can_delete?('other_insurances') %>
-                      <%= link_to admin_other_insurance_path(policy), method: :delete,
-                          class: "btn btn-sm btn-outline-danger",
-                          title: "Delete",
+                      <%= link_to admin_other_insurance_path(policy),
+                          class: "btn btn-sm btn-outline-danger delete-policy-btn",
+                          title: "Delete Policy & All Data",
+                          method: :delete,
                           data: {
-                            confirm: "Are you sure you want to delete this insurance policy?",
-                            turbo_method: :delete
-                          } do %>
+                            policy_number: policy.policy_number,
+                            customer_name: policy.customer&.display_name,
+                            insurance_type: policy.insurance_type,
+                            company_name: policy.insurance_company_name,
+                            premium_amount: number_to_currency(policy.net_premium, unit: '₹', precision: 0),
+                            turbo_method: :delete,
+                            turbo_confirm: false
+                          },
+                          onclick: "return confirmOtherPolicyDeletion(this, event);" do %>
                         <i class="bi bi-trash"></i>
                       <% end %>
                     <% end %>
@@ -396,3 +403,67 @@
     <% end %>
   </div>
 </div>
+
+<script>
+function confirmOtherPolicyDeletion(element, event) {
+  // Prevent the default link behavior
+  event.preventDefault();
+
+  const policyNumber = element.dataset.policyNumber;
+  const customerName = element.dataset.customerName;
+  const insuranceType = element.dataset.insuranceType;
+  const companyName = element.dataset.companyName;
+  const premiumAmount = element.dataset.premiumAmount;
+
+  const confirmMessage = `⚠️ PERMANENT DELETION WARNING ⚠️
+
+You are about to permanently delete:
+
+📋 Policy: ${policyNumber}
+👤 Customer: ${customerName}
+🛡️ Type: ${insuranceType}
+🏢 Company: ${companyName}
+💰 Premium: ${premiumAmount}
+
+🗑️ This will also delete ALL associated data:
+• Policy nominees and beneficiaries
+• Commission payouts and invoices
+• Related lead records
+• All uploaded documents (R2 storage)
+• Policy and additional documents
+
+❌ THIS CANNOT BE UNDONE!
+
+Are you absolutely sure you want to proceed?`;
+
+  if (confirm(confirmMessage)) {
+    // If user confirms, create and submit a form with DELETE method
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = element.href;
+    form.style.display = 'none';
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'authenticity_token';
+      csrfInput.value = csrfToken.getAttribute('content');
+      form.appendChild(csrfInput);
+    }
+
+    // Add method override for DELETE
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = 'delete';
+    form.appendChild(methodInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  return false;
+}
+</script>

@@ -255,8 +255,65 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   end
 
   def destroy
-    @motor_insurance.destroy
-    redirect_to admin_motor_insurances_path, notice: 'Motor insurance policy was successfully deleted.'
+    policy_number = @motor_insurance.policy_number
+    customer_name = @motor_insurance.customer&.display_name
+    vehicle_registration = @motor_insurance.registration_number
+
+    begin
+      ActiveRecord::Base.transaction do
+        # 1. Delete commission payouts for this motor insurance
+        CommissionPayout.where(policy_type: 'motor', policy_id: @motor_insurance.id).destroy_all
+
+        # 2. Delete main payouts for this motor insurance
+        Payout.where(policy_type: 'motor', policy_id: @motor_insurance.id).destroy_all
+
+        # 3. Delete lead record if it was created for this policy
+        if @motor_insurance.lead_id.present?
+          lead = Lead.find_by(lead_id: @motor_insurance.lead_id)
+          if lead && lead.policy_created_id == @motor_insurance.id
+            lead.destroy
+          end
+        end
+
+        # 4. Delete policy documents from R2 and database
+        @motor_insurance.policy_documents_records.each do |doc|
+          # Delete from R2 if file key exists
+          if doc.r2_file_key.present?
+            R2Service.delete_file(doc.r2_file_key) rescue Rails.logger.warn("Failed to delete R2 file: #{doc.r2_file_key}")
+          end
+        end
+
+        # 5. Delete motor insurance specific documents from R2
+        @motor_insurance.motor_insurance_documents.each do |doc|
+          if doc.r2_file_key.present?
+            R2Service.delete_file(doc.r2_file_key) rescue Rails.logger.warn("Failed to delete motor document from R2: #{doc.r2_file_key}")
+          end
+        end
+
+        # 6. Delete main policy document from R2 if exists
+        if @motor_insurance.main_policy_document_key.present?
+          R2Service.delete_file(@motor_insurance.main_policy_document_key) rescue Rails.logger.warn("Failed to delete main policy from R2")
+        end
+
+        # 7. Delete uploaded documents from R2
+        @motor_insurance.uploaded_documents.each do |doc|
+          if doc.respond_to?(:file) && doc.file.attached?
+            doc.file.purge rescue Rails.logger.warn("Failed to purge uploaded document")
+          end
+        end
+
+        # 8. Delete the motor insurance record (this will cascade to dependent associations)
+        @motor_insurance.destroy!
+      end
+
+      redirect_to admin_motor_insurances_path,
+                  notice: "Motor insurance policy #{policy_number} for vehicle #{vehicle_registration} (#{customer_name}) and all associated data were successfully deleted."
+
+    rescue => e
+      Rails.logger.error "Failed to delete motor insurance #{@motor_insurance.id}: #{e.message}"
+      redirect_to admin_motor_insurances_path,
+                  alert: "Failed to delete motor insurance policy. Error: #{e.message}"
+    end
   end
 
   def delete_document

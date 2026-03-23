@@ -116,8 +116,56 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   end
 
   def destroy
-    @health_insurance.destroy
-    redirect_to admin_health_insurances_path, notice: 'Health insurance policy was successfully deleted.'
+    policy_number = @health_insurance.policy_number
+    customer_name = @health_insurance.customer&.display_name
+
+    begin
+      ActiveRecord::Base.transaction do
+        # 1. Delete commission payouts for this health insurance
+        CommissionPayout.where(policy_type: 'health', policy_id: @health_insurance.id).destroy_all
+
+        # 2. Delete main payouts for this health insurance
+        Payout.where(policy_type: 'health', policy_id: @health_insurance.id).destroy_all
+
+        # 3. Delete lead record if it was created for this policy
+        if @health_insurance.lead_id.present?
+          lead = Lead.find_by(lead_id: @health_insurance.lead_id)
+          if lead && lead.policy_created_id == @health_insurance.id
+            lead.destroy
+          end
+        end
+
+        # 4. Delete policy documents from R2 and database
+        @health_insurance.policy_documents_records.each do |doc|
+          # Delete from R2 if file key exists
+          if doc.r2_file_key.present?
+            R2Service.delete_file(doc.r2_file_key) rescue Rails.logger.warn("Failed to delete R2 file: #{doc.r2_file_key}")
+          end
+        end
+
+        # 5. Delete uploaded documents from R2
+        @health_insurance.uploaded_documents.each do |doc|
+          if doc.respond_to?(:file) && doc.file.attached?
+            doc.file.purge rescue Rails.logger.warn("Failed to purge uploaded document")
+          end
+        end
+
+        # 6. Delete attached documents
+        @health_insurance.documents.purge rescue Rails.logger.warn("Failed to purge attached documents")
+        @health_insurance.policy_documents.purge rescue Rails.logger.warn("Failed to purge policy documents")
+
+        # 7. Delete the health insurance record (this will cascade to dependent associations)
+        @health_insurance.destroy!
+      end
+
+      redirect_to admin_health_insurances_path,
+                  notice: "Health insurance policy #{policy_number} for #{customer_name} and all associated data were successfully deleted."
+
+    rescue => e
+      Rails.logger.error "Failed to delete health insurance #{@health_insurance.id}: #{e.message}"
+      redirect_to admin_health_insurances_path,
+                  alert: "Failed to delete health insurance policy. Error: #{e.message}"
+    end
   end
 
   # AJAX endpoint for getting policy holder options based on customer

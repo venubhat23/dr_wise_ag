@@ -314,13 +314,19 @@
                     <%= link_to edit_admin_life_insurance_path(policy), class: "btn btn-sm btn-outline-warning", title: "Edit" do %>
                       <i class="bi bi-pencil"></i>
                     <% end %>
-                    <%= link_to admin_life_insurance_path(policy), method: :delete,
-                        class: "btn btn-sm btn-outline-danger",
-                        title: "Delete",
+                    <%= link_to admin_life_insurance_path(policy),
+                        class: "btn btn-sm btn-outline-danger delete-policy-btn",
+                        title: "Delete Policy & All Data",
+                        method: :delete,
                         data: {
-                          confirm: "⚠️ PERMANENT DELETE WARNING ⚠️\n\nThis will PERMANENTLY delete:\n• Life Insurance Policy: #{policy.policy_number}\n• Customer: #{policy.customer&.display_name}\n• All Commission Payouts (₹#{CommissionPayout.where(policy_type: 'life', policy_id: policy.id).sum(:payout_amount).to_i})\n• All Related Documents\n• All Renewal Relationships\n\nThis action CANNOT be undone!\n\nAre you absolutely sure you want to proceed?",
-                          turbo_method: :delete
-                        } do %>
+                          policy_number: policy.policy_number,
+                          customer_name: policy.customer&.display_name,
+                          company_name: policy.insurance_company_name,
+                          premium_amount: number_to_currency(policy.total_premium, unit: '₹', precision: 0),
+                          turbo_method: :delete,
+                          turbo_confirm: false
+                        },
+                        onclick: "return confirmLifePolicyDeletion(this, event);" do %>
                       <i class="bi bi-trash"></i>
                     <% end %>
                   </div>
@@ -421,4 +427,64 @@
 document.addEventListener('DOMContentLoaded', function() {
   // Source and Type columns merged - no toggle functionality needed
 });
+
+function confirmLifePolicyDeletion(element, event) {
+  // Prevent the default link behavior
+  event.preventDefault();
+
+  const policyNumber = element.dataset.policyNumber;
+  const customerName = element.dataset.customerName;
+  const companyName = element.dataset.companyName;
+  const premiumAmount = element.dataset.premiumAmount;
+
+  const confirmMessage = `⚠️ PERMANENT DELETION WARNING ⚠️
+
+You are about to permanently delete:
+
+📋 Policy: ${policyNumber}
+👤 Customer: ${customerName}
+🏢 Company: ${companyName}
+💰 Premium: ${premiumAmount}
+
+🗑️ This will also delete ALL associated data:
+• Policy nominees and bank details
+• Commission payouts and invoices
+• Related lead records
+• All uploaded documents (R2 storage)
+• Renewal policy relationships
+
+❌ THIS CANNOT BE UNDONE!
+
+Are you absolutely sure you want to proceed?`;
+
+  if (confirm(confirmMessage)) {
+    // If user confirms, create and submit a form with DELETE method
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = element.href;
+    form.style.display = 'none';
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'authenticity_token';
+      csrfInput.value = csrfToken.getAttribute('content');
+      form.appendChild(csrfInput);
+    }
+
+    // Add method override for DELETE
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = 'delete';
+    form.appendChild(methodInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  return false;
+}
 </script>

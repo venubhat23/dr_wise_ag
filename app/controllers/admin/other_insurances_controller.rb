@@ -197,8 +197,70 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
   end
 
   def destroy
-    @other_insurance.destroy
-    redirect_to admin_other_insurances_path, notice: 'Other insurance policy was successfully deleted.'
+    policy_number = @other_insurance.policy_number
+    customer_name = @other_insurance.customer&.display_name
+    insurance_type = @other_insurance.insurance_type
+
+    begin
+      ActiveRecord::Base.transaction do
+        # 1. Delete commission payouts for this other insurance
+        CommissionPayout.where(policy_type: 'other', policy_id: @other_insurance.id).destroy_all
+
+        # 2. Delete main payouts for this other insurance
+        Payout.where(policy_type: 'other', policy_id: @other_insurance.id).destroy_all
+
+        # 3. Delete lead record if it was created for this policy
+        if @other_insurance.lead_id.present?
+          lead = Lead.find_by(lead_id: @other_insurance.lead_id)
+          if lead && lead.policy_created_id == @other_insurance.id
+            lead.destroy
+          end
+        end
+
+        # 4. Delete policy documents from R2 and database
+        @other_insurance.policy_documents_records.each do |doc|
+          # Delete from R2 if file key exists
+          if doc.r2_file_key.present?
+            R2Service.delete_file(doc.r2_file_key) rescue Rails.logger.warn("Failed to delete R2 file: #{doc.r2_file_key}")
+          end
+        end
+
+        # 5. Delete other insurance specific documents from R2
+        @other_insurance.other_insurance_documents.each do |doc|
+          if doc.r2_file_key.present?
+            R2Service.delete_file(doc.r2_file_key) rescue Rails.logger.warn("Failed to delete other insurance document from R2: #{doc.r2_file_key}")
+          end
+        end
+
+        # 6. Delete main policy document from R2 if exists
+        if @other_insurance.main_policy_document_key.present?
+          R2Service.delete_file(@other_insurance.main_policy_document_key) rescue Rails.logger.warn("Failed to delete main policy from R2")
+        end
+
+        # 7. Delete uploaded documents and attached files
+        @other_insurance.uploaded_documents.each do |doc|
+          if doc.respond_to?(:file) && doc.file.attached?
+            doc.file.purge rescue Rails.logger.warn("Failed to purge uploaded document")
+          end
+        end
+
+        # 8. Delete Active Storage attachments
+        @other_insurance.documents.purge rescue Rails.logger.warn("Failed to purge attached documents")
+        @other_insurance.policy_documents.purge rescue Rails.logger.warn("Failed to purge policy documents")
+        @other_insurance.additional_documents.purge rescue Rails.logger.warn("Failed to purge additional documents")
+
+        # 9. Delete the other insurance record (this will cascade to dependent associations)
+        @other_insurance.destroy!
+      end
+
+      redirect_to admin_other_insurances_path,
+                  notice: "Other insurance policy #{policy_number} (#{insurance_type}) for #{customer_name} and all associated data were successfully deleted."
+
+    rescue => e
+      Rails.logger.error "Failed to delete other insurance #{@other_insurance.id}: #{e.message}"
+      redirect_to admin_other_insurances_path,
+                  alert: "Failed to delete other insurance policy. Error: #{e.message}"
+    end
   end
 
   # API endpoint for getting all agency codes (for Direct selection)

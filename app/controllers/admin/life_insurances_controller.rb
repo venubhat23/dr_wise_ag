@@ -223,95 +223,72 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
   # DELETE /admin/insurance/life/1
   def destroy
+    policy_number = @life_insurance.policy_number
+    customer_name = @life_insurance.customer&.display_name
+
     begin
-      # Store policy details for feedback message
-      policy_number = @life_insurance.policy_number
-      customer_name = @life_insurance.customer&.display_name
+      ActiveRecord::Base.transaction do
+        # 1. Delete commission payouts for this life insurance
+        CommissionPayout.where(policy_type: 'life', policy_id: @life_insurance.id).destroy_all
 
-      # Delete all related records in proper order
-      Rails.logger.info "Deleting Life Insurance Policy #{policy_number} and all related records..."
+        # 2. Delete main payouts for this life insurance
+        Payout.where(policy_type: 'life', policy_id: @life_insurance.id).destroy_all
 
-      # 1. Delete commission payouts
-      commission_payouts = CommissionPayout.where(policy_type: 'life', policy_id: @life_insurance.id)
-      commission_payouts_count = commission_payouts.count
-      commission_payouts.destroy_all
-      Rails.logger.info "Deleted #{commission_payouts_count} commission payouts"
-
-      # 2. Delete renewal relationships
-      if @life_insurance.renewal_policy_id.present?
-        renewal_policy = LifeInsurance.find_by(id: @life_insurance.renewal_policy_id)
-        if renewal_policy
-          renewal_policy.update!(original_policy_id: nil)
-          Rails.logger.info "Cleared renewal relationship"
+        # 3. Delete lead record if it was created for this policy
+        if @life_insurance.lead_id.present?
+          lead = Lead.find_by(lead_id: @life_insurance.lead_id)
+          if lead && lead.policy_created_id == @life_insurance.id
+            lead.destroy
+          end
         end
-      end
 
-      # If this is a renewal policy, clear the original policy's renewal reference
-      if @life_insurance.original_policy_id.present?
-        original_policy = LifeInsurance.find_by(id: @life_insurance.original_policy_id)
-        if original_policy
-          original_policy.update!(renewal_policy_id: nil, is_renewed: false)
-          Rails.logger.info "Cleared original policy renewal reference"
+        # 4. Delete policy documents from R2 and database
+        @life_insurance.policy_documents_records.each do |doc|
+          # Delete from R2 if file key exists
+          if doc.r2_file_key.present?
+            R2Service.delete_file(doc.r2_file_key) rescue Rails.logger.warn("Failed to delete R2 file: #{doc.r2_file_key}")
+          end
         end
-      end
 
-      # 3. Delete Active Storage attachments (documents)
-      if @life_insurance.documents.attached?
-        documents_count = @life_insurance.documents.count
-        @life_insurance.documents.purge
-        Rails.logger.info "Deleted #{documents_count} attached documents"
-      end
-
-      if @life_insurance.policy_documents.attached?
-        policy_docs_count = @life_insurance.policy_documents.count
-        @life_insurance.policy_documents.purge
-        Rails.logger.info "Deleted #{policy_docs_count} policy documents"
-      end
-
-      # 4. Delete associated model records (if they exist)
-      begin
-        if @life_insurance.respond_to?(:life_insurance_nominees) && @life_insurance.life_insurance_nominees.any?
-          nominees_count = @life_insurance.life_insurance_nominees.count
-          @life_insurance.life_insurance_nominees.destroy_all
-          Rails.logger.info "Deleted #{nominees_count} nominees"
+        # 5. Delete main policy document from R2 if exists
+        if @life_insurance.has_main_policy_r2_document?
+          @life_insurance.delete_main_policy_from_r2 rescue Rails.logger.warn("Failed to delete main policy from R2")
         end
-      rescue => e
-        Rails.logger.warn "Could not delete nominees: #{e.message}"
-      end
 
-      begin
-        if @life_insurance.respond_to?(:life_insurance_bank_detail) && @life_insurance.life_insurance_bank_detail.present?
-          @life_insurance.life_insurance_bank_detail.destroy
-          Rails.logger.info "Deleted bank detail"
+        # 6. Delete uploaded documents from R2
+        @life_insurance.uploaded_documents.each do |doc|
+          if doc.respond_to?(:file) && doc.file.attached?
+            doc.file.purge rescue Rails.logger.warn("Failed to purge uploaded document")
+          end
         end
-      rescue => e
-        Rails.logger.warn "Could not delete bank detail: #{e.message}"
-      end
 
-      begin
-        if @life_insurance.respond_to?(:life_insurance_documents) && @life_insurance.life_insurance_documents.any?
-          docs_count = @life_insurance.life_insurance_documents.count
-          @life_insurance.life_insurance_documents.destroy_all
-          Rails.logger.info "Deleted #{docs_count} document records"
+        # 7. Handle renewal relationships
+        if @life_insurance.renewal_policy_id.present?
+          renewal_policy = LifeInsurance.find_by(id: @life_insurance.renewal_policy_id)
+          if renewal_policy
+            renewal_policy.update!(original_policy_id: nil)
+          end
         end
-      rescue => e
-        Rails.logger.warn "Could not delete document records: #{e.message}"
+
+        # If this is a renewal policy, clear the original policy's renewal reference
+        if @life_insurance.original_policy_id.present?
+          original_policy = LifeInsurance.find_by(id: @life_insurance.original_policy_id)
+          if original_policy
+            original_policy.update!(renewal_policy_id: nil, is_renewed: false)
+          end
+        end
+
+        # 8. Delete the life insurance record (this will cascade to dependent associations)
+        @life_insurance.destroy!
       end
-
-      # 5. Finally delete the life insurance record itself
-      @life_insurance.destroy!
-
-      Rails.logger.info "Successfully deleted Life Insurance Policy #{policy_number} and all related records"
 
       redirect_to admin_life_insurances_path,
-                  notice: "Life insurance policy '#{policy_number}' for #{customer_name} and all related records (payouts, documents) have been successfully deleted."
+                  notice: "Life insurance policy #{policy_number} for #{customer_name} and all associated data were successfully deleted."
 
     rescue => e
-      Rails.logger.error "Failed to delete Life Insurance Policy: #{e.message}"
-      Rails.logger.error e.backtrace.join("\n")
-
+      Rails.logger.error "Failed to delete life insurance #{@life_insurance.id}: #{e.message}"
       redirect_to admin_life_insurances_path,
-                  alert: "Failed to delete life insurance policy: #{e.message}"
+                  alert: "Failed to delete life insurance policy. Error: #{e.message}"
     end
   end
 

@@ -86,7 +86,7 @@
               Total Premium
             </div>
             <div class="h5 mb-0 font-weight-bold text-gray-800">
-              ₹<%= number_with_delimiter(@distributor_stats[:total_premium].round, delimiter: ',') %>
+              <%= indian_currency(@distributor_stats[:total_premium].round) %>
             </div>
             <div class="text-warning small">
               <span class="text-warning">
@@ -113,7 +113,7 @@
               Total Commission
             </div>
             <div class="h5 mb-0 font-weight-bold text-gray-800">
-              ₹<%= number_with_delimiter(@distributor_stats[:total_commission].round, delimiter: ',') %>
+              <%= indian_currency(@distributor_stats[:total_commission].round) %>
             </div>
             <div class="text-success small">
               <span class="text-success">
@@ -195,11 +195,11 @@
                       </small>
                     </td>
                     <td>
-                      <strong>₹<%= number_with_delimiter(stats[:total_premium].round, delimiter: ',') %></strong>
+                      <strong><%= indian_currency(stats[:total_premium].round) %></strong>
                     </td>
                     <td>
                       <span class="text-success fw-bold">
-                        ₹<%= number_with_delimiter(stats[:total_commission].round, delimiter: ',') %>
+                        <%= indian_currency(stats[:total_commission].round) %>
                       </span>
                     </td>
                     <td>
@@ -247,7 +247,7 @@
                 <div class="small font-weight-bold"><%= activity[:type] %></div>
                 <div class="small text-muted"><%= activity[:description] %></div>
                 <div class="small">
-                  <span class="text-success fw-bold">+₹<%= number_with_delimiter(activity[:amount].round, delimiter: ',') %></span>
+                  <span class="text-success fw-bold">+<%= indian_currency(activity[:amount].round) %></span>
                   <span class="text-muted ms-2"><%= activity[:date].strftime("%b %d") %></span>
                 </div>
               </div>
@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
           callbacks: {
             label: function(context) {
               if (context.dataset.label === 'Commission (₹)') {
-                return 'Commission: ₹' + context.parsed.y.toLocaleString();
+                return 'Commission: ₹' + context.parsed.y.toLocaleString('en-IN');
               } else {
                 return 'Policies: ' + context.parsed.y;
               }
@@ -398,7 +398,7 @@ document.addEventListener('DOMContentLoaded', function() {
           },
           ticks: {
             callback: function(value) {
-              return '₹' + value.toLocaleString();
+              return '₹' + value.toLocaleString('en-IN');
             }
           }
         },
