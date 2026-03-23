@@ -90,9 +90,9 @@
         <div class="col-md-4">
           <%= form.label :city, "City", class: "form-label" %>
           <%= form.select :city,
-              options_for_select([], @investor.city),
+              options_for_select(@investor.city.present? ? [[@investor.city, @investor.city]] : [], @investor.city),
               { prompt: 'Search and select city...' },
-              { class: "form-select searchable-select", id: "investor_city", disabled: true, data: { placeholder: "Type to search cities..." } } %>
+              { class: "form-select searchable-select", id: "investor_city", disabled: @investor.state.blank?, data: { placeholder: "Type to search cities...", saved_city: @investor.city } } %>
         </div>
         <div class="col-md-4">
           <%= form.label :gender, "Gender", class: "form-label" %>
@@ -464,119 +464,67 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🔄 Investor Edit: Initializing state-city dropdowns...');
+  console.log('🔄 Investor Edit: Initializing state-city dropdowns using sub_agent approach...');
 
-  // Initialize all form enhancements
-  if (window.FormEnhancements) {
-    window.FormEnhancements.init();
-  }
-
-  // Initialize Select2 on dropdowns
   const stateSelect = document.getElementById('investor_state');
   const citySelect = document.getElementById('investor_city');
 
-  if (stateSelect) {
-    $('#investor_state').select2({
-      theme: 'bootstrap-5',
-      placeholder: 'Search and select state...',
-      allowClear: true,
-      width: '100%',
-      minimumResultsForSearch: 0
+  // Use global location data - map state names to their cities
+  let citiesData = {};
+  if (window.LocationData && window.LocationData.states) {
+    Object.keys(window.LocationData.states).forEach(stateKey => {
+      const stateInfo = window.LocationData.states[stateKey];
+      if (stateInfo && stateInfo.name && stateInfo.cities) {
+        // Map state name to cities array
+        citiesData[stateInfo.name] = stateInfo.cities;
+      }
     });
   }
 
-  // Store initial values for restoration
-  const initialCityValue = '<%= @investor.city %>';
-  console.log('📍 Initial city value to preserve:', initialCityValue);
-
-  // Setup state-city dependency using the working form_enhancements approach
-  if (stateSelect && citySelect) {
-    setupInvestorStateCityDependency(stateSelect, citySelect, initialCityValue);
+  console.log('🗺️ Cities data loaded for states:', Object.keys(citiesData).length);
+  console.log('🔍 Sample states:', Object.keys(citiesData).slice(0, 3));
+  if (citiesData['Madhya Pradesh']) {
+    console.log('✅ Madhya Pradesh cities loaded:', citiesData['Madhya Pradesh'].length);
   }
 
-  function setupInvestorStateCityDependency(stateSelect, citySelect, preserveCityValue) {
-    // Handle state change
-    function handleStateChange() {
-      const stateName = stateSelect.value;
-      console.log('🏛️ State changed to:', stateName);
-
-      if (!stateName) {
-        citySelect.innerHTML = '<option value="">Select State First</option>';
-        citySelect.disabled = true;
-        return;
-      }
-
-      // Show loading
-      citySelect.innerHTML = '<option value="">Loading cities...</option>';
+  function loadCitiesForState(stateValue, selectedCityValue = null) {
+    console.log('Loading cities for state:', stateValue);
+    if (!stateValue) {
+      populateCityDropdown([], selectedCityValue);
       citySelect.disabled = true;
-
-      // Find state key from state name using LocationData
-      let stateKey = null;
-      if (window.LocationData && window.LocationData.states) {
-        for (const [key, stateData] of Object.entries(window.LocationData.states)) {
-          if (stateData.name === stateName) {
-            stateKey = key;
-            break;
-          }
-        }
-      }
-
-      if (stateKey && window.LocationData.states[stateKey]) {
-        const cities = window.LocationData.states[stateKey].cities || [];
-        console.log('🏙️ Found', cities.length, 'cities for', stateName);
-        populateInvestorCityDropdown(cities, citySelect, preserveCityValue);
-        preserveCityValue = null; // Only preserve on first load
-      } else {
-        console.error('❌ State key not found for:', stateName);
-        citySelect.innerHTML = '<option value="">Error loading cities</option>';
-        citySelect.disabled = true;
-      }
+      return;
     }
 
-    // Bind events
-    stateSelect.addEventListener('change', handleStateChange);
-    $('#investor_state').on('select2:select', function (e) {
-      handleStateChange();
-    });
-
-    // Load initial cities if state is pre-selected
-    if (stateSelect.value) {
-      console.log('🔄 Loading initial cities for pre-selected state:', stateSelect.value);
-      setTimeout(() => {
-        handleStateChange();
-      }, 100);
-    }
+    // Get cities for this state from local data (using state name directly)
+    let cities = citiesData[stateValue] || [];
+    console.log(`📍 Found ${cities.length} cities for state: ${stateValue}`);
+    populateCityDropdown(cities, selectedCityValue);
   }
 
-  function populateInvestorCityDropdown(cities, citySelect, restoreValue = null) {
-    console.log('🏙️ Populating city dropdown with', cities.length, 'cities, restore:', restoreValue);
-
-    // Destroy Select2 if exists
+  function populateCityDropdown(cities, selectedCityValue = null) {
+    // First destroy Select2 if it exists
     const $citySelect = $(citySelect);
     if ($citySelect.hasClass('select2-hidden-accessible')) {
       $citySelect.select2('destroy');
     }
 
-    // Clear and populate
-    citySelect.innerHTML = '<option value="">Search and select city...</option>';
-
-    let optionToSelect = null;
+    // Clear dropdown and add cities
+    citySelect.innerHTML = '<option value="">Select City</option>';
     cities.forEach(city => {
       const option = document.createElement('option');
       option.value = city;
       option.textContent = city;
-      if (city === restoreValue) {
+      if (city === selectedCityValue) {
         option.selected = true;
-        optionToSelect = option;
-        console.log('✅ Pre-selecting city:', city);
       }
       citySelect.appendChild(option);
     });
 
     citySelect.disabled = false;
+    console.log(`Loaded ${cities.length} cities`);
 
-    // Initialize Select2 with error handling
-    try {
+    // Reinitialize Select2
+    setTimeout(() => {
       $citySelect.select2({
         theme: 'bootstrap-5',
         placeholder: 'Search and select city...',
@@ -584,42 +532,228 @@ document.addEventListener('DOMContentLoaded', function() {
         width: '100%',
         minimumResultsForSearch: 0
       });
-      console.log('✅ Select2 initialized for city dropdown');
-    } catch (error) {
-      console.error('❌ Select2 initialization failed:', error);
+
+      // Set the selected value after Select2 initialization
+      if (selectedCityValue) {
+        $citySelect.val(selectedCityValue).trigger('change');
+      }
+    }, 50);
+  }
+
+  // Initialize Select2 for state and city dropdowns (only if not already initialized)
+  if (typeof $ !== 'undefined' && $.fn.select2) {
+    // State dropdown
+    if (!$(stateSelect).hasClass('select2-hidden-accessible')) {
+      $(stateSelect).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select state...',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0
+      });
+      console.log('✅ State Select2 initialized');
+    } else {
+      console.log('ℹ️ State Select2 already initialized');
     }
 
-    // Set value if needed
-    if (restoreValue && cities.includes(restoreValue)) {
-      console.log('🔄 Setting Select2 value:', restoreValue);
-      setTimeout(() => {
-        try {
-          $citySelect.val(restoreValue).trigger('change');
-          console.log('✅ City value set to:', $citySelect.val());
-
-          // Force visual update
-          $citySelect.trigger('select2:select', {
-            data: { id: restoreValue, text: restoreValue }
-          });
-
-          // Verify the visual state
-          setTimeout(() => {
-            const displayText = $citySelect.next('.select2-container').find('.select2-selection__rendered').text();
-            console.log('🔍 Final city display text:', displayText);
-            if (displayText === restoreValue) {
-              console.log('✅ City auto-loading successful!');
-            } else {
-              console.warn('⚠️ City display might not match:', displayText, 'vs', restoreValue);
-            }
-          }, 200);
-        } catch (error) {
-          console.error('❌ Error setting city value:', error);
-          // Fallback: set the native select value
-          citySelect.value = restoreValue;
-        }
-      }, 100);
+    // City dropdown (will be properly initialized in populateCityDropdownWithCity)
+    if (!$(citySelect).hasClass('select2-hidden-accessible')) {
+      $(citySelect).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select city...',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0
+      });
+      console.log('✅ City Select2 initially initialized');
+    } else {
+      console.log('ℹ️ City Select2 already initialized');
     }
   }
+
+  // Handle state change
+  stateSelect.addEventListener('change', function() {
+    loadCitiesForState(this.value);
+  });
+
+  // Handle Select2 change event specifically
+  $('#investor_state').on('select2:select', function (e) {
+    const selectedValue = e.params.data.id;
+    loadCitiesForState(selectedValue);
+  });
+
+  // Add protection against unexpected city value changes
+  let lastCityValue = null;
+  $('#investor_city').on('change', function() {
+    const currentValue = $(this).val();
+    if (lastCityValue && currentValue === '' && lastCityValue !== '') {
+      console.warn('🚨 City value unexpectedly cleared! Last value:', lastCityValue);
+      // Attempt to restore if the clear was unintentional
+      setTimeout(() => {
+        if ($(this).val() === '') {
+          console.log('🔧 Attempting to restore city value:', lastCityValue);
+          $(this).val(lastCityValue).trigger('change.select2');
+        }
+      }, 100);
+    } else {
+      lastCityValue = currentValue;
+    }
+  });
+
+  // Load cities if state is pre-selected (for edit page auto-fill)
+  const savedState = '<%= @investor.state %>';
+  const savedCity = '<%= @investor.city %>';
+
+  console.log('Initializing investor edit form with saved state:', savedState, 'and city:', savedCity);
+
+  // Initialize properly with saved values
+  setTimeout(() => {
+    console.log('Starting investor edit form initialization...');
+    console.log('Investor state select value:', stateSelect.value);
+
+    // If state has a value, load cities
+    if (stateSelect.value || savedState) {
+      const stateToUse = stateSelect.value || savedState;
+      console.log('Loading cities for state:', stateToUse);
+
+      // Set state value if not already set
+      if (!stateSelect.value && savedState) {
+        stateSelect.value = savedState;
+        $('#investor_state').val(savedState).trigger('change.select2');
+      }
+
+      // Load cities with proper saved city handling
+      loadCitiesForStateWithCity(stateToUse, savedCity);
+    } else if (savedCity) {
+      // If there's a saved city but no state, still show it
+      console.log('Saved city exists without state, adding it manually');
+      const $citySelect = $(citySelect);
+      citySelect.disabled = false;
+
+      // Add the saved city option
+      const option = document.createElement('option');
+      option.value = savedCity;
+      option.textContent = savedCity;
+      option.selected = true;
+      citySelect.appendChild(option);
+
+      // Reinitialize Select2
+      setTimeout(() => {
+        if ($citySelect.hasClass('select2-hidden-accessible')) {
+          $citySelect.select2('destroy');
+        }
+        $citySelect.select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Search and select city...',
+          allowClear: true,
+          width: '100%',
+          minimumResultsForSearch: 0
+        });
+        $citySelect.val(savedCity).trigger('change.select2');
+      }, 100);
+    }
+  }, 200);
+
+  function loadCitiesForStateWithCity(stateValue, selectedCityName = null) {
+    console.log('Loading cities for state:', stateValue, 'with city name:', selectedCityName);
+    if (!stateValue) {
+      populateCityDropdownWithCity([], selectedCityName);
+      citySelect.disabled = true;
+      return;
+    }
+
+    // Get cities for this state from local data (using state name directly)
+    let cities = citiesData[stateValue] || [];
+    console.log(`📍 Found ${cities.length} cities for state: ${stateValue}`);
+    populateCityDropdownWithCity(cities, selectedCityName);
+  }
+
+  function populateCityDropdownWithCity(cities, selectedCityName = null) {
+    // First destroy Select2 if it exists
+    const $citySelect = $(citySelect);
+    if ($citySelect.hasClass('select2-hidden-accessible')) {
+      $citySelect.select2('destroy');
+    }
+
+    // Clear dropdown and add cities
+    citySelect.innerHTML = '<option value="">Select City</option>';
+
+    let selectedCityFound = false;
+
+    cities.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      if (selectedCityName && city === selectedCityName) {
+        option.selected = true;
+        selectedCityFound = true;
+      }
+      citySelect.appendChild(option);
+    });
+
+    // If selected city wasn't found in the list but exists, add it as an option
+    if (selectedCityName && !selectedCityFound) {
+      const option = document.createElement('option');
+      option.value = selectedCityName;
+      option.textContent = selectedCityName;
+      option.selected = true;
+      citySelect.appendChild(option);
+      selectedCityFound = true;
+      console.log('Added saved city as additional option:', selectedCityName);
+    }
+
+    citySelect.disabled = false;
+    console.log(`Loaded ${cities.length} cities for investor, selected: ${selectedCityName}, found: ${selectedCityFound}`);
+
+    // Reinitialize Select2 with error handling
+    setTimeout(() => {
+      try {
+        $citySelect.select2({
+          theme: 'bootstrap-5',
+          placeholder: 'Search and select city...',
+          allowClear: true,
+          width: '100%',
+          minimumResultsForSearch: 0
+        });
+        console.log('✅ Select2 reinitialized for city dropdown');
+
+        // Set the selected value after Select2 initialization
+        if (selectedCityName && selectedCityFound) {
+          console.log('🔧 Setting final Select2 value:', selectedCityName);
+
+          // Use multiple approaches to ensure value sticks
+          $citySelect.val(selectedCityName).trigger('change.select2');
+          $citySelect.val(selectedCityName).trigger('change');
+
+          // Final verification and recovery
+          setTimeout(() => {
+            const finalValue = $citySelect.val();
+            const displayText = $citySelect.next('.select2-container').find('.select2-selection__rendered').text();
+            console.log('🔍 Final verification - Value:', finalValue, 'Display:', displayText);
+
+            if (!finalValue || finalValue !== selectedCityName) {
+              console.warn('⚠️ Value lost, attempting multiple recovery methods...');
+
+              // Try different methods
+              citySelect.value = selectedCityName;
+              $citySelect.val(selectedCityName).trigger('change');
+
+              // Force refresh Select2 display
+              setTimeout(() => {
+                $citySelect.select2('close').select2('open').select2('close');
+              }, 100);
+            } else {
+              console.log('✅ City value successfully preserved!');
+            }
+          }, 1000); // Wait longer to see if it gets cleared
+        }
+      } catch (error) {
+        console.error('❌ Error reinitializing Select2:', error);
+      }
+    }, 100);
+  }
+
+
 
 
 
