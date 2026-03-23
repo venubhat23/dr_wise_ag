@@ -66,6 +66,8 @@ class Admin::DistributorsController < Admin::ApplicationController
     # Documents are already loaded via set_distributor before_action
     @distributor.distributor_documents.build if @distributor.distributor_documents.empty?
     @investors = Investor.all
+    # Preload assigned sub_agents to avoid N+1 queries
+    @assigned_sub_agent_ids = @distributor.assigned_sub_agents.pluck(:id).to_set
   end
 
   # POST /admin/distributors

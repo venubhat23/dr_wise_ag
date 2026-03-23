@@ -83,14 +83,14 @@
         <div class="col-md-4">
           <%= form.label :state, "State", class: "form-label" %>
           <%= form.select :state,
-              options_for_select(LocationData.states_for_select.map { |name, _| [name, name] }, @investor.state),
+              options_for_select(LocationData.states_for_select, @investor&.state),
               { prompt: 'Search and select state...' },
               { class: "form-select searchable-select", id: "investor_state", data: { placeholder: "Type to search states..." } } %>
         </div>
         <div class="col-md-4">
           <%= form.label :city, "City", class: "form-label" %>
           <%= form.select :city,
-              options_for_select([], @investor.city),
+              options_for_select([], @investor&.city),
               { prompt: 'Search and select city...' },
               { class: "form-select searchable-select", id: "investor_city", disabled: true, data: { placeholder: "Type to search cities..." } } %>
         </div>
@@ -431,33 +431,71 @@ document.addEventListener('DOMContentLoaded', function() {
   const stateSelect = document.getElementById('investor_state');
   const citySelect = document.getElementById('investor_city');
 
-  // Use global location data
-  let citiesData = {};
+  // Use global location data or API fallback
+  let newInvestorCitiesData = {};
+
   if (window.LocationData && window.LocationData.states) {
-    citiesData = Object.keys(window.LocationData.states).reduce((acc, key) => {
+    newInvestorCitiesData = Object.keys(window.LocationData.states).reduce((acc, key) => {
       acc[key] = window.LocationData.states[key].cities;
       return acc;
     }, {});
   }
 
-  function loadCitiesForState(stateValue) {
-    console.log('Loading cities for investor state:', stateValue);
+  function loadNewInvestorCitiesForState(stateValue, selectedCityValue = null) {
+    console.log('Loading cities for new investor form:', stateValue);
+    console.log('Selected city to set:', selectedCityValue);
+
     if (!stateValue) {
-      populateCityDropdown([]);
+      citySelect.innerHTML = '<option value="">Select State First</option>';
       citySelect.disabled = true;
       return;
     }
 
-    // Get cities for this state from local data
-    let cities = citiesData[stateValue] || [];
-    populateCityDropdown(cities);
+    let cities = [];
+
+    // Try to get cities from location data using multiple methods
+    if (window.LocationData && window.LocationData.states) {
+      // Method 1: Direct key match
+      cities = newInvestorCitiesData[stateValue] || [];
+      console.log('Direct key match cities:', cities.length);
+
+      // Method 2: Match by state name if direct key fails
+      if (cities.length === 0) {
+        Object.keys(window.LocationData.states).forEach(key => {
+          const stateData = window.LocationData.states[key];
+          if (stateData.name === stateValue || key === stateValue) {
+            cities = stateData.cities || [];
+            console.log('Found by state name match:', cities.length);
+          }
+        });
+      }
+
+      // Method 3: Case-insensitive search
+      if (cities.length === 0) {
+        const stateLower = stateValue.toLowerCase();
+        Object.keys(window.LocationData.states).forEach(key => {
+          const stateData = window.LocationData.states[key];
+          if (stateData.name.toLowerCase() === stateLower || key.toLowerCase() === stateLower) {
+            cities = stateData.cities || [];
+            console.log('Found by case-insensitive match:', cities.length);
+          }
+        });
+      }
+    }
+
+    if (cities.length > 0) {
+      populateNewInvestorCityDropdown(cities, selectedCityValue);
+    } else {
+      console.warn('No cities found for state:', stateValue, 'using fallback');
+      populateNewInvestorCityDropdown([], selectedCityValue);
+    }
   }
 
-  function populateCityDropdown(cities) {
+  function populateNewInvestorCityDropdown(cities, selectedCityValue = null) {
     // First destroy Select2 if it exists
-    const $citySelect = $(citySelect);
-    if ($citySelect.hasClass('select2-hidden-accessible')) {
-      $citySelect.select2('destroy');
+    const $newInvestorCitySelect = $(citySelect);
+    if ($newInvestorCitySelect.hasClass('select2-hidden-accessible')) {
+      $newInvestorCitySelect.select2('destroy');
     }
 
     // Clear dropdown and add cities
@@ -466,24 +504,34 @@ document.addEventListener('DOMContentLoaded', function() {
       const option = document.createElement('option');
       option.value = city;
       option.textContent = city;
+      if (selectedCityValue && city === selectedCityValue) {
+        option.selected = true;
+      }
       citySelect.appendChild(option);
     });
 
     // Re-enable dropdown
-    citySelect.disabled = false;
+    citySelect.disabled = cities.length === 0;
 
     // Re-initialize Select2 on city dropdown
-    $citySelect.select2({
-      theme: 'bootstrap-5',
-      placeholder: 'Search and select city...',
-      allowClear: true,
-      width: '100%',
-      minimumResultsForSearch: 0
-    });
+    setTimeout(() => {
+      $newInvestorCitySelect.select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search and select city...',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0
+      });
+
+      // Set selected value if provided
+      if (selectedCityValue) {
+        $newInvestorCitySelect.val(selectedCityValue).trigger('change.select2');
+      }
+    }, 50);
   }
 
   // Initialize Select2 on state dropdown
-  if (stateSelect) {
+  if (stateSelect && typeof $ !== 'undefined' && $.fn.select2) {
     $('#investor_state').select2({
       theme: 'bootstrap-5',
       placeholder: 'Search and select state...',
@@ -495,18 +543,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Handle state change
   stateSelect?.addEventListener('change', function() {
-    loadCitiesForState(this.value);
+    loadNewInvestorCitiesForState(this.value);
   });
 
   // Handle Select2 change event specifically
   $('#investor_state').on('select2:select', function (e) {
     const selectedValue = e.params.data.id;
-    loadCitiesForState(selectedValue);
+    stateSelect.value = selectedValue;
+    console.log('State selected via Select2:', selectedValue);
+    loadNewInvestorCitiesForState(selectedValue);
   });
 
   // Load cities if state is pre-selected
   if (stateSelect && stateSelect.value) {
-    loadCitiesForState(stateSelect.value);
+    loadNewInvestorCitiesForState(stateSelect.value);
   }
 
   // Password Option Toggle Functionality
