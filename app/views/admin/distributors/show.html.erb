@@ -517,10 +517,33 @@
             Login credentials not yet generated. They will be created when the ambassador account is saved.
           </div>
         <% else %>
-          <div class="alert alert-info mb-0">
-            <i class="bi bi-info-circle me-2"></i>
-            Share these credentials securely with the ambassador for portal access.
+          <div class="alert alert-success mb-3">
+            <div class="d-flex align-items-center">
+              <i class="bi bi-shield-check me-2"></i>
+              <strong>Share these credentials securely with the ambassador for portal access.</strong>
+            </div>
           </div>
+
+          <%# Login Instructions Section - Commented Out %>
+          <%#
+          <div class="alert alert-info mb-0">
+            <h6 class="alert-heading">
+              <i class="bi bi-globe me-2"></i>
+              Login Instructions
+            </h6>
+            <p class="mb-2">Use these credentials to login at:</p>
+            <div class="d-flex align-items-center mb-2">
+              <code class="me-2 bg-light p-2 rounded"><%= request.base_url %>/users/sign_in</code>
+              <button class="btn btn-outline-primary btn-sm" onclick="copyToClipboard('<%= request.base_url %>/users/sign_in')">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+            <small class="text-muted">
+              <i class="bi bi-arrow-right me-1"></i>
+              After login, you'll be automatically redirected to the Ambassador Dashboard
+            </small>
+          </div>
+          %>
         <% end %>
       </div>
     </div>

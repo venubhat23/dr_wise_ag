@@ -52,8 +52,8 @@
                 <td><%= policy&.policy_number || "Policy ##{payout.policy_id}" %></td>
                 <td><%= policy&.customer&.display_name || 'Customer' %></td>
                 <td><%= payout.policy_type.capitalize %></td>
-                <td>₹<%= number_to_indian_currency((policy&.total_premium || 0).round) %></td>
-                <td>₹<%= number_to_indian_currency((payout.payout_amount || 0).round) %></td>
+                <td><%= indian_currency((policy&.total_premium || 0).round) %></td>
+                <td><%= indian_currency((payout.payout_amount || 0).round) %></td>
                 <td>
                   <% case payout.status.downcase %>
                   <% when 'paid' %>
