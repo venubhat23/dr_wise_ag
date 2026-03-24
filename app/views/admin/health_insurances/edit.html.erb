@@ -15,10 +15,10 @@
       <i class="bi bi-eye me-2"></i>
       View Policy
     <% end %>
-    <button type="button" class="btn btn-outline-success" onclick="toggleDocumentSection()">
-      <i class="bi bi-file-earmark-plus me-2"></i>
-      Update Documents
-    </button>
+    <%= link_to admin_health_insurance_path(@health_insurance), class: "btn btn-outline-success" do %>
+      <i class="bi bi-cloud-check me-2"></i>
+      View Documents
+    <% end %>
     <div class="trust-seal">
       <i class="bi bi-shield-check seal-icon"></i>
       <span>Update Policy</span>
@@ -643,6 +643,195 @@
     </div>
   </div>
 
+
+  <!-- Policy Documents Manager Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-cloud-upload me-2 text-primary"></i>
+        Policy Documents Manager
+      </h5>
+      <small class="text-muted">Upload, organize and manage all policy-related documents with secure storage</small>
+    </div>
+    <div class="card-body p-4">
+      <!-- R2 Main Policy Document Upload -->
+      <div class="row mb-4">
+        <div class="col-md-12">
+          <div class="border border-success border-2 rounded p-4" style="background-color: #f0fff0;">
+            <%= form.label :main_policy_document, class: "form-label fw-bold" do %>
+              <i class="bi bi-cloud-upload me-2 text-success"></i>
+              Main Policy Document (R2 Storage)
+            <% end %>
+
+            <!-- Current R2 Document Display -->
+            <% if @health_insurance.has_main_policy_r2_document? %>
+              <div class="current-document mb-3 p-3 border rounded bg-white">
+                <div class="row align-items-center">
+                  <div class="col-auto">
+                    <% if @health_insurance.main_policy_document_content_type&.start_with?('image/') %>
+                      <%= image_tag @health_insurance.main_policy_r2_document_url, class: "img-thumbnail",
+                          style: "width: 60px; height: 60px; object-fit: cover;" %>
+                    <% elsif @health_insurance.main_policy_document_content_type == 'application/pdf' %>
+                      <div class="bg-danger text-white rounded d-flex align-items-center justify-content-center"
+                           style="width: 60px; height: 60px;">
+                        <i class="bi bi-file-earmark-pdf fs-4"></i>
+                      </div>
+                    <% else %>
+                      <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center"
+                           style="width: 60px; height: 60px;">
+                        <i class="bi bi-file-earmark fs-4"></i>
+                      </div>
+                    <% end %>
+                  </div>
+                  <div class="col">
+                    <div class="fw-medium"><%= @health_insurance.main_policy_document_filename %></div>
+                    <small class="text-muted">
+                      <%= (@health_insurance.main_policy_document_size / 1024.0 / 1024.0).round(2) %> MB •
+                      <%= @health_insurance.main_policy_document_content_type %>
+                    </small>
+                    <div>
+                      <small class="text-success">
+                        <i class="bi bi-cloud-check me-1"></i>
+                        Stored in Cloudflare R2
+                      </small>
+                    </div>
+                  </div>
+                  <div class="col-auto">
+                    <div class="d-flex gap-1">
+                      <%= link_to @health_insurance.main_policy_r2_url, class: "btn btn-sm btn-outline-primary",
+                          target: "_blank", title: "View" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                      <button type="button" class="btn btn-sm btn-outline-danger"
+                              onclick="deleteMainPolicyDocument()" title="Delete Document">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-2">
+                <small class="text-muted">
+                  <strong>Replace document:</strong> Upload a new file to replace the current document
+                </small>
+              </div>
+            <% end %>
+
+            <%= form.file_field :main_policy_document,
+                class: "form-control",
+                accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
+            <div class="form-text mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              <strong>Secure R2 Storage:</strong> Supports PDF, JPEG, PNG, Word files (Max: 10MB) -
+              <% if @health_insurance.has_main_policy_r2_document? %>
+                upload new file to replace existing document
+              <% else %>
+                files stored securely in Cloudflare R2
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Documents -->
+      <div class="row">
+        <div class="col-md-12 mb-4">
+          <div class="border border-secondary border-2 rounded p-4" style="background-color: #f8f9fa;">
+            <%= form.label :documents, class: "form-label fw-bold" do %>
+              <i class="bi bi-file-earmark-plus me-2 text-secondary"></i>
+              Additional Documents
+              <span class="badge bg-secondary ms-2">Optional</span>
+            <% end %>
+            <%= form.file_field :documents,
+                class: "form-control",
+                multiple: true,
+                accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
+            <div class="form-text mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              Upload medical reports, identity proofs, or other supporting documents. Multiple files supported.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Existing Documents Display -->
+      <% if @health_insurance.persisted? %>
+        <div class="row">
+          <div class="col-md-12">
+            <!-- R2 Policy Documents -->
+            <% if @health_insurance.respond_to?(:policy_documents_records) && @health_insurance.policy_documents_records.any? %>
+              <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-success">
+                      <i class="bi bi-cloud-check me-2"></i>
+                      R2 Policy Documents
+                    </h5>
+                    <span class="badge bg-success"><%= @health_insurance.policy_documents_records.count %> files</span>
+                  </div>
+                </div>
+                <div class="card-body p-0">
+                  <div class="list-group list-group-flush">
+                    <% @health_insurance.policy_documents_records.each do |doc| %>
+                      <div class="list-group-item">
+                        <div class="d-flex align-items-center">
+                          <div class="me-3">
+                            <% if doc.r2_content_type&.start_with?('image/') %>
+                              <div class="bg-info text-white rounded d-flex align-items-center justify-content-center"
+                                   style="width: 40px; height: 40px;">
+                                <i class="bi bi-image fs-5"></i>
+                              </div>
+                            <% elsif doc.r2_content_type == 'application/pdf' %>
+                              <div class="bg-danger text-white rounded d-flex align-items-center justify-content-center"
+                                   style="width: 40px; height: 40px;">
+                                <i class="bi bi-file-earmark-pdf fs-5"></i>
+                              </div>
+                            <% else %>
+                              <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center"
+                                   style="width: 40px; height: 40px;">
+                                <i class="bi bi-file-earmark fs-5"></i>
+                              </div>
+                            <% end %>
+                          </div>
+                          <div class="flex-grow-1">
+                            <h6 class="mb-1"><%= doc.title %></h6>
+                            <small class="text-muted">
+                              <%= doc.document_type %> •
+                              <%= (doc.r2_file_size / 1024.0 / 1024.0).round(2) %> MB •
+                              <%= doc.r2_content_type %>
+                            </small>
+                            <% if doc.description.present? %>
+                              <div class="small text-muted"><%= doc.description %></div>
+                            <% end %>
+                          </div>
+                          <div class="ms-3">
+                            <div class="btn-group" role="group">
+                              <%= link_to doc.r2_url, class: "btn btn-outline-primary btn-sm",
+                                  target: "_blank", title: "View Document" do %>
+                                <i class="bi bi-eye"></i>
+                              <% end %>
+                              <%= button_to [:admin, doc], method: :delete, class: "btn btn-outline-danger btn-sm",
+                                  title: "Delete Document",
+                                  data: {
+                                    confirm: "Are you sure you want to delete this document? This action cannot be undone.",
+                                    turbo_method: :delete
+                                  } do %>
+                                <i class="bi bi-trash"></i>
+                              <% end %>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
 
   <!-- Autopay Installment Section -->
   <div class="card mb-4">
@@ -1716,45 +1905,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// Document Section Toggle Function
-function toggleDocumentSection() {
-  const documentSection = document.getElementById('document-management-section');
-  const button = event.target.closest('button');
-
-  if (documentSection.style.display === 'none') {
-    documentSection.style.display = 'block';
-    button.innerHTML = '<i class="bi bi-file-earmark-minus me-2"></i>Hide Documents';
-    button.className = 'btn btn-outline-warning';
-
-    // Initialize the document manager if it hasn't been initialized yet
-    if (typeof initializePolicyDocumentManager === 'function') {
-      initializePolicyDocumentManager();
-    }
-
-    // Scroll to document section
-    setTimeout(() => {
-      documentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  } else {
-    documentSection.style.display = 'none';
-    button.innerHTML = '<i class="bi bi-file-earmark-plus me-2"></i>Update Documents';
-    button.className = 'btn btn-outline-success';
+// Document deletion function for main policy document
+function deleteMainPolicyDocument() {
+  if (confirm('Are you sure you want to delete the main policy document? This action cannot be undone.')) {
+    // You can implement the deletion logic here if needed
+    alert('Document deletion functionality will be implemented based on your backend setup.');
   }
 }
-
-// Ensure the document manager JavaScript is loaded when page loads
-document.addEventListener('DOMContentLoaded', function() {
-  // Pre-initialize even if section is hidden to avoid JavaScript errors
-  if (document.getElementById('policy-documents-manager') && typeof initializePolicyDocumentManager === 'function') {
-    setTimeout(() => {
-      initializePolicyDocumentManager();
-    }, 100);
-  }
-});
 </script>
-
-<!-- Document Management Section (Hidden by default) -->
-<div id="document-management-section" style="display: none;">
-  <%= render 'admin/policy_documents/document_manager', policy: @health_insurance, policy_type: 'health' %>
-</div>
 

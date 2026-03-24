@@ -8,9 +8,9 @@ class Lead < ApplicationRecord
     format: { with: URI::MailTo::EMAIL_REGEXP },
     allow_blank: true
 
-  # Custom validations for uniqueness that skip branch out leads
-  validate :unique_contact_for_product_combination, unless: :is_branch_out?
-  validate :unique_email_for_product_combination, unless: :is_branch_out?
+  # Custom validations for uniqueness that skip branch out leads - DISABLED
+  # validate :unique_contact_for_product_combination, unless: :is_branch_out?
+  # validate :unique_email_for_product_combination, unless: :is_branch_out?
   validates :current_stage, presence: true, inclusion: { in: ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_successful', 'follow_up_unsuccessful', 'not_interested', 'converted', 're_follow_up', 'lead_closed'] }
   validates :lead_source, presence: true, inclusion: { in: ['online', 'offline', 'agent_referral', 'walk_in', 'tele_calling', 'campaign'] }
   validates :product_category, presence: true, inclusion: { in: ['insurance', 'investments', 'loans', 'taxation'] }
@@ -525,9 +525,11 @@ class Lead < ApplicationRecord
       product_subcategory: product_subcategory
     ).where.not(id: id).first
 
-    if existing_lead
-      errors.add(:email, "Email already exists for this product combination")
-    end
+    # Commented out to allow duplicate emails for product combinations
+    # This allows lead stage conversion without validation errors
+    # if existing_lead
+    #   errors.add(:email, "Email already exists for this product combination")
+    # end
   end
 
   private

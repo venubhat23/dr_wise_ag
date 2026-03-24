@@ -222,6 +222,29 @@ class HealthInsurance < ApplicationRecord
     notifications
   end
 
+  # R2 Document Methods for Policy Document Manager
+  def main_policy_r2_url
+    return nil unless main_policy_document_key.present?
+    R2Service.public_url(main_policy_document_key)
+  end
+
+  def has_main_policy_r2?
+    main_policy_document_key.present?
+  end
+
+  def has_main_policy_r2_document?
+    has_main_policy_r2?
+  end
+
+  def main_policy_r2_filename
+    main_policy_document_filename
+  end
+
+  # Alias for compatibility with view expectations
+  def main_policy_r2_document_url
+    main_policy_r2_url
+  end
+
   private
 
   def calculate_totals

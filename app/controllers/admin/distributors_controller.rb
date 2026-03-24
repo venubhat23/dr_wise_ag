@@ -256,22 +256,26 @@ class Admin::DistributorsController < Admin::ApplicationController
     ambassador_user_role = UserRole.find_by(name: 'Ambassador')
     ambassador_role = Role.find_by(name: 'ambassador') || Role.find_by(name: 'Ambassador')
 
+    # Determine password based on form selection
+    password = determine_ambassador_password
+
     begin
-      # Create user with same password logic as customers
+      # Create user with determined password
       user = User.create!(
         first_name: distributor.first_name || 'Ambassador',
         last_name: distributor.last_name || 'User',
         email: distributor.email,
-        password: 'Ganesha@123',
-        password_confirmation: 'Ganesha@123',
+        password: password,
+        password_confirmation: password,
         mobile: distributor.mobile,
         user_type: 'ambassador',
         role: ambassador_role,
         user_role: ambassador_user_role,
-        status: true
+        status: true,
+        original_password: password
       )
 
-      Rails.logger.info "✅ Ambassador user account created: #{user.email}"
+      Rails.logger.info "✅ Ambassador user account created: #{user.email} with password: #{password}"
     rescue => e
       Rails.logger.error "❌ Failed to create ambassador user: #{e.message}"
     end
@@ -281,12 +285,23 @@ class Admin::DistributorsController < Admin::ApplicationController
     @distributor = Distributor.includes(distributor_documents: { document_file_attachment: :blob }).find(params[:id])
   end
 
+  def determine_ambassador_password
+    password_option = params[:password_option] || 'auto_generate'
+
+    if password_option == 'manual' && params[:distributor][:password].present?
+      params[:distributor][:password]
+    else
+      'Ganesha@123'
+    end
+  end
+
   def distributor_params
     params.require(:distributor).permit(
       :first_name, :middle_name, :last_name, :mobile, :email, :role_id,
       :state_id, :city_id, :state, :city, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
       :account_holder_name, :account_type, :upi_id, :status, :upload_main_document, :investor_id,
+      :password, :password_confirmation,
       assigned_affiliate_ids: [],
       distributor_documents_attributes: [:id, :document_type, :document_file, :_destroy],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
