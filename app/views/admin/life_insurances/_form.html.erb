@@ -536,10 +536,20 @@
   <!-- Commission Calculation Table -->
   <div class="card mb-4 shadow-sm commission-table">
     <div class="card-header" style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
-      <h5 class="mb-0 text-dark fw-bold">
-        <i class="bi bi-calculator me-2 text-primary"></i>
-        Commission Calculation
-      </h5>
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-0 text-dark fw-bold">
+            <i class="bi bi-calculator me-2 text-primary"></i>
+            Commission Calculation
+          </h5>
+        </div>
+        <div class="text-end">
+          <small class="text-muted fw-bold">Profit Formula:</small>
+          <div class="badge bg-light text-dark border" style="font-size: 0.8rem;">
+            Main Agent Commission - Total Distribution - Company Expenses
+          </div>
+        </div>
+      </div>
     </div>
     <div class="card-body p-0">
       <!-- Commission Table -->
@@ -3680,7 +3690,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <div class="col-md-4">
             <label class="form-label">Document File <span class="text-danger">*</span></label>
-            <input type="file" name="life_insurance[uploaded_documents_attributes][${policyDocumentIndex}][file]" class="form-control" accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required id="doc_file_${policyDocumentIndex}">
+            <input type="file" name="life_insurance[uploaded_documents_attributes][${policyDocumentIndex}][document_file]" class="form-control" accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required id="doc_file_${policyDocumentIndex}">
           </div>
         </div>
         <div class="row mt-2">
