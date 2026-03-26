@@ -248,7 +248,7 @@
           <%= form.label :gst_percentage, "GST %*", class: "form-label" %>
           <%= form.number_field :gst_percentage,
               class: "form-control",
-              value: @health_insurance.gst_percentage || 18,
+              value: @health_insurance.gst_percentage || 0,
               step: 0.01, min: 0, id: "gst_percentage" %>
         </div>
 
@@ -420,7 +420,7 @@
           <label class="form-label">1st year (%)</label>
           <%= form.number_field :main_agent_commission_percentage,
               class: "form-control",
-              value: @health_insurance.main_agent_commission_percentage || 10.0,
+              value: @health_insurance.main_agent_commission_percentage || 0,
               step: 0.01, id: "commission_percentage" %>
         </div>
         <div class="col-md-5 mb-3">
@@ -461,7 +461,7 @@
           <label class="form-label">1st year (%)</label>
           <%= form.number_field :sub_agent_commission_percentage,
               class: "form-control sub-agent-commission-percentage",
-              value: @health_insurance.sub_agent_commission_percentage || 2.0,
+              value: @health_insurance.sub_agent_commission_percentage || 0,
               step: 0.01 %>
         </div>
         <div class="col-md-5 mb-3">
@@ -502,7 +502,7 @@
           <label class="form-label">1st year (%)</label>
           <%= form.number_field :investor_commission_percentage,
               class: "form-control investor-commission-percentage",
-              value: @health_insurance.investor_commission_percentage || 2.0,
+              value: @health_insurance.investor_commission_percentage || 0,
               step: 0.01 %>
         </div>
         <div class="col-md-6 mb-3">
@@ -523,7 +523,7 @@
           <label class="form-label">1st year (%)</label>
           <%= form.number_field :ambassador_commission_percentage,
               class: "form-control ambassador-commission-percentage",
-              value: @health_insurance.ambassador_commission_percentage || 2.0,
+              value: @health_insurance.ambassador_commission_percentage || 0,
               step: 0.01 %>
         </div>
         <div class="col-md-5 mb-3">
@@ -1335,7 +1335,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-calculate sub-agent commission
     function calculateSubAgentCommission() {
       const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
-      const commissionPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage').value) || 2.0;
+      const commissionPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage').value) || 0;
       const tdsPercentage = parseFloat(document.querySelector('.sub-agent-tds-percentage').value) || 0;
 
       const commissionAmount = netPremium * (commissionPercentage / 100);
@@ -1350,7 +1350,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-calculate investor commission
     function calculateInvestorCommission() {
       const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
-      const commissionPercentage = parseFloat(document.querySelector('.investor-commission-percentage').value) || 2.0;
+      const commissionPercentage = parseFloat(document.querySelector('.investor-commission-percentage').value) || 0;
       const tdsPercentage = parseFloat(document.querySelector('.investor-tds-percentage').value) || 0;
 
       const commissionAmount = netPremium * (commissionPercentage / 100);
@@ -1363,7 +1363,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-calculate ambassador commission
     function calculateAmbassadorCommission() {
       const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
-      const commissionPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage').value) || 2.0;
+      const commissionPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage').value) || 0;
       const tdsPercentage = parseFloat(document.querySelector('.ambassador-tds-percentage').value) || 0;
 
       const commissionAmount = netPremium * (commissionPercentage / 100);
@@ -1380,11 +1380,11 @@ document.addEventListener('DOMContentLoaded', function() {
       const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
       const mainAgentCommissionPercentage = parseFloat(document.getElementById('commission_percentage').value) || 0;
 
-      const subAgentPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage').value) || 2.0;
-      const investorPercentage = parseFloat(document.querySelector('.investor-commission-percentage').value) || 2.0;
-      const companyExpensesPercentage = parseFloat(document.querySelector('.company-expenses-percentage').value) || 2.0;
+      const subAgentPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage').value) || 0;
+      const investorPercentage = parseFloat(document.querySelector('.investor-commission-percentage').value) || 0;
+      const companyExpensesPercentage = parseFloat(document.querySelector('.company-expenses-percentage').value) || 0;
 
-      const ambassadorPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage').value) || 2.0;
+      const ambassadorPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage').value) || 0;
       const totalDistributionPercentage = subAgentPercentage + investorPercentage + ambassadorPercentage;
 
       const profitPercentage = mainAgentCommissionPercentage - totalDistributionPercentage - companyExpensesPercentage;

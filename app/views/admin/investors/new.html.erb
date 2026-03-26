@@ -56,7 +56,7 @@
           <%= form.label :mobile, class: "form-label" do %>
             Mobile <span class="text-danger">*</span>
           <% end %>
-          <%= form.telephone_field :mobile, class: "form-control", placeholder: "Enter mobile number", required: true %>
+          <%= form.telephone_field :mobile, class: "form-control", placeholder: "Enter 10-digit mobile (7/8/9xxxxxxxxx)", required: true, pattern: "[789][0-9]{9}", maxlength: 10, title: "Must be a 10-digit number starting with 7, 8, or 9" %>
         </div>
         <div class="col-md-6">
           <%= form.label :email, class: "form-label" do %>

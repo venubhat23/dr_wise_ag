@@ -62,11 +62,14 @@
           <% end %>
           <%= form.telephone_field :mobile,
               class: "form-control",
-              placeholder: "9876543210 or +919876543210",
-              required: true %>
-          <small class="form-text text-muted">Enter 10-digit number (6-9 as first digit) or +91 format</small>
+              placeholder: "Enter 10-digit mobile (7/8/9xxxxxxxxx)",
+              required: true,
+              pattern: "[789][0-9]{9}",
+              maxlength: 10,
+              title: "Must be a 10-digit number starting with 7, 8, or 9" %>
+          <small class="form-text text-muted">Enter 10-digit number starting with 7, 8, or 9</small>
           <div class="invalid-feedback">
-            Please enter a valid 10-digit Indian mobile number
+            Please enter a valid 10-digit mobile number starting with 7, 8, or 9
           </div>
         </div>
         <div class="col-md-6">

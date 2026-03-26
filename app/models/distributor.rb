@@ -32,8 +32,8 @@ class Distributor < ApplicationRecord
               case_sensitive: false
             }
   validates :mobile, format: {
-    with: /\A(\+91[6-9]\d{9}|[6-9]\d{9})\z/,
-    message: "must be a valid 10-digit Indian mobile number (6-9 as first digit). Format: 9XXXXXXXXX or +919XXXXXXXXX"
+    with: /\A[789]\d{9}\z/,
+    message: "must be a valid 10-digit mobile number starting with 7, 8, or 9"
   }
   validates :email, presence: true,
             uniqueness: {
@@ -116,35 +116,26 @@ class Distributor < ApplicationRecord
   def format_mobile_number
     return if mobile.blank?
 
-    # Remove all non-digit characters except +
-    clean_mobile = mobile.to_s.gsub(/[^\d+]/, '')
+    # Remove all non-digit characters
+    clean_mobile = mobile.to_s.gsub(/[^\d]/, '')
 
-    # Handle different input formats
-    if clean_mobile.start_with?('+91') && clean_mobile.length == 13
-      # +91XXXXXXXXXX format - keep as is if valid
-      digits_part = clean_mobile[3..-1]
-      if digits_part.length == 10 && digits_part.match?(/\A[6-9]\d{9}\z/)
-        self.mobile = clean_mobile
-      else
-        # Invalid format, let validation handle it
-        self.mobile = clean_mobile
-      end
-    elsif clean_mobile.start_with?('91') && clean_mobile.length == 12
-      # 91XXXXXXXXXX format - convert to +91XXXXXXXXXX
+    # Handle different input formats - always extract 10-digit number
+    if clean_mobile.start_with?('91') && clean_mobile.length == 12
+      # 91XXXXXXXXXX format - extract 10-digit part
       digits_part = clean_mobile[2..-1]
-      if digits_part.length == 10 && digits_part.match?(/\A[6-9]\d{9}\z/)
-        self.mobile = "+91#{digits_part}"
+      if digits_part.length == 10 && digits_part.match?(/\A[789]\d{9}\z/)
+        self.mobile = digits_part
       else
         # Invalid format, let validation handle it
         self.mobile = clean_mobile
       end
-    elsif clean_mobile.length == 10 && clean_mobile.match?(/\A[6-9]\d{9}\z/)
-      # XXXXXXXXXX format - valid 10 digit number
+    elsif clean_mobile.length == 10 && clean_mobile.match?(/\A[789]\d{9}\z/)
+      # XXXXXXXXXX format - valid 10 digit number starting with 7, 8, or 9
       self.mobile = clean_mobile
     elsif clean_mobile.length == 11 && clean_mobile.start_with?('0')
       # 0XXXXXXXXXX format - remove leading zero
       digits_part = clean_mobile[1..-1]
-      if digits_part.length == 10 && digits_part.match?(/\A[6-9]\d{9}\z/)
+      if digits_part.length == 10 && digits_part.match?(/\A[789]\d{9}\z/)
         self.mobile = digits_part
       else
         # Invalid format, let validation handle it
