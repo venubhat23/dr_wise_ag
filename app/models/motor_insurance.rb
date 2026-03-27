@@ -192,6 +192,12 @@ class MotorInsurance < ApplicationRecord
     end
   end
 
+  # Document methods
+  def has_main_policy_r2?
+    # Check if there's at least one policy document uploaded
+    motor_insurance_documents.where(document_type: 'Policy Document').where.not(r2_file_key: [nil, '']).exists?
+  end
+
   # DrWise vs Non-DrWise classification
   def drwise_policy?
     # DrWise: Admin Added policies (is_admin_added: true AND others false)

@@ -579,10 +579,20 @@
                     value: @health_insurance.company_expenses_percentage || 2.0,
                     step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
               </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :company_expenses_amount,
+                    class: "form-control border-1 text-center company-expenses-amount",
+                    value: @health_insurance.company_expenses_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
               <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
               <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
-              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
-              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :company_expenses_amount,
+                    class: "form-control border-1 text-center fw-bold fs-6 company-expenses-amount-display",
+                    value: @health_insurance.company_expenses_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
             </tr>
             <!-- Profit -->
             <tr style="border-bottom: 2px solid #dee2e6; background: linear-gradient(135deg, #e8f5e8 0%, #f0fff0 100%);">
@@ -1428,10 +1438,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
       const profitPercentage = mainAgentCommissionPercentage - totalDistributionPercentage - companyExpensesPercentage;
       const profitAmount = netPremium * (profitPercentage / 100);
+      const companyExpensesAmount = netPremium * (companyExpensesPercentage / 100);
 
       document.querySelector('.total-distribution-percentage').value = totalDistributionPercentage.toFixed(2);
       document.querySelector('.profit-percentage').value = profitPercentage.toFixed(2);
       document.querySelector('.profit-amount').value = profitAmount.toFixed(2);
+
+      // Update company expenses amount
+      if (document.querySelector('.company-expenses-amount')) {
+        document.querySelector('.company-expenses-amount').value = companyExpensesAmount.toFixed(2);
+      }
+      if (document.querySelector('.company-expenses-amount-display')) {
+        document.querySelector('.company-expenses-amount-display').value = companyExpensesAmount.toFixed(2);
+      }
 
       // Update profit amount display
       const profitAmountDisplay = document.getElementById('profit-amount-display');

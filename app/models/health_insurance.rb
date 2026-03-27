@@ -245,6 +245,21 @@ class HealthInsurance < ApplicationRecord
     main_policy_r2_url
   end
 
+  # Total document count method
+  def total_documents_count
+    count = 0
+    count += 1 if has_main_policy_r2?
+    count += documents.attached? ? documents.count : 0
+    count += policy_documents.attached? ? policy_documents.count : 0
+    count += uploaded_documents.count
+    count += policy_documents_records.count
+    count
+  end
+
+  def has_any_documents?
+    total_documents_count > 0
+  end
+
   private
 
   def calculate_totals

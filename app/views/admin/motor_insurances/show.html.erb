@@ -1034,10 +1034,10 @@ setTimeout(aggressiveCleanup, 1000);
                           <% r2_url = R2Service.public_url(document.r2_file_key) if document.r2_file_key %>
                           <% if r2_url %>
                             <%= link_to r2_url, class: "btn btn-outline-success btn-sm", target: "_blank", title: "View Document" do %>
-                              <i class="bi bi-eye"></i>
+                              <i class="bi bi-eye me-1"></i>View
                             <% end %>
                             <%= link_to r2_url, class: "btn btn-outline-primary btn-sm", download: document.r2_filename, title: "Download Document" do %>
-                              <i class="bi bi-download"></i>
+                              <i class="bi bi-download me-1"></i>Download
                             <% end %>
                           <% end %>
                         <% end %>

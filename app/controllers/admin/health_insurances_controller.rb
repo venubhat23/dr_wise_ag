@@ -669,7 +669,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       :ambassador_commission_percentage, :ambassador_commission_amount, :ambassador_tds_percentage, :ambassador_tds_amount, :ambassador_after_tds_value,
       :investor_commission_percentage, :investor_commission_amount, :investor_tds_percentage, :investor_tds_amount, :investor_after_tds_value,
       # Company expenses and profit fields
-      :company_expenses_percentage, :total_distribution_percentage, :profit_percentage, :profit_amount,
+      :company_expenses_percentage, :company_expenses_amount, :total_distribution_percentage, :profit_percentage, :profit_amount,
       health_insurance_members_attributes: [:id, :member_name, :age, :relationship, :sum_insured, :_destroy],
       health_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
       documents: [], policy_documents: [],

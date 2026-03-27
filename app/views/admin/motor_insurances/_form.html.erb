@@ -754,10 +754,18 @@
                     value: @motor_insurance.company_expenses_percentage || 2.0,
                     step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
               </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :company_expenses_amount,
+                    class: "form-control border-1 text-center company-expenses-amount",
+                    readonly: true, style: "background: #f8f9fa; border-color: #dee2e6;" %>
+              </td>
               <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
               <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
-              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
-              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :company_expenses_amount,
+                    class: "form-control border-1 text-center fw-bold company-expenses-amount-display",
+                    readonly: true, style: "background: #f0f8ff; border-color: #dee2e6; color: #495057;" %>
+              </td>
             </tr>
             <!-- Profit -->
             <tr style="border-bottom: 2px solid #dee2e6; background: linear-gradient(135deg, #e8f5e8 0%, #f0fff0 100%);">
@@ -1009,6 +1017,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const investorPercentage = parseFloat(document.querySelector('.investor-commission-percentage').value) || 2.0;
     const companyExpensesPercentage = parseFloat(document.querySelector('.company-expenses-percentage').value) || 2.0;
 
+    // Calculate company expenses amount
+    const companyExpensesAmount = netPremium * (companyExpensesPercentage / 100);
+
     // Calculate total distribution (including ambassador)
     const ambassadorPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage').value) || 2.0;
     const totalDistributionPercentage = subAgentPercentage + investorPercentage + ambassadorPercentage;
@@ -1021,6 +1032,16 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('.total-distribution-percentage').value = totalDistributionPercentage.toFixed(2);
     document.querySelector('.profit-percentage').value = profitPercentage.toFixed(2);
     document.querySelector('.profit-amount').value = profitAmount.toFixed(2);
+
+    // Update company expenses amount fields
+    const companyExpensesAmountField = document.querySelector('.company-expenses-amount');
+    if (companyExpensesAmountField) {
+      companyExpensesAmountField.value = companyExpensesAmount.toFixed(2);
+    }
+    const companyExpensesAmountDisplay = document.querySelector('.company-expenses-amount-display');
+    if (companyExpensesAmountDisplay) {
+      companyExpensesAmountDisplay.value = companyExpensesAmount.toFixed(2);
+    }
 
     // Update profit amount in table display
     const profitAmountDisplay = document.querySelector('.profit-amount-display');
