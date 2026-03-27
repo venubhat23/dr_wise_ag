@@ -2669,6 +2669,64 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       console.log('❌ Add Document button not found');
     }
+
+    // Health Insurance Policy Documents Manager
+    let healthPolicyDocumentIndex = 0;
+    const addHealthPolicyDocumentBtn = document.getElementById('add_health_policy_document');
+    const healthPolicyDocumentsContainer = document.getElementById('health_policy_documents_container');
+
+    if (addHealthPolicyDocumentBtn && healthPolicyDocumentsContainer) {
+      addHealthPolicyDocumentBtn.addEventListener('click', function() {
+        const documentHtml = `
+          <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${healthPolicyDocumentIndex}" style="background: #f8f9fa;">
+            <button type="button" class="btn btn-sm btn-outline-danger position-absolute" style="top: 10px; right: 10px;" onclick="this.closest('.document-entry').remove()">
+              <i class="bi bi-trash"></i>
+            </button>
+            <div class="row">
+              <div class="col-md-4">
+                <label class="form-label">Document Title <span class="text-danger">*</span></label>
+                <input type="text" name="health_insurance[health_insurance_documents_attributes][${healthPolicyDocumentIndex}][title]" class="form-control" placeholder="Enter document title" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Document Type <span class="text-danger">*</span></label>
+                <select name="health_insurance[health_insurance_documents_attributes][${healthPolicyDocumentIndex}][document_type]" class="form-select" required>
+                  <option value="">Select Document Type</option>
+                  <option value="policy_document">Policy Document</option>
+                  <option value="medical_report">Medical Report</option>
+                  <option value="identity_proof">Identity Proof</option>
+                  <option value="address_proof">Address Proof</option>
+                  <option value="income_proof">Income Proof</option>
+                  <option value="aadhar">Aadhar Card</option>
+                  <option value="pan_card">PAN Card</option>
+                  <option value="passport">Passport</option>
+                  <option value="claim_form">Claim Form</option>
+                  <option value="discharge_summary">Discharge Summary</option>
+                  <option value="pre_policy_checkup">Pre-Policy Checkup</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Document File <span class="text-danger">*</span></label>
+                <input type="file" name="health_insurance[health_insurance_documents_attributes][${healthPolicyDocumentIndex}][file]" class="form-control" accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required id="health_doc_file_${healthPolicyDocumentIndex}">
+              </div>
+            </div>
+            <div class="row mt-2">
+              <div class="col-md-12">
+                <label class="form-label">Description (Optional)</label>
+                <textarea name="health_insurance[health_insurance_documents_attributes][${healthPolicyDocumentIndex}][description]" class="form-control" rows="2" placeholder="Optional description"></textarea>
+              </div>
+            </div>
+          </div>
+        `;
+
+        healthPolicyDocumentsContainer.insertAdjacentHTML('beforeend', documentHtml);
+        healthPolicyDocumentIndex++;
+      });
+
+      console.log('✅ Health Insurance Policy Documents Manager initialized');
+    } else {
+      console.log('❌ Health Insurance Policy Documents Manager elements not found');
+    }
   });
 </script>
 

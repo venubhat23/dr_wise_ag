@@ -373,219 +373,222 @@
     </div>
   </div>
 
-  <!-- Commission Detail Section -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="mb-0">
-        <i class="bi bi-percent me-2 text-primary"></i>
-        Commission Detail
-      </h5>
+  <!-- Commission Calculation Table -->
+  <div class="card mb-4 shadow-sm commission-table">
+    <div class="card-header" style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-0 text-dark fw-bold">
+            <i class="bi bi-calculator me-2 text-primary"></i>
+            Commission Calculation
+          </h5>
+        </div>
+        <div class="text-end">
+          <small class="text-muted fw-bold">Profit Formula:</small>
+          <div class="badge bg-light text-dark border" style="font-size: 0.8rem;">
+            Main Agent Commission - Total Distribution - Company Expenses
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="card-body">
-      <h6>Main Agent Commission</h6>
-      <div class="row">
-        <div class="col-md-2 mb-3">
-          <label class="form-label">1st year (%)</label>
-          <%= form.number_field :main_agent_commission_percentage,
-              class: "form-control",
-              value: @other_insurance.main_agent_commission_percentage || 10.0,
-              step: 0.01, id: "commission_percentage" %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <%= form.label :commission_amount, "Commission Amount", class: "form-label" %>
-          <%= form.number_field :commission_amount,
-              class: "form-control",
-              value: @other_insurance.commission_amount || 0,
-              step: 0.01, readonly: true, id: "commission_amount" %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <%= form.label :tds_percentage, "TDS %", class: "form-label" %>
-          <%= form.number_field :tds_percentage,
-              class: "form-control",
-              value: @other_insurance.tds_percentage || 0,
-              step: 0.01, id: "tds_percentage" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :tds_amount, "TDS Amount", class: "form-label" %>
-          <%= form.number_field :tds_amount,
-              class: "form-control",
-              value: @other_insurance.tds_amount || 0,
-              step: 0.01, readonly: true, id: "tds_amount" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :after_tds_value, "After TDS Value", class: "form-label" %>
-          <%= form.number_field :after_tds_value,
-              class: "form-control",
-              value: @other_insurance.after_tds_value || 0,
-              step: 0.01, readonly: true, id: "after_tds_value" %>
-        </div>
+    <div class="card-body p-0">
+      <!-- Commission Table -->
+      <div class="table-responsive">
+        <table class="table mb-0" style="font-size: 0.95rem;">
+          <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+            <tr>
+              <th class="py-3 px-4 fw-bold text-dark border-0" style="width: 20%;">COMMISSION DETAILS</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 12%;">(%)</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 18%;">COMMISSION</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 12%;">TDS (%)</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 15%;">TDS AMOUNT</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 23%; background: #f8f9fa;">ACTUAL AMOUNT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Main Agent -->
+            <tr style="border-bottom: 1px solid #e9ecef;">
+              <td class="py-3 px-4 fw-bold text-dark bg-light">Main Agent</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :main_agent_commission_percentage,
+                    class: "form-control border-1 text-center fw-bold shadow-sm",
+                    value: @other_insurance.main_agent_commission_percentage || 10.0,
+                    step: 0.01, id: "commission_percentage",
+                    style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :commission_amount,
+                    class: "form-control border-1 text-center",
+                    value: @other_insurance.commission_amount || 0,
+                    step: 0.01, readonly: true, id: "commission_amount",
+                    style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :tds_percentage,
+                    class: "form-control border-1 text-center",
+                    value: @other_insurance.tds_percentage || 0,
+                    step: 0.01, id: "tds_percentage",
+                    style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :tds_amount,
+                    class: "form-control border-1 text-center",
+                    value: @other_insurance.tds_amount || 0,
+                    step: 0.01, readonly: true, id: "tds_amount",
+                    style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :after_tds_value,
+                    class: "form-control border-1 text-center fw-bold fs-6",
+                    value: @other_insurance.after_tds_value || 0,
+                    step: 0.01, readonly: true, id: "after_tds_value",
+                    style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+            </tr>
+            <!-- Affiliate -->
+            <tr style="border-bottom: 1px solid #e9ecef;">
+              <td class="py-3 px-4 fw-bold text-dark">Affiliate</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :sub_agent_commission_percentage,
+                    class: "form-control border-1 text-center fw-bold shadow-sm sub-agent-commission-percentage",
+                    value: @other_insurance.sub_agent_commission_percentage || 0,
+                    step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :sub_agent_commission_amount,
+                    class: "form-control border-1 text-center sub-agent-commission-amount",
+                    value: @other_insurance.sub_agent_commission_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :sub_agent_tds_percentage,
+                    class: "form-control border-1 text-center sub-agent-tds-percentage",
+                    value: @other_insurance.sub_agent_tds_percentage || 0,
+                    step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :sub_agent_tds_amount,
+                    class: "form-control border-1 text-center sub-agent-tds-amount",
+                    value: @other_insurance.sub_agent_tds_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :sub_agent_after_tds_value,
+                    class: "form-control border-1 text-center fw-bold fs-6 sub-agent-after-tds-value",
+                    value: @other_insurance.sub_agent_after_tds_value || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+            </tr>
+            <!-- Investor -->
+            <tr style="border-bottom: 1px solid #e9ecef;">
+              <td class="py-3 px-4 fw-bold text-dark">Investor</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :investor_commission_percentage,
+                    class: "form-control border-1 text-center fw-bold shadow-sm investor-commission-percentage",
+                    value: @other_insurance.investor_commission_percentage || 0,
+                    step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :investor_commission_amount,
+                    class: "form-control border-1 text-center investor-commission-amount",
+                    value: @other_insurance.investor_commission_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :investor_commission_amount,
+                    class: "form-control border-1 text-center fw-bold fs-6 investor-commission-amount-display",
+                    value: @other_insurance.investor_commission_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+            </tr>
+            <%= form.hidden_field :investor_tds_percentage, value: 0, class: "investor-tds-percentage" %>
+            <!-- Ambassador -->
+            <tr style="border-bottom: 1px solid #e9ecef;">
+              <td class="py-3 px-4 fw-bold text-dark">Ambassador</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :ambassador_commission_percentage,
+                    class: "form-control border-1 text-center fw-bold shadow-sm ambassador-commission-percentage",
+                    value: @other_insurance.ambassador_commission_percentage || 0,
+                    step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :ambassador_commission_amount,
+                    class: "form-control border-1 text-center ambassador-commission-amount",
+                    value: @other_insurance.ambassador_commission_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :ambassador_tds_percentage,
+                    class: "form-control border-1 text-center ambassador-tds-percentage",
+                    value: @other_insurance.ambassador_tds_percentage || 0,
+                    step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :ambassador_tds_amount,
+                    class: "form-control border-1 text-center ambassador-tds-amount",
+                    value: @other_insurance.ambassador_tds_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :ambassador_after_tds_value,
+                    class: "form-control border-1 text-center fw-bold fs-6 ambassador-after-tds-value",
+                    value: @other_insurance.ambassador_after_tds_value || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+            </tr>
+            <!-- Company Expenses -->
+            <tr style="border-bottom: 1px solid #e9ecef;">
+              <td class="py-3 px-4 fw-bold text-dark">Company Expenses</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :company_expenses_percentage,
+                    class: "form-control border-1 text-center fw-bold shadow-sm company-expenses-percentage",
+                    value: @other_insurance.company_expenses_percentage || 5.0,
+                    step: 0.01, min: 0, max: 100, style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :company_expenses_amount,
+                    class: "form-control border-1 text-center company-expenses-amount",
+                    value: ((@other_insurance.net_premium || 0) * ((@other_insurance.company_expenses_percentage || 5) / 100)).round(2),
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :company_expenses_amount,
+                    class: "form-control border-1 text-center fw-bold fs-6 company-expenses-amount-display",
+                    value: ((@other_insurance.net_premium || 0) * ((@other_insurance.company_expenses_percentage || 5) / 100)).round(2),
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+            </tr>
+            <!-- Profit Row -->
+            <tr style="border-bottom: 2px solid #198754; background: linear-gradient(135deg, #f0fff0 0%, #e8f5e8 100%);">
+              <td class="py-3 px-4 fw-bold text-dark" style="background: #e8f5e8;">
+                <i class="bi bi-currency-rupee me-1 text-success"></i>
+                Profit
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :profit_percentage,
+                    class: "form-control border-1 text-center fw-bold profit-percentage-display",
+                    value: @other_insurance.profit_percentage || 0,
+                    step: 0.01, readonly: true, style: "background: #f0fff0; border-color: #198754; color: #198754;" %>
+              </td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-1 text-center" style="background: #f0fff0;">
+                <%= form.number_field :profit_amount,
+                    class: "form-control border-1 text-center fw-bold profit-amount-display",
+                    value: @other_insurance.profit_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f0fff0; border-color: #198754; color: #198754;" %>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <!-- Affiliate Commission -->
-      <hr class="my-4">
-      <h6>Affiliate Commission</h6>
-      <div class="row">
-        <div class="col-md-2 mb-3">
-          <label class="form-label">1st year (%)</label>
-          <%= form.number_field :sub_agent_commission_percentage,
-              class: "form-control sub-agent-commission-percentage",
-              value: @other_insurance.sub_agent_commission_percentage || 2.0,
-              step: 0.01 %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">Commission Amount</label>
-          <%= form.number_field :sub_agent_commission_amount,
-              class: "form-control sub-agent-commission-amount",
-              value: @other_insurance.sub_agent_commission_amount || 0,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">TDS %</label>
-          <%= form.number_field :sub_agent_tds_percentage,
-              class: "form-control sub-agent-tds-percentage",
-              value: @other_insurance.sub_agent_tds_percentage || 0,
-              step: 0.01 %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">TDS Amount</label>
-          <%= form.number_field :sub_agent_tds_amount,
-              class: "form-control sub-agent-tds-amount",
-              value: @other_insurance.sub_agent_tds_amount || 0,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">After TDS Value</label>
-          <%= form.number_field :sub_agent_after_tds_value,
-              class: "form-control sub-agent-after-tds-value",
-              value: @other_insurance.sub_agent_after_tds_value || 0,
-              step: 0.01, readonly: true %>
-        </div>
-      </div>
-
-      <!-- Investor Commission -->
-      <hr class="my-4">
-      <h6>Investor Commission</h6>
-      <div class="row">
-        <div class="col-md-2 mb-3">
-          <label class="form-label">1st year (%)</label>
-          <%= form.number_field :investor_commission_percentage,
-              class: "form-control",
-              value: @other_insurance.investor_commission_percentage || 2.0,
-              step: 0.01, id: "investor_commission_percentage" %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">Amount</label>
-          <%= form.number_field :investor_commission_amount,
-              class: "form-control",
-              value: @other_insurance.investor_commission_amount || 0,
-              step: 0.01, readonly: true, id: "investor_commission_amount" %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">TDS %</label>
-          <%= form.number_field :investor_tds_percentage,
-              class: "form-control",
-              value: @other_insurance.investor_tds_percentage || 0,
-              step: 0.01, id: "investor_tds_percentage" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">TDS Amount</label>
-          <%= form.number_field :investor_tds_amount,
-              class: "form-control",
-              value: @other_insurance.investor_tds_amount || 0,
-              step: 0.01, readonly: true, id: "investor_tds_amount" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">After TDS Value</label>
-          <%= form.number_field :investor_after_tds_value,
-              class: "form-control",
-              value: @other_insurance.investor_after_tds_value || 0,
-              step: 0.01, readonly: true, id: "investor_after_tds_value" %>
-        </div>
-      </div>
-
-      <!-- Ambassador Commission -->
-      <hr class="my-4">
-      <h6>Ambassador Commission</h6>
-      <div class="row">
-        <div class="col-md-2 mb-3">
-          <label class="form-label">1st year (%)</label>
-          <%= form.number_field :ambassador_commission_percentage,
-              class: "form-control",
-              value: @other_insurance.ambassador_commission_percentage || 2.0,
-              step: 0.01, id: "ambassador_commission_percentage" %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">Commission Amount</label>
-          <%= form.number_field :ambassador_commission_amount,
-              class: "form-control",
-              value: @other_insurance.ambassador_commission_amount || 0,
-              step: 0.01, readonly: true, id: "ambassador_commission_amount" %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">TDS %</label>
-          <%= form.number_field :ambassador_tds_percentage,
-              class: "form-control",
-              value: @other_insurance.ambassador_tds_percentage || 0,
-              step: 0.01, id: "ambassador_tds_percentage" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">TDS Amount</label>
-          <%= form.number_field :ambassador_tds_amount,
-              class: "form-control",
-              value: @other_insurance.ambassador_tds_amount || 0,
-              step: 0.01, readonly: true, id: "ambassador_tds_amount" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">After TDS Value</label>
-          <%= form.number_field :ambassador_after_tds_value,
-              class: "form-control",
-              value: @other_insurance.ambassador_after_tds_value || 0,
-              step: 0.01, readonly: true, id: "ambassador_after_tds_value" %>
-        </div>
-      </div>
-
-      <!-- Company Expenses & Profit Calculation -->
-      <hr class="my-4">
-      <h6>Company Expenses & Profit Calculation</h6>
-      <div class="row">
-        <div class="col-md-3 mb-3">
-          <label class="form-label">Company Expenses (%)</label>
-          <%= form.number_field :company_expenses_percentage,
-              class: "form-control",
-              value: @other_insurance.company_expenses_percentage || 2.0,
-              step: 0.01, id: "company_expenses_percentage" %>
-        </div>
-        <div class="col-md-3 mb-3">
-          <label class="form-label">Total Distribution (%)</label>
-          <%= form.number_field :total_distribution_percentage,
-              class: "form-control",
-              value: @other_insurance.total_distribution_percentage || 6.0,
-              step: 0.01, readonly: true, id: "total_distribution_percentage" %>
-        </div>
-        <div class="col-md-3 mb-3">
-          <label class="form-label">Profit (%)</label>
-          <%= form.number_field :profit_percentage,
-              class: "form-control",
-              value: @other_insurance.profit_percentage || 2.0,
-              step: 0.01, readonly: true, id: "profit_percentage" %>
-        </div>
-        <div class="col-md-3 mb-3">
-          <label class="form-label">Profit Amount (₹)</label>
-          <%= form.number_field :profit_amount,
-              class: "form-control",
-              value: @other_insurance.profit_amount || 0,
-              step: 0.01, readonly: true, id: "profit_amount" %>
-        </div>
-      </div>
-      <div class="alert alert-info">
-        <h6 class="mb-2">Commission Calculation Summary:</h6>
-        <ul class="mb-0">
-          <li><strong>Main Agent Commission:</strong> <span id="main-income-display">10.0%</span> of Net Premium</li>
-          <li><strong>Total Distribution:</strong> <span id="distribution-display">6.0%</span> (Affiliate + Investor + Ambassador)</li>
-          <li><strong>Company Expenses:</strong> <span id="expenses-display">2.0%</span> of Net Premium</li>
-          <li><strong>Profit:</strong> Main Agent Commission - Total Distribution - Company Expenses</li>
-        </ul>
-      </div>
+      <!-- Hidden fields for calculations -->
+      <%= form.hidden_field :total_distribution_percentage, class: "total-distribution-percentage", value: @other_insurance.total_distribution_percentage || 0 %>
     </div>
   </div>
 
@@ -886,6 +889,35 @@
   .affiliate-option-id {
     font-size: 11px;
     color: #6c757d;
+  }
+
+  /* Commission Table Styling */
+  .commission-table {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .commission-table .table td,
+  .commission-table .table th {
+    vertical-align: middle;
+    border-color: #e9ecef;
+  }
+  .commission-table .form-control {
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+  .commission-table .form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    border-color: #667eea;
+  }
+  .commission-table .form-control:read-only {
+    background-color: #f8f9fa !important;
+    color: #6c757d !important;
+  }
+  .commission-table tr:hover {
+    background-color: rgba(102, 126, 234, 0.03);
   }
 </style>
 
@@ -1372,41 +1404,38 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('.sub-agent-tds-amount').value = subAgentTdsAmt.toFixed(2);
     document.querySelector('.sub-agent-after-tds-value').value = (subAgentAmt - subAgentTdsAmt).toFixed(2);
 
-    // Investor Commission
-    const investorPct = parseFloat(document.getElementById('investor_commission_percentage').value) || 0;
+    // Investor Commission (no TDS for investors)
+    const investorPct = parseFloat(document.querySelector('.investor-commission-percentage').value) || 0;
     const investorAmt = (netPremium * investorPct) / 100;
-    document.getElementById('investor_commission_amount').value = investorAmt.toFixed(2);
-
-    const investorTdsPct = parseFloat(document.getElementById('investor_tds_percentage').value) || 0;
-    const investorTdsAmt = (investorAmt * investorTdsPct) / 100;
-    document.getElementById('investor_tds_amount').value = investorTdsAmt.toFixed(2);
-    document.getElementById('investor_after_tds_value').value = (investorAmt - investorTdsAmt).toFixed(2);
+    document.querySelector('.investor-commission-amount').value = investorAmt.toFixed(2);
+    // Update investor display field (since they don't have TDS)
+    document.querySelector('.investor-commission-amount-display').value = investorAmt.toFixed(2);
 
     // Ambassador Commission
-    const ambassadorPct = parseFloat(document.getElementById('ambassador_commission_percentage').value) || 0;
+    const ambassadorPct = parseFloat(document.querySelector('.ambassador-commission-percentage').value) || 0;
     const ambassadorAmt = (netPremium * ambassadorPct) / 100;
-    document.getElementById('ambassador_commission_amount').value = ambassadorAmt.toFixed(2);
+    document.querySelector('.ambassador-commission-amount').value = ambassadorAmt.toFixed(2);
 
-    const ambassadorTdsPct = parseFloat(document.getElementById('ambassador_tds_percentage').value) || 0;
+    const ambassadorTdsPct = parseFloat(document.querySelector('.ambassador-tds-percentage').value) || 0;
     const ambassadorTdsAmt = (ambassadorAmt * ambassadorTdsPct) / 100;
-    document.getElementById('ambassador_tds_amount').value = ambassadorTdsAmt.toFixed(2);
-    document.getElementById('ambassador_after_tds_value').value = (ambassadorAmt - ambassadorTdsAmt).toFixed(2);
+    document.querySelector('.ambassador-tds-amount').value = ambassadorTdsAmt.toFixed(2);
+    document.querySelector('.ambassador-after-tds-value').value = (ambassadorAmt - ambassadorTdsAmt).toFixed(2);
+
+    // Company Expenses
+    const companyExpensesPct = parseFloat(document.querySelector('.company-expenses-percentage').value) || 0;
+    const companyExpensesAmt = (netPremium * companyExpensesPct) / 100;
+    document.querySelector('.company-expenses-amount').value = companyExpensesAmt.toFixed(2);
+    document.querySelector('.company-expenses-amount-display').value = companyExpensesAmt.toFixed(2);
 
     // Calculate total distribution and profit
     const totalDistribution = subAgentPct + investorPct + ambassadorPct;
-    document.getElementById('total_distribution_percentage').value = totalDistribution.toFixed(2);
+    document.querySelector('.total-distribution-percentage').value = totalDistribution.toFixed(2);
 
-    const companyExpensesPct = parseFloat(document.getElementById('company_expenses_percentage').value) || 0;
     const profitPct = mainCommissionPct - totalDistribution - companyExpensesPct;
-    document.getElementById('profit_percentage').value = profitPct.toFixed(2);
+    document.querySelector('.profit-percentage-display').value = profitPct.toFixed(2);
 
     const profitAmt = (netPremium * profitPct) / 100;
-    document.getElementById('profit_amount').value = profitAmt.toFixed(2);
-
-    // Update summary display
-    document.getElementById('main-income-display').textContent = mainCommissionPct.toFixed(1) + '%';
-    document.getElementById('distribution-display').textContent = totalDistribution.toFixed(1) + '%';
-    document.getElementById('expenses-display').textContent = companyExpensesPct.toFixed(1) + '%';
+    document.querySelector('.profit-amount-display').value = profitAmt.toFixed(2);
   }
 
   // Enhanced Policy End Date calculation based on start date and payment mode
@@ -1546,11 +1575,10 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('tds_percentage')?.addEventListener('input', calculateCommissions);
   document.querySelector('.sub-agent-commission-percentage')?.addEventListener('input', calculateCommissions);
   document.querySelector('.sub-agent-tds-percentage')?.addEventListener('input', calculateCommissions);
-  document.getElementById('investor_commission_percentage')?.addEventListener('input', calculateCommissions);
-  document.getElementById('investor_tds_percentage')?.addEventListener('input', calculateCommissions);
-  document.getElementById('ambassador_commission_percentage')?.addEventListener('input', calculateCommissions);
-  document.getElementById('ambassador_tds_percentage')?.addEventListener('input', calculateCommissions);
-  document.getElementById('company_expenses_percentage')?.addEventListener('input', calculateCommissions);
+  document.querySelector('.investor-commission-percentage')?.addEventListener('input', calculateCommissions);
+  document.querySelector('.ambassador-commission-percentage')?.addEventListener('input', calculateCommissions);
+  document.querySelector('.ambassador-tds-percentage')?.addEventListener('input', calculateCommissions);
+  document.querySelector('.company-expenses-percentage')?.addEventListener('input', calculateCommissions);
 
   // Dynamic nominee management
   let nomineeIndex = <%= @other_insurance.other_insurance_nominees.length %>;
