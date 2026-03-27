@@ -542,56 +542,61 @@
                     step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
               </td>
             </tr>
-            <tr>
-              <td><strong>Company Expenses</strong></td>
-              <td>
+            <!-- Company Expenses -->
+            <tr style="border-bottom: 1px solid #e9ecef;">
+              <td class="py-3 px-4 fw-bold text-dark">Company Expenses</td>
+              <td class="py-2 px-1 text-center">
                 <%= form.number_field :company_expenses_percentage,
-                    class: "form-control company-expenses-percentage",
-                    value: @other_insurance.company_expenses_percentage || 2.0,
-                    step: 0.01, min: 0, max: 100 %>
+                    class: "form-control border-1 text-center fw-bold shadow-sm company-expenses-percentage",
+                    value: @other_insurance.company_expenses_percentage || 5.0,
+                    step: 0.01, min: 0, max: 100, style: "background: #fff; border-color: #dee2e6;" %>
               </td>
-              <td>
-                <span id="company_expenses_amount" class="fw-bold">₹<%= ((@other_insurance.net_premium || 0) * ((@other_insurance.company_expenses_percentage || 2) / 100)).round(2) %></span>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :company_expenses_amount,
+                    class: "form-control border-1 text-center company-expenses-amount",
+                    value: ((@other_insurance.net_premium || 0) * ((@other_insurance.company_expenses_percentage || 5) / 100)).round(2),
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
               </td>
-              <td>
-                <span class="text-muted">N/A</span>
-              </td>
-              <td>
-                <span class="text-muted">N/A</span>
-              </td>
-              <td>
-                <span class="text-muted">N/A</span>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :company_expenses_amount,
+                    class: "form-control border-1 text-center fw-bold fs-6 company-expenses-amount-display",
+                    value: ((@other_insurance.net_premium || 0) * ((@other_insurance.company_expenses_percentage || 5) / 100)).round(2),
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
               </td>
             </tr>
-            <tr class="table-success">
-              <td><strong>Profit</strong></td>
-              <td>
-                <span id="profit_percentage_display" class="fw-bold text-success"><%= (@other_insurance.profit_percentage || 0).to_f.round(2) %>%</span>
-                <%= form.hidden_field :profit_percentage,
-                    class: "profit-percentage",
-                    value: @other_insurance.profit_percentage || 0 %>
+            <!-- Profit Row -->
+            <tr style="border-bottom: 2px solid #198754; background: linear-gradient(135deg, #f0fff0 0%, #e8f5e8 100%);">
+              <td class="py-3 px-4 fw-bold text-dark" style="background: #e8f5e8;">
+                <i class="bi bi-currency-rupee me-1 text-success"></i>
+                Profit
               </td>
-              <td>
-                <span id="profit_amount_display" class="fw-bold text-success">₹<%= (@other_insurance.profit_amount || 0).to_f.round(2) %></span>
-                <%= form.hidden_field :profit_amount,
-                    class: "profit-amount",
-                    value: @other_insurance.profit_amount || 0 %>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :profit_percentage,
+                    class: "form-control border-1 text-center fw-bold profit-percentage-display",
+                    value: @other_insurance.profit_percentage || 0,
+                    step: 0.01, readonly: true, style: "background: #f0fff0; border-color: #198754; color: #198754;" %>
               </td>
-              <td>
-                <span class="text-muted">N/A</span>
-              </td>
-              <td>
-                <span class="text-muted">N/A</span>
-              </td>
-              <td>
-                <span class="text-muted">N/A</span>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-1 text-center" style="background: #f0fff0;">
+                <%= form.number_field :profit_amount,
+                    class: "form-control border-1 text-center fw-bold profit-amount-display",
+                    value: @other_insurance.profit_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f0fff0; border-color: #198754; color: #198754;" %>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Main Agent Commission Transaction Details -->
+      <!-- Hidden fields for calculations -->
+      <%= form.hidden_field :total_distribution_percentage, class: "total-distribution-percentage", value: @other_insurance.total_distribution_percentage || 0 %>
+    </div>
+  </div>
+
+  <!-- Main Agent Commission Transaction Details -->
       <div class="mt-4">
         <h6 class="mb-3">Main Agent Commission Transaction Details</h6>
         <div class="row">
