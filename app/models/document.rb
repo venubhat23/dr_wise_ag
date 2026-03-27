@@ -157,7 +157,10 @@ class Document < ApplicationRecord
       content_type: r2_content_type,
       byte_size: r2_file_size,
       key: r2_file_key,
-      attached?: has_file?
+      attached?: has_file?,
+      signed_id: r2_file_key, # Use R2 key as signed_id equivalent
+      present?: true,
+      attached: true
     )
   end
 

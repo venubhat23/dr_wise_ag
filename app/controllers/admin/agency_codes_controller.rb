@@ -185,10 +185,8 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     if (insurance_type == "Life") || (insurance_type == "life" )
       insurance_type = "Life Insurance"
     end
-    # Get all unique agents for the insurance type (PostgreSQL compatible)
+    # Get all agency codes for the insurance type
     @agency_codes = AgencyCode.where(insurance_type: insurance_type)
-                             .select('agent_name, MIN(id) as id, MIN(code) as code, MIN(company_name) as company_name')
-                             .group(:agent_name)
                              .order(:agent_name)
 
     respond_to do |format|

@@ -32,8 +32,8 @@
           <% if @life_insurance.lead_id.present? %>
             <div class="text-muted mb-2">Lead: <%= @life_insurance.lead_id %></div>
           <% end %>
-          <div class="fw-bold text-success fs-5">₹<%= number_with_delimiter((@life_insurance.sum_insured || 0).to_i, delimiter: ',') %></div>
-          <div class="fw-bold text-primary fs-5">₹<%= number_with_delimiter((@life_insurance.total_premium || 0).to_i, delimiter: ',') %></div>
+          <div class="fw-bold text-success fs-5"><%= indian_currency(@life_insurance.sum_insured || 0) %></div>
+          <div class="fw-bold text-primary fs-5"><%= indian_currency(@life_insurance.total_premium || 0) %></div>
         </div>
       </div>
     </div>
@@ -43,7 +43,7 @@
       <!-- Main Agent Commission -->
       <div class="commission-item d-flex justify-content-between align-items-center py-2 border-bottom">
         <div class="d-flex align-items-center">
-          <span class="fw-bold">Main Agent: ₹<%= number_with_delimiter((@life_insurance.main_income_amount || 0).to_i, delimiter: ',') %></span>
+          <span class="fw-bold">Main Agent: <%= indian_currency(@life_insurance.main_income_amount || 0) %></span>
           <span class="text-muted ms-2">(<%= (@life_insurance.main_income_percentage || 0).round(1) %>%)</span>
         </div>
         <div class="d-flex align-items-center gap-2">
@@ -57,29 +57,29 @@
               Mark as Paid
             </button>
             <span class="text-muted small">Paid: 0/1</span>
-            <span class="text-muted small">Amount: ₹0</span>
+            <span class="text-muted small">Amount: <%= indian_currency(0) %></span>
           <% end %>
         </div>
       </div>
 
       <!-- Affiliate Commission -->
       <div class="commission-item d-flex justify-content-between align-items-center py-2 border-bottom">
-        <span>Affiliate: ₹<%= number_with_delimiter((@life_insurance.sub_agent_commission_amount || 0).to_i, delimiter: ',') %> (<%= (@life_insurance.sub_agent_commission_percentage || 0).round(1) %>%)</span>
+        <span>Affiliate: <%= indian_currency(@life_insurance.sub_agent_commission_amount || 0) %> (<%= (@life_insurance.sub_agent_commission_percentage || 0).round(1) %>%)</span>
       </div>
 
       <!-- Ambassador Commission -->
       <div class="commission-item d-flex justify-content-between align-items-center py-2 border-bottom">
-        <span>Ambassador: ₹<%= number_with_delimiter((@life_insurance.ambassador_commission_amount || 0).to_i, delimiter: ',') %> (<%= (@life_insurance.ambassador_commission_percentage || 0).round(1) %>%)</span>
+        <span>Ambassador: <%= indian_currency(@life_insurance.ambassador_commission_amount || 0) %> (<%= (@life_insurance.ambassador_commission_percentage || 0).round(1) %>%)</span>
       </div>
 
       <!-- Investor Commission -->
       <div class="commission-item d-flex justify-content-between align-items-center py-2 border-bottom">
-        <span>Investor: ₹<%= number_with_delimiter((@life_insurance.investor_commission_amount || 0).to_i, delimiter: ',') %> (<%= (@life_insurance.investor_commission_percentage || 0).round(1) %>%)</span>
+        <span>Investor: <%= indian_currency(@life_insurance.investor_commission_amount || 0) %> (<%= (@life_insurance.investor_commission_percentage || 0).round(1) %>%)</span>
       </div>
 
       <!-- Company Expense -->
       <div class="commission-item d-flex justify-content-between align-items-center py-2">
-        <span>Company: ₹<%= number_with_delimiter(((@life_insurance.total_premium || 0) * (@life_insurance.company_expenses_percentage || 0) / 100).to_i, delimiter: ',') %> (<%= (@life_insurance.company_expenses_percentage || 0).round(1) %>%)</span>
+        <span>Company: <%= indian_currency((@life_insurance.total_premium || 0) * (@life_insurance.company_expenses_percentage || 0) / 100) %> (<%= (@life_insurance.company_expenses_percentage || 0).round(1) %>%)</span>
       </div>
     </div>
   </div>

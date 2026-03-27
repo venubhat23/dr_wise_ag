@@ -40,7 +40,7 @@ class HealthInsurance < ApplicationRecord
   validates :payment_mode, presence: true
   validates :sum_insured, presence: true, numericality: { greater_than: 0 }
   validates :net_premium, presence: true, numericality: { greater_than: 0 }
-  validates :gst_percentage, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :gst_percentage, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   validates :total_premium, presence: true, numericality: { greater_than: 0 }
 
   # Nominee validations (now optional since we use separate nominee model)

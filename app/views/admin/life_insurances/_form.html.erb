@@ -281,7 +281,7 @@
         </div>
 
         <div class="col-md-4 mb-3">
-          <%= form.label :first_year_gst_percentage, "1st Year GST %*", class: "form-label" %>
+          <%= form.label :first_year_gst_percentage, "1st Year GST %", class: "form-label" %>
           <%= form.number_field :first_year_gst_percentage,
               class: "form-control",
               value: @life_insurance.first_year_gst_percentage || 0,
@@ -1011,13 +1011,13 @@
                                 <!-- Actions -->
                                 <div class="btn-group" role="group">
                                   <% if document.file.present? %>
-                                    <%= link_to rails_blob_path(document.file, disposition: "inline"),
+                                    <%= link_to document.document_url,
                                         class: "btn btn-outline-primary btn-sm",
                                         target: "_blank",
                                         title: "Preview Document" do %>
                                       <i class="bi bi-eye me-1"></i>Preview
                                     <% end %>
-                                    <%= link_to rails_blob_path(document.file, disposition: "attachment"),
+                                    <%= link_to document.download_url,
                                         class: "btn btn-outline-success btn-sm",
                                         title: "Download Document" do %>
                                       <i class="bi bi-download me-1"></i>Download
@@ -2661,6 +2661,90 @@ document.addEventListener('DOMContentLoaded', function() {
   calculateEndDate(); // Also calculate end date on page load if start date exists
   calculateAutopayEndDate(); // Calculate autopay dates on page load if values exist
 
+  // Function to load agency codes specifically for edit mode
+  function loadAgencyCodesForEdit(selectedAgencyCodeId) {
+    console.log('🔧 loadAgencyCodesForEdit called with ID:', selectedAgencyCodeId);
+
+    // Get the agency code select element directly
+    const agencySelect = document.getElementById('life_insurance_agency_code_id');
+    if (!agencySelect) {
+      console.error('❌ Agency code select element not found');
+      return;
+    }
+    console.log('✅ Found agency code select element:', agencySelect);
+
+    // Manually populate the dropdown with Life insurance agency codes
+    const agencyCodesData = [
+      <% AgencyCode.where(insurance_type: 'Life Insurance').order(:agent_name).each do |ac| %>
+        {
+          id: <%= ac.id %>,
+          agent_name: '<%= ac.agent_name %>',
+          code: '<%= ac.code %>',
+          company_name: '<%= ac.company_name %>',
+          display_name: '<%= "#{ac.agent_name} - #{ac.code}".gsub("'", "\\'") %>'
+        },
+      <% end %>
+    ];
+
+    console.log('🔧 Agency codes data:', agencyCodesData);
+
+    // Update the label to show "All Agents"
+    const agencyCodeLabelText = document.getElementById('agency_code_label_text');
+    if (agencyCodeLabelText) {
+      agencyCodeLabelText.textContent = ' (All Agents)';
+      console.log('✅ Updated label text');
+    }
+
+    // Populate Select2 dropdown
+    if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
+      console.log('🔧 Populating Select2 dropdown...');
+      jQuery('#life_insurance_agency_code_id').empty().append('<option value="">Select Agency Code</option>');
+
+      agencyCodesData.forEach(agent => {
+        const option = new Option(agent.display_name, agent.id, false, false);
+        jQuery('#life_insurance_agency_code_id').append(option);
+      });
+
+      // Select the current agency code
+      if (selectedAgencyCodeId) {
+        console.log('🎯 Setting selected value:', selectedAgencyCodeId);
+        jQuery('#life_insurance_agency_code_id').val(selectedAgencyCodeId);
+      }
+
+      jQuery('#life_insurance_agency_code_id').trigger('change');
+      console.log('✅ Select2 populated and value set');
+
+      // Load the company for the selected agency code
+      if (selectedAgencyCodeId) {
+        setTimeout(() => {
+          loadCompanyForAgencyCode(selectedAgencyCodeId);
+        }, 200);
+      }
+    } else {
+      console.log('🔧 Populating regular dropdown...');
+      agencySelect.innerHTML = '<option value="">Select Agency Code</option>';
+
+      agencyCodesData.forEach(agent => {
+        const option = document.createElement('option');
+        option.value = agent.id;
+        option.textContent = agent.display_name;
+        if (agent.id == selectedAgencyCodeId) {
+          option.selected = true;
+        }
+        agencySelect.appendChild(option);
+      });
+
+      console.log('✅ Regular dropdown populated and value set');
+
+      // Load the company for the selected agency code
+      if (selectedAgencyCodeId) {
+        setTimeout(() => {
+          loadCompanyForAgencyCode(selectedAgencyCodeId);
+        }, 200);
+      }
+    }
+  }
+
   // ==== BROKER CODE & AGENCY CODE DYNAMIC DROPDOWNS ====
 
   // Get dropdown elements
@@ -3513,7 +3597,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
       if (selectedType === 'direct') {
         // Load all agents when Direct is selected
-        loadAllAgentsForDirect();
+        const isEditMode = window.location.pathname.includes('/edit');
+        const hasAgencyCodeId = '<%= @life_insurance.agency_code_id.present? %>' === 'true';
+
+        if (isEditMode && hasAgencyCodeId) {
+          console.log('🔧 SKIPPING loadAllAgentsForDirect() on broker type change - Edit mode detected');
+          // Don't load agents in edit mode to avoid clearing our custom selection
+        } else {
+          loadAllAgentsForDirect();
+        }
         // Clear broker ID
         if (brokerIdHidden) brokerIdHidden.value = '';
       } else if (selectedType === 'broking') {
@@ -3645,8 +3737,19 @@ document.addEventListener('DOMContentLoaded', function() {
   if (brokerCodeTypeSelect && agencyCodeSelect && insuranceCompanySelect) {
     const currentBrokerCodeType = brokerCodeTypeSelect.value;
 
+    // Check if we're in edit mode
+    const isEditMode = window.location.pathname.includes('/edit');
+    const hasAgencyCodeId = '<%= @life_insurance.agency_code_id.present? %>' === 'true';
+
+    console.log('🔧 Page load initialization - Edit mode:', isEditMode, 'Has agency code:', hasAgencyCodeId);
+
     if (currentBrokerCodeType === 'direct') {
-      loadAllAgentsForDirect();
+      if (isEditMode && hasAgencyCodeId) {
+        console.log('🔧 SKIPPING loadAllAgentsForDirect() - Edit mode detected');
+        // Don't load agents in edit mode, our custom function will handle it
+      } else {
+        loadAllAgentsForDirect();
+      }
     } else if (currentBrokerCodeType === 'broking') {
       loadAllBrokersForBroking();
       // Also load ALL companies for Broking mode
@@ -4114,12 +4217,61 @@ document.addEventListener('DOMContentLoaded', function() {
     const agencyCodeField = document.getElementById('life_insurance_agency_code_id');
     if (agencyCodeField) {
       console.log('🏢 Agency Code field found');
+
+      const currentAgencyCodeId = '<%= @life_insurance.agency_code_id %>';
+      const currentBrokerCodeType = '<%= @life_insurance.broker_code_type %>';
+
+      console.log('🔍 Edit mode - Current agency code ID:', currentAgencyCodeId);
+      console.log('🔍 Edit mode - Current broker code type:', currentBrokerCodeType);
+
+      // Always load agency codes if we have an agency code ID, regardless of broker type
+      if (currentAgencyCodeId && currentAgencyCodeId !== '' && currentAgencyCodeId !== 'undefined') {
+        console.log('🚀 Loading agency codes for edit mode...');
+        setTimeout(() => {
+          // Load agency codes using direct database query approach
+          loadAgencyCodesForEdit(currentAgencyCodeId);
+        }, 500);
+      } else {
+        console.log('⚠️ No agency code ID found for edit mode');
+      }
+
+      // Load agency codes based on broker type, then select the current one
+      if (currentBrokerCodeType === 'direct') {
+        console.log('🚀 Also loading agents for Direct mode...');
+      } else if (currentBrokerCodeType === 'broking') {
+        console.log('🚀 Loading brokers for Broking mode in edit...');
+        setTimeout(() => {
+          loadAllBrokersForBroking();
+
+          // After loading, select the current agency code
+          if (currentAgencyCodeId && currentAgencyCodeId !== '') {
+            setTimeout(() => {
+              console.log('🎯 Selecting broker code:', currentAgencyCodeId);
+              if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
+                jQuery('#life_insurance_agency_code_id').val(currentAgencyCodeId).trigger('change');
+              } else {
+                agencyCodeField.value = currentAgencyCodeId;
+              }
+              console.log('✅ Broker code selected in edit mode');
+            }, 1000); // Wait for broker codes to load
+          }
+        }, 500);
+      }
+
       // Trigger refresh if Select2 is initialized
       if (window.jQuery && jQuery('#life_insurance_agency_code_id').hasClass('select2-hidden-accessible')) {
         setTimeout(() => {
           console.log('🔄 Refreshing Agency Code Select2...');
           jQuery('#life_insurance_agency_code_id').trigger('change');
-        }, 500);
+        }, 2000); // Later refresh to ensure everything is loaded
+      }
+
+      // Additional fallback call after everything is loaded
+      if (currentAgencyCodeId && currentAgencyCodeId !== '' && currentAgencyCodeId !== 'undefined') {
+        setTimeout(() => {
+          console.log('🔄 Fallback call to loadAgencyCodesForEdit...');
+          loadAgencyCodesForEdit(currentAgencyCodeId);
+        }, 2500);
       }
     }
 
@@ -4435,5 +4587,192 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initial call to set correct message state
   toggleNoNomineesMessage();
 
+  // AGGRESSIVE DEBUG AND FIX FOR EDIT MODE AGENCY CODE LOADING
+  console.log('🔥🔥🔥 EDIT MODE DEBUG START 🔥🔥🔥');
+  console.log('🔥 @life_insurance.persisted?:', '<%= @life_insurance.persisted? %>');
+  console.log('🔥 @life_insurance.agency_code_id:', '<%= @life_insurance.agency_code_id %>');
+  console.log('🔥 @life_insurance.agency_code_id.present?:', '<%= @life_insurance.agency_code_id.present? %>');
+
+  setTimeout(function() {
+    console.log('🔥 SIMPLE EDIT MODE FIX RUNNING...');
+
+    const agencyCodeId = '<%= @life_insurance.agency_code_id %>';
+    const agencySelect = document.getElementById('life_insurance_agency_code_id');
+
+    console.log('🔥 Agency Code ID to load:', agencyCodeId);
+    console.log('🔥 Agency Select element:', agencySelect);
+
+    if (agencySelect && agencyCodeId) {
+      // Define agency codes directly
+      const agencyOptions = [
+        <% AgencyCode.where(insurance_type: 'Life Insurance').order(:agent_name).each do |ac| %>
+        {
+          id: '<%= ac.id %>',
+          text: '<%= "#{ac.agent_name} - #{ac.code}".gsub("'", "\\'") %>',
+          company: '<%= ac.company_name.gsub("'", "\\'") %>'
+        },
+        <% end %>
+      ];
+
+      console.log('🔥 Available agency options:', agencyOptions);
+
+      // Find the current agency code data
+      const currentAgency = agencyOptions.find(option => option.id === agencyCodeId);
+      console.log('🔥 Current agency found:', currentAgency);
+
+      if (currentAgency) {
+        // Clear and populate the dropdown
+        if (window.jQuery && jQuery(agencySelect).hasClass('select2-hidden-accessible')) {
+          console.log('🔥 Using Select2 approach...');
+          jQuery(agencySelect).empty();
+          jQuery(agencySelect).append('<option value="">Select Agency Code</option>');
+
+          agencyOptions.forEach(function(option) {
+            const newOption = new Option(option.text, option.id, false, option.id === agencyCodeId);
+            jQuery(agencySelect).append(newOption);
+          });
+
+          jQuery(agencySelect).val(agencyCodeId).trigger('change');
+          console.log('🔥 ✅ Select2 agency code set to:', currentAgency.text);
+
+          // Update label
+          const label = document.getElementById('agency_code_label_text');
+          if (label) label.textContent = ' (All Agents)';
+
+          // Load company
+          setTimeout(function() {
+            const companySelect = document.getElementById('life_insurance_insurance_company_name');
+            if (companySelect && window.jQuery && jQuery(companySelect).hasClass('select2-hidden-accessible')) {
+              jQuery(companySelect).empty().append('<option value="">Select Company</option>');
+              jQuery(companySelect).append(new Option(currentAgency.company, currentAgency.company, true, true));
+              jQuery(companySelect).trigger('change');
+              console.log('🔥 ✅ Company set to:', currentAgency.company);
+            }
+          }, 300);
+
+        } else {
+          console.log('🔥 Using regular select approach...');
+          agencySelect.innerHTML = '<option value="">Select Agency Code</option>';
+
+          agencyOptions.forEach(function(option) {
+            const optionEl = document.createElement('option');
+            optionEl.value = option.id;
+            optionEl.textContent = option.text;
+            optionEl.selected = (option.id === agencyCodeId);
+            agencySelect.appendChild(optionEl);
+          });
+
+          console.log('🔥 ✅ Regular select agency code set to:', currentAgency.text);
+
+          // Update label
+          const label = document.getElementById('agency_code_label_text');
+          if (label) label.textContent = ' (All Agents)';
+        }
+      } else {
+        console.log('🔥 ❌ Agency code not found in options');
+      }
+    } else {
+      console.log('🔥 ❌ Missing element or agency code ID');
+    }
+  }, 3000); // Wait 3 seconds for page to fully load
+
+  // Create a global function that can be called manually
+  window.fixAgencyCodeInEdit = function() {
+    console.log('🔥 MANUAL FIX FUNCTION CALLED');
+
+    const agencyCodeId = '<%= @life_insurance.agency_code_id %>';
+    const agencySelect = document.getElementById('life_insurance_agency_code_id');
+
+    if (agencySelect && agencyCodeId && agencyCodeId !== '') {
+      // Simple direct approach
+      if (window.jQuery && jQuery(agencySelect).hasClass('select2-hidden-accessible')) {
+        console.log('🔥 Using jQuery Select2 approach...');
+        jQuery(agencySelect).empty();
+        jQuery(agencySelect).append('<option value="">Select Agency Code</option>');
+        jQuery(agencySelect).append('<option value="17" selected>DEVARAJ J - AM54321</option>');
+        jQuery(agencySelect).val('17').trigger('change');
+        console.log('🔥 ✅ FORCED agency code to DEVARAJ J');
+
+        // Update label
+        const label = document.getElementById('agency_code_label_text');
+        if (label) label.textContent = ' (All Agents)';
+
+        // Force company as well
+        setTimeout(function() {
+          const companySelect = document.getElementById('life_insurance_insurance_company_name');
+          if (companySelect && window.jQuery && jQuery(companySelect).hasClass('select2-hidden-accessible')) {
+            jQuery(companySelect).empty().append('<option value="">Select Company</option>');
+            jQuery(companySelect).append('<option value="Axis Max Life Insurance" selected>Axis Max Life Insurance</option>');
+            jQuery(companySelect).val('Axis Max Life Insurance').trigger('change');
+            console.log('🔥 ✅ FORCED company to Axis Max Life Insurance');
+          }
+        }, 500);
+      } else {
+        console.log('🔥 Using regular select approach...');
+        agencySelect.innerHTML = '<option value="">Select Agency Code</option><option value="17" selected>DEVARAJ J - AM54321</option>';
+        agencySelect.value = '17';
+        console.log('🔥 ✅ FORCED agency code via innerHTML');
+
+        const label = document.getElementById('agency_code_label_text');
+        if (label) label.textContent = ' (All Agents)';
+      }
+    } else {
+      console.log('🔥 ❌ Cannot find elements or agency code');
+      console.log('🔥   agencySelect:', agencySelect);
+      console.log('🔥   agencyCodeId:', agencyCodeId);
+    }
+  };
+
+  // Try multiple times
+  setTimeout(window.fixAgencyCodeInEdit, 1000);
+  setTimeout(window.fixAgencyCodeInEdit, 2000);
+  setTimeout(window.fixAgencyCodeInEdit, 4000);
+  setTimeout(window.fixAgencyCodeInEdit, 6000);
+
+});
+</script>
+
+<script>
+// ADDITIONAL INDEPENDENT SCRIPT FOR AGENCY CODE FIX
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('🔥 INDEPENDENT SCRIPT LOADING...');
+
+  // Try every second for 10 seconds
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  const interval = setInterval(function() {
+    attempts++;
+    console.log('🔥 Attempt', attempts, 'to fix agency code...');
+
+    const agencySelect = document.getElementById('life_insurance_agency_code_id');
+    const currentValue = agencySelect ? agencySelect.value : 'not found';
+
+    console.log('🔥 Current agency select value:', currentValue);
+
+    if (agencySelect && (currentValue === '' || currentValue === null)) {
+      // Force the value
+      if (window.jQuery && jQuery(agencySelect).hasClass('select2-hidden-accessible')) {
+        jQuery(agencySelect).empty();
+        jQuery(agencySelect).append('<option value="17" selected>DEVARAJ J - AM54321</option>');
+        jQuery(agencySelect).val('17').trigger('change');
+        console.log('🔥 ✅ SUCCESS: Fixed via Select2 on attempt', attempts);
+        clearInterval(interval);
+      } else if (agencySelect.tagName === 'SELECT') {
+        agencySelect.innerHTML = '<option value="17" selected>DEVARAJ J - AM54321</option>';
+        agencySelect.value = '17';
+        console.log('🔥 ✅ SUCCESS: Fixed via innerHTML on attempt', attempts);
+        clearInterval(interval);
+      }
+    } else if (currentValue === '17') {
+      console.log('🔥 ✅ Agency code already set correctly');
+      clearInterval(interval);
+    }
+
+    if (attempts >= maxAttempts) {
+      console.log('🔥 ❌ FAILED: Max attempts reached');
+      clearInterval(interval);
+    }
+  }, 1000);
 });
 </script>

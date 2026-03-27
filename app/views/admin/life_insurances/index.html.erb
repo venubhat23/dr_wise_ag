@@ -200,6 +200,11 @@
                   <div>
                     <h6 class="mb-1"><%= policy.policy_number %></h6>
                     <small class="text-muted"><%= policy.policy_type&.humanize %></small>
+                    <br>
+                    <small class="<%= policy.has_main_policy_r2? ? 'text-success' : 'text-danger' %>">
+                      <i class="bi bi-file-earmark-<%= policy.has_main_policy_r2? ? 'check' : 'x' %> me-1"></i>
+                      <%= policy.has_main_policy_r2? ? '1 doc' : '0 doc' %>
+                    </small>
                   </div>
                 </td>
                 <td>

@@ -26,7 +26,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Investors</h6>
-            <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_investors) %></h3>
+            <h3 class="mb-0 text-primary"><%= indian_number(@total_investors) %></h3>
           </div>
           <div class="bg-primary bg-opacity-10 rounded p-3">
             <i class="bi bi-people text-primary fs-4"></i>
@@ -42,9 +42,9 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Invested Amount</h6>
-            <h3 class="mb-0 text-success">₹<%= number_with_delimiter(@total_invested_amount.to_i) %></h3>
+            <h3 class="mb-0 text-success"><%= indian_currency(@total_invested_amount) %></h3>
             <% if @total_investor_amount != @total_invested_amount %>
-              <small class="text-muted">Commission Pool: ₹<%= number_with_delimiter(@total_investor_amount.to_i) %></small>
+              <small class="text-muted">Commission Pool: <%= indian_currency(@total_investor_amount) %></small>
             <% end %>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
@@ -123,7 +123,7 @@
                 <td>
                   <% if investor.invested_amount.present? %>
                     <span class="text-success fw-semibold">
-                      ₹<%= number_with_delimiter(investor.invested_amount) %>
+                      <%= indian_currency(investor.invested_amount) %>
                     </span>
                   <% else %>
                     <span class="text-muted">-</span>
@@ -131,7 +131,7 @@
                 </td>
                 <td class="text-center">
                   <% if investor.number_of_shares.present? && investor.number_of_shares > 0 %>
-                    <span class="badge bg-primary fs-6"><%= investor.number_of_shares %></span>
+                    <span class="badge bg-primary fs-6"><%= indian_number(investor.number_of_shares) %></span>
                   <% else %>
                     <span class="text-muted">-</span>
                   <% end %>
@@ -169,15 +169,15 @@
         <div class="d-flex justify-content-between align-items-center flex-wrap">
           <small class="text-muted mb-2 mb-md-0">
             <% if defined?(@total_filtered_count) && @total_filtered_count.present? %>
-              Showing <%= number_with_delimiter(@investors.current_page == 1 ? 1 : ((@investors.current_page - 1) * @investors.limit_value + 1)) %>
-              to <%= number_with_delimiter([@investors.current_page * @investors.limit_value, @total_filtered_count].min) %>
-              of <%= number_with_delimiter(@total_filtered_count) %> investors
+              Showing <%= indian_number(@investors.current_page == 1 ? 1 : ((@investors.current_page - 1) * @investors.limit_value + 1)) %>
+              to <%= indian_number([@investors.current_page * @investors.limit_value, @total_filtered_count].min) %>
+              of <%= indian_number(@total_filtered_count) %> investors
             <% elsif @investors.respond_to?(:total_count) %>
-              Showing <%= number_with_delimiter(@investors.current_page == 1 ? 1 : ((@investors.current_page - 1) * @investors.limit_value + 1)) %>
-              to <%= number_with_delimiter([@investors.current_page * @investors.limit_value, @investors.total_count].min) %>
-              of <%= number_with_delimiter(@investors.total_count) %> investors
+              Showing <%= indian_number(@investors.current_page == 1 ? 1 : ((@investors.current_page - 1) * @investors.limit_value + 1)) %>
+              to <%= indian_number([@investors.current_page * @investors.limit_value, @investors.total_count].min) %>
+              of <%= indian_number(@investors.total_count) %> investors
             <% else %>
-              Showing <%= number_with_delimiter(@investors.count) %> investors
+              Showing <%= indian_number(@investors.count) %> investors
             <% end %>
           </small>
 

@@ -47,7 +47,7 @@ class LifeInsurance < ApplicationRecord
   validates :payment_mode, presence: true
   validates :sum_insured, presence: true, numericality: { greater_than: 0 }
   validates :net_premium, presence: true, numericality: { greater_than: 0 }
-  validates :first_year_gst_percentage, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :first_year_gst_percentage, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   validates :total_premium, presence: true, numericality: { greater_than: 0 }
   validates :policy_term, presence: true, numericality: { greater_than: 0 }
   validates :distributor_id, presence: true
@@ -382,8 +382,12 @@ class LifeInsurance < ApplicationRecord
     # Set default company expenses percentage if not already set
     self.company_expenses_percentage ||= SystemSetting.company_expenses_percentage
 
-    # Main income calculation (10% default)
-    self.main_income_percentage ||= 10.0
+    # Calculate main income based on main_agent_commission_percentage if provided, otherwise use default
+    if main_agent_commission_percentage.present?
+      self.main_income_percentage = main_agent_commission_percentage
+    else
+      self.main_income_percentage ||= 10.0
+    end
     self.main_income_amount = (net_premium * (main_income_percentage / 100.0)).round(2)
 
     # Sub-agent commission (now Affiliate)
