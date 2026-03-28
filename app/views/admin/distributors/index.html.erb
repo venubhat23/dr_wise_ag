@@ -148,7 +148,29 @@
                 </td>
                 <td>
                   <div>
-                    <%= distributor.formatted_mobile.present? ? distributor.formatted_mobile : "No mobile number" %>
+                    <%
+                      if distributor.mobile.present?
+                        # Extract only 10 digits from mobile, removing any prefix like +91 or 0
+                        clean_mobile = distributor.mobile.to_s.gsub(/[^\d]/, '')
+                        if clean_mobile.start_with?('91') && clean_mobile.length == 12
+                          clean_mobile = clean_mobile[2..-1]
+                        elsif clean_mobile.start_with?('0') && clean_mobile.length == 11
+                          clean_mobile = clean_mobile[1..-1]
+                        end
+
+                        if clean_mobile.length == 10
+                    %>
+                      <%= clean_mobile %>
+                    <%
+                        else
+                    %>
+                      <%= distributor.mobile %>
+                    <%
+                        end
+                      else
+                    %>
+                      No mobile number
+                    <% end %>
                   </div>
                 </td>
                 <td>

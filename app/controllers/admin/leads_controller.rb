@@ -8,15 +8,15 @@ class Admin::LeadsController < Admin::ApplicationController
     # Handle tab-based filtering
     case params[:tab]
     when 'converted'
-      # Show only converted leads (those with customer_id) - these are now clients
-      @leads = Lead.where.not(converted_customer_id: nil)
+      # Show only converted leads (those with converted stage)
+      @leads = Lead.where(current_stage: 'converted')
       params[:show_converted] = 'true'  # For backward compatibility
     else
-      # Default: Show active leads (those without customer_id)
+      # Default: Show active leads (all except converted stage)
       if params[:show_converted] == 'true'
         @leads = Lead.all
       else
-        @leads = Lead.where(converted_customer_id: nil)
+        @leads = Lead.where.not(current_stage: 'converted')
       end
     end
 
@@ -56,15 +56,15 @@ class Admin::LeadsController < Admin::ApplicationController
 
     @leads = paginate_records(@leads.order(created_at: :desc).includes(:converted_customer, :created_policy, :affiliate, :ambassador))
 
-    # Statistics for dashboard - updated to reflect active leads only (those without customers)
-    active_leads_scope = Lead.where(converted_customer_id: nil)
+    # Statistics for dashboard - updated to reflect active leads only (those without converted stage)
+    active_leads_scope = Lead.where.not(current_stage: 'converted')
     @total_leads = active_leads_scope.count
-    @lead_generated_leads = active_leads_scope.lead_generated.count
-    @consultation_leads = active_leads_scope.consultation_scheduled.count
-    @one_on_one_leads = active_leads_scope.one_on_one.count
-    @follow_up_leads = active_leads_scope.follow_up.count
-    @converted_leads = Lead.where.not(converted_customer_id: nil).count
-    @lead_closed_leads = active_leads_scope.lead_closed.count
+    @lead_generated_leads = active_leads_scope.where(current_stage: 'lead_generated').count
+    @consultation_leads = active_leads_scope.where(current_stage: 'consultation_scheduled').count
+    @one_on_one_leads = active_leads_scope.where(current_stage: 'one_on_one').count
+    @follow_up_leads = active_leads_scope.where(current_stage: 'follow_up').count
+    @converted_leads = Lead.where(current_stage: 'converted').count
+    @lead_closed_leads = active_leads_scope.where(current_stage: 'lead_closed').count
 
     # Conversion rate calculation
     total_converted = @converted_leads
@@ -90,15 +90,14 @@ class Admin::LeadsController < Admin::ApplicationController
   def kanban
     # Load leads grouped by stage for Kanban board
     @leads_by_stage = Lead.includes(:converted_customer, :affiliate)
-                          .where(converted_customer_id: nil) # Exclude converted leads
+                          .where.not(current_stage: 'converted') # Exclude converted leads
                           .group_by(&:current_stage)
     # Get stage definitions with display names and colors
     @stages = {
       'lead_generated' => { name: 'Lead Generated', color: 'primary' },
       'consultation_scheduled' => { name: 'Consultation', color: 'info' },
       'one_on_one' => { name: 'One-on-One', color: 'warning' },
-      'follow_up' => { name: 'Follow-Up', color: 'secondary' },
-      'follow_up_successful' => { name: 'Converted', color: 'success' },
+      'follow_up' => { name: 'Follow-Up Successful', color: 'secondary' },
       'converted' => { name: 'Converted', color: 'success' },
       'follow_up_unsuccessful' => { name: 'Follow-Up Failed', color: 'danger' },
       'not_interested' => { name: 'Not Interested', color: 'dark' },
@@ -111,7 +110,7 @@ class Admin::LeadsController < Admin::ApplicationController
   def kanban_flow
     # Load leads grouped by stage for Kanban board
     @leads_by_stage = Lead.includes(:converted_customer, :affiliate)
-                          .where(converted_customer_id: nil) # Exclude converted leads
+                          .where.not(current_stage: 'converted') # Exclude converted leads
                           .group_by(&:current_stage)
 
     # Get stage definitions with display names and colors
@@ -119,8 +118,7 @@ class Admin::LeadsController < Admin::ApplicationController
       'lead_generated' => { name: 'Lead Generated', color: 'primary' },
       'consultation_scheduled' => { name: 'Consultation', color: 'info' },
       'one_on_one' => { name: 'One-on-One', color: 'warning' },
-      'follow_up' => { name: 'Follow-Up', color: 'secondary' },
-      'follow_up_successful' => { name: 'Converted', color: 'success' },
+      'follow_up' => { name: 'Follow-Up Successful', color: 'secondary' },
       'converted' => { name: 'Converted', color: 'success' },
       'follow_up_unsuccessful' => { name: 'Follow-Up Failed', color: 'danger' },
       'not_interested' => { name: 'Not Interested', color: 'dark' },

@@ -521,6 +521,44 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     end
   end
 
+  def customer_family_members
+    customer_id = params[:customer_id]
+    if customer_id.present?
+      begin
+        customer = Customer.find(customer_id)
+        family_members = customer.family_members.includes(:customer)
+        # Build policy holder options
+        policy_holder_options = [{ value: 'Self', text: 'Self' }]
+        family_members.each do |member|
+          # Only add if member has a valid name and it's not empty/numeric only
+          if member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
+            display_name = "#{member.name} (#{member.relationship.humanize})"
+            # Use name as value, display name as text - this ensures the database stores just the name
+            policy_holder_options << {
+              value: member.name,
+              text: display_name
+            }
+          end
+        end
+
+        render json: {
+          success: true,
+          policy_holders: policy_holder_options
+        }
+      rescue => e
+        render json: {
+          success: false,
+          error: 'Unable to load family members'
+        }
+      end
+    else
+      render json: {
+        success: false,
+        error: 'Customer ID is required'
+      }
+    end
+  end
+
   def policy_holder_options
     customer = Customer.find(params[:customer_id]) if params[:customer_id].present?
     options = [['Self', 'Self']]

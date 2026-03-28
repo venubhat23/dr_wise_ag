@@ -820,7 +820,7 @@
     </div>
   </div>
 
-  <!-- Policy Documents Manager Section -->
+  <!-- Policy Upload Section -->
   <div class="card mb-4">
     <div class="card-header">
       <h5 class="mb-0">
@@ -909,191 +909,469 @@
         </div>
       </div>
 
-      <!-- Additional Documents -->
       <div class="row">
         <div class="col-md-12 mb-4">
           <div class="border border-secondary border-2 rounded p-4" style="background-color: #f8f9fa;">
-            <%= form.label :additional_documents, class: "form-label fw-bold" do %>
+            <%= form.label :documents, class: "form-label fw-bold" do %>
               <i class="bi bi-file-earmark-plus me-2 text-secondary"></i>
               Additional Documents
               <span class="badge bg-secondary ms-2">Optional</span>
             <% end %>
-            <div class="form-text mb-3">
+            <%= form.file_field :documents,
+                class: "form-control",
+                multiple: true,
+                id: "additional_documents_upload",
+                accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
+            <div class="form-text mt-2">
               <i class="bi bi-info-circle me-1"></i>
-              Upload RC book, driving license, vehicle photos, or other supporting documents. Multiple files supported.
+              Supports PDF, Images, Word files - RC book, driving license, vehicle photos, etc.
             </div>
-
-            <!-- Add Motor Insurance Documents -->
-            <div id="motor-insurance-documents">
-              <% if @motor_insurance.motor_insurance_documents.any? %>
-                <% @motor_insurance.motor_insurance_documents.each_with_index do |document, index| %>
-                  <div class="document-item border rounded p-3 mb-3" style="background: white;">
-                    <%= form.fields_for :motor_insurance_documents, document, index: index do |doc_form| %>
-                      <%= doc_form.hidden_field :id %>
-                      <div class="row">
-                        <div class="col-md-3 mb-2">
-                          <%= doc_form.label :document_type, "Document Type", class: "form-label" %>
-                          <%= doc_form.select :document_type,
-                              [
-                                ['RC Book', 'rc_book'],
-                                ['Driving License', 'driving_license'],
-                                ['Vehicle Photos', 'vehicle_photos'],
-                                ['Insurance Certificate', 'insurance_certificate'],
-                                ['NOC', 'noc'],
-                                ['PUC Certificate', 'puc_certificate'],
-                                ['Other', 'other']
-                              ],
-                              { selected: document.document_type },
-                              { class: "form-select" } %>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                          <%= doc_form.label :title, "Title", class: "form-label" %>
-                          <%= doc_form.text_field :title, class: "form-control", placeholder: "Enter document title" %>
-                        </div>
-                        <div class="col-md-3 mb-2">
-                          <%= doc_form.label :description, "Description", class: "form-label" %>
-                          <%= doc_form.text_field :description, class: "form-control", placeholder: "Brief description" %>
-                        </div>
-                        <div class="col-md-2 mb-2 d-flex align-items-end">
-                          <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocument(this)">
-                            <i class="bi bi-trash"></i> Remove
-                          </button>
-                        </div>
-                      </div>
-
-                      <!-- Current file display -->
-                      <% if document.r2_filename.present? %>
-                        <div class="current-file mb-2">
-                          <div class="d-flex align-items-center gap-2 p-2 bg-light rounded">
-                            <i class="bi bi-file-earmark text-primary"></i>
-                            <span class="fw-medium"><%= document.r2_filename %></span>
-                            <small class="text-muted">
-                              (<%= (document.r2_file_size / 1024.0).round(1) %> KB)
-                            </small>
-                            <% if document.r2_file_key.present? %>
-                              <%= link_to "#", class: "btn btn-sm btn-outline-primary ms-auto", title: "View" do %>
-                                <i class="bi bi-eye"></i>
-                              <% end %>
-                            <% end %>
-                          </div>
-                        </div>
-                      <% end %>
-
-                      <!-- File upload -->
-                      <%= doc_form.file_field :document_file,
-                          class: "form-control",
-                          accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                          data: { 'max-size': 10485760 } %>
-                      <small class="text-muted">
-                        <%= document.r2_filename.present? ? "Replace current file:" : "Select file:" %>
-                        PDF, JPEG, PNG, Word (Max: 10MB)
-                      </small>
-                    <% end %>
-                  </div>
-                <% end %>
-              <% end %>
-            </div>
-
-            <button type="button" id="add-motor-document" class="btn btn-outline-primary">
-              <i class="bi bi-plus-circle me-1"></i>
-              Add Document
-            </button>
           </div>
+
+          <!-- Additional Documents Preview -->
+          <%= render 'shared/file_upload_preview',
+                     field_id: 'additional_documents_upload',
+                     preview_id: 'additional_documents_preview',
+                     accept: 'application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                     show_file_info: true,
+                     max_file_size: '10MB' %>
         </div>
       </div>
 
-      <!-- Existing Documents Display -->
-      <% if @motor_insurance.persisted? && @motor_insurance.motor_insurance_documents.any? %>
-        <div class="row">
-          <div class="col-md-12">
-            <div class="card border-0 shadow-sm mb-4">
-              <div class="card-header bg-transparent border-0">
-                <div class="d-flex justify-content-between align-items-center">
-                  <h5 class="mb-0 text-success">
-                    <i class="bi bi-cloud-check me-2"></i>
-                    R2 Documents
-                  </h5>
-                  <span class="badge bg-success"><%= @motor_insurance.motor_insurance_documents.count %> files</span>
+      <!-- Existing Documents (Edit Mode) -->
+      <% if @motor_insurance.persisted? %>
+        <%
+          total_documents = @motor_insurance.uploaded_documents.count +
+                           @motor_insurance.policy_documents_records.count +
+                           @motor_insurance.motor_insurance_documents.count
+
+          total_size = 0
+          total_size += @motor_insurance.uploaded_documents.sum { |doc| doc.file&.byte_size || 0 }
+          total_size += @motor_insurance.policy_documents_records.sum { |doc| doc.r2_file_size || 0 }
+          total_size += @motor_insurance.motor_insurance_documents.sum { |doc| doc.r2_file_size || 0 }
+
+          document_types = []
+          document_types += @motor_insurance.uploaded_documents.pluck(:document_type).compact.uniq
+          document_types += ['Policy Document'] if @motor_insurance.policy_documents_records.any?
+          document_types += ['Motor Insurance Document'] if @motor_insurance.motor_insurance_documents.any?
+          document_types = document_types.uniq
+
+          recent_docs = @motor_insurance.uploaded_documents.where('created_at > ?', 7.days.ago).count
+        %>
+
+        <% if total_documents > 0 %>
+          <div class="border-top pt-4 mt-4">
+            <!-- Document Overview Statistics -->
+            <div class="row mb-4">
+              <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card h-100 border-0 shadow-sm">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <h6 class="text-muted mb-2">Total Documents</h6>
+                        <h3 class="mb-0 text-primary"><%= total_documents %></h3>
+                      </div>
+                      <div class="bg-primary bg-opacity-10 rounded p-3">
+                        <i class="bi bi-files text-primary fs-4"></i>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <small class="text-muted">Stored in Cloudflare R2 • Uploaded <%= Date.current.strftime("%B %d, %Y") %></small>
               </div>
-              <div class="card-body p-0">
-                <div class="table-responsive">
-                  <table class="table table-bordered table-hover mb-0">
-                    <thead class="table-light">
-                      <tr>
-                        <th style="width: 50px;">Type</th>
-                        <th>Title</th>
-                        <th>Category</th>
-                        <th style="width: 100px;">Size</th>
-                        <th style="width: 120px;">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <% @motor_insurance.motor_insurance_documents.each do |doc| %>
-                        <tr>
-                          <td class="text-center">
-                            <% if doc.r2_content_type&.start_with?('image/') %>
-                              <div class="bg-info text-white rounded d-flex align-items-center justify-content-center"
-                                   style="width: 30px; height: 30px; margin: 0 auto;">
-                                <i class="bi bi-image"></i>
-                              </div>
-                            <% elsif doc.r2_content_type == 'application/pdf' %>
-                              <div class="bg-danger text-white rounded d-flex align-items-center justify-content-center"
-                                   style="width: 30px; height: 30px; margin: 0 auto;">
-                                <i class="bi bi-file-pdf"></i>
-                              </div>
-                            <% else %>
-                              <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center"
-                                   style="width: 30px; height: 30px; margin: 0 auto;">
-                                <i class="bi bi-file-earmark"></i>
-                              </div>
-                            <% end %>
-                          </td>
-                          <td>
-                            <div class="fw-medium"><%= doc.title || doc.r2_filename %></div>
-                            <% if doc.description.present? %>
-                              <small class="text-muted"><%= doc.description %></small>
-                            <% end %>
-                          </td>
-                          <td>
-                            <span class="badge bg-light text-dark border">
-                              <%= doc.document_type&.humanize || 'Document' %>
-                            </span>
-                          </td>
-                          <td class="text-center">
-                            <% if doc.r2_file_size.present? %>
-                              <%= (doc.r2_file_size / 1024.0).round(1) %> KB
-                            <% else %>
-                              <span class="text-muted">—</span>
-                            <% end %>
-                          </td>
-                          <td class="text-center">
-                            <div class="d-flex gap-1 justify-content-center">
-                              <% if doc.r2_file_key.present? %>
-                                <%= link_to "#", class: "btn btn-sm btn-outline-primary", title: "View" do %>
-                                  <i class="bi bi-eye"></i>
-                                <% end %>
-                              <% end %>
-                              <button type="button" class="btn btn-sm btn-outline-danger"
-                                      onclick="deleteMotorDocument('<%= doc.id %>', '<%= doc.title || doc.r2_filename %>')"
-                                      title="Delete">
-                                <i class="bi bi-trash"></i>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      <% end %>
-                    </tbody>
-                  </table>
+
+              <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card h-100 border-0 shadow-sm">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <h6 class="text-muted mb-2">Document Types</h6>
+                        <h3 class="mb-0 text-info"><%= document_types.count %></h3>
+                      </div>
+                      <div class="bg-info bg-opacity-10 rounded p-3">
+                        <i class="bi bi-collection text-info fs-4"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card h-100 border-0 shadow-sm">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <h6 class="text-muted mb-2">Total Size</h6>
+                        <h3 class="mb-0 text-success"><%= number_to_human_size(total_size) %></h3>
+                      </div>
+                      <div class="bg-success bg-opacity-10 rounded p-3">
+                        <i class="bi bi-hdd-stack text-success fs-4"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card h-100 border-0 shadow-sm">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <h6 class="text-muted mb-2">Recent (7 days)</h6>
+                        <h3 class="mb-0 text-warning"><%= recent_docs %></h3>
+                      </div>
+                      <div class="bg-warning bg-opacity-10 rounded p-3">
+                        <i class="bi bi-clock text-warning fs-4"></i>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <!-- Main Document System -->
+            <% if @motor_insurance.uploaded_documents.any? || @motor_insurance.policy_documents_records.any? || @motor_insurance.motor_insurance_documents.any? %>
+              <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0">
+                  <h5 class="mb-0 text-primary">
+                    <i class="bi bi-folder2-open me-2"></i>
+                    Policy Documents
+                  </h5>
+                </div>
+                <div class="card-body p-0">
+                  <!-- List View -->
+                  <div class="documents-list-view">
+                    <div class="list-group list-group-flush">
+                      <% @motor_insurance.uploaded_documents.each_with_index do |document, index| %>
+                        <div class="list-group-item border-0 <%= 'border-bottom' unless index == @motor_insurance.uploaded_documents.count - 1 %>">
+                          <div class="d-flex align-items-center py-2">
+                            <!-- Document Icon -->
+                            <div class="flex-shrink-0 me-4">
+                              <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="bi bi-<%= document.file_icon %> text-primary fs-4"></i>
+                              </div>
+                            </div>
+
+                            <!-- Document Details -->
+                            <div class="flex-grow-1">
+                              <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                  <h6 class="mb-1 fw-bold"><%= document.title %></h6>
+                                  <div class="mb-2">
+                                    <span class="badge bg-light text-dark me-2"><%= document.human_document_type %></span>
+                                    <% if document.file&.byte_size %>
+                                      <span class="text-muted small">
+                                        <i class="bi bi-file-earmark me-1"></i><%= number_to_human_size(document.file.byte_size) %>
+                                      </span>
+                                    <% end %>
+                                  </div>
+                                  <% if document.description.present? %>
+                                    <p class="text-muted mb-1 small"><%= truncate(document.description, length: 100) %></p>
+                                  <% end %>
+                                  <small class="text-success d-block">
+                                    <i class="bi bi-calendar-check me-1"></i>Uploaded by <%= document.uploaded_by || "Admin User" %> on <%= document.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+                                  </small>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="btn-group" role="group">
+                                  <% if document.file.present? %>
+                                    <%= link_to document.document_url,
+                                        class: "btn btn-outline-primary btn-sm",
+                                        target: "_blank",
+                                        title: "Preview Document" do %>
+                                      <i class="bi bi-eye me-1"></i>Preview
+                                    <% end %>
+                                    <%= link_to document.download_url,
+                                        class: "btn btn-outline-success btn-sm",
+                                        title: "Download Document" do %>
+                                      <i class="bi bi-download me-1"></i>Download
+                                    <% end %>
+                                    <%= link_to admin_document_path(document),
+                                        method: :delete,
+                                        class: "btn btn-outline-danger btn-sm",
+                                        title: "Delete Document",
+                                        data: {
+                                          confirm: "Are you sure you want to delete this document? This action cannot be undone."
+                                        } do %>
+                                      <i class="bi bi-trash me-1"></i>Delete
+                                    <% end %>
+                                  <% end %>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            <% end %>
+
+            <!-- R2 Policy Documents -->
+            <% if @motor_insurance.policy_documents_records.any? %>
+              <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-success">
+                      <i class="bi bi-cloud-check me-2"></i>
+                      R2 Policy Documents
+                    </h5>
+                    <span class="badge bg-success"><%= @motor_insurance.policy_documents_records.count %> files</span>
+                  </div>
+                </div>
+                <div class="card-body p-0">
+                  <div class="list-group list-group-flush">
+                    <% @motor_insurance.policy_documents_records.each_with_index do |document, index| %>
+                      <div class="list-group-item border-0 <%= 'border-bottom' unless index == @motor_insurance.policy_documents_records.count - 1 %>">
+                        <div class="d-flex align-items-center py-2">
+                          <div class="flex-shrink-0 me-4">
+                            <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                              <i class="bi bi-file-earmark-pdf text-success fs-4"></i>
+                            </div>
+                          </div>
+                          <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                              <div>
+                                <h6 class="mb-1 fw-bold"><%= document.title %></h6>
+                                <div class="mb-2">
+                                  <span class="badge bg-light text-dark me-2"><%= document.document_type %></span>
+                                  <% if document.r2_file_size %>
+                                    <span class="text-muted small">
+                                      <i class="bi bi-file-earmark me-1"></i><%= number_to_human_size(document.r2_file_size) %>
+                                    </span>
+                                  <% end %>
+                                </div>
+                                <% if document.description.present? %>
+                                  <p class="text-muted mb-1 small"><%= truncate(document.description, length: 100) %></p>
+                                <% end %>
+                                <small class="text-success d-block">
+                                  <i class="bi bi-cloud-check me-1"></i>Stored in Cloudflare R2 • Uploaded on <%= document.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+                                </small>
+                              </div>
+                              <div class="btn-group" role="group">
+                                <% if document.r2_file_key.present? %>
+                                  <% r2_url = R2Service.public_url(document.r2_file_key) if document.r2_file_key %>
+                                  <% if r2_url %>
+                                    <%= link_to r2_url, class: "btn btn-outline-success btn-sm", target: "_blank", title: "View Document" do %>
+                                      <i class="bi bi-eye me-1"></i>View
+                                    <% end %>
+                                    <%= link_to r2_url, class: "btn btn-outline-primary btn-sm", download: document.r2_filename, title: "Download Document" do %>
+                                      <i class="bi bi-download me-1"></i>Download
+                                    <% end %>
+                                  <% end %>
+                                <% end %>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <!-- R2 Motor Insurance Documents -->
+            <% if @motor_insurance.motor_insurance_documents.any? %>
+              <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-info">
+                      <i class="bi bi-cloud-check me-2"></i>
+                      Motor Insurance Documents
+                    </h5>
+                    <span class="badge bg-info"><%= @motor_insurance.motor_insurance_documents.count %> files</span>
+                  </div>
+                </div>
+                <div class="card-body p-0">
+                  <div class="list-group list-group-flush">
+                    <% @motor_insurance.motor_insurance_documents.each_with_index do |document, index| %>
+                      <div class="list-group-item border-0 <%= 'border-bottom' unless index == @motor_insurance.motor_insurance_documents.count - 1 %>">
+                        <div class="d-flex align-items-center py-2">
+                          <div class="flex-shrink-0 me-4">
+                            <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                              <i class="bi bi-file-earmark-text text-info fs-4"></i>
+                            </div>
+                          </div>
+                          <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                              <div>
+                                <h6 class="mb-1 fw-bold"><%= document.title %></h6>
+                                <div class="mb-2">
+                                  <span class="badge bg-light text-dark me-2"><%= document.document_type %></span>
+                                  <% if document.r2_file_size %>
+                                    <span class="text-muted small">
+                                      <i class="bi bi-file-earmark me-1"></i><%= number_to_human_size(document.r2_file_size) %>
+                                    </span>
+                                  <% end %>
+                                </div>
+                                <% if document.description.present? %>
+                                  <p class="text-muted mb-1 small"><%= truncate(document.description, length: 100) %></p>
+                                <% end %>
+                                <small class="text-info d-block">
+                                  <i class="bi bi-cloud-check me-1"></i>Stored in Cloudflare R2 • Uploaded on <%= document.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+                                </small>
+                              </div>
+                              <div class="btn-group" role="group">
+                                <% if document.r2_file_key.present? %>
+                                  <% r2_url = R2Service.public_url(document.r2_file_key) if document.r2_file_key %>
+                                  <% if r2_url %>
+                                    <%= link_to r2_url, class: "btn btn-outline-info btn-sm", target: "_blank", title: "View Document" do %>
+                                      <i class="bi bi-eye me-1"></i>View
+                                    <% end %>
+                                    <%= link_to r2_url, class: "btn btn-outline-primary btn-sm", download: document.r2_filename, title: "Download Document" do %>
+                                      <i class="bi bi-download me-1"></i>Download
+                                    <% end %>
+                                  <% end %>
+                                <% end %>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
           </div>
-        </div>
+        <% else %>
+          <!-- No Documents Message -->
+          <div class="border-top pt-4 mt-4">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body text-center py-5">
+                <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                  <i class="bi bi-files text-muted" style="font-size: 2rem;"></i>
+                </div>
+                <h5 class="text-muted mb-2">No documents uploaded yet</h5>
+                <p class="text-muted mb-0">Documents uploaded for this motor insurance policy will appear here with preview, download, and management options.</p>
+              </div>
+            </div>
+          </div>
+        <% end %>
       <% end %>
+
+      <!-- New Document System -->
+      <div class="border-top pt-4 mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0">
+            <% if @motor_insurance.persisted? %>
+              Add More Documents
+            <% else %>
+              Document Management System
+            <% end %>
+          </h6>
+          <button type="button" class="btn btn-sm btn-primary" id="add_policy_document">
+            <i class="bi bi-plus-lg me-1"></i>
+            Add Document
+          </button>
+        </div>
+
+        <div id="policy_documents_container">
+          <!-- New document system will be added here -->
+        </div>
+
+        <p class="text-muted mb-0 mt-2">
+          <small>Use this system to add organized documents with titles and types</small>
+        </p>
+      </div>
     </div>
   </div>
+
+  <!-- Custom CSS for Enhanced Policy Upload -->
+  <style>
+    .upload-zone {
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-zone:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+    }
+
+    .upload-zone::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      transition: left 0.5s;
+    }
+
+    .upload-zone:hover::before {
+      left: 100%;
+    }
+
+    .upload-zone .form-control:focus {
+      border-color: inherit;
+      box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
+    }
+
+    .upload-zone .form-control:hover {
+      border-color: inherit;
+      transform: scale(1.02);
+      transition: all 0.2s ease;
+    }
+
+    /* Enhanced document display cards */
+    .document-card {
+      transition: all 0.3s ease;
+      border-radius: 15px !important;
+    }
+
+    .document-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+    }
+
+    .legacy-document-card {
+      transition: all 0.3s ease;
+      border-radius: 12px !important;
+    }
+
+    .legacy-document-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
+    }
+
+    /* Policy Upload section animations */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(15deg); }
+      50% { transform: translateY(-10px) rotate(15deg); }
+    }
+
+    @keyframes floatReverse {
+      0%, 100% { transform: translateY(0px) rotate(-15deg); }
+      50% { transform: translateY(-8px) rotate(-15deg); }
+    }
+
+    .card-header .bi-cloud-upload {
+      animation: float 4s ease-in-out infinite;
+    }
+
+    .card-header .bi-files {
+      animation: floatReverse 5s ease-in-out infinite;
+    }
+
+    /* Enhanced button styling for document actions */
+    .btn-group .btn {
+      border-radius: 8px !important;
+      margin: 0 2px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-group .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+  </style>
 
   <!-- Form Actions moved to parent template for better layout control -->
 
@@ -2338,50 +2616,87 @@ $(document).ready(function() {
     closeOnSelect: true
   });
 
-  // Update policy holder options and affiliate when customer changes
-  $('#customer_select').on('change', function() {
-    var customerId = $(this).val();
-    var $policyHolderSelect = $('#policy_holder_select');
-    var $affiliateSelect = $('#affiliate_select');
+  // Function to load policy holder options when customer changes
+  function loadPolicyHolderOptions() {
+    const customerId = $('#customer_select').val();
+    console.log('🔄 Loading policy holder options for customer:', customerId);
 
-    if (customerId) {
-      // Show loading state for policy holder
-      $policyHolderSelect.empty().append('<option value="">Loading...</option>').trigger('change');
+    const policyHolderSelect = $('#policy_holder_select');
 
-      // Load policy holder options
-      $.ajax({
-        url: '/admin/insurance/motor/policy_holder_options',
-        method: 'GET',
-        data: { customer_id: customerId },
-        success: function(data) {
+    if (!customerId) {
+      // Reset to just 'Self' option if no customer selected
+      policyHolderSelect.empty();
+      policyHolderSelect.append('<option value="">Select Policy Holder</option>');
+      policyHolderSelect.append('<option value="Self">Self</option>');
+      policyHolderSelect.trigger('change.select2'); // Refresh Select2
+      return;
+    }
+
+    // Make AJAX call to get customer family members
+    $.ajax({
+      url: '<%= customer_family_members_admin_motor_insurances_path %>',
+      method: 'GET',
+      data: { customer_id: customerId },
+      dataType: 'json',
+      success: function(response) {
+        console.log('✅ Policy holder options loaded successfully:', response);
+
+        if (response.success && response.policy_holders) {
           // Clear existing options
-          $policyHolderSelect.empty();
+          policyHolderSelect.empty();
+          policyHolderSelect.append('<option value="">Select Policy Holder</option>');
 
-          // Add "Select Policy Holder" option
-          $policyHolderSelect.append('<option value="">Select Policy Holder</option>');
-
-          // Add new options
-          $.each(data.options, function(index, option) {
-            $policyHolderSelect.append($('<option>', {
-              value: option[1],
-              text: option[0]
-            }));
+          // Add policy holder options from response
+          response.policy_holders.forEach(function(option) {
+            policyHolderSelect.append(`<option value="${option.value}">${option.text}</option>`);
           });
 
-          // Trigger change event to update Select2
-          $policyHolderSelect.trigger('change');
-        },
-        error: function(xhr, status, error) {
-          console.error('Error loading policy holder options:', error);
-          $policyHolderSelect.empty().append('<option value="">Error loading options</option>').trigger('change');
+          // Refresh Select2 display
+          policyHolderSelect.trigger('change.select2');
+          console.log('✅ Policy holder dropdown updated with family members');
+        } else {
+          // Fallback: show only Self option
+          policyHolderSelect.empty();
+          policyHolderSelect.append('<option value="">Select Policy Holder</option>');
+          policyHolderSelect.append('<option value="Self">Self</option>');
+          policyHolderSelect.trigger('change.select2');
+          console.log('ℹ️ No family members found, showing only Self option');
         }
-      });
+      },
+      error: function(xhr, status, error) {
+        console.error('❌ Error loading policy holder options:', error);
+        // Show error state with fallback
+        policyHolderSelect.empty();
+        policyHolderSelect.append('<option value="">Select Policy Holder</option>');
+        policyHolderSelect.append('<option value="Self">Self</option>');
+        policyHolderSelect.trigger('change.select2');
+      }
+    });
+  }
+
+  // Customer selection event handlers - Use Select2 events for better integration
+  $('#customer_select').on('select2:select', function(e) {
+    console.log('🔄 Customer Select2 Event Triggered');
+    var selectedCustomerId = e.params.data.id || this.value;
+    console.log('👤 Selected Customer ID:', selectedCustomerId);
+
+    // Load policy holder options for the selected customer
+    if (selectedCustomerId) {
+      loadPolicyHolderOptions();
+    }
+
+    // Clear and refresh affiliate dropdown when customer changes
+    $('#affiliate_select').val(null).trigger('change');
+
+    if (selectedCustomerId) {
+      console.log('Customer selected, filtering affiliates for customer ID:', selectedCustomerId);
 
       // Load customer affiliate information
+      var $affiliateSelect = $('#affiliate_select');
       $.ajax({
         url: '/admin/insurance/motor/customer_affiliate_info',
         method: 'GET',
-        data: { customer_id: customerId },
+        data: { customer_id: selectedCustomerId },
         success: function(data) {
           // Destroy existing Select2
           if ($affiliateSelect.hasClass('select2-hidden-accessible')) {
@@ -2459,14 +2774,27 @@ $(document).ready(function() {
       });
 
       // Load customer nominees when customer is selected
-      loadCustomerNominees(customerId);
-    } else {
-      // Clear options when no customer is selected
-      $policyHolderSelect.empty().append('<option value="">Select Policy Holder</option>').trigger('change');
-      $affiliateSelect.val('').trigger('change');
-      // Clear nominees when no customer is selected
-      clearNominees();
+      loadCustomerNominees(selectedCustomerId);
     }
+  });
+
+  // Handle customer clear event
+  $('#customer_select').on('select2:clear', function(e) {
+    console.log('🔄 Customer cleared');
+
+    // Reset policy holder options to default
+    const policyHolderSelect = $('#policy_holder_select');
+    policyHolderSelect.empty();
+    policyHolderSelect.append('<option value="">Select Policy Holder</option>');
+    policyHolderSelect.append('<option value="Self">Self</option>');
+    policyHolderSelect.val('Self').trigger('change.select2'); // Set to Self and refresh Select2
+
+    // Clear affiliate dropdown when customer is cleared
+    $('#affiliate_select').val(null).trigger('change');
+    console.log('Customer cleared, showing all affiliates');
+
+    // Clear nominees when no customer is selected
+    clearNominees();
   });
 
   // ========================================

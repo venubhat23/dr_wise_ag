@@ -437,6 +437,31 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     # Store original policy for reference
     @original_policy = @life_insurance
 
+    # Set default commission values if they are zero (common for old policies)
+    if @renewed_policy.main_agent_commission_percentage.to_f.zero?
+      @renewed_policy.main_agent_commission_percentage = 15.0 # Default 15% for main agent
+    end
+
+    # Ensure sub-agent commission has a default if zero
+    if @renewed_policy.sub_agent_commission_percentage.to_f.zero?
+      @renewed_policy.sub_agent_commission_percentage = 2.0
+    end
+
+    # Ensure ambassador commission has a default if zero
+    if @renewed_policy.ambassador_commission_percentage.to_f.zero?
+      @renewed_policy.ambassador_commission_percentage = 2.0
+    end
+
+    # Ensure investor commission has a default if zero
+    if @renewed_policy.investor_commission_percentage.to_f.zero?
+      @renewed_policy.investor_commission_percentage = 2.0
+    end
+
+    # Ensure company expenses has a default if zero
+    if @renewed_policy.company_expenses_percentage.to_f.zero?
+      @renewed_policy.company_expenses_percentage = 2.0
+    end
+
     # Get available options for dropdowns
     set_form_data
 
@@ -473,6 +498,12 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     set_distributor_from_affiliate(@renewed_policy)
 
     if @renewed_policy.save
+      # Handle R2 main policy document upload for renewal
+      handle_main_policy_r2_upload(@renewed_policy) if params[:life_insurance][:main_policy_document].present?
+
+      # Handle additional document uploads to R2 for renewal
+      handle_additional_documents_r2_upload(@renewed_policy)
+
       # Set renewal relationships
       @renewed_policy.update!(original_policy_id: @life_insurance.id)
       @life_insurance.update!(renewal_policy_id: @renewed_policy.id, is_renewed: true)
@@ -809,7 +840,8 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       # Company expenses and profit fields
       :company_expenses_percentage, :company_expenses_amount, :total_distribution_percentage,
       :profit_percentage, :profit_amount,
-      # Note: main_policy_document is handled separately in handle_main_policy_r2_upload
+      # R2 document upload fields
+      :main_policy_document, documents: [],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :document_file, :uploaded_by, :_destroy],
       life_insurance_documents_attributes: [:id, :document_type, :title, :description, :r2_file_key, :r2_filename, :r2_content_type, :r2_file_size, :_destroy],
       life_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy]

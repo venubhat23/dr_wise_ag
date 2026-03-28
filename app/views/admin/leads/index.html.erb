@@ -1119,36 +1119,40 @@
 <script>
 // View switching functions
 function switchToTableView() {
-  const tableView = document.getElementById('tableView');
+  const tableViewActive = document.getElementById('tableView-active');
+  const tableViewConverted = document.getElementById('tableView-converted');
   const cardView = document.getElementById('cardView');
   const tableBtn = document.getElementById('tableViewBtn');
   const cardBtn = document.getElementById('cardViewBtn');
 
-  // Show table view, hide card view
-  tableView.style.display = 'block';
-  cardView.style.display = 'none';
+  // Show table views, hide card view
+  if (tableViewActive) tableViewActive.style.display = 'block';
+  if (tableViewConverted) tableViewConverted.style.display = 'block';
+  if (cardView) cardView.style.display = 'none';
 
   // Update button states
-  tableBtn.classList.add('active');
-  cardBtn.classList.remove('active');
+  if (tableBtn) tableBtn.classList.add('active');
+  if (cardBtn) cardBtn.classList.remove('active');
 
   // Store preference in localStorage
   localStorage.setItem('leadsViewPreference', 'table');
 }
 
 function switchToCardView() {
-  const tableView = document.getElementById('tableView');
+  const tableViewActive = document.getElementById('tableView-active');
+  const tableViewConverted = document.getElementById('tableView-converted');
   const cardView = document.getElementById('cardView');
   const tableBtn = document.getElementById('tableViewBtn');
   const cardBtn = document.getElementById('cardViewBtn');
 
-  // Hide table view, show card view
-  tableView.style.display = 'none';
-  cardView.style.display = 'block';
+  // Hide table views, show card view
+  if (tableViewActive) tableViewActive.style.display = 'none';
+  if (tableViewConverted) tableViewConverted.style.display = 'none';
+  if (cardView) cardView.style.display = 'block';
 
   // Update button states
-  cardBtn.classList.add('active');
-  tableBtn.classList.remove('active');
+  if (cardBtn) cardBtn.classList.add('active');
+  if (tableBtn) tableBtn.classList.remove('active');
 
   // Store preference in localStorage
   localStorage.setItem('leadsViewPreference', 'card');

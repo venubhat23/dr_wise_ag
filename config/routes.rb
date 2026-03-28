@@ -354,6 +354,7 @@ Rails.application.routes.draw do
     # Motor Insurance
     resources :motor_insurances, path: 'insurance/motor' do
       collection do
+        get :customer_family_members
         get :policy_holder_options
         get :customer_affiliate_info
         get :agency_codes_for_broker_type
