@@ -810,8 +810,8 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       :company_expenses_percentage, :company_expenses_amount, :total_distribution_percentage,
       :profit_percentage, :profit_amount,
       # Note: main_policy_document is handled separately in handle_main_policy_r2_upload
-      documents: [], # Allow Active Storage document attachments (array)
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :document_file, :uploaded_by, :_destroy],
+      life_insurance_documents_attributes: [:id, :document_type, :title, :description, :r2_file_key, :r2_filename, :r2_content_type, :r2_file_size, :_destroy],
       life_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy]
     )
   end
