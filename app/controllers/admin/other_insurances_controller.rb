@@ -784,29 +784,15 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
 
   # Handle R2 document uploads for Other Insurance
   def handle_other_documents_r2_upload(other_insurance, main_policy_document = nil, documents = nil)
-    # Handle main policy document upload from parameter
+    # Handle main policy document upload using model method
     if main_policy_document.present?
-      file = main_policy_document
+      result = other_insurance.upload_main_policy_to_r2(main_policy_document)
 
-      # Create OtherInsuranceDocument for main policy document
-      document = other_insurance.other_insurance_documents.build(
-        document_type: 'Policy Document',
-        title: 'Main Policy Document',
-        description: 'Primary policy document for this insurance'
-      )
-
-      upload_result = document.upload_to_r2(file)
-
-      if upload_result.is_a?(Hash) && upload_result[:success]
-        document.save!
+      if result && result[:key] && !result[:error]
         Rails.logger.info "Successfully uploaded main policy document for Other Insurance ##{other_insurance.id}"
-      elsif upload_result.is_a?(Hash) && upload_result[:error]
-        Rails.logger.error "Failed to upload main policy document for Other Insurance ##{other_insurance.id}: #{upload_result[:error]}"
-      elsif upload_result == false
-        error_messages = document.errors.full_messages.join(', ')
-        Rails.logger.error "Failed to upload main policy document for Other Insurance ##{other_insurance.id}: Validation failed: #{error_messages}"
       else
-        Rails.logger.error "Failed to upload main policy document for Other Insurance ##{other_insurance.id}: Unknown upload result: #{upload_result.inspect}"
+        error_msg = result[:error] || "Unknown error"
+        Rails.logger.error "Failed to upload main policy document for Other Insurance ##{other_insurance.id}: #{error_msg}"
       end
     end
 

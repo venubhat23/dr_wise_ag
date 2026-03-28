@@ -664,12 +664,71 @@
               Main Policy Document (R2 Storage)
             <% end %>
 
+            <!-- Current R2 Document Display -->
+            <% if @other_insurance.has_main_policy_r2_document? %>
+              <div class="current-document mb-3 p-3 border rounded bg-white">
+                <div class="row align-items-center">
+                  <div class="col-auto">
+                    <% if @other_insurance.main_policy_document_content_type&.start_with?('image/') %>
+                      <%= image_tag @other_insurance.main_policy_r2_document_url, class: "img-thumbnail",
+                          style: "width: 60px; height: 60px; object-fit: cover;" %>
+                    <% elsif @other_insurance.main_policy_document_content_type == 'application/pdf' %>
+                      <div class="bg-danger text-white rounded d-flex align-items-center justify-content-center"
+                           style="width: 60px; height: 60px;">
+                        <i class="bi bi-file-earmark-pdf fs-4"></i>
+                      </div>
+                    <% else %>
+                      <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center"
+                           style="width: 60px; height: 60px;">
+                        <i class="bi bi-file-earmark fs-4"></i>
+                      </div>
+                    <% end %>
+                  </div>
+                  <div class="col">
+                    <div class="fw-medium"><%= @other_insurance.main_policy_document_filename %></div>
+                    <small class="text-muted">
+                      <%= (@other_insurance.main_policy_document_size / 1024.0 / 1024.0).round(2) %> MB •
+                      <%= @other_insurance.main_policy_document_content_type %>
+                    </small>
+                    <div>
+                      <small class="text-success">
+                        <i class="bi bi-cloud-check me-1"></i>
+                        Stored in Cloudflare R2
+                      </small>
+                    </div>
+                  </div>
+                  <div class="col-auto">
+                    <div class="d-flex gap-1">
+                      <%= link_to @other_insurance.main_policy_r2_url, class: "btn btn-sm btn-outline-primary",
+                          target: "_blank", title: "View" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                      <button type="button" class="btn btn-sm btn-outline-danger"
+                              onclick="deleteMainPolicyDocument()" title="Delete Document">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-2">
+                <small class="text-muted">
+                  <strong>Replace document:</strong> Upload a new file to replace the current document
+                </small>
+              </div>
+            <% end %>
+
             <%= form.file_field :main_policy_document,
                 class: "form-control",
                 accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
             <div class="form-text mt-2">
               <i class="bi bi-info-circle me-1"></i>
-              <strong>Secure R2 Storage:</strong> Supports PDF, JPEG, PNG, Word files (Max: 10MB) - files stored securely in Cloudflare R2
+              <strong>Secure R2 Storage:</strong> Supports PDF, JPEG, PNG, Word files (Max: 10MB) -
+              <% if @other_insurance.has_main_policy_r2_document? %>
+                upload new file to replace existing document
+              <% else %>
+                files stored securely in Cloudflare R2
+              <% end %>
             </div>
           </div>
         </div>

@@ -204,6 +204,74 @@ class OtherInsurance < ApplicationRecord
     read_attribute(:net_premium) || total_premium
   end
 
+  # R2 Direct Upload Methods for main policy document
+  def upload_main_policy_to_r2(file)
+    result = R2Service.upload(file, folder: "other_insurance/#{id}")
+
+    if result[:error]
+      errors.add(:main_policy_document, "Upload failed: #{result[:error]}")
+      return false
+    end
+
+    # Store R2 file information
+    update!(
+      main_policy_document_key: result[:key],
+      main_policy_document_filename: result[:filename],
+      main_policy_document_content_type: result[:content_type],
+      main_policy_document_size: result[:size]
+    )
+
+    result
+  end
+
+  def delete_main_policy_from_r2
+    return unless main_policy_document_key.present?
+
+    R2Service.delete(main_policy_document_key)
+    update!(
+      main_policy_document_key: nil,
+      main_policy_document_filename: nil,
+      main_policy_document_content_type: nil,
+      main_policy_document_size: nil
+    )
+  end
+
+  def main_policy_r2_url
+    return nil unless main_policy_document_key.present?
+    R2Service.public_url(main_policy_document_key)
+  end
+
+  def has_main_policy_r2?
+    main_policy_document_key.present?
+  end
+
+  def has_main_policy_r2_document?
+    has_main_policy_r2?
+  end
+
+  def main_policy_r2_filename
+    main_policy_document_filename
+  end
+
+  # Alias for compatibility with view expectations
+  def main_policy_r2_document_url
+    main_policy_r2_url
+  end
+
+  # Total document count method
+  def total_documents_count
+    count = 0
+    count += 1 if has_main_policy_r2?
+    count += uploaded_documents.count
+    count += policy_documents_records.count
+    count += other_insurance_documents.count
+    count
+  end
+
+  def has_any_documents?
+    total_documents_count > 0
+  end
+
   private
 
   def create_commission_payouts
@@ -246,4 +314,5 @@ class OtherInsurance < ApplicationRecord
   rescue StandardError => e
     Rails.logger.error "Failed to inherit lead_id for other insurance: #{e.message}"
   end
+
 end
