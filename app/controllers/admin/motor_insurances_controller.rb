@@ -877,7 +877,8 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       :zero_depreciation, :roadside_assistance, :engine_protector, :key_replacement,
       :return_to_invoice, :consumable_cover, :personal_accident_cover, :financier,
 
-      # File Uploads - REMOVED: :main_policy_document, policy_documents: [], documents: [] (All handled via R2)
+      # File Uploads - Main policy document for R2 storage
+      :main_policy_document,
       # Nominees
       motor_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
       # R2 Documents
@@ -1015,19 +1016,9 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     return unless file.present?
 
     begin
-      result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/main_policy")
+      result = motor_insurance.upload_main_policy_to_r2(file)
 
       if result && result[:key] && !result[:error]
-        # Create MotorInsuranceDocument record for main policy
-        motor_insurance.motor_insurance_documents.create!(
-          document_type: 'main_policy',
-          title: 'Main Policy Document',
-          description: 'Main motor insurance policy document',
-          r2_file_key: result[:key],
-          r2_filename: result[:filename],
-          r2_content_type: result[:content_type],
-          r2_file_size: result[:size]
-        )
         flash[:notice] = (flash[:notice] || '') + " Main policy document uploaded successfully to R2."
       else
         error_msg = result[:error] || "Unknown error"

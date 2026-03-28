@@ -802,6 +802,281 @@
     </div>
   </div>
 
+  <!-- Policy Documents Manager Section -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-cloud-upload me-2 text-primary"></i>
+        Policy Documents Manager
+      </h5>
+      <small class="text-muted">Upload, organize and manage all policy-related documents with secure storage</small>
+    </div>
+    <div class="card-body p-4">
+      <!-- R2 Main Policy Document Upload -->
+      <div class="row mb-4">
+        <div class="col-md-12">
+          <div class="border border-success border-2 rounded p-4" style="background-color: #f0fff0;">
+            <%= form.label :main_policy_document, class: "form-label fw-bold" do %>
+              <i class="bi bi-cloud-upload me-2 text-success"></i>
+              Main Policy Document (R2 Storage)
+            <% end %>
+
+            <!-- Current R2 Document Display -->
+            <% if @motor_insurance.has_main_policy_r2_document? %>
+              <div class="current-document mb-3 p-3 border rounded bg-white">
+                <div class="row align-items-center">
+                  <div class="col-auto">
+                    <% if @motor_insurance.main_policy_document_content_type&.start_with?('image/') %>
+                      <%= image_tag @motor_insurance.main_policy_r2_document_url, class: "img-thumbnail",
+                          style: "width: 60px; height: 60px; object-fit: cover;" %>
+                    <% elsif @motor_insurance.main_policy_document_content_type == 'application/pdf' %>
+                      <div class="bg-danger text-white rounded d-flex align-items-center justify-content-center"
+                           style="width: 60px; height: 60px;">
+                        <i class="bi bi-file-earmark-pdf fs-4"></i>
+                      </div>
+                    <% else %>
+                      <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center"
+                           style="width: 60px; height: 60px;">
+                        <i class="bi bi-file-earmark fs-4"></i>
+                      </div>
+                    <% end %>
+                  </div>
+                  <div class="col">
+                    <div class="fw-medium"><%= @motor_insurance.main_policy_document_filename %></div>
+                    <small class="text-muted">
+                      <%= (@motor_insurance.main_policy_document_size / 1024.0 / 1024.0).round(2) %> MB •
+                      <%= @motor_insurance.main_policy_document_content_type %>
+                    </small>
+                    <div>
+                      <small class="text-success">
+                        <i class="bi bi-cloud-check me-1"></i>
+                        Stored in Cloudflare R2
+                      </small>
+                    </div>
+                  </div>
+                  <div class="col-auto">
+                    <div class="d-flex gap-1">
+                      <%= link_to @motor_insurance.main_policy_r2_url, class: "btn btn-sm btn-outline-primary",
+                          target: "_blank", title: "View" do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                      <button type="button" class="btn btn-sm btn-outline-danger"
+                              onclick="deleteMainPolicyDocument()" title="Delete Document">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-2">
+                <small class="text-muted">
+                  <strong>Replace document:</strong> Upload a new file to replace the current document
+                </small>
+              </div>
+            <% end %>
+
+            <%= form.file_field :main_policy_document,
+                class: "form-control",
+                accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
+            <div class="form-text mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              <strong>Secure R2 Storage:</strong> Supports PDF, JPEG, PNG, Word files (Max: 10MB) -
+              <% if @motor_insurance.has_main_policy_r2_document? %>
+                upload new file to replace existing document
+              <% else %>
+                files stored securely in Cloudflare R2
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Documents -->
+      <div class="row">
+        <div class="col-md-12 mb-4">
+          <div class="border border-secondary border-2 rounded p-4" style="background-color: #f8f9fa;">
+            <%= form.label :additional_documents, class: "form-label fw-bold" do %>
+              <i class="bi bi-file-earmark-plus me-2 text-secondary"></i>
+              Additional Documents
+              <span class="badge bg-secondary ms-2">Optional</span>
+            <% end %>
+            <div class="form-text mb-3">
+              <i class="bi bi-info-circle me-1"></i>
+              Upload RC book, driving license, vehicle photos, or other supporting documents. Multiple files supported.
+            </div>
+
+            <!-- Add Motor Insurance Documents -->
+            <div id="motor-insurance-documents">
+              <% if @motor_insurance.motor_insurance_documents.any? %>
+                <% @motor_insurance.motor_insurance_documents.each_with_index do |document, index| %>
+                  <div class="document-item border rounded p-3 mb-3" style="background: white;">
+                    <%= form.fields_for :motor_insurance_documents, document, index: index do |doc_form| %>
+                      <%= doc_form.hidden_field :id %>
+                      <div class="row">
+                        <div class="col-md-3 mb-2">
+                          <%= doc_form.label :document_type, "Document Type", class: "form-label" %>
+                          <%= doc_form.select :document_type,
+                              [
+                                ['RC Book', 'rc_book'],
+                                ['Driving License', 'driving_license'],
+                                ['Vehicle Photos', 'vehicle_photos'],
+                                ['Insurance Certificate', 'insurance_certificate'],
+                                ['NOC', 'noc'],
+                                ['PUC Certificate', 'puc_certificate'],
+                                ['Other', 'other']
+                              ],
+                              { selected: document.document_type },
+                              { class: "form-select" } %>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                          <%= doc_form.label :title, "Title", class: "form-label" %>
+                          <%= doc_form.text_field :title, class: "form-control", placeholder: "Enter document title" %>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                          <%= doc_form.label :description, "Description", class: "form-label" %>
+                          <%= doc_form.text_field :description, class: "form-control", placeholder: "Brief description" %>
+                        </div>
+                        <div class="col-md-2 mb-2 d-flex align-items-end">
+                          <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocument(this)">
+                            <i class="bi bi-trash"></i> Remove
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Current file display -->
+                      <% if document.r2_filename.present? %>
+                        <div class="current-file mb-2">
+                          <div class="d-flex align-items-center gap-2 p-2 bg-light rounded">
+                            <i class="bi bi-file-earmark text-primary"></i>
+                            <span class="fw-medium"><%= document.r2_filename %></span>
+                            <small class="text-muted">
+                              (<%= (document.r2_file_size / 1024.0).round(1) %> KB)
+                            </small>
+                            <% if document.r2_file_key.present? %>
+                              <%= link_to "#", class: "btn btn-sm btn-outline-primary ms-auto", title: "View" do %>
+                                <i class="bi bi-eye"></i>
+                              <% end %>
+                            <% end %>
+                          </div>
+                        </div>
+                      <% end %>
+
+                      <!-- File upload -->
+                      <%= doc_form.file_field :document_file,
+                          class: "form-control",
+                          accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                          data: { 'max-size': 10485760 } %>
+                      <small class="text-muted">
+                        <%= document.r2_filename.present? ? "Replace current file:" : "Select file:" %>
+                        PDF, JPEG, PNG, Word (Max: 10MB)
+                      </small>
+                    <% end %>
+                  </div>
+                <% end %>
+              <% end %>
+            </div>
+
+            <button type="button" id="add-motor-document" class="btn btn-outline-primary">
+              <i class="bi bi-plus-circle me-1"></i>
+              Add Document
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Existing Documents Display -->
+      <% if @motor_insurance.persisted? && @motor_insurance.motor_insurance_documents.any? %>
+        <div class="row">
+          <div class="col-md-12">
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-transparent border-0">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h5 class="mb-0 text-success">
+                    <i class="bi bi-cloud-check me-2"></i>
+                    R2 Documents
+                  </h5>
+                  <span class="badge bg-success"><%= @motor_insurance.motor_insurance_documents.count %> files</span>
+                </div>
+                <small class="text-muted">Stored in Cloudflare R2 • Uploaded <%= Date.current.strftime("%B %d, %Y") %></small>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-bordered table-hover mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 50px;">Type</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th style="width: 100px;">Size</th>
+                        <th style="width: 120px;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% @motor_insurance.motor_insurance_documents.each do |doc| %>
+                        <tr>
+                          <td class="text-center">
+                            <% if doc.r2_content_type&.start_with?('image/') %>
+                              <div class="bg-info text-white rounded d-flex align-items-center justify-content-center"
+                                   style="width: 30px; height: 30px; margin: 0 auto;">
+                                <i class="bi bi-image"></i>
+                              </div>
+                            <% elsif doc.r2_content_type == 'application/pdf' %>
+                              <div class="bg-danger text-white rounded d-flex align-items-center justify-content-center"
+                                   style="width: 30px; height: 30px; margin: 0 auto;">
+                                <i class="bi bi-file-pdf"></i>
+                              </div>
+                            <% else %>
+                              <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center"
+                                   style="width: 30px; height: 30px; margin: 0 auto;">
+                                <i class="bi bi-file-earmark"></i>
+                              </div>
+                            <% end %>
+                          </td>
+                          <td>
+                            <div class="fw-medium"><%= doc.title || doc.r2_filename %></div>
+                            <% if doc.description.present? %>
+                              <small class="text-muted"><%= doc.description %></small>
+                            <% end %>
+                          </td>
+                          <td>
+                            <span class="badge bg-light text-dark border">
+                              <%= doc.document_type&.humanize || 'Document' %>
+                            </span>
+                          </td>
+                          <td class="text-center">
+                            <% if doc.r2_file_size.present? %>
+                              <%= (doc.r2_file_size / 1024.0).round(1) %> KB
+                            <% else %>
+                              <span class="text-muted">—</span>
+                            <% end %>
+                          </td>
+                          <td class="text-center">
+                            <div class="d-flex gap-1 justify-content-center">
+                              <% if doc.r2_file_key.present? %>
+                                <%= link_to "#", class: "btn btn-sm btn-outline-primary", title: "View" do %>
+                                  <i class="bi bi-eye"></i>
+                                <% end %>
+                              <% end %>
+                              <button type="button" class="btn btn-sm btn-outline-danger"
+                                      onclick="deleteMotorDocument('<%= doc.id %>', '<%= doc.title || doc.r2_filename %>')"
+                                      title="Delete">
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
   <!-- Form Actions moved to parent template for better layout control -->
 
 <script>
@@ -2892,6 +3167,110 @@ function toggleNoNomineesMessage() {
       alert('Failed to delete document');
     });
   };
+
+  // Policy Documents Manager JavaScript
+  let motorDocumentIndex = <%= @motor_insurance.motor_insurance_documents.any? ? @motor_insurance.motor_insurance_documents.size : 0 %>;
+
+  // Add new document functionality
+  document.getElementById('add-motor-document').addEventListener('click', function() {
+    const container = document.getElementById('motor-insurance-documents');
+    const newDocumentHtml = `
+      <div class="document-item border rounded p-3 mb-3" style="background: white;">
+        <div class="row">
+          <div class="col-md-3 mb-2">
+            <label class="form-label">Document Type</label>
+            <select name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][document_type]" class="form-select">
+              <option value="">Select type...</option>
+              <option value="rc_book">RC Book</option>
+              <option value="driving_license">Driving License</option>
+              <option value="vehicle_photos">Vehicle Photos</option>
+              <option value="insurance_certificate">Insurance Certificate</option>
+              <option value="noc">NOC</option>
+              <option value="puc_certificate">PUC Certificate</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-4 mb-2">
+            <label class="form-label">Title</label>
+            <input type="text" name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][title]" class="form-control" placeholder="Enter document title">
+          </div>
+          <div class="col-md-3 mb-2">
+            <label class="form-label">Description</label>
+            <input type="text" name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][description]" class="form-control" placeholder="Brief description">
+          </div>
+          <div class="col-md-2 mb-2 d-flex align-items-end">
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocument(this)">
+              <i class="bi bi-trash"></i> Remove
+            </button>
+          </div>
+        </div>
+        <input type="file" name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][document_file]"
+               class="form-control mt-2"
+               accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+               data-max-size="10485760">
+        <small class="text-muted">Select file: PDF, JPEG, PNG, Word (Max: 10MB)</small>
+      </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', newDocumentHtml);
+
+    // Add file size validation to new file input
+    const newFileInput = container.querySelector(`input[name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][document_file]"]`);
+    newFileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file && file.size > 10 * 1024 * 1024) {
+        alert('File size must be less than 10MB');
+        e.target.value = '';
+      }
+    });
+
+    motorDocumentIndex++;
+  });
+
+  // Remove document functionality
+  window.removeDocument = function(button) {
+    if (confirm('Are you sure you want to remove this document?')) {
+      button.closest('.document-item').remove();
+    }
+  };
+
+  // Main policy document delete functionality
+  window.deleteMainPolicyDocument = function() {
+    if (!confirm('Are you sure you want to delete the main policy document?')) return;
+
+    fetch(`/admin/insurance/motor/<%= @motor_insurance.id %>/delete_main_policy_document`, {
+      method: 'DELETE',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Main policy document deleted successfully');
+        window.location.reload();
+      } else {
+        alert('Failed to delete main policy document: ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Delete error:', error);
+      alert('Failed to delete main policy document');
+    });
+  };
+
+  // File size validation for all document file inputs
+  document.querySelectorAll('input[type="file"][data-max-size]').forEach(input => {
+    input.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const maxSize = parseInt(this.dataset.maxSize);
+      if (file && file.size > maxSize) {
+        alert('File size must be less than ' + (maxSize / 1024 / 1024) + 'MB');
+        e.target.value = '';
+      }
+    });
+  });
 
 </script>
 

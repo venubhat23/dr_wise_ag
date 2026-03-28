@@ -112,44 +112,41 @@
 
         <!-- 2nd: Agency Code (shows Agents when Direct selected, Brokers when Broking selected) -->
         <div class="col-md-4 mb-3">
-          <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
-          <span class="dynamic-label" id="agency_code_label_text"></span>
           <%
-            # Build options based on broker_code_type for edit mode
+            # Build options and label based on saved data for edit mode
             agency_options = []
             selected_value = nil
+            label_text = "Agency Code"
 
             if @other_insurance.persisted?
-              if @other_insurance.broker_code_type == 'direct' && @other_insurance.agency_code_id.present?
-                # For direct mode, load the specific agency code
+              # If we have an agency_code_id, show the agency code (direct mode)
+              if @other_insurance.agency_code_id.present?
                 agency_code = AgencyCode.find_by(id: @other_insurance.agency_code_id)
                 if agency_code
                   agency_options << ["#{agency_code.agent_name} - #{agency_code.code}", agency_code.id]
                   selected_value = agency_code.id
-                end
-              elsif @other_insurance.broker_code_type == 'broking' && @other_insurance.broker_id.present?
-                # For broking mode, load the specific broker
-                broker = Broker.find_by(id: @other_insurance.broker_id)
-                if broker
-                  agency_options << [broker.name, "broker_#{broker.id}"]
-                  selected_value = "broker_#{broker.id}"
+                  label_text = agency_code.agent_name  # Show the agent name as label
                 end
               end
             end
 
-            # If no specific options loaded (new record), use default agency codes
+            # If no specific options loaded (new record or no saved data), use default agency codes
             if agency_options.empty?
               agency_options = @agency_codes.map { |a| ["#{a.agent_name} - #{a.code}", a.id] }
+              # For edit mode, try to select the saved agency_code_id if it exists
+              if @other_insurance.persisted? && @other_insurance.agency_code_id.present?
+                selected_value = @other_insurance.agency_code_id
+              end
             end
           %>
+          <%= form.label :agency_code_id, label_text, class: "form-label" %>
+          <span class="dynamic-label" id="agency_code_label_text"></span>
           <%= form.select :agency_code_id,
               options_for_select(agency_options, selected_value),
               { prompt: 'Search and select agency code...' },
               { class: "form-control", id: "other_insurance_agency_code_id", data: { placeholder: "Type to search agency codes..." } } %>
         </div>
 
-        <!-- Hidden field for broker_id when needed -->
-        <%= form.hidden_field :broker_id, id: "broker_id_hidden" %>
 
         <!-- 3rd: Insurance Company Name (Dynamic based on Agent/Broker selection) -->
         <div class="col-md-4 mb-3">
@@ -1062,12 +1059,10 @@ document.addEventListener('DOMContentLoaded', function() {
     $('#customer_select').trigger('select2:select');
   }
 
-  // Broker code type handling - Dynamic Agency/Broker Loading
+  // Broker code type handling - Dynamic Agency Loading
   const brokerCodeType = document.getElementById('other_insurance_broker_code_type');
-  const brokerContainer = document.getElementById('broker_id_container');
   const agencyCodeSelect = document.getElementById('other_insurance_agency_code_id');
   const companyNameSelect = document.getElementById('other_insurance_insurance_company_name');
-  const brokerIdHidden = document.getElementById('broker_id_hidden');
   const labelText = document.getElementById('agency_code_label_text');
 
   if (brokerCodeType) {
@@ -1131,13 +1126,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const brokerType = brokerCodeType.value;
 
       if (selectedValue) {
-        if (brokerType === 'broking' && selectedValue.startsWith('broker_')) {
-          // Extract broker ID and set it in hidden field
-          const brokerId = selectedValue.replace('broker_', '');
-          if (brokerIdHidden) brokerIdHidden.value = brokerId;
-        } else if (brokerType === 'direct') {
-          // Clear broker ID for direct mode
-          if (brokerIdHidden) brokerIdHidden.value = '';
+        if (brokerType === 'direct') {
 
           // Auto-populate company name if available
           const companyName = selectedOption.data('company');
