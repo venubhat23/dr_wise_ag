@@ -59,7 +59,26 @@ class Investor < ApplicationRecord
   end
 
   def formatted_mobile
-    mobile.presence || "N/A"
+    return "N/A" if mobile.blank?
+
+    # Extract 10-digit mobile number for display
+    clean_mobile = mobile.to_s.gsub(/[^\d]/, '')
+
+    if clean_mobile.start_with?('91') && clean_mobile.length == 12
+      # 91XXXXXXXXXX format - extract 10-digit part
+      digits_part = clean_mobile[2..-1]
+      digits_part.length == 10 && digits_part.match?(/\A[789]\d{9}\z/) ? digits_part : mobile
+    elsif clean_mobile.length == 10 && clean_mobile.match?(/\A[789]\d{9}\z/)
+      # XXXXXXXXXX format - valid 10 digit number
+      clean_mobile
+    elsif clean_mobile.length == 11 && clean_mobile.start_with?('0')
+      # 0XXXXXXXXXX format - remove leading zero
+      digits_part = clean_mobile[1..-1]
+      digits_part.length == 10 && digits_part.match?(/\A[789]\d{9}\z/) ? digits_part : mobile
+    else
+      # Any other format - return as is
+      mobile
+    end
   end
 
   def formatted_email

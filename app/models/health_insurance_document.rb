@@ -3,7 +3,7 @@ class HealthInsuranceDocument < ApplicationRecord
 
   validates :title, presence: true
   validates :document_type, presence: true
-  validates :r2_file_key, presence: true
+  validates :r2_file_key, presence: true, if: :should_validate_r2_file?
 
   # Document type options
   DOCUMENT_TYPES = [
@@ -36,5 +36,15 @@ class HealthInsuranceDocument < ApplicationRecord
   def formatted_file_size
     return 'Unknown' unless r2_file_size.present?
     ActionController::Base.helpers.number_to_human_size(r2_file_size)
+  end
+
+  private
+
+  # Only validate R2 file key if we're not being destroyed and have actual file content
+  def should_validate_r2_file?
+    return false if marked_for_destruction?
+
+    # Only require r2_file_key if we have other file-related data
+    r2_filename.present? || r2_content_type.present? || r2_file_size.present?
   end
 end

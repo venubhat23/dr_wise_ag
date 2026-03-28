@@ -170,7 +170,7 @@
                 <td>
                   <div>
                     <div class="mb-1">
-                      <%= sub_agent.mobile.present? ? sub_agent.mobile : "No mobile" %>
+                      <%= sub_agent.formatted_mobile %>
                     </div>
                     <% if sub_agent.email.present? %>
                       <small class="text-muted">

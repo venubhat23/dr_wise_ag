@@ -136,7 +136,7 @@
             <%= form.label :mobile, class: "form-label" do %>
               Mobile No. <span class="text-danger">*</span>
             <% end %>
-            <%= form.telephone_field :mobile, class: "form-control #{'is-invalid' if @customer.errors[:mobile].any?}", placeholder: "Enter Mobile", id: "corporate_mobile", required: true %>
+            <%= form.telephone_field :mobile, class: "form-control #{'is-invalid' if @customer.errors[:mobile].any?}", placeholder: "Enter Mobile", id: "corporate_mobile", pattern: "[789][0-9]{9}", title: "Enter a 10-digit mobile number starting with 7, 8, or 9", required: true %>
             <% if @customer.errors[:mobile].any? %>
               <div class="invalid-feedback">
                 <%= @customer.errors[:mobile].first %>
@@ -379,7 +379,7 @@
             <%= form.label :mobile, class: "form-label" do %>
               Mobile <span class="text-danger">*</span>
             <% end %>
-            <%= form.telephone_field :mobile, class: "form-control #{'is-invalid' if @customer.errors[:mobile].any?}", placeholder: "Enter mobile number", id: "individual_mobile" %>
+            <%= form.telephone_field :mobile, class: "form-control #{'is-invalid' if @customer.errors[:mobile].any?}", placeholder: "Enter mobile number", id: "individual_mobile", pattern: "[789][0-9]{9}", title: "Enter a 10-digit mobile number starting with 7, 8, or 9" %>
             <% if @customer.errors[:mobile].any? %>
               <div class="invalid-feedback">
                 <%= @customer.errors[:mobile].first %>
@@ -2343,5 +2343,65 @@ document.addEventListener('DOMContentLoaded', function() {
     inputElement.parentNode.insertBefore(errorDiv, inputElement.nextSibling);
     setTimeout(() => errorDiv.remove(), 5000);
   }
+
+  // Mobile Number Validation for Indian Numbers (7, 8, 9 starting digits)
+  function validateMobileNumber(input) {
+    const mobilePattern = /^[789]\d{9}$/;
+    const value = input.value.replace(/\D/g, ''); // Remove non-digits
+
+    // Auto-format the input to only contain digits
+    input.value = value;
+
+    // Clear previous validation state
+    input.classList.remove('is-valid', 'is-invalid');
+    const feedback = input.parentNode.querySelector('.mobile-feedback');
+    if (feedback) feedback.remove();
+
+    if (value.length === 0) {
+      return; // Don't validate empty input
+    }
+
+    if (value.length !== 10) {
+      showMobileError(input, 'Mobile number must be exactly 10 digits');
+    } else if (!mobilePattern.test(value)) {
+      showMobileError(input, 'Mobile number must start with 7, 8, or 9');
+    } else {
+      input.classList.add('is-valid');
+    }
+  }
+
+  function showMobileError(input, message) {
+    input.classList.add('is-invalid');
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'invalid-feedback mobile-feedback';
+    errorDiv.textContent = message;
+    input.parentNode.appendChild(errorDiv);
+  }
+
+  // Add mobile validation to both individual and corporate mobile fields
+  document.addEventListener('DOMContentLoaded', function() {
+    const individualMobile = document.getElementById('individual_mobile');
+    const corporateMobile = document.getElementById('corporate_mobile');
+
+    if (individualMobile) {
+      individualMobile.addEventListener('input', function() {
+        validateMobileNumber(this);
+      });
+
+      individualMobile.addEventListener('blur', function() {
+        validateMobileNumber(this);
+      });
+    }
+
+    if (corporateMobile) {
+      corporateMobile.addEventListener('input', function() {
+        validateMobileNumber(this);
+      });
+
+      corporateMobile.addEventListener('blur', function() {
+        validateMobileNumber(this);
+      });
+    }
+  });
 });
 </script>

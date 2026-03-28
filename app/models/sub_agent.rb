@@ -95,7 +95,29 @@ class SubAgent < ApplicationRecord
   end
 
   def formatted_mobile
-    mobile.presence || "N/A"
+    return "N/A" if mobile.blank?
+
+    # Clean the mobile number - remove spaces and non-digits first
+    clean_mobile = mobile.to_s.gsub(/\s+/, '') # Remove spaces
+
+    # Remove +91 prefix if present
+    clean_mobile = clean_mobile.gsub(/^\+91/, '')
+
+    # Remove 91 prefix if present (without +)
+    clean_mobile = clean_mobile.gsub(/^91/, '')
+
+    # Remove leading 0 if present
+    clean_mobile = clean_mobile.gsub(/^0/, '')
+
+    # Return only digits, ensuring it's exactly 10 digits
+    digits_only = clean_mobile.gsub(/\D/, '') # Remove non-digits
+
+    # Return 10-digit number or N/A if not valid
+    if digits_only.length == 10 && digits_only.match?(/\A[6-9]\d{9}\z/)
+      digits_only
+    else
+      "N/A"
+    end
   end
 
   def formatted_email

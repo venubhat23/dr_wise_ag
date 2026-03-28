@@ -200,6 +200,219 @@
         <% end %>
       </div>
     </div>
+
+    <!-- Active Leads Table -->
+    <div class="card border-0 shadow-sm" id="tableView-active">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Active Leads</h5>
+        <div class="d-flex gap-2">
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="bg-light">
+              <tr>
+                <th class="border-0">Lead Details</th>
+                <th class="border-0">Contact Information</th>
+                <th class="border-0">Product Category</th>
+                <th class="border-0">Product Type</th>
+                <th class="border-0">Affiliate Name</th>
+                <th class="border-0">Current Stage</th>
+                <th class="border-0">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if params[:tab] != 'converted' && @leads.any? %>
+                <% @leads.each do |lead| %>
+                  <tr class="lead-row <%= 'branch-out-lead' if lead.is_branch_out? %>" data-id="<%= lead.id %>">
+                    <td>
+                      <div>
+                        <span class="badge bg-primary mb-1"><%= lead.lead_id.presence || "LEAD-#{lead.id}" %></span>
+                        <% if lead.is_branch_out? %>
+                          <span class="badge bg-success mb-1">
+                            <i class="bi bi-diagram-3 me-1"></i>Branch Out
+                          </span>
+                        <% end %>
+                        <h6 class="mb-1"><%= lead.name %></h6>
+                        <small class="text-muted">
+                          <%= lead.created_date&.strftime('%d/%m/%Y') || lead.created_at&.strftime('%d/%m/%Y') %>
+                          (<%= time_ago_in_words(lead.created_at) %> ago)
+                        </small>
+                      </div>
+                    </td>
+                    <td>
+                      <div>
+                        <div class="mb-1"><%= lead.contact_number&.gsub(/^\+?91|^0/, '')&.strip %></div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge bg-info"><%= lead.product_category&.humanize || 'N/A' %></span>
+                    </td>
+                    <td>
+                      <%= lead.product_subcategory || 'N/A' %>
+                    </td>
+                    <td>
+                      <% if lead.is_direct %>
+                        <span class="badge bg-warning text-dark">Direct</span>
+                      <% else %>
+                        <%= lead.affiliate&.full_name || 'N/A' %>
+                      <% end %>
+                    </td>
+                    <td>
+                      <%= lead.current_stage&.humanize || 'Unknown' %>
+                    </td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <%= link_to admin_lead_path(lead), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                          <i class="bi bi-eye"></i>
+                        <% end %>
+
+                        <%= link_to edit_admin_lead_path(lead), class: "btn btn-sm btn-outline-warning", title: "Edit Lead" do %>
+                          <i class="bi bi-pencil"></i>
+                        <% end %>
+
+                        <% if lead.can_convert_to_customer? %>
+                          <% if lead.is_branch_out && lead.parent_lead_id.present? %>
+                            <button type="button"
+                                    class="btn btn-sm btn-success convert-btn branch-out-convert"
+                                    title="Convert Branch Out Lead to Customer"
+                                    data-lead-id="<%= lead.id %>"
+                                    data-parent-lead-id="<%= lead.parent_lead_id %>"
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top">
+                              <i class="bi bi-person-plus-fill me-1"></i>Convert
+                            </button>
+                          <% else %>
+                            <%= link_to convert_to_customer_admin_lead_path(lead), method: :patch, class: "btn btn-sm btn-success convert-btn", title: "Convert to Customer", data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                              <i class="bi bi-person-plus-fill me-1"></i>Convert
+                            <% end %>
+                          <% end %>
+                        <% else %>
+                          <span class="btn btn-sm btn-outline-secondary disabled" title="Conversion not available for this stage">
+                            <i class="bi bi-person-dash"></i>
+                          </span>
+                        <% end %>
+
+                        <!-- Lead Stage Conversion Dropdown -->
+                        <div class="dropdown">
+                          <button class="btn btn-sm btn-outline-warning dropdown-toggle stage-convert-btn" data-bs-toggle="dropdown" title="Convert to Stage">
+                            <i class="bi bi-arrow-repeat me-1"></i>Convert Stage
+                          </button>
+                          <ul class="dropdown-menu stage-conversion-menu" style="max-height: 450px; overflow-y: auto;">
+                            <li class="dropdown-header">
+                              <i class="bi bi-funnel me-1"></i>Lead Stage Conversion
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+
+                            <!-- Current Stage Display -->
+                            <li class="dropdown-item-text current-stage-display bg-light px-3 py-2">
+                              <small class="text-muted d-block">Current Stage:</small>
+                              <span class="badge bg-primary mt-1"><%= lead.current_stage&.humanize || 'Unknown' %></span>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="dropdown-header">Convert to:</li>
+
+                            <!-- All Available Stages -->
+                            <% all_stages = [
+                                 { key: 'lead_generated', name: 'Lead Generated', icon: '🟢', color: 'secondary', desc: 'Initial stage' },
+                                 { key: 'consultation_scheduled', name: 'Consultation Scheduled', icon: '📅', color: 'info', desc: 'Meeting scheduled' },
+                                 { key: 'one_on_one', name: 'One-on-One', icon: '🤝', color: 'warning', desc: 'Personal meeting' },
+                                 { key: 'follow_up', name: 'Follow-Up', icon: '🔁', color: 'primary', desc: 'Following up' },
+                                 { key: 'follow_up_successful', name: 'Follow-Up Successful', icon: '✅', color: 'success', desc: 'Successful follow-up' },
+                                 { key: 'follow_up_unsuccessful', name: 'Follow-Up Unsuccessful', icon: '❌', color: 'danger', desc: 'Unsuccessful follow-up' },
+                                 { key: 'not_interested', name: 'Not Interested', icon: '🚫', color: 'dark', desc: 'Lead not interested' },
+                                 { key: 're_follow_up', name: 'Re-Follow Up', icon: '🔄', color: 'warning', desc: 'Re-attempting follow-up' },
+                                 { key: 'lead_closed', name: 'Lead Close - Follow-Up Unsuccessful', icon: '📁', color: 'secondary', desc: 'Lead close - Follow-up unsuccessful' }
+                               ] %>
+
+                            <% all_stages.each_with_index do |stage, index| %>
+                              <% if stage[:key] == lead.current_stage %>
+                                <!-- Current stage - disabled -->
+                                <li>
+                                  <button class="dropdown-item disabled" style="opacity: 0.6;">
+                                    <div class="d-flex align-items-center">
+                                      <span style="font-size: 1.2rem; width: 30px;"><%= stage[:icon] %></span>
+                                      <div class="ms-2">
+                                        <div class="fw-medium" style="font-size: 0.9rem;"><%= stage[:name] %> <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">CURRENT</span></div>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;"><%= stage[:desc] %></small>
+                                      </div>
+                                    </div>
+                                  </button>
+                                </li>
+                              <% else %>
+                                <!-- Other stages - clickable -->
+                                <li>
+                                  <%= form_with url: convert_stage_admin_lead_path(lead, stage: stage[:key]), method: :patch, local: true,
+                                      style: "margin: 0; padding: 0; display: contents;",
+                                      onsubmit: "return confirm('Convert lead to \"#{stage[:name]}\" stage?')" do |f| %>
+                                    <button type="submit" class="dropdown-item border-0 bg-transparent w-100 text-start stage-option"
+                                            style="cursor: pointer;"
+                                            data-stage="<%= stage[:key] %>">
+                                      <div class="d-flex align-items-center">
+                                        <span style="font-size: 1.2rem; width: 30px;"><%= stage[:icon] %></span>
+                                        <div class="ms-2">
+                                          <div class="fw-medium" style="font-size: 0.9rem;">
+                                            <%= "#{index + 1}. #{stage[:name]}" %>
+                                          </div>
+                                          <small class="text-muted d-block" style="font-size: 0.75rem;"><%= stage[:desc] %></small>
+                                        </div>
+                                      </div>
+                                    </button>
+                                  <% end %>
+                                </li>
+                              <% end %>
+                              <% if index < all_stages.length - 1 && [2, 6, 8].include?(index) %>
+                                <li><hr class="dropdown-divider my-1"></li>
+                              <% end %>
+                            <% end %>
+
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="dropdown-header">Quick Actions</li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                              <%= link_to "#",
+                                  class: "dropdown-item text-danger delete-lead-btn",
+                                  data: {
+                                    "lead-id": lead.id,
+                                    "lead-name": lead.name,
+                                    "delete-url": admin_lead_path(lead)
+                                  } do %>
+                                <i class="bi bi-trash me-2"></i>Delete Lead
+                              <% end %>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              <% else %>
+                <% if params[:tab] != 'converted' %>
+                  <tr>
+                    <td colspan="7" class="text-center py-5">
+                      <div class="text-muted">
+                        <i class="bi bi-funnel fs-1 mb-3 d-block"></i>
+                        <h5>No active leads found</h5>
+                        <p>Start by creating your first lead or adjust your search filters.</p>
+                        <%= link_to "Add New Lead", new_admin_lead_path, class: "btn btn-primary" %>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination for Active Leads -->
+        <% if params[:tab] != 'converted' && @leads.respond_to?(:total_pages) && @leads.total_pages > 1 %>
+          <div class="pagination-wrapper mt-3">
+            <%= paginate @leads %>
+          </div>
+        <% end %>
+      </div>
+    </div>
   </div>
 
   <!-- Converted Leads Tab -->
@@ -215,7 +428,6 @@
       <div class="card-body pt-1 pb-1">
         <%= form_with url: admin_leads_path, method: :get, local: true, class: "filter-form" do |form| %>
           <%= form.hidden_field :tab, value: 'converted' %>
-          <%= form.hidden_field :show_converted, value: 'true' %>
           <!-- Single Row: All Filters -->
           <div class="row g-2 align-items-end">
             <div class="col-lg-3 col-md-6">
@@ -259,223 +471,129 @@
         <% end %>
       </div>
     </div>
-  </div>
-</div>
 
-  <!-- Leads Table - shown in all tabs -->
-  <div class="card border-0 shadow-sm" id="tableView">
-  <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-    <h5 class="mb-0">Leads</h5>
-    <div class="d-flex gap-2">
-    </div>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead class="bg-light">
-          <tr>
-            <th class="border-0">Lead Details</th>
-            <th class="border-0">Contact Information</th>
-            <th class="border-0">Product Category</th>
-            <th class="border-0">Product Type</th>
-            <th class="border-0">Affiliate Name</th>
-            <th class="border-0">Current Stage</th>
-            <th class="border-0">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if @leads.any? %>
-            <% @leads.each do |lead| %>
-              <tr class="lead-row <%= 'branch-out-lead' if lead.is_branch_out? %>" data-id="<%= lead.id %>">
-                <td>
-                  <div>
-                    <span class="badge bg-primary mb-1"><%= lead.lead_id.presence || "LEAD-#{lead.id}" %></span>
-                    <% if lead.is_branch_out? %>
-                      <span class="badge bg-success mb-1">
-                        <i class="bi bi-diagram-3 me-1"></i>Branch Out
-                      </span>
-                    <% end %>
-                    <h6 class="mb-1"><%= lead.name %></h6>
-                    <small class="text-muted">
-                      <%= lead.created_date&.strftime('%d/%m/%Y') || lead.created_at&.strftime('%d/%m/%Y') %>
-                      (<%= time_ago_in_words(lead.created_at) %> ago)
-                    </small>
-                  </div>
-                </td>
-                <td>
-                  <div>
-                    <div class="mb-1"><%= lead.contact_number %></div>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-info"><%= lead.product_category&.humanize || 'N/A' %></span>
-                </td>
-                <td>
-                  <%= lead.product_subcategory || 'N/A' %>
-                </td>
-                <td>
-                  <% if lead.is_direct %>
-                    <span class="badge bg-warning text-dark">Direct</span>
-                  <% else %>
-                    <%= lead.affiliate&.full_name || 'N/A' %>
-                  <% end %>
-                </td>
-                <td>
-                  <%= lead.current_stage&.humanize || 'Unknown' %>
-                </td>
-                <td>
-                  <div class="d-flex gap-1">
-                    <%= link_to admin_lead_path(lead), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
-                      <i class="bi bi-eye"></i>
-                    <% end %>
-
-                    <%= link_to edit_admin_lead_path(lead), class: "btn btn-sm btn-outline-warning", title: "Edit Lead" do %>
-                      <i class="bi bi-pencil"></i>
-                    <% end %>
-
-                    <% if lead.can_convert_to_customer? %>
-                      <% if lead.is_branch_out && lead.parent_lead_id.present? %>
-                        <button type="button"
-                                class="btn btn-sm btn-success convert-btn branch-out-convert"
-                                title="Convert Branch Out Lead to Customer"
-                                data-lead-id="<%= lead.id %>"
-                                data-parent-lead-id="<%= lead.parent_lead_id %>"
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top">
-                          <i class="bi bi-person-plus-fill me-1"></i>Convert
-                        </button>
-                      <% else %>
-                        <%= link_to convert_to_customer_admin_lead_path(lead), method: :patch, class: "btn btn-sm btn-success convert-btn", title: "Convert to Customer", data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
-                          <i class="bi bi-person-plus-fill me-1"></i>Convert
-                        <% end %>
-                      <% end %>
-                    <% elsif lead.converted_customer.present? %>
-                      <%= link_to admin_customer_path(lead.converted_customer), class: "btn btn-sm btn-info customer-link",
-                          title: "View Customer: #{lead.converted_customer.display_name}",
-                          data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
-                        <i class="bi bi-person-check-fill me-1"></i>Customer
-                      <% end %>
-                    <% else %>
-                      <span class="btn btn-sm btn-outline-secondary disabled" title="Conversion not available for this stage">
-                        <i class="bi bi-person-dash"></i>
-                      </span>
-                    <% end %>
-
-                    <!-- Lead Stage Conversion Dropdown -->
-                    <div class="dropdown">
-                      <button class="btn btn-sm btn-outline-warning dropdown-toggle stage-convert-btn" data-bs-toggle="dropdown" title="Convert to Stage">
-                        <i class="bi bi-arrow-repeat me-1"></i>Convert Stage
-                      </button>
-                      <ul class="dropdown-menu stage-conversion-menu" style="max-height: 450px; overflow-y: auto;">
-                        <li class="dropdown-header">
-                          <i class="bi bi-funnel me-1"></i>Lead Stage Conversion
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-
-                        <!-- Current Stage Display -->
-                        <li class="dropdown-item-text current-stage-display bg-light px-3 py-2">
-                          <small class="text-muted d-block">Current Stage:</small>
-                          <span class="badge bg-primary mt-1"><%= lead.current_stage&.humanize || 'Unknown' %></span>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li class="dropdown-header">Convert to:</li>
-
-                        <!-- All Available Stages -->
-                        <% all_stages = [
-                             { key: 'lead_generated', name: 'Lead Generated', icon: '🟢', color: 'secondary', desc: 'Initial stage' },
-                             { key: 'consultation_scheduled', name: 'Consultation Scheduled', icon: '📅', color: 'info', desc: 'Meeting scheduled' },
-                             { key: 'one_on_one', name: 'One-on-One', icon: '🤝', color: 'warning', desc: 'Personal meeting' },
-                             { key: 'follow_up', name: 'Follow-Up', icon: '🔁', color: 'primary', desc: 'Following up' },
-                             { key: 'follow_up_successful', name: 'Follow-Up Successful', icon: '✅', color: 'success', desc: 'Successful follow-up' },
-                             { key: 'follow_up_unsuccessful', name: 'Follow-Up Unsuccessful', icon: '❌', color: 'danger', desc: 'Unsuccessful follow-up' },
-                             { key: 'not_interested', name: 'Not Interested', icon: '🚫', color: 'dark', desc: 'Lead not interested' },
-                             { key: 're_follow_up', name: 'Re-Follow Up', icon: '🔄', color: 'warning', desc: 'Re-attempting follow-up' },
-                             { key: 'lead_closed', name: 'Lead Close - Follow-Up Unsuccessful', icon: '📁', color: 'secondary', desc: 'Lead close - Follow-up unsuccessful' }
-                           ] %>
-
-                        <% all_stages.each_with_index do |stage, index| %>
-                          <% if stage[:key] == lead.current_stage %>
-                            <!-- Current stage - disabled -->
-                            <li>
-                              <button class="dropdown-item disabled" style="opacity: 0.6;">
-                                <div class="d-flex align-items-center">
-                                  <span style="font-size: 1.2rem; width: 30px;"><%= stage[:icon] %></span>
-                                  <div class="ms-2">
-                                    <div class="fw-medium" style="font-size: 0.9rem;"><%= stage[:name] %> <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">CURRENT</span></div>
-                                    <small class="text-muted d-block" style="font-size: 0.75rem;"><%= stage[:desc] %></small>
-                                  </div>
-                                </div>
-                              </button>
-                            </li>
-                          <% else %>
-                            <!-- Other stages - clickable -->
-                            <li>
-                              <%= form_with url: convert_stage_admin_lead_path(lead, stage: stage[:key]), method: :patch, local: true,
-                                  style: "margin: 0; padding: 0; display: contents;",
-                                  onsubmit: "return confirm('Convert lead to \"#{stage[:name]}\" stage?')" do |f| %>
-                                <button type="submit" class="dropdown-item border-0 bg-transparent w-100 text-start stage-option"
-                                        style="cursor: pointer;"
-                                        data-stage="<%= stage[:key] %>">
-                                  <div class="d-flex align-items-center">
-                                    <span style="font-size: 1.2rem; width: 30px;"><%= stage[:icon] %></span>
-                                    <div class="ms-2">
-                                      <div class="fw-medium" style="font-size: 0.9rem;">
-                                        <%= "#{index + 1}. #{stage[:name]}" %>
-                                      </div>
-                                      <small class="text-muted d-block" style="font-size: 0.75rem;"><%= stage[:desc] %></small>
-                                    </div>
-                                  </div>
-                                </button>
-                              <% end %>
-                            </li>
-                          <% end %>
-                          <% if index < all_stages.length - 1 && [2, 6, 8].include?(index) %>
-                            <li><hr class="dropdown-divider my-1"></li>
-                          <% end %>
-                        <% end %>
-
-                        <li><hr class="dropdown-divider"></li>
-                        <li class="dropdown-header">Quick Actions</li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                          <%= link_to "#",
-                              class: "dropdown-item text-danger delete-lead-btn",
-                              data: {
-                                "lead-id": lead.id,
-                                "lead-name": lead.name,
-                                "delete-url": admin_lead_path(lead)
-                              } do %>
-                            <i class="bi bi-trash me-2"></i>Delete Lead
-                          <% end %>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            <% end %>
-          <% else %>
-            <tr>
-              <td colspan="7" class="text-center py-5">
-                <div class="text-muted">
-                  <i class="bi bi-funnel fs-1 mb-3 d-block"></i>
-                  <h5>No leads found</h5>
-                  <p>Start by creating your first lead or adjust your search filters.</p>
-                  <%= link_to "Add New Lead", new_admin_lead_path, class: "btn btn-primary" %>
-                </div>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Pagination -->
-    <% if @leads.respond_to?(:total_pages) && @leads.total_pages > 1 %>
-      <div class="pagination-wrapper mt-3">
-        <%= paginate @leads %>
+    <!-- Converted Leads Table -->
+    <div class="card border-0 shadow-sm" id="tableView-converted">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Converted Leads (Clients)</h5>
+        <div class="d-flex gap-2">
+        </div>
       </div>
-    <% end %>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="bg-light">
+              <tr>
+                <th class="border-0">Client Details</th>
+                <th class="border-0">Contact Information</th>
+                <th class="border-0">Product Category</th>
+                <th class="border-0">Product Type</th>
+                <th class="border-0">Affiliate Name</th>
+                <th class="border-0">Conversion Date</th>
+                <th class="border-0">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if params[:tab] == 'converted' && @leads.any? %>
+                <% @leads.each do |lead| %>
+                  <tr class="lead-row <%= 'branch-out-lead' if lead.is_branch_out? %>" data-id="<%= lead.id %>">
+                    <td>
+                      <div>
+                        <span class="badge bg-success mb-1"><%= lead.lead_id.presence || "CLIENT-#{lead.id}" %></span>
+                        <% if lead.is_branch_out? %>
+                          <span class="badge bg-primary mb-1">
+                            <i class="bi bi-diagram-3 me-1"></i>Branch Out
+                          </span>
+                        <% end %>
+                        <h6 class="mb-1"><%= lead.name %></h6>
+                        <small class="text-muted">
+                          Lead created: <%= lead.created_date&.strftime('%d/%m/%Y') || lead.created_at&.strftime('%d/%m/%Y') %>
+                        </small>
+                      </div>
+                    </td>
+                    <td>
+                      <div>
+                        <div class="mb-1"><%= lead.contact_number&.gsub(/^\+?91|^0/, '')&.strip %></div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge bg-info"><%= lead.product_category&.humanize || 'N/A' %></span>
+                    </td>
+                    <td>
+                      <%= lead.product_subcategory || 'N/A' %>
+                    </td>
+                    <td>
+                      <% if lead.is_direct %>
+                        <span class="badge bg-warning text-dark">Direct</span>
+                      <% else %>
+                        <%= lead.affiliate&.full_name || 'N/A' %>
+                      <% end %>
+                    </td>
+                    <td>
+                      <% if lead.converted_customer.present? %>
+                        <div>
+                          <div class="fw-medium text-success">Converted</div>
+                          <small class="text-muted">
+                            <%= lead.converted_customer.created_at&.strftime('%d/%m/%Y') || 'N/A' %>
+                          </small>
+                        </div>
+                      <% else %>
+                        <span class="text-muted">N/A</span>
+                      <% end %>
+                    </td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <%= link_to admin_lead_path(lead), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                          <i class="bi bi-eye"></i>
+                        <% end %>
+
+                        <% if lead.converted_customer.present? %>
+                          <%= link_to admin_customer_path(lead.converted_customer), class: "btn btn-sm btn-info customer-link",
+                              title: "View Customer: #{lead.converted_customer.display_name}",
+                              data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                            <i class="bi bi-person-check-fill me-1"></i>Customer
+                          <% end %>
+                        <% end %>
+
+                        <%= link_to "#",
+                            class: "dropdown-item text-danger delete-lead-btn btn btn-sm btn-outline-danger",
+                            data: {
+                              "lead-id": lead.id,
+                              "lead-name": lead.name,
+                              "delete-url": admin_lead_path(lead)
+                            },
+                            title: "Delete Client Record" do %>
+                          <i class="bi bi-trash"></i>
+                        <% end %>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              <% else %>
+                <% if params[:tab] == 'converted' %>
+                  <tr>
+                    <td colspan="7" class="text-center py-5">
+                      <div class="text-muted">
+                        <i class="bi bi-person-check fs-1 mb-3 d-block"></i>
+                        <h5>No converted clients found</h5>
+                        <p>Converted leads will appear here once you start converting leads to customers.</p>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination for Converted Leads -->
+        <% if params[:tab] == 'converted' && @leads.respond_to?(:total_pages) && @leads.total_pages > 1 %>
+          <div class="pagination-wrapper mt-3">
+            <%= paginate @leads %>
+          </div>
+        <% end %>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -520,7 +638,7 @@
               <div class="text-muted small mb-3">
                 <div class="mb-1">
                   <i class="bi bi-telephone me-1"></i>
-                  <%= lead.contact_number %>
+                  <%= lead.contact_number&.gsub(/^\+?91|^0/, '')&.strip %>
                 </div>
                 <% if lead.email.present? %>
                   <div class="mb-1">
@@ -1312,18 +1430,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Auto-submit form when show converted switch is toggled
-  const showConvertedSwitch = document.getElementById('showConverted');
-  if (showConvertedSwitch) {
-    showConvertedSwitch.addEventListener('change', function() {
-      console.log('Show converted toggled to:', this.checked);
-      // Find the form and submit it
-      const form = this.closest('form');
-      if (form) {
-        form.submit();
-      }
-    });
-  }
+  // Show converted filter has been removed - tabs handle this automatically
 
   // Delete confirmation functionality
   const deleteButtons = document.querySelectorAll('.delete-lead-btn');
@@ -2104,12 +2211,7 @@ function switchToTab(tab) {
   currentUrl.searchParams.delete('product_category');
   currentUrl.searchParams.delete('lead_source');
 
-  // Set show_converted for converted tab
-  if (tab === 'converted') {
-    currentUrl.searchParams.set('show_converted', 'true');
-  } else {
-    currentUrl.searchParams.delete('show_converted');
-  }
+  // No need to set show_converted parameter anymore - tabs handle this automatically
 
   window.location.href = currentUrl.toString();
 }

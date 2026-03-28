@@ -576,38 +576,56 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
 
     case broker_code
     when 'direct'
-      # For direct mode: Get companies mapped to the selected agency
+      # For direct mode: Get companies mapped to the selected agency for other insurance
       company_names = AgencyCode.where(
         id: agency_code_id
-      ).where('insurance_type ILIKE ?', '%motor%').pluck(:company_name).compact.uniq
+      ).where('insurance_type ILIKE ?', '%other%')
+       .or(AgencyCode.where(id: agency_code_id).where('insurance_type ILIKE ?', '%general%'))
+       .or(AgencyCode.where(id: agency_code_id).where('insurance_type ILIKE ?', '%Motor and Other Insurance%'))
+       .pluck(:company_name).compact.uniq
 
       if company_names.any?
-        # Find insurance companies with fuzzy matching
-        all_insurance_companies = InsuranceCompany.where('insurance_type ILIKE ?', '%general%')
+        # Find insurance companies with fuzzy matching for motor_other type
+        all_insurance_companies = InsuranceCompany.where(insurance_type: 'motor_other')
         matching_companies = []
 
-        # company_names.each do |agency_company_name|
-        #   # Try exact match first
-        #   exact_match = all_insurance_companies.find_by(name: agency_company_name)
-        #   if exact_match
-        #     matching_companies << exact_match
-        #   else
-        #     # Try fuzzy matching - look for companies that contain similar words
-        #     agency_words = agency_company_name.downcase.split.reject { |w| w.length < 4 }
-        #     fuzzy_matches = all_insurance_companies.select do |company|
-        #       company_words = company.name.downcase.split.reject { |w| w.length < 4 }
-        #       # Check if main company words match (require at least 2 significant word matches)
-        #       common_words = agency_words & company_words
-        #       common_words.length >= 2 ||
-        #       (agency_words.include?('bajaj') && company_words.include?('bajaj')) ||
-        #       (agency_words.include?('tata') && company_words.include?('tata')) ||
-        #       (agency_words.include?('hdfc') && company_words.include?('hdfc'))
-        #     end
-        #     matching_companies.concat(fuzzy_matches)
-        #   end
-        # end
-        insurance_companies = InsuranceCompany.where(name: company_names )
-        companies_data = insurance_companies.uniq.map do |company|
+        company_names.each do |agency_company_name|
+          # Try exact match first
+          exact_match = all_insurance_companies.find_by(name: agency_company_name)
+          if exact_match
+            matching_companies << exact_match
+          else
+            # Try fuzzy matching - prioritize brand name matches first
+            agency_words = agency_company_name.downcase.split.reject { |w| w.length < 3 }
+
+            # First priority: Brand name matches (TATA, BAJAJ, HDFC, etc.)
+            brand_matches = all_insurance_companies.select do |company|
+              company_words = company.name.downcase.split.reject { |w| w.length < 3 }
+              (agency_words.include?('bajaj') && company_words.include?('bajaj')) ||
+              (agency_words.include?('tata') && company_words.include?('tata')) ||
+              (agency_words.include?('hdfc') && company_words.include?('hdfc')) ||
+              (agency_words.include?('icici') && company_words.include?('icici')) ||
+              (agency_words.include?('reliance') && company_words.include?('reliance')) ||
+              (agency_words.include?('sbi') && company_words.include?('sbi')) ||
+              (agency_words.include?('kotak') && company_words.include?('kotak'))
+            end
+
+            if brand_matches.any?
+              # If we found brand matches, use only those
+              matching_companies.concat(brand_matches)
+            else
+              # Fall back to general word matching if no brand matches
+              fuzzy_matches = all_insurance_companies.select do |company|
+                company_words = company.name.downcase.split.reject { |w| w.length < 3 }
+                common_words = agency_words & company_words
+                common_words.length >= 2
+              end
+              matching_companies.concat(fuzzy_matches.first(3))  # Limit to 3 matches
+            end
+          end
+        end
+
+        companies_data = matching_companies.uniq.map do |company|
           {
             id: company.id,
             text: company.name  # Changed from 'name' to 'text' to match frontend expectations
@@ -616,8 +634,8 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
       end
 
     when 'broking'
-      # For broking mode: Show all motor insurance companies
-      insurance_companies = InsuranceCompany.where('insurance_type ILIKE ?', '%general%')
+      # For broking mode: Show all motor_other insurance companies
+      insurance_companies = InsuranceCompany.where(insurance_type: 'motor_other')
 
       companies_data = insurance_companies.map do |company|
         {
