@@ -246,6 +246,12 @@
                   <div>
                     <h6 class="mb-1"><%= policy.policy_number %></h6>
                     <small class="text-muted"><%= policy.policy_type&.humanize %></small>
+                    <br>
+                    <% doc_count = policy.total_documents_count %>
+                    <small class="<%= doc_count > 0 ? 'text-success' : 'text-danger' %>">
+                      <i class="bi bi-file-earmark-<%= doc_count > 0 ? 'check' : 'x' %> me-1"></i>
+                      <%= doc_count %> doc<%= doc_count == 1 ? '' : 's' %>
+                    </small>
                   </div>
                 </td>
                 <td>

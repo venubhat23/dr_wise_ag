@@ -574,11 +574,16 @@
               </td>
               <td class="py-2 px-1 text-center">
                 <%= form.number_field :profit_percentage,
-                    class: "form-control border-1 text-center fw-bold profit-percentage-display",
+                    class: "form-control border-1 text-center fw-bold profit-percentage",
                     value: @other_insurance.profit_percentage || 0,
                     step: 0.01, readonly: true, style: "background: #f0fff0; border-color: #198754; color: #198754;" %>
               </td>
-              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :profit_amount,
+                    class: "form-control border-1 text-center fw-bold profit-amount",
+                    value: @other_insurance.profit_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f0fff0; border-color: #198754; color: #198754;" %>
+              </td>
               <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
               <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
               <td class="py-2 px-1 text-center" style="background: #f0fff0;">
@@ -1272,6 +1277,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('.total-distribution-percentage').value = totalDistribution.toFixed(2);
     document.querySelector('.profit-percentage').value = profitPercentage.toFixed(2);
     document.querySelector('.profit-amount').value = profitAmount.toFixed(2);
+    document.querySelector('.profit-amount-display').value = profitAmount.toFixed(2);
 
     // Update profit display in table
     const profitPercentageDisplay = document.getElementById('profit_percentage_display');

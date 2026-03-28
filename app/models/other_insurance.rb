@@ -152,6 +152,23 @@ class OtherInsurance < ApplicationRecord
     main_policy_document_key.present?
   end
 
+  # Total document count method
+  def total_documents_count
+    count = 0
+    count += 1 if has_main_policy_r2?
+    count += documents.attached? ? documents.count : 0
+    count += policy_documents.attached? ? policy_documents.count : 0
+    count += additional_documents.attached? ? additional_documents.count : 0
+    count += uploaded_documents.count
+    count += other_insurance_documents.count
+    count += policy_documents_records.count
+    count
+  end
+
+  def has_any_documents?
+    total_documents_count > 0
+  end
+
   def main_policy_r2_url
     return nil unless main_policy_document_key.present?
     R2Service.public_url(main_policy_document_key) if defined?(R2Service)
