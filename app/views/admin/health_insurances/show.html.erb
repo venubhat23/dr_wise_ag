@@ -512,7 +512,7 @@
         # Check multiple document sources
         policy_documents = PolicyDocument.where(policy_type: 'health', policy_id: @health_insurance.id)
         uploaded_docs = @health_insurance.respond_to?(:uploaded_documents) ? @health_insurance.uploaded_documents : []
-        health_insurance_docs = @health_insurance.respond_to?(:health_insurance_documents) ? @health_insurance.health_insurance_documents : []
+        health_insurance_docs = @health_insurance.respond_to?(:policy_documents_records) ? @health_insurance.policy_documents_records : []
 
         total_documents = policy_documents.count + uploaded_docs.count + health_insurance_docs.count
       %>
@@ -585,25 +585,27 @@
               </div>
             <% end %>
 
-            <!-- Health Insurance Documents -->
+            <!-- Policy Documents Records (via association) -->
             <% if health_insurance_docs.any? %>
-              <h6 class="mt-3">Health Insurance Documents (<%= health_insurance_docs.count %>)</h6>
+              <h6 class="mt-3">Policy Documents Records (<%= health_insurance_docs.count %>)</h6>
               <div class="table-responsive">
                 <table class="table table-bordered table-sm">
                   <thead class="table-light">
                     <tr>
                       <th>Title</th>
                       <th>Type</th>
+                      <th>Uploaded</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     <% health_insurance_docs.each do |doc| %>
                       <tr>
-                        <td><%= doc.title.presence || doc.r2_filename %></td>
+                        <td><%= doc.title %></td>
                         <td><%= doc.document_type %></td>
+                        <td><%= doc.created_at.strftime('%B %d, %Y at %I:%M %p') %></td>
                         <td>
-                          <% if doc.respond_to?(:document_url) && doc.document_url.present? %>
+                          <% if doc.document_url.present? %>
                             <a href="<%= doc.document_url %>" target="_blank" class="btn btn-sm btn-outline-primary">
                               <i class="bi bi-eye"></i> View
                             </a>

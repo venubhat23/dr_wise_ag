@@ -483,31 +483,6 @@
                     step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
               </td>
             </tr>
-            <!-- Investor -->
-            <tr style="border-bottom: 1px solid #e9ecef;">
-              <td class="py-3 px-4 fw-bold text-dark">Investor</td>
-              <td class="py-2 px-1 text-center">
-                <%= form.number_field :investor_commission_percentage,
-                    class: "form-control border-1 text-center fw-bold shadow-sm investor-commission-percentage",
-                    value: @other_insurance.investor_commission_percentage || 0,
-                    step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
-              </td>
-              <td class="py-2 px-1 text-center">
-                <%= form.number_field :investor_commission_amount,
-                    class: "form-control border-1 text-center investor-commission-amount",
-                    value: @other_insurance.investor_commission_amount || 0,
-                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
-              </td>
-              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
-              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
-              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
-                <%= form.number_field :investor_commission_amount,
-                    class: "form-control border-1 text-center fw-bold fs-6 investor-commission-amount-display",
-                    value: @other_insurance.investor_commission_amount || 0,
-                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
-              </td>
-            </tr>
-            <%= form.hidden_field :investor_tds_percentage, value: 0, class: "investor-tds-percentage" %>
             <!-- Ambassador -->
             <tr style="border-bottom: 1px solid #e9ecef;">
               <td class="py-3 px-4 fw-bold text-dark">Ambassador</td>
@@ -542,6 +517,31 @@
                     step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
               </td>
             </tr>
+            <!-- Investor -->
+            <tr style="border-bottom: 1px solid #e9ecef;">
+              <td class="py-3 px-4 fw-bold text-dark">Investor</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :investor_commission_percentage,
+                    class: "form-control border-1 text-center fw-bold shadow-sm investor-commission-percentage",
+                    value: @other_insurance.investor_commission_percentage || 0,
+                    step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :investor_commission_amount,
+                    class: "form-control border-1 text-center investor-commission-amount",
+                    value: @other_insurance.investor_commission_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :investor_commission_amount,
+                    class: "form-control border-1 text-center fw-bold fs-6 investor-commission-amount-display",
+                    value: @other_insurance.investor_commission_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+            </tr>
+            <%= form.hidden_field :investor_tds_percentage, value: 0, class: "investor-tds-percentage" %>
             <!-- Company Expenses -->
             <tr style="border-bottom: 1px solid #e9ecef;">
               <td class="py-3 px-4 fw-bold text-dark">Company Expenses</td>
@@ -578,6 +578,7 @@
                     value: @other_insurance.profit_percentage || 0,
                     step: 0.01, readonly: true, style: "background: #f0fff0; border-color: #198754; color: #198754;" %>
               </td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
               <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
               <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
               <td class="py-2 px-1 text-center" style="background: #f0fff0;">

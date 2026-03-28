@@ -870,7 +870,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       :investor_tds_amount, :investor_after_tds_value,
       :ambassador_commission_percentage, :ambassador_commission_amount, :ambassador_tds_percentage,
       :ambassador_tds_amount, :ambassador_after_tds_value,
-      :total_distribution_percentage, :company_expenses_percentage, :profit_percentage, :profit_amount,
+      :total_distribution_percentage, :company_expenses_percentage, :company_expenses_amount, :profit_percentage, :profit_amount,
 
       # Legal Liability & Optional Covers
       :legal_liability, :electrical_accessories, :non_electrical_accessories,

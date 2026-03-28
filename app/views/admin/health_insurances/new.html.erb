@@ -595,8 +595,11 @@
               </td>
             </tr>
             <!-- Profit -->
-            <tr style="border-bottom: 2px solid #dee2e6; background: linear-gradient(135deg, #e8f5e8 0%, #f0fff0 100%);">
-              <td class="py-3 px-4 fw-bold text-success">Profit</td>
+            <tr style="border-bottom: 2px solid #198754; background: linear-gradient(135deg, #f0fff0 0%, #e8f5e8 100%);">
+              <td class="py-3 px-4 fw-bold text-dark" style="background: #e8f5e8;">
+                <i class="bi bi-currency-rupee me-1 text-success"></i>
+                Profit
+              </td>
               <td class="py-2 px-1 text-center">
                 <%= form.number_field :profit_percentage,
                     class: "form-control border-1 text-center fw-bold profit-percentage",
@@ -1453,9 +1456,9 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       // Update profit amount display
-      const profitAmountDisplay = document.getElementById('profit-amount-display');
+      const profitAmountDisplay = document.querySelector('.profit-amount-display');
       if (profitAmountDisplay) {
-        profitAmountDisplay.textContent = profitAmount.toFixed(2);
+        profitAmountDisplay.value = profitAmount.toFixed(2);
       }
 
       // Update investor display fields (since they don't have TDS)
