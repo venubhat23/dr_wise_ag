@@ -106,7 +106,7 @@
                 aria-controls="active-leads"
                 aria-selected="<%= params[:tab] != 'converted' ? 'true' : 'false' %>">
           <i class="bi bi-funnel me-2"></i>
-          Active Leads
+          All Leads
           <span class="badge bg-primary ms-2"><%= @total_leads %></span>
         </button>
       </li>
@@ -120,11 +120,22 @@
                 aria-controls="converted-leads"
                 aria-selected="<%= params[:tab] == 'converted' ? 'true' : 'false' %>">
           <i class="bi bi-person-check me-2"></i>
-          Converted (Clients)
+          Converted Leads
           <span class="badge bg-success ms-2"><%= @converted_leads %></span>
         </button>
       </li>
     </ul>
+  </div>
+</div>
+
+<!-- Loading Spinner for Tab Switching -->
+<div id="tabLoadingSpinner" class="text-center py-5" style="display: none;">
+  <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  <div class="mt-3">
+    <h5 class="text-muted">Loading leads...</h5>
+    <p class="text-muted small">Please wait while we fetch the data</p>
   </div>
 </div>
 
@@ -204,7 +215,7 @@
     <!-- Active Leads Table -->
     <div class="card border-0 shadow-sm" id="tableView-active">
       <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Active Leads</h5>
+        <h5 class="mb-0">All Leads</h5>
         <div class="d-flex gap-2">
         </div>
       </div>
@@ -451,7 +462,7 @@
     <!-- Converted Leads Table -->
     <div class="card border-0 shadow-sm" id="tableView-converted">
       <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Converted Leads (Clients)</h5>
+        <h5 class="mb-0">Converted Leads</h5>
         <div class="d-flex gap-2">
         </div>
       </div>
@@ -846,6 +857,25 @@
 
 .stage-option:hover .bi-arrow-right {
   transform: translateX(3px);
+}
+
+/* Loading spinner styling */
+#tabLoadingSpinner {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin: 20px auto;
+  max-width: 300px;
+  padding: 30px;
+}
+
+#tabLoadingSpinner .spinner-border {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>
 
@@ -1299,6 +1329,9 @@ function bulkDelete() {
 // Add event listeners to checkboxes
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Leads page loaded successfully');
+
+  // Hide loading spinner and show content on page load
+  hideTabLoadingSpinner();
 
   // Load view preference on page load
   loadViewPreference();
@@ -2203,6 +2236,9 @@ function showErrorAlert(message) {
 
 // Tab switching functionality
 function switchToTab(tab) {
+  // Show loading spinner immediately
+  showTabLoadingSpinner();
+
   const currentUrl = new URL(window.location);
   currentUrl.searchParams.set('tab', tab);
 
@@ -2215,6 +2251,28 @@ function switchToTab(tab) {
   // No need to set show_converted parameter anymore - tabs handle this automatically
 
   window.location.href = currentUrl.toString();
+}
+
+// Show loading spinner and hide content
+function showTabLoadingSpinner() {
+  const spinner = document.getElementById('tabLoadingSpinner');
+  const content = document.getElementById('leadTabsContent');
+
+  if (spinner && content) {
+    spinner.style.display = 'block';
+    content.style.display = 'none';
+  }
+}
+
+// Hide loading spinner and show content
+function hideTabLoadingSpinner() {
+  const spinner = document.getElementById('tabLoadingSpinner');
+  const content = document.getElementById('leadTabsContent');
+
+  if (spinner && content) {
+    spinner.style.display = 'none';
+    content.style.display = 'block';
+  }
 }
 
 // Handle tab clicks

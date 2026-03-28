@@ -55,9 +55,9 @@
         <h5 class="mb-0">Banner Preview</h5>
       </div>
       <div class="card-body">
-        <% if @banner.banner_image.attached? %>
+        <% if @banner.has_r2_image? %>
           <div class="text-center mb-4">
-            <%= image_tag(@banner.banner_image_url || @banner.banner_image, class: "img-fluid rounded shadow-sm", style: "max-width: 100%; max-height: 400px;") %>
+            <%= image_tag(@banner.banner_image_url, class: "img-fluid rounded shadow-sm", style: "max-width: 100%; max-height: 400px;", alt: @banner.title) %>
           </div>
         <% else %>
           <div class="text-center py-5 bg-light rounded">
@@ -162,18 +162,21 @@
           </div>
 
           <!-- Image Details -->
-          <% if @banner.banner_image.attached? %>
+          <% if @banner.has_r2_image? %>
             <div class="col-12">
               <label class="form-label text-muted mb-1">Image Details</label>
               <div>
                 <small class="d-block">
-                  <strong>Filename:</strong> <%= @banner.banner_image.filename %>
+                  <strong>Filename:</strong> <%= @banner.r2_filename %>
                 </small>
                 <small class="d-block">
-                  <strong>Size:</strong> <%= number_to_human_size(@banner.banner_image.byte_size) %>
+                  <strong>Size:</strong> <%= @banner.formatted_file_size %>
                 </small>
                 <small class="d-block">
-                  <strong>Type:</strong> <%= @banner.banner_image.content_type %>
+                  <strong>Type:</strong> <%= @banner.r2_content_type %>
+                </small>
+                <small class="d-block">
+                  <strong>Storage:</strong> <span class="badge bg-info">Cloudflare R2</span>
                 </small>
               </div>
             </div>
@@ -193,9 +196,10 @@
             <i class="bi bi-pencil me-2"></i>Edit Banner
           <% end %>
 
-          <% if @banner.banner_image.attached? %>
-            <%= link_to rails_blob_path(@banner.banner_image, disposition: "attachment"),
-                class: "btn btn-outline-secondary btn-sm" do %>
+          <% if @banner.has_r2_image? %>
+            <%= link_to @banner.banner_image_url,
+                class: "btn btn-outline-secondary btn-sm",
+                target: "_blank" do %>
               <i class="bi bi-download me-2"></i>Download Image
             <% end %>
           <% end %>

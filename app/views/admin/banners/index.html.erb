@@ -262,8 +262,8 @@ document.addEventListener('DOMContentLoaded', function() {
               <tr>
                 <td>
                   <div class="banner-preview">
-                    <% if banner.banner_image.attached? %>
-                      <%= image_tag(banner.banner_image_url || banner.banner_image, class: "rounded banner-thumbnail", style: "width: 60px; height: 40px; object-fit: cover;") %>
+                    <% if banner.has_r2_image? %>
+                      <%= image_tag(banner.banner_image_url, class: "rounded banner-thumbnail", style: "width: 60px; height: 40px; object-fit: cover;", alt: banner.title) %>
                     <% else %>
                       <div class="bg-light rounded d-flex align-items-center justify-content-center banner-placeholder" style="width: 60px; height: 40px;">
                         <i class="bi bi-image text-muted"></i>

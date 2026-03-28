@@ -1,8 +1,5 @@
 class Banner < ApplicationRecord
-  # Image attachment using Cloudflare R2
-  has_one_attached :banner_image
-
-  # R2 Document Management
+  # R2 Document Management (keeping existing banner_documents)
   has_many :banner_documents, dependent: :destroy
   accepts_nested_attributes_for :banner_documents, allow_destroy: true, reject_if: :all_blank
 
@@ -14,6 +11,7 @@ class Banner < ApplicationRecord
   validates :status, inclusion: { in: [true, false] }
   validates :display_order, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :redirect_link, format: { with: URI::regexp }, allow_blank: true
+  validates :r2_file_key, presence: true, if: :should_validate_r2_file?
 
   # Set default values
   before_validation :set_default_display_location
@@ -54,17 +52,19 @@ class Banner < ApplicationRecord
 
   # Get banner image URL (R2 public URL)
   def banner_image_url
-    if banner_image.attached?
-      # Use the standard Rails URL for ActiveStorage with R2
-      # This will generate the correct R2 URL based on the service configuration
-      banner_image.url
-    else
-      nil
-    end
-  rescue => e
-    Rails.logger.error "Error generating banner image URL: #{e.message}"
-    # Fallback to Rails blob path
-    banner_image.attached? ? Rails.application.routes.url_helpers.rails_blob_url(banner_image, only_path: false) : nil
+    return nil unless r2_file_key.present?
+    r2_public_url.present? ? r2_public_url : R2Service.public_url(r2_file_key)
+  end
+
+  # Check if banner has a valid R2 image
+  def has_r2_image?
+    r2_file_key.present? && r2_filename.present?
+  end
+
+  # Human readable file size for banner image
+  def formatted_file_size
+    return 'Unknown' unless r2_file_size.present?
+    ActionController::Base.helpers.number_to_human_size(r2_file_size)
   end
 
   private
@@ -79,5 +79,13 @@ class Banner < ApplicationRecord
     if display_end_date < display_start_date
       errors.add(:display_end_date, 'must be after start date')
     end
+  end
+
+  # Only validate R2 file key if we're not being destroyed and have actual file content
+  def should_validate_r2_file?
+    return false if marked_for_destruction?
+
+    # Only require r2_file_key if we have other file-related data
+    r2_filename.present? || r2_content_type.present? || r2_file_size.present?
   end
 end
