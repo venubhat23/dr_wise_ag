@@ -512,7 +512,7 @@
         # Check multiple document sources
         policy_documents = PolicyDocument.where(policy_type: 'health', policy_id: @health_insurance.id)
         uploaded_docs = @health_insurance.respond_to?(:uploaded_documents) ? @health_insurance.uploaded_documents : []
-        health_insurance_docs = @health_insurance.respond_to?(:policy_documents_records) ? @health_insurance.policy_documents_records : []
+        health_insurance_docs = @health_insurance.respond_to?(:health_insurance_documents) ? @health_insurance.health_insurance_documents : []
 
         total_documents = policy_documents.count + uploaded_docs.count + health_insurance_docs.count
       %>
@@ -585,9 +585,9 @@
               </div>
             <% end %>
 
-            <!-- Policy Documents Records (via association) -->
+            <!-- Health Insurance Documents -->
             <% if health_insurance_docs.any? %>
-              <h6 class="mt-3">Policy Documents Records (<%= health_insurance_docs.count %>)</h6>
+              <h6 class="mt-3">Health Insurance Documents (<%= health_insurance_docs.count %>)</h6>
               <div class="table-responsive">
                 <table class="table table-bordered table-sm">
                   <thead class="table-light">

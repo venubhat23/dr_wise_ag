@@ -672,6 +672,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       :company_expenses_percentage, :company_expenses_amount, :total_distribution_percentage, :profit_percentage, :profit_amount,
       health_insurance_members_attributes: [:id, :member_name, :age, :relationship, :sum_insured, :_destroy],
       health_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
+      health_insurance_documents_attributes: [:id, :title, :description, :document_type, :file, :_destroy],
       documents: [], policy_documents: [],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
     )
@@ -818,6 +819,40 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     failed_count = 0
 
     begin
+      # Handle health_insurance_documents_attributes (Document Management System)
+      if params[:health_insurance] && params[:health_insurance][:health_insurance_documents_attributes].present?
+        params[:health_insurance][:health_insurance_documents_attributes].each do |index, document_data|
+          next if document_data.blank? || document_data[:file].blank?
+
+          file = document_data[:file]
+          title = document_data[:title].presence || file.original_filename
+          document_type = document_data[:document_type].presence || 'policy_document'
+          description = document_data[:description].presence || ''
+
+          # Upload to R2
+          result = R2Service.upload(file, folder: "health_insurance/#{health_insurance.id}/health_documents")
+
+          if result[:error]
+            Rails.logger.error "Failed to upload health insurance document: #{result[:error]}"
+            failed_count += 1
+            flash[:alert] = (flash[:alert] || '') + " Health document upload failed: #{result[:error]}. "
+          else
+            # Create HealthInsuranceDocument record
+            HealthInsuranceDocument.create!(
+              health_insurance: health_insurance,
+              document_type: document_type,
+              title: title,
+              description: description,
+              r2_file_key: result[:key],
+              r2_filename: result[:filename],
+              r2_content_type: file.content_type,
+              r2_file_size: file.size
+            )
+            uploaded_count += 1
+            Rails.logger.info "HealthInsuranceDocument created for health insurance #{health_insurance.id}: #{title}"
+          end
+        end
+      end
       # Handle policy_documents from the Add Document form
       if params[:policy_documents].present?
         params[:policy_documents].each do |index, document_data|

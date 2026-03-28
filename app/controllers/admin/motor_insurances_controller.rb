@@ -879,9 +879,8 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
 
       # File Uploads - REMOVED: :main_policy_document, policy_documents: [], documents: [] (All handled via R2)
       # Nominees
-      motor_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
-      # R2 Documents (file handled separately in R2 upload methods)
-      motor_insurance_documents_attributes: [:id, :document_type, :title, :description, :_destroy]
+      motor_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy]
+      # R2 Documents (file handled separately in R2 upload methods) - NOT in strong params to prevent auto-creation
     )
   end
 
@@ -975,7 +974,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
         begin
           result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/documents")
 
-          if result && result[:success] && result[:key]
+          if result && result[:key] && !result[:error]
             # Create MotorInsuranceDocument record with R2 info
             motor_insurance.motor_insurance_documents.create!(
               document_type: doc_attrs[:document_type],
@@ -984,12 +983,13 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
               r2_file_key: result[:key],
               r2_filename: result[:filename],
               r2_content_type: result[:content_type],
-              r2_file_size: result[:file_size]
+              r2_file_size: result[:size]
             )
             uploaded_count += 1
             Rails.logger.info "Uploaded motor document: #{result[:filename]} with title: #{doc_attrs[:title]}"
           else
-            Rails.logger.error "R2 upload failed for document: #{doc_attrs[:title]}"
+            error_msg = result[:error] || "Unknown upload error"
+            Rails.logger.error "R2 upload failed for document: #{doc_attrs[:title]} - #{error_msg}"
             failed_count += 1
           end
         rescue => e
@@ -1016,7 +1016,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     begin
       result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/main_policy")
 
-      if result[:success] && result[:key]
+      if result && result[:key] && !result[:error]
         # Create MotorInsuranceDocument record for main policy
         motor_insurance.motor_insurance_documents.create!(
           document_type: 'main_policy',
@@ -1025,7 +1025,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
           r2_file_key: result[:key],
           r2_filename: result[:filename],
           r2_content_type: result[:content_type],
-          r2_file_size: result[:file_size]
+          r2_file_size: result[:size]
         )
         flash[:notice] = (flash[:notice] || '') + " Main policy document uploaded successfully to R2."
       else
@@ -1051,7 +1051,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
         begin
           result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/policy_documents")
 
-          if result[:success] && result[:key]
+          if result && result[:key] && !result[:error]
             motor_insurance.motor_insurance_documents.create!(
               document_type: 'policy_document',
               title: file.original_filename,
@@ -1059,7 +1059,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
               r2_file_key: result[:key],
               r2_filename: result[:filename],
               r2_content_type: result[:content_type],
-              r2_file_size: result[:file_size]
+              r2_file_size: result[:size]
             )
             uploaded_count += 1
           else
@@ -1080,7 +1080,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
         begin
           result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/additional_documents")
 
-          if result[:success] && result[:key]
+          if result && result[:key] && !result[:error]
             motor_insurance.motor_insurance_documents.create!(
               document_type: 'additional_document',
               title: file.original_filename,
@@ -1088,7 +1088,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
               r2_file_key: result[:key],
               r2_filename: result[:filename],
               r2_content_type: result[:content_type],
-              r2_file_size: result[:file_size]
+              r2_file_size: result[:size]
             )
             uploaded_count += 1
           else

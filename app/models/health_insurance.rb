@@ -12,6 +12,7 @@ class HealthInsurance < ApplicationRecord
   belongs_to :broker, optional: true
   has_many :health_insurance_members, dependent: :destroy
   has_many :health_insurance_nominees, dependent: :destroy
+  has_many :health_insurance_documents, dependent: :destroy
   has_many_attached :documents
   has_many_attached :policy_documents
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
@@ -27,6 +28,7 @@ class HealthInsurance < ApplicationRecord
   # Nested attributes
   accepts_nested_attributes_for :health_insurance_members, allow_destroy: true, reject_if: :all_blank
   accepts_nested_attributes_for :health_insurance_nominees, allow_destroy: true, reject_if: :all_blank
+  accepts_nested_attributes_for :health_insurance_documents, allow_destroy: true, reject_if: :all_blank
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations
@@ -253,6 +255,7 @@ class HealthInsurance < ApplicationRecord
     count += policy_documents.attached? ? policy_documents.count : 0
     count += uploaded_documents.count
     count += policy_documents_records.count
+    count += health_insurance_documents.count if respond_to?(:health_insurance_documents)
     count
   end
 

@@ -868,6 +868,94 @@
           </div>
         </div>
       <% end %>
+
+      <!-- Health Insurance Documents (Document Management System) -->
+      <% if @health_insurance.health_insurance_documents.any? %>
+        <div class="border-top pt-4 mt-4">
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-info">
+                  <i class="bi bi-file-earmark-plus me-2"></i>
+                  Health Insurance Documents
+                </h5>
+                <span class="badge bg-info"><%= @health_insurance.health_insurance_documents.count %> files</span>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="list-group list-group-flush">
+                <% @health_insurance.health_insurance_documents.each_with_index do |document, index| %>
+                  <div class="list-group-item border-0 <%= 'border-bottom' unless index == @health_insurance.health_insurance_documents.count - 1 %>">
+                    <div class="d-flex align-items-center py-2">
+                      <div class="flex-shrink-0 me-4">
+                        <div class="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                          <i class="bi bi-file-earmark-text text-info fs-4"></i>
+                        </div>
+                      </div>
+                      <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start">
+                          <div>
+                            <h6 class="mb-1 fw-bold"><%= document.title %></h6>
+                            <div class="mb-2">
+                              <span class="badge bg-light text-dark me-2"><%= document.document_type %></span>
+                              <% if document.r2_file_size %>
+                                <span class="text-muted small">
+                                  <i class="bi bi-file-earmark me-1"></i><%= number_to_human_size(document.r2_file_size) %>
+                                </span>
+                              <% end %>
+                            </div>
+                            <% if document.description.present? %>
+                              <p class="text-muted mb-1 small"><%= truncate(document.description, length: 100) %></p>
+                            <% end %>
+                            <small class="text-info d-block">
+                              <i class="bi bi-cloud-check me-1"></i>Stored in Cloudflare R2 • Uploaded on <%= document.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+                            </small>
+                          </div>
+                          <div class="btn-group" role="group">
+                            <% if document.r2_file_key.present? %>
+                              <% r2_url = R2Service.public_url(document.r2_file_key) if document.r2_file_key %>
+                              <% if r2_url %>
+                                <%= link_to r2_url, class: "btn btn-outline-info btn-sm", target: "_blank", title: "View Document" do %>
+                                  <i class="bi bi-eye me-1"></i>View
+                                <% end %>
+                                <%= link_to r2_url, class: "btn btn-outline-primary btn-sm", download: document.r2_filename, title: "Download Document" do %>
+                                  <i class="bi bi-download me-1"></i>Download
+                                <% end %>
+                              <% end %>
+                            <% end %>
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteHealthInsuranceDocument(<%= document.id %>, '<%= document.title.gsub("'", "\\'") %>')" title="Delete Document">
+                              <i class="bi bi-trash me-1"></i>Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Document Management System -->
+      <div class="border-top pt-4 mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0">Add More Documents</h6>
+          <button type="button" class="btn btn-sm btn-primary" id="add_health_document">
+            <i class="bi bi-plus-lg me-1"></i>
+            Add Document
+          </button>
+        </div>
+
+        <div id="health_documents_container">
+          <!-- New document system will be added here -->
+        </div>
+
+        <p class="text-muted mb-0 mt-2">
+          <small>Use this system to add organized documents with titles and types</small>
+        </p>
+      </div>
     </div>
   </div>
 
@@ -1988,5 +2076,88 @@ function deleteMainPolicyDocument() {
     alert('Document deletion functionality will be implemented based on your backend setup.');
   }
 }
+
+// Health Insurance Document deletion function
+function deleteHealthInsuranceDocument(documentId, documentTitle) {
+  if (confirm(`Are you sure you want to delete "${documentTitle}"?`)) {
+    fetch(`/admin/health_insurance_documents/${documentId}`, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+        'Accept': 'application/json'
+      }
+    })
+    .then(response => {
+      if (response.ok) {
+        // Reload the page to update the document list
+        window.location.reload();
+      } else {
+        alert('Failed to delete document. Please try again.');
+      }
+    })
+    .catch(error => {
+      console.error('Error deleting document:', error);
+      alert('Error deleting document. Please try again.');
+    });
+  }
+}
+
+// Add Health Insurance Document button handler
+document.addEventListener('DOMContentLoaded', function() {
+  let healthDocumentIndex = 0;
+
+  const addHealthDocumentBtn = document.getElementById('add_health_document');
+  const healthDocumentsContainer = document.getElementById('health_documents_container');
+
+  if (addHealthDocumentBtn && healthDocumentsContainer) {
+    addHealthDocumentBtn.addEventListener('click', function() {
+      const documentHtml = `
+        <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${healthDocumentIndex}" style="background: #f8f9fa;">
+          <button type="button" class="btn btn-sm btn-outline-danger position-absolute" style="top: 10px; right: 10px;" onclick="this.closest('.document-entry').remove()">
+            <i class="bi bi-trash"></i>
+          </button>
+          <div class="row">
+            <div class="col-md-4">
+              <label class="form-label">Document Title <span class="text-danger">*</span></label>
+              <input type="text" name="health_insurance[health_insurance_documents_attributes][${healthDocumentIndex}][title]" class="form-control" placeholder="Enter document title" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Document Type <span class="text-danger">*</span></label>
+              <select name="health_insurance[health_insurance_documents_attributes][${healthDocumentIndex}][document_type]" class="form-select" required>
+                <option value="">Select Document Type</option>
+                <option value="policy_document">Policy Document</option>
+                <option value="medical_report">Medical Report</option>
+                <option value="identity_proof">Identity Proof</option>
+                <option value="address_proof">Address Proof</option>
+                <option value="income_proof">Income Proof</option>
+                <option value="claim_form">Claim Form</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Document File <span class="text-danger">*</span></label>
+              <input type="file" name="health_insurance[health_insurance_documents_attributes][${healthDocumentIndex}][file]" class="form-control" accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
+            </div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-md-12">
+              <label class="form-label">Description (Optional)</label>
+              <textarea name="health_insurance[health_insurance_documents_attributes][${healthDocumentIndex}][description]" class="form-control" rows="2" placeholder="Optional description"></textarea>
+            </div>
+          </div>
+          <div class="mt-2">
+            <small class="text-muted">
+              <i class="bi bi-info-circle me-1"></i>
+              Supported formats: PDF, JPG, PNG, Word documents (Max: 10MB per file)
+            </small>
+          </div>
+        </div>
+      `;
+
+      healthDocumentsContainer.insertAdjacentHTML('beforeend', documentHtml);
+      healthDocumentIndex++;
+    });
+  }
+});
 </script>
 

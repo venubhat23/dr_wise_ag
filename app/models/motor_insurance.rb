@@ -194,8 +194,21 @@ class MotorInsurance < ApplicationRecord
 
   # Document methods
   def has_main_policy_r2?
-    # Check if there's at least one policy document uploaded
-    motor_insurance_documents.where(document_type: 'Policy Document').where.not(r2_file_key: [nil, '']).exists?
+    # Check if there's at least one document (regardless of upload status)
+    motor_insurance_documents.exists?
+  end
+
+  # Total document count method
+  def total_documents_count
+    count = 0
+    count += motor_insurance_documents.count
+    count += policy_documents_records.count
+    count += uploaded_documents.count
+    count
+  end
+
+  def has_any_documents?
+    total_documents_count > 0
   end
 
   # DrWise vs Non-DrWise classification

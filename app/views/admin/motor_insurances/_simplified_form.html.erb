@@ -107,8 +107,11 @@
         </div>
 
         <div class="col-md-6 mb-3">
-          <%= form.label :agency_code, "Agency Code", class: "form-label" %>
-          <%= form.text_field :agency_code, class: "form-control", placeholder: "Enter agency code" %>
+          <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
+          <%= form.select :agency_code_id,
+              options_from_collection_for_select(AgencyCode.all, :id, :display_name, @motor_insurance.agency_code_id),
+              { prompt: "Select Agency Code" },
+              { class: "form-control" } %>
         </div>
       </div>
 
@@ -834,7 +837,7 @@
                     <i class="bi bi-cloud-check me-2"></i>
                     Motor Insurance Documents
                   </h5>
-                  <span class="badge bg-info"><%= @motor_insurance.motor_insurance_documents.count %> files</span>
+                  <span class="badge bg-info"><%= @motor_insurance.total_documents_count %> files</span>
                 </div>
               </div>
               <div class="card-body p-0">
