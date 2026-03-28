@@ -53,11 +53,7 @@
               <%= @life_insurance.main_agent_commission_paid_date&.strftime('%b %d') || 'Date not set' %>
             </span>
           <% else %>
-            <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#markPaidModal">
-              Mark as Paid
-            </button>
-            <span class="text-muted small">Paid: 0/1</span>
-            <span class="text-muted small">Amount: <%= indian_currency(0) %></span>
+            <span class="badge bg-warning">Pending</span>
           <% end %>
         </div>
       </div>
@@ -84,63 +80,3 @@
     </div>
   </div>
 </div>
-
-<!-- Mark as Paid Modal -->
-<div class="modal fade" id="markPaidModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Mark Main Agent Commission as Paid</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <%= form_with url: mark_main_agent_commission_received_admin_commission_tracking_path(@life_insurance.id, policy_type: 'life'), method: :patch, local: false, id: 'mark_paid_form' do |form| %>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Transaction ID <span class="text-danger">*</span></label>
-            <%= form.text_field :transaction_id, class: "form-control", required: true, placeholder: "Enter transaction ID" %>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Payment Date</label>
-            <%= form.date_field :paid_date, class: "form-control", value: Date.current %>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Notes</label>
-            <%= form.text_area :notes, class: "form-control", rows: 3, placeholder: "Optional payment notes" %>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <%= form.submit "Mark as Paid", class: "btn btn-success" %>
-        </div>
-      <% end %>
-    </div>
-  </div>
-</div>
-
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Handle Mark as Paid form submission
-    const markPaidForm = document.getElementById('mark_paid_form');
-    if (markPaidForm) {
-        markPaidForm.addEventListener('ajax:success', function(event) {
-            const response = event.detail[0];
-            if (response.success) {
-                // Close modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('markPaidModal'));
-                modal.hide();
-
-                // Show success message and reload page
-                alert('Commission marked as paid successfully!');
-                window.location.reload();
-            } else {
-                alert('Error: ' + (response.message || 'Failed to mark commission as paid'));
-            }
-        });
-
-        markPaidForm.addEventListener('ajax:error', function(event) {
-            alert('Error: Failed to mark commission as paid. Please try again.');
-        });
-    }
-});
-</script>

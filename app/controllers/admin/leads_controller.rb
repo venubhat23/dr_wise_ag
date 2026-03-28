@@ -5,12 +5,19 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # GET /admin/leads
   def index
-    # Start with all leads, then apply filters based on user preferences
-    if params[:show_converted] == 'true'
-      @leads = Lead.all
+    # Handle tab-based filtering
+    case params[:tab]
+    when 'converted'
+      # Show only converted leads (those with customer_id) - these are now clients
+      @leads = Lead.where.not(converted_customer_id: nil)
+      params[:show_converted] = 'true'  # For backward compatibility
     else
-      # By default, hide converted leads (those with customer_id)
-      @leads = Lead.where(converted_customer_id: nil)
+      # Default: Show active leads (those without customer_id)
+      if params[:show_converted] == 'true'
+        @leads = Lead.all
+      else
+        @leads = Lead.where(converted_customer_id: nil)
+      end
     end
 
     # Search functionality - Use simpler search in production for better performance
@@ -92,10 +99,10 @@ class Admin::LeadsController < Admin::ApplicationController
       'one_on_one' => { name: 'One-on-One', color: 'warning' },
       'follow_up' => { name: 'Follow-Up', color: 'secondary' },
       'follow_up_successful' => { name: 'Follow-Up Success', color: 'success' },
+      'converted' => { name: 'Converted', color: 'success' },
       'follow_up_unsuccessful' => { name: 'Follow-Up Failed', color: 'danger' },
       'not_interested' => { name: 'Not Interested', color: 'dark' },
       're_follow_up' => { name: 'Re-Follow Up', color: 'warning' },
-      'converted' => { name: 'Converted', color: 'success' },
       'lead_closed' => { name: 'Closed', color: 'secondary' }
     }
   end
@@ -114,10 +121,10 @@ class Admin::LeadsController < Admin::ApplicationController
       'one_on_one' => { name: 'One-on-One', color: 'warning' },
       'follow_up' => { name: 'Follow-Up', color: 'secondary' },
       'follow_up_successful' => { name: 'Follow-Up Success', color: 'success' },
+      'converted' => { name: 'Converted', color: 'success' },
       'follow_up_unsuccessful' => { name: 'Follow-Up Failed', color: 'danger' },
       'not_interested' => { name: 'Not Interested', color: 'dark' },
       're_follow_up' => { name: 'Re-Follow Up', color: 'warning' },
-      'converted' => { name: 'Converted', color: 'success' },
       'lead_closed' => { name: 'Closed', color: 'secondary' }
     }
   end

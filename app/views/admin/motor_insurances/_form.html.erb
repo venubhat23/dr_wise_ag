@@ -1468,6 +1468,192 @@ document.addEventListener('DOMContentLoaded', function() {
     companyExpensesField.addEventListener('input', calculateAllCommissions);
     companyExpensesField.addEventListener('change', calculateAllCommissions);
   }
+
+  // Broker Code Type Dynamic Dropdown Functionality
+  const brokerCodeSelect = document.getElementById('motor_insurance_broker_code_type');
+  const agencyCodeSelect = document.getElementById('motor_insurance_agency_code_id');
+  const insuranceCompanySelect = document.getElementById('motor_insurance_insurance_company_name');
+
+  if (brokerCodeSelect) {
+    // Enable Insurance Company dropdown on click
+    brokerCodeSelect.addEventListener('click', function() {
+      if (insuranceCompanySelect && insuranceCompanySelect.disabled) {
+        insuranceCompanySelect.disabled = false;
+        console.log('✅ Insurance Company Name dropdown enabled');
+      }
+    });
+
+    brokerCodeSelect.addEventListener('change', function() {
+      const brokerType = this.value;
+      console.log('🔥 MOTOR BROKER CODE CHANGED! Value:', brokerType);
+
+      // Enable Insurance Company dropdown when any option is selected
+      if (insuranceCompanySelect && insuranceCompanySelect.disabled) {
+        insuranceCompanySelect.disabled = false;
+        console.log('✅ Insurance Company Name dropdown enabled on selection');
+      }
+
+      // Clear dependent dropdowns
+      if (agencyCodeSelect) {
+        agencyCodeSelect.innerHTML = '<option value="">Loading...</option>';
+      }
+      if (insuranceCompanySelect) {
+        insuranceCompanySelect.innerHTML = '<option value="">Loading...</option>';
+        insuranceCompanySelect.disabled = false;
+      }
+
+      // Load agency codes based on broker type
+      if (brokerType === 'direct') {
+        callDirectModeAPI();
+      } else if (brokerType === 'broking') {
+        callBrokingModeAPI();
+      }
+    });
+  }
+
+  function callDirectModeAPI() {
+    console.log('🌐 Fetching agents for direct mode...');
+    fetch('/admin/insurance/motor/agency_codes_for_broker_type?broker_type=direct')
+      .then(response => {
+        console.log('📡 API Response Status:', response.status);
+        return response.json();
+      })
+      .then(data => {
+        console.log('📊 API Data:', data);
+        if (data.success && data.data) {
+          populateAgencyCodeDropdown(data.data, 'Select Agent...');
+          // Clear insurance company and show message to select agent first
+          if (insuranceCompanySelect) {
+            insuranceCompanySelect.innerHTML = '<option value="">Select Agent First...</option>';
+          }
+        }
+      })
+      .catch(error => {
+        console.error('❌ Direct API Error:', error);
+        if (agencyCodeSelect) {
+          agencyCodeSelect.innerHTML = '<option value="">Error loading agents</option>';
+        }
+      });
+  }
+
+  function callBrokingModeAPI() {
+    console.log('🌐 Fetching brokers for broking mode...');
+    // Fetch brokers
+    fetch('/admin/insurance/motor/agency_codes_for_broker_type?broker_type=broking')
+      .then(response => response.json())
+      .then(data => {
+        console.log('📊 Brokers Data:', data);
+        if (data.success && data.data) {
+          populateAgencyCodeDropdown(data.data, 'Select Broker...');
+        }
+      })
+      .catch(error => {
+        console.error('❌ Brokers API Error:', error);
+      });
+
+    // Fetch insurance companies for broking mode
+    fetch('/admin/insurance/motor/insurance_companies_by_agency')
+      .then(response => response.json())
+      .then(data => {
+        console.log('📊 Insurance Companies Data:', data);
+        if (data.success && data.data) {
+          populateInsuranceCompanies(data.data);
+        }
+      })
+      .catch(error => {
+        console.error('❌ Insurance Companies API Error:', error);
+      });
+  }
+
+  function populateAgencyCodeDropdown(agencies, placeholder) {
+    if (!agencyCodeSelect) return;
+
+    agencyCodeSelect.innerHTML = `<option value="">${placeholder}</option>`;
+    agencies.forEach(agency => {
+      const option = document.createElement('option');
+      option.value = agency.id;
+      option.textContent = `${agency.agent_name} - ${agency.code}`;
+      agencyCodeSelect.appendChild(option);
+    });
+  }
+
+  function populateInsuranceCompanies(companies) {
+    if (!insuranceCompanySelect) return;
+
+    insuranceCompanySelect.innerHTML = '<option value="">Search and select company...</option>';
+    companies.forEach(company => {
+      const option = document.createElement('option');
+      option.value = company;
+      option.textContent = company;
+      insuranceCompanySelect.appendChild(option);
+    });
+  }
+
+  // Agency Code change listener for direct mode
+  if (agencyCodeSelect) {
+    agencyCodeSelect.addEventListener('change', function() {
+      const agentId = this.value;
+      const brokerType = brokerCodeSelect ? brokerCodeSelect.value : '';
+
+      if (brokerType === 'direct' && agentId) {
+        console.log('🌐 Fetching company for agent ID:', agentId);
+
+        // Show loading state
+        if (insuranceCompanySelect) {
+          insuranceCompanySelect.innerHTML = '<option value="">Loading company...</option>';
+          insuranceCompanySelect.disabled = true;
+        }
+
+        // Call the company name API
+        fetch(`/admin/insurance/motor/company_name_by_agent?agency_code_id=${agentId}`)
+          .then(response => {
+            console.log(`📡 API Response: ${response.status} ${response.statusText}`);
+            return response.json();
+          })
+          .then(data => {
+            if (data.success && data.data) {
+              if (data.data.multiple_companies && data.data.company_names) {
+                // Multiple companies - show all options
+                const companyNames = data.data.company_names;
+                const agentName = data.data.agent_name;
+                console.log(`✅ Found ${companyNames.length} companies for agent ${agentName}: ${companyNames.join(', ')}`);
+
+                insuranceCompanySelect.innerHTML = '<option value="">Select company...</option>';
+                companyNames.forEach(companyName => {
+                  const option = document.createElement('option');
+                  option.value = companyName;
+                  option.textContent = companyName;
+                  insuranceCompanySelect.appendChild(option);
+                });
+                insuranceCompanySelect.disabled = false;
+              } else if (data.data.company_name) {
+                // Single company - auto-fill
+                const companyName = data.data.company_name;
+                const agentName = data.data.agent_name;
+                console.log(`✅ Auto-filling company for agent ${agentName}: ${companyName}`);
+
+                insuranceCompanySelect.innerHTML = `<option value="${companyName}" selected>${companyName}</option>`;
+                insuranceCompanySelect.disabled = false;
+              }
+            } else {
+              console.log('⚠️ No company data found for this agent');
+              insuranceCompanySelect.innerHTML = '<option value="">No company found for this agent</option>';
+              insuranceCompanySelect.disabled = false;
+            }
+          })
+          .catch(error => {
+            console.error('❌ Company API Error:', error);
+            insuranceCompanySelect.innerHTML = '<option value="">Error loading company</option>';
+            insuranceCompanySelect.disabled = false;
+          });
+      } else if (brokerType === 'direct' && !agentId) {
+        // Clear company dropdown when no agent selected
+        if (insuranceCompanySelect) {
+          insuranceCompanySelect.innerHTML = '<option value="">Select Agent First...</option>';
+        }
+      }
+    });
+  }
 });
 </script>
 

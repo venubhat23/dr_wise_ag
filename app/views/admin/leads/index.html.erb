@@ -92,85 +92,178 @@
   </div>
 </div>
 
-<!-- Search and Filters -->
-<div class="card border-0 shadow-sm mb-2">
-  <div class="card-header bg-transparent border-0 pb-0 pt-1">
-    <h6 class="text-muted mb-0">
-      <i class="bi bi-funnel me-2"></i>
-      Search and Filter Leads
-    </h6>
-  </div>
-  <div class="card-body pt-1 pb-1">
-    <%= form_with url: admin_leads_path, method: :get, local: true, class: "filter-form" do |form| %>
-      <!-- Single Row: All Filters -->
-      <div class="row g-2 align-items-end">
-        <div class="col-lg-2 col-md-6">
-          <label class="form-label small text-muted mb-1">Search Leads</label>
-          <%= form.text_field :search, placeholder: "Search by name, phone, email...", value: params[:search], class: "form-control" %>
-        </div>
-        <div class="col-lg-2 col-md-6">
-          <label class="form-label small text-muted mb-1">Stage</label>
-          <%= form.select :current_stage, options_for_select([
-            ['All Stages', ''],
-            ['Lead Generated', 'lead_generated'],
-            ['Consultation', 'consultation_scheduled'],
-            ['One-on-One', 'one_on_one'],
-            ['Follow-Up', 'follow_up'],
-            ['Successful', 'follow_up_successful'],
-            ['Unsuccessful', 'follow_up_unsuccessful'],
-            ['Not Interested', 'not_interested'],
-            ['Re-Follow Up', 're_follow_up'],
-            ['Converted', 'converted'],
-            ['Lead Close - Follow-Up Unsuccessful', 'lead_closed']
-          ], params[:current_stage]), {}, { class: "form-select stage-filter-dropdown" } %>
-        </div>
-        <div class="col-lg-2 col-md-6">
-          <label class="form-label small text-muted mb-1">Category</label>
-          <%= form.select :product_category, options_for_select([
-            ['All Categories', ''],
-            ['Insurance', 'insurance'],
-            ['Investments', 'investments'],
-            ['Loans', 'loans'],
-            ['Taxation', 'taxation']
-          ], params[:product_category]), {}, { class: "form-select" } %>
-        </div>
-        <div class="col-lg-2 col-md-6">
-          <label class="form-label small text-muted mb-1">Source</label>
-          <%= form.select :lead_source, options_for_select([
-            ['All Sources', ''],
-            ['Online', 'online'],
-            ['Offline', 'offline'],
-            ['Agent Referral', 'agent_referral'],
-            ['Walk-in', 'walk_in'],
-            ['Tele-calling', 'tele_calling'],
-            ['Campaign', 'campaign']
-          ], params[:lead_source]), {}, { class: "form-select" } %>
-        </div>
-        <div class="col-lg-2 col-md-6">
-          <label class="form-label small text-muted mb-1">Show Converted</label>
-          <div class="form-check form-switch">
-            <%= form.check_box :show_converted, { checked: params[:show_converted] == 'true', class: "form-check-input", id: "showConverted" }, "true", "false" %>
-            <%= form.label :show_converted, "Include Converted Leads", class: "form-check-label small", for: "showConverted" %>
-          </div>
-        </div>
-        <div class="col-lg-2 col-md-12">
-          <div class="d-flex gap-2">
-            <%= form.submit "Apply", class: "btn btn-primary" do %>
-              <i class="bi bi-funnel me-1"></i>
-              Apply
-            <% end %>
-            <%= link_to admin_leads_path, class: "btn btn-outline-secondary", title: "Clear all filters" do %>
-              <i class="bi bi-arrow-clockwise"></i>
-            <% end %>
-          </div>
-        </div>
-      </div>
-    <% end %>
+<!-- Lead Status Tabs -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header bg-transparent border-0">
+    <ul class="nav nav-tabs border-0" id="leadTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link <%= params[:tab] != 'converted' ? 'active' : '' %>"
+                id="active-leads-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#active-leads"
+                type="button"
+                role="tab"
+                aria-controls="active-leads"
+                aria-selected="<%= params[:tab] != 'converted' ? 'true' : 'false' %>">
+          <i class="bi bi-funnel me-2"></i>
+          Active Leads
+          <span class="badge bg-primary ms-2"><%= @total_leads %></span>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link <%= params[:tab] == 'converted' ? 'active' : '' %>"
+                id="converted-leads-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#converted-leads"
+                type="button"
+                role="tab"
+                aria-controls="converted-leads"
+                aria-selected="<%= params[:tab] == 'converted' ? 'true' : 'false' %>">
+          <i class="bi bi-person-check me-2"></i>
+          Converted (Clients)
+          <span class="badge bg-success ms-2"><%= @converted_leads %></span>
+        </button>
+      </li>
+    </ul>
   </div>
 </div>
 
-<!-- Leads Table -->
-<div class="card border-0 shadow-sm" id="tableView">
+<div class="tab-content" id="leadTabsContent">
+  <!-- Active Leads Tab -->
+  <div class="tab-pane fade <%= params[:tab] != 'converted' ? 'show active' : '' %>" id="active-leads" role="tabpanel" aria-labelledby="active-leads-tab">
+    <!-- Search and Filters for Active Leads -->
+    <div class="card border-0 shadow-sm mb-2">
+      <div class="card-header bg-transparent border-0 pb-0 pt-1">
+        <h6 class="text-muted mb-0">
+          <i class="bi bi-funnel me-2"></i>
+          Search and Filter Active Leads
+        </h6>
+      </div>
+      <div class="card-body pt-1 pb-1">
+        <%= form_with url: admin_leads_path, method: :get, local: true, class: "filter-form" do |form| %>
+          <%= form.hidden_field :tab, value: 'active' %>
+          <!-- Single Row: All Filters -->
+          <div class="row g-2 align-items-end">
+            <div class="col-lg-2 col-md-6">
+              <label class="form-label small text-muted mb-1">Search Leads</label>
+              <%= form.text_field :search, placeholder: "Search by name, phone, email...", value: params[:search], class: "form-control" %>
+            </div>
+            <div class="col-lg-2 col-md-6">
+              <label class="form-label small text-muted mb-1">Stage</label>
+              <%= form.select :current_stage, options_for_select([
+                ['All Stages', ''],
+                ['Lead Generated', 'lead_generated'],
+                ['Consultation', 'consultation_scheduled'],
+                ['One-on-One', 'one_on_one'],
+                ['Follow-Up', 'follow_up'],
+                ['Successful', 'follow_up_successful'],
+                ['Unsuccessful', 'follow_up_unsuccessful'],
+                ['Not Interested', 'not_interested'],
+                ['Re-Follow Up', 're_follow_up'],
+                ['Lead Close - Follow-Up Unsuccessful', 'lead_closed']
+              ], params[:current_stage]), {}, { class: "form-select stage-filter-dropdown" } %>
+            </div>
+            <div class="col-lg-2 col-md-6">
+              <label class="form-label small text-muted mb-1">Category</label>
+              <%= form.select :product_category, options_for_select([
+                ['All Categories', ''],
+                ['Insurance', 'insurance'],
+                ['Investments', 'investments'],
+                ['Loans', 'loans'],
+                ['Taxation', 'taxation']
+              ], params[:product_category]), {}, { class: "form-select" } %>
+            </div>
+            <div class="col-lg-2 col-md-6">
+              <label class="form-label small text-muted mb-1">Source</label>
+              <%= form.select :lead_source, options_for_select([
+                ['All Sources', ''],
+                ['Online', 'online'],
+                ['Offline', 'offline'],
+                ['Agent Referral', 'agent_referral'],
+                ['Walk-in', 'walk_in'],
+                ['Tele-calling', 'tele_calling'],
+                ['Campaign', 'campaign']
+              ], params[:lead_source]), {}, { class: "form-select" } %>
+            </div>
+            <div class="col-lg-2 col-md-12">
+              <div class="d-flex gap-2">
+                <%= form.submit "Apply", class: "btn btn-primary" do %>
+                  <i class="bi bi-funnel me-1"></i>
+                  Apply
+                <% end %>
+                <%= link_to admin_leads_path(tab: 'active'), class: "btn btn-outline-secondary", title: "Clear all filters" do %>
+                  <i class="bi bi-arrow-clockwise"></i>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Converted Leads Tab -->
+  <div class="tab-pane fade <%= params[:tab] == 'converted' ? 'show active' : '' %>" id="converted-leads" role="tabpanel" aria-labelledby="converted-leads-tab">
+    <!-- Search and Filters for Converted Leads -->
+    <div class="card border-0 shadow-sm mb-2">
+      <div class="card-header bg-transparent border-0 pb-0 pt-1">
+        <h6 class="text-muted mb-0">
+          <i class="bi bi-funnel me-2"></i>
+          Search and Filter Converted Leads (Clients)
+        </h6>
+      </div>
+      <div class="card-body pt-1 pb-1">
+        <%= form_with url: admin_leads_path, method: :get, local: true, class: "filter-form" do |form| %>
+          <%= form.hidden_field :tab, value: 'converted' %>
+          <%= form.hidden_field :show_converted, value: 'true' %>
+          <!-- Single Row: All Filters -->
+          <div class="row g-2 align-items-end">
+            <div class="col-lg-3 col-md-6">
+              <label class="form-label small text-muted mb-1">Search Clients</label>
+              <%= form.text_field :search, placeholder: "Search by name, phone, email...", value: params[:search], class: "form-control" %>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <label class="form-label small text-muted mb-1">Category</label>
+              <%= form.select :product_category, options_for_select([
+                ['All Categories', ''],
+                ['Insurance', 'insurance'],
+                ['Investments', 'investments'],
+                ['Loans', 'loans'],
+                ['Taxation', 'taxation']
+              ], params[:product_category]), {}, { class: "form-select" } %>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <label class="form-label small text-muted mb-1">Source</label>
+              <%= form.select :lead_source, options_for_select([
+                ['All Sources', ''],
+                ['Online', 'online'],
+                ['Offline', 'offline'],
+                ['Agent Referral', 'agent_referral'],
+                ['Walk-in', 'walk_in'],
+                ['Tele-calling', 'tele_calling'],
+                ['Campaign', 'campaign']
+              ], params[:lead_source]), {}, { class: "form-select" } %>
+            </div>
+            <div class="col-lg-3 col-md-12">
+              <div class="d-flex gap-2">
+                <%= form.submit "Apply", class: "btn btn-primary" do %>
+                  <i class="bi bi-funnel me-1"></i>
+                  Apply
+                <% end %>
+                <%= link_to admin_leads_path(tab: 'converted'), class: "btn btn-outline-secondary", title: "Clear all filters" do %>
+                  <i class="bi bi-arrow-clockwise"></i>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- Leads Table - shown in all tabs -->
+  <div class="card border-0 shadow-sm" id="tableView">
   <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
     <h5 class="mb-0">Leads</h5>
     <div class="d-flex gap-2">
@@ -561,6 +654,8 @@
   <% end %>
 </div>
 
+</div> <!-- End of tab-content -->
+
 <!-- Lead Details Modal -->
 <div class="modal fade" id="leadModal" tabindex="-1">
   <div class="modal-dialog modal-xl">
@@ -577,6 +672,68 @@
 </div>
 
 <!-- Custom Styles -->
+<style>
+/* Tab Styles */
+.nav-tabs {
+  border: none !important;
+  margin-bottom: 0;
+}
+
+.nav-tabs .nav-link {
+  border: none;
+  background: transparent;
+  color: #6c757d;
+  border-radius: 8px 8px 0 0;
+  padding: 12px 20px;
+  margin-right: 5px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: transparent;
+  color: #495057;
+  background: rgba(13, 110, 253, 0.1);
+}
+
+.nav-tabs .nav-link.active {
+  color: #0d6efd !important;
+  background: rgba(13, 110, 253, 0.1) !important;
+  border-color: transparent !important;
+  position: relative;
+}
+
+.nav-tabs .nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #0d6efd;
+  border-radius: 2px 2px 0 0;
+}
+
+.nav-tabs .nav-item {
+  margin-bottom: 0;
+}
+
+.tab-content {
+  border: none;
+  padding: 0;
+}
+
+.tab-pane {
+  border: none;
+}
+
+/* Badge styling in tabs */
+.nav-tabs .badge {
+  font-size: 0.75rem;
+  padding: 0.25em 0.5em;
+}
+</style>
+
 <style>
 /* View Toggle Button Styling */
 .btn-group .btn.active {
@@ -1935,4 +2092,52 @@ function showErrorAlert(message) {
     }
   }, 5000);
 }
+
+// Tab switching functionality
+function switchToTab(tab) {
+  const currentUrl = new URL(window.location);
+  currentUrl.searchParams.set('tab', tab);
+
+  // Clear search and filters when switching tabs
+  currentUrl.searchParams.delete('search');
+  currentUrl.searchParams.delete('current_stage');
+  currentUrl.searchParams.delete('product_category');
+  currentUrl.searchParams.delete('lead_source');
+
+  // Set show_converted for converted tab
+  if (tab === 'converted') {
+    currentUrl.searchParams.set('show_converted', 'true');
+  } else {
+    currentUrl.searchParams.delete('show_converted');
+  }
+
+  window.location.href = currentUrl.toString();
+}
+
+// Handle tab clicks
+document.addEventListener('DOMContentLoaded', function() {
+  const tabButtons = document.querySelectorAll('#leadTabs button[data-bs-toggle="tab"]');
+
+  tabButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+
+      const targetTab = this.getAttribute('data-bs-target').replace('#', '').replace('-leads', '').replace('-', '_');
+      let tabParam;
+
+      switch(targetTab) {
+        case 'active_leads':
+          tabParam = 'active';
+          break;
+        case 'converted_leads':
+          tabParam = 'converted';
+          break;
+        default:
+          tabParam = 'active';
+      }
+
+      switchToTab(tabParam);
+    });
+  });
+});
 </script>

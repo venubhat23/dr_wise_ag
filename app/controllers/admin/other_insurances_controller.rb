@@ -286,7 +286,7 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     when 'direct'
       # FLOW 1: Direct mode - Fetch agents for other insurance
       # API response format: { agent1: company_name_1, agent2: company_name_2 }
-      agency_codes = AgencyCode.where('insurance_type ILIKE ?', '%general%')
+      agency_codes = AgencyCode.where('insurance_type ILIKE ?', '%other%')
                                .select(:id, :agent_name, :code, :company_name)
                                .order(:agent_name)
       # Transform to required format for dropdown

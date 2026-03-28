@@ -154,7 +154,7 @@
           <%= form.select :insurance_company_name,
               options_for_select(@insurance_companies&.map { |c| [c, c] } || [], @other_insurance.insurance_company_name),
               { prompt: 'Search and select company...' },
-              { class: "form-control #{'is-invalid' if @other_insurance.errors[:insurance_company_name].any?}", required: true, id: "other_insurance_insurance_company_name", data: { placeholder: "Type to search companies..." }, disabled: @other_insurance.new_record? } %>
+              { class: "form-control #{'is-invalid' if @other_insurance.errors[:insurance_company_name].any?}", required: true, id: "other_insurance_insurance_company_name", data: { placeholder: "Type to search companies..." } } %>
           <% if @other_insurance.errors[:insurance_company_name].any? %>
             <div class="invalid-feedback"><%= @other_insurance.errors[:insurance_company_name].first %></div>
           <% end %>

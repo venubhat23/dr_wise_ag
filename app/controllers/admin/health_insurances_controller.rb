@@ -91,8 +91,11 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     set_distributor_from_affiliate(@health_insurance)
 
     if @health_insurance.save
-      # Handle document uploads to R2 after successful save
-      handle_document_uploads(@health_insurance)
+      # Handle R2 main policy document upload
+      handle_main_policy_r2_upload(@health_insurance) if params[:health_insurance][:main_policy_document].present?
+
+      # Handle R2 document uploads after successful save
+      handle_health_documents_r2_upload(@health_insurance)
 
       redirect_to admin_health_insurance_path(@health_insurance), notice: 'Health insurance policy was successfully created.'
     else
@@ -106,8 +109,11 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     set_distributor_from_affiliate(@health_insurance)
 
     if @health_insurance.save
-      # Handle document uploads to R2 after successful update
-      handle_document_uploads(@health_insurance)
+      # Handle R2 main policy document upload
+      handle_main_policy_r2_upload(@health_insurance) if params[:health_insurance][:main_policy_document].present?
+
+      # Handle R2 document uploads after successful save
+      handle_health_documents_r2_upload(@health_insurance)
 
       redirect_to admin_health_insurance_path(@health_insurance), notice: 'Health insurance policy was successfully updated.'
     else
@@ -672,7 +678,11 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       :company_expenses_percentage, :company_expenses_amount, :total_distribution_percentage, :profit_percentage, :profit_amount,
       health_insurance_members_attributes: [:id, :member_name, :age, :relationship, :sum_insured, :_destroy],
       health_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
-      health_insurance_documents_attributes: [:id, :title, :description, :document_type, :file, :_destroy],
+      # R2 Documents
+      health_insurance_documents_attributes: [:id, :title, :description, :document_type, :r2_file_key, :r2_filename, :r2_content_type, :r2_file_size, :_destroy],
+      # Main policy document for R2 storage
+      :main_policy_document,
+      # Legacy support
       documents: [], policy_documents: [],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
     )
@@ -813,7 +823,85 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     Rails.logger.error "Failed to set distributor from affiliate: #{e.message}"
   end
 
-  # Handle document uploads to Cloudflare R2
+  # Handle Health Insurance documents R2 upload
+  def handle_health_documents_r2_upload(health_insurance)
+    uploaded_count = 0
+    failed_count = 0
+
+    Rails.logger.info "Starting R2 document upload for health insurance #{health_insurance.id}"
+
+    # Handle health_insurance_documents_attributes (from form)
+    if params[:health_insurance][:health_insurance_documents_attributes].present?
+      Rails.logger.info "Found #{params[:health_insurance][:health_insurance_documents_attributes].keys.size} document entries"
+
+      params[:health_insurance][:health_insurance_documents_attributes].each do |key, doc_attrs|
+        Rails.logger.info "Processing document #{key}: #{doc_attrs.inspect}"
+        next if doc_attrs[:_destroy] == "true"
+
+        # Get the file from the original form data
+        file = request.params.dig('health_insurance', 'health_insurance_documents_attributes', key, 'file')
+        Rails.logger.info "File for document #{key}: #{file.present? ? file.original_filename : 'nil'}"
+
+        next if file.blank?
+
+        begin
+          result = R2Service.upload(file, folder: "health_insurance/#{health_insurance.id}/documents")
+
+          if result && result[:key] && !result[:error]
+            # Create HealthInsuranceDocument record with R2 info
+            health_insurance.health_insurance_documents.create!(
+              document_type: doc_attrs[:document_type],
+              title: doc_attrs[:title],
+              description: doc_attrs[:description],
+              r2_file_key: result[:key],
+              r2_filename: result[:filename],
+              r2_content_type: result[:content_type],
+              r2_file_size: result[:size]
+            )
+            uploaded_count += 1
+            Rails.logger.info "Uploaded health document: #{result[:filename]} with title: #{doc_attrs[:title]}"
+          else
+            error_msg = result[:error] || "Unknown upload error"
+            Rails.logger.error "R2 upload failed for document: #{doc_attrs[:title]} - #{error_msg}"
+            failed_count += 1
+          end
+        rescue => e
+          Rails.logger.error "Error uploading health document: #{e.message}"
+          Rails.logger.error "Document attributes: #{doc_attrs.inspect}"
+          failed_count += 1
+        end
+      end
+    end
+
+    # Log upload results
+    if uploaded_count > 0
+      Rails.logger.info "Health Insurance documents upload completed: #{uploaded_count} uploaded, #{failed_count} failed"
+    end
+
+    return { uploaded: uploaded_count, failed: failed_count }
+  end
+
+  # R2 Upload Helper for main policy document
+  def handle_main_policy_r2_upload(health_insurance)
+    file = params[:health_insurance][:main_policy_document]
+    return unless file.present?
+
+    begin
+      result = health_insurance.upload_main_policy_to_r2(file)
+
+      if result && result[:key] && !result[:error]
+        flash[:notice] = (flash[:notice] || '') + " Main policy document uploaded successfully to R2."
+      else
+        error_msg = result[:error] || "Unknown error"
+        flash[:alert] = (flash[:alert] || '') + " Main policy document upload failed: #{error_msg}"
+      end
+    rescue => e
+      Rails.logger.error "Error uploading main policy document: #{e.message}"
+      flash[:alert] = (flash[:alert] || '') + " Main policy document upload failed: #{e.message}"
+    end
+  end
+
+  # Handle document uploads to Cloudflare R2 (Legacy method - keeping for compatibility)
   def handle_document_uploads(health_insurance)
     uploaded_count = 0
     failed_count = 0
