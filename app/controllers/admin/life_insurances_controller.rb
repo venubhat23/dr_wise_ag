@@ -191,8 +191,8 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     end
 
     processed_params = process_broker_params(life_insurance_params)
-    # Remove uploaded_documents_attributes from processed_params since we handle them separately
-    processed_params_without_docs = processed_params.except(:uploaded_documents_attributes)
+    # Remove uploaded_documents_attributes and documents from processed_params since we handle them separately
+    processed_params_without_docs = processed_params.except(:uploaded_documents_attributes, :documents)
     @life_insurance.assign_attributes(processed_params_without_docs)
     set_distributor_from_affiliate(@life_insurance)
 
@@ -810,6 +810,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       :company_expenses_percentage, :company_expenses_amount, :total_distribution_percentage,
       :profit_percentage, :profit_amount,
       # Note: main_policy_document is handled separately in handle_main_policy_r2_upload
+      documents: [], # Allow Active Storage document attachments (array)
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :document_file, :uploaded_by, :_destroy],
       life_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy]
     )

@@ -574,11 +574,17 @@
                     value: @other_insurance.profit_percentage || 0,
                     step: 0.01, readonly: true, style: "background: #f0fff0; border-color: #198754; color: #198754;" %>
               </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :profit_amount,
+                    class: "form-control border-1 text-center fw-bold profit-amount-display",
+                    value: @other_insurance.profit_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f0fff0; border-color: #198754; color: #198754;" %>
+              </td>
               <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
               <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
               <td class="py-2 px-1 text-center" style="background: #f0fff0;">
                 <%= form.number_field :profit_amount,
-                    class: "form-control border-1 text-center fw-bold profit-amount-display",
+                    class: "form-control border-1 text-center fw-bold profit-amount-display-final",
                     value: @other_insurance.profit_amount || 0,
                     step: 0.01, readonly: true, style: "background: #f0fff0; border-color: #198754; color: #198754;" %>
               </td>
@@ -1436,6 +1442,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const profitAmt = (netPremium * profitPct) / 100;
     document.querySelector('.profit-amount-display').value = profitAmt.toFixed(2);
+    document.querySelector('.profit-amount-display-final').value = profitAmt.toFixed(2);
   }
 
   // Enhanced Policy End Date calculation based on start date and payment mode
