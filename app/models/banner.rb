@@ -1,4 +1,7 @@
 class Banner < ApplicationRecord
+  # Active Storage attachment for banner image
+  has_one_attached :banner_image
+
   # R2 Document Management (keeping existing banner_documents)
   has_many :banner_documents, dependent: :destroy
   accepts_nested_attributes_for :banner_documents, allow_destroy: true, reject_if: :all_blank
@@ -50,15 +53,25 @@ class Banner < ApplicationRecord
     display_location.humanize
   end
 
-  # Get banner image URL (R2 public URL)
+  # Get banner image URL (prioritize R2, fallback to Active Storage)
   def banner_image_url
-    return nil unless r2_file_key.present?
-    r2_public_url.present? ? r2_public_url : R2Service.public_url(r2_file_key)
+    if r2_file_key.present?
+      r2_public_url.present? ? r2_public_url : R2Service.public_url(r2_file_key)
+    elsif banner_image.attached?
+      Rails.application.routes.url_helpers.rails_blob_path(banner_image, only_path: true)
+    else
+      nil
+    end
   end
 
   # Check if banner has a valid R2 image
   def has_r2_image?
     r2_file_key.present? && r2_filename.present?
+  end
+
+  # Check if banner has any image (R2 or Active Storage)
+  def has_image?
+    has_r2_image? || banner_image.attached?
   end
 
   # Human readable file size for banner image

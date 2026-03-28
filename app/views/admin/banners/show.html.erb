@@ -55,7 +55,7 @@
         <h5 class="mb-0">Banner Preview</h5>
       </div>
       <div class="card-body">
-        <% if @banner.has_r2_image? %>
+        <% if @banner.has_image? %>
           <div class="text-center mb-4">
             <%= image_tag(@banner.banner_image_url, class: "img-fluid rounded shadow-sm", style: "max-width: 100%; max-height: 400px;", alt: @banner.title) %>
           </div>
@@ -162,7 +162,7 @@
           </div>
 
           <!-- Image Details -->
-          <% if @banner.has_r2_image? %>
+          <% if @banner.has_image? %>
             <div class="col-12">
               <label class="form-label text-muted mb-1">Image Details</label>
               <div>
@@ -196,7 +196,7 @@
             <i class="bi bi-pencil me-2"></i>Edit Banner
           <% end %>
 
-          <% if @banner.has_r2_image? %>
+          <% if @banner.has_image? %>
             <%= link_to @banner.banner_image_url,
                 class: "btn btn-outline-secondary btn-sm",
                 target: "_blank" do %>

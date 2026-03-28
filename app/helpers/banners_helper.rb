@@ -30,9 +30,9 @@ module BannersHelper
   # Render a single sidebar banner
   def render_sidebar_banner(banner)
     content_tag :div, class: "sidebar-ad-item card border-0 shadow-sm mb-3", data: { banner_id: banner.id } do
-      if banner.banner_image.attached?
+      if banner.has_image?
         content_tag :div, class: "sidebar-ad-image-container position-relative" do
-          image_content = image_tag(banner.banner_image, class: "sidebar-ad-image w-100", alt: banner.title)
+          image_content = image_tag(banner.banner_image_url, class: "sidebar-ad-image w-100", alt: banner.title)
           overlay_content = content_tag :div, class: "sidebar-ad-overlay position-absolute bottom-0 start-0 end-0 p-2" do
             content_tag :div, class: "d-flex justify-content-between align-items-center" do
               text_content = content_tag :div do
@@ -98,9 +98,9 @@ module BannersHelper
         banner_body_content(banner)
       end
 
-      if banner.banner_image.attached?
+      if banner.has_image?
         content_tag(:div, class: "position-relative") do
-          image_tag(banner.banner_image, class: "card-img-top", style: "height: 200px; object-fit: cover;") +
+          image_tag(banner.banner_image_url, class: "card-img-top", style: "height: 200px; object-fit: cover;") +
           content_tag(:div, banner_body_content(banner), class: "position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-75 text-white p-3")
         end
       else

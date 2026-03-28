@@ -3,8 +3,7 @@ class Api::V1::Mobile::BannersController < Api::V1::Mobile::BaseController
   def index
     begin
       # Fetch all banners with ordering by display_order and creation date
-      banners = Banner.includes(banner_image_attachment: :blob)
-                     .ordered
+      banners = Banner.ordered
                      .map do |banner|
         banner_data = {
           id: banner.id,
@@ -25,13 +24,13 @@ class Api::V1::Mobile::BannersController < Api::V1::Mobile::BaseController
           upcoming: banner.upcoming?
         }
 
-        # Add banner image URL if attached
-        if banner.banner_image.attached?
+        # Add banner image URL if available in R2
+        if banner.has_r2_image?
           banner_data[:banner_image] = {
-            url: rails_blob_url(banner.banner_image, only_path: false),
-            filename: banner.banner_image.filename.to_s,
-            content_type: banner.banner_image.content_type,
-            byte_size: banner.banner_image.byte_size
+            url: banner.banner_image_url,
+            filename: banner.r2_filename,
+            content_type: banner.r2_content_type,
+            byte_size: banner.r2_file_size
           }
         else
           banner_data[:banner_image] = nil
@@ -71,7 +70,6 @@ class Api::V1::Mobile::BannersController < Api::V1::Mobile::BaseController
       # Fetch only active and current banners
       banners = Banner.active
                      .current
-                     .includes(banner_image_attachment: :blob)
                      .ordered
                      .map do |banner|
         banner_data = {
@@ -88,13 +86,13 @@ class Api::V1::Mobile::BannersController < Api::V1::Mobile::BaseController
           updated_at: banner.updated_at
         }
 
-        # Add banner image URL if attached
-        if banner.banner_image.attached?
+        # Add banner image URL if available in R2
+        if banner.has_r2_image?
           banner_data[:banner_image] = {
-            url: rails_blob_url(banner.banner_image, only_path: false),
-            filename: banner.banner_image.filename.to_s,
-            content_type: banner.banner_image.content_type,
-            byte_size: banner.banner_image.byte_size
+            url: banner.banner_image_url,
+            filename: banner.r2_filename,
+            content_type: banner.r2_content_type,
+            byte_size: banner.r2_file_size
           }
         else
           banner_data[:banner_image] = nil
@@ -144,7 +142,6 @@ class Api::V1::Mobile::BannersController < Api::V1::Mobile::BaseController
       banners = Banner.active
                      .current
                      .by_location(location)
-                     .includes(banner_image_attachment: :blob)
                      .ordered
                      .map do |banner|
         banner_data = {
@@ -161,13 +158,13 @@ class Api::V1::Mobile::BannersController < Api::V1::Mobile::BaseController
           updated_at: banner.updated_at
         }
 
-        # Add banner image URL if attached
-        if banner.banner_image.attached?
+        # Add banner image URL if available in R2
+        if banner.has_r2_image?
           banner_data[:banner_image] = {
-            url: rails_blob_url(banner.banner_image, only_path: false),
-            filename: banner.banner_image.filename.to_s,
-            content_type: banner.banner_image.content_type,
-            byte_size: banner.banner_image.byte_size
+            url: banner.banner_image_url,
+            filename: banner.r2_filename,
+            content_type: banner.r2_content_type,
+            byte_size: banner.r2_file_size
           }
         else
           banner_data[:banner_image] = nil
@@ -202,7 +199,7 @@ class Api::V1::Mobile::BannersController < Api::V1::Mobile::BaseController
   # GET /api/v1/mobile/banners/:id
   def show
     begin
-      banner = Banner.includes(banner_image_attachment: :blob).find(params[:id])
+      banner = Banner.find(params[:id])
 
       banner_data = {
         id: banner.id,
@@ -223,13 +220,13 @@ class Api::V1::Mobile::BannersController < Api::V1::Mobile::BaseController
         upcoming: banner.upcoming?
       }
 
-      # Add banner image URL if attached
-      if banner.banner_image.attached?
+      # Add banner image URL if available in R2
+      if banner.has_r2_image?
         banner_data[:banner_image] = {
-          url: rails_blob_url(banner.banner_image, only_path: false),
-          filename: banner.banner_image.filename.to_s,
-          content_type: banner.banner_image.content_type,
-          byte_size: banner.banner_image.byte_size
+          url: banner.banner_image_url,
+          filename: banner.r2_filename,
+          content_type: banner.r2_content_type,
+          byte_size: banner.r2_file_size
         }
       else
         banner_data[:banner_image] = nil
