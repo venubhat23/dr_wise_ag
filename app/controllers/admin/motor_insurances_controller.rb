@@ -879,8 +879,9 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
 
       # File Uploads - REMOVED: :main_policy_document, policy_documents: [], documents: [] (All handled via R2)
       # Nominees
-      motor_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy]
-      # R2 Documents (file handled separately in R2 upload methods) - NOT in strong params to prevent auto-creation
+      motor_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
+      # R2 Documents
+      motor_insurance_documents_attributes: [:id, :document_type, :title, :description, :r2_file_key, :r2_filename, :r2_content_type, :r2_file_size, :_destroy]
     )
   end
 
