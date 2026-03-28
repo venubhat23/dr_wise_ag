@@ -315,21 +315,6 @@
               step: 0.01, min: 0, id: "first_year_gst" %>
         </div>
 
-        <div class="col-md-4 mb-3">
-          <%= form.label :second_year_gst_percentage, "2nd Year GST %", class: "form-label" %>
-          <%= form.number_field :second_year_gst_percentage,
-              class: "form-control",
-              value: @renewed_policy.second_year_gst_percentage || 0,
-              step: 0.01 %>
-        </div>
-
-        <div class="col-md-4 mb-3">
-          <%= form.label :third_year_gst_percentage, "3rd Year GST %", class: "form-label" %>
-          <%= form.number_field :third_year_gst_percentage,
-              class: "form-control",
-              value: @renewed_policy.third_year_gst_percentage || 0,
-              step: 0.01 %>
-        </div>
 
         <div class="col-md-4 mb-3">
           <%= form.label :total_premium, "Total Premium*", class: "form-label" %>

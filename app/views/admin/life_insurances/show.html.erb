@@ -206,18 +206,6 @@
         </div>
         <div class="col-md-6 col-lg-4">
           <div class="info-field">
-            <label>2ND YEAR GST %</label>
-            <div class="info-value"><%= @life_insurance.second_year_gst_percentage ? "#{@life_insurance.second_year_gst_percentage}%" : '-' %></div>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-4">
-          <div class="info-field">
-            <label>3RD YEAR GST %</label>
-            <div class="info-value"><%= @life_insurance.third_year_gst_percentage ? "#{@life_insurance.third_year_gst_percentage}%" : '-' %></div>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-4">
-          <div class="info-field">
             <label>TOTAL PREMIUM</label>
             <div class="info-value"><%= indian_currency(@life_insurance.total_premium) || '-' %></div>
           </div>
