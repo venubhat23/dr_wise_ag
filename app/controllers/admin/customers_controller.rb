@@ -32,6 +32,18 @@ class Admin::CustomersController < Admin::ApplicationController
       end
     end
 
+    # Lead ID search functionality - search by full lead ID or last 4 digits
+    if params[:lead_id_search].present?
+      lead_id_term = params[:lead_id_search].strip.upcase
+      if lead_id_term.length >= 4
+        # Search for exact match or ending with the search term (for last 4 digits)
+        @customers = @customers.where("lead_id = ? OR lead_id ILIKE ?", lead_id_term, "%#{lead_id_term}")
+      elsif lead_id_term.length > 0
+        # Return empty result if lead ID search term is too short
+        @customers = @customers.none
+      end
+    end
+
     # Filter by customer type
     if params[:customer_type].present?
       @customers = @customers.where(customer_type: params[:customer_type])
@@ -55,6 +67,16 @@ class Admin::CustomersController < Admin::ApplicationController
       if search_term.length >= 4
         count_scope = count_scope.search_customers(search_term)
       elsif search_term.length > 0
+        count_scope = count_scope.none
+      end
+    end
+
+    # Apply lead ID search filter to count scope
+    if params[:lead_id_search].present?
+      lead_id_term = params[:lead_id_search].strip.upcase
+      if lead_id_term.length >= 4
+        count_scope = count_scope.where("lead_id = ? OR lead_id ILIKE ?", lead_id_term, "%#{lead_id_term}")
+      elsif lead_id_term.length > 0
         count_scope = count_scope.none
       end
     end
@@ -88,6 +110,12 @@ class Admin::CustomersController < Admin::ApplicationController
         "first_name ILIKE ? OR last_name ILIKE ? OR company_name ILIKE ? OR email ILIKE ? OR mobile ILIKE ? OR pan_number ILIKE ?",
         "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%"
       )
+    end
+
+    # Apply lead ID search to stats scope
+    if params[:lead_id_search].present? && params[:lead_id_search].strip.length >= 4
+      lead_id_term = params[:lead_id_search].strip.upcase
+      stats_scope = stats_scope.where("lead_id = ? OR lead_id ILIKE ?", lead_id_term, "%#{lead_id_term}")
     end
 
     if params[:customer_type].present?

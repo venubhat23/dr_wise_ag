@@ -84,13 +84,23 @@
 <div class="card shadow-sm mb-4">
   <div class="card-body">
     <%= form_with url: admin_customers_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end", id: "search_form" do |form| %>
-      <!-- Search -->
+      <!-- General Search -->
       <div class="flex-grow-1 min-width-250">
         <%= form.text_field :search, placeholder: "Search by name, email, mobile, or PAN... (min 4 characters)",
                            value: params[:search],
                            class: "form-control",
                            id: "search_input",
                            data: { min_length: 4 } %>
+      </div>
+
+      <!-- Lead ID Search -->
+      <div class="min-width-200">
+        <%= form.text_field :lead_id_search, placeholder: "Lead ID (e.g., CUST-0113-2026 or 2026)",
+                           value: params[:lead_id_search],
+                           class: "form-control",
+                           id: "lead_id_search_input",
+                           data: { min_length: 4 } %>
+        <small class="text-muted">Full ID or last 4 digits</small>
       </div>
 
       <!-- Customer Type Filter -->
@@ -129,23 +139,50 @@
 .min-width-250 {
   min-width: 250px;
 }
+.min-width-200 {
+  min-width: 200px;
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const searchInput = document.getElementById('search_input');
+  const leadIdSearchInput = document.getElementById('lead_id_search_input');
   const customerTypeFilter = document.getElementById('customer_type_filter');
   const statusFilter = document.getElementById('status_filter');
   const searchForm = document.getElementById('search_form');
   let searchTimeout;
+  let leadIdSearchTimeout;
 
   // Auto-search on typing after 4 characters
   searchInput.addEventListener('input', function() {
     clearTimeout(searchTimeout);
     const searchValue = this.value;
 
+    // Clear lead ID search when using general search
+    if (searchValue.length > 0) {
+      leadIdSearchInput.value = '';
+    }
+
     searchTimeout = setTimeout(() => {
       if (searchValue.length >= 4 || searchValue.length === 0) {
+        searchForm.submit();
+      }
+    }, 500); // 500ms delay after typing stops
+  });
+
+  // Auto-search on lead ID typing after 4 characters
+  leadIdSearchInput.addEventListener('input', function() {
+    clearTimeout(leadIdSearchTimeout);
+    const leadIdValue = this.value;
+
+    // Clear general search when using lead ID search
+    if (leadIdValue.length > 0) {
+      searchInput.value = '';
+    }
+
+    leadIdSearchTimeout = setTimeout(() => {
+      if (leadIdValue.length >= 4 || leadIdValue.length === 0) {
         searchForm.submit();
       }
     }, 500); // 500ms delay after typing stops
