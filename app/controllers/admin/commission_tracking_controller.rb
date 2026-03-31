@@ -545,6 +545,8 @@ class Admin::CommissionTrackingController < ApplicationController
     payouts = Payout.order(created_at: :desc).limit(per_page).offset(offset)
     @total_policies_count = Payout.count
     @total_pages = (@total_policies_count.to_f / per_page).ceil
+    @has_next_page = page < @total_pages
+    @has_prev_page = page > 1
 
     # Bulk load all policies and customers to avoid N+1 queries
     life_policy_ids = payouts.where(policy_type: 'life').pluck(:policy_id)
