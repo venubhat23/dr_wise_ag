@@ -105,7 +105,7 @@ class Customer < ApplicationRecord
 
   # Search
   pg_search_scope :search_customers,
-    against: [:first_name, :last_name, :company_name, :email, :mobile, :pan_no],
+    against: [:first_name, :last_name, :company_name, :email, :mobile, :pan_no, :lead_id],
     using: {
       tsearch: { prefix: true, any_word: true }
     }

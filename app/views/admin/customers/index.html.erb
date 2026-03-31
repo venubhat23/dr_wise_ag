@@ -86,21 +86,21 @@
     <%= form_with url: admin_customers_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end", id: "search_form" do |form| %>
       <!-- General Search -->
       <div class="flex-grow-1 min-width-250">
-        <%= form.text_field :search, placeholder: "Search by name, email, mobile, or PAN... (min 4 characters)",
+        <%= form.text_field :search, placeholder: "Search by name, email, mobile, PAN, or Lead ID... (min 4 characters)",
                            value: params[:search],
                            class: "form-control",
                            id: "search_input",
                            data: { min_length: 4 } %>
       </div>
 
-      <!-- Lead ID Search -->
+      <!-- Lead ID Search (for exact/partial matching) -->
       <div class="min-width-200">
-        <%= form.text_field :lead_id_search, placeholder: "Lead ID (e.g., CUST-0113-2026 or 2026)",
+        <%= form.text_field :lead_id_search, placeholder: "Lead ID only (e.g., CUST-0113-2026 or 2026)",
                            value: params[:lead_id_search],
                            class: "form-control",
                            id: "lead_id_search_input",
                            data: { min_length: 4 } %>
-        <small class="text-muted">Full ID or last 4 digits</small>
+        <small class="text-muted">Dedicated Lead ID search</small>
       </div>
 
       <!-- Customer Type Filter -->
