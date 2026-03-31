@@ -12,7 +12,7 @@ class Admin::CustomersController < Admin::ApplicationController
     # Optimize query by selecting only needed columns for index page
     index_columns = %w[
       id first_name middle_name last_name company_name customer_type mobile
-      email status deactivated created_at sub_agent_id sub_agent policies_count
+      email status deactivated created_at sub_agent_id sub_agent policies_count lead_id
     ]
 
     # Check if policies_count column exists for optimized queries
@@ -34,10 +34,10 @@ class Admin::CustomersController < Admin::ApplicationController
 
     # Lead ID search functionality - search by full lead ID or last 4 digits
     if params[:lead_id_search].present?
-      lead_id_term = params[:lead_id_search].strip.upcase
+      lead_id_term = params[:lead_id_search].strip
       if lead_id_term.length >= 4
-        # Search for exact match or ending with the search term (for last 4 digits)
-        @customers = @customers.where("lead_id = ? OR lead_id ILIKE ?", lead_id_term, "%#{lead_id_term}")
+        # Search for exact match (case insensitive) or partial match containing the term
+        @customers = @customers.where("lead_id ILIKE ? OR lead_id ILIKE ?", lead_id_term, "%#{lead_id_term}%")
       elsif lead_id_term.length > 0
         # Return empty result if lead ID search term is too short
         @customers = @customers.none
@@ -73,9 +73,9 @@ class Admin::CustomersController < Admin::ApplicationController
 
     # Apply lead ID search filter to count scope
     if params[:lead_id_search].present?
-      lead_id_term = params[:lead_id_search].strip.upcase
+      lead_id_term = params[:lead_id_search].strip
       if lead_id_term.length >= 4
-        count_scope = count_scope.where("lead_id = ? OR lead_id ILIKE ?", lead_id_term, "%#{lead_id_term}")
+        count_scope = count_scope.where("lead_id ILIKE ? OR lead_id ILIKE ?", lead_id_term, "%#{lead_id_term}%")
       elsif lead_id_term.length > 0
         count_scope = count_scope.none
       end
@@ -114,8 +114,8 @@ class Admin::CustomersController < Admin::ApplicationController
 
     # Apply lead ID search to stats scope
     if params[:lead_id_search].present? && params[:lead_id_search].strip.length >= 4
-      lead_id_term = params[:lead_id_search].strip.upcase
-      stats_scope = stats_scope.where("lead_id = ? OR lead_id ILIKE ?", lead_id_term, "%#{lead_id_term}")
+      lead_id_term = params[:lead_id_search].strip
+      stats_scope = stats_scope.where("lead_id ILIKE ? OR lead_id ILIKE ?", lead_id_term, "%#{lead_id_term}%")
     end
 
     if params[:customer_type].present?
