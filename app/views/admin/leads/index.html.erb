@@ -474,14 +474,32 @@
                 <th class="border-0">Client Details</th>
                 <th class="border-0">Contact Information</th>
                 <th class="border-0">Product & Affiliate</th>
-                <th class="border-0">Conversion Date</th>
+                <th class="border-0">Last Updated</th>
                 <th class="border-0">Actions</th>
               </tr>
             </thead>
             <tbody>
               <% if params[:tab] == 'converted' && @leads.any? %>
                 <% @leads.each do |lead| %>
-                  <tr class="lead-row <%= 'branch-out-lead' if lead.is_branch_out? %>" data-id="<%= lead.id %>">
+                  <%
+                    # Calculate how recently this lead was updated
+                    updated_time = lead.stage_updated_at || lead.updated_at
+                    time_since_update = Time.current - updated_time
+
+                    # Add visual classes based on how recent the update was
+                    recently_updated_class = if time_since_update < 1.hour
+                      'recently-updated-hour'
+                    elsif time_since_update < 1.day
+                      'recently-updated-day'
+                    else
+                      ''
+                    end
+
+                    row_classes = ['lead-row']
+                    row_classes << 'branch-out-lead' if lead.is_branch_out?
+                    row_classes << recently_updated_class if recently_updated_class.present?
+                  %>
+                  <tr class="<%= row_classes.join(' ') %>" data-id="<%= lead.id %>">
                     <td>
                       <div>
                         <span class="badge bg-success mb-1"><%= lead.lead_id.presence || "CLIENT-#{lead.id}" %></span>
@@ -525,13 +543,40 @@
                     <td>
                       <% if lead.converted_customer.present? %>
                         <div>
-                          <div class="fw-medium text-success">Converted</div>
+                          <div class="fw-medium text-success">
+                            Converted
+                            <% if time_since_update < 1.hour %>
+                              <span class="badge bg-danger ms-1 pulse-animation" title="Updated within the last hour">
+                                <i class="bi bi-clock-fill"></i> NEW
+                              </span>
+                            <% elsif time_since_update < 1.day %>
+                              <span class="badge bg-warning text-dark ms-1" title="Updated within the last 24 hours">
+                                <i class="bi bi-clock"></i> Recent
+                              </span>
+                            <% end %>
+                          </div>
                           <small class="text-muted">
-                            <%= lead.converted_customer.created_at&.strftime('%d/%m/%Y') || 'N/A' %>
+                            <%= time_ago_in_words(lead.stage_updated_at || lead.updated_at) %> ago
                           </small>
                         </div>
                       <% else %>
-                        <span class="text-muted">N/A</span>
+                        <div>
+                          <div class="fw-medium text-warning">
+                            Converting...
+                            <% if time_since_update < 1.hour %>
+                              <span class="badge bg-danger ms-1 pulse-animation" title="Updated within the last hour">
+                                <i class="bi bi-clock-fill"></i> NEW
+                              </span>
+                            <% elsif time_since_update < 1.day %>
+                              <span class="badge bg-warning text-dark ms-1" title="Updated within the last 24 hours">
+                                <i class="bi bi-clock"></i> Recent
+                              </span>
+                            <% end %>
+                          </div>
+                          <small class="text-muted">
+                            <%= time_ago_in_words(lead.updated_at) %> ago
+                          </small>
+                        </div>
                       <% end %>
                     </td>
                     <td>
@@ -876,6 +921,46 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Recently Updated Styles */
+.recently-updated-hour {
+  background: linear-gradient(90deg, rgba(220, 53, 69, 0.1), transparent) !important;
+  border-left: 4px solid #dc3545 !important;
+  animation: subtle-glow 2s ease-in-out infinite alternate;
+}
+
+.recently-updated-day {
+  background: linear-gradient(90deg, rgba(255, 193, 7, 0.1), transparent) !important;
+  border-left: 4px solid #ffc107 !important;
+}
+
+/* Pulse animation for NEW badges */
+.pulse-animation {
+  animation: badge-pulse 2s infinite;
+}
+
+@keyframes badge-pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.3);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+  }
+}
+
+@keyframes subtle-glow {
+  0% { box-shadow: 0 0 5px rgba(220, 53, 69, 0.3); }
+  100% { box-shadow: 0 0 15px rgba(220, 53, 69, 0.6); }
 }
 </style>
 

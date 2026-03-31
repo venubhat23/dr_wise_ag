@@ -125,7 +125,9 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
   # POST /admin/insurance/life
   def create
     processed_params = process_broker_params(life_insurance_params)
-    @life_insurance = LifeInsurance.new(processed_params)
+    # Remove documents and uploaded_documents_attributes from processed_params since we handle them separately
+    processed_params_without_docs = processed_params.except(:uploaded_documents_attributes, :documents)
+    @life_insurance = LifeInsurance.new(processed_params_without_docs)
 
     # Set admin tracking fields for policies created from admin panel
     @life_insurance.policy_added_by_admin = true

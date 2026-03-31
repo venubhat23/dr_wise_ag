@@ -8,8 +8,8 @@ class Admin::LeadsController < Admin::ApplicationController
     # Handle tab-based filtering
     case params[:tab]
     when 'converted'
-      # Show only converted leads (those with converted stage)
-      @leads = Lead.where(current_stage: 'converted')
+      # Show only converted leads (those with converted stage), sorted by latest updated first
+      @leads = Lead.where(current_stage: 'converted').order(stage_updated_at: :desc, updated_at: :desc)
       params[:show_converted] = 'true'  # For backward compatibility
     else
       # Default: Show active leads (all except converted stage)
@@ -54,7 +54,12 @@ class Admin::LeadsController < Admin::ApplicationController
       @leads = @leads.where("referred_by ILIKE ?", "%#{params[:referred_by]}%")
     end
 
-    @leads = paginate_records(@leads.order(created_at: :desc).includes(:converted_customer, :created_policy, :affiliate, :ambassador))
+    # Apply ordering only if not already ordered (e.g., for converted leads)
+    if params[:tab] == 'converted'
+      @leads = paginate_records(@leads.includes(:converted_customer, :created_policy, :affiliate, :ambassador))
+    else
+      @leads = paginate_records(@leads.order(created_at: :desc).includes(:converted_customer, :created_policy, :affiliate, :ambassador))
+    end
 
     # Statistics for dashboard - updated to reflect active leads only (those without converted stage)
     active_leads_scope = Lead.where.not(current_stage: 'converted')
@@ -88,8 +93,9 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # GET /admin/leads/kanban
   def kanban
-    # Load leads grouped by stage for Kanban board
+    # Load leads grouped by stage for Kanban board, ordered by latest updated first
     @leads_by_stage = Lead.includes(:converted_customer, :affiliate)
+                          .order(stage_updated_at: :desc, updated_at: :desc)
                           .group_by(&:current_stage)
     # Get stage definitions with display names and colors
     @stages = {
@@ -107,8 +113,9 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # GET /admin/leads/kanban_flow
   def kanban_flow
-    # Load leads grouped by stage for Kanban board
+    # Load leads grouped by stage for Kanban board, ordered by latest updated first
     @leads_by_stage = Lead.includes(:converted_customer, :affiliate)
+                          .order(stage_updated_at: :desc, updated_at: :desc)
                           .group_by(&:current_stage)
 
     # Get stage definitions with display names and colors
