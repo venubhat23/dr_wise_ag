@@ -90,7 +90,6 @@ class Admin::LeadsController < Admin::ApplicationController
   def kanban
     # Load leads grouped by stage for Kanban board
     @leads_by_stage = Lead.includes(:converted_customer, :affiliate)
-                          .where.not(current_stage: 'converted') # Exclude converted leads
                           .group_by(&:current_stage)
     # Get stage definitions with display names and colors
     @stages = {
@@ -110,7 +109,6 @@ class Admin::LeadsController < Admin::ApplicationController
   def kanban_flow
     # Load leads grouped by stage for Kanban board
     @leads_by_stage = Lead.includes(:converted_customer, :affiliate)
-                          .where.not(current_stage: 'converted') # Exclude converted leads
                           .group_by(&:current_stage)
 
     # Get stage definitions with display names and colors
@@ -524,7 +522,13 @@ class Admin::LeadsController < Admin::ApplicationController
     when 're_follow_up'
       @lead.move_to_re_follow_up!
     when 'converted'
-      @lead.update!(current_stage: 'converted', stage_updated_at: Time.current)
+      # Instead of just updating the stage, redirect to customer conversion flow
+      # This ensures that a customer is actually created when lead is marked as converted
+      Rails.logger.info "Lead #{@lead.id} marked for conversion - redirecting to customer creation flow"
+
+      # Don't update the stage here - let the customer creation process handle it
+      # Set a flag to handle this special case in the response
+      @redirect_to_conversion = true
       true
     when 'referral_settled'
       @lead.update!(current_stage: 'referral_settled', stage_updated_at: Time.current, transferred_amount: true)
@@ -539,10 +543,18 @@ class Admin::LeadsController < Admin::ApplicationController
     Rails.logger.info "Stage transition: #{old_stage} → #{new_stage}, success: #{success}"
 
     if success
-      stage_display = @lead.stage_display_name
-      respond_to do |format|
-        format.html { redirect_to admin_leads_path, notice: "✅ Lead ##{@lead.lead_id} successfully converted to: #{stage_display}" }
-        format.json { render json: { success: true, message: "Lead successfully converted to: #{stage_display}", new_stage: new_stage } }
+      # Check if we need to redirect to customer conversion flow
+      if @redirect_to_conversion
+        respond_to do |format|
+          format.html { redirect_to convert_to_customer_admin_lead_path(@lead), notice: "🔄 Lead ready for customer conversion. Please proceed to create the customer account." }
+          format.json { render json: { success: true, redirect_to_conversion: true, redirect_url: convert_to_customer_admin_lead_path(@lead), message: "Lead ready for conversion - redirecting to customer creation" } }
+        end
+      else
+        stage_display = @lead.stage_display_name
+        respond_to do |format|
+          format.html { redirect_to admin_leads_path, notice: "✅ Lead ##{@lead.lead_id} successfully converted to: #{stage_display}" }
+          format.json { render json: { success: true, message: "Lead successfully converted to: #{stage_display}", new_stage: new_stage } }
+        end
       end
     else
       respond_to do |format|

@@ -22,18 +22,21 @@ class LifeInsurance < ApplicationRecord
   # R2 File Storage fields for main policy document
   # Columns: main_policy_document_key, main_policy_document_filename, main_policy_document_content_type, main_policy_document_size
 
+  # Virtual attribute for file upload handling (not stored in database)
+  attr_accessor :main_policy_document
+
   # Renewal relationships
   belongs_to :original_policy, class_name: 'LifeInsurance', foreign_key: 'original_policy_id', optional: true
   has_one :renewal_policy, class_name: 'LifeInsurance', foreign_key: 'original_policy_id', dependent: :destroy
 
   # New relationships for API structure
   has_many :life_insurance_nominees, dependent: :destroy
-  has_one :life_insurance_bank_detail, dependent: :destroy
+  has_many :life_insurance_bank_details, dependent: :destroy
   has_many :life_insurance_documents, dependent: :destroy
   has_many :commission_payouts, -> { where(policy_type: 'life') }, foreign_key: 'policy_id', dependent: :destroy
 
   accepts_nested_attributes_for :life_insurance_nominees, allow_destroy: true
-  accepts_nested_attributes_for :life_insurance_bank_detail, allow_destroy: true
+  accepts_nested_attributes_for :life_insurance_bank_details, allow_destroy: true
   accepts_nested_attributes_for :life_insurance_documents, allow_destroy: true
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 

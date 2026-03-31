@@ -289,7 +289,7 @@
 
                         <!-- Lead Stage Conversion Dropdown -->
                         <div class="dropdown d-inline-block">
-                          <button class="text-success dropdown-toggle border-0 bg-transparent"
+                          <button class="text-success dropdown-toggle border-0 bg-transparent stage-dropdown-btn"
                                   type="button"
                                   data-bs-toggle="dropdown"
                                   aria-expanded="false"
@@ -297,7 +297,7 @@
                                   style="font-size: 1.2rem;">
                             <i class="bi bi-arrow-repeat"></i>
                           </button>
-                          <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="min-width: 280px;">
+                          <ul class="dropdown-menu dropdown-menu-end shadow border-0 stage-dropdown-menu" style="min-width: 280px; max-height: 400px; overflow-y: auto;">
                             <li class="dropdown-header bg-success text-white fw-bold">
                               <i class="bi bi-diagram-3 me-2"></i>Change Lead Stage
                             </li>
@@ -2300,5 +2300,72 @@ document.addEventListener('DOMContentLoaded', function() {
       switchToTab(tabParam);
     });
   });
+
+  // Fix dropdown positioning for stage conversion dropdowns
+  function adjustDropdownPosition() {
+    const dropdowns = document.querySelectorAll('.stage-dropdown-btn');
+
+    dropdowns.forEach(button => {
+      button.addEventListener('show.bs.dropdown', function() {
+        const dropdown = this.parentElement;
+        const menu = dropdown.querySelector('.stage-dropdown-menu');
+
+        // Reset classes
+        dropdown.classList.remove('dropup');
+
+        // Get button position relative to viewport
+        const buttonRect = button.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+
+        // Calculate available space below and above the button
+        const spaceBelow = viewportHeight - buttonRect.bottom;
+        const spaceAbove = buttonRect.top;
+
+        // If there's not enough space below (less than 300px for the dropdown),
+        // and there's more space above, use dropup
+        if (spaceBelow < 300 && spaceAbove > spaceBelow) {
+          dropdown.classList.add('dropup');
+        }
+      });
+    });
+  }
+
+  // Apply dropdown positioning fix
+  adjustDropdownPosition();
+
+  // Reapply when page content changes (for pagination, etc.)
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.type === 'childList') {
+        adjustDropdownPosition();
+      }
+    });
+  });
+
+  // Observe changes to the table body
+  const tableBody = document.querySelector('tbody');
+  if (tableBody) {
+    observer.observe(tableBody, { childList: true, subtree: true });
+  }
 });
+
+// Add CSS for better dropup behavior
+const style = document.createElement('style');
+style.textContent = `
+  .dropup .dropdown-menu {
+    top: auto !important;
+    bottom: 100% !important;
+    margin-bottom: 2px !important;
+  }
+
+  .stage-dropdown-menu {
+    z-index: 1050;
+  }
+
+  .dropdown-menu {
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+  }
+`;
+document.head.appendChild(style);
 </script>

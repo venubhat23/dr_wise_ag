@@ -495,12 +495,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
       try {
         console.log('🌐 Making direct AJAX call...');
-        const success = await updateLeadStageDirectly(draggedLeadId, targetStage);
+        const result = await updateLeadStageDirectly(draggedLeadId, targetStage);
 
-        if (success) {
+        if (result.success) {
           console.log('✅ Direct update successful');
-          moveCardDirectly(draggedLeadId, targetStage);
-          showNotification('✅ Lead stage updated successfully!', 'success');
+
+          if (!result.redirecting) {
+            // Only move the card if we're not redirecting to customer conversion
+            moveCardDirectly(draggedLeadId, targetStage);
+            showNotification('✅ Lead stage updated successfully!', 'success');
+          }
+          // If redirecting, the notification is already shown by updateLeadStageDirectly
         } else {
           console.log('❌ Direct update failed');
           showNotification('❌ Failed to update lead stage', 'error');
@@ -546,7 +551,17 @@ document.addEventListener('DOMContentLoaded', function() {
       const result = await response.json();
       console.log("📬 Direct response data:", result);
 
-      return result.success !== false;
+      // Check if we need to redirect to customer conversion
+      if (result.redirect_to_conversion && result.redirect_url) {
+        console.log("🔄 Redirecting to customer conversion:", result.redirect_url);
+        showNotification('🔄 Redirecting to customer creation...', 'success');
+        setTimeout(() => {
+          window.location.href = result.redirect_url;
+        }, 1000);
+        return { success: true, redirecting: true };
+      }
+
+      return { success: result.success !== false, redirecting: false };
     } catch (error) {
       console.error("💥 Direct fetch error:", error);
       throw error;

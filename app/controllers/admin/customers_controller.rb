@@ -808,6 +808,29 @@ class Admin::CustomersController < Admin::ApplicationController
 
       # Store lead reference for future conversion
       @customer.lead_id = @lead.lead_id
+
+      # Set default required information if not provided by lead
+      # These are mandatory fields for customer creation
+
+      # Birth date is required - set a default if missing
+      if @customer.birth_date.blank?
+        # Set a default age of 30 years old
+        @customer.birth_date = 30.years.ago.to_date
+      end
+
+      # Nominee information is required
+      if @customer.nominee_name.blank?
+        @customer.nominee_name = "To be updated"
+      end
+
+      if @customer.nominee_relation.blank?
+        @customer.nominee_relation = "other"
+      end
+
+      if @customer.nominee_date_of_birth.blank?
+        # Set a default date - 25 years ago from today
+        @customer.nominee_date_of_birth = 25.years.ago.to_date
+      end
     end
   end
 
