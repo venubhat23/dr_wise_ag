@@ -18,17 +18,23 @@ class Admin::CustomersController < Admin::ApplicationController
     # Check if policies_count column exists for optimized queries
     has_counter_cache = Customer.column_names.include?('policies_count')
 
-    # Use optimized select for faster loading with profile image
-    @customers = Customer.select(index_columns.join(', ')).with_attached_profile_image
-
-    # Search functionality - only search if 4+ characters or empty
-    if params[:search].present?
+    # Start with base query - don't use select when search is present to avoid PostgreSQL count issues
+    if params[:search].present? && params[:search].strip.length >= 4
+      # For search queries, don't use select to avoid PostgreSQL count issues with pg_search
+      @customers = Customer.with_attached_profile_image
       search_term = params[:search].strip
-      if search_term.length >= 4
-        @customers = @customers.search_customers(search_term)
-      elsif search_term.length > 0
-        # Return empty result if search term is too short
-        @customers = @customers.none
+      @customers = @customers.search_customers(search_term)
+    else
+      # Use optimized select for faster loading when not searching
+      @customers = Customer.select(index_columns.join(', ')).with_attached_profile_image
+
+      # Handle short search terms
+      if params[:search].present?
+        search_term = params[:search].strip
+        if search_term.length > 0
+          # Return empty result if search term is too short
+          @customers = @customers.none
+        end
       end
     end
 
@@ -58,7 +64,7 @@ class Admin::CustomersController < Admin::ApplicationController
     end
 
     # Get total count before pagination for display purposes
-    # Create a separate query without select() for counting to avoid PostgreSQL issues
+    # Use the same scope as the main query for accurate count
     count_scope = Customer.all
 
     # Apply same filters as main query for accurate count
