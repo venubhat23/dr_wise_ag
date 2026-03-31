@@ -256,7 +256,7 @@ body {
         <h2 class="customer-name mb-2"><%= @customer.display_name %></h2>
         <div class="d-flex align-items-center gap-3 mb-2">
           <span class="badge customer-type-badge individual">
-            ID: CUST-<%= @customer.id.to_s.rjust(4, '0') %>-<%= @customer.created_at.strftime('%Y') %>
+            ID: <%= @customer.lead_id.present? ? @customer.lead_id : "CUST-#{@customer.id.to_s.rjust(4, '0')}-#{@customer.created_at.strftime('%Y')}" %>
           </span>
           <span class="badge status-badge <%= @customer.status && !@customer.deactivated? ? 'active' : 'inactive' %>">
             <%= @customer.status && !@customer.deactivated? ? 'ACTIVE' : 'INACTIVE' %>
