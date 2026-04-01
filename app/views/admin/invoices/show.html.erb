@@ -769,9 +769,89 @@
                 <span>TAX (N/A)</span>
                 <span style="font-weight: bold;">₹ 0.00</span>
               </div>
+
+              <% if @invoice.payout_type == 'affiliate' && commission_payouts.any? %>
+                <!-- TDS Calculation Breakdown -->
+                <%
+                  # Calculate totals from actual commission payouts
+                  total_gross = 0
+                  total_tds = 0
+                  total_net = 0
+
+                  commission_payouts.each do |cp|
+                    net_payout = cp.payout_amount.to_f
+                    total_net += net_payout
+
+                    # Check if commission payout already has gross_amount and tds_amount
+                    if cp.respond_to?(:gross_amount) && cp.gross_amount.present? && cp.gross_amount > 0
+                      # Use existing gross amount from database
+                      gross_payout = cp.gross_amount.to_f
+                      tds_payout = cp.respond_to?(:tds_amount) && cp.tds_amount.present? ? cp.tds_amount.to_f : 0
+
+                      # If TDS amount is not set but we have gross, calculate it
+                      if tds_payout <= 0 && gross_payout > net_payout
+                        tds_payout = gross_payout - net_payout
+                      end
+                    else
+                      # Calculate from policy data or use defaults
+                      policy = case cp.policy_type
+                      when 'health'
+                        HealthInsurance.find_by(id: cp.policy_id)
+                      when 'life'
+                        LifeInsurance.find_by(id: cp.policy_id)
+                      when 'motor'
+                        MotorInsurance.find_by(id: cp.policy_id)
+                      when 'other'
+                        OtherInsurance.find_by(id: cp.policy_id)
+                      end
+
+                      if policy&.respond_to?(:sub_agent_commission_amount) && policy.sub_agent_commission_amount.present? && policy.sub_agent_commission_amount > 0
+                        # Use policy commission data
+                        gross_payout = policy.sub_agent_commission_amount.to_f
+                        tds_payout = policy.respond_to?(:sub_agent_tds_amount) && policy.sub_agent_tds_amount.present? ?
+                                    policy.sub_agent_tds_amount.to_f : 0
+
+                        # If TDS amount is not set, calculate from percentage
+                        if tds_payout <= 0 && policy.respond_to?(:sub_agent_tds_percentage) && policy.sub_agent_tds_percentage.to_f > 0
+                          tds_payout = gross_payout * policy.sub_agent_tds_percentage.to_f / 100
+                        end
+                      else
+                        # Calculate using default 2% TDS rate
+                        tds_rate = 2.0
+                        gross_payout = net_payout / (1 - tds_rate / 100.0)
+                        tds_payout = gross_payout - net_payout
+                      end
+                    end
+
+                    total_gross += gross_payout
+                    total_tds += tds_payout
+                  end
+
+                  tds_percentage = total_gross > 0 ? (total_tds / total_gross * 100).round(2) : 0
+                %>
+
+                <% if total_tds > 0 %>
+                  <!-- TDS Breakdown Display -->
+                  <div style="background-color: #f8f9fa; padding: 8px; margin: 8px 0; border-radius: 5px; border-left: 4px solid #007bff;">
+                    <div style="font-weight: bold; margin-bottom: 4px; color: #007bff; font-size: 12px;">TDS CALCULATION BREAKDOWN:</div>
+                    <div style="font-family: 'Courier New', monospace; font-size: 11px; color: #333;">
+                      <%= indian_currency(total_gross) %> - <%= indian_currency(total_tds) %> (<%= tds_percentage %>%) = <%= indian_currency(total_net) %>
+                    </div>
+                    <div style="font-size: 10px; color: #666; margin-top: 2px;">
+                      Gross Commission - TDS Deducted = Net Payable
+                    </div>
+                  </div>
+
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 5px; padding: 3px 0; border-bottom: 1px solid #eee;">
+                    <span>TDS DEDUCTED (<%= tds_percentage %>%)</span>
+                    <span style="font-weight: bold; color: #dc3545;">-<%= indian_currency(total_tds) %></span>
+                  </div>
+                <% end %>
+              <% end %>
+
               <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; border-top: 2px solid #5a4ec9; padding-top: 6px; margin-top: 6px; background-color: #f0f0f0; padding: 8px; border-radius: 5px;">
-                <span>TOTAL AMOUNT</span>
-                <span><%= indian_currency(total_line_items) %></span>
+                <span>NET AMOUNT PAYABLE</span>
+                <span><%= indian_currency(@invoice.payout_type == 'affiliate' && defined?(total_net) && total_net > 0 ? total_net : total_line_items) %></span>
               </div>
 
               <div class="amount-words">
