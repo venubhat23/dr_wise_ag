@@ -549,16 +549,17 @@ class Admin::CommissionTrackingController < ApplicationController
     @has_prev_page = page > 1
 
     # Bulk load all policies and customers to avoid N+1 queries
-    life_policy_ids = payouts.where(policy_type: 'life').pluck(:policy_id)
-    health_policy_ids = payouts.where(policy_type: 'health').pluck(:policy_id)
-    motor_policy_ids = payouts.where(policy_type: 'motor').pluck(:policy_id)
-    other_policy_ids = payouts.where(policy_type: 'other').pluck(:policy_id)
+    # Extract policy IDs from the loaded payouts collection
+    life_policy_ids = payouts.select { |p| p.policy_type == 'life' }.map(&:policy_id)
+    health_policy_ids = payouts.select { |p| p.policy_type == 'health' }.map(&:policy_id)
+    motor_policy_ids = payouts.select { |p| p.policy_type == 'motor' }.map(&:policy_id)
+    other_policy_ids = payouts.select { |p| p.policy_type == 'other' }.map(&:policy_id)
 
     # Load all policies in bulk with customers
-    life_policies = defined?(LifeInsurance) ? LifeInsurance.includes(:customer).where(id: life_policy_ids).index_by(&:id) : {}
-    health_policies = defined?(HealthInsurance) ? HealthInsurance.includes(:customer).where(id: health_policy_ids).index_by(&:id) : {}
-    motor_policies = defined?(MotorInsurance) ? MotorInsurance.includes(:customer).where(id: motor_policy_ids).index_by(&:id) : {}
-    other_policies = defined?(OtherInsurance) ? OtherInsurance.includes(:customer).where(id: other_policy_ids).index_by(&:id) : {}
+    life_policies = defined?(LifeInsurance) && life_policy_ids.any? ? LifeInsurance.includes(:customer).where(id: life_policy_ids).index_by(&:id) : {}
+    health_policies = defined?(HealthInsurance) && health_policy_ids.any? ? HealthInsurance.includes(:customer).where(id: health_policy_ids).index_by(&:id) : {}
+    motor_policies = defined?(MotorInsurance) && motor_policy_ids.any? ? MotorInsurance.includes(:customer).where(id: motor_policy_ids).index_by(&:id) : {}
+    other_policies = defined?(OtherInsurance) && other_policy_ids.any? ? OtherInsurance.includes(:customer).where(id: other_policy_ids).index_by(&:id) : {}
 
     payouts.each do |payout|
       begin
@@ -573,6 +574,7 @@ class Admin::CommissionTrackingController < ApplicationController
                    other_policies[payout.policy_id]
                  end
 
+        # Skip if policy or customer is missing
         next unless policy && policy.customer
 
         all_policies << {
@@ -592,16 +594,14 @@ class Admin::CommissionTrackingController < ApplicationController
           commission_data: get_commission_data_from_payout(payout),
           transfer_status: get_transfer_status_from_payout(payout),
           saved_payout: payout,
-          created_at: payout.created_at # Use payout created_at to show recent payouts first
+          created_at: payout.created_at
         }
       rescue => e
         Rails.logger.warn "Error processing payout #{payout.id}: #{e.message}"
+        # Continue processing other payouts rather than breaking the entire page
+        next
       end
     end
-
-    # Set pagination info
-    @has_next_page = page < @total_pages
-    @has_prev_page = page > 1
 
     all_policies
   end
