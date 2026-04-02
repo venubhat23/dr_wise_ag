@@ -765,9 +765,51 @@
                 <span>SUBTOTAL</span>
                 <span style="font-weight: bold;"><%= indian_currency(total_line_items) %></span>
               </div>
+              <%
+                # Calculate TDS amount to display in TAX field
+                tax_amount = 0
+                if (@invoice.payout_type == 'affiliate' || @invoice.payout_type == 'ambassador') && commission_payouts.any?
+                  commission_payouts.each do |cp|
+                    # First try to get TDS from commission payout record
+                    if cp.respond_to?(:tds_amount) && cp.tds_amount.present? && cp.tds_amount > 0
+                      tax_amount += cp.tds_amount.to_f
+                    elsif cp.respond_to?(:gross_amount) && cp.gross_amount.present? && cp.gross_amount > cp.payout_amount
+                      tax_amount += (cp.gross_amount.to_f - cp.payout_amount.to_f)
+                    else
+                      # Get TDS from the policy record
+                      policy = case cp.policy_type
+                      when 'health'
+                        HealthInsurance.find_by(id: cp.policy_id)
+                      when 'life'
+                        LifeInsurance.find_by(id: cp.policy_id)
+                      when 'motor'
+                        MotorInsurance.find_by(id: cp.policy_id)
+                      when 'other'
+                        OtherInsurance.find_by(id: cp.policy_id)
+                      end
+
+                      if policy&.respond_to?(:sub_agent_tds_amount) && policy.sub_agent_tds_amount.present? && policy.sub_agent_tds_amount > 0
+                        # Use TDS amount from policy
+                        tax_amount += policy.sub_agent_tds_amount.to_f
+                      elsif policy&.respond_to?(:sub_agent_commission_amount) && policy.sub_agent_commission_amount.present? && policy.sub_agent_tds_percentage.present?
+                        # Calculate TDS from policy commission and percentage
+                        gross_amount = policy.sub_agent_commission_amount.to_f
+                        tds_percentage = policy.sub_agent_tds_percentage.to_f
+                        tax_amount += (gross_amount * tds_percentage / 100.0)
+                      else
+                        # Calculate using default 2% TDS rate
+                        tds_rate = 2.0
+                        net_amount = cp.payout_amount.to_f
+                        gross_amount = net_amount / (1 - tds_rate / 100.0)
+                        tax_amount += (gross_amount - net_amount)
+                      end
+                    end
+                  end
+                end
+              %>
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px; padding: 3px 0; border-bottom: 1px solid #eee;">
-                <span>TAX (N/A)</span>
-                <span style="font-weight: bold;">₹ 0.00</span>
+                <span>TAX</span>
+                <span style="font-weight: bold;"><%= indian_currency(tax_amount) %></span>
               </div>
 
               <% if @invoice.payout_type == 'affiliate' && commission_payouts.any? %>
