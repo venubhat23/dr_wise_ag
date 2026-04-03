@@ -3,6 +3,10 @@ class Admin::LeadsController < Admin::ApplicationController
   include ConfigurablePagination
   before_action :set_lead, only: [:show, :edit, :update, :destroy, :convert_to_customer, :convert_to_customer_branch_out, :create_policy, :transfer_referral, :advance_stage, :go_back_stage, :update_stage, :convert_stage, :mark_not_interested, :close_lead]
 
+  # Skip authentication for AJAX endpoints used in forms
+  skip_before_action :authenticate_user!, only: [:check_existing_customer, :search_sub_agents]
+  skip_before_action :ensure_admin, only: [:check_existing_customer, :search_sub_agents]
+
   # GET /admin/leads
   def index
     # Handle tab-based filtering
