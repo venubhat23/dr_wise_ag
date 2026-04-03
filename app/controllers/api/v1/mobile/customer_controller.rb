@@ -63,7 +63,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         days_until_expiry: policy.days_until_expiry,
         drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
-        document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
+        document: policy.main_policy_document_key.present? ? policy.main_policy_r2_document_url : nil,
         # Life insurance specific fields
         nominee_name: policy.nominee_name,
         nominee_relationship: policy.nominee_relationship,
@@ -314,7 +314,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
             drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
-            document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
+            document: policy.main_policy_document_key.present? ? generate_r2_public_url(policy.main_policy_document_key) : nil
           }
         end
       end
@@ -560,7 +560,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         is_expired: policy.policy_end_date < Date.current,
         days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
         insurance_company: policy.insurance_company_name,
-        document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
+        document: policy.main_policy_document_key.present? ? policy.main_policy_r2_document_url : nil,
         drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false
       }
     end

@@ -289,14 +289,18 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
   end
 
   def register_customer
-    customer_params = params.permit(:first_name, :last_name, :email, :mobile, :password, :password_confirmation, :user_type, :role)
+    customer_params = params.permit(:first_name, :last_name, :email, :mobile, :password, :password_confirmation,
+                                   :user_type, :role, :birth_date, :gender, :address, :city, :state, :pincode,
+                                   :nominee_name, :nominee_relation, :nominee_date_of_birth)
 
     # Validate required fields
     if customer_params[:first_name].blank? || customer_params[:last_name].blank? ||
-       customer_params[:email].blank? || customer_params[:mobile].blank? || customer_params[:password].blank?
+       customer_params[:email].blank? || customer_params[:mobile].blank? || customer_params[:password].blank? ||
+       customer_params[:birth_date].blank? || customer_params[:nominee_name].blank? ||
+       customer_params[:nominee_relation].blank? || customer_params[:nominee_date_of_birth].blank?
       return render json: {
         success: false,
-        message: 'First name, last name, email, mobile number, and password are required'
+        message: 'First name, last name, email, mobile number, password, birth date, and nominee details are required'
       }, status: :unprocessable_entity
     end
 
@@ -348,6 +352,46 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       }, status: :unprocessable_entity
     end
 
+    # Validate nominee relation
+    valid_relations = ['father', 'mother', 'spouse', 'son', 'daughter', 'brother', 'sister', 'other']
+    unless valid_relations.include?(customer_params[:nominee_relation]&.downcase)
+      return render json: {
+        success: false,
+        message: 'Nominee relation must be one of: father, mother, spouse, son, daughter, brother, sister, other'
+      }, status: :unprocessable_entity
+    end
+
+    # Validate gender if provided
+    if customer_params[:gender].present?
+      valid_genders = ['male', 'female', 'other']
+      unless valid_genders.include?(customer_params[:gender]&.downcase)
+        return render json: {
+          success: false,
+          message: 'Gender must be one of: male, female, other'
+        }, status: :unprocessable_entity
+      end
+    end
+
+    # Validate birth date format
+    begin
+      Date.parse(customer_params[:birth_date]) if customer_params[:birth_date].present?
+    rescue ArgumentError
+      return render json: {
+        success: false,
+        message: 'Birth date must be a valid date (YYYY-MM-DD format)'
+      }, status: :unprocessable_entity
+    end
+
+    # Validate nominee birth date format
+    begin
+      Date.parse(customer_params[:nominee_date_of_birth]) if customer_params[:nominee_date_of_birth].present?
+    rescue ArgumentError
+      return render json: {
+        success: false,
+        message: 'Nominee date of birth must be a valid date (YYYY-MM-DD format)'
+      }, status: :unprocessable_entity
+    end
+
     # Check if customer or user already exists
     existing_customer_email = Customer.exists?(email: customer_params[:email])
     existing_customer_mobile = Customer.exists?(mobile: mobile_number)
@@ -378,6 +422,15 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
           last_name: customer_params[:last_name],
           email: customer_params[:email],
           mobile: mobile_number, # Use formatted mobile number
+          birth_date: Date.parse(customer_params[:birth_date]),
+          gender: customer_params[:gender]&.downcase,
+          address: customer_params[:address],
+          city: customer_params[:city],
+          state: customer_params[:state],
+          pincode: customer_params[:pincode],
+          nominee_name: customer_params[:nominee_name],
+          nominee_relation: customer_params[:nominee_relation].downcase,
+          nominee_date_of_birth: Date.parse(customer_params[:nominee_date_of_birth]),
           status: true,
           added_by: 'self_registration'
         )

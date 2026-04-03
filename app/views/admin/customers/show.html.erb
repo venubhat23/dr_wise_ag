@@ -397,6 +397,26 @@ body {
             <div class="info-value"><%= @customer.age ? "#{@customer.age} years" : '-' %></div>
           </div>
         </div>
+        <% if @customer_user = User.find_by(email: @customer.email) || User.find_by(mobile: @customer.mobile) %>
+        <div class="col-md-3">
+          <div class="info-field">
+            <label>LOGIN USERNAME</label>
+            <div class="info-value"><%= @customer_user.email || '-' %></div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="info-field">
+            <label>LOGIN PASSWORD</label>
+            <div class="info-value">
+              <% if @customer_user.original_password.present? %>
+                <span class="text-monospace"><%= @customer_user.original_password %></span>
+              <% else %>
+                <span class="text-muted">Not stored</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+        <% end %>
       </div>
     </div>
   </div>
