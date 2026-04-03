@@ -4,6 +4,8 @@
     <h2 class="mb-1">
       <% if session[:branch_out_mode] && session[:source_lead_id] %>
         <i class="bi bi-diagram-2 text-success me-2"></i>Branch Out - Add New Lead
+      <% elsif session[:branch_out_mode] && session[:source_customer_id] %>
+        <i class="bi bi-person-plus text-primary me-2"></i>New Lead from Customer
       <% else %>
         Add New Lead
       <% end %>
@@ -15,6 +17,15 @@
           <i class="bi bi-info-circle me-1"></i>
           Branching from Lead ID: <strong><%= source_lead.lead_id %></strong>
           (<%= source_lead.product_category&.humanize %>/<%= source_lead.product_subcategory&.humanize %>)
+        </small>
+      <% end %>
+    <% elsif session[:branch_out_mode] && session[:source_customer_id] %>
+      <% source_customer = Customer.find_by(id: session[:source_customer_id]) %>
+      <% if source_customer %>
+        <small class="text-muted">
+          <i class="bi bi-info-circle me-1"></i>
+          Creating lead for existing customer: <strong><%= source_customer.display_name %></strong>
+          (Customer ID: <%= source_customer.id %>)
         </small>
       <% end %>
     <% end %>
@@ -36,6 +47,15 @@
       <p class="mb-0">You are creating a new lead for a different policy using information from an existing lead. Customer details have been pre-filled for you. Please select the appropriate product category and subcategory for the new policy.</p>
     </div>
   </div>
+<% elsif session[:branch_out_mode] && session[:source_customer_id] %>
+  <!-- Customer Branch Out Info Alert -->
+  <div class="alert alert-primary d-flex align-items-center mb-4">
+    <i class="bi bi-person-plus me-3 fs-4"></i>
+    <div>
+      <h6 class="mb-1"><strong>Creating Lead from Customer</strong></h6>
+      <p class="mb-0">You are creating a new lead for an existing customer. All customer details have been pre-filled from their profile. Please select the appropriate product category and subcategory for this new lead.</p>
+    </div>
+  </div>
 <% end %>
 
 <%= form_with model: [:admin, @lead || Lead.new], local: true, class: "needs-validation", novalidate: true do |form| %>
@@ -44,6 +64,8 @@
     <%= form.hidden_field :is_branch_out, value: true %>
     <% if session[:source_lead_id] %>
       <%= form.hidden_field :parent_lead_id, value: session[:source_lead_id] %>
+    <% elsif session[:source_customer_id] %>
+      <%= form.hidden_field :converted_customer_id, value: session[:source_customer_id] %>
     <% end %>
   <% end %>
 
@@ -819,6 +841,50 @@ function branchOutFromLead(sourceLeadId) {
   form.submit();
 }
 
+// Global function to handle branch out from existing customer
+function branchOutFromCustomer(customerId, customerName) {
+  console.log('branchOutFromCustomer called with customerId:', customerId, 'customerName:', customerName);
+
+  if (!customerId) {
+    alert('Invalid customer ID');
+    return;
+  }
+
+  // Show confirmation dialog
+  if (!confirm(`This will create a new lead for ${customerName} with their existing information pre-filled. Continue?`)) {
+    return;
+  }
+
+  console.log('Creating form to submit customer branch out request');
+
+  // Create a form and submit it to trigger branch out from customer
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/admin/leads/branch_out_from_customer';
+  form.style.display = 'none';
+
+  // Add CSRF token
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  if (csrfToken) {
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'authenticity_token';
+    csrfInput.value = csrfToken;
+    form.appendChild(csrfInput);
+  }
+
+  // Add source customer ID
+  const customerIdInput = document.createElement('input');
+  customerIdInput.type = 'hidden';
+  customerIdInput.name = 'source_customer_id';
+  customerIdInput.value = customerId;
+  form.appendChild(customerIdInput);
+
+  // Submit form
+  document.body.appendChild(form);
+  form.submit();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   const form = document.querySelector('form');
   const nameField = form.querySelector('[name="lead[name]"]');
@@ -1062,11 +1128,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
       customers.forEach(customer => {
         warningHtml += '<div class="border rounded p-2 mb-2 bg-light">';
+        warningHtml += '<div class="d-flex justify-content-between align-items-start">';
+        warningHtml += '<div class="flex-grow-1">';
         warningHtml += `<div class="fw-bold">${customer.name}</div>`;
         warningHtml += `<small class="text-muted">`;
         warningHtml += `Mobile: ${customer.mobile || 'N/A'} | Email: ${customer.email || 'N/A'}`;
         warningHtml += `<br>Match Type: ${customer.match_type.charAt(0).toUpperCase() + customer.match_type.slice(1)}`;
         warningHtml += `</small>`;
+        warningHtml += '</div>';
+        warningHtml += `<button type="button" class="btn btn-primary btn-sm ms-2" onclick="branchOutFromCustomer(${customer.id}, '${customer.name}')" title="Create new lead for this customer">`;
+        warningHtml += '<i class="bi bi-plus-circle"></i> New Lead';
+        warningHtml += '</button>';
+        warningHtml += '</div>';
         warningHtml += '</div>';
       });
 
@@ -1097,6 +1170,8 @@ document.addEventListener('DOMContentLoaded', function() {
           matchTypeText = 'Mobile';
         } else if (lead.match_type === 'email') {
           matchTypeText = 'Email';
+        } else if (lead.match_type === 'customer_associated') {
+          matchTypeText = 'Associated with Customer: ' + (lead.associated_customer_name || 'Unknown');
         }
         warningHtml += `<br>Match Type: ${matchTypeText}`;
         warningHtml += `</small>`;

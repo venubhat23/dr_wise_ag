@@ -146,6 +146,7 @@ class Admin::LeadsController < Admin::ApplicationController
     # Clear any existing branch out session data when accessing regular new lead form
     session.delete(:branch_out_mode)
     session.delete(:source_lead_id)
+    session.delete(:source_customer_id)
 
     @lead = Lead.new
     @lead.created_date = Date.current
@@ -186,6 +187,7 @@ class Admin::LeadsController < Admin::ApplicationController
 
         # Clear session data
         session.delete(:source_lead_id)
+        session.delete(:source_customer_id)
         session.delete(:branch_out_mode)
       end
 
@@ -663,6 +665,59 @@ class Admin::LeadsController < Admin::ApplicationController
       end
     end
 
+    # For each found customer, also check if they have any existing leads
+    existing_customers.each do |customer_data|
+      customer_id = customer_data[:id]
+      customer_mobile = customer_data[:mobile]
+      customer_email = customer_data[:email]
+
+      # Find leads for this customer by their mobile and email
+      customer_leads = []
+
+      # Search by mobile (clean both numbers for comparison)
+      if customer_mobile.present?
+        clean_customer_mobile = customer_mobile.gsub(/\D/, '')
+        customer_leads += Lead.where("REPLACE(REPLACE(contact_number, ' ', ''), '+', '') LIKE ?", "%#{clean_customer_mobile}%")
+      end
+
+      # Search by email
+      if customer_email.present?
+        customer_leads += Lead.where(email: customer_email)
+      end
+
+      # Search by customer name patterns (first name, last name)
+      customer_name = customer_data[:name]
+      if customer_name.present?
+        name_parts = customer_name.split(' ')
+        if name_parts.length >= 2
+          first_name = name_parts.first
+          last_name = name_parts.last
+          customer_leads += Lead.where("name ILIKE ? OR name ILIKE ? OR name ILIKE ?",
+                                     "%#{first_name}%", "%#{last_name}%", "%#{customer_name}%")
+        end
+      end
+
+      # Remove duplicates and avoid duplicating leads already found by direct search
+      customer_leads.uniq!
+      customer_leads.each do |lead|
+        next if existing_leads.any? { |l| l[:id] == lead.id }
+
+        existing_leads << {
+          id: lead.id,
+          lead_id: lead.lead_id,
+          name: lead.display_name,
+          contact_number: lead.contact_number,
+          email: lead.email,
+          product_category: lead.product_category,
+          product_subcategory: lead.product_subcategory,
+          current_stage: lead.current_stage,
+          match_type: 'customer_associated',
+          associated_customer_id: customer_id,
+          associated_customer_name: customer_name
+        }
+      end
+    end
+
     render json: {
       exists: existing_customers.any?,
       customers: existing_customers,
@@ -797,6 +852,74 @@ class Admin::LeadsController < Admin::ApplicationController
   rescue => e
     Rails.logger.error "Branch out failed: #{e.message}"
     redirect_to admin_leads_path, alert: "Failed to branch out lead: #{e.message}"
+  end
+
+  # POST /admin/leads/branch_out_from_customer
+  def branch_out_from_customer
+    source_customer_id = params[:source_customer_id]
+    source_customer = Customer.find_by(id: source_customer_id)
+
+    unless source_customer
+      redirect_to admin_leads_path, alert: 'Source customer not found.'
+      return
+    end
+
+    # Create new lead using customer information
+    @lead = Lead.new
+
+    # Set customer information from the existing customer
+    @lead.customer_type = source_customer.customer_type || 'individual'
+    @lead.name = source_customer.display_name
+    @lead.first_name = source_customer.first_name
+    @lead.middle_name = source_customer.middle_name
+    @lead.last_name = source_customer.last_name
+    @lead.company_name = source_customer.company_name
+    @lead.contact_number = source_customer.mobile
+    @lead.email = source_customer.email
+    @lead.birth_date = source_customer.birth_date
+    @lead.gender = source_customer.gender
+    @lead.marital_status = source_customer.marital_status
+    @lead.pan_no = source_customer.pan_no
+    @lead.birth_place = source_customer.birth_place
+    @lead.height = source_customer.height
+    @lead.weight = source_customer.weight
+    @lead.education = source_customer.education
+    @lead.business_job = source_customer.business_job
+    @lead.business_name = source_customer.business_name
+    @lead.job_name = source_customer.job_name
+    @lead.occupation = source_customer.occupation
+    @lead.type_of_duty = source_customer.type_of_duty
+    @lead.annual_income = source_customer.annual_income
+    @lead.address = source_customer.address
+    @lead.state = source_customer.state
+    @lead.city = source_customer.city
+    @lead.gst_no = source_customer.gst_no
+
+    # Set default stage and date for the new lead
+    @lead.current_stage = 'lead_generated'
+    @lead.created_date = Date.current
+    @lead.lead_source = 'walk_in' # Default to walk_in for existing customers
+
+    # Clear policy-specific fields so user can set new ones
+    @lead.product_category = nil
+    @lead.product_subcategory = nil
+    @lead.notes = "Created from existing customer: #{source_customer.display_name} (ID: #{source_customer.id})"
+
+    # Set as direct lead by default (can be changed by user)
+    @lead.is_direct = true
+
+    # Set branch out flag and customer reference
+    @lead.is_branch_out = true
+    @lead.converted_customer_id = source_customer.id
+
+    # Store customer ID for reference
+    session[:source_customer_id] = source_customer.id
+    session[:branch_out_mode] = true
+
+    render :new
+  rescue => e
+    Rails.logger.error "Branch out from customer failed: #{e.message}"
+    redirect_to admin_leads_path, alert: "Failed to create lead from customer: #{e.message}"
   end
 
   private
