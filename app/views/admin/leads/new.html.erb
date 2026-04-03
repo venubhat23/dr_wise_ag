@@ -1556,11 +1556,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const cleanedValue = cleanMobileNumber(input.value.trim());
     const errorDiv = document.getElementById('contact_number_error');
     const mobilePattern = /^[789]\d{9}$/;
+    const invalidPattern = /^91\d{8}$/; // Looks like incomplete +91 number
 
     if (cleanedValue === '') {
       input.classList.remove('is-invalid', 'is-valid');
       if (errorDiv) errorDiv.style.display = 'none';
       return true; // Empty is valid (required validation will handle it)
+    }
+
+    // Check for numbers that look like they should have had 91 prefix removed
+    if (invalidPattern.test(cleanedValue)) {
+      input.classList.add('is-invalid');
+      input.classList.remove('is-valid');
+      if (errorDiv) {
+        errorDiv.style.display = 'block';
+        errorDiv.textContent = 'Invalid mobile number format. Did you mean to add +91 before a valid mobile number?';
+      }
+      return false;
     }
 
     if (!mobilePattern.test(cleanedValue)) {
