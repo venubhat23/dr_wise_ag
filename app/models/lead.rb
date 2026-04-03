@@ -2,8 +2,8 @@ class Lead < ApplicationRecord
   include PgSearch::Model
 
   validates :name, presence: true
-  validates :contact_number, presence: true,
-    format: { with: /\A[\+]?[0-9\s\-\(\)]+\z/, message: "Invalid phone number format" }
+  validates :contact_number, presence: true
+  validate :validate_mobile_number_format
   validates :email,
     format: { with: URI::MailTo::EMAIL_REGEXP },
     allow_blank: true
@@ -49,6 +49,7 @@ class Lead < ApplicationRecord
   before_update :update_stage_timestamp, if: :current_stage_changed?
   before_validation :set_name_from_customer_details
   before_validation :set_initial_stage
+  before_validation :clean_mobile_number
 
   enum :current_stage, {
     lead_generated: 'lead_generated',
@@ -625,6 +626,35 @@ class Lead < ApplicationRecord
         # Fallback for cases where customer type isn't set yet
         self.name = 'Lead' if name.blank? || name == 'Placeholder'
       end
+    end
+  end
+
+  def clean_mobile_number
+    return if contact_number.blank?
+
+    # Remove all non-digit characters
+    clean_number = contact_number.to_s.gsub(/\D/, '')
+
+    # Only remove 91 prefix if:
+    # 1. Number has exactly 12 digits AND starts with 91
+    # 2. After removing 91, the remaining number starts with 7, 8, or 9
+    if clean_number.length == 12 && clean_number.start_with?('91')
+      remaining_number = clean_number[2..-1]
+      if remaining_number.match?(/\A[789]/)
+        clean_number = remaining_number
+      end
+    end
+
+    # Store the clean number (could be any length, validation will check)
+    self.contact_number = clean_number
+  end
+
+  def validate_mobile_number_format
+    return if contact_number.blank?
+
+    # After cleaning, validate the format
+    unless contact_number.match?(/\A[789]\d{9}\z/)
+      errors.add(:contact_number, 'Mobile number must be 10 digits starting with 7, 8, or 9')
     end
   end
 

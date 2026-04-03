@@ -105,7 +105,10 @@
       <div class="row">
         <div class="col-md-6 mb-3">
           <%= form.label :contact_number, "Contact Number *", class: "form-label" %>
-          <%= form.telephone_field :contact_number, class: "form-control", placeholder: "+91 98765 43210", required: true %>
+          <%= form.telephone_field :contact_number, class: "form-control", placeholder: "9876543210 or +91 9876543210", required: true, id: "contact_number_field" %>
+          <div class="invalid-feedback" id="contact_number_error">
+            Mobile number must be 10 digits starting with 7, 8, or 9
+          </div>
         </div>
         <div class="col-md-6 mb-3">
           <%= form.label :email, "Email Address", class: "form-label" %>
@@ -774,6 +777,8 @@
 <script>
 // Global function to handle branch out from existing lead
 function branchOutFromLead(sourceLeadId) {
+  console.log('branchOutFromLead called with sourceLeadId:', sourceLeadId);
+
   if (!sourceLeadId) {
     alert('Invalid lead ID');
     return;
@@ -783,6 +788,8 @@ function branchOutFromLead(sourceLeadId) {
   if (!confirm('This will copy all customer information from the existing lead and create a new lead for a different policy. Continue?')) {
     return;
   }
+
+  console.log('Creating form to submit branch out request');
 
   // Create a form and submit it to trigger branch out
   const form = document.createElement('form');
@@ -958,6 +965,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show loading indicator
     showLoadingIndicator();
 
+    console.log('Checking existing customer for:', { contactNumber, email });
+
     // Make API call to check existing customer
     fetch('/admin/leads/check_existing_customer?' + new URLSearchParams({
       contact_number: contactNumber,
@@ -965,11 +974,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }))
     .then(response => response.json())
     .then(data => {
+      console.log('API Response:', data);
       hideLoadingIndicator();
 
       if ((data.exists && data.customers.length > 0) || (data.has_existing_leads && data.leads.length > 0)) {
+        console.log('Showing existing customer warning for:', { customers: data.customers, leads: data.leads });
         showExistingCustomerWarning(data.customers || [], data.leads || []);
       } else {
+        console.log('No existing customers or leads found');
         hideExistingCustomerWarning();
       }
     })
@@ -1012,6 +1024,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Function to show existing customer warning
   function showExistingCustomerWarning(customers, leads) {
+    console.log('showExistingCustomerWarning called with:', { customers, leads });
     hideLoadingIndicator();
 
     let warningDiv = document.getElementById('existing-customer-warning');
@@ -1021,10 +1034,19 @@ document.addEventListener('DOMContentLoaded', function() {
       warningDiv.id = 'existing-customer-warning';
       warningDiv.className = 'alert alert-warning mt-2';
 
-      // Insert after contact information card
-      const contactCard = document.querySelector('.card:has([name="lead[contact_number]"])');
+      // Find contact information card using a more compatible selector
+      const contactNumberField = document.querySelector('[name="lead[contact_number]"]');
+      const contactCard = contactNumberField ? contactNumberField.closest('.card') : null;
+
       if (contactCard) {
+        console.log('Found contact card, inserting warning after it');
         contactCard.insertAdjacentElement('afterend', warningDiv);
+      } else {
+        console.log('Contact card not found, appending to form');
+        // Fallback: insert after the contact number field itself
+        if (contactNumberField) {
+          contactNumberField.closest('.card-body')?.appendChild(warningDiv);
+        }
       }
     }
 
@@ -1065,7 +1087,18 @@ document.addEventListener('DOMContentLoaded', function() {
         warningHtml += `<small class="text-muted">`;
         warningHtml += `Mobile: ${lead.contact_number || 'N/A'} | Email: ${lead.email || 'N/A'}`;
         warningHtml += `<br>Product: ${lead.product_category}/${lead.product_subcategory} | Stage: ${lead.current_stage}`;
-        warningHtml += `<br>Match Type: ${lead.match_type.charAt(0).toUpperCase() + lead.match_type.slice(1)}`;
+        // Format match type for better display
+        let matchTypeText = lead.match_type;
+        if (lead.match_type === 'mobile_exact') {
+          matchTypeText = 'Mobile (Exact Match)';
+        } else if (lead.match_type === 'mobile_partial') {
+          matchTypeText = 'Mobile (Partial Match)';
+        } else if (lead.match_type === 'mobile') {
+          matchTypeText = 'Mobile';
+        } else if (lead.match_type === 'email') {
+          matchTypeText = 'Email';
+        }
+        warningHtml += `<br>Match Type: ${matchTypeText}`;
         warningHtml += `</small>`;
         warningHtml += `</div>`;
         warningHtml += `<button type="button" class="btn btn-success btn-sm ms-2" onclick="branchOutFromLead(${lead.id})" title="Branch out from this lead">`;
@@ -1499,6 +1532,79 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  // Mobile number cleaning and validation
+  function cleanMobileNumber(value) {
+    if (!value) return '';
+
+    // Remove all non-digit characters
+    let cleanNumber = value.replace(/\D/g, '');
+
+    // Only remove 91 prefix if:
+    // 1. Number has exactly 12 digits AND starts with 91
+    // 2. After removing 91, the remaining number starts with 7, 8, or 9
+    if (cleanNumber.length === 12 && cleanNumber.startsWith('91')) {
+      const remainingNumber = cleanNumber.substring(2);
+      if (/^[789]/.test(remainingNumber)) {
+        cleanNumber = remainingNumber;
+      }
+    }
+
+    return cleanNumber;
+  }
+
+  function validateMobileNumber(input) {
+    const cleanedValue = cleanMobileNumber(input.value.trim());
+    const errorDiv = document.getElementById('contact_number_error');
+    const mobilePattern = /^[789]\d{9}$/;
+
+    if (cleanedValue === '') {
+      input.classList.remove('is-invalid', 'is-valid');
+      if (errorDiv) errorDiv.style.display = 'none';
+      return true; // Empty is valid (required validation will handle it)
+    }
+
+    if (!mobilePattern.test(cleanedValue)) {
+      input.classList.add('is-invalid');
+      input.classList.remove('is-valid');
+      if (errorDiv) {
+        errorDiv.style.display = 'block';
+        errorDiv.textContent = 'Mobile number must be 10 digits starting with 7, 8, or 9';
+      }
+      return false;
+    } else {
+      input.classList.add('is-valid');
+      input.classList.remove('is-invalid');
+      if (errorDiv) errorDiv.style.display = 'none';
+      return true;
+    }
+  }
+
+  // Add mobile number validation event listeners
+  const contactNumberField = document.getElementById('contact_number_field');
+  if (contactNumberField) {
+    // Real-time validation on input
+    contactNumberField.addEventListener('input', function() {
+      const cleanedNumber = cleanMobileNumber(this.value);
+
+      // Update field value with cleaned number (but allow user to continue typing)
+      if (cleanedNumber.length <= 10) {
+        this.value = cleanedNumber;
+      } else {
+        // If more than 10 digits, keep only first 10
+        this.value = cleanedNumber.substring(0, 10);
+      }
+
+      validateMobileNumber(this);
+    });
+
+    // Clean and validate on blur
+    contactNumberField.addEventListener('blur', function() {
+      const cleanedNumber = cleanMobileNumber(this.value);
+      this.value = cleanedNumber;
+      validateMobileNumber(this);
+    });
+  }
+
   // Progress tracking
   function updateProgress() {
     const allInputs = form.querySelectorAll('input[required], select[required]');
@@ -1849,7 +1955,11 @@ document.addEventListener('DOMContentLoaded', function() {
       isValid = false;
     }
 
-    // Phone validation is now handled by FormEnhancements
+    // Validate mobile number format
+    if (phoneField.value.trim() && !validateMobileNumber(phoneField)) {
+      errors.push('Mobile number must be 10 digits starting with 7, 8, or 9');
+      isValid = false;
+    }
 
     // Validate product category selection
     if (!productCategoryField.value) {

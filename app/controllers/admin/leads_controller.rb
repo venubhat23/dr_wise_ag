@@ -604,8 +604,18 @@ class Admin::LeadsController < Admin::ApplicationController
       end
 
       # Also check for existing leads with same contact number (get all, not just first)
+      # First try exact match
       leads_by_mobile = Lead.where(contact_number: contact_number)
+
+      # If no exact match and contact_number is longer than 3 digits, try partial match
+      if leads_by_mobile.empty? && clean_contact.length > 3
+        leads_by_mobile = Lead.where("contact_number LIKE ?", "%#{contact_number}%")
+      end
+
       leads_by_mobile.each do |lead|
+        # Determine if this is exact or partial match
+        match_type = lead.contact_number == contact_number ? 'mobile_exact' : 'mobile_partial'
+
         existing_leads << {
           id: lead.id,
           lead_id: lead.lead_id,
@@ -615,7 +625,7 @@ class Admin::LeadsController < Admin::ApplicationController
           product_category: lead.product_category,
           product_subcategory: lead.product_subcategory,
           current_stage: lead.current_stage,
-          match_type: 'mobile'
+          match_type: match_type
         }
       end
     end
