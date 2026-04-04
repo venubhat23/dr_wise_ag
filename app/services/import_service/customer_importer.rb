@@ -57,7 +57,7 @@ module ImportService
     end
 
     def validate_headers(header)
-      required_headers = %w[customer_type email mobile]
+      required_headers = %w[customer_type mobile birth_date nominee_name nominee_relation nominee_date_of_birth]
       # Normalize headers by removing asterisks and converting to lowercase
       normalized_headers = header.map(&:to_s).map(&:downcase).map { |h| h.gsub('*', '') }
       missing_headers = required_headers - normalized_headers
@@ -126,6 +126,19 @@ module ImportService
         occupation: row['occupation']&.to_s&.strip,
         annual_income: parse_number(row['annual_income']),
         marital_status: row['marital_status']&.to_s&.downcase,
+        # New mandatory nominee fields
+        nominee_name: row['nominee_name']&.to_s&.strip,
+        nominee_relation: row['nominee_relation']&.to_s&.downcase&.strip,
+        nominee_date_of_birth: parse_date(row['nominee_date_of_birth']),
+        # Additional optional fields
+        education: row['education']&.to_s&.strip,
+        height_feet: parse_number(row['height_feet']),
+        weight_kg: parse_number(row['weight_kg']),
+        birth_place: row['birth_place']&.to_s&.strip,
+        business_job: row['business_job']&.to_s&.strip,
+        job_name: row['job_name']&.to_s&.strip,
+        type_of_duty: row['type_of_duty']&.to_s&.strip,
+        business_name: row['business_name']&.to_s&.strip,
         status: true,
         added_by: 'bulk_import'
       }.compact

@@ -192,9 +192,28 @@
             <i class="fas fa-download me-1"></i> Download Template
           <% end %>
 
-          <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#healthInsuranceImportModal">
-            <i class="fas fa-upload me-1"></i> Import Health Insurance
-          </button>
+          <div class="btn-group">
+            <%= link_to health_insurances_form_admin_imports_path,
+                        class: "btn btn-info" do %>
+              <i class="fas fa-upload me-1"></i> Import Health Insurance
+            <% end %>
+            <button type="button" class="btn btn-info dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="visually-hidden">Toggle Dropdown</span>
+            </button>
+            <ul class="dropdown-menu">
+              <li>
+                <%= link_to health_insurances_form_admin_imports_path, class: "dropdown-item" do %>
+                  <i class="fas fa-magic me-2"></i> Guided Import Wizard
+                <% end %>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#healthInsuranceImportModal">
+                  <i class="fas fa-bolt me-2"></i> Quick Import Modal
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

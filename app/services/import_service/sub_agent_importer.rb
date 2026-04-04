@@ -119,8 +119,8 @@ module ImportService
         role.description = 'Affiliate Role'
       end
 
-      # Map account_number from either field name
-      account_number = row['account_number'] || row['account_no']
+      # Map account_no from either field name for backward compatibility
+      account_no = row['account_no'] || row['account_number']
 
       {
         first_name: row['first_name']&.to_s&.strip,
@@ -133,11 +133,9 @@ module ImportService
         address: row['address']&.to_s&.strip,
         state: row['state']&.to_s&.strip,
         city: row['city']&.to_s&.strip,
-        pin_code: row['pin_code']&.to_s&.strip,
         pan_no: row['pan_no']&.to_s&.upcase&.strip,
-        aadhar_no: row['aadhar_no']&.to_s&.strip,
         account_holder_name: row['account_holder_name']&.to_s&.strip,
-        account_number: account_number&.to_s&.strip,
+        account_no: account_no&.to_s&.strip,
         ifsc_code: row['ifsc_code']&.to_s&.upcase&.strip,
         account_type: row['account_type']&.to_s&.titleize,
         distributor_id: distributor_id,

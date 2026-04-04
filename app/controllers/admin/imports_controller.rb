@@ -15,6 +15,10 @@ class Admin::ImportsController < Admin::ApplicationController
 
   def customers_form
     # Show customer import form
+    respond_to do |format|
+      format.html # customers_form.html.erb
+      format.json { render json: { error: 'HTML format required for this page' } }
+    end
   end
 
   # POST /admin/imports/customers_preview
@@ -776,22 +780,42 @@ class Admin::ImportsController < Admin::ApplicationController
 
   def sub_agents_form
     # Show sub-agent import form
+    respond_to do |format|
+      format.html # sub_agents_form.html.erb
+      format.json { render json: { error: 'HTML format required for this page' } }
+    end
   end
 
   def distributors_form
     # Show distributor import form
+    respond_to do |format|
+      format.html # distributors_form.html.erb
+      format.json { render json: { error: 'HTML format required for this page' } }
+    end
   end
 
   def health_insurances_form
     # Show health insurance import form
+    respond_to do |format|
+      format.html # health_insurances_form.html.erb
+      format.json { redirect_to health_insurances_form_admin_imports_path }
+    end
   end
 
   def life_insurances_form
     # Show life insurance import form
+    respond_to do |format|
+      format.html # life_insurances_form.html.erb
+      format.json { render json: { error: 'HTML format required for this page' } }
+    end
   end
 
   def motor_insurances_form
     # Show motor insurance import form
+    respond_to do |format|
+      format.html # motor_insurances_form.html.erb
+      format.json { render json: { error: 'HTML format required for this page' } }
+    end
   end
 
   # POST /admin/import/customers
@@ -966,22 +990,54 @@ class Admin::ImportsController < Admin::ApplicationController
   def health_insurances
     uploaded_file = params[:file]
 
+    Rails.logger.info "Health insurance import started with file: #{uploaded_file&.original_filename}"
+    Rails.logger.info "Request format: #{request.format}"
+
     if uploaded_file.blank?
-      redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.'
+      respond_to do |format|
+        format.html { redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.' }
+        format.json { render json: { success: false, error: 'Please select a file to import.' } }
+      end
       return
     end
 
     begin
       import_result = ImportService::HealthInsuranceImporter.new(uploaded_file).import
+      Rails.logger.info "Import result: #{import_result.inspect}"
 
-      if import_result[:success]
-        redirect_to admin_health_insurances_path, notice: "Successfully imported #{import_result[:imported_count]} health insurance policies. #{import_result[:skipped_count]} records were skipped due to validation errors."
-      else
-        redirect_back fallback_location: admin_imports_path, alert: "Import failed: #{import_result[:error]}"
+      respond_to do |format|
+        if import_result[:success]
+          success_message = "Successfully imported #{import_result[:imported_count]} health insurance policies. #{import_result[:skipped_count]} records were skipped due to validation errors."
+          Rails.logger.info "Import successful: #{success_message}"
+
+          format.html { redirect_to admin_health_insurances_path, notice: success_message }
+          format.json {
+            render json: {
+              success: true,
+              message: success_message,
+              imported_count: import_result[:imported_count],
+              skipped_count: import_result[:skipped_count],
+              total_count: import_result[:imported_count] + import_result[:skipped_count],
+              errors: import_result[:errors] || [],
+              redirect_url: admin_health_insurances_path
+            }
+          }
+        else
+          error_message = "Import failed: #{import_result[:error]}"
+          Rails.logger.error error_message
+
+          format.html { redirect_back fallback_location: admin_imports_path, alert: error_message }
+          format.json { render json: { success: false, error: error_message } }
+        end
       end
     rescue => e
-      Rails.logger.error "Health insurance import error: #{e.message}"
-      redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.'
+      Rails.logger.error "Health insurance import error: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+
+      respond_to do |format|
+        format.html { redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.' }
+        format.json { render json: { success: false, error: "An error occurred during import: #{e.message}" } }
+      end
     end
   end
 
@@ -989,22 +1045,54 @@ class Admin::ImportsController < Admin::ApplicationController
   def life_insurances
     uploaded_file = params[:file]
 
+    Rails.logger.info "Life insurance import started with file: #{uploaded_file&.original_filename}"
+    Rails.logger.info "Request format: #{request.format}"
+
     if uploaded_file.blank?
-      redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.'
+      respond_to do |format|
+        format.html { redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.' }
+        format.json { render json: { success: false, error: 'Please select a file to import.' } }
+      end
       return
     end
 
     begin
       import_result = ImportService::LifeInsuranceImporter.new(uploaded_file).import
+      Rails.logger.info "Import result: #{import_result.inspect}"
 
-      if import_result[:success]
-        redirect_to admin_life_insurances_path, notice: "Successfully imported #{import_result[:imported_count]} life insurance policies. #{import_result[:skipped_count]} records were skipped due to validation errors."
-      else
-        redirect_back fallback_location: admin_imports_path, alert: "Import failed: #{import_result[:error]}"
+      respond_to do |format|
+        if import_result[:success]
+          success_message = "Successfully imported #{import_result[:imported_count]} life insurance policies. #{import_result[:skipped_count]} records were skipped due to validation errors."
+          Rails.logger.info "Import successful: #{success_message}"
+
+          format.html { redirect_to admin_life_insurances_path, notice: success_message }
+          format.json {
+            render json: {
+              success: true,
+              message: success_message,
+              imported_count: import_result[:imported_count],
+              skipped_count: import_result[:skipped_count],
+              total_count: import_result[:imported_count] + import_result[:skipped_count],
+              errors: import_result[:errors] || [],
+              redirect_url: admin_life_insurances_path
+            }
+          }
+        else
+          error_message = "Import failed: #{import_result[:error]}"
+          Rails.logger.error error_message
+
+          format.html { redirect_back fallback_location: admin_imports_path, alert: error_message }
+          format.json { render json: { success: false, error: error_message } }
+        end
       end
     rescue => e
-      Rails.logger.error "Life insurance import error: #{e.message}"
-      redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.'
+      Rails.logger.error "Life insurance import error: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+
+      respond_to do |format|
+        format.html { redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.' }
+        format.json { render json: { success: false, error: "An error occurred during import: #{e.message}" } }
+      end
     end
   end
 
@@ -1012,22 +1100,54 @@ class Admin::ImportsController < Admin::ApplicationController
   def motor_insurances
     uploaded_file = params[:file]
 
+    Rails.logger.info "Motor insurance import started with file: #{uploaded_file&.original_filename}"
+    Rails.logger.info "Request format: #{request.format}"
+
     if uploaded_file.blank?
-      redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.'
+      respond_to do |format|
+        format.html { redirect_back fallback_location: admin_imports_path, alert: 'Please select a file to import.' }
+        format.json { render json: { success: false, error: 'Please select a file to import.' } }
+      end
       return
     end
 
     begin
       import_result = ImportService::MotorInsuranceImporter.new(uploaded_file).import
+      Rails.logger.info "Import result: #{import_result.inspect}"
 
-      if import_result[:success]
-        redirect_to admin_motor_insurances_path, notice: "Successfully imported #{import_result[:imported_count]} motor insurance policies. #{import_result[:skipped_count]} records were skipped due to validation errors."
-      else
-        redirect_back fallback_location: admin_imports_path, alert: "Import failed: #{import_result[:error]}"
+      respond_to do |format|
+        if import_result[:success]
+          success_message = "Successfully imported #{import_result[:imported_count]} motor insurance policies. #{import_result[:skipped_count]} records were skipped due to validation errors."
+          Rails.logger.info "Import successful: #{success_message}"
+
+          format.html { redirect_to admin_motor_insurances_path, notice: success_message }
+          format.json {
+            render json: {
+              success: true,
+              message: success_message,
+              imported_count: import_result[:imported_count],
+              skipped_count: import_result[:skipped_count],
+              total_count: import_result[:imported_count] + import_result[:skipped_count],
+              errors: import_result[:errors] || [],
+              redirect_url: admin_motor_insurances_path
+            }
+          }
+        else
+          error_message = "Import failed: #{import_result[:error]}"
+          Rails.logger.error error_message
+
+          format.html { redirect_back fallback_location: admin_imports_path, alert: error_message }
+          format.json { render json: { success: false, error: error_message } }
+        end
       end
     rescue => e
-      Rails.logger.error "Motor insurance import error: #{e.message}"
-      redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.'
+      Rails.logger.error "Motor insurance import error: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+
+      respond_to do |format|
+        format.html { redirect_back fallback_location: admin_imports_path, alert: 'An error occurred during import. Please check your file format and try again.' }
+        format.json { render json: { success: false, error: "An error occurred during import: #{e.message}" } }
+      end
     end
   end
 
@@ -1094,26 +1214,34 @@ class Admin::ImportsController < Admin::ApplicationController
     csv_data = CSV.generate(headers: true) do |csv|
       csv << [
         'customer_type*', 'first_name*', 'middle_name', 'last_name*', 'mobile*',
-        'email', 'gender', 'birth_date', 'marital_status', 'address', 'city', 'state',
-        'pin_code', 'pan_no', 'aadhar_no', 'sub_agent_name', 'status'
+        'email', 'gender', 'birth_date*', 'marital_status', 'address', 'city', 'state',
+        'pincode', 'pan_no', 'nominee_name*', 'nominee_relation*', 'nominee_date_of_birth*',
+        'occupation', 'annual_income', 'education', 'height_feet', 'weight_kg',
+        'birth_place', 'business_job', 'job_name', 'type_of_duty', 'sub_agent_name', 'status'
       ]
       # Sample row 1
       csv << [
         'individual', 'John', 'Kumar', 'Doe', '9876543210',
         'john.doe@example.com', 'male', '1990-01-01', 'married', '123 Main St', 'Mumbai', 'Maharashtra',
-        '400001', 'ABCDE1234F', '123456789012', 'Agent Name', 'true'
+        '400001', 'ABCDE1234F', 'Jane Doe', 'spouse', '1992-05-15',
+        'Software Engineer', '800000', 'Graduate', '5.8', '70',
+        'Mumbai', 'Private Job', 'Senior Developer', 'Office Work', 'Agent Name', 'true'
       ]
       # Sample row 2
       csv << [
         'individual', 'Priya', '', 'Sharma', '9876543211',
         'priya.sharma@example.com', 'female', '1985-05-15', 'single', '456 Park Road', 'Delhi', 'Delhi',
-        '110001', 'BCDEF2345G', '234567890123', '', 'true'
+        '110001', 'BCDEF2345G', 'Ram Sharma', 'father', '1960-03-20',
+        'Teacher', '500000', 'Post Graduate', '5.4', '55',
+        'Delhi', 'Government Job', 'Assistant Professor', 'Teaching', '', 'true'
       ]
       # Empty row for user data
       csv << [
         'individual', '', '', '', '',
         '', '', '', '', '', '', '',
-        '', '', '', '', 'true'
+        '', '', '', '', '',
+        '', '', '', '', '',
+        '', '', '', '', '', 'true'
       ]
     end
 
@@ -1124,22 +1252,30 @@ class Admin::ImportsController < Admin::ApplicationController
     csv_data = CSV.generate(headers: true) do |csv|
       csv << [
         'customer_type*', 'company_name*', 'mobile*', 'email*', 'gst_no*',
-        'address', 'city', 'state', 'pin_code', 'pan_no', 'sub_agent_name', 'status'
+        'birth_date*', 'address', 'city', 'state', 'pincode', 'pan_no',
+        'nominee_name*', 'nominee_relation*', 'nominee_date_of_birth*',
+        'annual_income', 'business_name', 'sub_agent_name', 'status'
       ]
       # Sample row 1
       csv << [
         'corporate', 'ABC Company Ltd', '9876543211', 'contact@abc.com', '22ABCDE1234F1Z5',
-        '456 Business Park', 'Delhi', 'Delhi', '110001', 'ABCDE1234F', 'Agent Name', 'true'
+        '2010-01-01', '456 Business Park', 'Delhi', 'Delhi', '110001', 'ABCDE1234F',
+        'John Doe', 'other', '1980-01-01',
+        '5000000', 'ABC Business Ventures', 'Agent Name', 'true'
       ]
       # Sample row 2
       csv << [
         'corporate', 'XYZ Enterprises Pvt Ltd', '9876543212', 'info@xyz.com', '27BCDEF2345G1Z6',
-        '789 Industrial Area', 'Mumbai', 'Maharashtra', '400001', 'BCDEF2345G', '', 'true'
+        '2015-05-15', '789 Industrial Area', 'Mumbai', 'Maharashtra', '400001', 'BCDEF2345G',
+        'Jane Smith', 'other', '1985-03-10',
+        '3000000', 'XYZ Manufacturing', '', 'true'
       ]
       # Empty row for user data
       csv << [
         'corporate', '', '', '', '',
-        '', '', '', '', '', '', 'true'
+        '', '', '', '', '', '',
+        '', '', '',
+        '', '', '', 'true'
       ]
     end
 
@@ -1150,32 +1286,42 @@ class Admin::ImportsController < Admin::ApplicationController
     csv_data = CSV.generate(headers: true) do |csv|
       csv << [
         'customer_type*', 'first_name', 'middle_name', 'last_name', 'company_name',
-        'mobile*', 'email', 'gender', 'birth_date', 'marital_status', 'address', 'city', 'state',
-        'pin_code', 'pan_no', 'gst_no', 'aadhar_no', 'sub_agent_name', 'status'
+        'mobile*', 'email', 'gender', 'birth_date*', 'marital_status', 'address', 'city', 'state',
+        'pincode', 'pan_no', 'gst_no', 'nominee_name*', 'nominee_relation*', 'nominee_date_of_birth*',
+        'occupation', 'annual_income', 'education', 'height_feet', 'weight_kg',
+        'birth_place', 'business_job', 'business_name', 'sub_agent_name', 'status'
       ]
       # Individual customer sample
       csv << [
         'individual', 'John', 'Kumar', 'Doe', '',
         '9876543210', 'john.doe@example.com', 'male', '1990-01-01', 'married', '123 Main St', 'Mumbai', 'Maharashtra',
-        '400001', 'ABCDE1234F', '', '123456789012', 'Agent Name', 'true'
+        '400001', 'ABCDE1234F', '', 'Jane Doe', 'spouse', '1992-05-15',
+        'Software Engineer', '800000', 'Graduate', '5.8', '70',
+        'Mumbai', 'Private Job', '', 'Agent Name', 'true'
       ]
       # Corporate customer sample
       csv << [
         'corporate', '', '', '', 'ABC Company Ltd',
-        '9876543211', 'contact@abc.com', '', '', '', '456 Business Park', 'Delhi', 'Delhi',
-        '110001', 'ABCDE1234F', '22ABCDE1234F1Z5', '', 'Agent Name', 'true'
+        '9876543211', 'contact@abc.com', '', '2010-01-01', '', '456 Business Park', 'Delhi', 'Delhi',
+        '110001', 'ABCDE1234F', '22ABCDE1234F1Z5', 'John Doe', 'other', '1980-01-01',
+        '', '5000000', '', '', '',
+        '', '', 'ABC Business Ventures', 'Agent Name', 'true'
       ]
       # Empty individual template row
       csv << [
         'individual', '', '', '', '',
         '', '', '', '', '', '', '', '',
-        '', '', '', '', '', 'true'
+        '', '', '', '', '', '',
+        '', '', '', '', '',
+        '', '', '', '', 'true'
       ]
       # Empty corporate template row
       csv << [
         'corporate', '', '', '', '',
         '', '', '', '', '', '', '', '',
-        '', '', '', '', '', 'true'
+        '', '', '', '', '', '',
+        '', '', '', '', '',
+        '', '', '', '', 'true'
       ]
     end
 
@@ -1187,21 +1333,18 @@ class Admin::ImportsController < Admin::ApplicationController
       csv << [
         'first_name', 'middle_name', 'last_name', 'email', 'mobile', 'gender',
         'birth_date', 'address', 'state', 'city', 'pan_no',
-        'account_holder_name', 'account_number', 'ifsc_code', 'account_type',
         'distributor_name', 'status'
       ]
       csv << [
         'John', 'Kumar', 'Smith', 'affiliate@example.com', '9876543210', 'Male',
         '1985-01-01', '789 Agent Street, Mumbai', 'Maharashtra', 'Mumbai',
-        'ABCDE1234F', 'John Kumar Smith', '1234567890', 'SBIN0001234',
-        'Savings', 'Distributor Name', 'active'
+        'ABCDE1234F', 'Distributor Name', 'active'
       ]
       # Add one more example row
       csv << [
         'Jane', '', 'Doe', 'jane.doe@example.com', '9876543211', 'Female',
         '1990-05-15', '456 Business Street', 'Delhi', 'Delhi',
-        'BCDEF2345G', 'Jane Doe', '0987654321', 'HDFC0001234',
-        'Savings', '', 'active'
+        'BCDEF2345G', '', 'active'
       ]
     end
 
@@ -1469,9 +1612,11 @@ class Admin::ImportsController < Admin::ApplicationController
       errors << "Marital status must be 'single', 'married', 'divorced', or 'widowed'"
     end
 
-    # Birth date validation - simplified for performance
-    birth_date = row_data['birth_date']&.to_s&.strip
-    if birth_date && !birth_date.empty?
+    # Birth date validation - now mandatory for both individual and corporate
+    birth_date = (row_data['birth_date*'] || row_data['birth_date'])&.to_s&.strip
+    if birth_date.nil? || birth_date.empty?
+      errors << "Birth date is required"
+    else
       begin
         # For standard YYYY-MM-DD format (most common), parse directly
         if birth_date.match?(/^\d{4}-\d{2}-\d{2}$/)
@@ -1483,6 +1628,30 @@ class Admin::ImportsController < Admin::ApplicationController
         # Allow future dates - no restriction
       rescue
         errors << "Invalid birth date format"
+      end
+    end
+
+    # Nominee validation - all mandatory
+    nominee_name = (row_data['nominee_name*'] || row_data['nominee_name'])&.to_s&.strip
+    if nominee_name.nil? || nominee_name.empty?
+      errors << "Nominee name is required"
+    end
+
+    nominee_relation = (row_data['nominee_relation*'] || row_data['nominee_relation'])&.to_s&.downcase&.strip
+    if nominee_relation.nil? || nominee_relation.empty?
+      errors << "Nominee relation is required"
+    elsif !['father', 'mother', 'spouse', 'son', 'daughter', 'brother', 'sister', 'other'].include?(nominee_relation)
+      errors << "Nominee relation must be 'father', 'mother', 'spouse', 'son', 'daughter', 'brother', 'sister', or 'other'"
+    end
+
+    nominee_dob = (row_data['nominee_date_of_birth*'] || row_data['nominee_date_of_birth'])&.to_s&.strip
+    if nominee_dob.nil? || nominee_dob.empty?
+      errors << "Nominee date of birth is required"
+    else
+      begin
+        Date.parse(nominee_dob)
+      rescue
+        errors << "Invalid nominee date of birth format"
       end
     end
 

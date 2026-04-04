@@ -112,7 +112,7 @@
         </div>
       </div>
       <div class="col-md-4 text-end">
-        <button type="button" class="btn btn-success btn-lg" id="downloadTemplateBtn" disabled>
+        <button type="button" class="btn btn-success btn-lg" id="downloadTemplateBtn">
           <i class="bi bi-download me-2"></i>Download Template
         </button>
       </div>
@@ -706,20 +706,31 @@ document.addEventListener('DOMContentLoaded', function() {
         'customer_type* (must be "individual")',
         'first_name* (First name)',
         'last_name* (Last name)',
-        'mobile* (10-digit mobile number)'
+        'mobile* (10-digit mobile number)',
+        'birth_date* (Birth date YYYY-MM-DD)',
+        'nominee_name* (Nominee full name)',
+        'nominee_relation* (father/mother/spouse/son/daughter/brother/sister/other)',
+        'nominee_date_of_birth* (Nominee birth date YYYY-MM-DD)'
       ],
       optional: [
         'middle_name (Middle name)',
         'email (Email address)',
         'gender (male/female/other)',
-        'birth_date (YYYY-MM-DD)',
         'marital_status (single/married/divorced/widowed)',
         'address (Full address)',
         'city (City name)',
         'state (State name)',
-        'pin_code (PIN code)',
+        'pincode (PIN code)',
         'pan_no (PAN number AAAAA9999A)',
-        'aadhar_no (12-digit Aadhaar)',
+        'occupation (Job/Profession)',
+        'annual_income (Annual income amount)',
+        'education (Educational qualification)',
+        'height_feet (Height in feet)',
+        'weight_kg (Weight in kilograms)',
+        'birth_place (Place of birth)',
+        'business_job (Type of business/job)',
+        'job_name (Specific job title)',
+        'type_of_duty (Type of duties)',
         'sub_agent_name (Affiliate name)',
         'status (true/false, default: true)'
       ]
@@ -730,14 +741,20 @@ document.addEventListener('DOMContentLoaded', function() {
         'company_name* (Company name)',
         'mobile* (10-digit mobile number)',
         'email* (Email address)',
-        'gst_no* (GST number)'
+        'gst_no* (GST number)',
+        'birth_date* (Registration date YYYY-MM-DD)',
+        'nominee_name* (Nominee full name)',
+        'nominee_relation* (Relation to company - usually "other")',
+        'nominee_date_of_birth* (Nominee birth date YYYY-MM-DD)'
       ],
       optional: [
         'address (Full address)',
         'city (City name)',
         'state (State name)',
-        'pin_code (PIN code)',
+        'pincode (PIN code)',
         'pan_no (PAN number AAAAA9999A)',
+        'annual_income (Annual turnover)',
+        'business_name (Business/Trade name)',
         'sub_agent_name (Affiliate name)',
         'status (true/false, default: true)'
       ]
@@ -799,22 +816,22 @@ document.addEventListener('DOMContentLoaded', function() {
   // Download template
   if (downloadTemplateBtn) {
     downloadTemplateBtn.addEventListener('click', function() {
-      if (selectedClientType) {
-        const url = `<%= download_template_admin_imports_path %>?template_type=customers&client_type=${selectedClientType}`;
-        window.open(url, '_blank');
+      // Use selected client type, or default to 'both' if none selected
+      const clientType = selectedClientType || 'both';
+      const url = `<%= download_template_admin_imports_path %>?template_type=customers&client_type=${clientType}`;
+      window.open(url, '_blank');
 
-        // Add download feedback
-        const originalText = this.innerHTML;
-        this.innerHTML = '<i class="bi bi-check-circle me-2"></i>Downloaded!';
-        this.classList.remove('btn-success');
-        this.classList.add('btn-outline-success');
+      // Add download feedback
+      const originalText = this.innerHTML;
+      this.innerHTML = '<i class="bi bi-check-circle me-2"></i>Downloaded!';
+      this.classList.remove('btn-success');
+      this.classList.add('btn-outline-success');
 
-        setTimeout(() => {
-          this.innerHTML = originalText;
-          this.classList.remove('btn-outline-success');
-          this.classList.add('btn-success');
-        }, 2000);
-      }
+      setTimeout(() => {
+        this.innerHTML = originalText;
+        this.classList.remove('btn-outline-success');
+        this.classList.add('btn-success');
+      }, 2000);
     });
   }
 
@@ -1077,13 +1094,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
       html += '</tbody></table></div>';
 
-      // Enable import if all rows are valid
+      // Always allow import, but warn about errors
+      importClientsBtn.disabled = false;
       if (data.invalid_rows === 0) {
-        importClientsBtn.disabled = false;
         html += '<div class="alert alert-success mt-3"><i class="bi bi-check-circle me-2"></i><strong>All records are valid!</strong> You can proceed with the import.</div>';
       } else {
-        importClientsBtn.disabled = true;
-        html += `<div class="alert alert-warning mt-3"><i class="bi bi-exclamation-triangle me-2"></i><strong>${data.invalid_rows} records have errors.</strong> Please fix the errors in your Excel file and re-upload.</div>`;
+        html += `<div class="alert alert-warning mt-3"><i class="bi bi-exclamation-triangle me-2"></i><strong>${data.invalid_rows} records have errors.</strong> Invalid records will be skipped during import. Valid records will be imported successfully.</div>`;
       }
     } else {
       html += '<tr><td colspan="100%" class="text-center text-muted">No data found in the file.</td></tr></tbody></table></div>';
@@ -1101,7 +1117,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Import clients
   if (importClientsBtn) {
     importClientsBtn.addEventListener('click', function() {
-    if (!currentFile || !previewData || previewData.invalid_rows > 0) return;
+    if (!currentFile || !previewData) return;
 
     const formData = new FormData();
     formData.append('file', currentFile);
