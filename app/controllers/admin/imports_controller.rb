@@ -1372,16 +1372,31 @@ class Admin::ImportsController < Admin::ApplicationController
   def send_health_insurance_template
     csv_data = CSV.generate(headers: true) do |csv|
       csv << [
-        'customer_name', 'policy_holder', 'insurance_company_name', 'policy_type',
+        'customer_name', 'customer_email', 'policy_holder', 'insurance_company_name', 'policy_type',
         'insurance_type', 'policy_number', 'policy_booking_date', 'policy_start_date', 'policy_end_date',
         'payment_mode', 'sum_insured', 'net_premium', 'gst_percentage', 'total_premium',
-        'sub_agent_name', 'distributor_name', 'investor_name', 'agency_code_name', 'broker_name'
+        'plan_name'
       ]
+
+      # Generate random sample data
+      first_names = ['Amit', 'Priya', 'Rahul', 'Sneha', 'Vikram', 'Anita', 'Ravi', 'Meera', 'Suresh', 'Kavita']
+      middle_names = ['Kumar', 'Devi', 'Singh', 'Sharma', 'Patel', 'Gupta', 'Verma', 'Agarwal', 'Jain', '']
+      last_names = ['Sharma', 'Patel', 'Singh', 'Kumar', 'Gupta', 'Agarwal', 'Verma', 'Jain', 'Shah', 'Mehta']
+
+      first_name = first_names.sample
+      middle_name = middle_names.sample
+      last_name = last_names.sample
+
+      full_name = [first_name, middle_name, last_name].reject(&:empty?).join(' ')
+      email_base = first_name.downcase + '.' + last_name.downcase
+      random_email = "#{email_base}#{rand(100..999)}@example.com"
+      random_policy = "HLT#{rand(100000..999999)}"
+
       csv << [
-        'John Kumar Doe', 'John Doe', 'HDFC ERGO Health Insurance', 'New',
-        'Individual', 'HLT001234', '2024-01-01', '2024-01-01', '2024-12-31',
+        full_name, random_email, first_name + ' ' + last_name, 'HDFC ERGO Health Insurance', 'New',
+        'Individual', random_policy, '2024-01-01', '2024-01-01', '2024-12-31',
         'Yearly', '500000', '25000', '18', '29500',
-        'Affiliate Name', 'Distributor Name', 'Investor Name', 'Agency Code Name', 'Broker Name'
+        'Health Plus Plan'
       ]
     end
 
@@ -1391,18 +1406,41 @@ class Admin::ImportsController < Admin::ApplicationController
   def send_life_insurance_template
     csv_data = CSV.generate(headers: true) do |csv|
       csv << [
-        'customer_name', 'policy_holder', 'insurance_company_name', 'policy_type',
+        'customer_name', 'customer_email', 'policy_holder', 'insured_name', 'insurance_company_name', 'policy_type',
         'policy_number', 'policy_booking_date', 'policy_start_date', 'policy_end_date',
         'payment_mode', 'sum_insured', 'net_premium', 'first_year_gst_percentage',
-        'total_premium', 'policy_term', 'distributor_name', 'sub_agent_name',
-        'investor_name', 'agency_code_name', 'broker_name'
+        'total_premium', 'policy_term', 'premium_payment_term', 'plan_name',
+        'nominee_name', 'nominee_relationship'
       ]
+
+      # Generate random sample data
+      first_names = ['Amit', 'Priya', 'Rahul', 'Sneha', 'Vikram', 'Anita', 'Ravi', 'Meera', 'Suresh', 'Kavita']
+      middle_names = ['Kumar', 'Devi', 'Singh', 'Sharma', 'Patel', 'Gupta', 'Verma', 'Agarwal', 'Jain', '']
+      last_names = ['Sharma', 'Patel', 'Singh', 'Kumar', 'Gupta', 'Agarwal', 'Verma', 'Jain', 'Shah', 'Mehta']
+
+      # Nominee names and relationships
+      nominee_first_names = ['Sunita', 'Rajesh', 'Deepak', 'Pooja', 'Manoj', 'Geeta', 'Sanjay', 'Nisha']
+      relationships = ['spouse', 'father', 'mother', 'son', 'daughter', 'brother', 'sister']
+
+      first_name = first_names.sample
+      middle_name = middle_names.sample
+      last_name = last_names.sample
+
+      full_name = [first_name, middle_name, last_name].reject(&:empty?).join(' ')
+      policy_holder_name = first_name + ' ' + last_name
+      email_base = first_name.downcase + '.' + last_name.downcase
+      random_email = "#{email_base}#{rand(100..999)}@example.com"
+      random_policy = "LIC#{rand(100000..999999)}"
+
+      nominee_name = nominee_first_names.sample + ' ' + last_name
+      relationship = relationships.sample
+
       csv << [
-        'John Kumar Doe', 'John Doe', 'ICICI Prudential Life Insurance', 'New',
-        'LIC001234', '2024-01-01', '2024-01-01', '2044-12-31',
+        full_name, random_email, policy_holder_name, full_name, 'ICICI Prudential Life Insurance', 'New',
+        random_policy, '2024-01-01', '2024-01-01', '2044-12-31',
         'Yearly', '1000000', '50000', '18',
-        '59000', '20', 'Distributor Name', 'Affiliate Name',
-        'Investor Name', 'Agency Code Name', 'Broker Name'
+        '59000', '20', '15', 'Term Life Plan',
+        nominee_name, relationship
       ]
     end
 
