@@ -116,11 +116,11 @@ class Distributor < ApplicationRecord
   def format_mobile_number
     return if mobile.blank?
 
-    # Remove all non-digit characters
+    # Remove all non-digit characters first
     clean_mobile = mobile.to_s.gsub(/[^\d]/, '')
 
     # Handle different input formats - always extract 10-digit number
-    if clean_mobile.start_with?('91') && clean_mobile.length == 12
+    if clean_mobile.length == 12 && clean_mobile.start_with?('91')
       # 91XXXXXXXXXX format - extract 10-digit part
       digits_part = clean_mobile[2..-1]
       if digits_part.length == 10 && digits_part.match?(/\A[789]\d{9}\z/)
@@ -129,9 +129,6 @@ class Distributor < ApplicationRecord
         # Invalid format, let validation handle it
         self.mobile = clean_mobile
       end
-    elsif clean_mobile.length == 10 && clean_mobile.match?(/\A[789]\d{9}\z/)
-      # XXXXXXXXXX format - valid 10 digit number starting with 7, 8, or 9
-      self.mobile = clean_mobile
     elsif clean_mobile.length == 11 && clean_mobile.start_with?('0')
       # 0XXXXXXXXXX format - remove leading zero
       digits_part = clean_mobile[1..-1]
@@ -141,6 +138,9 @@ class Distributor < ApplicationRecord
         # Invalid format, let validation handle it
         self.mobile = clean_mobile
       end
+    elsif clean_mobile.length == 10 && clean_mobile.match?(/\A[789]\d{9}\z/)
+      # XXXXXXXXXX format - valid 10 digit number starting with 7, 8, or 9
+      self.mobile = clean_mobile
     else
       # Any other format - let validation handle it
       self.mobile = clean_mobile

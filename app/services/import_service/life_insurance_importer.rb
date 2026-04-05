@@ -143,9 +143,10 @@ module ImportService
         plan_name: row['plan_name']&.to_s&.strip,
         policy_term: parse_number(row['policy_term']),
         premium_payment_term: parse_number(row['premium_payment_term']),
-        policy_type: row['policy_type']&.to_s&.strip || 'Individual',
+        policy_type: row['policy_type']&.to_s&.strip || 'New',
         nominee_name: row['nominee_name']&.to_s&.strip,
         nominee_relationship: row['nominee_relationship']&.to_s&.strip,
+        distributor_id: find_or_create_default_distributor&.id,
         is_admin_added: true,
         is_agent_added: false,
         is_customer_added: false,
@@ -304,6 +305,29 @@ module ImportService
       loop do
         mobile = "9#{rand(100000000..999999999)}"
         return mobile unless Customer.exists?(mobile: mobile) || SubAgent.exists?(mobile: mobile) || Ambassador.exists?(mobile: mobile) rescue return mobile
+      end
+    end
+
+    def find_or_create_default_distributor
+      return nil unless defined?(Distributor)
+
+      # Try to find an existing distributor
+      distributor = Distributor.first
+      return distributor if distributor
+
+      # Create a default distributor if none exists
+      begin
+        Distributor.create!(
+          company_name: 'Default Distributor',
+          first_name: 'Admin',
+          last_name: 'User',
+          email: "admin@insurebook.com",
+          mobile: generate_unique_mobile,
+          original_password: SecureRandom.hex(8)
+        )
+      rescue => e
+        Rails.logger.warn "Failed to create default distributor: #{e.message}"
+        nil
       end
     end
   end
