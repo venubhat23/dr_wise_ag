@@ -676,12 +676,12 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       :investor_commission_percentage, :investor_commission_amount, :investor_tds_percentage, :investor_tds_amount, :investor_after_tds_value,
       # Company expenses and profit fields
       :company_expenses_percentage, :company_expenses_amount, :total_distribution_percentage, :profit_percentage, :profit_amount,
+      # Main policy document
+      :main_policy_document,
       health_insurance_members_attributes: [:id, :member_name, :age, :relationship, :sum_insured, :_destroy],
       health_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
       # R2 Documents
       health_insurance_documents_attributes: [:id, :title, :description, :document_type, :r2_file_key, :r2_filename, :r2_content_type, :r2_file_size, :_destroy],
-      # Main policy document
-      :main_policy_document,
       # Legacy support
       documents: [],
       policy_documents: [],
