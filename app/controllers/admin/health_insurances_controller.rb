@@ -680,6 +680,8 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       health_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
       # R2 Documents
       health_insurance_documents_attributes: [:id, :title, :description, :document_type, :r2_file_key, :r2_filename, :r2_content_type, :r2_file_size, :_destroy],
+      # Main policy document
+      :main_policy_document,
       # Legacy support
       documents: [],
       policy_documents: [],

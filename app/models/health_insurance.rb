@@ -441,4 +441,31 @@ class HealthInsurance < ApplicationRecord
       self.investor_after_tds_value = investor_commission_amount&.round(2)
     end
   end
+
+  # R2 main policy document upload method
+  def upload_main_policy_to_r2(file)
+    return { error: 'No file provided' } unless file.present?
+
+    begin
+      result = R2Service.upload(file, folder: "health_insurance/#{id}/main_policy")
+
+      if result && result[:key] && !result[:error]
+        update_columns(
+          main_policy_document_key: result[:key],
+          main_policy_document_filename: result[:filename],
+          main_policy_document_content_type: result[:content_type],
+          main_policy_document_size: result[:size]
+        )
+        Rails.logger.info "Main policy document uploaded to R2 for health insurance #{id}: #{result[:key]}"
+        return result
+      else
+        error_msg = result[:error] || "Upload failed"
+        Rails.logger.error "Failed to upload main policy document to R2 for health insurance #{id}: #{error_msg}"
+        return { error: error_msg }
+      end
+    rescue => e
+      Rails.logger.error "Error uploading main policy document to R2 for health insurance #{id}: #{e.message}"
+      return { error: e.message }
+    end
+  end
 end
