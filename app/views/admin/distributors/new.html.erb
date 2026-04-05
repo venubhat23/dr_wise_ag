@@ -1139,37 +1139,79 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize the form state
   togglePasswordFields();
 
-  // Mobile number handling
+  // Mobile number handling with improved formatting
   const mobileInput = document.querySelector('input[name="distributor[mobile]"]');
-  if (mobileInput && mobileInput.value) {
-    // Remove +91 and spaces if present
-    let cleanNumber = mobileInput.value.replace(/^\+91\s*/, '').replace(/\s+/g, '');
-    // Keep only the last 10 digits
-    if (cleanNumber.length > 10) {
-      cleanNumber = cleanNumber.slice(-10);
+
+  // Function to format mobile number similar to backend logic
+  function formatMobileNumber(input) {
+    if (!input) return '';
+
+    // Remove all non-digit characters first
+    let cleanMobile = input.replace(/[^\d]/g, '');
+
+    // Handle different input formats - always extract 10-digit number
+    if (cleanMobile.length === 12 && cleanMobile.startsWith('91')) {
+      // 91XXXXXXXXXX format - extract 10-digit part
+      let digitsPath = cleanMobile.substring(2);
+      if (digitsPath.length === 10 && /^[789]\d{9}$/.test(digitsPath)) {
+        return digitsPath;
+      }
+      return cleanMobile;
+    } else if (cleanMobile.length === 11 && cleanMobile.startsWith('0')) {
+      // 0XXXXXXXXXX format - remove leading zero
+      let digitsPath = cleanMobile.substring(1);
+      if (digitsPath.length === 10 && /^[789]\d{9}$/.test(digitsPath)) {
+        return digitsPath;
+      }
+      return cleanMobile;
+    } else if (cleanMobile.length === 10 && /^[789]\d{9}$/.test(cleanMobile)) {
+      // XXXXXXXXXX format - valid 10 digit number starting with 7, 8, or 9
+      return cleanMobile;
+    } else {
+      // Any other format - return as-is for validation to handle
+      return cleanMobile;
     }
-    mobileInput.value = cleanNumber;
+  }
+
+  // Initialize mobile field value if present
+  if (mobileInput && mobileInput.value) {
+    let formattedValue = formatMobileNumber(mobileInput.value);
+    mobileInput.value = formattedValue;
   }
 
   // Add input validation for mobile number
   if (mobileInput) {
     mobileInput.addEventListener('input', function(e) {
-      // Remove non-digit characters
-      this.value = this.value.replace(/\D/g, '');
-      // Limit to 10 digits
-      if (this.value.length > 10) {
-        this.value = this.value.slice(0, 10);
+      // Format the input using our function
+      let formattedValue = formatMobileNumber(this.value);
+
+      // Limit to reasonable length to prevent excessive input
+      if (formattedValue.length > 15) {
+        formattedValue = formattedValue.slice(0, 15);
       }
+
+      this.value = formattedValue;
 
       // Remove validation classes
       this.classList.remove('is-invalid', 'is-valid');
 
-      // Check if valid
-      if (this.value.length === 10) {
+      // Check if valid (must be exactly 10 digits starting with 7, 8, or 9)
+      if (formattedValue.length === 10 && /^[789]\d{9}$/.test(formattedValue)) {
         this.classList.add('is-valid');
-      } else if (this.value.length > 0) {
+      } else if (formattedValue.length > 0) {
         this.classList.add('is-invalid');
       }
+    });
+
+    // Also handle paste events
+    mobileInput.addEventListener('paste', function(e) {
+      setTimeout(() => {
+        let formattedValue = formatMobileNumber(this.value);
+        this.value = formattedValue;
+
+        // Trigger input event to update validation
+        this.dispatchEvent(new Event('input'));
+      }, 10);
     });
   }
 
