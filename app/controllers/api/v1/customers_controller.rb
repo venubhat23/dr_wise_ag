@@ -59,6 +59,32 @@ class Api::V1::CustomersController < Api::V1::ApplicationController
     end
   end
 
+  # POST /api/v1/customers/register
+  # Accepts flat JSON structure for customer registration
+  def register
+    @customer = Customer.new(flat_customer_params)
+
+    if @customer.save
+      render json: {
+        status: true,
+        message: 'Customer created successfully',
+        data: {
+          id: @customer.id,
+          customer_type: @customer.customer_type,
+          display_name: @customer.display_name,
+          email: @customer.email,
+          mobile: @customer.mobile
+        }
+      }, status: :created
+    else
+      render json: {
+        status: false,
+        message: 'Failed to create customer',
+        errors: @customer.errors.full_messages
+      }, status: :unprocessable_entity
+    end
+  end
+
   # PATCH/PUT /api/v1/customers/:id
   def update
     if @customer.update(customer_params)
@@ -120,6 +146,18 @@ class Api::V1::CustomersController < Api::V1::ApplicationController
         :pan_no, :gst_no, :additional_information, :_destroy,
         documents_attributes: [:id, :document_type, :file, :_destroy]
       ]
+    )
+  end
+
+  # For flat JSON structure (registration endpoint)
+  def flat_customer_params
+    params.permit(
+      :customer_type, :first_name, :middle_name, :last_name, :company_name, :email, :mobile,
+      :address, :state, :city, :pincode, :pan_no, :gst_no, :birth_date,
+      :gender, :occupation, :annual_income, :nominee_name, :nominee_relation,
+      :nominee_date_of_birth, :status, :birth_place, :height_feet, :weight_kg, :education,
+      :marital_status, :business_job, :business_name, :type_of_duty, :additional_information,
+      :added_by, :sub_agent, :age
     )
   end
 

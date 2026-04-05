@@ -779,6 +779,9 @@ Rails.application.routes.draw do
 
       # Customer APIs
       resources :customers do
+        collection do
+          post :register
+        end
         member do
           patch :toggle_status
         end

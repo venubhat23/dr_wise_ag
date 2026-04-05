@@ -1,3 +1,5 @@
+require 'ostruct'
+
 class CustomerDocument < ApplicationRecord
   # Associations
   belongs_to :customer

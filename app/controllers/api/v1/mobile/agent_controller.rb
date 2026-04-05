@@ -146,6 +146,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       :customer_type, :first_name, :last_name, :company_name, :email,
       :mobile, :gender, :birth_date, :address, :city, :state, :pincode,
       :pan_no, :gst_no, :occupation, :annual_income, :marital_status,
+      :nominee_name, :nominee_relation, :nominee_date_of_birth,
       :image_url, :password, :password_confirmation, :file1, :file2,
       documents: [:document_type, :document_file]
     )
@@ -413,7 +414,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                        agent_life_policies
                      end
 
-      life_policies.includes(:customer, :life_insurance_documents, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+      life_policies.includes(:customer, :life_insurance_documents).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Life', commission_payouts)
       end
     end
@@ -426,7 +427,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                          agent_motor_policies
                        end
 
-      motor_policies.includes(:customer, documents_attachments: :blob).each do |policy|
+      motor_policies.includes(:customer, :motor_insurance_documents).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Motor', commission_payouts)
       end
     end
@@ -439,7 +440,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                          Policy.where(insurance_type: 'other', user: agent)
                        end
 
-      other_policies.includes(:customer, documents_attachments: :blob).each do |policy|
+      other_policies.includes(:customer, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Other', commission_payouts)
       end
     end
@@ -1543,15 +1544,15 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         policies << format_policy_data_with_commission(policy, 'Health', commission_payouts)
       end
 
-      customer.life_insurances.includes(:life_insurance_documents, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+      customer.life_insurances.includes(:life_insurance_documents).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Life', commission_payouts)
       end
 
-      customer.motor_insurances.includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+      customer.motor_insurances.includes(:motor_insurance_documents).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Motor', commission_payouts)
       end
 
-      customer.policies.where(insurance_type: 'other').includes(documents_attachments: :blob).each do |policy|
+      customer.policies.where(insurance_type: 'other').includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Other', commission_payouts)
       end
     elsif agent.is_a?(SubAgent)
@@ -1560,11 +1561,11 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         policies << format_policy_data_with_commission(policy, 'Health', commission_payouts)
       end
 
-      customer.life_insurances.where(sub_agent_id: agent.id).includes(:life_insurance_documents, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+      customer.life_insurances.where(sub_agent_id: agent.id).includes(:life_insurance_documents).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Life', commission_payouts)
       end
 
-      customer.motor_insurances.where(sub_agent_id: agent.id).includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+      customer.motor_insurances.where(sub_agent_id: agent.id).includes(:motor_insurance_documents).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Motor', commission_payouts)
       end
 
@@ -1583,16 +1584,16 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         policies << format_policy_data_with_commission(policy, 'Health', commission_payouts)
       end
 
-      life_policies.where(id: customer_life_ids).includes(:life_insurance_documents, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+      life_policies.where(id: customer_life_ids).includes(:life_insurance_documents).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Life', commission_payouts)
       end
 
-      motor_policies.where(id: customer_motor_ids).includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+      motor_policies.where(id: customer_motor_ids).includes(:motor_insurance_documents).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Motor', commission_payouts)
       end
 
       # For other insurance policies, filter by agent (if applicable)
-      customer.policies.where(insurance_type: 'other', user: agent).includes(documents_attachments: :blob).each do |policy|
+      customer.policies.where(insurance_type: 'other', user: agent).includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Other', commission_payouts)
       end
     end
