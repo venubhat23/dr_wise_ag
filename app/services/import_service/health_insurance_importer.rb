@@ -75,9 +75,12 @@ module ImportService
         return
       end
 
-      # Find customer
-      customer = find_customer(insurance_data[:customer_email], row_number)
+      # Find or create customer
+      customer = find_or_create_customer(insurance_data, row_number)
       return unless customer
+
+      # Find or create sub agent (optional)
+      sub_agent = find_or_create_sub_agent(insurance_data, row_number)
 
       # Check for duplicates
       if duplicate_policy?(insurance_data)
@@ -86,11 +89,10 @@ module ImportService
         return
       end
 
-      # Create health insurance policy
-      insurance_data[:customer_id] = customer.id
-      insurance_data.delete(:customer_email)
+      # Prepare health insurance data
+      health_insurance_data = prepare_health_insurance_data(insurance_data, customer, sub_agent)
 
-      health_insurance = HealthInsurance.new(insurance_data)
+      health_insurance = HealthInsurance.new(health_insurance_data)
 
       if health_insurance.save
         @imported_count += 1
@@ -106,12 +108,31 @@ module ImportService
 
     def normalize_insurance_data(row)
       {
+        # Customer fields
         customer_email: row['customer_email']&.to_s&.downcase&.strip,
+        customer_first_name: row['customer_first_name']&.to_s&.strip,
+        customer_last_name: row['customer_last_name']&.to_s&.strip,
+        customer_mobile: row['customer_mobile']&.to_s&.strip,
+        customer_address: row['customer_address']&.to_s&.strip,
+        customer_city: row['customer_city']&.to_s&.strip,
+        customer_state: row['customer_state']&.to_s&.strip,
+        customer_pincode: row['customer_pincode']&.to_s&.strip,
+        customer_pan_no: row['customer_pan_no']&.to_s&.strip,
+        customer_type: row['customer_type']&.to_s&.downcase&.strip || 'individual',
+        customer_age: parse_number(row['customer_age']),
+
+        # Sub Agent fields
+        sub_agent_email: row['sub_agent_email']&.to_s&.downcase&.strip,
+        sub_agent_first_name: row['sub_agent_first_name']&.to_s&.strip,
+        sub_agent_last_name: row['sub_agent_last_name']&.to_s&.strip,
+        sub_agent_mobile: row['sub_agent_mobile']&.to_s&.strip,
+
+        # Insurance fields
         policy_holder: row['policy_holder']&.to_s&.strip,
         insurance_company_name: row['insurance_company_name']&.to_s&.strip,
         policy_type: row['policy_type']&.to_s&.strip,
         policy_number: row['policy_number']&.to_s&.strip,
-        policy_booking_date: parse_date(row['policy_booking_date']),
+        policy_booking_date: parse_date(row['policy_booking_date']) || Date.current,
         policy_start_date: parse_date(row['policy_start_date']),
         policy_end_date: parse_date(row['policy_end_date']),
         payment_mode: row['payment_mode']&.to_s&.strip,
@@ -153,14 +174,101 @@ module ImportService
       true
     end
 
-    def find_customer(email, row_number)
+    def find_or_create_customer(insurance_data, row_number)
+      email = insurance_data[:customer_email]
       customer = Customer.find_by(email: email)
+
       unless customer
-        @errors << "Row #{row_number}: Customer with email '#{email}' not found"
-        @skipped_count += 1
-        return nil
+        # Create new customer
+        customer_attrs = {
+          email: email,
+          first_name: insurance_data[:customer_first_name] || email.split('@').first.capitalize,
+          last_name: insurance_data[:customer_last_name],
+          mobile: insurance_data[:customer_mobile].present? ? insurance_data[:customer_mobile] : generate_unique_mobile,
+          address: insurance_data[:customer_address],
+          city: insurance_data[:customer_city],
+          state: insurance_data[:customer_state],
+          pincode: insurance_data[:customer_pincode],
+          pan_no: insurance_data[:customer_pan_no],
+          customer_type: insurance_data[:customer_type] || 'individual',
+          age: insurance_data[:customer_age],
+          birth_date: Date.current - 30.years,  # Default age 30
+          nominee_name: 'TBD',
+          nominee_relation: 'spouse',
+          nominee_date_of_birth: Date.current - 25.years,
+          added_by: 'admin'
+        }
+        customer_attrs.compact!
+
+        customer = Customer.new(customer_attrs)
+
+        if customer.save
+          Rails.logger.info "Created new customer: #{customer.email}"
+        else
+          @errors << "Row #{row_number}: Failed to create customer - #{customer.errors.full_messages.join(', ')}"
+          @skipped_count += 1
+          return nil
+        end
       end
+
       customer
+    end
+
+    def find_or_create_sub_agent(insurance_data, row_number)
+      return nil if insurance_data[:sub_agent_email].blank?
+
+      email = insurance_data[:sub_agent_email]
+      sub_agent = SubAgent.find_by(email: email)
+
+      unless sub_agent
+        # Create new sub agent
+        sub_agent_attrs = {
+          email: email,
+          first_name: insurance_data[:sub_agent_first_name] || email.split('@').first.capitalize,
+          last_name: insurance_data[:sub_agent_last_name],
+          mobile: insurance_data[:sub_agent_mobile].present? ? insurance_data[:sub_agent_mobile] : generate_unique_mobile,
+          original_password: SecureRandom.hex(8),
+          role_id: 1  # sub_agent role
+        }
+        sub_agent_attrs.compact!
+
+        sub_agent = SubAgent.new(sub_agent_attrs)
+
+        if sub_agent.save
+          Rails.logger.info "Created new sub agent: #{sub_agent.email}"
+        else
+          @errors << "Row #{row_number}: Failed to create sub agent - #{sub_agent.errors.full_messages.join(', ')}"
+          return nil
+        end
+      end
+
+      sub_agent
+    end
+
+    def prepare_health_insurance_data(insurance_data, customer, sub_agent)
+      # Remove customer and sub_agent specific fields
+      cleaned_data = insurance_data.dup
+      cleaned_data.delete(:customer_email)
+      cleaned_data.delete(:customer_first_name)
+      cleaned_data.delete(:customer_last_name)
+      cleaned_data.delete(:customer_mobile)
+      cleaned_data.delete(:customer_address)
+      cleaned_data.delete(:customer_city)
+      cleaned_data.delete(:customer_state)
+      cleaned_data.delete(:customer_pincode)
+      cleaned_data.delete(:customer_pan_no)
+      cleaned_data.delete(:customer_type)
+      cleaned_data.delete(:customer_age)
+      cleaned_data.delete(:sub_agent_email)
+      cleaned_data.delete(:sub_agent_first_name)
+      cleaned_data.delete(:sub_agent_last_name)
+      cleaned_data.delete(:sub_agent_mobile)
+
+      # Set required associations
+      cleaned_data[:customer_id] = customer.id
+      cleaned_data[:sub_agent_id] = sub_agent&.id
+
+      cleaned_data
     end
 
     def duplicate_policy?(insurance_data)
@@ -184,6 +292,13 @@ module ImportService
         number_string.to_s.gsub(/[^\d.]/, '').to_f
       rescue
         nil
+      end
+    end
+
+    def generate_unique_mobile
+      loop do
+        mobile = "9#{rand(100000000..999999999)}"
+        return mobile unless Customer.exists?(mobile: mobile) || SubAgent.exists?(mobile: mobile) || Ambassador.exists?(mobile: mobile) rescue return mobile
       end
     end
   end
