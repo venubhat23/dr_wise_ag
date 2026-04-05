@@ -62,14 +62,12 @@
           <% end %>
           <%= form.telephone_field :mobile,
               class: "form-control",
-              placeholder: "Enter 10-digit mobile (7/8/9xxxxxxxxx)",
+              placeholder: "+91 81718 19191 or 81718 19191",
               required: true,
-              pattern: "[789][0-9]{9}",
-              maxlength: 10,
-              title: "Must be a 10-digit number starting with 7, 8, or 9" %>
-          <small class="form-text text-muted">Enter 10-digit number starting with 7, 8, or 9</small>
+              title: "Enter mobile number with or without +91 prefix" %>
+          <small class="form-text text-muted">Enter mobile number with or without +91 (e.g., +91 8171819191 or 8171819191)</small>
           <div class="invalid-feedback">
-            Please enter a valid 10-digit mobile number starting with 7, 8, or 9
+            Please enter a valid mobile number starting with 7, 8, or 9
           </div>
         </div>
         <div class="col-md-6">
@@ -1198,8 +1196,10 @@ document.addEventListener('DOMContentLoaded', function() {
       // Check if valid (must be exactly 10 digits starting with 7, 8, or 9)
       if (formattedValue.length === 10 && /^[789]\d{9}$/.test(formattedValue)) {
         this.classList.add('is-valid');
+        this.classList.remove('is-invalid');
       } else if (formattedValue.length > 0) {
         this.classList.add('is-invalid');
+        this.classList.remove('is-valid');
       }
     });
 
