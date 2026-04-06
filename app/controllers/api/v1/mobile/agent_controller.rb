@@ -675,7 +675,6 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       insured_name: policy_params[:insured_name],
       insurance_company_name: get_company_name_by_id(policy_params[:insurance_company_id]),
       distributor_id: Distributor.exists?(1) ? 1 : nil,
-      investor_id: Investor.exists?(1) ? 1 : nil,
       agency_code_id: AgencyCode.exists?(policy_params[:agency_code_id]) ? policy_params[:agency_code_id] : nil,
       policy_type: mapped_policy_type,
       payment_mode: policy_params[:payment_mode]&.capitalize || 'Yearly',

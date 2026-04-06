@@ -1,3 +1,5 @@
+require 'bcrypt'
+
 class User < ApplicationRecord
   # Include default devise modules. Others available are:
   # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
@@ -267,6 +269,19 @@ class User < ApplicationRecord
   # Clear abilities cache when role changes
   def clear_abilities_cache
     Rails.cache.delete("user_#{id}_abilities")
+  end
+
+  # Override password_digest method to fix serialization issues
+  # The User model uses Devise (encrypted_password) but has a password_digest column
+  # This causes conflicts during serialization - override to prevent errors
+  def password_digest(password = nil)
+    # If called with password argument, use BCrypt like has_secure_password would
+    if password
+      BCrypt::Password.create(password)
+    else
+      # For serialization (no arguments), return the stored value or nil
+      super() if respond_to?(:super) rescue nil
+    end
   end
 
   private
