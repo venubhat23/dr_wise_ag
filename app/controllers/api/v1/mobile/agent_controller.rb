@@ -39,17 +39,21 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # Check if current user is admin
     customers = if is_admin?(agent)
                   Customer.all
-                elsif agent.is_a?(SubAgent)
-                  # For SubAgents, show only customers from their policies (matching dashboard logic)
-                  sub_agent_health_policies = HealthInsurance.where(sub_agent_id: agent.id)
-                  sub_agent_life_policies = LifeInsurance.where(sub_agent_id: agent.id)
-                  sub_agent_motor_policies = MotorInsurance.where(sub_agent_id: agent.id)
-                  policy_customer_ids = (sub_agent_health_policies.pluck(:customer_id) + sub_agent_life_policies.pluck(:customer_id) + sub_agent_motor_policies.pluck(:customer_id)).uniq
-
-                  # Only show customers with policies to match dashboard statistics
-                  Customer.where(id: policy_customer_ids)
+                elsif is_sub_agent?(agent)
+                  # For sub_agents, show all customers assigned to them (matching dashboard logic)
+                  if agent.is_a?(SubAgent)
+                    Customer.where(sub_agent_id: agent.id)
+                  else
+                    # For User with sub_agent type, find matching SubAgent
+                    sub_agent = SubAgent.find_by(email: agent.email)
+                    if sub_agent
+                      Customer.where(sub_agent_id: sub_agent.id)
+                    else
+                      Customer.where(sub_agent_id: agent.id)
+                    end
+                  end
                 else
-                  # For regular User agents, show only customers from their policies (matching dashboard logic)
+                  # For regular agents, show customers from their policies only
                   _, _, _, agent_customer_ids = get_agent_policies(agent)
                   Customer.where(id: agent_customer_ids)
                 end

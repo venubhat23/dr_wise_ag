@@ -2,6 +2,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
 
   # POST /api/v1/mobile/auth/login
   def login
+    debugger
     # Support login with email, mobile number, or PAN card
     login_field = params[:login] || params[:username] || params[:email] || params[:mobile] || params[:pan]
     password = params[:password]
@@ -758,6 +759,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
   # Find sub_agent by login field (email, mobile, or PAN)
   def find_sub_agent_by_login_field(login_field)
     # Try email first
+    debugger
     sub_agent = SubAgent.find_by(email: login_field)
     return sub_agent if sub_agent
 
@@ -849,16 +851,31 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     total_policies = health_policies.count + life_policies.count
     total_policies += motor_policies.count if defined?(MotorInsurance) && motor_policies
 
+    # Calculate total customers assigned to this agent (matching dashboard logic)
+    total_customers_count = if user.is_a?(SubAgent)
+                             Customer.where(sub_agent_id: user.id).active.count
+                           elsif user.is_a?(User) && user.user_type == 'sub_agent'
+                             # For User with sub_agent type, find matching SubAgent
+                             sub_agent = SubAgent.find_by(email: user.email)
+                             if sub_agent
+                               Customer.where(sub_agent_id: sub_agent.id).active.count
+                             else
+                               Customer.where(sub_agent_id: user.id).active.count
+                             end
+                           else
+                             customer_ids.uniq.count
+                           end
+
     # If no real data, provide realistic mock data
     if total_commission == 0 && total_policies == 0
       total_commission = generate_mock_commission(user)
       total_policies = generate_mock_policies_count(user)
-      customer_ids = generate_mock_customers(user, total_policies)
+      total_customers_count = generate_mock_customers(user, total_policies) if total_customers_count == 0
     end
 
     {
       commission_earned: format_indian_amount(total_commission),
-      customers_count: customer_ids.uniq.count,
+      customers_count: total_customers_count,
       policies_count: total_policies,
       commission_breakdown: {
         health_commission: format_indian_amount(health_commission),
