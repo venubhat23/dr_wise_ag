@@ -620,7 +620,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     validation_errors << 'Policy term years is required' if policy_params[:policy_term_years].blank?
     validation_errors << 'Premium payment term years is required' if policy_params[:premium_payment_term_years].blank?
     validation_errors << 'Net premium is required' if policy_params[:net_premium].blank?
-    validation_errors << 'GST percentage year 1 is required' if policy_params[:gst_percentage_year_1].blank?
+    # GST percentage is optional for life insurance
 
     if validation_errors.any?
       return render json: {

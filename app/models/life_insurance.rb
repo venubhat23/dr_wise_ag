@@ -498,6 +498,8 @@ class LifeInsurance < ApplicationRecord
     return if insurance_company_name.blank?
     # Skip validation for customer-added policies (they can input any company name)
     return if is_customer_added?
+    # Skip validation for agent-added policies (they can input any company name)
+    return if is_agent_added?
 
     exists = InsuranceCompany.where(name: insurance_company_name).exists?
 
