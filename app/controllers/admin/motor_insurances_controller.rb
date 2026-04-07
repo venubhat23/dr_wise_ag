@@ -856,7 +856,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   end
 
   def load_form_data
-    @customers = Customer.active.order(:first_name, :last_name)
+    @customers = Customer.active.order(:first_name, :last_name, :company_name)
     @sub_agents = SubAgent.active.order(:first_name, :last_name)
     @distributors = Distributor.active.order(:first_name, :last_name)
     @investors = Investor.active.order(:first_name, :last_name)

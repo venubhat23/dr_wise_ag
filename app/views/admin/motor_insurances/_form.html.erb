@@ -24,15 +24,9 @@
         <div class="col-md-4 mb-3">
           <%= form.label :customer_id, "Client Name*", class: "form-label" %>
           <%= form.select :customer_id,
-              options_for_select(@customers.map { |customer|
-                [
-                  "<div class='client-option'><div class='client-option-avatar'>#{customer.display_name[0..1].upcase}</div><div class='client-option-details'><div class='client-option-name'>#{customer.display_name}</div><div class='client-option-id'>ID: #{customer.id} • #{customer.mobile || 'No phone'}</div></div></div>".html_safe,
-                  customer.id,
-                  { 'data-customer-name' => customer.display_name }
-                ]
-              }, @selected_customer&.id || @motor_insurance.customer_id),
-              { prompt: '<div class="text-muted"><i class="bi bi-search me-2"></i>Search and select client...</div>'.html_safe },
-              { class: "form-control searchable-dropdown #{'is-invalid' if @motor_insurance.errors[:customer_id].any?}", required: true, id: "customer_select", data: { placeholder: "Type to search clients..." } } %>
+              options_for_select(@customers.map { |c| [c.display_name, c.id] }, @selected_customer&.id || @motor_insurance.customer_id),
+              { prompt: 'Search and select client...' },
+              { class: "form-control #{'is-invalid' if @motor_insurance.errors[:customer_id].any?}", required: true, id: "customer_select", data: { placeholder: "Type to search clients..." } } %>
           <% if @motor_insurance.errors[:customer_id].any? %>
             <div class="invalid-feedback"><%= @motor_insurance.errors[:customer_id].first %></div>
           <% end %>
@@ -3806,47 +3800,6 @@ function toggleNoNomineesMessage() {
 
 </script>
 
-<!-- jQuery (required for Select2) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<!-- Select2 CSS & JS for searchable dropdown -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<!-- Custom styling for enhanced Select2 dropdown -->
-<style>
-  .select2-container--bootstrap-5 .select2-selection--single {
-    height: 38px;
-    border: 1px solid #ced4da;
-    border-radius: 0.375rem;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-  }
-
-  .select2-container--bootstrap-5 .select2-selection--single:focus-within {
-    border-color: #86b7fe;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-  }
-
-  .select2-container--bootstrap-5 .select2-selection__rendered {
-    color: #495057;
-    padding-left: 12px;
-    padding-right: 20px;
-    line-height: 36px;
-  }
-
-  .select2-container--bootstrap-5 .select2-results__option {
-    padding: 8px 12px;
-  }
-
-  .select2-container--bootstrap-5 .select2-results__option--highlighted {
-    background-color: #0d6efd;
-    color: white;
-  }
-
-  .select2-dropdown {
-    border: 1px solid #ced4da;
-    border-radius: 0.375rem;
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   }
 
@@ -3954,78 +3907,4 @@ function toggleNoNomineesMessage() {
   }
 </style>
 
-<script>
-$(document).ready(function() {
-  // Initialize Select2 for Customer dropdown
-  $('#customer_select').select2({
-    theme: 'bootstrap-5',
-    placeholder: 'Search and select client...',
-    allowClear: true,
-    escapeMarkup: function(markup) {
-      return markup; // Allow HTML in the dropdown
-    },
-    templateResult: function(data) {
-      if (data.loading) return data.text;
-      if (!data.element) return data.text;
-
-      var $element = $(data.element);
-      var customerName = $element.data('customer-name');
-
-      if (customerName) {
-        return $(data.text); // Return the HTML content
-      }
-      return data.text;
-    },
-    templateSelection: function(data) {
-      if (!data.element) return data.text;
-
-      var $element = $(data.element);
-      var customerName = $element.data('customer-name');
-
-      return customerName || data.text;
-    },
-    dropdownCssClass: 'select2-dropdown-large',
-    width: '100%'
-  });
-
-  // Initialize Select2 for Affiliate dropdown
-  $('#affiliate_select').select2({
-    theme: 'bootstrap-5',
-    placeholder: 'Search and select affiliate...',
-    allowClear: true,
-    escapeMarkup: function(markup) {
-      return markup; // Allow HTML in the dropdown
-    },
-    templateResult: function(data) {
-      if (data.loading) return data.text;
-      if (!data.element) return data.text;
-
-      var $element = $(data.element);
-      var affiliateName = $element.data('affiliate-name');
-      var affiliateType = $element.data('affiliate-type');
-
-      if (affiliateName || affiliateType) {
-        return $(data.text); // Return the HTML content
-      }
-      return data.text;
-    },
-    templateSelection: function(data) {
-      if (!data.element) return data.text;
-
-      var $element = $(data.element);
-      var affiliateName = $element.data('affiliate-name');
-      var affiliateType = $element.data('affiliate-type');
-
-      if (affiliateType === 'self') {
-        return 'Self';
-      }
-      return affiliateName || data.text;
-    },
-    dropdownCssClass: 'select2-dropdown-large',
-    width: '100%'
-  });
-
-  console.log('✅ Motor Insurance Select2 dropdowns initialized successfully');
-});
-</script>
 
