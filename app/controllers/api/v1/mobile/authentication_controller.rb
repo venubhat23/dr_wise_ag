@@ -2,7 +2,6 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
 
   # POST /api/v1/mobile/auth/login
   def login
-    debugger
     # Support login with email, mobile number, or PAN card
     login_field = params[:login] || params[:username] || params[:email] || params[:mobile] || params[:pan]
     password = params[:password]
@@ -759,7 +758,6 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
   # Find sub_agent by login field (email, mobile, or PAN)
   def find_sub_agent_by_login_field(login_field)
     # Try email first
-    debugger
     sub_agent = SubAgent.find_by(email: login_field)
     return sub_agent if sub_agent
 

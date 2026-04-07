@@ -652,13 +652,6 @@ class Lead < ApplicationRecord
   def validate_mobile_number_format
     return if contact_number.blank?
 
-    # Check for numbers that look like they should have had 91 prefix removed
-    # If the number is exactly 10 digits and starts with 91, it's likely invalid
-    if contact_number.match?(/\A91\d{8}\z/)
-      errors.add(:contact_number, 'Invalid mobile number format. Did you mean to add +91 before a valid mobile number?')
-      return
-    end
-
     # After cleaning, validate the format
     unless contact_number.match?(/\A[789]\d{9}\z/)
       errors.add(:contact_number, 'Mobile number must be 10 digits starting with 7, 8, or 9')
