@@ -1239,20 +1239,14 @@
       <!-- New Document System -->
       <div class="border-top pt-4 mt-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h6 class="mb-0">
-            <% if @motor_insurance.persisted? %>
-              Add More Documents
-            <% else %>
-              Document Management System
-            <% end %>
-          </h6>
-          <button type="button" class="btn btn-sm btn-primary" id="add_policy_document">
+          <h6 class="mb-0">Document Management System</h6>
+          <button type="button" class="btn btn-sm btn-primary" id="add_motor_policy_document">
             <i class="bi bi-plus-lg me-1"></i>
             Add Document
           </button>
         </div>
 
-        <div id="policy_documents_container">
+        <div id="motor_policy_documents_container">
           <!-- New document system will be added here -->
         </div>
 
@@ -3562,68 +3556,65 @@ function toggleNoNomineesMessage() {
 
   // Document Upload System removed - using the one below
   // Policy Documents Manager JavaScript
-  let motorDocumentIndex = <%= @motor_insurance.motor_insurance_documents.any? ? @motor_insurance.motor_insurance_documents.size : 0 %>;
+  // Motor Insurance Policy Documents Manager (matching health insurance implementation)
+  let motorPolicyDocumentIndex = <%= @motor_insurance.motor_insurance_documents.any? ? @motor_insurance.motor_insurance_documents.size : 0 %>;
+  const addMotorPolicyDocumentBtn = document.getElementById('add_motor_policy_document');
+  const motorPolicyDocumentsContainer = document.getElementById('motor_policy_documents_container');
 
-  // Add new document functionality
-  document.getElementById('add-motor-document').addEventListener('click', function() {
-    const container = document.getElementById('motor-insurance-documents');
-    const newDocumentHtml = `
-      <div class="document-item border rounded p-3 mb-3" style="background: white;">
-        <div class="row">
-          <div class="col-md-3 mb-2">
-            <label class="form-label">Document Type</label>
-            <select name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][document_type]" class="form-select">
-              <option value="">Select type...</option>
-              <option value="rc_book">RC Book</option>
-              <option value="driving_license">Driving License</option>
-              <option value="vehicle_photos">Vehicle Photos</option>
-              <option value="insurance_certificate">Insurance Certificate</option>
-              <option value="noc">NOC</option>
-              <option value="puc_certificate">PUC Certificate</option>
-              <option value="other">Other</option>
-            </select>
+  if (addMotorPolicyDocumentBtn && motorPolicyDocumentsContainer) {
+    addMotorPolicyDocumentBtn.addEventListener('click', function() {
+      const documentHtml = `
+        <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${motorPolicyDocumentIndex}" style="background: #f8f9fa;">
+          <button type="button" class="btn btn-sm btn-outline-danger position-absolute" style="top: 10px; right: 10px;" onclick="removeMotorDocument(this)">
+            <i class="bi bi-x-lg"></i>
+          </button>
+          <div class="row">
+            <div class="col-md-4">
+              <label class="form-label">Document Title <span class="text-danger">*</span></label>
+              <input type="text" name="motor_insurance[motor_insurance_documents_attributes][${motorPolicyDocumentIndex}][title]" class="form-control" placeholder="Enter document title" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Document Type <span class="text-danger">*</span></label>
+              <select name="motor_insurance[motor_insurance_documents_attributes][${motorPolicyDocumentIndex}][document_type]" class="form-select" required>
+                <option value="">Select Document Type</option>
+                <option value="rc_book">RC Book</option>
+                <option value="driving_license">Driving License</option>
+                <option value="vehicle_photos">Vehicle Photos</option>
+                <option value="insurance_certificate">Insurance Certificate</option>
+                <option value="noc">NOC</option>
+                <option value="puc_certificate">PUC Certificate</option>
+                <option value="policy_document">Policy Document</option>
+                <option value="inspection_report">Inspection Report</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Document File <span class="text-danger">*</span></label>
+              <input type="file" name="motor_insurance[motor_insurance_documents_attributes][${motorPolicyDocumentIndex}][file]" class="form-control" accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required id="motor_doc_file_${motorPolicyDocumentIndex}">
+            </div>
           </div>
-          <div class="col-md-4 mb-2">
-            <label class="form-label">Title</label>
-            <input type="text" name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][title]" class="form-control" placeholder="Enter document title">
-          </div>
-          <div class="col-md-3 mb-2">
-            <label class="form-label">Description</label>
-            <input type="text" name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][description]" class="form-control" placeholder="Brief description">
-          </div>
-          <div class="col-md-2 mb-2 d-flex align-items-end">
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocument(this)">
-              <i class="bi bi-trash"></i> Remove
-            </button>
+          <div class="row mt-2">
+            <div class="col-md-12">
+              <label class="form-label">Description (Optional)</label>
+              <textarea name="motor_insurance[motor_insurance_documents_attributes][${motorPolicyDocumentIndex}][description]" class="form-control" rows="2" placeholder="Optional description"></textarea>
+            </div>
           </div>
         </div>
-        <input type="file" name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][document_file]"
-               class="form-control mt-2"
-               accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-               data-max-size="10485760">
-        <small class="text-muted">Select file: PDF, JPEG, PNG, Word (Max: 10MB)</small>
-      </div>
-    `;
+      `;
 
-    container.insertAdjacentHTML('beforeend', newDocumentHtml);
-
-    // Add file size validation to new file input
-    const newFileInput = container.querySelector(`input[name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][document_file]"]`);
-    newFileInput.addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (file && file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB');
-        e.target.value = '';
-      }
+      motorPolicyDocumentsContainer.insertAdjacentHTML('beforeend', documentHtml);
+      motorPolicyDocumentIndex++;
     });
 
-    motorDocumentIndex++;
-  });
+    console.log('✅ Motor Insurance Policy Documents Manager initialized');
+  } else {
+    console.log('❌ Motor Insurance Policy Documents Manager elements not found');
+  }
 
-  // Remove document functionality
-  window.removeDocument = function(button) {
+  // Remove motor document functionality
+  window.removeMotorDocument = function(button) {
     if (confirm('Are you sure you want to remove this document?')) {
-      button.closest('.document-item').remove();
+      button.closest('.document-entry').remove();
     }
   };
 

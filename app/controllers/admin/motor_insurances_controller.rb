@@ -938,7 +938,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       # Nominees
       motor_insurance_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy],
       # R2 Documents
-      motor_insurance_documents_attributes: [:id, :document_type, :title, :description, :r2_file_key, :r2_filename, :r2_content_type, :r2_file_size, :_destroy]
+      motor_insurance_documents_attributes: [:id, :document_type, :title, :description, :file, :r2_file_key, :r2_filename, :r2_content_type, :r2_file_size, :_destroy]
     )
   end
 

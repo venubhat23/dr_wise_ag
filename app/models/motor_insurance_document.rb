@@ -2,6 +2,9 @@ class MotorInsuranceDocument < ApplicationRecord
   # Associations
   belongs_to :motor_insurance
 
+  # Virtual attribute for file upload handling
+  attr_accessor :file
+
   # Validations
   validates :document_type, presence: true
   validates :title, presence: true
@@ -12,6 +15,10 @@ class MotorInsuranceDocument < ApplicationRecord
       'fitness_certificate', 'pollution_certificate', 'hypothecation', 'other'
     ]
   }
+
+  # Callbacks
+  after_create :upload_file_to_r2, if: -> { file.present? }
+  after_update :upload_file_to_r2, if: -> { file.present? && saved_change_to_file? }
 
   # R2 File Storage - Direct upload to Cloudflare R2 (similar to CustomerDocument)
   # Uses columns: r2_file_key, r2_filename, r2_content_type, r2_file_size
@@ -130,6 +137,22 @@ class MotorInsuranceDocument < ApplicationRecord
   end
 
   private
+
+  def upload_file_to_r2
+    return unless file.present?
+    result = upload_to_r2(file)
+    if result[:error]
+      Rails.logger.error "Failed to upload motor insurance document file: #{result[:error]}"
+      # Add error to the record if needed
+      errors.add(:file, "Upload failed: #{result[:error]}")
+    end
+  end
+
+  # Check if file attribute has changed (for virtual attribute)
+  def saved_change_to_file?
+    # Since file is a virtual attribute, we check if it's present and different from stored data
+    file.present? && (r2_filename.blank? || r2_filename != file.original_filename)
+  end
 
   def number_to_human_size(number)
     ActionController::Base.helpers.number_to_human_size(number)
