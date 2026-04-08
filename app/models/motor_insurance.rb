@@ -26,6 +26,9 @@ class MotorInsurance < ApplicationRecord
   accepts_nested_attributes_for :motor_insurance_nominees, allow_destroy: true, reject_if: :all_blank
   accepts_nested_attributes_for :motor_insurance_documents, allow_destroy: true, reject_if: :all_blank
 
+  # Virtual attribute for file upload handling (not stored in database)
+  attr_accessor :main_policy_document
+
   # Validations
   validates :policy_holder, presence: true
   validates :insurance_company_name, presence: true

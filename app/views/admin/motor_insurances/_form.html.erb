@@ -21,7 +21,7 @@
       <% end %>
 
       <div class="row">
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
           <%= form.label :customer_id, "Client Name*", class: "form-label" %>
           <%= form.select :customer_id,
               options_for_select(@customers.map { |c| [c.display_name, c.id] }, @selected_customer&.id || @motor_insurance.customer_id),
