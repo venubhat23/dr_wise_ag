@@ -134,7 +134,7 @@
 
         <!-- 2nd: Agency Code (shows Agents when Direct selected, Brokers when Broking selected) -->
         <div class="col-md-4 mb-3">
-          <%= form.label :agency_code_id, "Agency Code", class: "form-label" %>
+          <%= form.label :agency_code_id, "Agency Code (All Agents)*", class: "form-label" %>
           <span class="dynamic-label" id="agency_code_label_text"></span>
           <%
             # Build options based on broker_code_type for edit mode
@@ -2367,15 +2367,42 @@ $(document).ready(function() {
     closeOnSelect: true
   });
 
-  // Initialize Select2 for Affiliate dropdown
+  // Initialize Select2 for Affiliate dropdown with AJAX search
   $('#affiliate_select').select2({
     theme: 'bootstrap-5',
     placeholder: 'Search and select affiliate...',
     allowClear: true,
     width: '100%',
+    dropdownParent: $('body'),
     dropdownCssClass: 'select2-dropdown-large',
-    minimumResultsForSearch: 0,
-    closeOnSelect: true,
+    minimumInputLength: 0, // Allow opening without typing
+    ajax: {
+      url: '/api/v1/public/search_sub_agents',
+      dataType: 'json',
+      delay: 300, // Add delay for better UX
+      cache: true,
+      data: function (params) {
+        // Get the selected customer ID to filter affiliates
+        var selectedCustomerId = $('#customer_select').val();
+        return {
+          q: params.term || '', // Send empty query to get default results
+          customer_id: selectedCustomerId, // Pass customer ID for filtering
+          limit: params.term ? 20 : 10 // Show fewer results when no search term
+        };
+      },
+      processResults: function (data) {
+        console.log('Search affiliates response:', data);
+        return {
+          results: data.results || []
+        };
+      },
+      error: function(xhr, status, error) {
+        console.error('Error loading affiliates:', error);
+        return {
+          results: [{ id: '', text: 'Error loading affiliates' }]
+        };
+      }
+    },
     templateResult: function(option) {
       if (!option.id || option.id === '') {
         return option.text;
@@ -2685,88 +2712,6 @@ $(document).ready(function() {
     if (selectedCustomerId) {
       console.log('Customer selected, filtering affiliates for customer ID:', selectedCustomerId);
 
-      // Load customer affiliate information
-      var $affiliateSelect = $('#affiliate_select');
-      $.ajax({
-        url: '/admin/insurance/motor/customer_affiliate_info',
-        method: 'GET',
-        data: { customer_id: selectedCustomerId },
-        success: function(data) {
-          // Destroy existing Select2
-          if ($affiliateSelect.hasClass('select2-hidden-accessible')) {
-            $affiliateSelect.select2('destroy');
-          }
-
-          // Clear existing options
-          $affiliateSelect.empty();
-
-          if (data.affiliate_id && data.affiliate_name) {
-            // Customer has an affiliate - show only that affiliate
-            $affiliateSelect.append('<option value="">Self</option>');
-            $affiliateSelect.append(`<option value="${data.affiliate_id}" selected>${data.affiliate_name}</option>`);
-            console.log('Showing only linked affiliate:', data.affiliate_name);
-          } else {
-            // Customer has no affiliate - show only "Self"
-            $affiliateSelect.append('<option value="" selected>Self</option>');
-            console.log('Customer has no affiliate - showing only Self');
-          }
-
-          // Reinitialize Select2 with the filtered options
-          $affiliateSelect.select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Affiliate',
-            allowClear: false,
-            width: '100%',
-            dropdownParent: $('body'),
-            dropdownCssClass: 'select2-dropdown-large',
-            minimumResultsForSearch: 0,
-            closeOnSelect: true,
-            templateResult: function(option) {
-              if (!option.id || option.id === '') {
-                return option.text;
-              }
-
-              var initials = option.text.split(' ').map(function(name) {
-                return name.charAt(0).toUpperCase();
-              }).join('').substring(0, 2);
-
-              var $option = $(
-                '<div class="affiliate-option">' +
-                  '<div class="affiliate-option-avatar">' + initials + '</div>' +
-                  '<div class="affiliate-option-details">' +
-                    '<div class="affiliate-option-name">' + option.text + '</div>' +
-                    '<div class="affiliate-option-id">Affiliate</div>' +
-                  '</div>' +
-                '</div>'
-              );
-              return $option;
-            },
-            templateSelection: function(option) {
-              return option.text || 'Affiliate';
-            },
-            escapeMarkup: function(markup) {
-              return markup;
-            }
-          });
-        },
-        error: function(xhr, status, error) {
-          console.error('Error loading customer affiliate info:', error);
-
-          // Reset affiliate dropdown on error
-          if ($affiliateSelect.hasClass('select2-hidden-accessible')) {
-            $affiliateSelect.select2('destroy');
-          }
-          $affiliateSelect.empty().append('<option value="" selected>Self</option>');
-          $affiliateSelect.select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Affiliate',
-            allowClear: false,
-            width: '100%',
-            dropdownParent: $('body')
-          });
-        }
-      });
-
       // Load customer nominees when customer is selected
       loadCustomerNominees(selectedCustomerId);
     }
@@ -2882,10 +2827,10 @@ $(document).ready(function() {
         });
       }
 
-      // Update label
+      // Update label to match life insurance format
       const labelSpan = document.getElementById('agency_code_label_text');
       if (labelSpan) {
-        labelSpan.textContent = brokerType === 'direct' ? ' (Agents)*' : ' (Brokers)*';
+        labelSpan.textContent = brokerType === 'direct' ? '' : ' (All Brokers)';
       }
 
       // Call appropriate API
@@ -2945,32 +2890,53 @@ $(document).ready(function() {
   }
 
   function callMotorBrokingAPI() {
-    console.log('🌐 Calling Motor Broking API...');
+    console.log('🌐 Calling Motor Broking API using broker_codes endpoint...');
 
-    // First, get brokers for agency dropdown
-    fetch('/admin/insurance/motor/agency_codes_for_broker_type?broker_type=broking', {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
-      }
+    // Use the same broker_codes endpoint as life insurance for consistency
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const brokersHeaders = {
+      'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'Content-Type': 'application/json'
+    };
+    if (csrfToken) {
+      brokersHeaders['X-CSRF-Token'] = csrfToken;
+    }
+
+    fetch('/admin/broker_codes.json', {
+      headers: brokersHeaders,
+      credentials: 'same-origin'
     })
     .then(response => {
+      console.log('Broker Codes API response status:', response.status);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       return response.json();
     })
     .then(data => {
-      console.log('📊 Motor Broking API Data:', data);
+      console.log('✅ Motor Broker Codes API Success:', data);
+      if (data && data.success && data.broker_codes && data.broker_codes.length > 0) {
+        // Transform broker codes to motor dropdown format matching life insurance
+        const brokersData = data.broker_codes.map(brokerCode => ({
+          id: `broker_${brokerCode.id}`,  // Use broker_X format for proper processing
+          text: brokerCode.display_name,  // Show "Broker Name (Code)" format like life insurance
+          broker_name: brokerCode.broker_name,
+          code: brokerCode.broker_code,
+          broker_id: brokerCode.broker_id
+        }));
 
-      if (data.success && data.data) {
-        populateMotorAgencyDropdown(data.data, 'Select Broker...');
+        console.log('📦 Transformed broker data for motor:', brokersData);
+        populateMotorAgencyDropdown(brokersData, 'Select Broker...');
+        console.log('✅ Motor Broking dropdown updated successfully');
+      } else {
+        console.error('❌ Motor Broker Codes API returned no data');
+        populateMotorAgencyDropdown([], 'Select Broker...');
       }
     })
     .catch(error => {
-      console.error('❌ Motor Broking API Error:', error);
+      console.error('❌ Motor Broker Codes API Error:', error);
+      populateMotorAgencyDropdown([], 'Select Broker...');
     });
 
     // Second, get all motor insurance companies

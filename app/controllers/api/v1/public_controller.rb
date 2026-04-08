@@ -23,29 +23,52 @@ class Api::V1::PublicController < ActionController::Base
 
           if query.present? && query.strip.length >= 2
             # Apply search filter on the linked affiliate
+            matching_affiliates = []
+
+            # Always include Self option in search results
+            if "self".include?(query.downcase) || "direct".include?(query.downcase)
+              matching_affiliates << {
+                id: '',
+                text: 'Self',
+                commission_earned: 0,
+                customers_count: 0,
+                policies_count: 0
+              }
+            end
+
+            # Check if linked affiliate matches search
             if customer.affiliate.display_name.downcase.include?(query.downcase)
-              affiliates = [{
+              matching_affiliates << {
                 id: customer.affiliate.id,
                 text: customer.affiliate.display_name,
                 commission_earned: 0,
                 customers_count: 0,
                 policies_count: 0
-              }]
-            else
-              affiliates = []
+              }
             end
+
+            affiliates = matching_affiliates
           else
-            # Just return the linked affiliate
-            affiliates = [{
-              id: customer.affiliate.id,
-              text: customer.affiliate.display_name,
-              commission_earned: 0,
-              customers_count: 0,
-              policies_count: 0
-            }]
+            # Just return Self and the linked affiliate
+            affiliates = [
+              {
+                id: '',
+                text: 'Self',
+                commission_earned: 0,
+                customers_count: 0,
+                policies_count: 0
+              },
+              {
+                id: customer.affiliate.id,
+                text: customer.affiliate.display_name,
+                commission_earned: 0,
+                customers_count: 0,
+                policies_count: 0
+              }
+            ]
           end
 
-          Rails.logger.info "Filtered to customer's linked affiliate: #{affiliates}"
+          Rails.logger.info "Filtered to customer's options (Self + linked affiliate): #{affiliates}"
           render json: { results: affiliates }
           return
         else
@@ -56,9 +79,23 @@ class Api::V1::PublicController < ActionController::Base
       # If no customer filter or customer has no linked affiliate, show all (original behavior)
       if query.present? && query.strip.length >= 2
         # Search with query
-        affiliates = sub_agents_scope
+        matching_affiliates = []
+
+        # Always include Self option in search results if it matches
+        if "self".include?(query.downcase) || "direct".include?(query.downcase)
+          matching_affiliates << {
+            id: '',
+            text: 'Self',
+            commission_earned: 0,
+            customers_count: 0,
+            policies_count: 0
+          }
+        end
+
+        # Add matching affiliates
+        search_results = sub_agents_scope
                             .where("LOWER(first_name || ' ' || last_name) ILIKE ?", "%#{query.downcase}%")
-                            .limit(limit)
+                            .limit(limit - matching_affiliates.count) # Leave room for Self option
                             .map { |agent| {
                               id: agent.id,
                               text: agent.display_name,
@@ -66,12 +103,14 @@ class Api::V1::PublicController < ActionController::Base
                               customers_count: 0,
                               policies_count: 0
                             } }
-        Rails.logger.info "Search found #{affiliates.count} sub agents matching '#{query}'"
+
+        affiliates = matching_affiliates + search_results
+        Rails.logger.info "Search found #{affiliates.count} total results (including Self if matched) for '#{query}'"
       else
-        # Return default affiliates when no search query (show recently active or all)
-        affiliates = sub_agents_scope
+        # Return default affiliates when no search query (Self + recently active affiliates)
+        default_affiliates = sub_agents_scope
                             .order(:first_name, :last_name)
-                            .limit([limit, 10].min) # Show max 10 when no search
+                            .limit([limit - 1, 10].min) # Reserve space for Self option
                             .map { |agent| {
                               id: agent.id,
                               text: agent.display_name,
@@ -79,7 +118,17 @@ class Api::V1::PublicController < ActionController::Base
                               customers_count: 0,
                               policies_count: 0
                             } }
-        Rails.logger.info "Returning #{affiliates.count} default sub agents"
+
+        # Always include Self as first option
+        affiliates = [{
+          id: '',
+          text: 'Self',
+          commission_earned: 0,
+          customers_count: 0,
+          policies_count: 0
+        }] + default_affiliates
+
+        Rails.logger.info "Returning #{affiliates.count} default results (Self + #{default_affiliates.count} affiliates)"
       end
 
       Rails.logger.info "Returning sub agents: #{affiliates}"
