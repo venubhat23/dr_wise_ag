@@ -62,21 +62,9 @@
         <div class="col-md-4 mb-3">
           <%= form.label :sub_agent_id, "Affiliate", class: "form-label" %>
           <%= form.select :sub_agent_id,
-              options_for_select([
-                [
-                  "<div class='affiliate-option'><div class='affiliate-option-avatar'><i class='bi bi-person-badge text-white'></i></div><div class='affiliate-option-details'><div class='affiliate-option-name'>Self</div><div class='affiliate-option-id'>Direct customer policy</div></div></div>".html_safe,
-                  '',
-                  { 'data-affiliate-type' => 'self' }
-                ]
-              ] + @sub_agents.map { |affiliate|
-                [
-                  "<div class='affiliate-option'><div class='affiliate-option-avatar'>#{affiliate.display_name[0..1].upcase}</div><div class='affiliate-option-details'><div class='affiliate-option-name'>#{affiliate.display_name}</div><div class='affiliate-option-id'>ID: #{affiliate.id} • #{affiliate.mobile || 'No phone'}</div></div></div>".html_safe,
-                  affiliate.id,
-                  { 'data-affiliate-name' => affiliate.display_name }
-                ]
-              }, (@auto_select_affiliate == 'self' ? '' : @auto_select_affiliate)),
-              { prompt: '<div class="text-muted"><i class="bi bi-search me-2"></i>Search and select affiliate...</div>'.html_safe },
-              { class: "form-control searchable-dropdown", id: "affiliate_select", data: { placeholder: "Type to search affiliates..." } } %>
+              options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, (@auto_select_affiliate == 'self' ? '' : @auto_select_affiliate)),
+              { prompt: 'Search and select affiliate...' },
+              { class: "form-control", id: "affiliate_select", data: { placeholder: "Type to search affiliates..." } } %>
         </div>
       </div>
 
@@ -1370,6 +1358,81 @@
   <!-- Form Actions moved to parent template for better layout control -->
 
 <script>
+// Define callMotorBrokingAPI function at the very top to prevent "not defined" errors
+function callMotorBrokingAPI() {
+  console.log('🌐 Calling Motor Broking API using broker_codes endpoint (TOP DEFINITION)...');
+
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  const brokersHeaders = {
+    'Accept': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+    'Content-Type': 'application/json'
+  };
+  if (csrfToken) {
+    brokersHeaders['X-CSRF-Token'] = csrfToken;
+  }
+
+  fetch('/admin/broker_codes.json', {
+    headers: brokersHeaders,
+    credentials: 'same-origin'
+  })
+  .then(response => {
+    console.log('Broker Codes API response status:', response.status);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log('✅ Motor Broker Codes API Success:', data);
+    if (data && data.success && data.broker_codes && data.broker_codes.length > 0) {
+      const brokersData = data.broker_codes.map(brokerCode => ({
+        id: `broker_${brokerCode.id}`,
+        text: brokerCode.display_name,
+        broker_name: brokerCode.broker_name,
+        code: brokerCode.broker_code,
+        broker_id: brokerCode.broker_id
+      }));
+
+      console.log('📦 Transformed broker data for motor:', brokersData);
+      populateMotorAgencyDropdown(brokersData, 'Select Broker...');
+      console.log('✅ Motor Broking dropdown updated successfully');
+    } else {
+      console.error('❌ Motor Broker Codes API returned no data');
+      populateMotorAgencyDropdown([], 'Select Broker...');
+    }
+  })
+  .catch(error => {
+    console.error('❌ Motor Broker Codes API Error:', error);
+    populateMotorAgencyDropdown([], 'Select Broker...');
+  });
+
+  // Also get insurance companies
+  fetch('/admin/insurance/motor/insurance_companies_for_type', {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log('📊 Motor Insurance Companies Data:', data);
+    if (data.success && data.data) {
+      populateMotorCompanyDropdown(data.data);
+    }
+  })
+  .catch(error => {
+    console.error('❌ Motor Company API Error:', error);
+  });
+}
+
 // Force enable scrolling and prevent conflicts
 try {
   // Ensure document body can scroll
@@ -1794,90 +1857,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Load agency codes based on broker type
       if (brokerType === 'direct') {
-        callDirectModeAPI();
+        callMotorDirectAPI();
       } else if (brokerType === 'broking') {
-        callBrokingModeAPI();
+        callMotorBrokingAPI();
       }
     });
   }
 
-  function callDirectModeAPI() {
-    console.log('🌐 Fetching agents for direct mode...');
-    fetch('/admin/insurance/motor/agency_codes_for_broker_type?broker_type=direct')
-      .then(response => {
-        console.log('📡 API Response Status:', response.status);
-        return response.json();
-      })
-      .then(data => {
-        console.log('📊 API Data:', data);
-        if (data.success && data.data) {
-          populateAgencyCodeDropdown(data.data, 'Select Agent...');
-          // Clear insurance company and show message to select agent first
-          if (insuranceCompanySelect) {
-            insuranceCompanySelect.innerHTML = '<option value="">Select Agent First...</option>';
-          }
-        }
-      })
-      .catch(error => {
-        console.error('❌ Direct API Error:', error);
-        if (agencyCodeSelect) {
-          agencyCodeSelect.innerHTML = '<option value="">Error loading agents</option>';
-        }
-      });
-  }
+  // Old callDirectModeAPI function removed - now using callMotorDirectAPI()
 
-  function callBrokingModeAPI() {
-    console.log('🌐 Fetching brokers for broking mode...');
-    // Fetch brokers
-    fetch('/admin/insurance/motor/agency_codes_for_broker_type?broker_type=broking')
-      .then(response => response.json())
-      .then(data => {
-        console.log('📊 Brokers Data:', data);
-        if (data.success && data.data) {
-          populateAgencyCodeDropdown(data.data, 'Select Broker...');
-        }
-      })
-      .catch(error => {
-        console.error('❌ Brokers API Error:', error);
-      });
-
-    // Fetch insurance companies for broking mode
-    fetch('/admin/insurance/motor/insurance_companies_by_agency')
-      .then(response => response.json())
-      .then(data => {
-        console.log('📊 Insurance Companies Data:', data);
-        if (data.success && data.data) {
-          populateInsuranceCompanies(data.data);
-        }
-      })
-      .catch(error => {
-        console.error('❌ Insurance Companies API Error:', error);
-      });
-  }
-
-  function populateAgencyCodeDropdown(agencies, placeholder) {
-    if (!agencyCodeSelect) return;
-
-    agencyCodeSelect.innerHTML = `<option value="">${placeholder}</option>`;
-    agencies.forEach(agency => {
-      const option = document.createElement('option');
-      option.value = agency.id;
-      option.textContent = `${agency.agent_name} - ${agency.code}`;
-      agencyCodeSelect.appendChild(option);
-    });
-  }
-
-  function populateInsuranceCompanies(companies) {
-    if (!insuranceCompanySelect) return;
-
-    insuranceCompanySelect.innerHTML = '<option value="">Search and select company...</option>';
-    companies.forEach(company => {
-      const option = document.createElement('option');
-      option.value = company;
-      option.textContent = company;
-      insuranceCompanySelect.appendChild(option);
-    });
-  }
+  // Old functions removed - now using callMotorBrokingAPI() and populateMotorAgencyDropdown()
 
   // Agency Code change listener for direct mode
   if (agencyCodeSelect) {
@@ -2323,6 +2312,7 @@ $(document).ready(function() {
     placeholder: 'Search and select client...',
     allowClear: true,
     width: '100%',
+    dropdownParent: $('body'),
     dropdownCssClass: 'select2-dropdown-large',
     minimumResultsForSearch: 0,
     closeOnSelect: true,
@@ -2659,38 +2649,45 @@ $(document).ready(function() {
       method: 'GET',
       data: { customer_id: customerId },
       dataType: 'json',
+      beforeSend: function() {
+        policyHolderSelect.prop('disabled', true);
+        policyHolderSelect.empty();
+        policyHolderSelect.append('<option value="">Loading...</option>');
+        policyHolderSelect.trigger('change.select2');
+      },
       success: function(response) {
-        console.log('✅ Policy holder options loaded successfully:', response);
+        console.log('✅ Policy holder options loaded:', response);
+        policyHolderSelect.empty();
 
-        if (response.success && response.policy_holders) {
-          // Clear existing options
-          policyHolderSelect.empty();
-          policyHolderSelect.append('<option value="">Select Policy Holder</option>');
+        // Always add Self option first
+        policyHolderSelect.append('<option value="Self">Self</option>');
 
-          // Add policy holder options from response
-          response.policy_holders.forEach(function(option) {
-            policyHolderSelect.append(`<option value="${option.value}">${option.text}</option>`);
+        if (response.success && response.options) {
+          response.options.forEach(function(option) {
+            // Skip the Self option if it's in the response (we already added it)
+            if (option.value !== 'Self') {
+              policyHolderSelect.append(`<option value="${option.value}">${option.text}</option>`);
+            }
           });
-
-          // Refresh Select2 display
-          policyHolderSelect.trigger('change.select2');
-          console.log('✅ Policy holder dropdown updated with family members');
-        } else {
-          // Fallback: show only Self option
-          policyHolderSelect.empty();
-          policyHolderSelect.append('<option value="">Select Policy Holder</option>');
-          policyHolderSelect.append('<option value="Self">Self</option>');
-          policyHolderSelect.trigger('change.select2');
-          console.log('ℹ️ No family members found, showing only Self option');
         }
+
+        policyHolderSelect.prop('disabled', false);
+        policyHolderSelect.trigger('change.select2'); // Refresh Select2
+
+        // Set default to Self if nothing was previously selected
+        if (!policyHolderSelect.val()) {
+          policyHolderSelect.val('Self').trigger('change.select2');
+        }
+
+        console.log('✅ Policy holder dropdown updated with family members');
       },
       error: function(xhr, status, error) {
         console.error('❌ Error loading policy holder options:', error);
-        // Show error state with fallback
         policyHolderSelect.empty();
-        policyHolderSelect.append('<option value="">Select Policy Holder</option>');
         policyHolderSelect.append('<option value="Self">Self</option>');
-        policyHolderSelect.trigger('change.select2');
+        policyHolderSelect.prop('disabled', false);
+        policyHolderSelect.val('Self').trigger('change.select2');
+        console.log('⚠️ Error loading family members, defaulting to Self');
       }
     });
   }
@@ -2711,6 +2708,7 @@ $(document).ready(function() {
 
     if (selectedCustomerId) {
       console.log('Customer selected, filtering affiliates for customer ID:', selectedCustomerId);
+
 
       // Load customer nominees when customer is selected
       loadCustomerNominees(selectedCustomerId);
@@ -2890,7 +2888,7 @@ $(document).ready(function() {
   }
 
   function callMotorBrokingAPI() {
-    console.log('🌐 Calling Motor Broking API using broker_codes endpoint...');
+    console.log('🌐 Calling Motor Broking API using broker_codes endpoint (FIXED v2)...');
 
     // Use the same broker_codes endpoint as life insurance for consistency
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -2917,7 +2915,7 @@ $(document).ready(function() {
     .then(data => {
       console.log('✅ Motor Broker Codes API Success:', data);
       if (data && data.success && data.broker_codes && data.broker_codes.length > 0) {
-        // Transform broker codes to motor dropdown format matching life insurance
+        // Transform broker codes to exact same format as life insurance
         const brokersData = data.broker_codes.map(brokerCode => ({
           id: `broker_${brokerCode.id}`,  // Use broker_X format for proper processing
           text: brokerCode.display_name,  // Show "Broker Name (Code)" format like life insurance
@@ -2977,7 +2975,7 @@ $(document).ready(function() {
 
     // Clear and populate options
     agencySelect.innerHTML = `<option value="">${placeholder}</option>`;
-    data.forEach(item => {
+    data.forEach((item, index) => {
       const option = document.createElement('option');
       option.value = item.id;
 
@@ -2985,22 +2983,27 @@ $(document).ready(function() {
       let name = '';
       let code = '';
 
-      // Check if item has broker_name/agent_name and code properties (from backend)
-      if (item.broker_name && item.code) {
-        // Broker with code
+      // Simplified handling - prioritize the text field which contains display_name
+      if (item.text) {
+        // Use the pre-formatted display_name from broker_codes API
+        option.textContent = item.text;
+        name = item.broker_name || item.agent_name || item.text;
+        code = item.code || '';
+      } else if (item.broker_name && item.code) {
+        // Legacy broker format
         name = item.broker_name;
         code = item.code;
         option.textContent = `${name} - ${code}`;
       } else if (item.agent_name && item.code) {
-        // Agent with code
+        // Direct mode agent format
         name = item.agent_name;
         code = item.code;
         option.textContent = `${name} - ${code}`;
-      } else if (item.text) {
-        // Parse from text if not structured data
-        name = item.text;
-        code = item.code || '';
-        option.textContent = code ? `${name} - ${code}` : name;
+      } else {
+        // Fallback
+        option.textContent = item.text || item.name || 'Unknown';
+        name = option.textContent;
+        code = '';
       }
 
       // Set data attributes for the template to use
@@ -3029,9 +3032,27 @@ $(document).ready(function() {
 
         if (!name && !code) {
           // Try to parse from text if attributes not found
-          const parts = option.text.split(' - ');
-          const parsedName = parts[0] || option.text;
-          const parsedCode = parts[1] || '';
+          let parsedName = '';
+          let parsedCode = '';
+
+          // Handle both formats: "Name (Code)" and "Name - Code"
+          if (option.text.includes(' (') && option.text.includes(')')) {
+            // New broker codes format: "Landmark (LM121234001)"
+            const match = option.text.match(/^(.+?)\s*\((.+?)\)$/);
+            if (match) {
+              parsedName = match[1].trim();
+              parsedCode = match[2].trim();
+            } else {
+              parsedName = option.text;
+            }
+          } else if (option.text.includes(' - ')) {
+            // Legacy format: "Name - Code"
+            const parts = option.text.split(' - ');
+            parsedName = parts[0] || option.text;
+            parsedCode = parts[1] || '';
+          } else {
+            parsedName = option.text;
+          }
 
           if (parsedCode) {
             return $('<div>' +
@@ -3039,7 +3060,7 @@ $(document).ready(function() {
               '<div style="font-size: 12px; color: #6c757d;">' + parsedCode + '</div>' +
             '</div>');
           }
-          return option.text;
+          return parsedName || option.text;
         }
 
         // Create two-line display
@@ -3539,127 +3560,7 @@ function toggleNoNomineesMessage() {
   }
 }
 
-  // Document Upload System
-  let motorDocumentIndex = 0;
-  const addDocumentBtn = document.getElementById('add-motor-document');
-  const documentsContainer = document.getElementById('motor-insurance-documents');
-
-  addDocumentBtn?.addEventListener('click', function() {
-    const documentHtml = `
-      <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${motorDocumentIndex}" style="background: #f8f9fa;">
-        <button type="button" class="btn btn-sm btn-outline-danger position-absolute" style="top: 10px; right: 10px;" onclick="this.closest('.document-entry').remove()">
-          <i class="bi bi-trash"></i>
-        </button>
-        <div class="row">
-          <div class="col-md-4">
-            <label class="form-label">Document Title <span class="text-danger">*</span></label>
-            <input type="text" name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][title]" class="form-control" placeholder="Enter document title" required>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Document Type <span class="text-danger">*</span></label>
-            <select name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][document_type]" class="form-select" required>
-              <option value="">Select Document Type</option>
-              <option value="Policy Document">Policy Document</option>
-              <option value="RC Book">RC Book</option>
-              <option value="Driving License">Driving License</option>
-              <option value="Previous Policy">Previous Policy</option>
-              <option value="ID Proof">ID Proof</option>
-              <option value="Address Proof">Address Proof</option>
-              <option value="Medical Certificate">Medical Certificate</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Upload File <span class="text-danger">*</span></label>
-            <input type="file" name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][file]" class="form-control" accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required id="motor_doc_file_${motorDocumentIndex}">
-            <div class="form-text">Max 10MB (PDF, JPG, PNG, DOC)</div>
-          </div>
-        </div>
-        <div class="row mt-2">
-          <div class="col-12">
-            <label class="form-label">Description <span class="text-muted">(Optional)</span></label>
-            <textarea name="motor_insurance[motor_insurance_documents_attributes][${motorDocumentIndex}][description]" class="form-control" rows="2" placeholder="Optional description"></textarea>
-          </div>
-        </div>
-
-        <!-- File Preview Area -->
-        <div class="file-preview mt-3" id="motor_preview_${motorDocumentIndex}" style="display: none;">
-          <div class="alert alert-info p-2">
-            <i class="bi bi-file-earmark-check me-2"></i>
-            <span class="file-name"></span>
-            <span class="file-size ms-2 text-muted"></span>
-          </div>
-        </div>
-      </div>
-    `;
-
-    documentsContainer.insertAdjacentHTML('beforeend', documentHtml);
-
-    // Add file preview handler for the new document
-    const fileInput = document.getElementById(`motor_doc_file_${motorDocumentIndex}`);
-    const previewDiv = document.getElementById(`motor_preview_${motorDocumentIndex}`);
-
-    fileInput?.addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        const fileName = file.name;
-        const fileSize = (file.size / 1024 / 1024).toFixed(2);
-
-        previewDiv.style.display = 'block';
-        previewDiv.querySelector('.file-name').textContent = fileName;
-        previewDiv.querySelector('.file-size').textContent = `(${fileSize} MB)`;
-
-        // Validate file size
-        if (file.size > 10 * 1024 * 1024) {
-          alert('File size must be less than 10MB');
-          e.target.value = '';
-          previewDiv.style.display = 'none';
-        }
-      } else {
-        previewDiv.style.display = 'none';
-      }
-    });
-
-    motorDocumentIndex++;
-  });
-
-  // Handle existing document file previews
-  document.querySelectorAll('input[type="file"][id^="motor_doc_file_"]').forEach(input => {
-    input.addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (file && file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB');
-        e.target.value = '';
-      }
-    });
-  });
-
-  // Delete motor document function
-  window.deleteMotorDocument = function(documentId, title) {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
-
-    fetch(`/admin/insurance/motor/${documentId}/delete_document`, {
-      method: 'DELETE',
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        alert('Document deleted successfully');
-        window.location.reload();
-      } else {
-        alert('Failed to delete document: ' + data.error);
-      }
-    })
-    .catch(error => {
-      console.error('Delete error:', error);
-      alert('Failed to delete document');
-    });
-  };
-
+  // Document Upload System removed - using the one below
   // Policy Documents Manager JavaScript
   let motorDocumentIndex = <%= @motor_insurance.motor_insurance_documents.any? ? @motor_insurance.motor_insurance_documents.size : 0 %>;
 
@@ -3766,6 +3667,8 @@ function toggleNoNomineesMessage() {
 
 </script>
 
+<style>
+  .select2-dropdown {
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   }
 

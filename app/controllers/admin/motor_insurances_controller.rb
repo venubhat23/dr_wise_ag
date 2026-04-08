@@ -543,7 +543,8 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
 
         render json: {
           success: true,
-          policy_holders: policy_holder_options
+          options: policy_holder_options,
+          customer_name: customer.display_name
         }
       rescue => e
         render json: {
