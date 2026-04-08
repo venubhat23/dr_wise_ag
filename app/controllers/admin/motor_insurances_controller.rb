@@ -203,6 +203,12 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
 
     set_distributor_from_affiliate(@motor_insurance)
 
+    # Validate broker_id exists before saving to prevent foreign key violation
+    if @motor_insurance.broker_id.present? && !Broker.exists?(@motor_insurance.broker_id)
+      Rails.logger.warn "Invalid broker_id #{@motor_insurance.broker_id} detected, clearing it"
+      @motor_insurance.broker_id = nil
+    end
+
     if @motor_insurance.save
       # Handle R2 main policy document upload
       handle_main_policy_r2_upload(@motor_insurance) if params[:motor_insurance][:main_policy_document].present?
@@ -843,9 +849,14 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     if params[:agency_code_id].present? && params[:agency_code_id].start_with?('broker_')
       # Extract broker ID from broker_X format
       broker_id = params[:agency_code_id].gsub('broker_', '').to_i
-      # Set broker_id and clear agency_code_id for broking type
-      if broker_id > 0
+      # Set broker_id and clear agency_code_id for broking type only if broker exists
+      if broker_id > 0 && Broker.exists?(broker_id)
         params[:broker_id] = broker_id
+        params[:agency_code_id] = nil
+      else
+        Rails.logger.warn "Broker ID #{broker_id} not found, skipping broker assignment"
+        # Clear both to avoid foreign key constraint violation
+        params[:broker_id] = nil
         params[:agency_code_id] = nil
       end
     end
