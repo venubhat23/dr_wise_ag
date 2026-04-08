@@ -243,6 +243,12 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @motor_insurance.assign_attributes(processed_params)
     set_distributor_from_affiliate(@motor_insurance)
 
+    # Validate broker_id exists before saving to prevent foreign key violation
+    if @motor_insurance.broker_id.present? && !Broker.exists?(@motor_insurance.broker_id)
+      Rails.logger.warn "Invalid broker_id #{@motor_insurance.broker_id} detected, clearing it"
+      @motor_insurance.broker_id = nil
+    end
+
     if @motor_insurance.save
       # Handle R2 main policy document upload
       handle_main_policy_r2_upload(@motor_insurance) if params[:motor_insurance][:main_policy_document].present?
