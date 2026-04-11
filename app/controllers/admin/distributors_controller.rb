@@ -83,6 +83,9 @@ class Admin::DistributorsController < Admin::ApplicationController
     # Handle upload_main_document separately to avoid ActiveStorage issues
     main_document = permitted_params.delete(:upload_main_document)
 
+    # Handle profile_image separately for R2 upload
+    profile_image = permitted_params.delete(:profile_image)
+
     # Process document files before creating distributor
     documents_attributes = permitted_params[:distributor_documents_attributes]
     if documents_attributes.present?
@@ -107,6 +110,9 @@ class Admin::DistributorsController < Admin::ApplicationController
           # Don't fail the whole creation for document attachment issues
         end
       end
+
+      # Handle profile image upload to R2
+      handle_profile_image_upload(@distributor, permitted_params[:profile_image])
 
       # Create user account for ambassador login (same logic as customers)
       create_ambassador_user_account(@distributor)
@@ -134,6 +140,9 @@ class Admin::DistributorsController < Admin::ApplicationController
     # Handle upload_main_document separately to avoid ActiveStorage issues
     main_document = permitted_params.delete(:upload_main_document)
 
+    # Handle profile_image separately for R2 upload
+    profile_image = permitted_params.delete(:profile_image)
+
     if @distributor.update(permitted_params)
       # Attach main document after distributor is updated
       if main_document.present?
@@ -144,6 +153,10 @@ class Admin::DistributorsController < Admin::ApplicationController
           # Don't fail the whole update for document attachment issues
         end
       end
+
+      # Handle profile image upload to R2
+      handle_profile_image_upload(@distributor, profile_image)
+
       handle_affiliate_assignments(@distributor, assigned_affiliate_ids)
       Rails.logger.info "Documents after update: #{@distributor.distributor_documents.count}"
       redirect_to admin_distributors_path, notice: 'Ambassador was successfully updated.'
@@ -301,7 +314,7 @@ class Admin::DistributorsController < Admin::ApplicationController
       :state_id, :city_id, :state, :city, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
       :account_holder_name, :account_type, :upi_id, :status, :upload_main_document, :investor_id,
-      :password, :password_confirmation,
+      :password, :password_confirmation, :profile_image,
       assigned_affiliate_ids: [],
       distributor_documents_attributes: [:id, :document_type, :document_file, :_destroy],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
@@ -602,6 +615,36 @@ class Admin::DistributorsController < Admin::ApplicationController
       MotorInsurance.find_by(id: commission_payout.policy_id)
     when 'other'
       OtherInsurance.find_by(id: commission_payout.policy_id) if defined?(OtherInsurance)
+    end
+  end
+
+  def handle_profile_image_upload(distributor, profile_image_file)
+    return unless profile_image_file.present?
+
+    begin
+      Rails.logger.info "📸 Processing profile image upload for distributor #{distributor.id}"
+
+      # Delete existing profile image document if exists
+      existing_profile_doc = distributor.distributor_documents.where(document_type: 'Profile Image').first
+      if existing_profile_doc
+        Rails.logger.info "🗑️ Removing existing profile image document"
+        existing_profile_doc.destroy
+      end
+
+      # Create new profile image document
+      profile_doc = distributor.distributor_documents.build(
+        document_type: 'Profile Image',
+        document_file: profile_image_file
+      )
+
+      if profile_doc.save
+        Rails.logger.info "✅ Profile image uploaded to R2 successfully"
+      else
+        Rails.logger.error "❌ Profile image upload failed: #{profile_doc.errors.full_messages}"
+      end
+
+    rescue => e
+      Rails.logger.error "❌ Profile image upload error: #{e.message}"
     end
   end
 end

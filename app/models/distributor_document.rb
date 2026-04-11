@@ -8,7 +8,7 @@ class DistributorDocument < ApplicationRecord
   # Validations
   validates :document_type, presence: true
   validates :document_type, inclusion: {
-    in: ['Aadhaar Card', 'Pancard', 'Driving License', 'Mediclaim', 'RC Book', 'Other File']
+    in: ['Aadhaar Card', 'Pancard', 'Driving License', 'Mediclaim', 'RC Book', 'Other File', 'Profile Image']
   }
   validate :document_file_presence_or_r2_fields
   validate :validate_document_file_size

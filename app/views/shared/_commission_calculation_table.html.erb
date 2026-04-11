@@ -1,0 +1,303 @@
+<!-- Commission Calculation Table for View Pages -->
+<div class="card mb-4 shadow-sm commission-table">
+  <div class="card-header" style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="mb-0 text-dark fw-bold">
+          <i class="bi bi-calculator me-2 text-primary"></i>
+          Commission Calculation
+        </h5>
+      </div>
+      <div class="text-end">
+        <small class="text-muted fw-bold">Profit Formula:</small>
+        <div class="badge bg-light text-dark border" style="font-size: 0.8rem;">
+          Main Agent Commission - Total Distribution - Company Expenses
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <!-- Commission Table -->
+    <div class="table-responsive">
+      <table class="table mb-0" style="font-size: 0.95rem;">
+        <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+          <tr>
+            <th class="py-3 px-4 fw-bold text-dark border-0" style="width: 20%;">COMMISSION DETAILS</th>
+            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 12%;">(%)</th>
+            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 18%;">COMMISSION</th>
+            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 12%;">TDS (%)</th>
+            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 15%;">TDS AMOUNT</th>
+            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 23%; background: #f8f9fa;">ACTUAL AMOUNT</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Main Agent -->
+          <tr style="border-bottom: 1px solid #e9ecef;">
+            <td class="py-3 px-4 fw-bold text-dark bg-light">Main Agent</td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center fw-bold" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= policy.try(:main_agent_commission_percentage) || 0 %>%
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= indian_currency(policy.try(:commission_amount)) || '₹0.00' %>
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= policy.try(:tds_percentage) || 0 %>%
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= indian_currency(policy.try(:tds_amount)) || '₹0.00' %>
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+              <div class="form-control border-1 text-center fw-bold fs-6" style="background: #e8f5e8; border-color: #28a745; color: #155724;">
+                <%= indian_currency(policy.try(:after_tds_value)) || '₹0.00' %>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Affiliate -->
+          <tr style="border-bottom: 1px solid #e9ecef;">
+            <td class="py-3 px-4 fw-bold text-dark">Affiliate</td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center fw-bold" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= policy.try(:sub_agent_commission_percentage) || 0 %>%
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= indian_currency(policy.try(:sub_agent_commission_amount)) || '₹0.00' %>
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= policy.try(:sub_agent_tds_percentage) || 0 %>%
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= indian_currency(policy.try(:sub_agent_tds_amount)) || '₹0.00' %>
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+              <div class="form-control border-1 text-center fw-bold fs-6" style="background: #e3f2fd; border-color: #2196f3; color: #0d47a1;">
+                <%= indian_currency(policy.try(:sub_agent_after_tds_value)) || '₹0.00' %>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Ambassador -->
+          <tr style="border-bottom: 1px solid #e9ecef;">
+            <td class="py-3 px-4 fw-bold text-dark">Ambassador</td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center fw-bold" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= policy.try(:ambassador_commission_percentage) || 0 %>%
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= indian_currency(policy.try(:ambassador_commission_amount)) || '₹0.00' %>
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= policy.try(:ambassador_tds_percentage) || '-' %>
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= indian_currency(policy.try(:ambassador_tds_amount)) || '-' %>
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+              <div class="form-control border-1 text-center fw-bold fs-6" style="background: #fff3e0; border-color: #ff9800; color: #e65100;">
+                <%= indian_currency(policy.try(:ambassador_after_tds_value) || policy.try(:ambassador_commission_amount)) || '₹0.00' %>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Investor -->
+          <tr style="border-bottom: 1px solid #e9ecef;">
+            <td class="py-3 px-4 fw-bold text-dark">Investor</td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center fw-bold" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= policy.try(:investor_commission_percentage) || 0 %>%
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= indian_currency(policy.try(:investor_commission_amount)) || '₹0.00' %>
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= policy.try(:investor_tds_percentage) || '-' %>
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= indian_currency(policy.try(:investor_tds_amount)) || '-' %>
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+              <div class="form-control border-1 text-center fw-bold fs-6" style="background: #e8f5e8; border-color: #4caf50; color: #2e7d32;">
+                <%= indian_currency(policy.try(:investor_after_tds_value) || policy.try(:investor_commission_amount)) || '₹0.00' %>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Company -->
+          <tr style="border-bottom: 1px solid #e9ecef;">
+            <td class="py-3 px-4 fw-bold text-dark">Company</td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center fw-bold" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= policy.try(:company_expenses_percentage) || 0 %>%
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                <%= indian_currency(policy.try(:company_expenses_amount)) || '₹0.00' %>
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                -
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #f8f9fa; border-color: #dee2e6; color: #495057;">
+                -
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+              <div class="form-control border-1 text-center fw-bold fs-6" style="background: #fce4ec; border-color: #e91e63; color: #880e4f;">
+                <%= indian_currency(policy.try(:company_expenses_amount)) || '₹0.00' %>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Profit -->
+          <tr style="border-bottom: 2px solid #dee2e6; background: #fffbf0;">
+            <td class="py-3 px-4 fw-bold text-dark">Profit</td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center fw-bold" style="background: #fffbf0; border-color: #ffc107; color: #856404;">
+                <%= policy.try(:profit_percentage) || 0 %>%
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center fw-bold" style="background: #fffbf0; border-color: #ffc107; color: #856404;">
+                <%= indian_currency(policy.try(:profit_amount)) || '₹0.00' %>
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #fffbf0; border-color: #ffc107; color: #856404;">
+                -
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center">
+              <div class="form-control border-1 text-center" style="background: #fffbf0; border-color: #ffc107; color: #856404;">
+                -
+              </div>
+            </td>
+            <td class="py-2 px-1 text-center" style="background: #fffbf0;">
+              <div class="form-control border-1 text-center fw-bold fs-6" style="background: #fff9c4; border-color: #ffc107; color: #856404;">
+                <%= indian_currency(policy.try(:profit_amount)) || '₹0.00' %>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Summary Row -->
+    <div class="p-3" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-top: 1px solid #dee2e6;">
+      <div class="row">
+        <div class="col-md-3">
+          <small class="text-muted fw-bold">Net Premium:</small>
+          <div class="h6 mb-0 text-primary">
+            <%= indian_currency(policy.try(:net_premium)) || '₹0.00' %>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <small class="text-muted fw-bold">Total Distribution:</small>
+          <div class="h6 mb-0 text-info">
+            <%= policy.try(:total_distribution_percentage) || 0 %>%
+          </div>
+        </div>
+        <div class="col-md-3">
+          <small class="text-muted fw-bold">Company Expenses:</small>
+          <div class="h6 mb-0 text-danger">
+            <%= policy.try(:company_expenses_percentage) || 0 %>%
+          </div>
+        </div>
+        <div class="col-md-3">
+          <small class="text-muted fw-bold">Final Profit:</small>
+          <div class="h6 mb-0 text-warning">
+            <%= indian_currency(policy.try(:profit_amount)) || '₹0.00' %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .commission-table {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .commission-table .table td,
+  .commission-table .table th {
+    vertical-align: middle;
+    border-color: #e9ecef;
+  }
+  .commission-table .form-control {
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+  .commission-table .form-control:read-only {
+    background-color: #f8f9fa !important;
+    color: #6c757d !important;
+  }
+  .commission-table tr:hover {
+    background-color: rgba(102, 126, 234, 0.03);
+  }
+  .net-premium-display {
+    background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-weight: bold;
+    color: #495057;
+  }
+
+  /* Remove borders from form-control divs to make them look like display elements */
+  .commission-table .form-control {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 8px 12px;
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+    border-radius: 4px;
+  }
+
+  .commission-table .form-control:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Make profit row more prominent */
+  .commission-table tr:last-child .form-control {
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+  }
+</style>

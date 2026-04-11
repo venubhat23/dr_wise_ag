@@ -145,6 +145,66 @@
           <%= form.text_area :address, class: "form-control", rows: 3, placeholder: "Enter full address" %>
         </div>
       </div>
+
+      <!-- Profile Picture Section -->
+      <div class="row mt-4">
+        <div class="col-md-12">
+          <div class="card bg-light border-0">
+            <div class="card-body">
+              <h6 class="card-title mb-3">
+                <i class="bi bi-image me-2 text-primary"></i>Profile Picture
+              </h6>
+
+              <!-- Profile Picture Upload -->
+              <div class="row">
+                <div class="col-md-12">
+                  <%= form.label :profile_image, "Upload Profile Picture", class: "form-label" %>
+                  <%= form.file_field :profile_image,
+                      class: "form-control",
+                      accept: "image/*",
+                      id: "distributor_profile_image" %>
+                  <small class="form-text text-muted">
+                    Supported formats: JPG, PNG, GIF (Max 5MB) - Optional
+                  </small>
+
+                  <!-- Profile Picture Preview -->
+                  <div id="profile_picture_preview" class="mt-3" style="display: none;">
+                    <div class="card border-success">
+                      <div class="card-body p-3">
+                        <div class="d-flex align-items-center">
+                          <div class="me-3">
+                            <img id="profile_preview_image"
+                                 class="rounded-circle"
+                                 style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #28a745;"
+                                 alt="Profile Preview">
+                          </div>
+                          <div class="flex-grow-1">
+                            <h6 class="mb-1 text-success">
+                              <i class="bi bi-check-circle me-1"></i>Profile Picture Ready
+                            </h6>
+                            <div class="small text-muted">
+                              <div><strong>Name:</strong> <span id="profile_file_name"></span></div>
+                              <div><strong>Size:</strong> <span id="profile_file_size"></span></div>
+                            </div>
+                          </div>
+                          <div>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    id="remove_profile_picture"
+                                    title="Remove Profile Picture">
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -897,6 +957,85 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(() => {
     searchInput.focus();
   }, 500);
+
+  // Profile Picture Preview Functionality
+  const profileImageInput = document.getElementById('distributor_profile_image');
+  const profilePreviewContainer = document.getElementById('profile_picture_preview');
+  const profilePreviewImage = document.getElementById('profile_preview_image');
+  const profileFileName = document.getElementById('profile_file_name');
+  const profileFileSize = document.getElementById('profile_file_size');
+  const removeProfileBtn = document.getElementById('remove_profile_picture');
+
+  if (profileImageInput) {
+    profileImageInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+
+      if (!file) {
+        profilePreviewContainer.style.display = 'none';
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        showProfileError('Please select a valid image file (JPG, PNG, GIF)');
+        profileImageInput.value = '';
+        profilePreviewContainer.style.display = 'none';
+        return;
+      }
+
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        showProfileError('File size exceeds 5MB limit');
+        profileImageInput.value = '';
+        profilePreviewContainer.style.display = 'none';
+        return;
+      }
+
+      // Show preview
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        profilePreviewImage.src = e.target.result;
+        profileFileName.textContent = file.name;
+        profileFileSize.textContent = formatFileSize(file.size);
+        profilePreviewContainer.style.display = 'block';
+
+        // Smooth animation
+        profilePreviewContainer.style.opacity = '0';
+        setTimeout(() => {
+          profilePreviewContainer.style.transition = 'opacity 0.3s ease';
+          profilePreviewContainer.style.opacity = '1';
+        }, 10);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (removeProfileBtn) {
+    removeProfileBtn.addEventListener('click', function() {
+      profileImageInput.value = '';
+      profilePreviewContainer.style.display = 'none';
+    });
+  }
+
+  function showProfileError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger alert-dismissible fade show mt-2';
+    errorDiv.innerHTML = `
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    profileImageInput.parentNode.insertBefore(errorDiv, profileImageInput.nextSibling);
+    setTimeout(() => errorDiv.remove(), 5000);
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
 });
 
 // Password type toggle functionality for distributors

@@ -1,6 +1,7 @@
 class Admin::InvestorsController < Admin::ApplicationController
   include LocationData
   before_action :set_investor, only: [:show, :edit, :update, :destroy, :toggle_status]
+  before_action :load_form_data, only: [:new, :edit, :create, :update]
 
   # GET /admin/investors
   def index
@@ -297,6 +298,11 @@ class Admin::InvestorsController < Admin::ApplicationController
 
   def set_investor
     @investor = Investor.find(params[:id])
+  end
+
+  def load_form_data
+    # Load states and cities data for the form
+    @states_for_select = LocationData.states_for_select
   end
 
   def investor_params

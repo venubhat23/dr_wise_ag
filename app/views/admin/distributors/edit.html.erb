@@ -147,6 +147,118 @@
           <%= form.text_area :address, class: "form-control", rows: 3, placeholder: "Enter full address" %>
         </div>
       </div>
+
+      <!-- Profile Picture Section -->
+      <div class="row mt-4">
+        <div class="col-md-12">
+          <div class="card bg-light border-0">
+            <div class="card-body">
+              <h6 class="card-title mb-3">
+                <i class="bi bi-image me-2 text-primary"></i>Profile Picture
+              </h6>
+
+              <!-- Current Profile Picture Display -->
+              <% if @distributor.has_r2_profile_image? || @distributor.profile_image.attached? %>
+                <div class="mb-3">
+                  <h6 class="text-muted mb-2">Current Profile Picture</h6>
+                  <div class="d-flex align-items-center">
+                    <div class="me-3">
+                      <% if @distributor.has_r2_profile_image? %>
+                        <%= image_tag @distributor.r2_profile_image_url,
+                            class: "rounded-circle",
+                            style: "width: 80px; height: 80px; object-fit: cover; border: 3px solid #e9ecef;",
+                            alt: "Current Profile Picture" %>
+                      <% elsif @distributor.profile_image.attached? %>
+                        <%= image_tag @distributor.profile_image_url,
+                            class: "rounded-circle",
+                            style: "width: 80px; height: 80px; object-fit: cover; border: 3px solid #e9ecef;",
+                            alt: "Current Profile Picture" %>
+                      <% end %>
+                    </div>
+                    <div>
+                      <% if @distributor.has_r2_profile_image? %>
+                        <small class="text-muted d-block">
+                          <strong>File:</strong> <%= @distributor.r2_profile_image.document_name %>
+                        </small>
+                        <small class="text-muted d-block">
+                          <strong>Size:</strong> <%= @distributor.r2_profile_image.document_size %>
+                        </small>
+                        <small class="text-success d-block">
+                          <i class="bi bi-cloud-check me-1"></i><strong>Storage:</strong> Cloudflare R2
+                        </small>
+                      <% elsif @distributor.profile_image.attached? %>
+                        <small class="text-muted d-block">
+                          <strong>File:</strong> <%= @distributor.profile_image.filename %>
+                        </small>
+                        <small class="text-muted d-block">
+                          <strong>Size:</strong> <%= number_to_human_size(@distributor.profile_image.byte_size) %>
+                        </small>
+                        <small class="text-muted d-block">
+                          <strong>Uploaded:</strong> <%= time_ago_in_words(@distributor.profile_image.created_at) %> ago
+                        </small>
+                        <small class="text-info d-block">
+                          <i class="bi bi-hdd me-1"></i><strong>Storage:</strong> Active Storage
+                        </small>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+                <hr class="my-3">
+              <% end %>
+
+              <!-- Profile Picture Upload -->
+              <div class="row">
+                <div class="col-md-12">
+                  <%= form.label :profile_image, "Upload Profile Picture", class: "form-label" %>
+                  <%= form.file_field :profile_image,
+                      class: "form-control",
+                      accept: "image/*",
+                      id: "distributor_profile_image" %>
+                  <small class="form-text text-muted">
+                    Supported formats: JPG, PNG, GIF (Max 5MB)
+                    <% if @distributor.profile_image.attached? %>
+                      - Upload a new image to replace the current one
+                    <% end %>
+                  </small>
+
+                  <!-- Profile Picture Preview -->
+                  <div id="profile_picture_preview" class="mt-3" style="display: none;">
+                    <div class="card border-success">
+                      <div class="card-body p-3">
+                        <div class="d-flex align-items-center">
+                          <div class="me-3">
+                            <img id="profile_preview_image"
+                                 class="rounded-circle"
+                                 style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #28a745;"
+                                 alt="Profile Preview">
+                          </div>
+                          <div class="flex-grow-1">
+                            <h6 class="mb-1 text-success">
+                              <i class="bi bi-check-circle me-1"></i>Profile Picture Ready
+                            </h6>
+                            <div class="small text-muted">
+                              <div><strong>Name:</strong> <span id="profile_file_name"></span></div>
+                              <div><strong>Size:</strong> <span id="profile_file_size"></span></div>
+                            </div>
+                          </div>
+                          <div>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    id="remove_profile_picture"
+                                    title="Remove Profile Picture">
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1247,37 +1359,135 @@ document.addEventListener('DOMContentLoaded', function() {
     searchInput.focus();
   }, 500);
 
-  // Mobile number handling
-  const mobileInput = document.querySelector('input[name="distributor[mobile]"]');
-  if (mobileInput && mobileInput.value) {
-    // Remove +91 and spaces if present
-    let cleanNumber = mobileInput.value.replace(/^\+91\s*/, '').replace(/\s+/g, '');
-    // Keep only the last 10 digits
-    if (cleanNumber.length > 10) {
-      cleanNumber = cleanNumber.slice(-10);
-    }
-    mobileInput.value = cleanNumber;
+  // Profile Picture Preview Functionality
+  const profileImageInput = document.getElementById('distributor_profile_image');
+  const profilePreviewContainer = document.getElementById('profile_picture_preview');
+  const profilePreviewImage = document.getElementById('profile_preview_image');
+  const profileFileName = document.getElementById('profile_file_name');
+  const profileFileSize = document.getElementById('profile_file_size');
+  const removeProfileBtn = document.getElementById('remove_profile_picture');
+
+  if (profileImageInput) {
+    profileImageInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+
+      if (!file) {
+        profilePreviewContainer.style.display = 'none';
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        showProfileError('Please select a valid image file (JPG, PNG, GIF)');
+        profileImageInput.value = '';
+        profilePreviewContainer.style.display = 'none';
+        return;
+      }
+
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        showProfileError('File size exceeds 5MB limit');
+        profileImageInput.value = '';
+        profilePreviewContainer.style.display = 'none';
+        return;
+      }
+
+      // Show preview
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        profilePreviewImage.src = e.target.result;
+        profileFileName.textContent = file.name;
+        profileFileSize.textContent = formatFileSize(file.size);
+        profilePreviewContainer.style.display = 'block';
+
+        // Smooth animation
+        profilePreviewContainer.style.opacity = '0';
+        setTimeout(() => {
+          profilePreviewContainer.style.transition = 'opacity 0.3s ease';
+          profilePreviewContainer.style.opacity = '1';
+        }, 10);
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
-  // Add input validation for mobile number
+  if (removeProfileBtn) {
+    removeProfileBtn.addEventListener('click', function() {
+      profileImageInput.value = '';
+      profilePreviewContainer.style.display = 'none';
+    });
+  }
+
+  function showProfileError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger alert-dismissible fade show mt-2';
+    errorDiv.innerHTML = `
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    profileImageInput.parentNode.insertBefore(errorDiv, profileImageInput.nextSibling);
+    setTimeout(() => errorDiv.remove(), 5000);
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  // Mobile number handling
+  const mobileInput = document.querySelector('input[name="distributor[mobile]"]');
   if (mobileInput) {
+    // Clean up existing value on page load
+    if (mobileInput.value) {
+      let cleanNumber = mobileInput.value.replace(/\D/g, ''); // Remove non-digits
+      // Extract last 10 digits if longer
+      if (cleanNumber.length > 10) {
+        cleanNumber = cleanNumber.slice(-10);
+      }
+      mobileInput.value = cleanNumber;
+    }
+
+    // Add input validation for mobile number
     mobileInput.addEventListener('input', function(e) {
       // Remove non-digit characters
-      this.value = this.value.replace(/\D/g, '');
+      let value = this.value.replace(/\D/g, '');
+
       // Limit to 10 digits
-      if (this.value.length > 10) {
-        this.value = this.value.slice(0, 10);
+      if (value.length > 10) {
+        value = value.slice(0, 10);
       }
+
+      this.value = value;
 
       // Remove validation classes
       this.classList.remove('is-invalid', 'is-valid');
 
-      // Check if valid
-      if (this.value.length === 10) {
+      // Check if valid (10 digits starting with 7, 8, or 9)
+      if (value.length === 10 && /^[789]/.test(value)) {
         this.classList.add('is-valid');
-      } else if (this.value.length > 0) {
+      } else if (value.length > 0) {
         this.classList.add('is-invalid');
       }
+    });
+
+    // Prevent pasting invalid content
+    mobileInput.addEventListener('paste', function(e) {
+      e.preventDefault();
+      let paste = (e.clipboardData || window.clipboardData).getData('text');
+      let cleanPaste = paste.replace(/\D/g, ''); // Remove non-digits
+
+      // Extract last 10 digits if longer
+      if (cleanPaste.length > 10) {
+        cleanPaste = cleanPaste.slice(-10);
+      }
+
+      this.value = cleanPaste;
+      // Trigger input event to validate
+      this.dispatchEvent(new Event('input'));
     });
   }
 

@@ -208,49 +208,24 @@
   </div>
 </div>
 
-<!-- Commission Details Section -->
+<!-- Commission Calculation Table -->
+<%= render 'shared/commission_calculation_table', policy: @other_insurance %>
+
+<!-- Commission Transaction Details -->
 <div class="info-section-card">
-  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#commissionDetailsCollapse" aria-expanded="false">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#commissionTransactionCollapse" aria-expanded="false">
     <div class="d-flex align-items-center">
       <div class="section-icon">
-        <i class="bi bi-percent"></i>
+        <i class="bi bi-credit-card"></i>
       </div>
-      <h5 class="section-title">Commission Details</h5>
+      <h5 class="section-title">Commission Transaction Details</h5>
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
-  <div id="commissionDetailsCollapse" class="collapse">
+  <div id="commissionTransactionCollapse" class="collapse">
     <div class="section-body">
-
-    <!-- Main Agent Commission -->
-    <h6 class="text-primary mb-3">Main Agent Commission</h6>
-    <div class="row">
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Percentage (%)</label>
-        <input type="text" class="form-control" value="<%= @other_insurance.main_agent_commission_percentage %>%" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Commission Amount</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.commission_amount) if @other_insurance.commission_amount %>" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">TDS %</label>
-        <input type="text" class="form-control" value="<%= @other_insurance.tds_percentage %>%" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">TDS Amount</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.tds_amount) if @other_insurance.tds_amount %>" readonly>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-md-3 mb-3">
-        <label class="form-label">After TDS Value</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.after_tds_value) if @other_insurance.after_tds_value %>" readonly>
-      </div>
-    </div>
-
     <!-- Main Agent Commission Transaction Details -->
-    <h6 class="text-info mb-3 mt-4">Main Agent Commission Transaction</h6>
+    <h6 class="text-info mb-3">Main Agent Commission Transaction</h6>
     <div class="row">
       <div class="col-md-4 mb-3">
         <label class="form-label">Commission Received</label>
@@ -271,109 +246,6 @@
         <textarea class="form-control" rows="2" readonly><%= @other_insurance.main_agent_commission_notes %></textarea>
       </div>
     </div>
-
-    <!-- Sub Agent Commission -->
-    <h6 class="text-success mb-3 mt-4">Affiliate Commission</h6>
-    <div class="row">
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Percentage (%)</label>
-        <input type="text" class="form-control" value="<%= @other_insurance.sub_agent_commission_percentage %>%" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Commission Amount</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.sub_agent_commission_amount) if @other_insurance.sub_agent_commission_amount %>" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">TDS %</label>
-        <input type="text" class="form-control" value="<%= @other_insurance.sub_agent_tds_percentage %>%" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">TDS Amount</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.sub_agent_tds_amount) if @other_insurance.sub_agent_tds_amount %>" readonly>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-md-3 mb-3">
-        <label class="form-label">After TDS Value</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.sub_agent_after_tds_value) if @other_insurance.sub_agent_after_tds_value %>" readonly>
-      </div>
-    </div>
-
-    <!-- Investor Commission -->
-    <h6 class="text-warning mb-3 mt-4">Investor Commission</h6>
-    <div class="row">
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Percentage (%)</label>
-        <input type="text" class="form-control" value="<%= @other_insurance.investor_commission_percentage %>%" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Commission Amount</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.investor_commission_amount) if @other_insurance.investor_commission_amount %>" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">TDS %</label>
-        <input type="text" class="form-control" value="<%= @other_insurance.investor_tds_percentage %>%" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">TDS Amount</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.investor_tds_amount) if @other_insurance.investor_tds_amount %>" readonly>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-md-3 mb-3">
-        <label class="form-label">After TDS Value</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.investor_after_tds_value) if @other_insurance.investor_after_tds_value %>" readonly>
-      </div>
-    </div>
-
-    <!-- Ambassador Commission -->
-    <h6 class="text-danger mb-3 mt-4">Ambassador Commission</h6>
-    <div class="row">
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Percentage (%)</label>
-        <input type="text" class="form-control" value="<%= @other_insurance.ambassador_commission_percentage %>%" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Commission Amount</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.ambassador_commission_amount) if @other_insurance.ambassador_commission_amount %>" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">TDS %</label>
-        <input type="text" class="form-control" value="<%= @other_insurance.ambassador_tds_percentage %>%" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">TDS Amount</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.ambassador_tds_amount) if @other_insurance.ambassador_tds_amount %>" readonly>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-md-3 mb-3">
-        <label class="form-label">After TDS Value</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.ambassador_after_tds_value) if @other_insurance.ambassador_after_tds_value %>" readonly>
-      </div>
-    </div>
-
-    <!-- Company Financials -->
-    <h6 class="text-secondary mb-3 mt-4">Company Financials</h6>
-    <div class="row">
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Company Expenses (%)</label>
-        <input type="text" class="form-control" value="<%= @other_insurance.company_expenses_percentage %>%" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Total Distribution (%)</label>
-        <input type="text" class="form-control" value="<%= @other_insurance.total_distribution_percentage %>%" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Profit (%)</label>
-        <input type="text" class="form-control" value="<%= @other_insurance.profit_percentage %>%" readonly>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Profit Amount (₹)</label>
-        <input type="text" class="form-control" value="<%= indian_currency(@other_insurance.profit_amount) if @other_insurance.profit_amount %>" readonly>
-      </div>
-    </div>
-
     </div>
   </div>
 </div>

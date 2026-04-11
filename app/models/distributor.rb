@@ -13,6 +13,7 @@ class Distributor < ApplicationRecord
   has_many :assigned_sub_agents, through: :distributor_assignments, source: :sub_agent
   has_many :sub_agents, dependent: :nullify
   has_one_attached :upload_main_document
+  has_one_attached :profile_image
 
   # Nested attributes for documents
   accepts_nested_attributes_for :distributor_documents, allow_destroy: true,
@@ -104,6 +105,55 @@ class Distributor < ApplicationRecord
     active? && !deactivated?
   end
 
+  # R2 Profile Image methods
+  def r2_profile_image
+    distributor_documents.where(document_type: 'Profile Image').first
+  end
+
+  def has_r2_profile_image?
+    r2_profile_image&.has_document?
+  end
+
+  def r2_profile_image_url
+    r2_profile_image&.document_url
+  end
+
+  # Get profile image URL (prioritize R2, fallback to ActiveStorage)
+  def profile_image_display_url
+    if has_r2_profile_image?
+      r2_profile_image_url
+    elsif profile_image.attached?
+      profile_image_url
+    else
+      nil
+    end
+  end
+
+  def profile_image_url
+    if profile_image.attached?
+      begin
+        # Try to generate full URL first
+        Rails.application.routes.url_helpers.rails_blob_url(profile_image, only_path: false)
+      rescue ArgumentError, ActionController::RoutingError => e
+        # If host is not configured or other routing error, fall back to path only
+        Rails.logger.warn "Host not configured for URL generation, using path only: #{e.message}"
+        Rails.application.routes.url_helpers.rails_blob_path(profile_image)
+      end
+    else
+      nil
+    end
+  rescue => e
+    Rails.logger.error "Error generating profile image URL for distributor #{id}: #{e.message}"
+    nil
+  end
+
+  def has_profile_image?
+    profile_image.attached? && profile_image.blob.present?
+  rescue => e
+    Rails.logger.error "Error checking profile image for distributor #{id}: #{e.message}"
+    false
+  end
+
   # Generate readable username and password
   def generate_readable_password
     words = ['Blue', 'Green', 'Red', 'Happy', 'Smart', 'Quick', 'Bright', 'Swift']
@@ -141,6 +191,28 @@ class Distributor < ApplicationRecord
     elsif clean_mobile.length == 10 && clean_mobile.match?(/\A[789]\d{9}\z/)
       # XXXXXXXXXX format - valid 10 digit number starting with 7, 8, or 9
       self.mobile = clean_mobile
+    elsif clean_mobile.length > 10
+      # Extract last 10 digits if longer than 10
+      last_ten = clean_mobile[-10..-1]
+      if last_ten.match?(/\A[789]\d{9}\z/)
+        self.mobile = last_ten
+      else
+        # Try to find a valid 10-digit sequence starting with 7, 8, or 9
+        found_valid = false
+        (clean_mobile.length - 9).downto(1) do |i|
+          candidate = clean_mobile[i-1, 10]
+          if candidate.length == 10 && candidate.match?(/\A[789]\d{9}\z/)
+            self.mobile = candidate
+            found_valid = true
+            break
+          end
+        end
+
+        # If no valid sequence found, keep original for validation error
+        unless found_valid
+          self.mobile = clean_mobile
+        end
+      end
     else
       # Any other format - let validation handle it
       self.mobile = clean_mobile

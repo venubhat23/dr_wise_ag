@@ -50,8 +50,14 @@ window.FormEnhancements = (function() {
         }
       });
 
-      // Format on blur (when user finishes editing)
+      // Format on blur (when user finishes editing) - DISABLED FOR DISTRIBUTORS
       field.addEventListener('blur', function(e) {
+        // Skip formatting for distributor forms to allow clean 10-digit input
+        const isDistributorForm = e.target.closest('form')?.action?.includes('distributors');
+        if (isDistributorForm) {
+          return; // Don't add +91 formatting for distributors
+        }
+
         let value = e.target.value.trim();
         const digitsOnly = value.replace(/\D/g, '');
 

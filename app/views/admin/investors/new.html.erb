@@ -83,7 +83,7 @@
         <div class="col-md-4">
           <%= form.label :state, "State", class: "form-label" %>
           <%= form.select :state,
-              options_for_select(LocationData.states_for_select, @investor&.state),
+              options_for_select(@states_for_select || [], @investor&.state),
               { prompt: 'Search and select state...' },
               { class: "form-select searchable-select", id: "investor_state", data: { placeholder: "Type to search states..." } } %>
         </div>
