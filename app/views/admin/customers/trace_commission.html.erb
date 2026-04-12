@@ -527,19 +527,16 @@
                   </span>
                 </td>
                 <td>
-                  <div class="commission-breakdown">
-                    <% payouts.each_with_index do |payout, index| %>
-                      <div class="commission-item d-flex justify-content-between align-items-center <%= 'mb-1' if index < payouts.length - 1 %>">
-                        <small class="text-muted">
-                          <i class="bi bi-arrow-right me-1"></i>
-                          <strong><%= payout.payout_to.humanize %>:</strong>
-                        </small>
-                        <span class="badge bg-light text-dark fw-bold">
-                          <%= indian_currency(payout.payout_amount) %>
-                        </span>
-                      </div>
-                    <% end %>
-                  </div>
+                  <button type="button"
+                          class="btn btn-info btn-sm text-white"
+                          onclick="showCommissionBreakdown('<%= policy_number %>', '<%= first_payout.policy_type %>', '<%= payouts.to_json.gsub("'", "\\'") %>')"
+                          style="border-radius: 20px;">
+                    <i class="bi bi-pie-chart me-1"></i><%= payouts.count %> breakdown
+                  </button>
+                  <br>
+                  <small class="text-muted mt-1">
+                    Total Amount: <%= indian_currency(total_amount) %>
+                  </small>
                 </td>
                 <td>
                   <div class="fw-bold text-success fs-6">
@@ -1838,6 +1835,62 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 </style>
+
+<!-- Commission Breakdown Modal -->
+<div class="modal fade" id="commissionBreakdownModal" tabindex="-1" aria-labelledby="commissionBreakdownModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-gradient-primary">
+        <h5 class="modal-title text-white" id="commissionBreakdownModalLabel">
+          <i class="bi bi-pie-chart me-2"></i>Commission Breakdown for <span id="modalPolicyNumber"></span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row mb-3">
+          <div class="col-12">
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              <strong>Policy Type:</strong> <span id="modalPolicyType"></span>
+            </div>
+          </div>
+        </div>
+
+        <div id="commissionBreakdownContent">
+          <!-- Commission breakdown content will be loaded here -->
+        </div>
+
+        <div class="mt-4">
+          <div class="card bg-light">
+            <div class="card-body">
+              <div class="row text-center">
+                <div class="col-md-4">
+                  <h6 class="text-muted">Total Breakdown Items</h6>
+                  <h4 class="text-primary mb-0" id="totalBreakdownCount">0</h4>
+                </div>
+                <div class="col-md-4">
+                  <h6 class="text-muted">Total Commission</h6>
+                  <h4 class="text-success mb-0" id="totalCommissionSum">₹0</h4>
+                </div>
+                <div class="col-md-4">
+                  <h6 class="text-muted">Breakdown Status</h6>
+                  <h4 class="mb-0" id="breakdownStatus">
+                    <span class="badge bg-secondary">Loading...</span>
+                  </h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x me-1"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Insurance Policies Modal -->
 <div class="modal fade" id="insurancePoliciesModal" tabindex="-1" aria-labelledby="insurancePoliciesModalLabel" aria-hidden="true">

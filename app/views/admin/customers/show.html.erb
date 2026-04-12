@@ -279,6 +279,19 @@ body {
           <i class="bi bi-pencil-square me-1"></i>Edit Client
         <% end %>
 
+        <!-- Create Insurance Dropdown -->
+        <div class="dropdown">
+          <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-plus-circle me-1"></i>Create Insurance
+          </button>
+          <ul class="dropdown-menu">
+            <li><%= link_to "Life Insurance", new_admin_life_insurance_path(customer_id: @customer.id), class: "dropdown-item" %></li>
+            <li><%= link_to "Health Insurance", new_admin_health_insurance_path(customer_id: @customer.id), class: "dropdown-item" %></li>
+            <li><%= link_to "Motor Insurance", new_admin_motor_insurance_path(customer_id: @customer.id), class: "dropdown-item" %></li>
+            <li><%= link_to "General Insurance", new_admin_other_insurance_path(customer_id: @customer.id), class: "dropdown-item" %></li>
+          </ul>
+        </div>
+
         <div class="dropdown">
           <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
             <i class="bi bi-gear me-1"></i>Actions
