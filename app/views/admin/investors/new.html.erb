@@ -56,7 +56,10 @@
           <%= form.label :mobile, class: "form-label" do %>
             Mobile <span class="text-danger">*</span>
           <% end %>
-          <%= form.telephone_field :mobile, class: "form-control", placeholder: "Enter 10-digit mobile (7/8/9xxxxxxxxx)", required: true, pattern: "[789][0-9]{9}", maxlength: 10, title: "Must be a 10-digit number starting with 7, 8, or 9" %>
+          <%= form.telephone_field :mobile, class: "form-control mobile-input", placeholder: "Enter 10-digit mobile number", required: true, pattern: "[789][0-9]{9}", title: "Must be a 10-digit number starting with 7, 8, or 9", autocomplete: "tel", maxlength: "10" %>
+          <div class="form-text text-muted">
+            <small>Enter 10-digit mobile number (e.g., 9876543210). +91 will be removed automatically if entered.</small>
+          </div>
         </div>
         <div class="col-md-6">
           <%= form.label :email, class: "form-label" do %>
@@ -427,6 +430,29 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Simple mobile number validation - just ensure 10 digits
+  const mobileInput = document.querySelector('.mobile-input');
+  if (mobileInput) {
+    mobileInput.addEventListener('input', function(e) {
+      let value = e.target.value;
+
+      // Remove non-digits and limit to 10
+      let cleaned = value.replace(/\D/g, '').substring(0, 10);
+      e.target.value = cleaned;
+
+      // Simple validation: 10 digits starting with 7/8/9
+      if (cleaned.length === 10 && /^[789]/.test(cleaned)) {
+        e.target.classList.remove('is-invalid');
+        e.target.classList.add('is-valid');
+      } else if (cleaned.length > 0) {
+        e.target.classList.remove('is-valid');
+        e.target.classList.add('is-invalid');
+      } else {
+        e.target.classList.remove('is-valid', 'is-invalid');
+      }
+    });
+  }
+
   // Initialize searchable state-city dropdowns
   const stateSelect = document.getElementById('investor_state');
   const citySelect = document.getElementById('investor_city');

@@ -295,7 +295,7 @@ class Admin::DistributorsController < Admin::ApplicationController
   end
 
   def set_distributor
-    @distributor = Distributor.includes(distributor_documents: { document_file_attachment: :blob }).find(params[:id])
+    @distributor = Distributor.includes(:distributor_documents).find(params[:id])
   end
 
   def determine_ambassador_password

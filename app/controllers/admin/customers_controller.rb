@@ -180,7 +180,7 @@ class Admin::CustomersController < Admin::ApplicationController
       :life_insurances,
       :motor_insurances,
       :other_insurances,
-      uploaded_documents: { file_attachment: :blob }
+      :uploaded_documents
     ).find(params[:id])
 
     @family_members = @customer.family_members.order(:created_at)

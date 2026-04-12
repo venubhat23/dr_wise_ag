@@ -281,6 +281,67 @@
 
   <!-- Sidebar -->
   <div class="col-lg-4">
+    <!-- Profile Image -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0">
+        <h6 class="mb-0">
+          <i class="bi bi-person-circle me-2 text-primary"></i>
+          Profile Picture
+        </h6>
+      </div>
+      <div class="card-body text-center">
+        <% if @distributor.has_r2_profile_image? %>
+          <div class="position-relative d-inline-block">
+            <%= image_tag @distributor.r2_profile_image_url,
+                class: "rounded-circle border",
+                style: "width: 150px; height: 150px; object-fit: cover;",
+                alt: "Profile Picture" %>
+            <div class="position-absolute" style="bottom: 10px; right: 10px;">
+              <span class="badge bg-success">
+                <i class="bi bi-cloud-check"></i> R2
+              </span>
+            </div>
+          </div>
+          <div class="mt-3">
+            <p class="mb-1"><strong>File:</strong> <%= @distributor.r2_profile_image.document_name %></p>
+            <p class="mb-1"><strong>Size:</strong> <%= @distributor.r2_profile_image.document_size %></p>
+          </div>
+        <% elsif @distributor.profile_image.attached? %>
+          <div class="position-relative d-inline-block">
+            <%= image_tag @distributor.profile_image_url,
+                class: "rounded-circle border",
+                style: "width: 150px; height: 150px; object-fit: cover;",
+                alt: "Profile Picture" %>
+            <div class="position-absolute" style="bottom: 10px; right: 10px;">
+              <span class="badge bg-info">
+                <i class="bi bi-cloud"></i> Storage
+              </span>
+            </div>
+          </div>
+          <div class="mt-3">
+            <p class="mb-1"><strong>File:</strong> <%= @distributor.profile_image.filename %></p>
+            <p class="mb-1"><strong>Size:</strong> <%= number_to_human_size(@distributor.profile_image.byte_size) %></p>
+            <p class="mb-1"><strong>Uploaded:</strong> <%= time_ago_in_words(@distributor.profile_image.created_at) %> ago</p>
+          </div>
+        <% else %>
+          <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center mx-auto"
+               style="width: 150px; height: 150px;">
+            <div class="text-center">
+              <i class="bi bi-person-circle text-muted" style="font-size: 3rem;"></i>
+              <p class="text-muted small mt-2">No profile picture</p>
+            </div>
+          </div>
+        <% end %>
+
+        <div class="mt-3">
+          <%= link_to edit_admin_distributor_path(@distributor), class: "btn btn-sm btn-outline-primary" do %>
+            <i class="bi bi-pencil me-1"></i>
+            Update Picture
+          <% end %>
+        </div>
+      </div>
+    </div>
+
     <!-- Quick Stats -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0">

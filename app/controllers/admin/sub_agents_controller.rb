@@ -151,7 +151,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
   # GET /admin/sub_agents/1/edit
   def edit
     # Load documents for display
-    @documents = @sub_agent.sub_agent_documents.includes(:document_file_attachment).order(:created_at)
+    @documents = @sub_agent.sub_agent_documents.order(:created_at)
 
     # Only build a new document placeholder if there are no documents (this won't affect display)
     @sub_agent.sub_agent_documents.build if @sub_agent.sub_agent_documents.empty?
@@ -349,7 +349,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
   private
 
   def set_sub_agent
-    @sub_agent = SubAgent.includes(sub_agent_documents: { document_file_attachment: :blob }).find(params[:id])
+    @sub_agent = SubAgent.includes(:sub_agent_documents).find(params[:id])
   end
 
   def sub_agent_params

@@ -61,20 +61,26 @@ class Investor < ApplicationRecord
   def formatted_mobile
     return "N/A" if mobile.blank?
 
-    # Extract 10-digit mobile number for display
+    # Extract 10-digit mobile number and add +91 prefix
     clean_mobile = mobile.to_s.gsub(/[^\d]/, '')
+    ten_digit_mobile = nil
 
     if clean_mobile.start_with?('91') && clean_mobile.length == 12
       # 91XXXXXXXXXX format - extract 10-digit part
       digits_part = clean_mobile[2..-1]
-      digits_part.length == 10 && digits_part.match?(/\A[789]\d{9}\z/) ? digits_part : mobile
+      ten_digit_mobile = digits_part if digits_part.length == 10 && digits_part.match?(/\A[789]\d{9}\z/)
     elsif clean_mobile.length == 10 && clean_mobile.match?(/\A[789]\d{9}\z/)
       # XXXXXXXXXX format - valid 10 digit number
-      clean_mobile
+      ten_digit_mobile = clean_mobile
     elsif clean_mobile.length == 11 && clean_mobile.start_with?('0')
       # 0XXXXXXXXXX format - remove leading zero
       digits_part = clean_mobile[1..-1]
-      digits_part.length == 10 && digits_part.match?(/\A[789]\d{9}\z/) ? digits_part : mobile
+      ten_digit_mobile = digits_part if digits_part.length == 10 && digits_part.match?(/\A[789]\d{9}\z/)
+    end
+
+    # Return formatted mobile with +91 prefix if we have valid 10-digit number
+    if ten_digit_mobile
+      "+91 #{ten_digit_mobile}"
     else
       # Any other format - return as is
       mobile
@@ -83,6 +89,27 @@ class Investor < ApplicationRecord
 
   def formatted_email
     email.presence || "N/A"
+  end
+
+  def mobile_for_form
+    return "" if mobile.blank?
+
+    # Extract just the 10-digit mobile number for form display
+    clean_mobile = mobile.to_s.gsub(/[^\d]/, '')
+
+    if clean_mobile.start_with?('91') && clean_mobile.length >= 12
+      # 91XXXXXXXXXX format - extract 10-digit part
+      clean_mobile[2, 10]
+    elsif clean_mobile.length == 10 && clean_mobile.match?(/\A[789]\d{9}\z/)
+      # XXXXXXXXXX format - valid 10 digit number
+      clean_mobile
+    elsif clean_mobile.length == 11 && clean_mobile.start_with?('0')
+      # 0XXXXXXXXXX format - remove leading zero
+      clean_mobile[1, 10]
+    else
+      # Take first 10 digits if longer, or return as is if shorter
+      clean_mobile.length > 10 ? clean_mobile[0, 10] : clean_mobile
+    end
   end
 
   def main_document_url
