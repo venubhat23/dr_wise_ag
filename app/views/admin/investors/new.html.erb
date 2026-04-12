@@ -56,7 +56,7 @@
           <%= form.label :mobile, class: "form-label" do %>
             Mobile <span class="text-danger">*</span>
           <% end %>
-          <%= form.telephone_field :mobile, class: "form-control mobile-input", placeholder: "Enter 10-digit mobile number", required: true, pattern: "[789][0-9]{9}", title: "Must be a 10-digit number starting with 7, 8, or 9", autocomplete: "tel", maxlength: "10" %>
+          <%= form.telephone_field :mobile, class: "form-control mobile-input", placeholder: "Enter 10-digit mobile number", required: true, pattern: "[6789][0-9]{9}", title: "Must be a 10-digit number starting with 6, 7, 8, or 9", autocomplete: "tel", maxlength: "10" %>
           <div class="form-text text-muted">
             <small>Enter 10-digit mobile number (e.g., 9876543210). +91 will be removed automatically if entered.</small>
           </div>
@@ -440,8 +440,8 @@ document.addEventListener('DOMContentLoaded', function() {
       let cleaned = value.replace(/\D/g, '').substring(0, 10);
       e.target.value = cleaned;
 
-      // Simple validation: 10 digits starting with 7/8/9
-      if (cleaned.length === 10 && /^[789]/.test(cleaned)) {
+      // Simple validation: 10 digits starting with 6/7/8/9
+      if (cleaned.length === 10 && /^[6789]/.test(cleaned)) {
         e.target.classList.remove('is-invalid');
         e.target.classList.add('is-valid');
       } else if (cleaned.length > 0) {
