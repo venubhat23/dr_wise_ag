@@ -262,6 +262,11 @@ class Customer < ApplicationRecord
     end
   end
 
+  # Update the API mobile settings controller to use R2 profile image
+  def api_profile_image_url
+    profile_image_display_url
+  end
+
   # Cache busting callback
   after_update :bust_cache
 

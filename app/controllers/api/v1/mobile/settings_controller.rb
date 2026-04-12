@@ -337,12 +337,12 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
             category: ticket.category,
             priority: ticket.priority,
             status: ticket.status,
-            resolution_notes: ticket.resolution_notes,
+            admin_response: ticket.admin_response,
             resolved_at: ticket.resolved_at,
             assigned_to: ticket.resolved_by&.name || 'Unassigned',
-            created_at: ticket.created_at,
+            created_at: ticket.submitted_at || ticket.created_at,
             updated_at: ticket.updated_at,
-            days_since_submission: ticket.days_since_submission
+            days_since_submission: ticket.respond_to?(:days_since_submission) ? ticket.days_since_submission : (Date.current - (ticket.submitted_at || ticket.created_at).to_date).to_i
           }
         end,
         pagination: {
@@ -534,9 +534,11 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
   end
 
   def build_profile_data(user)
-    # Generate profile image URL if attached
+    # Generate profile image URL - prioritize R2 storage, fallback to ActiveStorage
     profile_image_url = nil
-    if user.respond_to?(:profile_image) && user.profile_image.attached?
+    if user.respond_to?(:api_profile_image_url)
+      profile_image_url = user.api_profile_image_url
+    elsif user.respond_to?(:profile_image) && user.profile_image.attached?
       profile_image_url = rails_blob_url(user.profile_image, host: request.base_url)
     end
 
