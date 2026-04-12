@@ -50,12 +50,14 @@ window.FormEnhancements = (function() {
         }
       });
 
-      // Format on blur (when user finishes editing) - DISABLED FOR DISTRIBUTORS
+      // Format on blur (when user finishes editing) - DISABLED FOR DISTRIBUTORS AND INVESTORS
       field.addEventListener('blur', function(e) {
-        // Skip formatting for distributor forms to allow clean 10-digit input
-        const isDistributorForm = e.target.closest('form')?.action?.includes('distributors');
-        if (isDistributorForm) {
-          return; // Don't add +91 formatting for distributors
+        // Skip formatting for distributor and investor forms to allow clean 10-digit input
+        const form = e.target.closest('form');
+        const isDistributorForm = form?.action?.includes('distributors');
+        const isInvestorForm = form?.action?.includes('investors');
+        if (isDistributorForm || isInvestorForm) {
+          return; // Don't add +91 formatting for distributors and investors
         }
 
         let value = e.target.value.trim();

@@ -58,7 +58,7 @@
           <% end %>
           <%= form.telephone_field :mobile, value: @investor.mobile_for_form, class: "form-control mobile-input", placeholder: "Enter 10-digit mobile number", required: true, pattern: "[6789][0-9]{9}", title: "Must be a 10-digit number starting with 6, 7, 8, or 9", autocomplete: "tel", maxlength: "10" %>
           <div class="form-text text-muted">
-            <small>Enter 10-digit mobile number (e.g., 9876543210). +91 will be removed automatically if entered.</small>
+            <small>Enter 10-digit mobile number starting with 6, 7, 8, or 9 (e.g., 9876543210)</small>
           </div>
         </div>
         <div class="col-md-6">
@@ -469,26 +469,48 @@
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🔄 Investor Edit: Initializing state-city dropdowns using sub_agent approach...');
 
-  // Simple mobile number validation - just ensure 10 digits
+  // Mobile number validation - ensure 10 digits starting with 6/7/8/9
   const mobileInput = document.querySelector('.mobile-input');
   if (mobileInput) {
     mobileInput.addEventListener('input', function(e) {
       let value = e.target.value;
 
-      // Remove non-digits and limit to 10
-      let cleaned = value.replace(/\D/g, '').substring(0, 10);
+      // Remove all non-digits
+      let cleaned = value.replace(/\D/g, '');
+
+      // Remove +91 prefix if present
+      if (cleaned.startsWith('91') && cleaned.length >= 12) {
+        cleaned = cleaned.substring(2);
+      }
+
+      // Limit to 10 digits
+      cleaned = cleaned.substring(0, 10);
       e.target.value = cleaned;
 
-      // Simple validation: 10 digits starting with 6/7/8/9
+      // Validation: exactly 10 digits starting with 6/7/8/9
       if (cleaned.length === 10 && /^[6789]/.test(cleaned)) {
         e.target.classList.remove('is-invalid');
         e.target.classList.add('is-valid');
+        e.target.setCustomValidity('');
       } else if (cleaned.length > 0) {
         e.target.classList.remove('is-valid');
         e.target.classList.add('is-invalid');
+        if (cleaned.length < 10) {
+          e.target.setCustomValidity('Mobile number must be 10 digits');
+        } else if (!/^[6789]/.test(cleaned)) {
+          e.target.setCustomValidity('Mobile number must start with 6, 7, 8, or 9');
+        }
       } else {
         e.target.classList.remove('is-valid', 'is-invalid');
+        e.target.setCustomValidity('');
       }
+    });
+
+    // Also validate on paste events
+    mobileInput.addEventListener('paste', function(e) {
+      setTimeout(() => {
+        e.target.dispatchEvent(new Event('input'));
+      }, 10);
     });
   }
 
