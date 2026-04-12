@@ -820,10 +820,33 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       )
 
     when 'motor'
-      return render json: {
-        success: false,
-        message: 'Motor insurance requests are not available through customer portal. Please contact your agent.'
-      }, status: :unprocessable_entity
+      # Check if MotorInsurance model exists
+      unless defined?(MotorInsurance)
+        return render json: {
+          success: false,
+          message: 'Motor insurance is not available at the moment. Please contact your agent.'
+        }, status: :unprocessable_entity
+      end
+
+      policy = MotorInsurance.new(
+        customer_id: current_customer.id,
+        policy_holder: current_customer.display_name || 'Self',
+        policy_number: policy_params[:policy_number] || "REQ-#{Time.current.to_i}",
+        insurance_company_name: policy_params[:insurance_company] || 'To be assigned',
+        policy_booking_date: Date.current,
+        policy_start_date: Date.current,
+        policy_end_date: renewal_date.present? ? Date.parse(renewal_date.to_s) : 1.year.from_now,
+        payment_mode: 'Yearly',
+        total_premium: format_indian_amount(premium_amount),
+        net_premium: format_indian_amount(premium_amount),
+        # Set vehicle details to be filled by admin later
+        vehicle_number: 'To be assigned',
+        vehicle_make: 'To be assigned',
+        vehicle_model: 'To be assigned',
+        is_customer_added: true,
+        is_agent_added: false,
+        is_admin_added: false
+      )
 
     when 'other'
       return render json: {
