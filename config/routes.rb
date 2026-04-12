@@ -731,6 +731,7 @@ Rails.application.routes.draw do
         post 'settings/change_password', to: 'settings#change_password'
         get 'settings/terms', to: 'settings#terms_and_conditions'
         get 'settings/contact', to: 'settings#contact_us'
+        get 'settings/helpdesk', to: 'settings#helpdesk_tickets'
         post 'settings/helpdesk', to: 'settings#helpdesk'
         get 'settings/notifications', to: 'settings#notification_settings'
         put 'settings/notifications', to: 'settings#update_notification_settings'

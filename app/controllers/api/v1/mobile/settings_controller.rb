@@ -303,6 +303,65 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
     end
   end
 
+  # GET /api/v1/mobile/settings/helpdesk
+  def helpdesk_tickets
+    page = params[:page] || 1
+    per_page = params[:per_page] || 20
+    status_filter = params[:status]
+
+    # Get current authenticated user
+    user = current_user
+
+    # Get helpdesk tickets for this user
+    tickets = ClientRequest.where(submitter_type: user.class.name, submitter_id: user.id)
+
+    # Apply status filter if provided
+    if status_filter.present?
+      tickets = tickets.where(status: status_filter)
+    end
+
+    # Order by most recent and paginate
+    tickets = tickets.order(created_at: :desc)
+                    .page(page)
+                    .per(per_page)
+
+    render json: {
+      success: true,
+      data: {
+        tickets: tickets.map do |ticket|
+          {
+            id: ticket.id,
+            ticket_number: ticket.ticket_number || "TKT#{ticket.id.to_s.rjust(6, '0')}",
+            subject: ticket.subject,
+            description: ticket.description,
+            category: ticket.category,
+            priority: ticket.priority,
+            status: ticket.status,
+            resolution_notes: ticket.resolution_notes,
+            resolved_at: ticket.resolved_at,
+            assigned_to: ticket.resolved_by&.name || 'Unassigned',
+            created_at: ticket.created_at,
+            updated_at: ticket.updated_at,
+            days_since_submission: ticket.days_since_submission
+          }
+        end,
+        pagination: {
+          current_page: tickets.current_page,
+          total_pages: tickets.total_pages,
+          total_count: tickets.total_count,
+          per_page: per_page.to_i
+        },
+        summary: {
+          total_tickets: ClientRequest.where(submitter_type: user.class.name, submitter_id: user.id).count,
+          pending: ClientRequest.where(submitter_type: user.class.name, submitter_id: user.id, status: 'pending').count,
+          in_progress: ClientRequest.where(submitter_type: user.class.name, submitter_id: user.id, status: 'in_progress').count,
+          resolved: ClientRequest.where(submitter_type: user.class.name, submitter_id: user.id, status: 'resolved').count,
+          closed: ClientRequest.where(submitter_type: user.class.name, submitter_id: user.id, status: 'closed').count
+        }
+      }
+    }
+  end
+
   # POST /api/v1/mobile/settings/helpdesk
   def helpdesk
     # Accept both 'description' and 'message' fields
