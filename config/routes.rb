@@ -474,6 +474,7 @@ Rails.application.routes.draw do
         get :analytics
         get :tickets
         get :knowledge_base
+        get :customer_tickets
       end
     end
 
