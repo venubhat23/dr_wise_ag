@@ -554,6 +554,17 @@ Rails.application.routes.draw do
         end
       end
 
+      # Advanced Commission Reports with enhanced filtering and export options
+      resources :commission_reports_advanced, only: [:index] do
+        collection do
+          get :export_modal
+          post :export_pdf
+          post :export_excel
+          post :export_csv
+          get :filter_data
+        end
+      end
+
       resources :all_policy_reports, only: [:index, :new, :create, :show, :destroy] do
         collection do
           post :preview

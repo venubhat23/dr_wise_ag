@@ -70,11 +70,7 @@ class SubAgentDocument < ApplicationRecord
     return nil unless has_r2_file?
 
     begin
-      R2_CLIENT.get_presigned_url(:get_object,
-        bucket: Rails.application.credentials.dig(:cloudflare, :r2_bucket_name),
-        key: r2_file_key,
-        expires_in: 3600
-      )
+      R2Service.public_url(r2_file_key)
     rescue => e
       Rails.logger.error "Error generating R2 URL for SubAgentDocument: #{e.message}"
       nil
@@ -86,23 +82,19 @@ class SubAgentDocument < ApplicationRecord
     return false unless file.present?
 
     begin
-      # Generate unique key
-      extension = File.extname(file.original_filename)
-      key = "sub_agent_documents/#{sub_agent_id}/#{SecureRandom.uuid}#{extension}"
+      # Upload using R2Service
+      result = R2Service.upload(file, folder: "sub_agent_documents/#{sub_agent_id}")
 
-      # Upload to R2
-      R2_CLIENT.put_object(
-        bucket: Rails.application.credentials.dig(:cloudflare, :r2_bucket_name),
-        key: key,
-        body: file.tempfile,
-        content_type: file.content_type
-      )
+      if result[:error]
+        Rails.logger.error "Error uploading SubAgentDocument to R2: #{result[:error]}"
+        return false
+      end
 
       # Store metadata
-      self.r2_file_key = key
-      self.r2_filename = file.original_filename
-      self.r2_content_type = file.content_type
-      self.r2_file_size = file.size
+      self.r2_file_key = result[:key]
+      self.r2_filename = result[:filename]
+      self.r2_content_type = result[:content_type]
+      self.r2_file_size = result[:size]
 
       save!
       true
@@ -117,20 +109,20 @@ class SubAgentDocument < ApplicationRecord
     return unless has_r2_file?
 
     begin
-      R2_CLIENT.delete_object(
-        bucket: Rails.application.credentials.dig(:cloudflare, :r2_bucket_name),
-        key: r2_file_key
-      )
+      # Delete using R2Service
+      success = R2Service.delete(r2_file_key)
 
-      # Clear metadata
-      update_columns(
-        r2_file_key: nil,
-        r2_filename: nil,
-        r2_content_type: nil,
-        r2_file_size: nil
-      )
+      if success
+        # Clear metadata
+        update_columns(
+          r2_file_key: nil,
+          r2_filename: nil,
+          r2_content_type: nil,
+          r2_file_size: nil
+        )
+      end
 
-      true
+      success
     rescue => e
       Rails.logger.error "Error deleting SubAgentDocument from R2: #{e.message}"
       false

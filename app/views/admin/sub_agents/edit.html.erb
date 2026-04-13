@@ -1369,7 +1369,7 @@ document.addEventListener('DOMContentLoaded', function() {
       formData.append('authenticity_token', csrfToken);
 
       // Upload to sub agent documents endpoint
-      const response = await fetch('<%= admin_sub_agent_documents_path(@sub_agent) %>', {
+      const response = await fetch('<%= admin_sub_agent_sub_agent_documents_path(@sub_agent) %>', {
         method: 'POST',
         headers: {
           'X-CSRF-Token': csrfToken,

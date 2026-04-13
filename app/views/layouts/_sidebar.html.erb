@@ -1265,6 +1265,29 @@ body.sidebar-collapsed .main-content {
       </div>
     <% end %>
 
+    <!-- Reports & Analytics 2 Section -->
+    <% if show_sidebar_section?(['reports']) %>
+      <div class="nav-section">
+        <div class="nav-section-title">Reports & Analytics 2</div>
+        <ul class="nav-menu">
+        <!-- Commission Report 2 -->
+        <% if show_sidebar_item?('reports') %>
+        <li class="nav-item">
+          <%= link_to admin_reports_commission_reports_advanced_index_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/commission_reports_advanced')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-cyan">
+                <i class="bi bi-graph-up-arrow"></i>
+              </div>
+            </div>
+            <span class="nav-text">Commission Report</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+        <% end %>
+        </ul>
+      </div>
+    <% end %>
+
     <!-- Management Section -->
     <% if show_sidebar_section?(['management', 'investors']) %>
       <div class="nav-section">
