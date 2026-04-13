@@ -860,7 +860,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       policy = OtherInsurance.new(
         customer_id: current_customer.id,
         policy_holder: policy_params[:policy_holder] || current_customer.display_name || 'Self',
-        other_policy_type: policy_params[:plan_name] || 'General Insurance',
+        plan_name: policy_params[:plan_name] || 'General Insurance',
         insurance_company_name: policy_params[:insurance_company] || 'To be assigned',
         insurance_type: 'General Insurance',
         policy_type: 'New',
@@ -873,20 +873,13 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         net_premium: premium_amount.to_f,
         total_premium: premium_amount.to_f,
         gst_percentage: 18,
-        product_through_dr: product_through_dr || false,
         is_customer_added: true,
         is_agent_added: false,
-        is_admin_added: false,
-        # Additional details
-        additional_notes: policy_params[:additional_notes] || policy_params[:remarks]
+        is_admin_added: false
       )
 
-      # Store family member info in additional notes if provided
-      if policy_params[:family_members].present?
-        family_info = "Family members to be covered: #{policy_params[:family_members].map { |m| "#{m['name']} (#{m['age']}, #{m['relationship']})" if m.is_a?(Hash) }.compact.join(', ')}"
-        additional_notes = [policy.additional_notes, family_info].compact.join('. ')
-        policy.additional_notes = additional_notes
-      end
+      # Note: OtherInsurance doesn't have additional_notes field
+      # Family member info will be handled separately or in a related model
 
     else
       return render json: {
