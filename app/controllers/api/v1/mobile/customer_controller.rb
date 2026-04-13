@@ -732,7 +732,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     policy_params = params.permit(:insurance_type, :plan_name, :sum_insured, :premium_amount,
                                   :"premium amount", :"Renewal date",
                                   :renewal_date, :policy_number, :insurance_company, :remarks,
-                                  :product_through_dr, :product_through_dr_wise, family_members: [])
+                                  :product_through_dr, :product_through_dr_wise, :policy_holder,
+                                  :additional_notes, family_members: [])
 
     Rails.logger.info "Permitted params: #{policy_params.inspect}"
 
@@ -839,6 +840,13 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         payment_mode: 'Yearly',
         total_premium: premium_amount.to_f,
         net_premium: premium_amount.to_f,
+        gst_percentage: 18,
+        # Required fields with default values for mobile API
+        vehicle_type: 'Old Vehicle',
+        class_of_vehicle: 'Private Car',
+        insurance_type: 'Comprehensive',
+        registration_number: 'To be assigned',
+        vehicle_idv: policy_params[:sum_insured].to_f,
         # Set vehicle details to be filled by admin later
         vehicle_number: 'To be assigned',
         vehicle_make: 'To be assigned',
@@ -849,15 +857,41 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       )
 
     when 'other'
-      return render json: {
-        success: false,
-        message: 'Other insurance requests are not available through customer portal. Please contact your agent.'
-      }, status: :unprocessable_entity
+      policy = OtherInsurance.new(
+        customer_id: current_customer.id,
+        policy_holder: policy_params[:policy_holder] || current_customer.display_name || 'Self',
+        other_policy_type: policy_params[:plan_name] || 'General Insurance',
+        insurance_company_name: policy_params[:insurance_company] || 'To be assigned',
+        insurance_type: 'General Insurance',
+        policy_type: 'New',
+        policy_number: policy_params[:policy_number] || "REQ-#{Time.current.to_i}",
+        policy_booking_date: Date.current,
+        policy_start_date: Date.current,
+        policy_end_date: renewal_date.present? ? Date.parse(renewal_date.to_s) : 1.year.from_now,
+        payment_mode: 'Yearly',
+        sum_insured: policy_params[:sum_insured].to_f,
+        net_premium: premium_amount.to_f,
+        total_premium: premium_amount.to_f,
+        gst_percentage: 18,
+        product_through_dr: product_through_dr || false,
+        is_customer_added: true,
+        is_agent_added: false,
+        is_admin_added: false,
+        # Additional details
+        additional_notes: policy_params[:additional_notes] || policy_params[:remarks]
+      )
+
+      # Store family member info in additional notes if provided
+      if policy_params[:family_members].present?
+        family_info = "Family members to be covered: #{policy_params[:family_members].map { |m| "#{m['name']} (#{m['age']}, #{m['relationship']})" if m.is_a?(Hash) }.compact.join(', ')}"
+        additional_notes = [policy.additional_notes, family_info].compact.join('. ')
+        policy.additional_notes = additional_notes
+      end
 
     else
       return render json: {
         success: false,
-        message: 'Invalid insurance type. Supported types: health, life'
+        message: 'Invalid insurance type. Supported types: health, life, motor, other'
       }, status: :unprocessable_entity
     end
 
