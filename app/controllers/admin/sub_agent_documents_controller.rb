@@ -21,10 +21,34 @@ class Admin::SubAgentDocumentsController < Admin::ApplicationController
   def create
     @sub_agent_document = @sub_agent.sub_agent_documents.build(sub_agent_document_params)
 
-    if @sub_agent_document.save
-      redirect_to edit_admin_sub_agent_path(@sub_agent), notice: 'Document was successfully uploaded.'
+    # Handle R2 upload for Profile Images
+    if params[:sub_agent_document][:document_file].present? && @sub_agent_document.document_type == 'Profile Image'
+      file = params[:sub_agent_document][:document_file]
+
+      if @sub_agent_document.upload_to_r2(file)
+        respond_to do |format|
+          format.html { redirect_to edit_admin_sub_agent_path(@sub_agent), notice: 'Profile image was successfully uploaded to cloud storage.' }
+          format.json { render json: { success: true, message: 'Profile image uploaded successfully!' } }
+        end
+      else
+        respond_to do |format|
+          format.html { redirect_to edit_admin_sub_agent_path(@sub_agent), alert: 'Failed to upload profile image to cloud storage.' }
+          format.json { render json: { success: false, message: 'Failed to upload profile image to cloud storage.' }, status: :unprocessable_entity }
+        end
+      end
     else
-      redirect_to edit_admin_sub_agent_path(@sub_agent), alert: 'Failed to upload document.'
+      # Regular ActiveStorage upload for other document types
+      if @sub_agent_document.save
+        respond_to do |format|
+          format.html { redirect_to edit_admin_sub_agent_path(@sub_agent), notice: 'Document was successfully uploaded.' }
+          format.json { render json: { success: true, message: 'Document uploaded successfully!' } }
+        end
+      else
+        respond_to do |format|
+          format.html { redirect_to edit_admin_sub_agent_path(@sub_agent), alert: 'Failed to upload document.' }
+          format.json { render json: { success: false, message: @sub_agent_document.errors.full_messages.join(', ') }, status: :unprocessable_entity }
+        end
+      end
     end
   end
 

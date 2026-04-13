@@ -5,44 +5,158 @@ class SubAgentDocument < ApplicationRecord
 
   # Validations
   validates :document_type, presence: true
-  # Custom validation for document file presence
-  validate :document_file_presence
   validates :document_type, inclusion: {
-    in: ['Aadhaar Card', 'Pancard', 'Driving License', 'Mediclaim', 'RC Book', 'Other File']
+    in: ['Aadhaar Card', 'Pancard', 'Driving License', 'Mediclaim', 'RC Book', 'Profile Image', 'Other File']
   }
-  validate :validate_document_file_size
 
-  private
+  # Custom validation for file presence (either ActiveStorage or R2)
+  validate :file_presence
+  validate :validate_file_size
 
-  def document_file_presence
-    return if document_file.attached?
-    errors.add(:document_file, "must be attached")
+  # R2 Storage Methods
+  def has_r2_file?
+    r2_file_key.present?
   end
 
-  def validate_document_file_size
-    return unless document_file.attached?
+  def has_file?
+    has_r2_file? || document_file.attached?
+  end
 
-    if document_file.blob.byte_size > 10.megabytes
-      errors.add(:document_file, 'size should be less than 10MB')
+  def document_name
+    if has_r2_file?
+      r2_filename
+    elsif document_file.attached?
+      document_file.filename.to_s
+    else
+      "No file attached"
     end
   end
 
-  public
-
-  # Instance methods
-  def document_name
-    document_file.attached? ? document_file.filename.to_s : "No file attached"
-  end
-
   def document_size
-    document_file.attached? ? number_to_human_size(document_file.byte_size) : "0 KB"
+    if has_r2_file?
+      number_to_human_size(r2_file_size || 0)
+    elsif document_file.attached?
+      number_to_human_size(document_file.byte_size)
+    else
+      "0 KB"
+    end
   end
 
   def document_url
-    document_file.attached? ? Rails.application.routes.url_helpers.rails_blob_path(document_file, only_path: true) : nil
+    if has_r2_file?
+      r2_public_url
+    elsif document_file.attached?
+      Rails.application.routes.url_helpers.rails_blob_path(document_file, only_path: true)
+    else
+      nil
+    end
+  end
+
+  def is_profile_image?
+    document_type == 'Profile Image'
+  end
+
+  def is_image?
+    if has_r2_file?
+      r2_content_type&.start_with?('image/')
+    elsif document_file.attached?
+      document_file.content_type&.start_with?('image/')
+    else
+      false
+    end
+  end
+
+  def r2_public_url
+    return nil unless has_r2_file?
+
+    begin
+      R2_CLIENT.get_presigned_url(:get_object,
+        bucket: Rails.application.credentials.dig(:cloudflare, :r2_bucket_name),
+        key: r2_file_key,
+        expires_in: 3600
+      )
+    rescue => e
+      Rails.logger.error "Error generating R2 URL for SubAgentDocument: #{e.message}"
+      nil
+    end
+  end
+
+  # Upload file to R2 and store metadata
+  def upload_to_r2(file)
+    return false unless file.present?
+
+    begin
+      # Generate unique key
+      extension = File.extname(file.original_filename)
+      key = "sub_agent_documents/#{sub_agent_id}/#{SecureRandom.uuid}#{extension}"
+
+      # Upload to R2
+      R2_CLIENT.put_object(
+        bucket: Rails.application.credentials.dig(:cloudflare, :r2_bucket_name),
+        key: key,
+        body: file.tempfile,
+        content_type: file.content_type
+      )
+
+      # Store metadata
+      self.r2_file_key = key
+      self.r2_filename = file.original_filename
+      self.r2_content_type = file.content_type
+      self.r2_file_size = file.size
+
+      save!
+      true
+    rescue => e
+      Rails.logger.error "Error uploading SubAgentDocument to R2: #{e.message}"
+      false
+    end
+  end
+
+  # Delete file from R2
+  def delete_from_r2
+    return unless has_r2_file?
+
+    begin
+      R2_CLIENT.delete_object(
+        bucket: Rails.application.credentials.dig(:cloudflare, :r2_bucket_name),
+        key: r2_file_key
+      )
+
+      # Clear metadata
+      update_columns(
+        r2_file_key: nil,
+        r2_filename: nil,
+        r2_content_type: nil,
+        r2_file_size: nil
+      )
+
+      true
+    rescue => e
+      Rails.logger.error "Error deleting SubAgentDocument from R2: #{e.message}"
+      false
+    end
   end
 
   private
+
+  def file_presence
+    return if has_file?
+    errors.add(:base, "Document file must be attached")
+  end
+
+  def validate_file_size
+    file_size = if has_r2_file?
+                  r2_file_size
+                elsif document_file.attached?
+                  document_file.blob.byte_size
+                else
+                  return
+                end
+
+    if file_size > 10.megabytes
+      errors.add(:document_file, 'size should be less than 10MB')
+    end
+  end
 
   def number_to_human_size(number)
     ActionController::Base.helpers.number_to_human_size(number)

@@ -285,4 +285,54 @@ class SubAgent < ApplicationRecord
       end
     end
   end
+
+  # Profile image methods
+  def has_profile_image?
+    has_r2_profile_image? || profile_image.attached?
+  end
+
+  def has_r2_profile_image?
+    r2_profile_image&.has_r2_file?
+  end
+
+  def r2_profile_image
+    sub_agent_documents.find_by(document_type: 'Profile Image')&.tap do |doc|
+      return doc if doc&.has_r2_file?
+    end
+    nil
+  end
+
+  def r2_profile_image_url
+    r2_profile_image&.r2_public_url
+  end
+
+  def profile_image_url
+    if has_r2_profile_image?
+      r2_profile_image_url
+    elsif profile_image.attached?
+      begin
+        Rails.application.routes.url_helpers.rails_blob_url(profile_image, only_path: true)
+      rescue => e
+        Rails.logger.error "Error generating profile image URL for SubAgent #{id}: #{e.message}"
+        nil
+      end
+    end
+  end
+
+  def safe_profile_image_display
+    if has_r2_profile_image?
+      url = r2_profile_image_url
+      { url: url, error: url.nil? }
+    elsif profile_image.attached?
+      begin
+        url = Rails.application.routes.url_helpers.rails_blob_url(profile_image, only_path: true)
+        { url: url, error: false }
+      rescue => e
+        Rails.logger.error "Error generating profile image URL for SubAgent #{id}: #{e.message}"
+        { url: nil, error: true }
+      end
+    else
+      { url: nil, error: true }
+    end
+  end
 end
