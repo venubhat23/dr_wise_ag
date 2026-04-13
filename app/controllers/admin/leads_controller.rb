@@ -98,9 +98,31 @@ class Admin::LeadsController < Admin::ApplicationController
   # GET /admin/leads/kanban
   def kanban
     # Load leads grouped by stage for Kanban board, ordered by latest updated first
-    @leads_by_stage = Lead.includes(:converted_customer, :affiliate)
-                          .order(stage_updated_at: :desc, updated_at: :desc)
-                          .group_by(&:current_stage)
+    leads = Lead.includes(:converted_customer, :affiliate)
+                .order(stage_updated_at: :desc, updated_at: :desc, created_at: :desc)
+
+    # Group by stage while maintaining sort order within each group
+    @leads_by_stage = leads.group_by(&:current_stage)
+
+    # Ensure each group is properly sorted with newest leads at top
+    @leads_by_stage.each do |stage, stage_leads|
+      @leads_by_stage[stage] = stage_leads.sort do |a, b|
+        # Primary sort: stage_updated_at (newest first)
+        stage_comparison = (b.stage_updated_at || b.created_at) <=> (a.stage_updated_at || a.created_at)
+        if stage_comparison == 0
+          # Secondary sort: updated_at (newest first)
+          updated_comparison = b.updated_at <=> a.updated_at
+          if updated_comparison == 0
+            # Tertiary sort: created_at (newest first)
+            b.created_at <=> a.created_at
+          else
+            updated_comparison
+          end
+        else
+          stage_comparison
+        end
+      end
+    end
     # Get stage definitions with display names and colors
     @stages = {
       'lead_generated' => { name: 'Lead Generated', color: 'primary' },
@@ -118,9 +140,31 @@ class Admin::LeadsController < Admin::ApplicationController
   # GET /admin/leads/kanban_flow
   def kanban_flow
     # Load leads grouped by stage for Kanban board, ordered by latest updated first
-    @leads_by_stage = Lead.includes(:converted_customer, :affiliate)
-                          .order(stage_updated_at: :desc, updated_at: :desc)
-                          .group_by(&:current_stage)
+    leads = Lead.includes(:converted_customer, :affiliate)
+                .order(stage_updated_at: :desc, updated_at: :desc, created_at: :desc)
+
+    # Group by stage while maintaining sort order within each group
+    @leads_by_stage = leads.group_by(&:current_stage)
+
+    # Ensure each group is properly sorted with newest leads at top
+    @leads_by_stage.each do |stage, stage_leads|
+      @leads_by_stage[stage] = stage_leads.sort do |a, b|
+        # Primary sort: stage_updated_at (newest first)
+        stage_comparison = (b.stage_updated_at || b.created_at) <=> (a.stage_updated_at || a.created_at)
+        if stage_comparison == 0
+          # Secondary sort: updated_at (newest first)
+          updated_comparison = b.updated_at <=> a.updated_at
+          if updated_comparison == 0
+            # Tertiary sort: created_at (newest first)
+            b.created_at <=> a.created_at
+          else
+            updated_comparison
+          end
+        else
+          stage_comparison
+        end
+      end
+    end
 
     # Get stage definitions with display names and colors
     @stages = {

@@ -305,11 +305,22 @@ function deselectAllColumns() {
 function performExport() {
   const form = document.getElementById('exportForm');
   const selectedColumns = document.querySelectorAll('input[name="columns[]"]:checked');
+  const exportBtn = document.querySelector('#exportModal .btn-primary');
 
   // Check if at least one column is selected
   if (selectedColumns.length === 0) {
     alert('Please select at least one column to export.');
     return;
+  }
+
+  // Show loader
+  const originalBtnText = exportBtn.innerHTML;
+  exportBtn.disabled = true;
+  exportBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2 spin"></i>Exporting...';
+
+  function resetButton() {
+    exportBtn.disabled = false;
+    exportBtn.innerHTML = originalBtnText;
   }
 
   // Get current URL parameters to preserve filters
@@ -340,13 +351,23 @@ function performExport() {
   // Submit form
   fetch(exportUrl, {
     method: 'POST',
-    body: formData
+    body: formData,
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
   })
   .then(response => {
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
     if (response.ok) {
       return response.blob();
     }
-    throw new Error('Export failed');
+
+    // Try to get error message from response
+    return response.text().then(text => {
+      throw new Error(`Export failed (${response.status}): ${text.substring(0, 200)}`);
+    });
   })
   .then(blob => {
     // Download the file
@@ -359,13 +380,15 @@ function performExport() {
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
 
-    // Close modal
+    // Reset button and close modal
+    resetButton();
     const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
     exportModal.hide();
   })
   .catch(error => {
     console.error('Export error:', error);
     alert('Export failed. Please try again.');
+    resetButton();
   });
 }
 </script>
@@ -382,5 +405,15 @@ function performExport() {
 }
 .bg-gradient-info {
   background: linear-gradient(135deg, #17a2b8, #117a8b);
+}
+
+/* Spinning loader */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>

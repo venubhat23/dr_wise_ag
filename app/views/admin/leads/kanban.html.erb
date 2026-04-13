@@ -98,12 +98,33 @@
                     <% end %>
                   </div>
 
-                  <!-- Created Date -->
-                  <div class="created-date mt-2">
-                    <small class="text-muted">
-                      <i class="bi bi-calendar"></i>
-                      <%= lead.created_date&.strftime('%d/%m/%Y') || lead.created_at&.strftime('%d/%m/%Y') %>
-                    </small>
+                  <!-- Date Info -->
+                  <div class="date-info mt-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <small class="text-muted">
+                        <i class="bi bi-calendar"></i>
+                        Created: <%= lead.created_date&.strftime('%d/%m/%Y') || lead.created_at&.strftime('%d/%m/%Y') %>
+                      </small>
+                      <% if lead.stage_updated_at.present? %>
+                        <small class="text-muted">
+                          <i class="bi bi-clock"></i>
+                          Updated: <%= lead.stage_updated_at.strftime('%d/%m') %>
+                        </small>
+                      <% end %>
+                    </div>
+                    <% if lead.created_at > 24.hours.ago %>
+                      <div class="mt-1">
+                        <span class="badge bg-success fs-8 pulse">
+                          <i class="bi bi-star-fill"></i> New
+                        </span>
+                      </div>
+                    <% elsif lead.stage_updated_at.present? && lead.stage_updated_at > 24.hours.ago %>
+                      <div class="mt-1">
+                        <span class="badge bg-info fs-8 pulse">
+                          <i class="bi bi-arrow-clockwise"></i> Recently Updated
+                        </span>
+                      </div>
+                    <% end %>
                   </div>
                 </div>
 

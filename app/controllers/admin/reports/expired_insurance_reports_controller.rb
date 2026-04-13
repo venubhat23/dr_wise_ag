@@ -1,352 +1,272 @@
 class Admin::Reports::ExpiredInsuranceReportsController < Admin::Reports::BaseController
   include ActionView::Helpers::NumberHelper
+  before_action :authenticate_user!
+  before_action :ensure_admin_or_authorized_user
+  before_action :set_filter_params
 
   def index
-    # Check for pending download and trigger it
-    if session[:pending_download].present?
-      download_data = session[:pending_download]
-      session.delete(:pending_download)
+    # Get expired policy data with latest records on top
+    @expired_data = fetch_expired_data
 
-      # Generate the file data
-      case download_data['format']
-      when 'csv'
-        csv_data = generate_csv_from_data(download_data['report_data'], download_data['report_name'], download_data['filters'])
+    # Pagination
+    @expired_data = @expired_data.page(params[:page]).per(50)
 
-        respond_to do |format|
-          format.html do
-            send_data csv_data,
-              filename: "#{download_data['report_name'].parameterize}_#{Date.current.strftime('%Y%m%d')}.csv",
-              type: 'text/csv',
-              disposition: 'attachment'
-          end
-        end
-        return
-      end
-    end
+    # Summary calculations
+    @total_expired = calculate_total_expired
+    @total_premium_lost = calculate_total_premium_lost
+    @total_sum_insured_lost = calculate_total_sum_insured_lost
+    @expired_count = @expired_data.total_count
 
-    # Normal index page rendering
-    # Get saved reports for the listing
-    @saved_reports = Report.where(report_type: 'expired_insurance')
-                           .includes(:created_by)
-                           .order(created_at: :desc)
-                           .page(params[:page])
-                           .per(10)
-
-    # Calculate statistics
-    @total_reports = Report.where(report_type: 'expired_insurance').count
-    @this_month_reports = Report.where(report_type: 'expired_insurance')
-                                .where(created_at: Date.current.beginning_of_month..Date.current.end_of_month)
-                                .count
-    @last_generated = Report.where(report_type: 'expired_insurance')
-                            .maximum(:created_at)
-    @total_premium_lost = calculate_total_premium_lost_from_reports
+    # Filter options for dropdowns
+    @insurance_companies = get_insurance_companies
+    @policy_types = ['all', 'health', 'life', 'motor', 'other']
 
     respond_to do |format|
       format.html
+      format.json { render json: expired_data_json }
     end
   end
 
-  def generate
-    # Show the generate form page
-  end
+  def export_pdf
+    @expired_data = fetch_expired_data(paginated: false)
+    @selected_columns = params[:columns] || default_columns
 
-  def preview
-    @preview_data = generate_preview_data(preview_params)
-
-    render partial: 'preview_table', layout: false
-  end
-
-  def create_report
-    filters = {
-      start_date: params[:start_date].present? ? Date.parse(params[:start_date]) : 30.days.ago.to_date,
-      end_date: params[:end_date].present? ? Date.parse(params[:end_date]) : Date.current,
-      policy_type: params[:policy_type].presence,
-      status: params[:status].presence
-    }.compact
-
-    report_name = params[:report_name].presence || "Expired Insurance Report #{Date.current.strftime('%d %b %Y')}"
-
-    # Generate report data with the same logic as preview
-    report_data = generate_detailed_expired_insurance_report(filters)
-
-    # Save to database if requested
-    if params[:save_to_database] == "1"
-      @report = Report.new(
-        name: report_name,
-        report_type: 'expired_insurance',
-        filters: filters,
-        report_data: report_data,
-        status: true,
-        generated_at: Time.current,
-        created_by_id: current_user&.id
-      )
-
-      unless @report.save
-        flash.now[:alert] = "Failed to save report: #{@report.errors.full_messages.join(', ')}"
-        render :generate, status: :unprocessable_entity
-        return
+    respond_to do |format|
+      format.pdf do
+        render pdf: "Expired_Insurance_Report_#{Date.current.strftime('%Y%m%d')}",
+               template: 'admin/reports/expired_insurance_reports/export_pdf',
+               layout: 'pdf',
+               page_size: 'A4',
+               orientation: 'Landscape',
+               margin: { top: 10, bottom: 10, left: 10, right: 10 }
       end
     end
-
-    # Set success message based on what was done
-    if params[:save_to_database] == "1"
-      if params[:export_format] == 'csv'
-        flash[:success] = "✅ Success! Report '#{report_name}' has been saved to database and CSV file will download shortly!"
-      else
-        flash[:success] = "✅ Report '#{report_name}' has been successfully saved to database!"
-      end
-    else
-      if params[:export_format] == 'csv'
-        flash[:success] = "✅ CSV file will download shortly!"
-      else
-        flash[:info] = "Report generated successfully!"
-      end
-    end
-
-    # Handle export format
-    case params[:export_format]
-    when 'csv'
-      csv_data = generate_csv_from_data(report_data, report_name, filters)
-
-      respond_to do |format|
-        format.html do
-          send_data csv_data,
-            filename: "#{report_name.parameterize}_#{Date.current.strftime('%Y%m%d')}.csv",
-            type: 'text/csv',
-            disposition: 'attachment'
-        end
-        format.json do
-          send_data csv_data,
-            filename: "#{report_name.parameterize}_#{Date.current.strftime('%Y%m%d')}.csv",
-            type: 'text/csv',
-            disposition: 'attachment'
-        end
-      end
-
-    else
-      # No download, handle based on request type
-      respond_to do |format|
-        format.html { redirect_to admin_reports_expired_insurance_reports_path }
-        format.json { render json: { status: 'success', message: 'Report generated successfully' } }
-      end
-    end
-  end
-
-  def show_saved_report
-    @report = Report.find(params[:id])
-    @preview_data = extract_preview_data_from_report(@report)
-  end
-
-  def destroy_saved_report
-    @report = Report.find(params[:id])
-    @report.destroy
-    redirect_to admin_reports_expired_insurance_reports_path,
-                notice: 'Report deleted successfully!'
-  end
-
-  def export_csv
-    @report = Report.find(params[:id])
-    csv_data = generate_csv_from_report(@report)
-
-    send_data csv_data,
-      filename: "expired_insurance_report_#{@report.created_at.strftime('%Y%m%d_%H%M%S')}.csv",
-      type: 'text/csv',
-      disposition: 'attachment'
   end
 
   private
 
-  def preview_params
-    params.permit(:start_date, :end_date, :policy_type, :status)
-  end
+  def fetch_expired_data(paginated: true)
+    # Find all expired policies across different types
+    expired_policies = []
 
-  def generate_preview_data(filters)
-    # Build the query based on filters
-    policies = build_policy_query(filters)
-
-    # Transform policies into preview data format
-    policies.map do |policy|
-      build_policy_preview_data(policy)
+    if @policy_type == 'all' || @policy_type == 'health'
+      health_expired = HealthInsurance.includes(:customer, :sub_agent)
+                                     .where('policy_end_date < ?', Date.current)
+                                     .where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
+      health_expired = apply_health_filters(health_expired) if @insurance_company.present?
+      expired_policies += health_expired.map { |p| transform_health_policy(p) }
     end
-  end
 
-  def build_policy_query(filters)
-    # Default date range for expired policies
-    start_date = filters[:start_date] || 30.days.ago.to_date
-    end_date = filters[:end_date] || Date.current
+    if @policy_type == 'all' || @policy_type == 'motor'
+      motor_expired = MotorInsurance.includes(:customer, :sub_agent)
+                                   .where('policy_end_date < ?', Date.current)
+                                   .where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
+      motor_expired = apply_motor_filters(motor_expired) if @insurance_company.present?
+      expired_policies += motor_expired.map { |p| transform_motor_policy(p) }
+    end
 
-    # Start with base query depending on policy type filter
-    if filters[:policy_type].present?
-      case filters[:policy_type]
-      when 'health'
-        policies = HealthInsurance.includes(:customer, :sub_agent)
-      when 'motor'
-        policies = MotorInsurance.includes(:customer, :sub_agent)
-      when 'life'
-        policies = LifeInsurance.includes(:customer, :sub_agent) if defined?(LifeInsurance)
+    if @policy_type == 'all' || @policy_type == 'life'
+      if defined?(LifeInsurance)
+        life_expired = LifeInsurance.includes(:customer, :sub_agent)
+                                   .where('policy_end_date < ?', Date.current)
+                                   .where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
+        life_expired = apply_life_filters(life_expired) if @insurance_company.present?
+        expired_policies += life_expired.map { |p| transform_life_policy(p) }
       end
+    end
+
+    if @policy_type == 'all' || @policy_type == 'other'
+      if defined?(OtherInsurance)
+        other_expired = OtherInsurance.includes(:customer, :sub_agent)
+                                     .where('policy_end_date < ?', Date.current)
+                                     .where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
+        other_expired = apply_other_filters(other_expired) if @insurance_company.present?
+        expired_policies += other_expired.map { |p| transform_other_policy(p) }
+      end
+    end
+
+    # Sort by expiry date (most recently expired first)
+    expired_policies = expired_policies.sort_by { |p| p[:end_date] }.reverse
+
+    if paginated
+      Kaminari.paginate_array(expired_policies)
     else
-      # Combine all policy types
-      health_policies = HealthInsurance.includes(:customer, :sub_agent)
-      motor_policies = MotorInsurance.includes(:customer, :sub_agent)
-
-      # Apply date filters for expired policies
-      health_policies = health_policies.where('policy_end_date BETWEEN ? AND ?', start_date, end_date)
-      motor_policies = motor_policies.where('policy_end_date BETWEEN ? AND ?', start_date, end_date)
-
-      # Combine and return results
-      policies = []
-      policies += health_policies.to_a
-      policies += motor_policies.to_a
-
-      return policies
+      expired_policies.first(10000) # Limit for exports
     end
-
-    # Apply date filters for expired policies
-    policies = policies.where('policy_end_date BETWEEN ? AND ?', start_date, end_date)
-
-    # Apply status filter if needed (expired vs expiring soon)
-    if filters[:status].present?
-      case filters[:status]
-      when 'expired'
-        policies = policies.where('policy_end_date < ?', Date.current)
-      when 'expiring_soon'
-        policies = policies.where('policy_end_date BETWEEN ? AND ?', Date.current, 30.days.from_now)
-      end
-    end
-
-    policies
   end
 
-  def build_policy_preview_data(policy)
-    policy_type = policy.class.name.underscore.gsub('_insurance', '')
-    days_expired = policy.policy_end_date ? (Date.current - policy.policy_end_date).to_i : 0
+  def calculate_total_expired
+    fetch_expired_data(paginated: false).size
+  end
 
-    status = if policy.policy_end_date < Date.current
-               'Expired'
-             elsif policy.policy_end_date <= 30.days.from_now
-               'Expiring Soon'
-             else
-               'Active'
-             end
+  def calculate_total_premium_lost
+    fetch_expired_data(paginated: false).sum { |p| p[:premium_amount] || 0 }
+  end
 
+  def calculate_total_sum_insured_lost
+    fetch_expired_data(paginated: false).sum { |p| p[:sum_insured] || 0 }
+  end
+
+  def apply_health_filters(query)
+    query = query.where('insurance_company_name ILIKE ?', "%#{@insurance_company}%") if @insurance_company.present?
+    query
+  end
+
+  def apply_motor_filters(query)
+    query = query.where('insurance_company_name ILIKE ?', "%#{@insurance_company}%") if @insurance_company.present?
+    query
+  end
+
+  def apply_life_filters(query)
+    query = query.where('insurance_company_name ILIKE ?', "%#{@insurance_company}%") if @insurance_company.present?
+    query
+  end
+
+  def apply_other_filters(query)
+    query = query.where('insurance_company_name ILIKE ?', "%#{@insurance_company}%") if @insurance_company.present?
+    query
+  end
+
+  def transform_health_policy(policy)
     {
       id: policy.id,
-      policy_number: policy.policy_number,
-      policy_type: policy_type,
-      customer_name: policy.customer&.display_name || 'N/A',
-      customer_email: policy.customer&.email,
-      customer_mobile: policy.customer&.mobile,
+      policy_number: policy.policy_number || 'N/A',
+      policy_type: 'Health',
+      customer_name: policy.customer&.display_name || 'Unknown',
       insurance_company: policy.insurance_company_name || 'N/A',
-      policy_start_date: policy.policy_start_date,
-      policy_end_date: policy.policy_end_date,
-      days_expired: days_expired,
+      policy_holder: policy.policy_holder || 'N/A',
+      start_date: policy.policy_start_date,
+      end_date: policy.policy_end_date,
       premium_amount: policy.total_premium || 0,
-      sum_insured: policy.try(:sum_insured) || policy.try(:total_idv) || 0,
-      status: status,
-      affiliate: policy.sub_agent&.display_name || 'Self',
-      policy_object: policy
+      sum_insured: policy.sum_insured || 0,
+      payment_mode: policy.payment_mode || 'N/A',
+      sub_agent_name: policy.sub_agent&.full_name || 'N/A',
+      days_expired: calculate_days_expired(policy.policy_end_date),
+      created_at: policy.created_at,
+      lead_id: policy.lead_id
     }
   end
 
-  def generate_detailed_expired_insurance_report(filters)
-    preview_data = generate_preview_data(filters)
-
+  def transform_motor_policy(policy)
     {
-      'statistics' => {
-        'total_policies' => preview_data.size,
-        'total_premium' => preview_data.sum { |p| p[:premium_amount] || 0 },
-        'total_sum_insured' => preview_data.sum { |p| p[:sum_insured] || 0 },
-        'expired_count' => preview_data.count { |p| p[:status] == 'Expired' },
-        'expiring_soon_count' => preview_data.count { |p| p[:status] == 'Expiring Soon' }
+      id: policy.id,
+      policy_number: policy.policy_number || 'N/A',
+      policy_type: 'Motor',
+      customer_name: policy.customer&.display_name || 'Unknown',
+      insurance_company: policy.insurance_company_name || 'N/A',
+      policy_holder: policy.policy_holder || 'N/A',
+      start_date: policy.policy_start_date,
+      end_date: policy.policy_end_date,
+      premium_amount: policy.total_premium || 0,
+      sum_insured: policy.sum_insured || 0,
+      payment_mode: policy.payment_mode || 'N/A',
+      sub_agent_name: policy.sub_agent&.full_name || 'N/A',
+      days_expired: calculate_days_expired(policy.policy_end_date),
+      created_at: policy.created_at,
+      lead_id: policy.lead_id
+    }
+  end
+
+  def transform_life_policy(policy)
+    {
+      id: policy.id,
+      policy_number: policy.policy_number || 'N/A',
+      policy_type: 'Life',
+      customer_name: policy.customer&.display_name || 'Unknown',
+      insurance_company: policy.insurance_company_name || 'N/A',
+      policy_holder: policy.policy_holder || 'N/A',
+      start_date: policy.policy_start_date,
+      end_date: policy.policy_end_date,
+      premium_amount: policy.total_premium || 0,
+      sum_insured: policy.sum_insured || 0,
+      payment_mode: policy.payment_mode || 'N/A',
+      sub_agent_name: policy.sub_agent&.full_name || 'N/A',
+      days_expired: calculate_days_expired(policy.policy_end_date),
+      created_at: policy.created_at,
+      lead_id: policy.lead_id
+    }
+  end
+
+  def transform_other_policy(policy)
+    {
+      id: policy.id,
+      policy_number: policy.policy_number || 'N/A',
+      policy_type: 'Other',
+      customer_name: policy.customer&.display_name || 'Unknown',
+      insurance_company: policy.insurance_company_name || 'N/A',
+      policy_holder: policy.policy_holder || 'N/A',
+      start_date: policy.policy_start_date,
+      end_date: policy.policy_end_date,
+      premium_amount: policy.total_premium || 0,
+      sum_insured: policy.sum_insured || 0,
+      payment_mode: policy.payment_mode || 'N/A',
+      sub_agent_name: policy.sub_agent&.full_name || 'N/A',
+      days_expired: calculate_days_expired(policy.policy_end_date),
+      created_at: policy.created_at,
+      lead_id: policy.lead_id
+    }
+  end
+
+  def calculate_days_expired(end_date)
+    return 0 unless end_date.present?
+    (Date.current - end_date).to_i
+  end
+
+  def get_insurance_companies
+    companies = []
+    ['HealthInsurance', 'LifeInsurance', 'MotorInsurance', 'OtherInsurance'].each do |model_name|
+      next unless defined?(model_name.constantize)
+      companies += model_name.constantize.distinct.pluck(:insurance_company_name).compact
+    end
+    companies.uniq.sort
+  end
+
+  def expired_data_json
+    {
+      data: @expired_data.map do |policy|
+        {
+          id: policy[:id],
+          policy_number: policy[:policy_number],
+          policy_type: policy[:policy_type],
+          customer_name: policy[:customer_name],
+          insurance_company: policy[:insurance_company],
+          policy_holder: policy[:policy_holder],
+          start_date: policy[:start_date]&.strftime('%d/%m/%Y'),
+          end_date: policy[:end_date]&.strftime('%d/%m/%Y'),
+          premium_amount: policy[:premium_amount],
+          sum_insured: policy[:sum_insured],
+          payment_mode: policy[:payment_mode],
+          sub_agent_name: policy[:sub_agent_name],
+          days_expired: policy[:days_expired],
+          created_at: policy[:created_at]&.strftime('%d/%m/%Y'),
+          lead_id: policy[:lead_id]
+        }
+      end,
+      pagination: {
+        current_page: @expired_data.current_page,
+        total_pages: @expired_data.total_pages,
+        total_count: @expired_data.total_count
       },
-      'policies' => preview_data,
-      'filters' => filters
+      summary: {
+        total_expired: @total_expired,
+        total_premium_lost: @total_premium_lost,
+        total_sum_insured_lost: @total_sum_insured_lost
+      }
     }
   end
 
-  def extract_preview_data_from_report(report)
-    report.report_data['policies'] || []
+  def default_columns
+    %w[policy_number policy_type customer_name insurance_company end_date premium_amount sum_insured days_expired sub_agent_name]
   end
 
-  def generate_csv_from_report(report)
-    report_data = report.report_data || {}
-    report_name = report.name || 'Expired Insurance Report'
-
-    # Extract filters from report metadata if available
-    filters = {
-      start_date: report.filters&.dig('start_date') || 'All time',
-      end_date: report.filters&.dig('end_date') || 'All time',
-      policy_type: report.filters&.dig('policy_type') || 'All',
-      status: report.filters&.dig('status') || 'All'
-    }
-
-    generate_csv_from_data(report_data, report_name, filters)
+  def set_filter_params
+    @start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : 1.year.ago.to_date
+    @end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : Date.current
+    @policy_type = params[:policy_type] || 'all'
+    @insurance_company = params[:insurance_company]
   end
 
-  def calculate_total_premium_lost_from_reports
-    reports = Report.where(report_type: 'expired_insurance')
-    total = 0
-    reports.each do |report|
-      premium = report.report_data&.dig('statistics', 'total_premium')
-      total += premium.to_f if premium
-    end
-    total
-  end
-
-  def generate_csv_from_data(report_data, report_name, filters)
-    require 'csv'
-
-    policies = report_data['policies'] || []
-    statistics = report_data['statistics'] || {}
-
-    CSV.generate(headers: true) do |csv|
-      # Add report header
-      csv << ["Expired Insurance Report: #{report_name}"]
-      csv << ["Generated on: #{Date.current.strftime('%d %b %Y')}"]
-      csv << []
-
-      # Add filters information
-      csv << ["Report Filters:"]
-      csv << ["Date Range:", "#{filters[:start_date]} to #{filters[:end_date]}"]
-      csv << ["Policy Type:", filters[:policy_type] || "All Types"]
-      csv << ["Status:", filters[:status] || "All Status"]
-      csv << []
-
-      # Add summary statistics
-      csv << ["Summary Statistics:"]
-      csv << ["Total Policies:", statistics['total_policies']]
-      csv << ["Total Premium:", "Rs.#{statistics['total_premium']}"]
-      csv << ["Total Sum Insured:", "Rs.#{statistics['total_sum_insured']}"]
-      csv << ["Expired Count:", statistics['expired_count']]
-      csv << ["Expiring Soon:", statistics['expiring_soon_count']]
-      csv << []
-
-      # Add policy details header
-      csv << ["Policy Details:"]
-      csv << [
-        'Policy Number', 'Policy Type', 'Customer Name', 'Customer Email', 'Customer Mobile',
-        'Insurance Company', 'Policy Start Date', 'Policy End Date', 'Days Expired',
-        'Premium Amount', 'Sum Insured', 'Status', 'Affiliate'
-      ]
-
-      policies.each do |policy|
-        csv << [
-          policy['policy_number'],
-          policy['policy_type']&.capitalize,
-          policy['customer_name'],
-          policy['customer_email'],
-          policy['customer_mobile'],
-          policy['insurance_company'],
-          policy['policy_start_date'],
-          policy['policy_end_date'],
-          policy['days_expired'],
-          policy['premium_amount'],
-          policy['sum_insured'],
-          policy['status'],
-          policy['affiliate']
-        ]
-      end
-    end
+  def ensure_admin_or_authorized_user
+    redirect_to root_path unless current_user.admin? || current_user.can_view_reports?
   end
 end

@@ -1279,7 +1279,82 @@ body.sidebar-collapsed .main-content {
                 <i class="bi bi-graph-up-arrow"></i>
               </div>
             </div>
-            <span class="nav-text">Commission Report</span>
+            <span class="nav-text">Commission Reports</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+        <% end %>
+
+        <!-- All Policy Reports -->
+        <% if show_sidebar_item?('reports') %>
+        <li class="nav-item">
+          <%= link_to admin_reports_all_policy_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/all_policy_reports')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-blue">
+                <i class="bi bi-file-text"></i>
+              </div>
+            </div>
+            <span class="nav-text">All Policy Reports</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+        <% end %>
+
+        <!-- Expired Insurance -->
+        <% if show_sidebar_item?('reports') %>
+        <li class="nav-item">
+          <%= link_to admin_reports_expired_insurance_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/expired_insurance_reports')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-red">
+                <i class="bi bi-clock-history"></i>
+              </div>
+            </div>
+            <span class="nav-text">Expired Insurance</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+        <% end %>
+
+        <!-- Upcoming Renewal -->
+        <% if show_sidebar_item?('reports') %>
+        <li class="nav-item">
+          <%= link_to admin_reports_upcoming_renewal_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/upcoming_renewal_reports')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-orange">
+                <i class="bi bi-arrow-clockwise"></i>
+              </div>
+            </div>
+            <span class="nav-text">Upcoming Renewal</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+        <% end %>
+
+        <!-- Lead Reports -->
+        <% if show_sidebar_item?('reports') %>
+        <li class="nav-item">
+          <%= link_to admin_reports_lead_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/lead_reports')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-purple">
+                <i class="bi bi-person-lines-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Lead Reports</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+        <% end %>
+
+        <!-- Session Reports -->
+        <% if show_sidebar_item?('reports') %>
+        <li class="nav-item">
+          <%= link_to admin_reports_sessions_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/sessions')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-green">
+                <i class="bi bi-activity"></i>
+              </div>
+            </div>
+            <span class="nav-text">Session Reports</span>
             <div class="nav-indicator"></div>
           <% end %>
         </li>

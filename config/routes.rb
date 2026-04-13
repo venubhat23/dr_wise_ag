@@ -569,6 +569,7 @@ Rails.application.routes.draw do
         collection do
           post :preview
           get :export_csv
+          post :export_pdf
         end
         member do
           get :export_csv
