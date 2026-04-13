@@ -6,7 +6,7 @@
         <div>
           <h2 class="mb-0">
             <i class="bi bi-graph-up-arrow text-primary me-2"></i>
-            Advanced Commission Reports
+            Commission Reports
           </h2>
           <p class="text-muted mb-0">Comprehensive commission analysis with advanced filtering</p>
         </div>
@@ -89,72 +89,6 @@
         </div>
       </div>
 
-      <!-- Summary Cards -->
-      <div class="row g-3 mb-4">
-        <div class="col-md-3">
-          <div class="card bg-gradient-primary text-white">
-            <div class="card-body">
-              <div class="d-flex align-items-center">
-                <div class="flex-grow-1">
-                  <h6 class="card-title mb-1">Total Commission</h6>
-                  <h4 class="mb-0">₹<span id="totalCommission"><%= number_with_delimiter(@total_commission.round(2)) %></span></h4>
-                </div>
-                <div class="opacity-75">
-                  <i class="bi bi-currency-rupee fs-2"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-3">
-          <div class="card bg-gradient-warning text-white">
-            <div class="card-body">
-              <div class="d-flex align-items-center">
-                <div class="flex-grow-1">
-                  <h6 class="card-title mb-1">Total TDS</h6>
-                  <h4 class="mb-0">₹<span id="totalTds"><%= number_with_delimiter(@total_tds.round(2)) %></span></h4>
-                </div>
-                <div class="opacity-75">
-                  <i class="bi bi-percent fs-2"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-3">
-          <div class="card bg-gradient-success text-white">
-            <div class="card-body">
-              <div class="d-flex align-items-center">
-                <div class="flex-grow-1">
-                  <h6 class="card-title mb-1">Net Commission</h6>
-                  <h4 class="mb-0">₹<span id="netCommission"><%= number_with_delimiter(@net_commission.round(2)) %></span></h4>
-                </div>
-                <div class="opacity-75">
-                  <i class="bi bi-wallet2 fs-2"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-3">
-          <div class="card bg-gradient-info text-white">
-            <div class="card-body">
-              <div class="d-flex align-items-center">
-                <div class="flex-grow-1">
-                  <h6 class="card-title mb-1">Total Records</h6>
-                  <h4 class="mb-0"><span id="totalRecords"><%= @commission_count %></span></h4>
-                </div>
-                <div class="opacity-75">
-                  <i class="bi bi-list-ol fs-2"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- Data Table -->
       <div class="card shadow-sm">
@@ -223,10 +157,10 @@
                         <small><%= commission.created_at.strftime('%d/%m/%Y') %></small>
                       </td>
                       <td>
-                        <small><%= commission.policy&.sub_agent&.full_name || '-' %></small>
+                        <small><%= get_sub_agent_name(commission) || '-' %></small>
                       </td>
                       <td>
-                        <small><%= commission.policy&.distributor&.full_name || '-' %></small>
+                        <small><%= get_distributor_name(commission) || '-' %></small>
                       </td>
                     </tr>
                   <% end %>
@@ -251,9 +185,8 @@
             <div class="d-flex justify-content-between align-items-center">
               <div>
                 <small class="text-muted">
-                  Showing <%= @commission_data.offset_value + 1 %> to
-                  <%= [@commission_data.offset_value + @commission_data.per_page, @commission_data.total_count].min %>
-                  of <%= @commission_data.total_count %> entries
+                  Page <%= @commission_data.current_page %> of <%= @commission_data.total_pages %>
+                  (<%= @commission_data.total_count %> total entries)
                 </small>
               </div>
               <div>
@@ -279,27 +212,6 @@
       </div>
       <div class="modal-body">
         <%= form_with url: "", method: :post, id: "exportForm", class: "needs-validation", novalidate: true do |form| %>
-          <!-- Export Format -->
-          <div class="mb-4">
-            <h6>Export Format</h6>
-            <div class="btn-group" role="group" aria-label="Export format">
-              <input type="radio" class="btn-check" name="export_format" id="format_pdf" value="pdf" checked>
-              <label class="btn btn-outline-primary" for="format_pdf">
-                <i class="bi bi-file-earmark-pdf me-2"></i>PDF
-              </label>
-
-              <input type="radio" class="btn-check" name="export_format" id="format_excel" value="excel">
-              <label class="btn btn-outline-success" for="format_excel">
-                <i class="bi bi-file-earmark-excel me-2"></i>Excel
-              </label>
-
-              <input type="radio" class="btn-check" name="export_format" id="format_csv" value="csv">
-              <label class="btn btn-outline-info" for="format_csv">
-                <i class="bi bi-file-earmark-text me-2"></i>CSV
-              </label>
-            </div>
-          </div>
-
           <!-- Column Selection -->
           <div class="mb-4">
             <h6>Select Columns to Export</h6>
@@ -392,7 +304,6 @@ function deselectAllColumns() {
 
 function performExport() {
   const form = document.getElementById('exportForm');
-  const formatRadios = document.querySelectorAll('input[name="export_format"]');
   const selectedColumns = document.querySelectorAll('input[name="columns[]"]:checked');
 
   // Check if at least one column is selected
@@ -401,28 +312,11 @@ function performExport() {
     return;
   }
 
-  // Get selected format
-  let selectedFormat = 'pdf';
-  formatRadios.forEach(radio => {
-    if (radio.checked) selectedFormat = radio.value;
-  });
-
   // Get current URL parameters to preserve filters
   const urlParams = new URLSearchParams(window.location.search);
 
-  // Build export URL
-  let exportUrl = '';
-  switch(selectedFormat) {
-    case 'pdf':
-      exportUrl = '<%= admin_reports_commission_reports_advanced_export_pdf_path %>';
-      break;
-    case 'excel':
-      exportUrl = '<%= admin_reports_commission_reports_advanced_export_excel_path %>';
-      break;
-    case 'csv':
-      exportUrl = '<%= admin_reports_commission_reports_advanced_export_csv_path %>';
-      break;
-  }
+  // Build export URL (CSV only)
+  const exportUrl = '<%= export_csv_admin_reports_commission_reports_advanced_index_path %>';
 
   // Create form data
   const formData = new FormData();
@@ -459,7 +353,7 @@ function performExport() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Commission_Report_${new Date().toISOString().split('T')[0]}.${selectedFormat === 'excel' ? 'xlsx' : selectedFormat}`;
+    a.download = `Commission_Report_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);

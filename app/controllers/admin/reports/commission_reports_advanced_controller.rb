@@ -1,17 +1,10 @@
 class Admin::Reports::CommissionReportsAdvancedController < ApplicationController
   before_action :authenticate_user!
   before_action :ensure_admin_or_authorized_user
+  before_action :set_filter_params
   layout 'application'
 
   def index
-    @start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : 30.days.ago.to_date
-    @end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : Date.current
-    @policy_type = params[:policy_type] || 'all'
-    @sub_agent_id = params[:sub_agent_id]
-    @distributor_id = params[:distributor_id]
-    @insurance_company = params[:insurance_company]
-    @status = params[:status] || 'all'
-
     # Get commission data with latest records on top
     @commission_data = fetch_commission_data
 
@@ -25,8 +18,8 @@ class Admin::Reports::CommissionReportsAdvancedController < ApplicationControlle
     @commission_count = @commission_data.total_count
 
     # Filter options for dropdowns
-    @sub_agents = SubAgent.active.order(:full_name)
-    @distributors = Distributor.active.order(:full_name)
+    @sub_agents = SubAgent.active.order(:first_name, :last_name)
+    @distributors = Distributor.active.order(:first_name, :last_name)
     @insurance_companies = get_insurance_companies
     @policy_types = ['all', 'health', 'life', 'motor', 'other']
     @status_options = ['all', 'pending', 'paid', 'processing']
@@ -77,7 +70,20 @@ class Admin::Reports::CommissionReportsAdvancedController < ApplicationControlle
       format.csv do
         send_data generate_csv_data,
                   filename: "Commission_Report_#{Date.current.strftime('%Y%m%d')}.csv",
-                  type: 'text/csv'
+                  type: 'text/csv',
+                  disposition: 'attachment'
+      end
+      format.html do
+        send_data generate_csv_data,
+                  filename: "Commission_Report_#{Date.current.strftime('%Y%m%d')}.csv",
+                  type: 'text/csv',
+                  disposition: 'attachment'
+      end
+      format.all do
+        send_data generate_csv_data,
+                  filename: "Commission_Report_#{Date.current.strftime('%Y%m%d')}.csv",
+                  type: 'text/csv',
+                  disposition: 'attachment'
       end
     end
   end
@@ -167,7 +173,7 @@ class Admin::Reports::CommissionReportsAdvancedController < ApplicationControlle
     # Return commission payout IDs for these policies
     CommissionPayout.where(policy_type: policy_type, policy_id: query.pluck(:id)).pluck(:id)
   rescue NameError => e
-    Rails.logger.warn "Model #{model_class} not defined: #{e.message}"
+    Rails.logger.info "Model #{model_class} not defined: #{e.message}"
     []
   end
 
@@ -267,6 +273,16 @@ class Admin::Reports::CommissionReportsAdvancedController < ApplicationControlle
         csv << row
       end
     end
+  end
+
+  def set_filter_params
+    @start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : 30.days.ago.to_date
+    @end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : Date.current
+    @policy_type = params[:policy_type] || 'all'
+    @sub_agent_id = params[:sub_agent_id]
+    @distributor_id = params[:distributor_id]
+    @insurance_company = params[:insurance_company]
+    @status = params[:status] || 'all'
   end
 
   def ensure_admin_or_authorized_user

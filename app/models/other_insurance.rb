@@ -2,6 +2,7 @@ class OtherInsurance < ApplicationRecord
   belongs_to :policy, optional: true
   belongs_to :customer
   belongs_to :sub_agent, optional: true
+  belongs_to :distributor, optional: true
   belongs_to :agency_code, optional: true
   has_many_attached :documents
   has_many_attached :policy_documents
