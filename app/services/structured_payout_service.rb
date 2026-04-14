@@ -12,6 +12,12 @@ class StructuredPayoutService
   def create_structured_payout
     return unless @policy && @customer
 
+    # Skip commission payouts for non-drwise policies
+    if @policy.respond_to?(:product_through_dr) && !@policy.product_through_dr
+      Rails.logger.info "Skipping commission payouts for non-drwise policy #{@policy.class.name} ID: #{@policy.id}"
+      return nil
+    end
+
     # Calculate total commission amount
     total_commission = calculate_total_commission
 
