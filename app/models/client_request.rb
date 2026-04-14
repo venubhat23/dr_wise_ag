@@ -4,6 +4,7 @@ class ClientRequest < ApplicationRecord
   # Associations
   belongs_to :resolved_by, class_name: 'User', optional: true
   belongs_to :submitter, polymorphic: true, optional: true
+  has_many :notifications, as: :reference, dependent: :destroy
 
   # Validations
   validates :name, presence: true
@@ -41,6 +42,7 @@ class ClientRequest < ApplicationRecord
   before_validation :set_submitted_at, on: :create
   before_validation :generate_ticket_number, on: :create
   before_update :set_resolved_at
+  after_update :create_admin_response_notification
 
   # Instance methods
   def status_badge_class
@@ -112,6 +114,13 @@ class ClientRequest < ApplicationRecord
       self.resolved_at = Time.current
     elsif status_changed? && !resolved?
       self.resolved_at = nil
+    end
+  end
+
+  def create_admin_response_notification
+    # Only create notification if admin_response was added or changed
+    if saved_change_to_admin_response? && admin_response.present? && submitter.present?
+      Notification.create_helpdesk_comment_notification(self, submitter)
     end
   end
 end

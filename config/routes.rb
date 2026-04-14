@@ -771,6 +771,12 @@ Rails.application.routes.draw do
         post 'sub_agent/helpdesk', to: 'sub_agent#create_helpdesk_ticket'
         get 'sub_agent/helpdesk_tickets', to: 'sub_agent#helpdesk_tickets'
 
+        # Sub Agent Notification APIs
+        get 'sub_agent/notifications', to: 'sub_agent#notifications'
+        put 'sub_agent/notifications/:id/mark_read', to: 'sub_agent#mark_notification_read'
+        put 'sub_agent/notifications/mark_all_read', to: 'sub_agent#mark_all_notifications_read'
+        get 'sub_agent/notifications/unread_count', to: 'sub_agent#unread_notifications_count'
+
         # Commission Distribution APIs
         get 'agent/commission_distribution', to: 'agent#commission_distribution'
         get 'agent/commission_summary', to: 'agent#commission_summary'
@@ -781,6 +787,14 @@ Rails.application.routes.draw do
             get :active, to: 'banners#active'
             get :by_location, to: 'banners#by_location'
           end
+        end
+
+        # Commission APIs for Sub-Agents/Affiliates
+        namespace :commission do
+          get :breakdown, to: 'commission#breakdown'
+          get :summary, to: 'commission#summary'
+          get :history, to: 'commission#history'
+          get :stats, to: 'commission#stats'
         end
       end
 

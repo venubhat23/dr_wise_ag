@@ -1071,8 +1071,31 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     product_filter = params[:product] # 'health', 'life', etc.
     search = params[:search]
 
-    # Base query - agents can see all leads for now
-    leads = Lead.includes(:converted_customer, :created_policy).recent
+    # Base query - filter leads based on user type
+    leads = Lead.includes(:converted_customer, :created_policy, :affiliate, :ambassador)
+
+    # Filter leads based on user type
+    agent = current_user
+    if is_admin?(agent)
+      # Admin can see all leads
+      leads = leads.recent
+    elsif is_sub_agent?(agent)
+      # For sub_agents, show only leads created by them
+      if agent.is_a?(SubAgent)
+        leads = leads.where(affiliate_id: agent.id).recent
+      else
+        # For User with sub_agent type, find matching SubAgent
+        sub_agent = SubAgent.find_by(email: agent.email)
+        if sub_agent
+          leads = leads.where(affiliate_id: sub_agent.id).recent
+        else
+          leads = leads.where(affiliate_id: agent.id).recent
+        end
+      end
+    else
+      # For regular agents, show leads they may have access to (direct leads for now)
+      leads = leads.where(is_direct: true).recent
+    end
 
     # Apply filters
     leads = leads.by_stage(stage_filter) if stage_filter.present?
@@ -1091,33 +1114,87 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         id: lead.id,
         lead_id: lead.lead_id,
         name: lead.name,
+        display_name: lead.display_name,
+        first_name: lead.first_name,
+        middle_name: lead.middle_name,
+        last_name: lead.last_name,
+        company_name: lead.company_name,
         contact_number: lead.contact_number,
+        alternate_contact_number: lead.alternate_contact_number,
         email: lead.email,
-        product_interest: lead.product_interest&.capitalize || 'Unknown',
-        current_stage: lead.current_stage&.humanize || 'Unknown',
-        lead_source: lead.lead_source&.humanize || 'Unknown',
-        created_date: lead.created_date&.strftime('%Y-%m-%d'),
-        full_address: lead.full_address,
-        referred_by: lead.referred_by,
-        stage_progress: lead.stage_progress_percentage,
+        current_stage: lead.current_stage,
+        stage_display_name: lead.stage_display_name,
         stage_description: lead.stage_description,
+        stage_badge_class: lead.stage_badge_class,
+        lead_source: lead.lead_source,
+        source_badge_class: lead.source_badge_class,
+        product_category: lead.product_category,
+        product_subcategory: lead.product_subcategory,
+        product_subcategory_display: lead.product_subcategory_display,
+        product_badge_class: lead.product_badge_class,
+        customer_type: lead.customer_type,
+        gender: lead.gender,
+        date_of_birth: lead.date_of_birth,
+        age: lead.age,
+        marital_status: lead.marital_status,
+        occupation: lead.occupation,
+        annual_income: lead.annual_income,
+        business_job: lead.business_job,
+        pan_no: lead.pan_no,
+        gst_no: lead.gst_no,
+        height: lead.height,
+        weight: lead.weight,
+        formatted_height: lead.formatted_height,
+        address: lead.address,
+        city: lead.city,
+        state: lead.state,
+        pincode: lead.pincode,
+        full_address: lead.full_address,
+        created_date: lead.created_date,
+        formatted_created_date: lead.formatted_created_date,
+        stage_updated_at: lead.stage_updated_at,
+        notes: lead.notes,
+        follow_up_date: lead.follow_up_date,
+        follow_up_time: lead.follow_up_time,
+        is_converted: lead.converted_customer_id.present?,
+        converted_customer_id: lead.converted_customer_id,
+        converted_customer_name: lead.converted_customer&.display_name,
+        policy_created_id: lead.policy_created_id,
+        is_direct: lead.is_direct,
+        referral_type: lead.referral_type,
+        affiliate_name: lead.affiliate_name,
+        ambassador_name: lead.ambassador_name,
+        stage_progress_percentage: lead.stage_progress_percentage,
         can_advance: lead.can_advance?,
         can_go_back: lead.can_go_back?,
         next_stage: lead.next_stage,
         previous_stage: lead.previous_stage,
-        converted_customer_id: lead.converted_customer_id,
-        policy_created_id: lead.policy_created_id,
-        referral_amount: lead.referral_amount,
-        transferred_amount: lead.transferred_amount,
-        stage_badge_class: lead.stage_badge_class,
-        source_badge_class: lead.source_badge_class,
-        product_badge_class: lead.product_badge_class,
-        created_at: lead.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        next_stage_options: lead.next_stage_options,
+        can_convert_to_customer: lead.can_convert_to_customer?,
+        can_create_policy: lead.can_create_policy?,
+        locked_stage: lead.locked_stage?,
+        is_branch_out: lead.is_branch_out?,
+        disease_details: lead.disease_details,
+        medicine_details: lead.medicine_details,
+        doctor_details: lead.doctor_details,
+        smoke_habbit: lead.smoke_habbit,
+        alcohol_habbit: lead.alcohol_habbit,
+        existing_policy_details: lead.existing_policy_details,
+        branch_out_leads: lead.branch_out_leads.map { |bl|
+          {
+            id: bl.id,
+            lead_id: bl.lead_id,
+            name: bl.name,
+            current_stage: bl.current_stage
+          }
+        },
+        created_at: lead.created_at,
+        updated_at: lead.updated_at
       }
     end
 
-    # Get statistics
-    stats = get_leads_statistics
+    # Get statistics filtered by user type
+    stats = get_leads_statistics_for_user(agent)
 
     render json: {
       success: true,
@@ -2248,11 +2325,73 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     }
   end
 
+  def get_leads_statistics_for_user(agent)
+    current_month_start = Date.current.beginning_of_month
+    current_month_end = Date.current.end_of_month
+
+    # Base query for leads based on user type
+    base_leads_query = if is_admin?(agent)
+      Lead.all
+    elsif is_sub_agent?(agent)
+      if agent.is_a?(SubAgent)
+        Lead.where(affiliate_id: agent.id)
+      else
+        sub_agent = SubAgent.find_by(email: agent.email)
+        if sub_agent
+          Lead.where(affiliate_id: sub_agent.id)
+        else
+          Lead.where(affiliate_id: agent.id)
+        end
+      end
+    else
+      Lead.where(is_direct: true)
+    end
+
+    {
+      total_leads: base_leads_query.count,
+      this_month_leads: base_leads_query.where(created_date: current_month_start..current_month_end).count,
+      pending_leads: base_leads_query.pending_conversion.count,
+      converted_leads: base_leads_query.converted_leads.count,
+      conversion_rate: calculate_conversion_rate_for_query(base_leads_query),
+      by_stage: {
+        consultation_scheduled: base_leads_query.by_stage('consultation_scheduled').count,
+        one_on_one: base_leads_query.by_stage('one_on_one').count,
+        follow_up: base_leads_query.by_stage('follow_up').count,
+        converted: base_leads_query.by_stage('converted').count,
+        lead_closed: base_leads_query.by_stage('lead_closed').count
+      },
+      by_product: {
+        health: base_leads_query.by_product('health').count,
+        life: base_leads_query.by_product('life').count,
+        motor: base_leads_query.by_product('motor').count,
+        home: base_leads_query.by_product('home').count,
+        travel: base_leads_query.by_product('travel').count,
+        other: base_leads_query.by_product('other').count
+      },
+      by_source: {
+        online: base_leads_query.by_source('online').count,
+        offline: base_leads_query.by_source('offline').count,
+        agent_referral: base_leads_query.by_source('agent_referral').count,
+        walk_in: base_leads_query.by_source('walk_in').count,
+        tele_calling: base_leads_query.by_source('tele_calling').count,
+        campaign: base_leads_query.by_source('campaign').count
+      }
+    }
+  end
+
   def calculate_conversion_rate
     total_leads = Lead.count
     return 0 if total_leads == 0
 
     converted_leads = Lead.converted_leads.count
+    ((converted_leads.to_f / total_leads) * 100).round(2)
+  end
+
+  def calculate_conversion_rate_for_query(leads_query)
+    total_leads = leads_query.count
+    return 0 if total_leads == 0
+
+    converted_leads = leads_query.converted_leads.count
     ((converted_leads.to_f / total_leads) * 100).round(2)
   end
 

@@ -2,19 +2,25 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
   before_action :authenticate_sub_agent!
 
   # GET /api/v1/mobile/sub_agent/leads
-  # Get leads submitted by the current sub_agent
+  # Get leads submitted by the current sub_agent with comprehensive information
   def leads
     page = params[:page] || 1
     per_page = params[:per_page] || 20
     status_filter = params[:status]
+    product_filter = params[:product_category]
     search = params[:search]
 
-    # Get leads created by this sub_agent
-    leads = Lead.where(affiliate_id: current_sub_agent.id)
+    # Get leads created by this sub_agent with includes for better performance
+    leads = Lead.includes(:converted_customer, :created_policy, :affiliate, :ambassador)
+                .where(affiliate_id: current_sub_agent.id)
 
     # Apply filters
     if status_filter.present?
       leads = leads.where(current_stage: status_filter)
+    end
+
+    if product_filter.present?
+      leads = leads.where(product_category: product_filter)
     end
 
     if search.present?
@@ -35,26 +41,82 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
             id: lead.id,
             lead_id: lead.lead_id,
             name: lead.name,
+            display_name: lead.display_name,
             first_name: lead.first_name,
+            middle_name: lead.middle_name,
             last_name: lead.last_name,
+            company_name: lead.company_name,
             contact_number: lead.contact_number,
+            alternate_contact_number: lead.alternate_contact_number,
             email: lead.email,
-            status: lead.current_stage,
+            current_stage: lead.current_stage,
+            stage_display_name: lead.stage_display_name,
+            stage_description: lead.stage_description,
+            stage_badge_class: lead.stage_badge_class,
             lead_source: lead.lead_source,
+            source_badge_class: lead.source_badge_class,
             product_category: lead.product_category,
             product_subcategory: lead.product_subcategory,
+            product_subcategory_display: lead.product_subcategory_display,
+            product_badge_class: lead.product_badge_class,
             customer_type: lead.customer_type,
-            created_date: lead.created_date,
-            stage_updated_at: lead.stage_updated_at,
-            notes: lead.notes,
-            is_converted: lead.converted_customer_id.present?,
-            converted_customer_id: lead.converted_customer_id,
-            follow_up_date: lead.follow_up_date,
-            follow_up_time: lead.follow_up_time,
+            gender: lead.gender,
+            date_of_birth: lead.date_of_birth,
+            age: lead.age,
+            marital_status: lead.marital_status,
+            occupation: lead.occupation,
+            annual_income: lead.annual_income,
+            business_job: lead.business_job,
+            pan_no: lead.pan_no,
+            gst_no: lead.gst_no,
+            height: lead.height,
+            weight: lead.weight,
+            formatted_height: lead.formatted_height,
             address: lead.address,
             city: lead.city,
             state: lead.state,
-            pincode: lead.pincode
+            pincode: lead.pincode,
+            full_address: lead.full_address,
+            created_date: lead.created_date,
+            formatted_created_date: lead.formatted_created_date,
+            stage_updated_at: lead.stage_updated_at,
+            notes: lead.notes,
+            follow_up_date: lead.follow_up_date,
+            follow_up_time: lead.follow_up_time,
+            is_converted: lead.converted_customer_id.present?,
+            converted_customer_id: lead.converted_customer_id,
+            converted_customer_name: lead.converted_customer&.display_name,
+            policy_created_id: lead.policy_created_id,
+            is_direct: lead.is_direct,
+            referral_type: lead.referral_type,
+            affiliate_name: lead.affiliate_name,
+            ambassador_name: lead.ambassador_name,
+            stage_progress_percentage: lead.stage_progress_percentage,
+            can_advance: lead.can_advance?,
+            can_go_back: lead.can_go_back?,
+            next_stage: lead.next_stage,
+            previous_stage: lead.previous_stage,
+            next_stage_options: lead.next_stage_options,
+            can_convert_to_customer: lead.can_convert_to_customer?,
+            can_create_policy: lead.can_create_policy?,
+            locked_stage: lead.locked_stage?,
+            is_branch_out: lead.is_branch_out?,
+            disease_details: lead.disease_details,
+            medicine_details: lead.medicine_details,
+            doctor_details: lead.doctor_details,
+            smoke_habbit: lead.smoke_habbit,
+            alcohol_habbit: lead.alcohol_habbit,
+            existing_policy_details: lead.existing_policy_details,
+            branch_out_leads: lead.branch_out_leads.map { |bl|
+              {
+                id: bl.id,
+                lead_id: bl.lead_id,
+                name: bl.name,
+                current_stage: bl.current_stage
+              }
+            },
+            created_at: lead.created_at,
+            updated_at: lead.updated_at
           }
         end,
         pagination: {
@@ -62,6 +124,13 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
           total_pages: leads.total_pages,
           total_count: leads.total_count,
           per_page: per_page.to_i
+        },
+        statistics: {
+          total_leads: Lead.where(affiliate_id: current_sub_agent.id).count,
+          converted_leads: Lead.where(affiliate_id: current_sub_agent.id, current_stage: 'converted').count,
+          pending_leads: Lead.where(affiliate_id: current_sub_agent.id)
+                             .where(current_stage: ['consultation_scheduled', 'one_on_one', 'follow_up', 're_follow_up']).count,
+          closed_leads: Lead.where(affiliate_id: current_sub_agent.id, current_stage: 'lead_closed').count
         }
       }
     }
@@ -192,7 +261,7 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
     per_page = params[:per_page] || 20
     status_filter = params[:status]
 
-    tickets = ClientRequest.where(submitter_type: 'SubAgent', submitter_id: current_sub_agent.id)
+    tickets = ClientRequest.includes(:resolved_by).where(submitter_type: 'SubAgent', submitter_id: current_sub_agent.id)
 
     if status_filter.present?
       tickets = tickets.where(status: status_filter)
@@ -214,8 +283,11 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
             category: ticket.category,
             priority: ticket.priority,
             status: ticket.status,
-            resolution_notes: ticket.resolution_notes,
+            admin_response: ticket.admin_response,
+            comments: ticket.admin_response,
             resolved_at: ticket.resolved_at,
+            assigned_to: ticket.resolved_by&.full_name || "Unassigned",
+            days_since_submission: ticket.days_since_submission,
             created_at: ticket.created_at,
             updated_at: ticket.updated_at
           }
@@ -225,7 +297,128 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
           total_pages: tickets.total_pages,
           total_count: tickets.total_count,
           per_page: per_page.to_i
+        },
+        summary: {
+          total_tickets: ClientRequest.where(submitter_type: 'SubAgent', submitter_id: current_sub_agent.id).count,
+          pending: ClientRequest.where(submitter_type: 'SubAgent', submitter_id: current_sub_agent.id, status: 'pending').count,
+          in_progress: ClientRequest.where(submitter_type: 'SubAgent', submitter_id: current_sub_agent.id, status: 'in_progress').count,
+          resolved: ClientRequest.where(submitter_type: 'SubAgent', submitter_id: current_sub_agent.id, status: 'resolved').count,
+          closed: ClientRequest.where(submitter_type: 'SubAgent', submitter_id: current_sub_agent.id, status: 'closed').count
         }
+      }
+    }
+  end
+
+  # GET /api/v1/mobile/sub_agent/notifications
+  # Get notifications for the current sub_agent
+  def notifications
+    page = params[:page] || 1
+    per_page = params[:per_page] || 20
+    status_filter = params[:status] # 'read', 'unread', or nil for all
+
+    notifications = Notification.includes(:reference)
+                                .for_sub_agent(current_sub_agent.id)
+
+    # Apply status filter
+    case status_filter
+    when 'read'
+      notifications = notifications.read
+    when 'unread'
+      notifications = notifications.unread
+    end
+
+    notifications = notifications.recent
+                                .page(page)
+                                .per(per_page)
+
+    render json: {
+      success: true,
+      data: {
+        notifications: notifications.map do |notification|
+          {
+            id: notification.id,
+            notification_type: notification.notification_type,
+            title: notification.title,
+            message: notification.message,
+            is_read: notification.is_read,
+            sent_at: notification.sent_at,
+            read_at: notification.read_at,
+            reference: notification.reference ? {
+              type: notification.reference_type,
+              id: notification.reference_id,
+              details: notification_reference_details(notification.reference)
+            } : nil,
+            created_at: notification.created_at
+          }
+        end,
+        pagination: {
+          current_page: notifications.current_page,
+          total_pages: notifications.total_pages,
+          total_count: notifications.total_count,
+          per_page: per_page.to_i
+        },
+        summary: {
+          total_notifications: Notification.for_sub_agent(current_sub_agent.id).count,
+          unread_count: Notification.for_sub_agent(current_sub_agent.id).unread.count,
+          read_count: Notification.for_sub_agent(current_sub_agent.id).read.count
+        }
+      }
+    }
+  end
+
+  # PUT /api/v1/mobile/sub_agent/notifications/:id/mark_read
+  # Mark a notification as read
+  def mark_notification_read
+    notification = Notification.for_sub_agent(current_sub_agent.id).find_by(id: params[:id])
+
+    if notification.nil?
+      return render json: {
+        success: false,
+        message: 'Notification not found or you do not have access to this notification'
+      }, status: :not_found
+    end
+
+    notification.mark_as_read!
+
+    render json: {
+      success: true,
+      message: 'Notification marked as read',
+      data: {
+        notification: {
+          id: notification.id,
+          is_read: notification.is_read,
+          read_at: notification.read_at
+        }
+      }
+    }
+  end
+
+  # PUT /api/v1/mobile/sub_agent/notifications/mark_all_read
+  # Mark all notifications as read for the current sub_agent
+  def mark_all_notifications_read
+    notifications = Notification.for_sub_agent(current_sub_agent.id).unread
+
+    notifications.update_all(
+      is_read: true,
+      read_at: Time.current,
+      updated_at: Time.current
+    )
+
+    render json: {
+      success: true,
+      message: "#{notifications.count} notifications marked as read"
+    }
+  end
+
+  # GET /api/v1/mobile/sub_agent/notifications/unread_count
+  # Get unread notification count for the current sub_agent
+  def unread_notifications_count
+    count = Notification.for_sub_agent(current_sub_agent.id).unread.count
+
+    render json: {
+      success: true,
+      data: {
+        unread_count: count
       }
     }
   end
@@ -255,6 +448,22 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
       end
     rescue JWT::DecodeError, JWT::ExpiredSignature
       nil
+    end
+  end
+
+  def notification_reference_details(reference)
+    case reference
+    when ClientRequest
+      {
+        ticket_number: reference.ticket_number,
+        subject: reference.subject,
+        status: reference.status
+      }
+    else
+      {
+        class: reference.class.name,
+        id: reference.id
+      }
     end
   end
 end
