@@ -830,6 +830,20 @@ Rails.application.routes.draw do
           get :policy_holder_options
         end
       end
+
+      # Notification APIs
+      resources :notifications, only: [:index, :show] do
+        member do
+          patch :mark_as_read
+          patch :mark_as_unread
+        end
+        collection do
+          get :unread_count
+          get :recent
+          get :types
+          patch :mark_all_as_read
+        end
+      end
     end
 
     # Policy Documents Management
