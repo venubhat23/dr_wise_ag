@@ -1,5 +1,6 @@
 class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
-  before_action :authenticate_sub_agent!
+  before_action :authenticate_customer!
+  before_action :validate_sub_agent_access
 
   # GET /api/v1/mobile/sub_agent/leads
   # Get leads submitted by the current sub_agent with comprehensive information
@@ -28,26 +29,85 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
                          "%#{search}%", "%#{search}%", "%#{search}%", "%#{search}%")
     end
 
+    # Get total count before pagination
+    total_count = leads.count
+
     # Order and paginate
+    page = page.to_i
+    per_page = per_page.to_i
+    per_page = [per_page, 50].min # Limit to max 50 records per page
+    offset = (page - 1) * per_page
+
     leads = leads.order(created_at: :desc)
-                 .page(page)
-                 .per(per_page)
+                 .limit(per_page)
+                 .offset(offset)
 
     render json: {
       success: true,
       data: {
         leads: leads.map do |lead|
-          {
-            id: lead.id,
-            lead_id: lead.lead_id,
-            name: lead.name,
-            display_name: lead.display_name,
-            first_name: lead.first_name,
-            middle_name: lead.middle_name,
-            last_name: lead.last_name,
-            company_name: lead.company_name,
-            contact_number: lead.contact_number,
-            alternate_contact_number: lead.alternate_contact_number,
+          begin
+            {
+              id: lead.id,
+              lead_id: lead.lead_id,
+              name: lead.name,
+              display_name: lead.name, # Use name as display_name
+              first_name: lead.first_name,
+              middle_name: lead.middle_name,
+              last_name: lead.last_name,
+              company_name: lead.company_name,
+              contact_number: lead.contact_number,
+              email: lead.email,
+              current_stage: lead.current_stage,
+              product_category: lead.product_category,
+              product_subcategory: lead.product_subcategory,
+              product_interest: lead.product_interest,
+              lead_source: lead.lead_source,
+              customer_type: lead.customer_type,
+              referred_by: lead.referred_by,
+              referral_amount: lead.referral_amount,
+              birth_date: lead.birth_date,
+              gender: lead.gender,
+              marital_status: lead.marital_status,
+              occupation: lead.occupation,
+              annual_income: lead.annual_income,
+              pan_no: lead.pan_no,
+              gst_no: lead.gst_no,
+              height: lead.height,
+              weight: lead.weight,
+              address: lead.address,
+              city: lead.city,
+              state: lead.state,
+              created_date: lead.created_date,
+              stage_updated_at: lead.stage_updated_at,
+              notes: lead.notes,
+              is_converted: lead.converted_customer_id.present?,
+              converted_customer_id: lead.converted_customer_id,
+              policy_created_id: lead.policy_created_id,
+              is_direct: lead.is_direct,
+              is_branch_out: lead.is_branch_out,
+              affiliate_id: lead.affiliate_id,
+              ambassador_id: lead.ambassador_id,
+              created_at: lead.created_at,
+              updated_at: lead.updated_at,
+              # Additional computed fields
+              affiliate_name: lead.affiliate_id.present? ? SubAgent.find_by(id: lead.affiliate_id)&.display_name : nil,
+              ambassador_name: lead.ambassador_id.present? ? Distributor.find_by(id: lead.ambassador_id)&.display_name : nil,
+              formatted_created_date: lead.created_date&.strftime('%d %b, %Y'),
+              full_address: [lead.address, lead.city, lead.state].compact.join(', ')
+            }
+          rescue => e
+            Rails.logger.error "Error formatting lead #{lead.id}: #{e.message}"
+            {
+              id: lead.id,
+              lead_id: lead.lead_id,
+              name: lead.name,
+              contact_number: lead.contact_number,
+              email: lead.email,
+              current_stage: lead.current_stage,
+              error: "Error loading lead details"
+            }
+          end
             email: lead.email,
             current_stage: lead.current_stage,
             stage_display_name: lead.stage_display_name,
@@ -120,10 +180,12 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
           }
         end,
         pagination: {
-          current_page: leads.current_page,
-          total_pages: leads.total_pages,
-          total_count: leads.total_count,
-          per_page: per_page.to_i
+          current_page: page,
+          total_pages: (total_count.to_f / per_page).ceil,
+          total_count: total_count,
+          per_page: per_page,
+          has_next_page: page < (total_count.to_f / per_page).ceil,
+          has_prev_page: page > 1
         },
         statistics: {
           total_leads: Lead.where(affiliate_id: current_sub_agent.id).count,
@@ -257,8 +319,9 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
   # GET /api/v1/mobile/sub_agent/helpdesk_tickets
   # Get helpdesk tickets created by the sub_agent
   def helpdesk_tickets
-    page = params[:page] || 1
-    per_page = params[:per_page] || 20
+    page = params[:page]&.to_i || 1
+    per_page = params[:per_page]&.to_i || 20
+    per_page = [per_page, 50].min # Limit to max 50 records per page
     status_filter = params[:status]
 
     tickets = ClientRequest.includes(:resolved_by).where(submitter_type: 'SubAgent', submitter_id: current_sub_agent.id)
@@ -267,9 +330,13 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
       tickets = tickets.where(status: status_filter)
     end
 
+    # Get total count before pagination
+    total_count = tickets.count
+    offset = (page - 1) * per_page
+
     tickets = tickets.order(created_at: :desc)
-                    .page(page)
-                    .per(per_page)
+                    .limit(per_page)
+                    .offset(offset)
 
     render json: {
       success: true,
@@ -293,10 +360,12 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
           }
         end,
         pagination: {
-          current_page: tickets.current_page,
-          total_pages: tickets.total_pages,
-          total_count: tickets.total_count,
-          per_page: per_page.to_i
+          current_page: page,
+          total_pages: (total_count.to_f / per_page).ceil,
+          total_count: total_count,
+          per_page: per_page,
+          has_next_page: page < (total_count.to_f / per_page).ceil,
+          has_prev_page: page > 1
         },
         summary: {
           total_tickets: ClientRequest.where(submitter_type: 'SubAgent', submitter_id: current_sub_agent.id).count,
@@ -312,8 +381,9 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
   # GET /api/v1/mobile/sub_agent/notifications
   # Get notifications for the current sub_agent
   def notifications
-    page = params[:page] || 1
-    per_page = params[:per_page] || 20
+    page = params[:page]&.to_i || 1
+    per_page = params[:per_page]&.to_i || 20
+    per_page = [per_page, 50].min # Limit to max 50 records per page
     status_filter = params[:status] # 'read', 'unread', or nil for all
 
     notifications = Notification.includes(:reference)
@@ -327,9 +397,13 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
       notifications = notifications.unread
     end
 
+    # Get total count before pagination
+    total_count = notifications.count
+    offset = (page - 1) * per_page
+
     notifications = notifications.recent
-                                .page(page)
-                                .per(per_page)
+                                .limit(per_page)
+                                .offset(offset)
 
     render json: {
       success: true,
@@ -352,10 +426,12 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
           }
         end,
         pagination: {
-          current_page: notifications.current_page,
-          total_pages: notifications.total_pages,
-          total_count: notifications.total_count,
-          per_page: per_page.to_i
+          current_page: page,
+          total_pages: (total_count.to_f / per_page).ceil,
+          total_count: total_count,
+          per_page: per_page,
+          has_next_page: page < (total_count.to_f / per_page).ceil,
+          has_prev_page: page > 1
         },
         summary: {
           total_notifications: Notification.for_sub_agent(current_sub_agent.id).count,
@@ -425,30 +501,17 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
 
   private
 
-  def authenticate_sub_agent!
-    unless current_sub_agent
+  def validate_sub_agent_access
+    unless current_user.is_a?(SubAgent)
       render json: {
         success: false,
-        message: 'Authentication required. Please login as a sub-agent.'
-      }, status: :unauthorized
+        message: 'Access denied. Sub-agent account required.'
+      }, status: :forbidden
     end
   end
 
   def current_sub_agent
-    @current_sub_agent ||= begin
-      token = request.headers['Authorization']&.split(' ')&.last
-      return nil unless token
-
-      decoded = JWT.decode(token, Rails.application.secret_key_base, true, algorithm: 'HS256')
-      user_id = decoded[0]['user_id']
-      user_type = decoded[0]['user_type']
-
-      if user_type == 'sub_agent'
-        SubAgent.find_by(id: user_id)
-      end
-    rescue JWT::DecodeError, JWT::ExpiredSignature
-      nil
-    end
+    current_user # current_user is already a SubAgent object from authenticate_customer!
   end
 
   def notification_reference_details(reference)

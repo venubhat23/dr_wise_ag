@@ -790,12 +790,10 @@ Rails.application.routes.draw do
         end
 
         # Commission APIs for Sub-Agents/Affiliates
-        namespace :commission do
-          get :breakdown, to: 'commission#breakdown'
-          get :summary, to: 'commission#summary'
-          get :history, to: 'commission#history'
-          get :stats, to: 'commission#stats'
-        end
+        get 'commission/breakdown', to: 'commission#breakdown'
+        get 'commission/summary', to: 'commission#summary'
+        get 'commission/history', to: 'commission#history'
+        get 'commission/stats', to: 'commission#stats'
       end
 
       # Sub Agent APIs

@@ -1,10 +1,6 @@
-class Api::V1::Mobile::CommissionController < ApplicationController
-  # Skip CSRF for API endpoints
-  skip_before_action :verify_authenticity_token
-
-  # Before actions
-  before_action :authenticate_sub_agent!
-  before_action :validate_sub_agent_status
+class Api::V1::Mobile::CommissionController < Api::V1::Mobile::BaseController
+  before_action :authenticate_customer!
+  before_action :validate_sub_agent_access
 
   # GET /api/v1/mobile/commission/breakdown
   def breakdown
@@ -61,24 +57,21 @@ class Api::V1::Mobile::CommissionController < ApplicationController
       page = params[:page]&.to_i || 1
       per_page = params[:per_page]&.to_i || 10
       per_page = [per_page, 50].min # Limit to max 50 records per page
+      offset = (page - 1) * per_page
+
+      # Get all payouts for current sub-agent
+      all_payouts = get_all_sub_agent_payouts
+      total_count = all_payouts.count
 
       # Get paginated commission history
-      payouts = CommissionPayout.where(
-        policy_type: ['health', 'life', 'motor', 'other'],
-        payout_to: 'sub_agent'
-      ).joins(:policy).where(
-        "CASE
-         WHEN commission_payouts.policy_type = 'health' THEN health_insurances.sub_agent_id = ?
-         WHEN commission_payouts.policy_type = 'life' THEN life_insurances.sub_agent_id = ?
-         WHEN commission_payouts.policy_type = 'motor' THEN motor_insurances.sub_agent_id = ?
-         WHEN commission_payouts.policy_type = 'other' THEN other_insurances.sub_agent_id = ?
-         END", current_sub_agent.id, current_sub_agent.id, current_sub_agent.id, current_sub_agent.id
-      ).includes(:policy)
-       .recent
-       .page(page)
-       .per(per_page)
+      payouts = all_payouts
+                .order(payout_date: :desc, created_at: :desc)
+                .limit(per_page)
+                .offset(offset)
 
       formatted_payouts = payouts.map { |payout| format_payout_data(payout) }
+
+      total_pages = (total_count.to_f / per_page).ceil
 
       render json: {
         status: 'success',
@@ -87,9 +80,9 @@ class Api::V1::Mobile::CommissionController < ApplicationController
           pagination: {
             current_page: page,
             per_page: per_page,
-            total_pages: payouts.total_pages,
-            total_count: payouts.total_count,
-            has_next_page: page < payouts.total_pages,
+            total_pages: total_pages,
+            total_count: total_count,
+            has_next_page: page < total_pages,
             has_prev_page: page > 1
           }
         },
@@ -164,48 +157,17 @@ class Api::V1::Mobile::CommissionController < ApplicationController
 
   private
 
-  def authenticate_sub_agent!
-    # Extract token from Authorization header
-    token = request.headers['Authorization']&.split(' ')&.last
-
-    unless token
-      render json: { status: 'error', message: 'Authorization token required' }, status: :unauthorized
-      return
-    end
-
-    # Decode token and find sub-agent (simplified - implement proper JWT logic)
-    begin
-      # This is a simplified version - implement proper JWT decode logic
-      decoded_token = JWT.decode(token, Rails.application.secret_key_base, true, { algorithm: 'HS256' })
-      sub_agent_id = decoded_token[0]['sub_agent_id']
-
-      @current_sub_agent = SubAgent.find_by(id: sub_agent_id)
-
-      unless @current_sub_agent
-        render json: { status: 'error', message: 'Invalid token or sub-agent not found' }, status: :unauthorized
-        return
-      end
-
-    rescue JWT::DecodeError => e
-      render json: { status: 'error', message: 'Invalid token format' }, status: :unauthorized
-      return
-    rescue => e
-      render json: { status: 'error', message: 'Authentication failed' }, status: :unauthorized
-      return
-    end
-  end
-
-  def current_sub_agent
-    @current_sub_agent
-  end
-
-  def validate_sub_agent_status
-    unless current_sub_agent&.truly_active?
+  def validate_sub_agent_access
+    unless current_user.is_a?(SubAgent)
       render json: {
         status: 'error',
-        message: 'Account is inactive or deactivated'
+        message: 'Access denied. Sub-agent account required.'
       }, status: :forbidden
     end
+  end
+
+  def get_current_sub_agent
+    current_user # current_user is already a SubAgent object from authenticate_customer!
   end
 
   def calculate_commission_summary
@@ -235,17 +197,20 @@ class Api::V1::Mobile::CommissionController < ApplicationController
 
   def get_recent_commission_payouts(limit = 7)
     recent_payouts = get_all_sub_agent_payouts
-                      .recent
+                      .order(payout_date: :desc, created_at: :desc)
                       .limit(limit)
-                      .includes(:policy)
 
     recent_payouts.map { |payout| format_payout_data(payout) }
   end
 
   def get_all_sub_agent_payouts
+    sub_agent = get_current_sub_agent
+    return CommissionPayout.none unless sub_agent
+
+    # Sub-agents get 'affiliate' payouts in the system
     CommissionPayout.where(
       policy_type: ['health', 'life', 'motor', 'other'],
-      payout_to: 'sub_agent'
+      payout_to: 'affiliate'  # Sub-agents receive 'affiliate' payouts
     ).joins(
       "LEFT JOIN health_insurances ON commission_payouts.policy_type = 'health' AND commission_payouts.policy_id = health_insurances.id
        LEFT JOIN life_insurances ON commission_payouts.policy_type = 'life' AND commission_payouts.policy_id = life_insurances.id
@@ -253,7 +218,7 @@ class Api::V1::Mobile::CommissionController < ApplicationController
        LEFT JOIN other_insurances ON commission_payouts.policy_type = 'other' AND commission_payouts.policy_id = other_insurances.id"
     ).where(
       "COALESCE(health_insurances.sub_agent_id, life_insurances.sub_agent_id, motor_insurances.sub_agent_id, other_insurances.sub_agent_id) = ?",
-      current_sub_agent.id
+      sub_agent.id
     )
   end
 
@@ -262,31 +227,57 @@ class Api::V1::Mobile::CommissionController < ApplicationController
   end
 
   def format_payout_data(payout)
-    policy = payout.policy
-    customer = policy&.customer
+    begin
+      policy = payout.policy
+      customer = policy&.customer
 
-    {
-      id: payout.id,
-      policy_number: payout.policy_number,
-      policy_type: format_policy_type(payout.policy_type),
-      customer_name: customer&.display_name || 'Unknown Customer',
-      commission_amount: format_currency(payout.payout_amount),
-      commission_amount_raw: payout.payout_amount,
-      tds_amount: format_currency(payout.tds_amount),
-      tds_amount_raw: payout.tds_amount,
-      net_amount: format_currency(payout.net_amount),
-      net_amount_raw: payout.net_amount,
-      commission_percentage: payout.payout_percentage,
-      status: payout.status.titleize,
-      status_raw: payout.status,
-      payout_date: payout.payout_date&.strftime("%d %b, %Y"),
-      payout_date_raw: payout.payout_date&.iso8601,
-      created_date: payout.created_at&.strftime("%d %b, %Y"),
-      created_date_raw: payout.created_at&.iso8601,
-      payment_mode: payout.payment_mode,
-      transaction_id: payout.transaction_id,
-      reference_number: payout.reference_number
-    }
+      {
+        id: payout.id,
+        policy_number: payout.policy_number,
+        policy_type: format_policy_type(payout.policy_type),
+        customer_name: customer&.display_name || 'Unknown Customer',
+        commission_amount: format_currency(payout.payout_amount),
+        commission_amount_raw: payout.payout_amount || 0,
+        tds_amount: format_currency(payout.tds_amount),
+        tds_amount_raw: payout.tds_amount || 0,
+        net_amount: format_currency(payout.net_amount),
+        net_amount_raw: payout.net_amount || 0,
+        commission_percentage: payout.payout_percentage || 0,
+        status: payout.status&.titleize || 'Unknown',
+        status_raw: payout.status,
+        payout_date: payout.payout_date&.strftime("%d %b, %Y"),
+        payout_date_raw: payout.payout_date&.iso8601,
+        created_date: payout.created_at&.strftime("%d %b, %Y"),
+        created_date_raw: payout.created_at&.iso8601,
+        payment_mode: payout.payment_mode,
+        transaction_id: payout.transaction_id,
+        reference_number: payout.reference_number
+      }
+    rescue => e
+      Rails.logger.error "Error formatting payout data for payout ID #{payout.id}: #{e.message}"
+      {
+        id: payout.id,
+        policy_number: payout.policy_number || 'N/A',
+        policy_type: format_policy_type(payout.policy_type),
+        customer_name: 'Unknown Customer',
+        commission_amount: format_currency(payout.payout_amount),
+        commission_amount_raw: payout.payout_amount || 0,
+        tds_amount: format_currency(0),
+        tds_amount_raw: 0,
+        net_amount: format_currency(payout.payout_amount),
+        net_amount_raw: payout.payout_amount || 0,
+        commission_percentage: 0,
+        status: payout.status&.titleize || 'Unknown',
+        status_raw: payout.status,
+        payout_date: payout.payout_date&.strftime("%d %b, %Y"),
+        payout_date_raw: payout.payout_date&.iso8601,
+        created_date: payout.created_at&.strftime("%d %b, %Y"),
+        created_date_raw: payout.created_at&.iso8601,
+        payment_mode: nil,
+        transaction_id: nil,
+        reference_number: nil
+      }
+    end
   end
 
   def format_policy_type(policy_type)
