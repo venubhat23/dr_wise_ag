@@ -243,37 +243,23 @@ body {
     <div class="d-flex align-items-center gap-3">
       <!-- Avatar/Icon -->
       <div class="customer-avatar">
-        <% if (@customer.profile_image.attached? && @customer.safe_profile_image_display) || @customer.has_r2_profile_image? %>
-          <% if @customer.has_r2_profile_image? %>
-            <!-- R2 Profile Image -->
-            <%= image_tag @customer.r2_profile_image_url,
-                class: "rounded-circle profile-image-clickable",
-                style: "width: 64px; height: 64px; object-fit: cover; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;",
-                alt: @customer.display_name,
-                data: { bs_toggle: "modal", bs_target: "#profileImageModal" },
-                onerror: "this.style.display='none'; this.nextElementSibling.style.display='flex';" %>
-            <!-- Fallback initials circle -->
-            <div class="avatar-placeholder initials-circle" style="display: none;">
-              <%= @customer.initials %>
-            </div>
-          <% else %>
-            <!-- ActiveStorage Profile Image -->
-            <% image_data = @customer.safe_profile_image_display %>
-            <% if image_data %>
-              <%= image_tag image_data[:url],
-                  class: "rounded-circle profile-image-clickable",
-                  style: "width: 64px; height: 64px; object-fit: cover; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;",
-                  alt: @customer.display_name,
-                  data: { bs_toggle: "modal", bs_target: "#profileImageModal" },
-                  onerror: "this.style.display='none'; this.nextElementSibling.style.display='flex';" %>
-              <!-- Fallback initials circle -->
-              <div class="avatar-placeholder initials-circle" style="display: none;">
-                <%= @customer.initials %>
-              </div>
-            <% end %>
-          <% end %>
+        <% if @customer.has_r2_profile_image? %>
+          <!-- R2 Profile Image Only -->
+          <%= image_tag @customer.r2_profile_image_url,
+              class: "rounded-circle profile-image-clickable",
+              style: "width: 64px; height: 64px; object-fit: cover; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;",
+              alt: @customer.display_name,
+              data: { bs_toggle: "modal", bs_target: "#profileImageModal" } %>
+        <% elsif @customer.profile_image.attached? && @customer.safe_profile_image_display %>
+          <!-- ActiveStorage Profile Image Only -->
+          <% image_data = @customer.safe_profile_image_display %>
+          <%= image_tag image_data[:url],
+              class: "rounded-circle profile-image-clickable",
+              style: "width: 64px; height: 64px; object-fit: cover; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;",
+              alt: @customer.display_name,
+              data: { bs_toggle: "modal", bs_target: "#profileImageModal" } %>
         <% else %>
-          <!-- No profile image - show initials circle -->
+          <!-- No profile image - show initials circle only -->
           <div class="avatar-placeholder initials-circle">
             <%= @customer.initials %>
           </div>
