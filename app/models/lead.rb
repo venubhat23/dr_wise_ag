@@ -170,47 +170,47 @@ class Lead < ApplicationRecord
   # Stage transition methods with validation
   def move_to_consultation_scheduled!
     return false unless can_move_to_consultation?
-    update!(current_stage: 'consultation_scheduled')
+    update!(current_stage: 'consultation_scheduled', stage_updated_at: Time.current)
   end
 
   def move_to_one_on_one!
     return false unless can_move_to_one_on_one?
-    update!(current_stage: 'one_on_one')
+    update!(current_stage: 'one_on_one', stage_updated_at: Time.current)
   end
 
   def move_to_follow_up!
     return false unless can_move_to_follow_up?
-    update!(current_stage: 'follow_up')
+    update!(current_stage: 'follow_up', stage_updated_at: Time.current)
   end
 
   def mark_follow_up_successful!
     return false unless can_mark_follow_up_successful?
-    update!(current_stage: 'follow_up_successful')
+    update!(current_stage: 'follow_up_successful', stage_updated_at: Time.current)
   end
 
   def mark_follow_up_unsuccessful!
     return false unless can_mark_follow_up_unsuccessful?
-    update!(current_stage: 'follow_up_unsuccessful')
+    update!(current_stage: 'follow_up_unsuccessful', stage_updated_at: Time.current)
   end
 
   def mark_not_interested!
     return false unless can_mark_not_interested?
-    update!(current_stage: 'not_interested')
+    update!(current_stage: 'not_interested', stage_updated_at: Time.current)
   end
 
   def move_to_re_follow_up!
     return false unless can_re_follow_up?
-    update!(current_stage: 're_follow_up')
+    update!(current_stage: 're_follow_up', stage_updated_at: Time.current)
   end
 
   def convert_to_customer!(customer_id)
     return false unless can_convert_to_customer?
-    update!(current_stage: 'converted', converted_customer_id: customer_id)
+    update!(current_stage: 'converted', converted_customer_id: customer_id, stage_updated_at: Time.current)
   end
 
   def close_lead!
     return false unless can_close_lead?
-    update!(current_stage: 'lead_closed')
+    update!(current_stage: 'lead_closed', stage_updated_at: Time.current)
   end
 
   # Helper methods

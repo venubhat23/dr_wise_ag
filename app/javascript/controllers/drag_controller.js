@@ -205,8 +205,8 @@ export default class extends Controller {
       // Add animation class
       card.classList.add('just-moved')
 
-      // Move to new column
-      targetColumn.appendChild(card)
+      // Move to new column at the top (prepend instead of append)
+      targetColumn.insertBefore(card, targetColumn.firstChild)
 
       // Remove animation after completion
       setTimeout(() => {
