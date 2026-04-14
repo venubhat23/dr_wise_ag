@@ -258,16 +258,20 @@ class DashboardController < ApplicationController
                                           OR updated_at BETWEEN '#{start_date}' AND '#{end_date}')
       UNION ALL
       SELECT 'health_count', COUNT(*) FROM health_insurances
-      WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
+      WHERE product_through_dr = true AND (
+        (created_at BETWEEN '#{start_date}' AND '#{end_date}')
          OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
          OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
          OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
+      )
       UNION ALL
       SELECT 'life_count', COUNT(*) FROM life_insurances
-      WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
+      WHERE product_through_dr = true AND (
+        (created_at BETWEEN '#{start_date}' AND '#{end_date}')
          OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
          OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
          OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
+      )
     ")
 
     # Process count results
@@ -276,11 +280,11 @@ class DashboardController < ApplicationController
     end
 
     # Handle optional tables that might not exist
-    results[:motor_count] = (MotorInsurance.where(
+    results[:motor_count] = (MotorInsurance.where(product_through_dr: true).where(
       "(created_at BETWEEN ? AND ?) OR (policy_start_date BETWEEN ? AND ?) OR (policy_end_date BETWEEN ? AND ?) OR (policy_booking_date BETWEEN ? AND ?)",
       start_date, end_date, start_date, end_date, start_date, end_date, start_date, end_date
     ).count rescue 0)
-    results[:other_count] = (OtherInsurance.where(created_at: start_date..end_date).count rescue 0)
+    results[:other_count] = (OtherInsurance.where(product_through_dr: true, created_at: start_date..end_date).count rescue 0)
 
     # Calculate active affiliates for the period
     results[:total_affiliates] = SubAgent.where(
@@ -300,16 +304,20 @@ class DashboardController < ApplicationController
         COALESCE(SUM(sum_insured), 0) as total_sum_insured
       FROM (
         SELECT total_premium, sum_insured FROM health_insurances
-        WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
+        WHERE product_through_dr = true AND (
+          (created_at BETWEEN '#{start_date}' AND '#{end_date}')
            OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
            OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
            OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
+        )
         UNION ALL
         SELECT total_premium, sum_insured FROM life_insurances
-        WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
+        WHERE product_through_dr = true AND (
+          (created_at BETWEEN '#{start_date}' AND '#{end_date}')
            OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
            OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
            OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
+        )
       ) as combined_insurance
     ").first
 
@@ -318,7 +326,7 @@ class DashboardController < ApplicationController
 
     # Add motor insurance for the period if table exists
     begin
-      motor_data = MotorInsurance.where(
+      motor_data = MotorInsurance.where(product_through_dr: true).where(
         "(created_at BETWEEN ? AND ?) OR (policy_start_date BETWEEN ? AND ?) OR (policy_end_date BETWEEN ? AND ?) OR (policy_booking_date BETWEEN ? AND ?)",
         start_date, end_date, start_date, end_date, start_date, end_date, start_date, end_date
       ).select('COALESCE(SUM(total_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
@@ -638,9 +646,9 @@ class DashboardController < ApplicationController
       UNION ALL
       SELECT 'converted_leads', COUNT(*) FROM leads WHERE current_stage = 'converted'
       UNION ALL
-      SELECT 'health_count', COUNT(*) FROM health_insurances
+      SELECT 'health_count', COUNT(*) FROM health_insurances WHERE product_through_dr = true
       UNION ALL
-      SELECT 'life_count', COUNT(*) FROM life_insurances
+      SELECT 'life_count', COUNT(*) FROM life_insurances WHERE product_through_dr = true
     ")
 
     # Process count results
@@ -649,8 +657,8 @@ class DashboardController < ApplicationController
     end
 
     # Handle optional tables that might not exist
-    results[:motor_count] = (MotorInsurance.count rescue 0)
-    results[:other_count] = (OtherInsurance.count rescue 0)
+    results[:motor_count] = (MotorInsurance.where(product_through_dr: true).count rescue 0)
+    results[:other_count] = (OtherInsurance.where(product_through_dr: true).count rescue 0)
 
     # Calculate active affiliates (only those with policies)
     results[:total_affiliates] = calculate_active_affiliates_with_policies
@@ -666,9 +674,9 @@ class DashboardController < ApplicationController
         COALESCE(SUM(total_premium), 0) as total_premium,
         COALESCE(SUM(sum_insured), 0) as total_sum_insured
       FROM (
-        SELECT total_premium, sum_insured FROM health_insurances
+        SELECT total_premium, sum_insured FROM health_insurances WHERE product_through_dr = true
         UNION ALL
-        SELECT total_premium, sum_insured FROM life_insurances
+        SELECT total_premium, sum_insured FROM life_insurances WHERE product_through_dr = true
       ) as combined_insurance
     ").first
 
@@ -677,7 +685,7 @@ class DashboardController < ApplicationController
 
     # Add motor insurance if table exists
     begin
-      motor_data = MotorInsurance.select('COALESCE(SUM(total_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
+      motor_data = MotorInsurance.where(product_through_dr: true).select('COALESCE(SUM(total_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
       results[:total_premium_collected] += motor_data.premium.to_f
       results[:total_sum_insured] += motor_data.sum.to_f
     rescue
@@ -914,17 +922,17 @@ class DashboardController < ApplicationController
   private
 
   def get_policies_count_for_period(start_date, end_date)
-    health = HealthInsurance.where(created_at: start_date..end_date).count
-    life = LifeInsurance.where(created_at: start_date..end_date).count
-    motor = (MotorInsurance.where(created_at: start_date..end_date).count rescue 0)
-    other = (OtherInsurance.where(created_at: start_date..end_date).count rescue 0)
+    health = HealthInsurance.where(product_through_dr: true, created_at: start_date..end_date).count
+    life = LifeInsurance.where(product_through_dr: true, created_at: start_date..end_date).count
+    motor = (MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date).count rescue 0)
+    other = (OtherInsurance.where(product_through_dr: true, created_at: start_date..end_date).count rescue 0)
     health + life + motor + other
   end
 
   def get_premium_for_period(start_date, end_date)
-    health = HealthInsurance.where(created_at: start_date..end_date).sum(:total_premium) || 0
-    life = LifeInsurance.where(created_at: start_date..end_date).sum(:total_premium) || 0
-    motor = (MotorInsurance.where(created_at: start_date..end_date).sum(:total_premium) rescue 0)
+    health = HealthInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:total_premium) || 0
+    life = LifeInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:total_premium) || 0
+    motor = (MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:total_premium) rescue 0)
     health + life + motor
   end
 
@@ -946,9 +954,9 @@ class DashboardController < ApplicationController
   end
 
   def get_sum_insured_for_period(start_date, end_date)
-    health = HealthInsurance.where(created_at: start_date..end_date).sum(:sum_insured) || 0
-    life = LifeInsurance.where(created_at: start_date..end_date).sum(:sum_insured) || 0
-    motor = (MotorInsurance.where(created_at: start_date..end_date).sum(:sum_insured) rescue 0)
+    health = HealthInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:sum_insured) || 0
+    life = LifeInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:sum_insured) || 0
+    motor = (MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:sum_insured) rescue 0)
     health + life + motor
   end
 

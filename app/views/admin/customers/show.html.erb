@@ -11,8 +11,12 @@ body {
   border-radius: 8px !important;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
   padding: 24px !important;
-  margin-bottom: 24px !important;
+  margin-bottom: 40px !important;
   border: none !important;
+  position: relative !important;
+  z-index: 1 !important;
+  clear: both !important;
+  overflow: hidden !important;
 }
 
 /* Avatar */
@@ -20,6 +24,8 @@ body {
   width: 64px !important;
   height: 64px !important;
   flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 2 !important;
 }
 
 .avatar-placeholder {
@@ -73,6 +79,10 @@ body {
   margin-bottom: 12px !important;
   overflow: hidden !important;
   box-shadow: none !important;
+  position: relative !important;
+  z-index: 3 !important;
+  clear: both !important;
+  margin-top: 16px !important;
 }
 
 /* Section Headers */
@@ -336,6 +346,8 @@ body {
   </div>
 </div>
 
+<!-- Spacer to ensure proper separation -->
+<div style="clear: both; height: 20px; position: relative; z-index: 10;"></div>
 
 <!-- Basic Information Section -->
 <div class="info-section-card">
@@ -426,7 +438,7 @@ body {
         <div class="col-md-3">
           <div class="info-field">
             <label>LOGIN USERNAME</label>
-            <div class="info-value"><%= @customer_user.email || '-' %></div>
+            <div class="info-value"><%= @customer.mobile&.gsub(/\D/, '')&.last(10) || '-' %></div>
           </div>
         </div>
         <div class="col-md-3">

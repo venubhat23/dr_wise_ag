@@ -774,7 +774,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         sum_insured: policy_params[:sum_insured].to_f,
         net_premium: premium_amount.to_f,
         total_premium: premium_amount.to_f,
-        gst_percentage: 18,
+        gst_percentage: 0,  # No GST for mobile API submissions
         product_through_dr: product_through_dr || false,
         is_customer_added: true,
         is_agent_added: false,
@@ -811,7 +811,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         sum_insured: policy_params[:sum_insured].to_f,
         net_premium: premium_amount.to_f,
         total_premium: premium_amount.to_f,
-        first_year_gst_percentage: 18,
+        first_year_gst_percentage: 0,  # No GST for mobile API submissions
         product_through_dr: product_through_dr || false,
         distributor_id: default_distributor&.id,
         # Note: LifeInsurance doesn't have investor_id field
@@ -872,7 +872,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         sum_insured: policy_params[:sum_insured].to_f,
         net_premium: premium_amount.to_f,
         total_premium: premium_amount.to_f,
-        gst_percentage: 18,
+        gst_percentage: 18,  # Keep GST for other insurance
         is_customer_added: true,
         is_agent_added: false,
         is_admin_added: false
@@ -895,43 +895,88 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     Rails.logger.info "Policy Type: #{policy_params[:insurance_type]}"
     Rails.logger.info "Policy attributes: #{policy.attributes.inspect}"
 
-    if policy&.save
-      Rails.logger.info "✅ Policy created successfully with ID: #{policy.id}"
-      render json: {
-        success: true,
-        message: 'Policy request submitted successfully! Our team will review your request and contact you within 24 hours.',
-        data: {
-          policy_id: policy.id,
-          policy_number: policy.policy_number,
-          insurance_type: policy_params[:insurance_type],
-          plan_name: policy_params[:plan_name],
-          sum_insured: policy_params[:sum_insured].to_f,
-          premium_amount: format_indian_amount(premium_amount),
-          renewal_date: renewal_date,
-          product_through_dr: product_through_dr || false,
-          status: 'pending_approval',
-          family_members: policy_params[:family_members] || [],
-          remarks: policy_params[:remarks],
-          submitted_at: Time.current.iso8601
+    begin
+      if policy&.save
+        Rails.logger.info "✅ Policy created successfully with ID: #{policy.id}"
+        render json: {
+          success: true,
+          message: 'Policy request submitted successfully! Our team will review your request and contact you within 24 hours.',
+          data: {
+            policy_id: policy.id,
+            policy_number: policy.policy_number,
+            insurance_type: policy_params[:insurance_type],
+            plan_name: policy_params[:plan_name],
+            sum_insured: policy_params[:sum_insured].to_f,
+            premium_amount: format_indian_amount(premium_amount),
+            renewal_date: renewal_date,
+            product_through_dr: product_through_dr || false,
+            status: 'pending_approval',
+            family_members: policy_params[:family_members] || [],
+            remarks: policy_params[:remarks],
+            submitted_at: Time.current.iso8601
+          }
         }
-      }
-    else
-      Rails.logger.error "❌ Policy creation failed"
-      Rails.logger.error "Validation errors: #{policy.errors.full_messages}"
-      Rails.logger.error "Detailed errors: #{policy.errors.as_json}"
+      else
+        Rails.logger.error "❌ Policy creation failed"
+        Rails.logger.error "Validation errors: #{policy.errors.full_messages}"
+        Rails.logger.error "Detailed errors: #{policy.errors.as_json}"
+        render json: {
+          success: false,
+          message: 'Failed to submit policy request',
+          errors: policy&.errors&.full_messages || ['Unable to create policy request'],
+          debug_info: Rails.env.development? ? {
+            validation_errors: policy&.errors&.as_json,
+            customer_info: {
+              current_customer_present: current_customer.present?,
+              current_customer_id: current_customer&.id,
+              current_customer_name: current_customer&.display_name
+            }
+          } : nil
+        }, status: :unprocessable_entity
+      end
+    rescue ActiveRecord::RecordNotUnique => e
+      Rails.logger.error "❌ Duplicate policy number error: #{e.message}"
+
+      # Check if it's a policy number duplicate
+      if e.message.include?('policy_number')
+        render json: {
+          success: false,
+          message: 'A policy with this policy number already exists. Please use a different policy number.',
+          error_code: 'DUPLICATE_POLICY_NUMBER',
+          errors: ["Policy number '#{policy_params[:policy_number]}' is already taken"],
+          debug_info: Rails.env.development? ? {
+            error_details: e.message,
+            policy_number: policy_params[:policy_number],
+            customer_id: current_customer&.id
+          } : nil
+        }, status: :conflict
+      else
+        # Handle other unique constraint violations
+        render json: {
+          success: false,
+          message: 'A record with these details already exists. Please check your data and try again.',
+          error_code: 'DUPLICATE_RECORD',
+          errors: ['Duplicate record detected'],
+          debug_info: Rails.env.development? ? {
+            error_details: e.message
+          } : nil
+        }, status: :conflict
+      end
+    rescue => e
+      Rails.logger.error "❌ Unexpected error during policy creation: #{e.message}"
+      Rails.logger.error "Backtrace: #{e.backtrace.first(10).join("\n")}"
+
       render json: {
         success: false,
-        message: 'Failed to submit policy request',
-        errors: policy&.errors&.full_messages || ['Unable to create policy request'],
+        message: 'An unexpected error occurred while processing your request. Please try again later.',
+        error_code: 'INTERNAL_ERROR',
+        errors: ['Internal server error'],
         debug_info: Rails.env.development? ? {
-          validation_errors: policy&.errors&.as_json,
-          customer_info: {
-            current_customer_present: current_customer.present?,
-            current_customer_id: current_customer&.id,
-            current_customer_name: current_customer&.display_name
-          }
+          error_class: e.class.name,
+          error_message: e.message,
+          backtrace: e.backtrace.first(5)
         } : nil
-      }, status: :unprocessable_entity
+      }, status: :internal_server_error
     end
   end
 

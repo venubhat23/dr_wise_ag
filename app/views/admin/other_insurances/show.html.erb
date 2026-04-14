@@ -209,7 +209,9 @@
 </div>
 
 <!-- Commission Calculation Table -->
-<%= render 'shared/commission_calculation_table', policy: @other_insurance %>
+<% if @other_insurance.respond_to?(:product_through_dr) && @other_insurance.product_through_dr? %>
+  <%= render 'shared/commission_calculation_table', policy: @other_insurance %>
+<% end %>
 
 <!-- Commission Transaction Details -->
 <div class="info-section-card">

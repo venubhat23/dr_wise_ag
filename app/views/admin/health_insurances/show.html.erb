@@ -211,7 +211,9 @@
 </div>
 
 <!-- Commission Calculation Table -->
-<%= render 'shared/commission_calculation_table', policy: @health_insurance %>
+<% if @health_insurance.respond_to?(:product_through_dr) && @health_insurance.product_through_dr? %>
+  <%= render 'shared/commission_calculation_table', policy: @health_insurance %>
+<% end %>
 
 <!-- Nominee Details Section -->
 <div class="info-section-card">

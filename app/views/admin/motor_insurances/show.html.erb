@@ -280,7 +280,9 @@
 </div>
 
 <!-- Commission Calculation Table -->
-<%= render 'shared/commission_calculation_table', policy: @motor_insurance %>
+<% if @motor_insurance.respond_to?(:product_through_dr) && @motor_insurance.product_through_dr? %>
+  <%= render 'shared/commission_calculation_table', policy: @motor_insurance %>
+<% end %>
 
 <!-- Add-ons & Coverage Section -->
 <div class="info-section-card">

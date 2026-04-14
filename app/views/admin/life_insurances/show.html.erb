@@ -215,7 +215,9 @@
 </div>
 
 <!-- Commission Calculation Table -->
-<%= render 'shared/commission_calculation_table', policy: @life_insurance %>
+<% if @life_insurance.product_through_dr? %>
+  <%= render 'shared/commission_calculation_table', policy: @life_insurance %>
+<% end %>
 
 <!-- Bank Details Section -->
 <div class="info-section-card">
