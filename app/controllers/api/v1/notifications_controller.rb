@@ -1,6 +1,4 @@
-class Api::V1::NotificationsController < ApplicationController
-  skip_before_action :authenticate_user!
-  protect_from_forgery with: :null_session
+class Api::V1::NotificationsController < Api::V1::ApplicationController
   before_action :authenticate_api_user
   before_action :set_recipient, only: [:index, :show, :mark_as_read, :mark_as_unread, :mark_all_as_read]
 
