@@ -30,10 +30,9 @@
     <p class="text-muted mb-0">View and manage generated upcoming renewal reports</p>
   </div>
   <div>
-    <%= link_to generate_admin_reports_upcoming_renewal_reports_path, class: "btn btn-primary" do %>
-      <i class="bi bi-plus-lg me-1"></i>
-      Generate Renewal Report
-    <% end %>
+    <button type="button" class="btn btn-success" id="exportBtn">
+      <i class="bi bi-download me-2"></i>Export
+    </button>
   </div>
 </div>
 
@@ -242,15 +241,198 @@
         <p class="text-muted mb-3">
           Generate your first upcoming renewal report to track policies due for renewal.
         </p>
-        <%= link_to generate_admin_reports_upcoming_renewal_reports_path, class: "btn btn-primary" do %>
-          <i class="bi bi-plus-lg me-1"></i>
-          Generate Renewal Report
-        <% end %>
       </div>
     <% end %>
   </div>
 </div>
 
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exportModalLabel">
+          <i class="bi bi-download me-2"></i>Export Upcoming Renewal Report
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <%= form_with url: "", method: :post, id: "exportForm", class: "needs-validation", novalidate: true do |form| %>
+          <!-- Export Format -->
+          <div class="mb-4">
+            <h6>Export Format</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="export_format" value="csv" id="format_csv" checked>
+                  <label class="form-check-label" for="format_csv">
+                    <i class="bi bi-file-earmark-spreadsheet text-success me-1"></i> CSV Spreadsheet
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column Selection -->
+          <div class="mb-4">
+            <h6>Select Columns to Export</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="policy_number" id="col_policy_number" checked>
+                  <label class="form-check-label" for="col_policy_number">Policy Number</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="policy_type" id="col_policy_type" checked>
+                  <label class="form-check-label" for="col_policy_type">Policy Type</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="customer_name" id="col_customer_name" checked>
+                  <label class="form-check-label" for="col_customer_name">Customer Name</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="insurance_company" id="col_insurance_company" checked>
+                  <label class="form-check-label" for="col_insurance_company">Insurance Company</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="policy_holder" id="col_policy_holder">
+                  <label class="form-check-label" for="col_policy_holder">Policy Holder</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="start_date" id="col_start_date">
+                  <label class="form-check-label" for="col_start_date">Start Date</label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="end_date" id="col_end_date" checked>
+                  <label class="form-check-label" for="col_end_date">End Date</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="days_until_renewal" id="col_days_until_renewal" checked>
+                  <label class="form-check-label" for="col_days_until_renewal">Days Until Renewal</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="premium_amount" id="col_premium_amount" checked>
+                  <label class="form-check-label" for="col_premium_amount">Premium Amount</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="sum_insured" id="col_sum_insured" checked>
+                  <label class="form-check-label" for="col_sum_insured">Sum Insured</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="payment_mode" id="col_payment_mode">
+                  <label class="form-check-label" for="col_payment_mode">Payment Mode</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="sub_agent_name" id="col_sub_agent_name">
+                  <label class="form-check-label" for="col_sub_agent_name">Sub Agent</label>
+                </div>
+              </div>
+            </div>
+            <div class="mt-2">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllColumns()">Select All</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllColumns()">Deselect All</button>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="performExport()">
+          <i class="bi bi-download me-2"></i>Export
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Export button click handler
+  document.getElementById('exportBtn').addEventListener('click', function() {
+    const exportModal = new bootstrap.Modal(document.getElementById('exportModal'));
+    exportModal.show();
+  });
+});
+
+function selectAllColumns() {
+  const checkboxes = document.querySelectorAll('input[name="columns[]"]');
+  checkboxes.forEach(checkbox => checkbox.checked = true);
+}
+
+function deselectAllColumns() {
+  const checkboxes = document.querySelectorAll('input[name="columns[]"]');
+  checkboxes.forEach(checkbox => checkbox.checked = false);
+}
+
+function performExport() {
+  const form = document.getElementById('exportForm');
+  const selectedColumns = document.querySelectorAll('input[name="columns[]"]:checked');
+  const exportBtn = document.querySelector('#exportModal .btn-primary');
+
+  // Check if at least one column is selected
+  if (selectedColumns.length === 0) {
+    alert('Please select at least one column to export.');
+    return;
+  }
+
+  // Show loader
+  const originalBtnText = exportBtn.innerHTML;
+  exportBtn.disabled = true;
+  exportBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2 spin"></i>Exporting...';
+
+  function resetButton() {
+    exportBtn.disabled = false;
+    exportBtn.innerHTML = originalBtnText;
+  }
+
+  // Create CSV content from current table
+  let csvContent = 'Report Name,Date Range,Created At,Created By,Total Premium\n';
+
+  const tableRows = document.querySelectorAll('table tbody tr');
+  tableRows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 5) {
+      const reportName = cells[0].textContent.trim().split('\n')[0];
+      const dateRange = cells[1].textContent.trim().replace(/\s+/g, ' ');
+      const createdAt = cells[2].textContent.trim().replace(/\s+/g, ' ');
+      const createdBy = cells[3].textContent.trim().replace(/\s+/g, ' ');
+      const totalPremium = cells[4].textContent.trim().replace(/\s+/g, ' ');
+
+      csvContent += `"${reportName}","${dateRange}","${createdAt}","${createdBy}","${totalPremium}"\n`;
+    }
+  });
+
+  // Download CSV
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Upcoming_Renewal_Reports_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+
+  // Reset button and close modal
+  resetButton();
+  const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+  exportModal.hide();
+}
+</script>
+
 <style>
 .min-width-250 { min-width: 250px; }
+
+/* Spinning loader */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 </style>

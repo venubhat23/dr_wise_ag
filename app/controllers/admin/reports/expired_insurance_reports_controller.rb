@@ -8,15 +8,17 @@ class Admin::Reports::ExpiredInsuranceReportsController < Admin::Reports::BaseCo
     # Get expired policy data with latest records on top
     @expired_data = fetch_expired_data
 
-    # Pagination
-    @expired_data = @expired_data.page(params[:page]).per(50)
-
-    # Summary calculations
+    # Summary calculations (before pagination)
     @total_expired = calculate_total_expired
     @total_premium_lost = calculate_total_premium_lost
     @total_sum_insured_lost = calculate_total_sum_insured_lost
-    @expired_count = @expired_data.total_count
-    @policy_count = @expired_count  # For consistency with view
+
+    # Pagination
+    @expired_data = @expired_data.page(params[:page]).per(50)
+
+    # Set counts for display
+    @expired_count = @total_expired
+    @policy_count = @total_expired  # For consistency with view
 
     # Variables for saved reports section (if applicable)
     @saved_reports = []

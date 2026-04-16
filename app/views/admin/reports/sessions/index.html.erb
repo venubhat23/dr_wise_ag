@@ -5,6 +5,9 @@
     <p class="text-muted mb-0">Track user session activities and login/logout events</p>
   </div>
   <div>
+    <button type="button" class="btn btn-success me-2" id="exportBtn">
+      <i class="bi bi-download me-2"></i>Export
+    </button>
     <button class="btn btn-primary" onclick="refreshData()">
       <i class="bi bi-arrow-clockwise me-1"></i>
       Refresh Data
@@ -245,7 +248,158 @@
   </div>
 </div>
 
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exportModalLabel">
+          <i class="bi bi-download me-2"></i>Export Session Report
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <%= form_with url: "", method: :post, id: "exportForm", class: "needs-validation", novalidate: true do |form| %>
+          <!-- Export Format -->
+          <div class="mb-4">
+            <h6>Export Format</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="export_format" value="csv" id="format_csv" checked>
+                  <label class="form-check-label" for="format_csv">
+                    <i class="bi bi-file-earmark-spreadsheet text-success me-1"></i> CSV Spreadsheet
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column Selection -->
+          <div class="mb-4">
+            <h6>Select Columns to Export</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="user_name" id="col_user_name" checked>
+                  <label class="form-check-label" for="col_user_name">User Name</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="user_email" id="col_user_email" checked>
+                  <label class="form-check-label" for="col_user_email">User Email</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="role" id="col_role" checked>
+                  <label class="form-check-label" for="col_role">Role</label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="activity_type" id="col_activity_type" checked>
+                  <label class="form-check-label" for="col_activity_type">Activity Type</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="time" id="col_time" checked>
+                  <label class="form-check-label" for="col_time">Time</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="columns[]" value="status" id="col_status" checked>
+                  <label class="form-check-label" for="col_status">Status</label>
+                </div>
+              </div>
+            </div>
+            <div class="mt-2">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllColumns()">Select All</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllColumns()">Deselect All</button>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="performExport()">
+          <i class="bi bi-download me-2"></i>Export
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+// Export button click handler
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('exportBtn').addEventListener('click', function() {
+    const exportModal = new bootstrap.Modal(document.getElementById('exportModal'));
+    exportModal.show();
+  });
+});
+
+function selectAllColumns() {
+  const checkboxes = document.querySelectorAll('input[name="columns[]"]');
+  checkboxes.forEach(checkbox => checkbox.checked = true);
+}
+
+function deselectAllColumns() {
+  const checkboxes = document.querySelectorAll('input[name="columns[]"]');
+  checkboxes.forEach(checkbox => checkbox.checked = false);
+}
+
+function performExport() {
+  const form = document.getElementById('exportForm');
+  const selectedColumns = document.querySelectorAll('input[name="columns[]"]:checked');
+  const exportBtn = document.querySelector('#exportModal .btn-primary');
+
+  // Check if at least one column is selected
+  if (selectedColumns.length === 0) {
+    alert('Please select at least one column to export.');
+    return;
+  }
+
+  // Show loader
+  const originalBtnText = exportBtn.innerHTML;
+  exportBtn.disabled = true;
+  exportBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2 spin"></i>Exporting...';
+
+  function resetButton() {
+    exportBtn.disabled = false;
+    exportBtn.innerHTML = originalBtnText;
+  }
+
+  // Create CSV content from current table
+  let csvContent = 'User Name,User Email,Role,Activity Type,Time,Status\n';
+
+  const tableRows = document.querySelectorAll('table tbody tr');
+  tableRows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 5) {
+      const userName = cells[0].textContent.trim().split('\n')[0];
+      const userEmail = cells[0].textContent.trim().split('\n')[1] || '';
+      const role = cells[1].textContent.trim();
+      const activityType = cells[2].textContent.trim();
+      const time = cells[3].textContent.trim().replace(/\s+/g, ' ');
+      const status = cells[4].textContent.trim().replace(/\s+/g, ' ');
+
+      csvContent += `"${userName}","${userEmail}","${role}","${activityType}","${time}","${status}"\n`;
+    }
+  });
+
+  // Download CSV
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Session_Report_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+
+  // Reset button and close modal
+  resetButton();
+  const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+  exportModal.hide();
+}
+
 // Simple data refresh
 function refreshData() {
     fetch('<%= realtime_data_admin_reports_sessions_path %>', {
@@ -452,6 +606,16 @@ document.addEventListener('keydown', function(event) {
 
 #uniqueUsersContent::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+}
+
+/* Spinning loader for export */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 </style>
 
