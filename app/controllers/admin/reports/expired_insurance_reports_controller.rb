@@ -17,6 +17,12 @@ class Admin::Reports::ExpiredInsuranceReportsController < Admin::Reports::BaseCo
     @total_sum_insured_lost = calculate_total_sum_insured_lost
     @expired_count = @expired_data.total_count
 
+    # Variables for saved reports section (if applicable)
+    @saved_reports = []
+    @total_reports = 0
+    @this_month_reports = 0
+    @last_generated = nil
+
     # Filter options for dropdowns
     @insurance_companies = get_insurance_companies
     @policy_types = ['all', 'health', 'life', 'motor', 'other']

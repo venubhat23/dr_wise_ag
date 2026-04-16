@@ -630,8 +630,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log("🔄 Moving card directly in DOM");
 
-    // Update card's stage data
+    // Update card's stage data and stage update time
     card.dataset.currentStage = targetStage;
+
+    // Update the stage_updated_at time in the card HTML for proper sorting
+    const now = new Date();
+    const stageUpdatedElements = Array.from(card.querySelectorAll('small')).filter(el => el.textContent.includes('Updated:'));
+    if (stageUpdatedElements.length > 0) {
+      const formattedDate = now.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit'
+      });
+      stageUpdatedElements[0].innerHTML = `<i class="bi bi-clock"></i> Updated: ${formattedDate}`;
+    } else {
+      // If no updated element exists, add one to the date info section
+      const dateInfoDiv = card.querySelector('.date-info .d-flex');
+      if (dateInfoDiv) {
+        const formattedDate = now.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: '2-digit'
+        });
+        const updatedElement = document.createElement('small');
+        updatedElement.className = 'text-muted';
+        updatedElement.innerHTML = `<i class="bi bi-clock"></i> Updated: ${formattedDate}`;
+        dateInfoDiv.appendChild(updatedElement);
+      }
+    }
 
     // Remove any empty state
     const emptyState = targetColumn.querySelector('.empty-column');
@@ -639,13 +665,105 @@ document.addEventListener('DOMContentLoaded', function() {
       emptyState.remove();
     }
 
-    // Move card
-    targetColumn.appendChild(card);
+    // Find the correct position to insert the card (sorted by latest updated first)
+    const existingCards = Array.from(targetColumn.querySelectorAll('.kanban-card'));
+    let insertPosition = null;
+
+    // Set the current time as the update timestamp for sorting
+    const currentTime = now.getTime();
+
+    for (let i = 0; i < existingCards.length; i++) {
+      const existingCard = existingCards[i];
+
+      // Try to get the stage_updated_at from the card's updated date display
+      const updatedElements = Array.from(existingCard.querySelectorAll('small')).filter(el => el.textContent.includes('Updated:'));
+      let existingTime = 0;
+
+      if (updatedElements.length > 0) {
+        // Extract date from the text and convert to timestamp
+        const dateText = updatedElements[0].textContent;
+        const dateMatch = dateText.match(/Updated: (\d{2}\/\d{2}\/?\d{0,4})/);
+        if (dateMatch) {
+          let dateStr = dateMatch[1];
+          // If year is missing, add current year
+          if (!dateStr.includes('/20')) {
+            dateStr += '/' + now.getFullYear();
+          }
+          const [day, month, year] = dateStr.split('/');
+          existingTime = new Date(year, month - 1, day).getTime();
+        }
+      }
+
+      // If no updated time found, try to get created time
+      if (!existingTime) {
+        const createdElements = Array.from(existingCard.querySelectorAll('small')).filter(el => el.textContent.includes('Created:'));
+        if (createdElements.length > 0) {
+          const dateText = createdElements[0].textContent;
+          const dateMatch = dateText.match(/Created: (\d{2}\/\d{2}\/\d{4})/);
+          if (dateMatch) {
+            const [day, month, year] = dateMatch[1].split('/');
+            existingTime = new Date(year, month - 1, day).getTime();
+          }
+        }
+      }
+
+      // If this card is newer than the existing card, insert before it
+      if (currentTime > existingTime) {
+        insertPosition = existingCard;
+        break;
+      }
+    }
+
+    // Insert the card at the correct position
+    if (insertPosition) {
+      targetColumn.insertBefore(card, insertPosition);
+      console.log("✅ Card inserted at sorted position (before existing card)");
+    } else {
+      // No cards are older, so append at the end
+      targetColumn.appendChild(card);
+      console.log("✅ Card appended at end (oldest)");
+    }
+
+    // Add visual indicator that this card was recently updated
+    card.classList.add('just-moved');
+    setTimeout(() => {
+      card.classList.remove('just-moved');
+    }, 300);
+
+    // Add "Recently Updated" badge if not already present
+    addRecentlyUpdatedBadge(card);
 
     // Update counts
     updateColumnCountsDirectly();
 
-    console.log("✅ Card moved directly");
+    console.log("✅ Card moved and sorted correctly");
+  }
+
+  function addRecentlyUpdatedBadge(card) {
+    // Remove any existing "Recently Updated" or "New" badges
+    const existingBadges = card.querySelectorAll('.badge:contains("Recently Updated"), .badge:contains("New")');
+    existingBadges.forEach(badge => badge.remove());
+
+    // Find the date-info container
+    const dateInfoContainer = card.querySelector('.date-info');
+    if (dateInfoContainer) {
+      // Create new "Recently Updated" badge
+      const badgeContainer = document.createElement('div');
+      badgeContainer.className = 'mt-1';
+      badgeContainer.innerHTML = `
+        <span class="badge bg-info fs-8 pulse">
+          <i class="bi bi-arrow-clockwise"></i> Recently Updated
+        </span>
+      `;
+
+      // Remove existing badge container if present
+      const existingBadgeContainer = dateInfoContainer.querySelector('div.mt-1');
+      if (existingBadgeContainer) {
+        existingBadgeContainer.remove();
+      }
+
+      dateInfoContainer.appendChild(badgeContainer);
+    }
   }
 
   function updateColumnCountsDirectly() {
