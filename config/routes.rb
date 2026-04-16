@@ -576,6 +576,14 @@ Rails.application.routes.draw do
         end
       end
 
+      # Profit Reports - Show all policies with profit information
+      resources :profit_reports, only: [:index] do
+        collection do
+          get :export_csv
+          get :export_pdf
+        end
+      end
+
       resources :lead_reports, only: [:index, :new, :create] do
         collection do
           post :preview

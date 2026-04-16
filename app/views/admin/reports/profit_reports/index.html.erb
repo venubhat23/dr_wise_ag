@@ -1,0 +1,272 @@
+<%# Profit Reports Index Page %>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div>
+            <h3 class="card-title mb-0">
+              <i class="fas fa-chart-line"></i> Profit Reports
+            </h3>
+            <p class="text-muted mb-0">View all policies with profit information</p>
+          </div>
+          <div class="btn-group" role="group">
+            <%= link_to admin_reports_profit_reports_path(format: :csv, **request.query_parameters),
+                        class: "btn btn-outline-success btn-sm",
+                        title: "Export CSV" do %>
+              <i class="fas fa-file-csv"></i> Export CSV
+            <% end %>
+            <%= link_to export_pdf_admin_reports_profit_reports_path(format: :pdf, **request.query_parameters),
+                        class: "btn btn-outline-danger btn-sm",
+                        title: "Export PDF" do %>
+              <i class="fas fa-file-pdf"></i> Export PDF
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="card-body">
+          <%= form_with url: admin_reports_profit_reports_path, method: :get, local: true, class: "row g-3 mb-4" do |f| %>
+            <div class="col-md-3">
+              <%= f.label :start_date, "Start Date", class: "form-label" %>
+              <%= f.date_field :start_date, value: params[:start_date] || 30.days.ago.strftime('%Y-%m-%d'), class: "form-control" %>
+            </div>
+            <div class="col-md-3">
+              <%= f.label :end_date, "End Date", class: "form-label" %>
+              <%= f.date_field :end_date, value: params[:end_date] || Date.current.strftime('%Y-%m-%d'), class: "form-control" %>
+            </div>
+            <div class="col-md-2">
+              <%= f.label :policy_type, "Policy Type", class: "form-label" %>
+              <%= f.select :policy_type, options_from_collection_for_select(@policy_types.map { |pt| [pt.humanize, pt] }, :last, :first, params[:policy_type]),
+                          { prompt: "All Types" }, { class: "form-select" } %>
+            </div>
+            <div class="col-md-3">
+              <%= f.label :insurance_company, "Insurance Company", class: "form-label" %>
+              <%= f.select :insurance_company, options_from_collection_for_select(@insurance_companies.map { |ic| [ic, ic] }, :last, :first, params[:insurance_company]),
+                          { prompt: "All Companies" }, { class: "form-select" } %>
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+              <%= f.submit "Filter", class: "btn btn-primary w-100" %>
+            </div>
+          <% end %>
+
+          <!-- Summary Cards -->
+          <div class="row mb-4">
+            <div class="col-lg-3 col-md-6 mb-3">
+              <div class="card bg-primary text-white">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h5 class="card-title mb-0">Total Policies</h5>
+                      <h3 class="mb-0"><%= number_with_delimiter(@total_policies) %></h3>
+                    </div>
+                    <i class="fas fa-file-alt fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+              <div class="card bg-success text-white">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h5 class="card-title mb-0">Total Profit</h5>
+                      <h3 class="mb-0">₹<%= number_with_delimiter(@total_profit_amount) %></h3>
+                    </div>
+                    <i class="fas fa-chart-line fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+              <div class="card bg-info text-white">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h5 class="card-title mb-0">Total Premium</h5>
+                      <h3 class="mb-0">₹<%= number_with_delimiter(@total_premium) %></h3>
+                    </div>
+                    <i class="fas fa-money-bill-wave fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+              <div class="card bg-warning text-white">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h5 class="card-title mb-0">Avg. Profit %</h5>
+                      <h3 class="mb-0"><%= number_with_precision(@average_profit_percentage, precision: 2) %>%</h3>
+                    </div>
+                    <i class="fas fa-percentage fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Table -->
+          <div class="table-responsive">
+            <table class="table table-striped table-hover" id="profitReportsTable">
+              <thead class="table-dark">
+                <tr>
+                  <th scope="col">Policy Number</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Customer</th>
+                  <th scope="col">Insurance Company</th>
+                  <th scope="col">Policy Holder</th>
+                  <th scope="col">Start Date</th>
+                  <th scope="col">End Date</th>
+                  <th scope="col">Premium</th>
+                  <th scope="col">Net Premium</th>
+                  <th scope="col">Profit Amount</th>
+                  <th scope="col">Profit %</th>
+                  <th scope="col">Company Expenses</th>
+                  <th scope="col">Sub Agent</th>
+                  <th scope="col">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if @policy_data.any? %>
+                  <% @policy_data.each do |policy| %>
+                    <tr>
+                      <td>
+                        <strong><%= policy[:policy_number] %></strong>
+                        <% if policy[:lead_id].present? %>
+                          <br><small class="text-muted">Lead: <%= policy[:lead_id] %></small>
+                        <% end %>
+                      </td>
+                      <td>
+                        <span class="badge
+                          <%= case policy[:policy_type]
+                              when 'Health' then 'bg-success'
+                              when 'Life' then 'bg-primary'
+                              when 'Motor' then 'bg-warning'
+                              when 'Other' then 'bg-secondary'
+                              else 'bg-light text-dark'
+                              end %>">
+                          <%= policy[:policy_type] %>
+                        </span>
+                      </td>
+                      <td>
+                        <%= policy[:customer_name] %>
+                        <% if policy[:policy_holder] != policy[:customer_name] %>
+                          <br><small class="text-muted">Holder: <%= policy[:policy_holder] %></small>
+                        <% end %>
+                      </td>
+                      <td><%= policy[:insurance_company] %></td>
+                      <td><%= policy[:policy_holder] %></td>
+                      <td><%= policy[:start_date]&.strftime('%d/%m/%Y') %></td>
+                      <td><%= policy[:end_date]&.strftime('%d/%m/%Y') %></td>
+                      <td class="text-end">
+                        <strong>₹<%= number_with_delimiter(policy[:premium_amount]) %></strong>
+                      </td>
+                      <td class="text-end">
+                        ₹<%= number_with_delimiter(policy[:net_premium]) %>
+                      </td>
+                      <td class="text-end">
+                        <strong class="text-success">
+                          ₹<%= number_with_delimiter(policy[:profit_amount]) %>
+                        </strong>
+                      </td>
+                      <td class="text-end">
+                        <span class="badge
+                          <%= if policy[:profit_percentage] > 10
+                                'bg-success'
+                              elsif policy[:profit_percentage] > 5
+                                'bg-warning'
+                              else
+                                'bg-danger'
+                              end %>">
+                          <%= number_with_precision(policy[:profit_percentage], precision: 2) %>%
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        ₹<%= number_with_delimiter(policy[:company_expenses]) %>
+                      </td>
+                      <td>
+                        <span class="<%= policy[:sub_agent_name] == 'Direct' ? 'badge bg-info' : '' %>">
+                          <%= policy[:sub_agent_name] %>
+                        </span>
+                      </td>
+                      <td><%= policy[:created_at]&.strftime('%d/%m/%Y') %></td>
+                    </tr>
+                  <% end %>
+                <% else %>
+                  <tr>
+                    <td colspan="14" class="text-center py-4">
+                      <div class="text-muted">
+                        <i class="fas fa-search fa-3x mb-3"></i>
+                        <p>No policies with profit found for the selected criteria.</p>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <% if @policy_data.respond_to?(:total_pages) && @policy_data.total_pages > 1 %>
+            <div class="d-flex justify-content-between align-items-center mt-4">
+              <div class="text-muted">
+                Showing <%= (@policy_data.current_page - 1) * @policy_data.limit_value + 1 %> to
+                <%= [@policy_data.current_page * @policy_data.limit_value, @policy_data.total_count].min %>
+                of <%= @policy_data.total_count %> entries
+              </div>
+              <%= paginate @policy_data, theme: 'bootstrap-5' %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DataTables Initialization -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize DataTables with sorting and searching disabled since we have server-side pagination
+  $('#profitReportsTable').DataTable({
+    "paging": false,
+    "ordering": false,
+    "searching": false,
+    "info": false,
+    "responsive": true,
+    "autoWidth": false
+  });
+});
+</script>
+
+<style>
+.card {
+  box-shadow: 0 0.15rem 1.75rem 0 rgba(33, 40, 50, 0.15);
+}
+
+.table th {
+  border-top: none;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.badge {
+  font-size: 0.75rem;
+}
+
+.text-muted {
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.8rem;
+  }
+
+  .card-body .row .col-md-3,
+  .card-body .row .col-md-2,
+  .card-body .row .col-md-1 {
+    margin-bottom: 1rem;
+  }
+}
+</style>

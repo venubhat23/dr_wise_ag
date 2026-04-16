@@ -33,6 +33,26 @@ class Admin::Reports::ExpiredInsuranceReportsController < Admin::Reports::BaseCo
     end
   end
 
+  def preview
+    @expired_data = fetch_expired_data
+    @selected_columns = params[:columns] || default_columns
+
+    respond_to do |format|
+      format.html { render 'preview' }
+      format.json { render json: expired_data_json }
+    end
+  end
+
+  def create_report
+    @expired_data = fetch_expired_data(paginated: false)
+    @selected_columns = params[:columns] || default_columns
+
+    respond_to do |format|
+      format.html { redirect_to admin_reports_expired_insurance_reports_path, notice: 'Report generated successfully!' }
+      format.json { render json: { message: 'Report generated successfully!', data: expired_data_json } }
+    end
+  end
+
   def export_pdf
     @expired_data = fetch_expired_data(paginated: false)
     @selected_columns = params[:columns] || default_columns

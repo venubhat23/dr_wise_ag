@@ -107,11 +107,20 @@ class DashboardController < ApplicationController
       @filter_end_date = @filter_start_date.end_of_month
     end
 
-    # Use filtered dashboard data instead of cached
-    filtered_data = get_filtered_dashboard_data(@filter_start_date, @filter_end_date)
+    # Create cache key based on filter parameters
+    cache_key = "dashboard_data_#{@filter_start_date}_#{@filter_end_date}_v3"
+
+    # Try to get cached data first (5 minutes cache)
+    filtered_data = Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
+      get_filtered_dashboard_data(@filter_start_date, @filter_end_date)
+    end
 
     # Load filter-independent data (always based on current date, not filter dates)
-    filter_independent_data = load_filter_independent_data()
+    # Cache this separately with shorter expiry since it's real-time data
+    filter_independent_cache_key = "dashboard_filter_independent_#{Date.current}_v3"
+    filter_independent_data = Rails.cache.fetch(filter_independent_cache_key, expires_in: 2.minutes) do
+      load_filter_independent_data()
+    end
 
     # Merge both data sets
     filtered_data.merge!(filter_independent_data)
@@ -120,8 +129,8 @@ class DashboardController < ApplicationController
     DashboardPerformanceMonitor.track_dashboard_load(
       start_time: start_time,
       end_time: Time.current,
-      cache_hit: false,
-      data_source: 'filtered_data'
+      cache_hit: Rails.cache.exist?(cache_key),
+      data_source: Rails.cache.exist?(cache_key) ? 'cached_filtered_data' : 'filtered_data'
     )
 
     # Set instance variables from filtered data
@@ -190,88 +199,37 @@ class DashboardController < ApplicationController
   end
 
   def get_filtered_dashboard_data(start_date, end_date)
-    # Execute all database queries with date filtering
+    # Execute all database queries with date filtering - optimized version
     results = {}
 
-    # Batch count queries using single SQL with UNION for better performance
-    # For customers, show customers who have policies in the date range (more relevant)
+    # Simplified count queries focusing only on created_at for better performance
     count_results = ActiveRecord::Base.connection.execute("
       SELECT 'total_customers' as metric, COUNT(DISTINCT customer_id) as count FROM (
         SELECT customer_id FROM health_insurances
-        WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
+        WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND product_through_dr = true
         UNION
         SELECT customer_id FROM life_insurances
-        WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
-        UNION
-        SELECT customer_id FROM motor_insurances
-        WHERE (created_at BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
+        WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND product_through_dr = true
       ) as policy_customers
       UNION ALL
-      SELECT 'active_customers', COUNT(DISTINCT customer_id) FROM (
-        SELECT customer_id FROM health_insurances h
-        JOIN customers c ON h.customer_id = c.id
-        WHERE c.status = true AND (
-          (h.created_at BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (h.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (h.policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (h.policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
-        )
-        UNION
-        SELECT customer_id FROM life_insurances l
-        JOIN customers c ON l.customer_id = c.id
-        WHERE c.status = true AND (
-          (l.created_at BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (l.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (l.policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (l.policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
-        )
-        UNION
-        SELECT customer_id FROM motor_insurances m
-        JOIN customers c ON m.customer_id = c.id
-        WHERE c.status = true AND (
-          (m.created_at BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (m.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (m.policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (m.policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
-        )
-      ) as active_policy_customers
+      SELECT 'active_customers', COUNT(DISTINCT h.customer_id) FROM health_insurances h
+      JOIN customers c ON h.customer_id = c.id
+      WHERE c.status = true AND h.created_at BETWEEN '#{start_date}' AND '#{end_date}' AND h.product_through_dr = true
       UNION ALL
       SELECT 'total_ambassadors', COUNT(*) FROM distributors
       WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
-         OR updated_at BETWEEN '#{start_date}' AND '#{end_date}'
       UNION ALL
       SELECT 'total_leads', COUNT(*) FROM leads
       WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
-         OR updated_at BETWEEN '#{start_date}' AND '#{end_date}'
       UNION ALL
       SELECT 'converted_leads', COUNT(*) FROM leads
-      WHERE current_stage = 'converted' AND (created_at BETWEEN '#{start_date}' AND '#{end_date}'
-                                          OR updated_at BETWEEN '#{start_date}' AND '#{end_date}')
+      WHERE current_stage = 'converted' AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
       UNION ALL
       SELECT 'health_count', COUNT(*) FROM health_insurances
-      WHERE product_through_dr = true AND (
-        (created_at BETWEEN '#{start_date}' AND '#{end_date}')
-         OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
-         OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
-         OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
-      )
+      WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
       UNION ALL
       SELECT 'life_count', COUNT(*) FROM life_insurances
-      WHERE product_through_dr = true AND (
-        (created_at BETWEEN '#{start_date}' AND '#{end_date}')
-         OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
-         OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
-         OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
-      )
+      WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
     ")
 
     # Process count results
@@ -279,57 +237,39 @@ class DashboardController < ApplicationController
       results[row['metric'].to_sym] = row['count']
     end
 
-    # Handle optional tables that might not exist
-    results[:motor_count] = (MotorInsurance.where(product_through_dr: true).where(
-      "(created_at BETWEEN ? AND ?) OR (policy_start_date BETWEEN ? AND ?) OR (policy_end_date BETWEEN ? AND ?) OR (policy_booking_date BETWEEN ? AND ?)",
-      start_date, end_date, start_date, end_date, start_date, end_date, start_date, end_date
-    ).count rescue 0)
+    # Handle optional tables that might not exist - simplified for performance
+    results[:motor_count] = (MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date).count rescue 0)
     results[:other_count] = (OtherInsurance.where(product_through_dr: true, created_at: start_date..end_date).count rescue 0)
 
-    # Calculate active affiliates for the period
-    results[:total_affiliates] = SubAgent.where(
-      "(created_at BETWEEN ? AND ?) OR (updated_at BETWEEN ? AND ?)",
-      start_date, end_date, start_date, end_date
-    ).count
+    # Calculate active affiliates for the period - simplified for performance
+    results[:total_affiliates] = SubAgent.where(created_at: start_date..end_date).count
 
     # Calculate derived values
     results[:inactive_customers] = results[:total_customers] - results[:active_customers]
     results[:total_policies] = results[:health_count] + results[:life_count] + results[:motor_count] + results[:other_count]
     results[:lead_conversion_percentage] = results[:total_leads] > 0 ? ((results[:converted_leads].to_f / results[:total_leads]) * 100).round(2) : 0
 
-    # Premium data for the filtered period
+    # Premium data for the filtered period - simplified for performance
     premium_results = ActiveRecord::Base.connection.execute("
       SELECT
         COALESCE(SUM(total_premium), 0) as total_premium,
         COALESCE(SUM(sum_insured), 0) as total_sum_insured
       FROM (
         SELECT total_premium, sum_insured FROM health_insurances
-        WHERE product_through_dr = true AND (
-          (created_at BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
-        )
+        WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
         UNION ALL
         SELECT total_premium, sum_insured FROM life_insurances
-        WHERE product_through_dr = true AND (
-          (created_at BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_start_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_end_date BETWEEN '#{start_date}' AND '#{end_date}')
-           OR (policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}')
-        )
+        WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
       ) as combined_insurance
     ").first
 
     results[:total_premium_collected] = (premium_results['total_premium'] || 0).to_f
     results[:total_sum_insured] = (premium_results['total_sum_insured'] || 0).to_f
 
-    # Add motor insurance for the period if table exists
+    # Add motor insurance for the period if table exists - simplified for performance
     begin
-      motor_data = MotorInsurance.where(product_through_dr: true).where(
-        "(created_at BETWEEN ? AND ?) OR (policy_start_date BETWEEN ? AND ?) OR (policy_end_date BETWEEN ? AND ?) OR (policy_booking_date BETWEEN ? AND ?)",
-        start_date, end_date, start_date, end_date, start_date, end_date, start_date, end_date
-      ).select('COALESCE(SUM(total_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
+      motor_data = MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date)
+                                .select('COALESCE(SUM(total_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
       results[:total_premium_collected] += motor_data.premium.to_f if motor_data
       results[:total_sum_insured] += motor_data.sum.to_f if motor_data
     rescue
@@ -1083,19 +1023,33 @@ class DashboardController < ApplicationController
   end
 
   def calculate_active_affiliates_with_policies
-    # Count affiliates who have at least one policy
-    active_count = 0
+    # Count affiliates who have at least one policy using a single optimized query
+    sql = "
+      SELECT COUNT(DISTINCT sub_agent_id) as count FROM (
+        SELECT sub_agent_id FROM health_insurances WHERE sub_agent_id IS NOT NULL
+        UNION
+        SELECT sub_agent_id FROM life_insurances WHERE sub_agent_id IS NOT NULL
+      ) as affiliate_policies
+    "
 
-    SubAgent.find_each do |affiliate|
-      policies_count = 0
-      policies_count += HealthInsurance.where(sub_agent_id: affiliate.id).count rescue 0
-      policies_count += LifeInsurance.where(sub_agent_id: affiliate.id).count rescue 0
-      policies_count += MotorInsurance.where(sub_agent_id: affiliate.id).count rescue 0
-
-      active_count += 1 if policies_count > 0
+    # Add motor insurance if table exists
+    begin
+      if ActiveRecord::Base.connection.table_exists?('motor_insurances')
+        sql = "
+          SELECT COUNT(DISTINCT sub_agent_id) as count FROM (
+            SELECT sub_agent_id FROM health_insurances WHERE sub_agent_id IS NOT NULL
+            UNION
+            SELECT sub_agent_id FROM life_insurances WHERE sub_agent_id IS NOT NULL
+            UNION
+            SELECT sub_agent_id FROM motor_insurances WHERE sub_agent_id IS NOT NULL
+          ) as affiliate_policies
+        "
+      end
+    rescue
     end
 
-    active_count
+    result = ActiveRecord::Base.connection.execute(sql)
+    result.first['count'].to_i
   rescue => e
     Rails.logger.error "Error calculating active affiliates: #{e.message}"
     0

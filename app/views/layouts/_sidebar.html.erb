@@ -1209,6 +1209,21 @@ body.sidebar-collapsed .main-content {
         </li>
         <% end %>
 
+        <!-- Profit Reports -->
+        <% if show_sidebar_item?('reports') %>
+        <li class="nav-item">
+          <%= link_to admin_reports_profit_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/profit_reports')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-green">
+                <i class="bi bi-graph-up"></i>
+              </div>
+            </div>
+            <span class="nav-text">Profit Reports</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+        <% end %>
+
         <!-- Expired Insurance -->
         <% if show_sidebar_item?('reports') %>
         <li class="nav-item">
