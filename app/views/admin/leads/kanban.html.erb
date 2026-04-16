@@ -747,9 +747,20 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function addRecentlyUpdatedBadge(card) {
-    // Remove any existing "Recently Updated" or "New" badges
-    const existingBadges = card.querySelectorAll('.badge:contains("Recently Updated"), .badge:contains("New")');
-    existingBadges.forEach(badge => badge.remove());
+    // Remove any existing "Recently Updated" or "New" badges using text content check
+    const allBadges = card.querySelectorAll('.badge');
+    allBadges.forEach(badge => {
+      const text = badge.textContent.trim();
+      if (text.includes('Recently Updated') || text.includes('New')) {
+        // Remove the parent container if it's a badge container
+        const parent = badge.parentElement;
+        if (parent && parent.classList.contains('mt-1')) {
+          parent.remove();
+        } else {
+          badge.remove();
+        }
+      }
+    });
 
     // Find the date-info container
     const dateInfoContainer = card.querySelector('.date-info');
@@ -762,12 +773,6 @@ document.addEventListener('DOMContentLoaded', function() {
           <i class="bi bi-arrow-clockwise"></i> Recently Updated
         </span>
       `;
-
-      // Remove existing badge container if present
-      const existingBadgeContainer = dateInfoContainer.querySelector('div.mt-1');
-      if (existingBadgeContainer) {
-        existingBadgeContainer.remove();
-      }
 
       dateInfoContainer.appendChild(badgeContainer);
     }
