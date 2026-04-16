@@ -74,6 +74,14 @@ class Admin::Reports::ExpiredInsuranceReportsController < Admin::Reports::BaseCo
     @selected_columns = params[:columns] || default_columns
 
     respond_to do |format|
+      format.html do
+        # Handle HTML requests by generating CSV and sending as download
+        csv_data = generate_csv_data
+        send_data csv_data,
+                  filename: "expired_insurance_report_#{Date.current.strftime('%Y%m%d')}.csv",
+                  type: 'text/csv',
+                  disposition: 'attachment'
+      end
       format.csv do
         csv_data = generate_csv_data
         send_data csv_data,

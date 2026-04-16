@@ -372,8 +372,8 @@ function performExport() {
     exportUrlWithParams.searchParams.append('columns[]', checkbox.value);
   });
 
-  // Perform the export by opening URL in new tab (will download file)
-  window.open(exportUrlWithParams.toString(), '_blank');
+  // Perform the export by redirecting to the CSV download URL
+  window.location.href = exportUrlWithParams.toString();
 
   // Close modal
   const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
