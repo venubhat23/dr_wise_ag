@@ -34,12 +34,9 @@ class Admin::Reports::AllPolicyReportsController < Admin::Reports::BaseControlle
 
     respond_to do |format|
       format.pdf do
-        render pdf: "All_Policies_Report_#{Date.current.strftime('%Y%m%d')}",
-               template: 'admin/reports/all_policy_reports/export_pdf',
+        render template: 'admin/reports/all_policy_reports/export_pdf',
                layout: 'pdf',
-               page_size: 'A4',
-               orientation: 'Landscape',
-               margin: { top: 10, bottom: 10, left: 10, right: 10 }
+               content_type: 'text/html'
       end
     end
   end

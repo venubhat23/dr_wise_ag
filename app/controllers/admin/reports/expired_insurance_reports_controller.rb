@@ -62,12 +62,9 @@ class Admin::Reports::ExpiredInsuranceReportsController < Admin::Reports::BaseCo
 
     respond_to do |format|
       format.pdf do
-        render pdf: "Expired_Insurance_Report_#{Date.current.strftime('%Y%m%d')}",
-               template: 'admin/reports/expired_insurance_reports/export_pdf',
+        render template: 'admin/reports/expired_insurance_reports/export_pdf',
                layout: 'pdf',
-               page_size: 'A4',
-               orientation: 'Landscape',
-               margin: { top: 10, bottom: 10, left: 10, right: 10 }
+               content_type: 'text/html'
       end
     end
   end
