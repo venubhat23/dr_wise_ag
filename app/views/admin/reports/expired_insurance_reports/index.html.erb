@@ -253,25 +253,12 @@
       </div>
       <div class="modal-body">
         <%= form_with url: "", method: :post, id: "exportForm", class: "needs-validation", novalidate: true do |form| %>
-          <!-- Export Format -->
+          <!-- Export Info -->
           <div class="mb-4">
-            <h6>Export Format</h6>
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="export_format" value="csv" id="format_csv" checked>
-                  <label class="form-check-label" for="format_csv">
-                    <i class="bi bi-file-earmark-spreadsheet text-success me-1"></i> CSV Spreadsheet (Default)
-                  </label>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="export_format" value="pdf" id="format_pdf">
-                  <label class="form-check-label" for="format_pdf">
-                    <i class="bi bi-file-pdf text-danger me-1"></i> PDF Document
-                  </label>
-                </div>
+            <div class="alert alert-info d-flex align-items-center">
+              <i class="bi bi-file-earmark-spreadsheet text-primary me-2"></i>
+              <div>
+                <strong>Export Format:</strong> CSV Spreadsheet - Ready for Excel and data analysis
               </div>
             </div>
           </div>
@@ -393,7 +380,6 @@ function deselectAllColumns() {
 function performExport() {
   const form = document.getElementById('exportForm');
   const selectedColumns = document.querySelectorAll('input[name="columns[]"]:checked');
-  const exportFormat = document.querySelector('input[name="export_format"]:checked').value;
   const exportBtn = document.querySelector('#exportModal .btn-primary');
 
   // Check if at least one column is selected
@@ -415,94 +401,26 @@ function performExport() {
   // Get current URL parameters to preserve filters
   const urlParams = new URLSearchParams(window.location.search);
 
-  // Build export URL based on format
-  let exportUrl;
-  if (exportFormat === 'pdf') {
-    exportUrl = '<%= export_pdf_admin_reports_expired_insurance_reports_path %>';
-  } else {
-    exportUrl = '<%= export_csv_admin_reports_expired_insurance_reports_path %>';
-  }
+  // Always use CSV export URL
+  const exportUrl = '<%= export_csv_admin_reports_expired_insurance_reports_path %>';
 
-  // Create form data
-  const formData = new FormData();
-
-  // Add filter parameters
+  // Build CSV URL with parameters
+  let csvUrl = exportUrl + '?';
   urlParams.forEach((value, key) => {
     if (key !== 'page') { // Don't include page in export
-      formData.append(key, value);
+      csvUrl += key + '=' + encodeURIComponent(value) + '&';
     }
   });
-
-  // Add selected columns
   selectedColumns.forEach(checkbox => {
-    formData.append('columns[]', checkbox.value);
+    csvUrl += 'columns[]=' + encodeURIComponent(checkbox.value) + '&';
   });
+  csvUrl = csvUrl.slice(0, -1); // Remove last &
 
-  // Add CSRF token
-  const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-  formData.append('authenticity_token', csrfToken);
-
-  // Submit form
-  const requestMethod = exportFormat === 'pdf' ? 'POST' : 'GET';
-
-  if (exportFormat === 'csv') {
-    // For CSV, build URL with parameters
-    let csvUrl = exportUrl + '?';
-    urlParams.forEach((value, key) => {
-      if (key !== 'page') {
-        csvUrl += key + '=' + encodeURIComponent(value) + '&';
-      }
-    });
-    selectedColumns.forEach(checkbox => {
-      csvUrl += 'columns[]=' + encodeURIComponent(checkbox.value) + '&';
-    });
-    csvUrl = csvUrl.slice(0, -1); // Remove last &
-
-    // Direct download for CSV
-    window.location.href = csvUrl;
-    resetButton();
-    const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
-    exportModal.hide();
-    return;
-  }
-
-  // For PDF, use fetch
-  fetch(exportUrl, {
-    method: 'POST',
-    body: formData,
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  })
-  .then(response => {
-    if (response.ok) {
-      return response.blob();
-    }
-    return response.text().then(text => {
-      throw new Error(`Export failed (${response.status}): ${text.substring(0, 200)}`);
-    });
-  })
-  .then(blob => {
-    // Download the file
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Expired_Insurance_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-
-    // Reset button and close modal
-    resetButton();
-    const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
-    exportModal.hide();
-  })
-  .catch(error => {
-    console.error('Export error:', error);
-    alert('Export failed. Please try again.');
-    resetButton();
-  });
+  // Direct download for CSV
+  window.location.href = csvUrl;
+  resetButton();
+  const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+  exportModal.hide();
 }
 </script>
 

@@ -43,6 +43,7 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
 
   def export_csv
     @policy_data = fetch_policies_with_profit(paginated: false)
+    @selected_columns = params[:columns] || default_columns
 
     respond_to do |format|
       format.csv do
@@ -278,45 +279,66 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
   def generate_csv_data
     require 'csv'
 
-    CSV.generate(headers: true) do |csv|
-      # CSV headers
-      csv << [
-        'Policy Number',
-        'Policy Type',
-        'Customer Name',
-        'Insurance Company',
-        'Policy Holder',
-        'Start Date',
-        'End Date',
-        'Premium Amount',
-        'Net Premium',
-        'Profit Amount',
-        'Profit Percentage',
-        'Company Expenses',
-        'Sub Agent',
-        'Created Date',
-        'Lead ID'
-      ]
+    # Define column mappings
+    column_headers = {
+      'policy_number' => 'Policy Number',
+      'policy_type' => 'Policy Type',
+      'customer_name' => 'Customer Name',
+      'insurance_company' => 'Insurance Company',
+      'policy_holder' => 'Policy Holder',
+      'start_date' => 'Start Date',
+      'end_date' => 'End Date',
+      'premium_amount' => 'Premium Amount',
+      'net_premium' => 'Net Premium',
+      'profit_amount' => 'Profit Amount',
+      'profit_percentage' => 'Profit Percentage',
+      'company_expenses' => 'Company Expenses',
+      'sub_agent_name' => 'Sub Agent',
+      'created_at' => 'Created Date'
+    }
 
-      # CSV data rows
+    CSV.generate(headers: true) do |csv|
+      # Generate headers based on selected columns
+      headers = @selected_columns.map { |col| column_headers[col] || col.humanize }
+      csv << headers
+
+      # Generate data rows based on selected columns
       @policy_data.each do |policy|
-        csv << [
-          policy[:policy_number],
-          policy[:policy_type],
-          policy[:customer_name],
-          policy[:insurance_company],
-          policy[:policy_holder],
-          policy[:start_date]&.strftime('%d/%m/%Y'),
-          policy[:end_date]&.strftime('%d/%m/%Y'),
-          "₹#{number_with_delimiter(policy[:premium_amount])}",
-          "₹#{number_with_delimiter(policy[:net_premium])}",
-          "₹#{number_with_delimiter(policy[:profit_amount])}",
-          "#{policy[:profit_percentage]}%",
-          "₹#{number_with_delimiter(policy[:company_expenses])}",
-          policy[:sub_agent_name],
-          policy[:created_at]&.strftime('%d/%m/%Y'),
-          policy[:lead_id]
-        ]
+        row = @selected_columns.map do |col|
+          case col
+          when 'policy_number'
+            policy[:policy_number]
+          when 'policy_type'
+            policy[:policy_type]
+          when 'customer_name'
+            policy[:customer_name]
+          when 'insurance_company'
+            policy[:insurance_company]
+          when 'policy_holder'
+            policy[:policy_holder]
+          when 'start_date'
+            policy[:start_date]&.strftime('%d/%m/%Y')
+          when 'end_date'
+            policy[:end_date]&.strftime('%d/%m/%Y')
+          when 'premium_amount'
+            "₹#{number_with_delimiter(policy[:premium_amount])}"
+          when 'net_premium'
+            "₹#{number_with_delimiter(policy[:net_premium])}"
+          when 'profit_amount'
+            "₹#{number_with_delimiter(policy[:profit_amount])}"
+          when 'profit_percentage'
+            "#{policy[:profit_percentage]}%"
+          when 'company_expenses'
+            "₹#{number_with_delimiter(policy[:company_expenses])}"
+          when 'sub_agent_name'
+            policy[:sub_agent_name]
+          when 'created_at'
+            policy[:created_at]&.strftime('%d/%m/%Y')
+          else
+            policy[col.to_sym] || ''
+          end
+        end
+        csv << row
       end
     end
   end
