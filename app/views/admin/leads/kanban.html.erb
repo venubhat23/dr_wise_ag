@@ -685,9 +685,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateMatch = dateText.match(/Updated: (\d{2}\/\d{2}\/?\d{0,4})/);
         if (dateMatch) {
           let dateStr = dateMatch[1];
-          // If year is missing, add current year
-          if (!dateStr.includes('/20')) {
+          // If year is missing or only 2-digit, add/correct current year
+          const parts = dateStr.split('/');
+          if (parts.length === 2) {
             dateStr += '/' + now.getFullYear();
+          } else if (parts.length === 3 && parts[2].length === 2) {
+            // Convert 2-digit year to 4-digit
+            const twoDigitYear = parseInt(parts[2]);
+            const currentYear = now.getFullYear();
+            const currentCentury = Math.floor(currentYear / 100) * 100;
+            dateStr = `${parts[0]}/${parts[1]}/${currentCentury + twoDigitYear}`;
           }
           const [day, month, year] = dateStr.split('/');
           existingTime = new Date(year, month - 1, day).getTime();
