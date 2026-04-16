@@ -243,7 +243,7 @@
             <div class="btn-group" role="group" aria-label="Export format">
               <input type="radio" class="btn-check" name="export_format" id="format_csv" value="csv" checked>
               <label class="btn btn-outline-success" for="format_csv">
-                <i class="bi bi-filetype-csv me-2"></i>CSV
+                <i class="bi bi-filetype-csv me-2"></i>CSV (Default)
               </label>
               <input type="radio" class="btn-check" name="export_format" id="format_pdf" value="pdf">
               <label class="btn btn-outline-danger" for="format_pdf">
@@ -355,25 +355,13 @@ function deselectAllColumns() {
 }
 
 function performExport() {
-  const form = document.getElementById('exportForm');
   const selectedColumns = document.querySelectorAll('input[name="columns[]"]:checked');
   const exportFormat = document.querySelector('input[name="export_format"]:checked');
-  const exportBtn = document.querySelector('#exportModal .btn-primary');
 
   // Check if at least one column is selected
   if (selectedColumns.length === 0) {
     alert('Please select at least one column to export.');
     return;
-  }
-
-  // Show loader
-  const originalBtnText = exportBtn.innerHTML;
-  exportBtn.disabled = true;
-  exportBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2 spin"></i>Exporting...';
-
-  function resetButton() {
-    exportBtn.disabled = false;
-    exportBtn.innerHTML = originalBtnText;
   }
 
   // Get current URL parameters to preserve filters
@@ -384,64 +372,27 @@ function performExport() {
     ? '<%= export_pdf_admin_reports_profit_reports_path %>'
     : '<%= export_csv_admin_reports_profit_reports_path %>';
 
-  // Create form data
-  const formData = new FormData();
+  // Build URL with parameters for GET request
+  const exportUrlWithParams = new URL(exportUrl, window.location.origin);
 
   // Add filter parameters
   urlParams.forEach((value, key) => {
     if (key !== 'page') { // Don't include page in export
-      formData.append(key, value);
+      exportUrlWithParams.searchParams.append(key, value);
     }
   });
 
   // Add selected columns
   selectedColumns.forEach(checkbox => {
-    formData.append('columns[]', checkbox.value);
+    exportUrlWithParams.searchParams.append('columns[]', checkbox.value);
   });
 
-  // Perform the export
-  fetch(exportUrl, {
-    method: 'POST',
-    body: formData,
-    headers: {
-      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error('Export failed');
-    }
+  // Perform the export by opening URL in new tab (will download file)
+  window.open(exportUrlWithParams.toString(), '_blank');
 
-    return response.blob();
-  })
-  .then(blob => {
-    // Create download link
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-
-    // Set filename based on format
-    const today = new Date().toISOString().split('T')[0];
-    const extension = exportFormat.value === 'pdf' ? 'pdf' : 'csv';
-    a.download = `profit_report_${today}.${extension}`;
-
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-
-    // Reset button and close modal
-    resetButton();
-    const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
-    exportModal.hide();
-  })
-  .catch(error => {
-    console.error('Export error:', error);
-    alert('Export failed. Please try again.');
-    resetButton();
-  });
+  // Close modal
+  const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+  exportModal.hide();
 }
 </script>
 
