@@ -50,6 +50,8 @@ gem "roo"
 # gem "rubyXL"  # Commented out temporarily due to network issues
 
 # PDF generation
+gem "wicked_pdf"
+gem "wkhtmltopdf-binary"
 
 # Phone number validation
 gem "phonelib"
