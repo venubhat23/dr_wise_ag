@@ -163,7 +163,7 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
       net_premium: policy.net_premium || 0,
       profit_amount: policy.profit_amount || 0,
       profit_percentage: policy.profit_percentage || 0,
-      company_expenses: policy.company_expenses_amount || 0,
+      company_expenses: policy.respond_to?(:company_expenses_amount) ? (policy.company_expenses_amount || 0) : 0,
       sub_agent_name: policy.sub_agent&.full_name || 'Direct',
       created_at: policy.created_at,
       lead_id: policy.lead_id
@@ -184,7 +184,7 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
       net_premium: policy.net_premium || 0,
       profit_amount: policy.profit_amount || 0,
       profit_percentage: policy.profit_percentage || 0,
-      company_expenses: policy.company_expenses_amount || 0,
+      company_expenses: policy.respond_to?(:company_expenses_amount) ? (policy.company_expenses_amount || 0) : 0,
       sub_agent_name: policy.sub_agent&.full_name || 'Direct',
       created_at: policy.created_at,
       lead_id: policy.lead_id
@@ -205,7 +205,7 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
       net_premium: policy.net_premium || 0,
       profit_amount: policy.profit_amount || 0,
       profit_percentage: policy.profit_percentage || 0,
-      company_expenses: policy.company_expenses_amount || 0,
+      company_expenses: policy.respond_to?(:company_expenses_amount) ? (policy.company_expenses_amount || 0) : 0,
       sub_agent_name: policy.sub_agent&.full_name || 'Direct',
       created_at: policy.created_at,
       lead_id: policy.lead_id
@@ -226,7 +226,7 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
       net_premium: policy.net_premium || 0,
       profit_amount: policy.profit_amount || 0,
       profit_percentage: policy.profit_percentage || 0,
-      company_expenses: policy.company_expenses_amount || 0,
+      company_expenses: policy.respond_to?(:company_expenses_amount) ? (policy.company_expenses_amount || 0) : 0,
       sub_agent_name: policy.sub_agent&.full_name || 'Direct',
       created_at: policy.created_at,
       lead_id: policy.lead_id

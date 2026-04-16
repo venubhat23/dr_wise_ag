@@ -612,6 +612,8 @@ Rails.application.routes.draw do
           post :create_report
           post :preview
           get :saved_reports
+          get :export_csv
+          post :export_pdf
         end
         member do
           get :show_saved_report

@@ -16,6 +16,7 @@ class Admin::Reports::ExpiredInsuranceReportsController < Admin::Reports::BaseCo
     @total_premium_lost = calculate_total_premium_lost
     @total_sum_insured_lost = calculate_total_sum_insured_lost
     @expired_count = @expired_data.total_count
+    @policy_count = @expired_count  # For consistency with view
 
     # Variables for saved reports section (if applicable)
     @saved_reports = []
@@ -65,6 +66,20 @@ class Admin::Reports::ExpiredInsuranceReportsController < Admin::Reports::BaseCo
                page_size: 'A4',
                orientation: 'Landscape',
                margin: { top: 10, bottom: 10, left: 10, right: 10 }
+      end
+    end
+  end
+
+  def export_csv
+    @expired_data = fetch_expired_data(paginated: false)
+    @selected_columns = params[:columns] || default_columns
+
+    respond_to do |format|
+      format.csv do
+        csv_data = generate_csv_data
+        send_data csv_data,
+                  filename: "expired_insurance_report_#{Date.current.strftime('%Y%m%d')}.csv",
+                  type: 'text/csv'
       end
     end
   end
@@ -281,6 +296,52 @@ class Admin::Reports::ExpiredInsuranceReportsController < Admin::Reports::BaseCo
     }
   end
 
+  def generate_csv_data
+    require 'csv'
+
+    CSV.generate(headers: true) do |csv|
+      # CSV headers based on selected columns
+      headers = []
+      headers << 'Policy Number' if @selected_columns.include?('policy_number')
+      headers << 'Policy Type' if @selected_columns.include?('policy_type')
+      headers << 'Customer Name' if @selected_columns.include?('customer_name')
+      headers << 'Insurance Company' if @selected_columns.include?('insurance_company')
+      headers << 'Policy Holder' if @selected_columns.include?('policy_holder')
+      headers << 'Start Date' if @selected_columns.include?('start_date')
+      headers << 'End Date' if @selected_columns.include?('end_date')
+      headers << 'Premium Amount' if @selected_columns.include?('premium_amount')
+      headers << 'Sum Insured' if @selected_columns.include?('sum_insured')
+      headers << 'Payment Mode' if @selected_columns.include?('payment_mode')
+      headers << 'Days Expired' if @selected_columns.include?('days_expired')
+      headers << 'Sub Agent' if @selected_columns.include?('sub_agent_name')
+      headers << 'Created Date' if @selected_columns.include?('created_at')
+      headers << 'Lead ID' if @selected_columns.include?('lead_id')
+
+      csv << headers
+
+      # CSV data rows
+      @expired_data.each do |policy|
+        row = []
+        row << policy[:policy_number] if @selected_columns.include?('policy_number')
+        row << policy[:policy_type] if @selected_columns.include?('policy_type')
+        row << policy[:customer_name] if @selected_columns.include?('customer_name')
+        row << policy[:insurance_company] if @selected_columns.include?('insurance_company')
+        row << policy[:policy_holder] if @selected_columns.include?('policy_holder')
+        row << policy[:start_date]&.strftime('%d/%m/%Y') if @selected_columns.include?('start_date')
+        row << policy[:end_date]&.strftime('%d/%m/%Y') if @selected_columns.include?('end_date')
+        row << "₹#{number_with_delimiter(policy[:premium_amount])}" if @selected_columns.include?('premium_amount')
+        row << "₹#{number_with_delimiter(policy[:sum_insured])}" if @selected_columns.include?('sum_insured')
+        row << policy[:payment_mode] if @selected_columns.include?('payment_mode')
+        row << "#{policy[:days_expired]} days" if @selected_columns.include?('days_expired')
+        row << policy[:sub_agent_name] if @selected_columns.include?('sub_agent_name')
+        row << policy[:created_at]&.strftime('%d/%m/%Y') if @selected_columns.include?('created_at')
+        row << policy[:lead_id] if @selected_columns.include?('lead_id')
+
+        csv << row
+      end
+    end
+  end
+
   def default_columns
     %w[policy_number policy_type customer_name insurance_company end_date premium_amount sum_insured days_expired sub_agent_name]
   end
@@ -290,6 +351,9 @@ class Admin::Reports::ExpiredInsuranceReportsController < Admin::Reports::BaseCo
     @end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : Date.current
     @policy_type = params[:policy_type] || 'all'
     @insurance_company = params[:insurance_company]
+
+    # Set @policy_count for consistency with view
+    @policy_count = @expired_count if defined?(@expired_count)
   end
 
   def ensure_admin_or_authorized_user
