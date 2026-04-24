@@ -472,6 +472,10 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       # Mark original policy as renewed
       @health_insurance.update_column(:is_renewed, true)
 
+      # Handle R2 document uploads
+      handle_main_policy_r2_upload(@renewed_policy) if params[:health_insurance][:main_policy_document].present?
+      handle_health_documents_r2_upload(@renewed_policy)
+
       redirect_to admin_health_insurance_path(@renewed_policy),
                   notice: 'Health insurance renewal policy was successfully created.'
     else
@@ -650,7 +654,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   end
 
   def set_health_insurance
-    @health_insurance = HealthInsurance.find(params[:id])
+    @health_insurance = HealthInsurance.includes(:agency_code).find(params[:id])
   end
 
   def load_form_data

@@ -419,213 +419,225 @@
     </div>
   </div>
 
-  <!-- Commission Detail Section -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="mb-0">
-        <i class="bi bi-percent me-2 text-primary"></i>
-        Commission Detail
-      </h5>
+  <!-- Commission Calculation Table -->
+  <div class="card mb-4 shadow-sm commission-table">
+    <div class="card-header" style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-0 text-dark fw-bold">
+            <i class="bi bi-calculator me-2 text-primary"></i>
+            Commission Calculation
+          </h5>
+        </div>
+        <div class="text-end">
+          <small class="text-muted fw-bold">Profit Formula:</small>
+          <div class="badge bg-light text-dark border" style="font-size: 0.8rem;">
+            Main Agent Commission - Total Distribution - Company Expenses
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="card-body">
-      <h6>Main Agent Commission</h6>
-      <div class="row">
-        <div class="col-md-2 mb-3">
-          <label class="form-label">Commission (%)</label>
-          <%= form.number_field :main_agent_commission_percentage,
-              class: "form-control",
-              value: @health_insurance.main_agent_commission_percentage,
-              step: 0.01, id: "commission_percentage" %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <%= form.label :commission_amount, "Commission Amount", class: "form-label" %>
-          <%= form.number_field :commission_amount,
-              class: "form-control",
-              value: @health_insurance.commission_amount,
-              step: 0.01, readonly: true, id: "commission_amount" %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <%= form.label :tds_percentage, "TDS %", class: "form-label" %>
-          <%= form.number_field :tds_percentage,
-              class: "form-control",
-              value: @health_insurance.tds_percentage,
-              step: 0.01, id: "tds_percentage" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :tds_amount, "TDS Amount", class: "form-label" %>
-          <%= form.number_field :tds_amount,
-              class: "form-control",
-              value: @health_insurance.tds_amount,
-              step: 0.01, readonly: true, id: "tds_amount" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :after_tds_value, "After TDS Value", class: "form-label" %>
-          <%= form.number_field :after_tds_value,
-              class: "form-control",
-              value: @health_insurance.after_tds_value,
-              step: 0.01, readonly: true, id: "after_tds_value" %>
-        </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table mb-0" style="font-size: 0.95rem;">
+          <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+            <tr>
+              <th class="py-3 px-4 fw-bold text-dark border-0" style="width: 20%;">COMMISSION DETAILS</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 12%;">(%)</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 18%;">COMMISSION</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 12%;">TDS (%)</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 15%;">TDS AMOUNT</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 23%; background: #f8f9fa;">ACTUAL AMOUNT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Main Agent -->
+            <tr style="border-bottom: 1px solid #e9ecef;">
+              <td class="py-3 px-4 fw-bold text-dark bg-light">Main Agent</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :main_agent_commission_percentage,
+                    class: "form-control border-1 text-center fw-bold shadow-sm",
+                    value: @health_insurance.main_agent_commission_percentage || 10.0,
+                    step: 0.01, id: "commission_percentage",
+                    style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :commission_amount,
+                    class: "form-control border-1 text-center",
+                    value: @health_insurance.commission_amount || 0,
+                    step: 0.01, readonly: true, id: "commission_amount",
+                    style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :tds_percentage,
+                    class: "form-control border-1 text-center",
+                    value: @health_insurance.tds_percentage || 0,
+                    step: 0.01, id: "tds_percentage",
+                    style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :tds_amount,
+                    class: "form-control border-1 text-center",
+                    value: @health_insurance.tds_amount || 0,
+                    step: 0.01, readonly: true, id: "tds_amount",
+                    style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :after_tds_value,
+                    class: "form-control border-1 text-center fw-bold fs-6",
+                    value: @health_insurance.after_tds_value || 0,
+                    step: 0.01, readonly: true, id: "after_tds_value",
+                    style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+            </tr>
+            <!-- Affiliate -->
+            <tr style="border-bottom: 1px solid #e9ecef;">
+              <td class="py-3 px-4 fw-bold text-dark">Affiliate</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :sub_agent_commission_percentage,
+                    class: "form-control border-1 text-center fw-bold shadow-sm sub-agent-commission-percentage",
+                    value: @health_insurance.sub_agent_commission_percentage || 0,
+                    step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :sub_agent_commission_amount,
+                    class: "form-control border-1 text-center sub-agent-commission-amount",
+                    value: @health_insurance.sub_agent_commission_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :sub_agent_tds_percentage,
+                    class: "form-control border-1 text-center sub-agent-tds-percentage",
+                    value: @health_insurance.sub_agent_tds_percentage || 0,
+                    step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :sub_agent_tds_amount,
+                    class: "form-control border-1 text-center sub-agent-tds-amount",
+                    value: @health_insurance.sub_agent_tds_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :sub_agent_after_tds_value,
+                    class: "form-control border-1 text-center fw-bold fs-6 sub-agent-after-tds-value",
+                    value: @health_insurance.sub_agent_after_tds_value || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+            </tr>
+            <!-- Ambassador -->
+            <tr style="border-bottom: 1px solid #e9ecef;">
+              <td class="py-3 px-4 fw-bold text-dark">Ambassador</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :ambassador_commission_percentage,
+                    class: "form-control border-1 text-center fw-bold shadow-sm ambassador-commission-percentage",
+                    value: @health_insurance.ambassador_commission_percentage || 0,
+                    step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :ambassador_commission_amount,
+                    class: "form-control border-1 text-center ambassador-commission-amount",
+                    value: @health_insurance.ambassador_commission_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :ambassador_tds_percentage,
+                    class: "form-control border-1 text-center ambassador-tds-percentage",
+                    value: @health_insurance.ambassador_tds_percentage || 0,
+                    step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :ambassador_tds_amount,
+                    class: "form-control border-1 text-center ambassador-tds-amount",
+                    value: @health_insurance.ambassador_tds_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :ambassador_after_tds_value,
+                    class: "form-control border-1 text-center fw-bold fs-6 ambassador-after-tds-value",
+                    value: @health_insurance.ambassador_after_tds_value || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+            </tr>
+            <!-- Investor -->
+            <tr style="border-bottom: 1px solid #e9ecef;">
+              <td class="py-3 px-4 fw-bold text-dark">Investor</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :investor_commission_percentage,
+                    class: "form-control border-1 text-center fw-bold shadow-sm investor-commission-percentage",
+                    value: @health_insurance.investor_commission_percentage || 0,
+                    step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :investor_commission_amount,
+                    class: "form-control border-1 text-center investor-commission-amount",
+                    value: @health_insurance.investor_commission_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :investor_commission_amount,
+                    class: "form-control border-1 text-center fw-bold fs-6 investor-commission-amount-display",
+                    value: @health_insurance.investor_commission_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+            </tr>
+            <%= form.hidden_field :investor_tds_percentage, value: 0, class: "investor-tds-percentage" %>
+            <!-- Company Expenses -->
+            <tr style="border-bottom: 1px solid #dee2e6; background: #f8f9fa;">
+              <td class="py-3 px-4 fw-bold text-dark">Company Expenses</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :company_expenses_percentage,
+                    class: "form-control border-1 text-center fw-bold shadow-sm company-expenses-percentage",
+                    value: @health_insurance.company_expenses_percentage || 2.0,
+                    step: 0.01, style: "background: #fff; border-color: #dee2e6;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :company_expenses_amount,
+                    class: "form-control border-1 text-center company-expenses-amount",
+                    value: @health_insurance.company_expenses_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-1 text-center" style="background: #f8f9fa;">
+                <%= form.number_field :company_expenses_amount,
+                    class: "form-control border-1 text-center fw-bold fs-6 company-expenses-amount-display",
+                    value: @health_insurance.company_expenses_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f8f9fa; border-color: #dee2e6; color: #495057;" %>
+              </td>
+            </tr>
+            <!-- Profit -->
+            <tr style="border-bottom: 2px solid #198754; background: linear-gradient(135deg, #f0fff0 0%, #e8f5e8 100%);">
+              <td class="py-3 px-4 fw-bold text-dark" style="background: #e8f5e8;">
+                <i class="bi bi-currency-rupee me-1 text-success"></i>
+                Profit
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :profit_percentage,
+                    class: "form-control border-1 text-center fw-bold profit-percentage",
+                    value: @health_insurance.profit_percentage || 0,
+                    step: 0.01, readonly: true, style: "background: #f0fff0; border-color: #198754; color: #198754;" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :profit_amount,
+                    class: "form-control border-1 text-center fw-bold profit-amount",
+                    value: @health_insurance.profit_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f0fff0; border-color: #198754; color: #198754;" %>
+              </td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-3 text-center fw-bold text-muted">—</td>
+              <td class="py-2 px-1 text-center" style="background: #f0fff0;">
+                <%= form.number_field :profit_amount,
+                    class: "form-control border-1 text-center fw-bold profit-amount-display",
+                    value: @health_insurance.profit_amount || 0,
+                    step: 0.01, readonly: true, style: "background: #f0fff0; border-color: #198754; color: #198754;" %>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-
-      <!-- Affiliate Commission -->
-      <hr class="my-4">
-      <h6>Affiliate Commission</h6>
-      <div class="row">
-        <div class="col-md-2 mb-3">
-          <label class="form-label">Commission (%)</label>
-          <%= form.number_field :sub_agent_commission_percentage,
-              class: "form-control sub-agent-commission-percentage",
-              value: @health_insurance.sub_agent_commission_percentage,
-              step: 0.01 %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">Commission Amount</label>
-          <%= form.number_field :sub_agent_commission_amount,
-              class: "form-control sub-agent-commission-amount",
-              value: @health_insurance.sub_agent_commission_amount,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">TDS %</label>
-          <%= form.number_field :sub_agent_tds_percentage,
-              class: "form-control sub-agent-tds-percentage",
-              value: @health_insurance.sub_agent_tds_percentage,
-              step: 0.01 %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">TDS Amount</label>
-          <%= form.number_field :sub_agent_tds_amount,
-              class: "form-control sub-agent-tds-amount",
-              value: @health_insurance.sub_agent_tds_amount,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">After TDS Value</label>
-          <%= form.number_field :sub_agent_after_tds_value,
-              class: "form-control sub-agent-after-tds-value",
-              value: @health_insurance.sub_agent_after_tds_value,
-              step: 0.01, readonly: true %>
-        </div>
-      </div>
-
-      <!-- Investor Commission -->
-      <hr class="my-4">
-      <h6>Investor Commission</h6>
-      <div class="row">
-        <div class="col-md-2 mb-3">
-          <label class="form-label">Commission (%)</label>
-          <%= form.number_field :investor_commission_percentage,
-              class: "form-control investor-commission-percentage",
-              value: @health_insurance.investor_commission_percentage,
-              step: 0.01 %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">Amount</label>
-          <%= form.number_field :investor_commission_amount,
-              class: "form-control investor-commission-amount",
-              value: @health_insurance.investor_commission_amount,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">TDS Amount</label>
-          <%= form.number_field :investor_tds_amount,
-              class: "form-control investor-tds-amount",
-              value: @health_insurance.investor_tds_amount,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-12 mb-3">
-          <label class="form-label">After TDS Value</label>
-          <%= form.number_field :investor_after_tds_value,
-              class: "form-control investor-after-tds-value",
-              value: @health_insurance.investor_after_tds_value,
-              step: 0.01, readonly: true %>
-        </div>
-      </div>
-      <%= form.hidden_field :investor_tds_percentage, value: 0, class: "investor-tds-percentage" %>
-
-      <!-- Ambassador Commission -->
-      <hr class="my-4">
-      <h6>Ambassador Commission</h6>
-      <div class="row">
-        <div class="col-md-2 mb-3">
-          <label class="form-label">Commission (%)</label>
-          <%= form.number_field :ambassador_commission_percentage,
-              class: "form-control ambassador-commission-percentage",
-              value: @health_insurance.ambassador_commission_percentage,
-              step: 0.01 %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">Commission Amount</label>
-          <%= form.number_field :ambassador_commission_amount,
-              class: "form-control ambassador-commission-amount",
-              value: @health_insurance.ambassador_commission_amount,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">TDS %</label>
-          <%= form.number_field :ambassador_tds_percentage,
-              class: "form-control ambassador-tds-percentage",
-              value: @health_insurance.ambassador_tds_percentage,
-              step: 0.01 %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">TDS Amount</label>
-          <%= form.number_field :ambassador_tds_amount,
-              class: "form-control ambassador-tds-amount",
-              value: @health_insurance.ambassador_tds_amount,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">After TDS Value</label>
-          <%= form.number_field :ambassador_after_tds_value,
-              class: "form-control ambassador-after-tds-value",
-              value: @health_insurance.ambassador_after_tds_value,
-              step: 0.01, readonly: true %>
-        </div>
-      </div>
-
-      <!-- Company Expenses & Profit Calculation -->
-      <hr class="my-4">
-      <h6>Company Expenses & Profit Calculation</h6>
-      <div class="row">
-        <div class="col-md-3 mb-3">
-          <label class="form-label">Company Expenses (%)</label>
-          <%= form.number_field :company_expenses_percentage,
-              class: "form-control company-expenses-percentage",
-              value: @health_insurance.company_expenses_percentage,
-              step: 0.01, min: 0, max: 100 %>
-        </div>
-        <div class="col-md-3 mb-3">
-          <label class="form-label">Total Distribution (%)</label>
-          <%= form.number_field :total_distribution_percentage,
-              class: "form-control total-distribution-percentage",
-              value: @health_insurance.total_distribution_percentage,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-3 mb-3">
-          <label class="form-label">Profit (%)</label>
-          <%= form.number_field :profit_percentage,
-              class: "form-control profit-percentage",
-              value: @health_insurance.profit_percentage,
-              step: 0.01, readonly: true %>
-        </div>
-        <div class="col-md-3 mb-3">
-          <label class="form-label">Profit Amount (₹)</label>
-          <%= form.number_field :profit_amount,
-              class: "form-control profit-amount",
-              value: @health_insurance.profit_amount,
-              step: 0.01, readonly: true %>
-        </div>
-      </div>
-      <div class="alert alert-info mt-3">
-        <h6 class="mb-2">Commission Calculation Summary:</h6>
-        <ul class="mb-0">
-          <li><strong>Main Agent Commission:</strong> <span id="main-income-display"><%= @health_insurance.main_agent_commission_percentage || 10 %>%</span> of Net Premium</li>
-          <li><strong>Total Distribution:</strong> <span id="distribution-display"><%= @health_insurance.total_distribution_percentage || 6.0 %>%</span> (Affiliate + Investor + Ambassador)</li>
-          <li><strong>Company Expenses:</strong> <span id="expenses-display"><%= @health_insurance.company_expenses_percentage || 2.0 %>%</span> of Net Premium</li>
-          <li><strong>Profit:</strong> Main Agent Commission - Total Distribution - Company Expenses</li>
-        </ul>
-      </div>
+      <%= form.hidden_field :total_distribution_percentage, class: "total-distribution-percentage", value: @health_insurance.total_distribution_percentage || 0 %>
     </div>
   </div>
 
@@ -689,6 +701,85 @@
     </div>
   </div>
 
+  <!-- New Policy Documents Upload -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-file-earmark-plus me-2 text-primary"></i>
+        Policy Documents
+      </h5>
+    </div>
+    <div class="card-body">
+      <!-- R2 Main Policy Document -->
+      <div class="row mb-4">
+        <div class="col-md-12">
+          <div class="border border-success border-2 rounded p-4" style="background-color: #f0fff0;">
+            <%= form.label :main_policy_document, class: "form-label fw-bold" do %>
+              <i class="bi bi-cloud-upload me-2 text-success"></i>
+              Main Policy Document (R2 Storage)
+            <% end %>
+            <%= form.file_field :main_policy_document,
+                class: "form-control",
+                accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
+            <div class="form-text mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              <strong>Secure R2 Storage:</strong> PDF, JPEG, PNG, Word files (Max: 10MB)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Documents -->
+      <div class="row mb-4">
+        <div class="col-md-12">
+          <div class="border border-secondary border-2 rounded p-4" style="background-color: #f8f9fa;">
+            <%= form.label :documents, class: "form-label fw-bold" do %>
+              <i class="bi bi-file-earmark-plus me-2 text-secondary"></i>
+              Additional Documents
+              <span class="badge bg-secondary ms-2">Optional</span>
+            <% end %>
+            <%= form.file_field :documents,
+                class: "form-control",
+                multiple: true,
+                id: "additional_documents_upload",
+                accept: "application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" %>
+            <div class="form-text mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              Medical reports, Identity proofs, etc.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Document Management System -->
+      <div class="border-top pt-4 mt-2">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0">Organised Documents</h6>
+          <button type="button" class="btn btn-sm btn-primary" id="add_health_policy_document">
+            <i class="bi bi-plus-lg me-1"></i>
+            Add Document
+          </button>
+        </div>
+        <div id="health_policy_documents_container"></div>
+        <p class="text-muted mb-0 mt-2">
+          <small>Add documents with title and type for organised storage in R2</small>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Original Policy Documents for Reference -->
+  <% if params[:id].present? %>
+    <% original_policy = HealthInsurance.find(params[:id]) %>
+    <%= render 'shared/enhanced_documents_display',
+               documents: original_policy.uploaded_documents,
+               record: original_policy,
+               record_type: 'health_insurance',
+               title: 'Original Policy Documents (Reference)',
+               editable: false,
+               container_class: 'border-top pt-4 mt-4' %>
+  <% end %>
+
   <!-- Renewal Actions -->
   <div class="card">
     <div class="card-body">
@@ -704,25 +795,10 @@
             <i class="bi bi-eye me-1"></i>
             View Original
           <% end %>
-          <%= form.submit "Create Renewal Policy", class: "btn btn-primary btn-lg fw-bold text-white shadow", style: "background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); border: none; min-width: 200px;" do %>
-            <i class="bi bi-arrow-clockwise me-2"></i>
-            Create Renewal Policy
-          <% end %>
+          <%= form.submit "Create Renewal Policy", class: "btn btn-primary btn-lg fw-bold text-white shadow", style: "background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); border: none; min-width: 200px;" %>
         </div>
       </div>
     </div>
-
-    <!-- Original Policy Documents for Reference -->
-    <% if params[:id].present? %>
-      <% original_policy = HealthInsurance.find(params[:id]) %>
-      <%= render 'shared/enhanced_documents_display',
-                 documents: original_policy.uploaded_documents,
-                 record: original_policy,
-                 record_type: 'health_insurance',
-                 title: 'Original Policy Documents (Reference)',
-                 editable: false,
-                 container_class: 'border-top pt-4 mt-4' %>
-    <% end %>
   </div>
 
 <% end %>
@@ -1185,6 +1261,28 @@ document.addEventListener('DOMContentLoaded', function() {
         return markup;
       }
     });
+
+    // Restore pre-selected agency code from the original policy
+    <% if @health_insurance.agency_code_id.present? %>
+    function restoreAgencyCode() {
+      var agencyCodeId = '<%= @health_insurance.agency_code_id %>';
+      var $select = $('#health_insurance_agency_code_id');
+
+      // Check the option actually exists in the dropdown
+      if ($select.find('option[value="' + agencyCodeId + '"]').length === 0) {
+        // Option not rendered — add it dynamically then select it
+        var agencyCodeText = '<%= j(@health_insurance.agency_code&.agent_name.to_s + " - " + @health_insurance.agency_code&.code.to_s) %>';
+        $select.append(new Option(agencyCodeText, agencyCodeId, true, true));
+      }
+
+      $select.val(agencyCodeId).trigger('change.select2');
+    }
+
+    // Run immediately and again after other init settles
+    restoreAgencyCode();
+    setTimeout(restoreAgencyCode, 600);
+    setTimeout(restoreAgencyCode, 1200);
+    <% end %>
 
     // Initialize Select2 for Policy Holder dropdown
     $('#policy_holder_select').select2({
@@ -2186,6 +2284,59 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize the no members message state (must be after DOM is ready)
     toggleNoMembersMessage();
+
+    // Health Insurance Policy Documents Manager
+    let healthPolicyDocumentIndex = 0;
+    const addHealthPolicyDocumentBtn = document.getElementById('add_health_policy_document');
+    const healthPolicyDocumentsContainer = document.getElementById('health_policy_documents_container');
+
+    if (addHealthPolicyDocumentBtn && healthPolicyDocumentsContainer) {
+      addHealthPolicyDocumentBtn.addEventListener('click', function() {
+        const documentHtml = `
+          <div class="document-entry p-3 mb-3 border rounded position-relative" data-index="${healthPolicyDocumentIndex}" style="background: #f8f9fa;">
+            <button type="button" class="btn btn-sm btn-outline-danger position-absolute" style="top: 10px; right: 10px;" onclick="this.closest('.document-entry').remove()">
+              <i class="bi bi-trash"></i>
+            </button>
+            <div class="row">
+              <div class="col-md-4">
+                <label class="form-label">Document Title <span class="text-danger">*</span></label>
+                <input type="text" name="health_insurance[health_insurance_documents_attributes][${healthPolicyDocumentIndex}][title]" class="form-control" placeholder="Enter document title" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Document Type <span class="text-danger">*</span></label>
+                <select name="health_insurance[health_insurance_documents_attributes][${healthPolicyDocumentIndex}][document_type]" class="form-select" required>
+                  <option value="">Select Document Type</option>
+                  <option value="policy_document">Policy Document</option>
+                  <option value="medical_report">Medical Report</option>
+                  <option value="identity_proof">Identity Proof</option>
+                  <option value="address_proof">Address Proof</option>
+                  <option value="income_proof">Income Proof</option>
+                  <option value="aadhar">Aadhar Card</option>
+                  <option value="pan_card">PAN Card</option>
+                  <option value="passport">Passport</option>
+                  <option value="claim_form">Claim Form</option>
+                  <option value="discharge_summary">Discharge Summary</option>
+                  <option value="pre_policy_checkup">Pre-Policy Checkup</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Document File <span class="text-danger">*</span></label>
+                <input type="file" name="health_insurance[health_insurance_documents_attributes][${healthPolicyDocumentIndex}][file]" class="form-control" accept="application/pdf,image/jpeg,image/jpg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required id="health_doc_file_${healthPolicyDocumentIndex}">
+              </div>
+            </div>
+            <div class="row mt-2">
+              <div class="col-md-12">
+                <label class="form-label">Description (Optional)</label>
+                <textarea name="health_insurance[health_insurance_documents_attributes][${healthPolicyDocumentIndex}][description]" class="form-control" rows="2" placeholder="Optional description"></textarea>
+              </div>
+            </div>
+          </div>
+        `;
+        healthPolicyDocumentsContainer.insertAdjacentHTML('beforeend', documentHtml);
+        healthPolicyDocumentIndex++;
+      });
+    }
 
   } catch (error) {
     console.warn('Health insurance renewal form initialization error:', error.message);
