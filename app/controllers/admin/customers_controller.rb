@@ -102,7 +102,7 @@ class Admin::CustomersController < Admin::ApplicationController
 
     # Order and paginate using configurable pagination
     # Pass the pre-calculated count to avoid PostgreSQL issues with select() queries
-    @customers = paginate_records(@customers.order(created_at: :desc), @total_filtered_count)
+    @customers = paginate_records(@customers.includes(:affiliate, :documents).order(created_at: :desc), @total_filtered_count)
 
     # Calculate statistics
     # Create a separate scope for statistics to avoid pg_search GROUP BY issues

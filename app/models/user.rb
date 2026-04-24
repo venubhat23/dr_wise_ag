@@ -246,6 +246,10 @@ class User < ApplicationRecord
     user_type == 'admin'
   end
 
+  def can_view_reports?
+    admin? || %w[admin agent].include?(user_type)
+  end
+
   def agent?
     user_type == 'agent'
   end

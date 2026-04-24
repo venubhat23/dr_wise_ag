@@ -240,7 +240,11 @@ class Customer < ApplicationRecord
 
   # R2 Profile Image methods
   def r2_profile_image
-    documents.where(document_type: 'Profile Image').first
+    if documents.loaded?
+      documents.find { |d| d.document_type == 'Profile Image' }
+    else
+      documents.where(document_type: 'Profile Image').first
+    end
   end
 
   def has_r2_profile_image?

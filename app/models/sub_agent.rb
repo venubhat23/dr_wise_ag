@@ -67,9 +67,6 @@ class SubAgent < ApplicationRecord
   validates :gender, inclusion: { in: ['Male', 'Female', 'Other'] }, allow_blank: true
   validates :account_type, inclusion: { in: ['Savings', 'Current', 'Salary'] }, allow_blank: true
 
-  # Custom validations
-  validate :ensure_unique_across_distributors
-
   # Enums
   enum :status, { active: 0, inactive: 1 }
 
@@ -294,26 +291,6 @@ class SubAgent < ApplicationRecord
       end
     end
     nil
-  end
-
-  def ensure_unique_across_distributors
-    # Check if email exists in Distributor table
-    if email.present?
-      existing_distributor = Distributor.where(email: email)
-      existing_distributor = existing_distributor.where.not(id: self.id) if persisted?
-      if existing_distributor.exists?
-        errors.add(:email, "address is already registered with an ambassador")
-      end
-    end
-
-    # Check if mobile exists in Distributor table
-    if mobile.present?
-      existing_distributor = Distributor.where(mobile: mobile)
-      existing_distributor = existing_distributor.where.not(id: self.id) if persisted?
-      if existing_distributor.exists?
-        errors.add(:mobile, "number is already registered with an ambassador")
-      end
-    end
   end
 
   def safe_profile_image_display

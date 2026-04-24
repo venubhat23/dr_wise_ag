@@ -810,6 +810,8 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       # Build at least one empty member for the form if no members exist
       @health_insurance.health_insurance_members.build
     end
+
+    render :new
   end
 
   # API endpoint for loading customer nominees

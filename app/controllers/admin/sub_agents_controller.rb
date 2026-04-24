@@ -201,6 +201,18 @@ class Admin::SubAgentsController < Admin::ApplicationController
       redirect_to admin_sub_agents_path, notice: 'Sub Agent was successfully created.'
     else
       Rails.logger.error "Create errors: #{@sub_agent.errors.full_messages}"
+
+      # If mobile or email is already taken, redirect to the existing affiliate
+      existing_by_mobile = SubAgent.find_by(mobile: @sub_agent.mobile) if @sub_agent.mobile.present?
+      existing_by_email  = SubAgent.find_by(email: @sub_agent.email)   if @sub_agent.email.present?
+      existing = existing_by_mobile || existing_by_email
+
+      if existing
+        redirect_to edit_admin_sub_agent_path(existing),
+                    alert: "An affiliate with this mobile/email already exists. You can update the details here."
+        return
+      end
+
       @sub_agent.sub_agent_documents.build if @sub_agent.sub_agent_documents.empty?
       render :new, status: :unprocessable_entity
     end

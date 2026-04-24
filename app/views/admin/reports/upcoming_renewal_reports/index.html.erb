@@ -29,9 +29,12 @@
     <h2 class="mb-1">Upcoming Renewal Reports</h2>
     <p class="text-muted mb-0">View and manage generated upcoming renewal reports</p>
   </div>
-  <div>
+  <div class="d-flex gap-2">
+    <%= link_to generate_admin_reports_upcoming_renewal_reports_path, class: "btn btn-primary" do %>
+      <i class="bi bi-plus-lg me-2"></i>Generate Report
+    <% end %>
     <button type="button" class="btn btn-success" id="exportBtn">
-      <i class="bi bi-download me-2"></i>Export
+      <i class="bi bi-download me-2"></i>Export CSV
     </button>
   </div>
 </div>
