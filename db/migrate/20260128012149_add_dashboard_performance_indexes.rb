@@ -42,7 +42,7 @@ class AddDashboardPerformanceIndexes < ActiveRecord::Migration[6.1]
       add_index :other_insurances, :policy_end_date unless index_exists?(:other_insurances, :policy_end_date)
       add_index :other_insurances, :created_at unless index_exists?(:other_insurances, :created_at)
       add_index :other_insurances, [:policy_end_date, :created_at] unless index_exists?(:other_insurances, [:policy_end_date, :created_at])
-      add_index :other_insurances, [:customer_id, :created_at] unless index_exists?(:other_insurances, [:customer_id, :created_at])
+      add_index :other_insurances, [:customer_id, :created_at] unless index_exists?(:other_insurances, [:customer_id, :created_at]) || !column_exists?(:other_insurances, :customer_id)
     end
 
     # Indexes for Commission Payout queries

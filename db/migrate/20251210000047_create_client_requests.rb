@@ -1,7 +1,7 @@
 class CreateClientRequests < ActiveRecord::Migration[8.0]
   def change
     create_table :client_requests do |t|
-      t.string :ticket_number, null: false, unique: true
+      t.string :ticket_number, null: false
       t.string :name, null: false
       t.string :email, null: false
       t.string :phone_number, null: false

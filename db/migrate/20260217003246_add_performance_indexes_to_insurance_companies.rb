@@ -1,14 +1,16 @@
 class AddPerformanceIndexesToInsuranceCompanies < ActiveRecord::Migration[8.0]
   def change
     # Primary indexes for filtering and search
-    add_index :insurance_companies, :insurance_type, name: 'idx_insurance_companies_type'
+    add_index :insurance_companies, :insurance_type, name: 'idx_insurance_companies_type' if column_exists?(:insurance_companies, :insurance_type)
     add_index :insurance_companies, :status, name: 'idx_insurance_companies_status'
     add_index :insurance_companies, :name, name: 'idx_insurance_companies_name'
     add_index :insurance_companies, :code, name: 'idx_insurance_companies_code'
 
     # Compound indexes for common query patterns
-    add_index :insurance_companies, [:insurance_type, :status], name: 'idx_insurance_companies_type_status'
-    add_index :insurance_companies, [:status, :insurance_type], name: 'idx_insurance_companies_status_type'
+    if column_exists?(:insurance_companies, :insurance_type)
+      add_index :insurance_companies, [:insurance_type, :status], name: 'idx_insurance_companies_type_status'
+      add_index :insurance_companies, [:status, :insurance_type], name: 'idx_insurance_companies_status_type'
+    end
 
     # Text search indexes (PostgreSQL specific)
     if ActiveRecord::Base.connection.adapter_name.downcase.include?('postgresql')

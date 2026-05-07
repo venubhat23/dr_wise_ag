@@ -2029,10 +2029,10 @@ function loadTotalRevenueData(content, loading) {
     success: true,
     total_revenue: <%= @total_premium_collected || 0 %>,
     revenue_by_type: {
-      health: <%= HealthInsurance.sum(:total_premium) || 0 %>,
-      life: <%= LifeInsurance.sum(:total_premium) || 0 %>,
-      motor: <%= MotorInsurance.sum(:total_premium) || 0 %>,
-      other: <%= OtherInsurance.sum(:total_premium) || 0 %>
+      health: <%= (HealthInsurance.sum(:total_premium) rescue 0) || 0 %>,
+      life: <%= (LifeInsurance.sum(:total_premium) rescue 0) || 0 %>,
+      motor: <%= (MotorInsurance.sum(:total_premium) rescue 0) || 0 %>,
+      other: <%= (OtherInsurance.column_names.include?('total_premium') ? OtherInsurance.sum(:total_premium) : 0) rescue 0 %>
     },
     monthly_revenue: [],
     growth_rate: 0

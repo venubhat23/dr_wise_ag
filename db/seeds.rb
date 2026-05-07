@@ -2,13 +2,13 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-# Create Admin User
-admin = User.find_or_create_by!(email: "admin@drwise.in") do |user|
+# Create Admin User (primary)
+admin = User.find_or_create_by!(email: "admin@drwise.com") do |user|
   user.first_name = "Admin"
   user.last_name = "User"
   user.mobile = "9876543210"
-  user.password = "password"
-  user.password_confirmation = "password"
+  user.password = "admin123"
+  user.password_confirmation = "admin123"
   user.user_type = "admin"
   user.role = "super_admin"
   user.status = true
@@ -18,6 +18,27 @@ admin = User.find_or_create_by!(email: "admin@drwise.in") do |user|
 end
 
 puts "Created Admin User: #{admin.email}"
+
+# Ensure password is set correctly on existing record
+if admin.persisted? && !admin.valid_password?("admin123")
+  admin.update!(password: "admin123", password_confirmation: "admin123")
+  puts "Updated password for: #{admin.email}"
+end
+
+# Also keep the legacy admin user
+User.find_or_create_by!(email: "admin@drwise.in") do |user|
+  user.first_name = "Admin"
+  user.last_name = "User"
+  user.mobile = "9876543219"
+  user.password = "admin123"
+  user.password_confirmation = "admin123"
+  user.user_type = "admin"
+  user.role = "super_admin"
+  user.status = true
+  user.address = "123 Admin Street"
+  user.city = "Bangalore"
+  user.state = "Karnataka"
+end
 
 # Create some Insurance Companies
 insurance_companies = [
