@@ -2,41 +2,41 @@ default: &default
   adapter: postgresql
   encoding: unicode
   pool: 5
-  host: dpg-d5kq2ksoud1c73du8060-a.oregon-postgres.render.com
+  host: dpg-d7ti0f7avr4c73bbmcsg-a.virginia-postgres.render.com
   port: 5432
-  username: test_3_drwise_user
-  password: np9fbi4IsBhlG63FEtu1dPhdxF7q6ped
+  username: drwisedb01_user
+  password: tmRrglY6Y0HIcq26jwmmlBL4buUpEv78
 
 development:
   <<: *default
-  database: test_3_drwise
+  database: drwisedb01
 
 test:
   <<: *default
-  database: test_3_drwise_test
+  database: drwisedb01_test
 
 production:
   <<: *default
-  database: <%= ENV['DATABASE_NAME'] || 'test_3_drwise' %>
-  username: <%= ENV['DATABASE_USERNAME'] || 'test_3_drwise_user' %>
-  password: <%= ENV['DATABASE_PASSWORD'] || 'np9fbi4IsBhlG63FEtu1dPhdxF7q6ped' %>
-  host: <%= ENV['DATABASE_HOST'] || 'dpg-d5kq2ksoud1c73du8060-a.oregon-postgres.render.com' %>
+  database: <%= ENV['DATABASE_NAME'] || 'drwisedb01' %>
+  username: <%= ENV['DATABASE_USERNAME'] || 'drwisedb01_user' %>
+  password: <%= ENV['DATABASE_PASSWORD'] || 'tmRrglY6Y0HIcq26jwmmlBL4buUpEv78' %>
+  host: <%= ENV['DATABASE_HOST'] || 'dpg-d7ti0f7avr4c73bbmcsg-a' %>
   port: <%= ENV['DATABASE_PORT'] || '5432' %>
 
 # SolidQueue configuration for production - use same database as default
 queue:
   production:
     <<: *default
-    database: <%= ENV['DATABASE_NAME'] || 'test_3_drwise' %>
-    username: <%= ENV['DATABASE_USERNAME'] || 'test_3_drwise_user' %>
-    password: <%= ENV['DATABASE_PASSWORD'] || 'np9fbi4IsBhlG63FEtu1dPhdxF7q6ped' %>
-    host: <%= ENV['DATABASE_HOST'] || 'dpg-d5kq2ksoud1c73du8060-a.oregon-postgres.render.com' %>
+    database: <%= ENV['DATABASE_NAME'] || 'drwisedb01' %>
+    username: <%= ENV['DATABASE_USERNAME'] || 'drwisedb01_user' %>
+    password: <%= ENV['DATABASE_PASSWORD'] || 'tmRrglY6Y0HIcq26jwmmlBL4buUpEv78' %>
+    host: <%= ENV['DATABASE_HOST'] || 'dpg-d7ti0f7avr4c73bbmcsg-a' %>
     port: <%= ENV['DATABASE_PORT'] || '5432' %>
 
   development:
     <<: *default
-    database: test_3_drwise
+    database: drwisedb01
 
   test:
     <<: *default
-    database: test_3_drwise_test
+    database: drwisedb01_test

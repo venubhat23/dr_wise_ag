@@ -459,3 +459,4 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_16_122812) do
     t.index ["role_id"], name: "index_distributors_on_role_id"
     t.index ["status"], name: "index_distributors_on_status"
   end
+end
