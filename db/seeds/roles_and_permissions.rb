@@ -39,6 +39,12 @@ roles_config = {
     description: 'Customer access with read-only permissions to their own policies and basic dashboard.',
     status: true,
     permissions: %w[dashboard]
+  },
+  'sub_agent' => {
+    name: 'sub_agent',
+    description: 'Sub-agent/affiliate access limited to their assigned customers and policies.',
+    status: true,
+    permissions: %w[dashboard customers policies health_insurance life_insurance motor_insurance other_insurance leads]
   }
 }
 
