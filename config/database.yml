@@ -23,6 +23,28 @@ production:
   host: <%= ENV['DATABASE_HOST'] || 'dpg-d7ti0f7avr4c73bbmcsg-a.virginia-postgres.render.com' %>
   port: <%= ENV['DATABASE_PORT'] || '5432' %>
 
+# SolidCache configuration
+cache:
+  production:
+    <<: *default
+    database: <%= ENV['DATABASE_NAME'] || 'drwisedb01' %>
+    username: <%= ENV['DATABASE_USERNAME'] || 'drwisedb01_user' %>
+    password: <%= ENV['DATABASE_PASSWORD'] || 'tmRrglY6Y0HIcq26jwmmlBL4buUpEv78' %>
+    host: <%= ENV['DATABASE_HOST'] || 'dpg-d7ti0f7avr4c73bbmcsg-a.virginia-postgres.render.com' %>
+    port: <%= ENV['DATABASE_PORT'] || '5432' %>
+
+  development:
+    <<: *default
+    database: drwisedb01_dev
+    host: /var/run/postgresql
+    username: <%= ENV['DEV_DB_USERNAME'] || `whoami`.strip %>
+
+  test:
+    <<: *default
+    database: drwisedb01_test
+    host: /var/run/postgresql
+    username: <%= ENV['DEV_DB_USERNAME'] || `whoami`.strip %>
+
 # SolidQueue configuration
 queue:
   production:
