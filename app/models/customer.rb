@@ -380,7 +380,7 @@ class Customer < ApplicationRecord
     return if lead_id.present?
 
     loop do
-      self.lead_id = "CUST-#{Date.current.strftime('%Y%m%d')}-#{rand(1000..9999)}"
+      self.lead_id = "CUST-#{Date.current.strftime('%Y%m%d')}-#{SecureRandom.alphanumeric(6).upcase}"
       break unless Customer.exists?(lead_id: self.lead_id) || Lead.exists?(lead_id: self.lead_id)
     end
   end

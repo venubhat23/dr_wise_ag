@@ -398,7 +398,13 @@ class Admin::SubAgentsController < Admin::ApplicationController
   end
 
   def create_user_account_for_sub_agent(sub_agent)
-    # Create a corresponding User account for the sub_agent for system access
+    return unless sub_agent&.email.present?
+
+    existing_user = User.find_by(email: sub_agent.email)
+    return if existing_user
+
+    sub_agent_role = Role.find_by(name: 'sub_agent') || Role.find_by(name: 'Sub Agent')
+
     User.create!(
       first_name: sub_agent.first_name,
       last_name: sub_agent.last_name,
@@ -407,11 +413,10 @@ class Admin::SubAgentsController < Admin::ApplicationController
       password: sub_agent.password,
       password_confirmation: sub_agent.password,
       user_type: 'sub_agent',
-      role: 'sub_agent',
+      role: sub_agent_role,
       status: true
     )
   rescue => e
-    # Log error but don't fail the sub_agent creation
     Rails.logger.warn "Failed to create User account for SubAgent #{sub_agent.id}: #{e.message}"
   end
 

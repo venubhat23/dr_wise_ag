@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_08_000002) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_10_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -769,6 +769,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_08_000002) do
     t.index ["is_direct"], name: "index_leads_on_is_direct"
     t.index ["lead_id"], name: "index_leads_on_lead_id"
     t.index ["lead_source"], name: "index_leads_on_lead_source"
+    t.index ["parent_lead_id"], name: "index_leads_on_parent_lead_id"
     t.index ["product_category", "product_subcategory"], name: "index_leads_on_product_category_and_product_subcategory"
     t.index ["product_category"], name: "index_leads_on_product_category"
     t.index ["product_subcategory"], name: "index_leads_on_product_subcategory"
