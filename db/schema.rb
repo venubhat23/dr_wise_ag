@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_10_000002) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_10_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -223,6 +223,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_10_000002) do
     t.string "lead_id"
     t.boolean "invoiced", default: false
     t.decimal "total_commission_amount", precision: 10, scale: 2
+    t.decimal "tds_amount", precision: 10, scale: 2
     t.index ["created_at"], name: "index_commission_payouts_on_created_at"
     t.index ["lead_id"], name: "index_commission_payouts_on_lead_id"
     t.index ["payout_date"], name: "index_commission_payouts_on_payout_date"

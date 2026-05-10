@@ -32,6 +32,9 @@ class SubAgent < ApplicationRecord
   has_one_attached :upload_main_document
   has_one_attached :profile_image
   has_many :customers, foreign_key: 'sub_agent_id'
+  has_many :health_insurances, foreign_key: 'sub_agent_id'
+  has_many :life_insurances, foreign_key: 'sub_agent_id'
+  has_many :motor_insurances, foreign_key: 'sub_agent_id'
 
   # Nested attributes for documents
   accepts_nested_attributes_for :sub_agent_documents, allow_destroy: true,

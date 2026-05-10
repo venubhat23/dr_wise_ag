@@ -31,8 +31,8 @@ class HealthInsurance < ApplicationRecord
   accepts_nested_attributes_for :health_insurance_documents, allow_destroy: true, reject_if: :all_blank
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
-  # Virtual attribute for main policy document upload
-  attr_accessor :main_policy_document
+  # Virtual attributes
+  attr_accessor :main_policy_document, :sum_insured_text
 
   # Validations
   validates :policy_holder, presence: true
