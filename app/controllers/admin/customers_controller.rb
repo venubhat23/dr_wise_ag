@@ -12,11 +12,11 @@ class Admin::CustomersController < Admin::ApplicationController
     # Optimize query by selecting only needed columns for index page
     index_columns = %w[
       id first_name middle_name last_name company_name customer_type mobile
-      email status deactivated created_at sub_agent_id sub_agent policies_count lead_id
+      email status deactivated created_at sub_agent_id sub_agent lead_id
     ]
 
-    # Check if policies_count column exists for optimized queries
     has_counter_cache = Customer.column_names.include?('policies_count')
+    index_columns << 'policies_count' if has_counter_cache
 
     # Start with base query - don't use select when search is present to avoid PostgreSQL count issues
     if params[:search].present? && params[:search].strip.length >= 4
