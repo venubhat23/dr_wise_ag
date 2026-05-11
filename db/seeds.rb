@@ -3,27 +3,35 @@
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
 # Create Admin User (primary)
-admin = User.find_or_create_by!(email: "admin@drwise.com") do |user|
-  user.first_name = "Admin"
-  user.last_name = "User"
-  user.mobile = "9876543210"
-  user.password = "admin123"
-  user.password_confirmation = "admin123"
-  user.user_type = "admin"
-  user.role = "super_admin"
-  user.status = true
-  user.address = "123 Admin Street"
-  user.city = "Bangalore"
-  user.state = "Karnataka"
+all_sidebar = %w[dashboard analytics customers sub_agents distributors leads health_insurances life_insurances motor_insurances other_insurances system_settings banners roles users brokers agency_codes broker_codes commission_payouts distributor_payouts payouts invoices investors reports settings permissions user_roles management client_requests agency_brokers insurance_companies imports]
+all_crud = all_sidebar.each_with_object({}) { |mod, h| h[mod] = { 'view' => 'on', 'create' => 'on', 'edit' => 'on', 'delete' => 'on' } }
+
+super_admin_role = Role.find_or_create_by!(name: 'super_admin') do |r|
+  r.description = 'Full system access with all privileges.'
+  r.status = true
 end
 
-puts "Created Admin User: #{admin.email}"
+admin = User.find_or_initialize_by(email: "admin@drwise.com")
+admin.assign_attributes(
+  first_name: "Admin",
+  last_name: "User",
+  mobile: "9876543210",
+  password: "admin@123",
+  password_confirmation: "admin@123",
+  user_type: "admin",
+  role_id: super_admin_role.id,
+  role_name: "super_admin",
+  status: true,
+  is_active: true,
+  address: "123 Admin Street",
+  city: "Bangalore",
+  state: "Karnataka",
+  sidebar_permissions: all_sidebar.to_json,
+  crud_permissions: all_crud.to_json
+)
+admin.save!(validate: false)
 
-# Ensure password is set correctly on existing record
-if admin.persisted? && !admin.valid_password?("admin123")
-  admin.update!(password: "admin123", password_confirmation: "admin123")
-  puts "Updated password for: #{admin.email}"
-end
+puts "Created/Updated Admin User: #{admin.email}"
 
 # Also keep the legacy admin user
 User.find_or_create_by!(email: "admin@drwise.in") do |user|

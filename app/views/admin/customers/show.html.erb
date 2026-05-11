@@ -299,7 +299,7 @@ body {
           <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
             <i class="bi bi-plus-circle me-1"></i>Create Insurance
           </button>
-          <ul class="dropdown-menu">
+          <ul class="dropdown-menu dropdown-menu-end">
             <li><%= link_to "Life Insurance", new_admin_life_insurance_path(customer_id: @customer.id), class: "dropdown-item" %></li>
             <li><%= link_to "Health Insurance", new_admin_health_insurance_path(customer_id: @customer.id), class: "dropdown-item" %></li>
             <li><%= link_to "Motor Insurance", new_admin_motor_insurance_path(customer_id: @customer.id), class: "dropdown-item" %></li>
@@ -311,7 +311,7 @@ body {
           <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
             <i class="bi bi-gear me-1"></i>Actions
           </button>
-          <ul class="dropdown-menu">
+          <ul class="dropdown-menu dropdown-menu-end">
             <li><%= link_to "Edit Customer", edit_admin_customer_path(@customer), class: "dropdown-item" %></li>
             <li><%= link_to "Add Family Member", new_admin_customer_family_member_path(@customer), class: "dropdown-item" %></li>
             <li><hr class="dropdown-divider"></li>
