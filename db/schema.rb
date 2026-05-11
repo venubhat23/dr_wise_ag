@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_10_000003) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_11_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -150,6 +150,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_10_000003) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "display_order", default: 0
+    t.string "r2_file_key"
+    t.string "r2_filename"
+    t.string "r2_content_type"
+    t.bigint "r2_file_size"
+    t.text "r2_public_url"
     t.index ["display_order"], name: "index_banners_on_display_order"
   end
 
