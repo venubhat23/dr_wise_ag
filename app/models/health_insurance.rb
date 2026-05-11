@@ -154,7 +154,7 @@ class HealthInsurance < ApplicationRecord
   end
 
   def has_been_renewed?
-    is_renewed == true || renewal_policy.present?
+    (self.class.column_names.include?('is_renewed') && is_renewed == true) || renewal_policy.present?
   end
 
   def can_be_renewed?

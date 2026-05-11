@@ -328,8 +328,8 @@ class MotorInsurance < ApplicationRecord
       self.main_agent_commission_amount = (net_premium * (main_agent_commission_percentage / 100.0)).round(2)
     end
 
-    if main_agent_commission_amount.present? && main_agent_tds_percentage.present?
-      self.main_agent_tds_amount = (main_agent_commission_amount * (main_agent_tds_percentage / 100.0)).round(2)
+    if main_agent_commission_amount.present? && main_agent_tds_percent.present?
+      self.main_agent_tds_amount = (main_agent_commission_amount * (main_agent_tds_percent / 100.0)).round(2)
       self.after_tds_value = (main_agent_commission_amount - main_agent_tds_amount).round(2)
     end
 
