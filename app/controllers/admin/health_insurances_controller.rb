@@ -108,7 +108,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   end
 
   def update
-    update_params = health_insurance_params
+    update_params = process_broker_params(health_insurance_params)
     # Extract main_policy_document from params to handle separately
     main_policy_document_file = update_params.delete(:main_policy_document)
     @health_insurance.assign_attributes(update_params)

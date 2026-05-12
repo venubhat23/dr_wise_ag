@@ -1434,6 +1434,75 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
 
+    // ---- Broker/Agency Code dynamic switching (same as new form) ----
+    const savedBrokerCodeType = '<%= @health_insurance.broker_code_type %>';
+    const savedBrokerId       = '<%= @health_insurance.broker_id %>';
+    const savedAgencyCodeId   = '<%= @health_insurance.agency_code_id %>';
+
+    function populateAgencyCodeDropdownEdit(data, placeholder, preselectId) {
+      const agencyCodeSelect = document.getElementById('health_insurance_agency_code_id');
+      if (!agencyCodeSelect) return;
+      if ($(agencyCodeSelect).hasClass('select2-hidden-accessible')) {
+        $(agencyCodeSelect).select2('destroy');
+      }
+      agencyCodeSelect.innerHTML = `<option value="">${placeholder}</option>`;
+      data.forEach(function(item) {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.code && !item.text.includes(' - ') ? item.text + ' - ' + item.code : item.text;
+        option.setAttribute('data-code', item.code || '');
+        option.setAttribute('data-name', item.broker_name || item.agent_name || item.text);
+        if (String(item.id) === String(preselectId)) option.selected = true;
+        agencyCodeSelect.appendChild(option);
+      });
+      $(agencyCodeSelect).select2({
+        theme: 'bootstrap-5', placeholder: placeholder, allowClear: true,
+        width: '100%', dropdownParent: $('body'), dropdownCssClass: 'select2-dropdown-large',
+        minimumResultsForSearch: 0, closeOnSelect: true
+      });
+    }
+
+    function loadBrokingMode(preselectBrokerId) {
+      fetch('/admin/insurance/health/agency_codes_for_broker_type?broker_type=broking')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success && data.data) {
+            var preselect = preselectBrokerId ? 'broker_' + preselectBrokerId : '';
+            populateAgencyCodeDropdownEdit(data.data, 'Select Broker...', preselect);
+          }
+        });
+    }
+
+    function loadDirectMode(preselectAgencyCodeId) {
+      fetch('/admin/insurance/health/agency_codes_for_broker_type?broker_type=direct')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success && data.data) {
+            populateAgencyCodeDropdownEdit(data.data, 'Select Agent...', preselectAgencyCodeId);
+          }
+        });
+    }
+
+    // On page load: load the right list and pre-select saved value
+    if (savedBrokerCodeType === 'broking') {
+      loadBrokingMode(savedBrokerId);
+    } else if (savedBrokerCodeType === 'direct') {
+      loadDirectMode(savedAgencyCodeId);
+    }
+
+    // On broker_code_type change: reload dropdown
+    var brokerTypeSelect = document.getElementById('health_insurance_broker_code_type');
+    if (brokerTypeSelect) {
+      brokerTypeSelect.addEventListener('change', function() {
+        if (this.value === 'broking') {
+          loadBrokingMode(null);
+        } else if (this.value === 'direct') {
+          loadDirectMode(null);
+        }
+      });
+    }
+    // ---- End broker/agency switching ----
+
     // Initialize Select2 for Agency Code dropdown
     $('#health_insurance_agency_code_id').select2({
       theme: 'bootstrap-5',
