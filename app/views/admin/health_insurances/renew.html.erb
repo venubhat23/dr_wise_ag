@@ -1220,69 +1220,79 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
 
-    // Initialize Select2 for Agency Code dropdown
-    $('#health_insurance_agency_code_id').select2({
-      theme: 'bootstrap-5',
-      placeholder: 'Search and select agency code...',
-      allowClear: true,
-      width: '100%',
-      dropdownParent: $('body'),
-      dropdownCssClass: 'select2-dropdown-large',
-      minimumResultsForSearch: 0,
-      closeOnSelect: true,
-      templateResult: function(option) {
-        if (!option.id || option.element.value === '') {
-          return option.text;
-        }
+    // ---- Broker/Agency Code dynamic switching ----
+    var savedBrokerCodeType = '<%= @health_insurance.broker_code_type %>';
+    var savedBrokerId       = '<%= @health_insurance.broker_id %>';
+    var savedAgencyCodeId   = '<%= @health_insurance.agency_code_id %>';
 
-        var parts = option.text.split(' - ');
-        var agentName = parts[0] || option.text;
-        var agencyCode = parts[1] || '';
-
-        var initials = agentName.split(' ').map(function(word) {
-          return word.charAt(0).toUpperCase();
-        }).join('').substring(0, 2);
-
-        var $option = $(
-          '<div class="agency-option">' +
-            '<div class="agency-option-avatar">' + initials + '</div>' +
-            '<div class="agency-option-details">' +
-              '<div class="agency-option-name">' + agentName + '</div>' +
-              '<div class="agency-option-code">Code: ' + agencyCode + '</div>' +
-            '</div>' +
-          '</div>'
-        );
-        return $option;
-      },
-      templateSelection: function(option) {
-        return option.text || 'Search and select agency code...';
-      },
-      escapeMarkup: function(markup) {
-        return markup;
+    function populateAgencyCodeDropdownRenew(data, placeholder, preselectId, isBroking) {
+      var agencyCodeSelect = document.getElementById('health_insurance_agency_code_id');
+      if (!agencyCodeSelect) return;
+      if ($(agencyCodeSelect).hasClass('select2-hidden-accessible')) {
+        $(agencyCodeSelect).select2('destroy');
       }
-    });
-
-    // Restore pre-selected agency code from the original policy
-    <% if @health_insurance.agency_code_id.present? %>
-    function restoreAgencyCode() {
-      var agencyCodeId = '<%= @health_insurance.agency_code_id %>';
-      var $select = $('#health_insurance_agency_code_id');
-
-      // Check the option actually exists in the dropdown
-      if ($select.find('option[value="' + agencyCodeId + '"]').length === 0) {
-        // Option not rendered — add it dynamically then select it
-        var agencyCodeText = '<%= j(@health_insurance.agency_code&.agent_name.to_s + " - " + @health_insurance.agency_code&.code.to_s) %>';
-        $select.append(new Option(agencyCodeText, agencyCodeId, true, true));
-      }
-
-      $select.val(agencyCodeId).trigger('change.select2');
+      agencyCodeSelect.innerHTML = '<option value="">' + placeholder + '</option>';
+      data.forEach(function(item) {
+        var option = document.createElement('option');
+        option.value = isBroking ? 'broker_' + item.id : item.id;
+        option.textContent = item.code && !item.text.includes(' - ') ? item.text + ' - ' + item.code : item.text;
+        option.setAttribute('data-code', item.code || '');
+        option.setAttribute('data-name', item.broker_name || item.agent_name || item.text);
+        var valueToCompare = isBroking ? 'broker_' + String(item.id) : String(item.id);
+        if (valueToCompare === String(preselectId)) option.selected = true;
+        agencyCodeSelect.appendChild(option);
+      });
+      $(agencyCodeSelect).select2({
+        theme: 'bootstrap-5', placeholder: placeholder, allowClear: true,
+        width: '100%', dropdownParent: $('body'), dropdownCssClass: 'select2-dropdown-large',
+        minimumResultsForSearch: 0, closeOnSelect: true
+      });
     }
 
-    // Run immediately and again after other init settles
-    restoreAgencyCode();
-    setTimeout(restoreAgencyCode, 600);
-    setTimeout(restoreAgencyCode, 1200);
-    <% end %>
+    function loadBrokingModeRenew(preselectBrokerId) {
+      fetch('/admin/insurance/health/agency_codes_for_broker_type?broker_type=broking')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success && data.data) {
+            var preselect = preselectBrokerId ? 'broker_' + preselectBrokerId : '';
+            populateAgencyCodeDropdownRenew(data.data, 'Select Broker...', preselect, true);
+          }
+        });
+    }
+
+    function loadDirectModeRenew(preselectAgencyCodeId) {
+      fetch('/admin/insurance/health/agency_codes_for_broker_type?broker_type=direct')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success && data.data) {
+            populateAgencyCodeDropdownRenew(data.data, 'Select Agent...', preselectAgencyCodeId, false);
+          }
+        });
+    }
+
+    if (savedBrokerCodeType === 'broking') {
+      loadBrokingModeRenew(savedBrokerId || savedAgencyCodeId);
+    } else if (savedBrokerCodeType === 'direct') {
+      loadDirectModeRenew(savedAgencyCodeId);
+    } else {
+      $('#health_insurance_agency_code_id').select2({
+        theme: 'bootstrap-5', placeholder: 'Search and select agency code...', allowClear: true,
+        width: '100%', dropdownParent: $('body'), dropdownCssClass: 'select2-dropdown-large',
+        minimumResultsForSearch: 0, closeOnSelect: true
+      });
+    }
+
+    var brokerTypeSelectRenew = document.getElementById('health_insurance_broker_code_type');
+    if (brokerTypeSelectRenew) {
+      brokerTypeSelectRenew.addEventListener('change', function() {
+        if (this.value === 'broking') {
+          loadBrokingModeRenew(null);
+        } else if (this.value === 'direct') {
+          loadDirectModeRenew(null);
+        }
+      });
+    }
+    // ---- End broker/agency switching ----
 
     // Initialize Select2 for Policy Holder dropdown
     $('#policy_holder_select').select2({

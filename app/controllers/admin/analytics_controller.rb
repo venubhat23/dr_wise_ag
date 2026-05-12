@@ -35,10 +35,20 @@ class Admin::AnalyticsController < Admin::ApplicationController
   def setup_filter_dates
     # Get date filter parameters (default to current year)
     current_year = Date.current.year
-    @filter_year = params[:year].present? ? params[:year].to_i : current_year
-    @filter_month = params[:month].present? ? params[:month].to_i : nil
-    @filter_start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : Date.new(@filter_year, 1, 1)
-    @filter_end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : Date.new(@filter_year, 12, 31)
+    @filter_year = params[:year].present? ? params[:year].to_i.clamp(2000, 2100) : current_year
+    @filter_month = params[:month].present? ? params[:month].to_i.clamp(1, 12) : nil
+    @filter_start_date = if params[:start_date].present?
+      date = Date.parse(params[:start_date]) rescue nil
+      (date && date.year >= 2000 && date.year <= 2100) ? date : Date.new(@filter_year, 1, 1)
+    else
+      Date.new(@filter_year, 1, 1)
+    end
+    @filter_end_date = if params[:end_date].present?
+      date = Date.parse(params[:end_date]) rescue nil
+      (date && date.year >= 2000 && date.year <= 2100) ? date : Date.new(@filter_year, 12, 31)
+    else
+      Date.new(@filter_year, 12, 31)
+    end
 
     # If month is specified, filter by that month
     if @filter_month.present?

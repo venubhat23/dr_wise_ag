@@ -445,6 +445,8 @@ class HealthInsurance < ApplicationRecord
     end
   end
 
+  public
+
   # R2 main policy document upload method
   def upload_main_policy_to_r2(file)
     return { error: 'No file provided' } unless file.present?
