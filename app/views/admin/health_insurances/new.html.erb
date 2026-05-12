@@ -2268,7 +2268,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
           console.log('📊 API Data:', data);
           if (data.success && data.data) {
-            populateAgencyCodeDropdown(data.data, 'Select Agent...');
+            populateAgencyCodeDropdown(data.data, 'Select Agent...', false);
 
             // Clear insurance company and show message to select agent first
             const insuranceCompanySelect = document.getElementById('health_insurance_insurance_company_name');
@@ -2291,7 +2291,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
           console.log('📊 Brokers Data:', data);
           if (data.success && data.data) {
-            populateAgencyCodeDropdown(data.data, 'Select Broker...');
+            populateAgencyCodeDropdown(data.data, 'Select Broker...', true);
           }
         })
         .catch(error => {
@@ -2312,7 +2312,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function populateAgencyCodeDropdown(data, placeholder) {
+    function populateAgencyCodeDropdown(data, placeholder, isBroking) {
       const agencyCodeSelect = document.getElementById('health_insurance_agency_code_id');
       if (!agencyCodeSelect) return;
 
@@ -2324,7 +2324,7 @@ document.addEventListener('DOMContentLoaded', function() {
       agencyCodeSelect.innerHTML = `<option value="">${placeholder}</option>`;
       data.forEach(item => {
         const option = document.createElement('option');
-        option.value = item.id;
+        option.value = isBroking ? 'broker_' + item.id : item.id;
         // For brokers with codes, append the code to the text
         if (item.code && !item.text.includes(' - ')) {
           option.textContent = item.text + ' - ' + item.code;

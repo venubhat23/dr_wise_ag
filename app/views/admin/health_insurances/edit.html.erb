@@ -1439,7 +1439,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const savedBrokerId       = '<%= @health_insurance.broker_id %>';
     const savedAgencyCodeId   = '<%= @health_insurance.agency_code_id %>';
 
-    function populateAgencyCodeDropdownEdit(data, placeholder, preselectId) {
+    function populateAgencyCodeDropdownEdit(data, placeholder, preselectId, isBroking) {
       const agencyCodeSelect = document.getElementById('health_insurance_agency_code_id');
       if (!agencyCodeSelect) return;
       if ($(agencyCodeSelect).hasClass('select2-hidden-accessible')) {
@@ -1448,11 +1448,12 @@ document.addEventListener('DOMContentLoaded', function() {
       agencyCodeSelect.innerHTML = `<option value="">${placeholder}</option>`;
       data.forEach(function(item) {
         const option = document.createElement('option');
-        option.value = item.id;
+        option.value = isBroking ? 'broker_' + item.id : item.id;
         option.textContent = item.code && !item.text.includes(' - ') ? item.text + ' - ' + item.code : item.text;
         option.setAttribute('data-code', item.code || '');
         option.setAttribute('data-name', item.broker_name || item.agent_name || item.text);
-        if (String(item.id) === String(preselectId)) option.selected = true;
+        var valueToCompare = isBroking ? 'broker_' + String(item.id) : String(item.id);
+        if (valueToCompare === String(preselectId)) option.selected = true;
         agencyCodeSelect.appendChild(option);
       });
       $(agencyCodeSelect).select2({
@@ -1468,7 +1469,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(function(data) {
           if (data.success && data.data) {
             var preselect = preselectBrokerId ? 'broker_' + preselectBrokerId : '';
-            populateAgencyCodeDropdownEdit(data.data, 'Select Broker...', preselect);
+            populateAgencyCodeDropdownEdit(data.data, 'Select Broker...', preselect, true);
           }
         });
     }
@@ -1478,14 +1479,15 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(function(r) { return r.json(); })
         .then(function(data) {
           if (data.success && data.data) {
-            populateAgencyCodeDropdownEdit(data.data, 'Select Agent...', preselectAgencyCodeId);
+            populateAgencyCodeDropdownEdit(data.data, 'Select Agent...', preselectAgencyCodeId, false);
           }
         });
     }
 
     // On page load: load the right list and pre-select saved value
     if (savedBrokerCodeType === 'broking') {
-      loadBrokingMode(savedBrokerId);
+      // Fall back to savedAgencyCodeId for records saved before broker_id was correctly set
+      loadBrokingMode(savedBrokerId || savedAgencyCodeId);
     } else if (savedBrokerCodeType === 'direct') {
       loadDirectMode(savedAgencyCodeId);
     }
