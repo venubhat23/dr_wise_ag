@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_11_000004) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_12_093854) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -523,7 +523,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_11_000004) do
     t.boolean "is_customer_added", default: false
     t.boolean "is_agent_added", default: false
     t.boolean "is_admin_added", default: false
-    t.boolean "product_through_dr", default: false
+    t.boolean "product_through_dr", default: true
     t.boolean "main_agent_commission_received", default: false
     t.string "main_agent_commission_transaction_id"
     t.date "main_agent_commission_paid_date"
@@ -896,7 +896,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_11_000004) do
     t.string "main_agent_commission_transaction_id"
     t.date "main_agent_commission_paid_date"
     t.text "main_agent_commission_notes"
-    t.boolean "product_through_dr"
+    t.boolean "product_through_dr", default: true
     t.string "insurance_company_code"
     t.index ["created_at"], name: "index_life_insurances_on_created_at"
     t.index ["customer_id", "created_at"], name: "index_life_insurances_on_customer_id_and_created_at"
