@@ -204,17 +204,9 @@ class DashboardController < ApplicationController
 
     # Simplified count queries focusing only on created_at for better performance
     count_results = ActiveRecord::Base.connection.execute("
-      SELECT 'total_customers' as metric, COUNT(DISTINCT customer_id) as count FROM (
-        SELECT customer_id FROM health_insurances
-        WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND product_through_dr = true
-        UNION
-        SELECT customer_id FROM life_insurances
-        WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND product_through_dr = true
-      ) as policy_customers
+      SELECT 'total_customers' as metric, COUNT(*) as count FROM customers
       UNION ALL
-      SELECT 'active_customers', COUNT(DISTINCT h.customer_id) FROM health_insurances h
-      JOIN customers c ON h.customer_id = c.id
-      WHERE c.status = true AND h.created_at BETWEEN '#{start_date}' AND '#{end_date}' AND h.product_through_dr = true
+      SELECT 'active_customers', COUNT(*) FROM customers WHERE status = true
       UNION ALL
       SELECT 'total_ambassadors', COUNT(*) FROM distributors
       WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
@@ -245,9 +237,9 @@ class DashboardController < ApplicationController
     results[:total_affiliates] = SubAgent.where(created_at: start_date..end_date).count
 
     # Calculate derived values
-    results[:inactive_customers] = results[:total_customers] - results[:active_customers]
-    results[:total_policies] = results[:health_count] + results[:life_count] + results[:motor_count] + results[:other_count]
-    results[:lead_conversion_percentage] = results[:total_leads] > 0 ? ((results[:converted_leads].to_f / results[:total_leads]) * 100).round(2) : 0
+    results[:inactive_customers] = results[:total_customers].to_i - results[:active_customers].to_i
+    results[:total_policies] = results[:health_count].to_i + results[:life_count].to_i + results[:motor_count].to_i + results[:other_count].to_i
+    results[:lead_conversion_percentage] = results[:total_leads].to_i > 0 ? ((results[:converted_leads].to_f / results[:total_leads].to_f) * 100).round(2) : 0
 
     # Premium data for the filtered period - simplified for performance
     premium_results = ActiveRecord::Base.connection.execute("
@@ -604,9 +596,9 @@ class DashboardController < ApplicationController
     results[:total_affiliates] = calculate_active_affiliates_with_policies
 
     # Calculate derived values
-    results[:inactive_customers] = results[:total_customers] - results[:active_customers]
-    results[:total_policies] = results[:health_count] + results[:life_count] + results[:motor_count] + results[:other_count]
-    results[:lead_conversion_percentage] = results[:total_leads] > 0 ? ((results[:converted_leads].to_f / results[:total_leads]) * 100).round(2) : 0
+    results[:inactive_customers] = results[:total_customers].to_i - results[:active_customers].to_i
+    results[:total_policies] = results[:health_count].to_i + results[:life_count].to_i + results[:motor_count].to_i + results[:other_count].to_i
+    results[:lead_conversion_percentage] = results[:total_leads].to_i > 0 ? ((results[:converted_leads].to_f / results[:total_leads].to_f) * 100).round(2) : 0
 
     # Premium data - single query with UNION for better performance
     premium_results = ActiveRecord::Base.connection.execute("
