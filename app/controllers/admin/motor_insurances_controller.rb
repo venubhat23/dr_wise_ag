@@ -848,18 +848,12 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   private
 
   def process_broker_params(params)
-    # Handle agency_code_id when it contains broker_X format
+    # Handle agency_code_id when it contains broker_X format (X is BrokerCode.id)
     if params[:agency_code_id].present? && params[:agency_code_id].start_with?('broker_')
-      # Extract broker ID from broker_X format
-      broker_id = params[:agency_code_id].gsub('broker_', '').to_i
-      # Set broker_id and clear agency_code_id for broking type only if broker exists
-      if broker_id > 0 && Broker.exists?(broker_id)
-        params[:broker_id] = broker_id
-        params[:agency_code_id] = nil
-      else
-        Rails.logger.warn "Broker ID #{broker_id} not found, skipping broker assignment"
-        # Clear both to avoid foreign key constraint violation
-        params[:broker_id] = nil
+      broker_code_id = params[:agency_code_id].gsub('broker_', '').to_i
+      if broker_code_id > 0
+        broker_code = BrokerCode.find_by(id: broker_code_id)
+        params[:broker_id] = broker_code ? broker_code.broker_id : nil
         params[:agency_code_id] = nil
       end
     end

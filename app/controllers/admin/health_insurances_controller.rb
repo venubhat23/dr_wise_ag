@@ -637,13 +637,12 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   end
 
   def process_broker_params(params)
-    # Handle agency_code_id when it contains broker_X format
+    # Handle agency_code_id when it contains broker_X format (X is BrokerCode.id)
     if params[:agency_code_id].present? && params[:agency_code_id].start_with?('broker_')
-      # Extract broker ID from broker_X format
-      broker_id = params[:agency_code_id].gsub('broker_', '').to_i
-      # Set broker_id and clear agency_code_id for broking type
-      if broker_id > 0
-        params[:broker_id] = broker_id
+      broker_code_id = params[:agency_code_id].gsub('broker_', '').to_i
+      if broker_code_id > 0
+        broker_code = BrokerCode.find_by(id: broker_code_id)
+        params[:broker_id] = broker_code.broker_id if broker_code
         params[:agency_code_id] = nil
       end
     end
