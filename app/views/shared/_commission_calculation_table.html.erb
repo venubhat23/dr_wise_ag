@@ -1,3 +1,14 @@
+<%
+  _main_pct   = (policy.try(:main_agent_commission_percentage) || 0).to_f
+  _sub_pct    = (policy.try(:sub_agent_commission_percentage)   || 0).to_f
+  _amb_pct    = (policy.try(:ambassador_commission_percentage)  || 0).to_f
+  _inv_pct    = (policy.try(:investor_commission_percentage)    || 0).to_f
+  _exp_pct    = (policy.try(:company_expenses_percentage)       || 0).to_f
+  _net        = (policy.try(:net_premium)                       || 0).to_f
+  _total_dist = _sub_pct + _amb_pct + _inv_pct
+  _profit_pct = _main_pct - _total_dist - _exp_pct
+  _profit_amt = _net * _profit_pct / 100.0
+%>
 <!-- Commission Calculation Table for View Pages -->
 <div class="card mb-4 shadow-sm commission-table">
   <div class="card-header" style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
@@ -186,12 +197,12 @@
             <td class="py-3 px-4 fw-bold text-dark">Profit</td>
             <td class="py-2 px-1 text-center">
               <div class="form-control border-1 text-center fw-bold" style="background: #fffbf0; border-color: #ffc107; color: #856404;">
-                <%= policy.try(:profit_percentage) || 0 %>%
+                <%= number_with_precision(_profit_pct, precision: 2) %>%
               </div>
             </td>
             <td class="py-2 px-1 text-center">
               <div class="form-control border-1 text-center fw-bold" style="background: #fffbf0; border-color: #ffc107; color: #856404;">
-                <%= indian_currency(policy.try(:profit_amount)) || '₹0.00' %>
+                <%= indian_currency(_profit_amt) %>
               </div>
             </td>
             <td class="py-2 px-1 text-center">
@@ -206,7 +217,7 @@
             </td>
             <td class="py-2 px-1 text-center" style="background: #fffbf0;">
               <div class="form-control border-1 text-center fw-bold fs-6" style="background: #fff9c4; border-color: #ffc107; color: #856404;">
-                <%= indian_currency(policy.try(:profit_amount)) || '₹0.00' %>
+                <%= indian_currency(_profit_amt) %>
               </div>
             </td>
           </tr>
@@ -226,19 +237,19 @@
         <div class="col-md-3">
           <small class="text-muted fw-bold">Total Distribution:</small>
           <div class="h6 mb-0 text-info">
-            <%= policy.try(:total_distribution_percentage) || 0 %>%
+            <%= number_with_precision(_total_dist, precision: 2) %>%
           </div>
         </div>
         <div class="col-md-3">
           <small class="text-muted fw-bold">Company Expenses:</small>
           <div class="h6 mb-0 text-danger">
-            <%= policy.try(:company_expenses_percentage) || 0 %>%
+            <%= number_with_precision(_exp_pct, precision: 2) %>%
           </div>
         </div>
         <div class="col-md-3">
           <small class="text-muted fw-bold">Final Profit:</small>
           <div class="h6 mb-0 text-warning">
-            <%= indian_currency(policy.try(:profit_amount)) || '₹0.00' %>
+            <%= indian_currency(_profit_amt) %>
           </div>
         </div>
       </div>
