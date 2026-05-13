@@ -650,7 +650,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   end
 
   def set_health_insurance
-    @health_insurance = HealthInsurance.includes(:agency_code).find(params[:id])
+    @health_insurance = HealthInsurance.includes(:agency_code, :health_insurance_nominees).find(params[:id])
   end
 
   def load_form_data

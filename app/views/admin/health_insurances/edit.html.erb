@@ -619,54 +619,60 @@
   <div class="card mb-4">
     <div class="card-header">
       <h5 class="mb-0">
-        <i class="bi bi-person-heart me-2 text-info"></i>
-        Nominee Information
+        <i class="bi bi-person-check me-2 text-primary"></i>
+        Nominee Details
       </h5>
     </div>
     <div class="card-body">
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <%= form.label :nominee_name, "Nominee Name*", class: "form-label" %>
-          <%= form.text_field :nominee_name,
-              class: "form-control #{'is-invalid' if @health_insurance.errors[:nominee_name].any?}",
-              placeholder: "Enter nominee name",
-              required: true %>
-          <% if @health_insurance.errors[:nominee_name].any? %>
-            <div class="invalid-feedback"><%= @health_insurance.errors[:nominee_name].first %></div>
-          <% end %>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">Nominees</h6>
+        <div>
+          <button type="button" id="load_customer_nominees_btn" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-download me-1"></i>Load from Client
+          </button>
+          <button type="button" id="add_nominee" class="btn btn-primary">
+            <i class="bi bi-plus me-1"></i>Add Nominee
+          </button>
+        </div>
+      </div>
+
+      <div id="nominees">
+        <div class="text-center py-4 text-muted" id="no_nominees_message">
+          <i class="bi bi-person-check display-4 mb-3"></i>
+          <p class="mb-0">No nominees added yet.</p>
         </div>
 
-        <div class="col-md-4 mb-3">
-          <%= form.label :nominee_relation, "Relationship*", class: "form-label" %>
-          <%= form.select :nominee_relation,
-              options_for_select([
-                ['Father', 'father'],
-                ['Mother', 'mother'],
-                ['Spouse', 'spouse'],
-                ['Son', 'son'],
-                ['Daughter', 'daughter'],
-                ['Brother', 'brother'],
-                ['Sister', 'sister'],
-                ['Other', 'other']
-              ], @health_insurance.nominee_relation),
-              { prompt: 'Select relationship' },
-              { class: "form-control #{'is-invalid' if @health_insurance.errors[:nominee_relation].any?}", required: true } %>
-          <% if @health_insurance.errors[:nominee_relation].any? %>
-            <div class="invalid-feedback"><%= @health_insurance.errors[:nominee_relation].first %></div>
-          <% end %>
-        </div>
-
-        <div class="col-md-4 mb-3">
-          <%= form.label :nominee_dob, "Date of Birth*", class: "form-label" %>
-          <%= form.date_field :nominee_dob,
-              class: "form-control #{'is-invalid' if @health_insurance.errors[:nominee_dob].any?}",
-              required: true,
-              min: "1900-01-01",
-              max: "2099-12-31" %>
-          <% if @health_insurance.errors[:nominee_dob].any? %>
-            <div class="invalid-feedback"><%= @health_insurance.errors[:nominee_dob].first %></div>
-          <% end %>
-        </div>
+        <%= form.fields_for :health_insurance_nominees do |nominee_form| %>
+          <div class="nominee-row border rounded p-3 mb-3 bg-light">
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <%= nominee_form.label :nominee_name, "Nominee Name", class: "form-label required" %>
+                <%= nominee_form.text_field :nominee_name, class: "form-control", placeholder: "Full Name", required: true %>
+              </div>
+              <div class="col-md-3 mb-3">
+                <%= nominee_form.label :relationship, "Relationship", class: "form-label required" %>
+                <%= nominee_form.select :relationship,
+                    options_for_select(HealthInsuranceNominee::RELATIONSHIPS.map { |rel| [rel.humanize, rel] }, nominee_form.object.relationship),
+                    { prompt: 'Select Relationship' },
+                    { class: "form-select", required: true } %>
+              </div>
+              <div class="col-md-2 mb-3">
+                <%= nominee_form.label :age, "Age", class: "form-label required" %>
+                <%= nominee_form.number_field :age, class: "form-control", min: 1, max: 120, required: true %>
+              </div>
+              <div class="col-md-2 mb-3">
+                <%= nominee_form.label :share_percentage, "Share %", class: "form-label required" %>
+                <%= nominee_form.number_field :share_percentage, class: "form-control", min: 0, max: 100, step: 0.01, placeholder: "100", required: true %>
+              </div>
+              <div class="col-md-1 d-flex align-items-end mb-3">
+                <button type="button" class="btn btn-outline-danger remove-nominee-btn">
+                  <i class="bi bi-trash"></i>
+                </button>
+                <%= nominee_form.check_box :_destroy, style: "display: none;" %>
+              </div>
+            </div>
+          </div>
+        <% end %>
       </div>
     </div>
   </div>
@@ -2172,6 +2178,170 @@ function deleteHealthInsuranceDocument(documentId, documentTitle) {
     });
   }
 }
+
+// Dynamic nominee management
+document.addEventListener('DOMContentLoaded', function() {
+  let nomineeIndex = <%= @health_insurance.health_insurance_nominees.size %>;
+
+  function toggleNoNomineesMessage() {
+    const nomineeRows = document.querySelectorAll('.nominee-row');
+    const noNomineesMsg = document.getElementById('no_nominees_message');
+    if (noNomineesMsg) {
+      const hasVisible = Array.from(nomineeRows).some(row => row.style.display !== 'none');
+      noNomineesMsg.style.display = hasVisible ? 'none' : 'block';
+    }
+  }
+
+  const addNomineeBtn = document.getElementById('add_nominee');
+  if (addNomineeBtn) {
+    addNomineeBtn.addEventListener('click', function() {
+      const nomineeTemplate = `
+        <div class="nominee-row border rounded p-3 mb-3 bg-light">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label required">Nominee Name</label>
+              <input type="text" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][nominee_name]" class="form-control" placeholder="Full Name" required>
+            </div>
+            <div class="col-md-3 mb-3">
+              <label class="form-label required">Relationship</label>
+              <select name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][relationship]" class="form-select" required>
+                <option value="">Select Relationship</option>
+                <option value="father">Father</option>
+                <option value="mother">Mother</option>
+                <option value="spouse">Spouse</option>
+                <option value="son">Son</option>
+                <option value="daughter">Daughter</option>
+                <option value="brother">Brother</option>
+                <option value="sister">Sister</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-2 mb-3">
+              <label class="form-label required">Age</label>
+              <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][age]" class="form-control" min="1" max="120" required>
+            </div>
+            <div class="col-md-2 mb-3">
+              <label class="form-label required">Share %</label>
+              <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][share_percentage]" class="form-control" min="0" max="100" step="0.01" placeholder="100" required>
+            </div>
+            <div class="col-md-1 d-flex align-items-end mb-3">
+              <button type="button" class="btn btn-outline-danger remove-nominee-btn">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.getElementById('nominees').insertAdjacentHTML('beforeend', nomineeTemplate);
+      nomineeIndex++;
+      toggleNoNomineesMessage();
+    });
+  }
+
+  // Remove nominee (handles both persisted and new rows)
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-nominee-btn')) {
+      const nomineeRow = e.target.closest('.nominee-row');
+      const destroyInput = nomineeRow.querySelector('input[name*="_destroy"]');
+      if (destroyInput) {
+        destroyInput.value = '1';
+        nomineeRow.style.display = 'none';
+      } else {
+        nomineeRow.remove();
+      }
+      toggleNoNomineesMessage();
+    }
+  });
+
+  // Load customer nominees via AJAX
+  const loadNomineesBtn = document.getElementById('load_customer_nominees_btn');
+  if (loadNomineesBtn) {
+    loadNomineesBtn.addEventListener('click', function() {
+      const customerSelect = document.getElementById('customer_select');
+      const customerId = customerSelect ? customerSelect.value : null;
+
+      if (!customerId) {
+        alert('Please select a client first');
+        return;
+      }
+
+      const btn = this;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Loading...';
+      btn.disabled = true;
+
+      fetch(`/admin/insurance/health/load_customer_nominees?customer_id=${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && data.nominees && data.nominees.length > 0) {
+            // Only remove non-persisted rows; mark persisted ones for destroy
+            document.querySelectorAll('.nominee-row').forEach(row => {
+              const destroyInput = row.querySelector('input[name*="_destroy"]');
+              if (destroyInput) {
+                destroyInput.value = '1';
+                row.style.display = 'none';
+              } else {
+                row.remove();
+              }
+            });
+
+            data.nominees.forEach((nominee) => {
+              const relOptions = ['father','mother','spouse','son','daughter','brother','sister','other']
+                .map(r => `<option value="${r}" ${nominee.relationship === r ? 'selected' : ''}>${r.charAt(0).toUpperCase()+r.slice(1)}</option>`)
+                .join('');
+              const nomineeTemplate = `
+                <div class="nominee-row border rounded p-3 mb-3 bg-light">
+                  <div class="row">
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label required">Nominee Name</label>
+                      <input type="text" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][nominee_name]" class="form-control" value="${nominee.nominee_name}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                      <label class="form-label required">Relationship</label>
+                      <select name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][relationship]" class="form-select" required>
+                        <option value="">Select Relationship</option>
+                        ${relOptions}
+                      </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                      <label class="form-label required">Age</label>
+                      <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][age]" class="form-control" value="${nominee.age}" min="1" max="120" required>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                      <label class="form-label required">Share %</label>
+                      <input type="number" name="health_insurance[health_insurance_nominees_attributes][${nomineeIndex}][share_percentage]" class="form-control" min="0" max="100" step="0.01" placeholder="100" required>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end mb-3">
+                      <button type="button" class="btn btn-outline-danger remove-nominee-btn">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `;
+              document.getElementById('nominees').insertAdjacentHTML('beforeend', nomineeTemplate);
+              nomineeIndex++;
+            });
+
+            toggleNoNomineesMessage();
+            alert(`Loaded ${data.nominees.length} nominee(s) from ${data.customer_name}`);
+          } else {
+            alert(data.message || 'No nominees found for this client');
+          }
+        })
+        .catch(error => {
+          console.error('Error loading nominees:', error);
+          alert('Error loading nominees. Please try again.');
+        })
+        .finally(() => {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        });
+    });
+  }
+
+  toggleNoNomineesMessage();
+});
 
 // Add Health Insurance Document button handler
 document.addEventListener('DOMContentLoaded', function() {
