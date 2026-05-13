@@ -1805,14 +1805,15 @@ document.addEventListener('DOMContentLoaded', function() {
       const netPremium = parseFloat(document.getElementById('net_premium')?.value) || 0;
       const mainAgentCommissionPercentage = parseFloat(document.getElementById('commission_percentage')?.value) || 0;
 
-      const subAgentPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage')?.value) || 2.0;
-      const investorPercentage = parseFloat(document.querySelector('.investor-commission-percentage')?.value) || 2.0;
-      const companyExpensesPercentage = parseFloat(document.querySelector('.company-expenses-percentage')?.value) || 2.0;
-      const ambassadorPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage')?.value) || 2.0;
+      const subAgentPercentage = parseFloat(document.querySelector('.sub-agent-commission-percentage')?.value) || 0;
+      const investorPercentage = parseFloat(document.querySelector('.investor-commission-percentage')?.value) || 0;
+      const companyExpensesPercentage = parseFloat(document.querySelector('.company-expenses-percentage')?.value) || 0;
+      const ambassadorPercentage = parseFloat(document.querySelector('.ambassador-commission-percentage')?.value) || 0;
 
       const totalDistributionPercentage = subAgentPercentage + investorPercentage + ambassadorPercentage;
       const profitPercentage = mainAgentCommissionPercentage - totalDistributionPercentage - companyExpensesPercentage;
       const profitAmount = netPremium * (profitPercentage / 100);
+      const companyExpensesAmount = netPremium * (companyExpensesPercentage / 100);
 
       if (document.querySelector('.total-distribution-percentage')) {
         document.querySelector('.total-distribution-percentage').value = totalDistributionPercentage.toFixed(2);
@@ -1822,6 +1823,19 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       if (document.querySelector('.profit-amount')) {
         document.querySelector('.profit-amount').value = profitAmount.toFixed(2);
+      }
+      if (document.querySelector('.profit-amount-display')) {
+        document.querySelector('.profit-amount-display').value = profitAmount.toFixed(2);
+      }
+      if (document.querySelector('.company-expenses-amount')) {
+        document.querySelector('.company-expenses-amount').value = companyExpensesAmount.toFixed(2);
+      }
+      if (document.querySelector('.company-expenses-amount-display')) {
+        document.querySelector('.company-expenses-amount-display').value = companyExpensesAmount.toFixed(2);
+      }
+      const investorDisplayField = document.querySelector('.investor-commission-amount-display');
+      if (investorDisplayField) {
+        investorDisplayField.value = (netPremium * (investorPercentage / 100)).toFixed(2);
       }
     }
 
