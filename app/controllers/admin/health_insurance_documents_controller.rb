@@ -1,5 +1,15 @@
 class Admin::HealthInsuranceDocumentsController < Admin::ApplicationController
-  before_action :set_health_insurance_document, only: [:destroy]
+  before_action :set_health_insurance_document, only: [:destroy, :download]
+
+  # GET /admin/health_insurance_documents/:id/download
+  def download
+    if @health_insurance_document.r2_file_key.present?
+      redirect_to @health_insurance_document.document_url, allow_other_host: true
+    else
+      redirect_to admin_health_insurance_path(@health_insurance_document.health_insurance),
+                  alert: 'Document not found'
+    end
+  end
 
   # DELETE /admin/health_insurance_documents/:id
   def destroy

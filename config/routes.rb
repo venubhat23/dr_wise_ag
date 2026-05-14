@@ -328,7 +328,11 @@ Rails.application.routes.draw do
     end
 
     # Health Insurance Documents
-    resources :health_insurance_documents, only: [:destroy]
+    resources :health_insurance_documents, only: [:destroy] do
+      member do
+        get :download
+      end
+    end
 
     # Health Insurance
     resources :health_insurances, path: 'insurance/health' do

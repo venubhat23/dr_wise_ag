@@ -872,7 +872,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     end
 
     {
-      commission_earned: format_indian_amount(total_commission),
+      commission_earned: total_commission,
       customers_count: total_customers_count,
       policies_count: total_policies,
       commission_breakdown: {
@@ -945,7 +945,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     monthly_target = 50000.0
 
     {
-      commission_earned: format_indian_amount(total_commission),
+      commission_earned: total_commission,
       customers_count: real_customers_count,
       policies_count: total_policies,
       commission_breakdown: {

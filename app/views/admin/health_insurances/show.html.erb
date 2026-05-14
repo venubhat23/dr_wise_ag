@@ -369,7 +369,7 @@
 
 <!-- Policy Documents Section -->
 <div class="info-section-card">
-  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#documentsCollapse" aria-expanded="false">
+  <div class="section-header" data-bs-toggle="collapse" data-bs-target="#documentsCollapse" aria-expanded="true">
     <div class="d-flex align-items-center">
       <div class="section-icon">
         <i class="bi bi-file-earmark-text"></i>
@@ -378,7 +378,7 @@
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
-  <div id="documentsCollapse" class="collapse">
+  <div id="documentsCollapse" class="collapse show">
     <div class="section-body">
       <%
         # Check multiple document sources
@@ -416,9 +416,12 @@
                         <td><%= doc.document_type %></td>
                         <td>
                           <% if doc.document_url.present? %>
-                            <a href="<%= doc.document_url %>" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <a href="<%= doc.document_url %>" target="_blank" class="btn btn-sm btn-outline-primary me-1">
                               <i class="bi bi-eye"></i> View
                             </a>
+                            <%= link_to download_admin_policy_document_path(doc), class: "btn btn-sm btn-outline-success" do %>
+                              <i class="bi bi-download"></i> Download
+                            <% end %>
                           <% end %>
                         </td>
                       </tr>
@@ -478,9 +481,12 @@
                         <td><%= doc.created_at.strftime('%B %d, %Y at %I:%M %p') %></td>
                         <td>
                           <% if doc.document_url.present? %>
-                            <a href="<%= doc.document_url %>" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <a href="<%= doc.document_url %>" target="_blank" class="btn btn-sm btn-outline-primary me-1">
                               <i class="bi bi-eye"></i> View
                             </a>
+                            <%= link_to download_admin_health_insurance_document_path(doc), class: "btn btn-sm btn-outline-success" do %>
+                              <i class="bi bi-download"></i> Download
+                            <% end %>
                           <% end %>
                         </td>
                       </tr>

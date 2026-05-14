@@ -27,6 +27,14 @@ class HealthInsuranceDocument < ApplicationRecord
     R2Service.public_url(r2_file_key)
   end
 
+  # Generate download URL with content-disposition header
+  def download_url
+    return nil unless r2_file_key.present?
+    base_url = document_url
+    return base_url unless base_url.present?
+    "#{base_url}?response-content-disposition=attachment;filename=#{CGI.escape(r2_filename || 'document')}"
+  end
+
   # Check if document has a valid R2 file
   def has_r2_file?
     r2_file_key.present? && r2_filename.present?
