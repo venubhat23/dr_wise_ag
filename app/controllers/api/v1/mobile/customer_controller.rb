@@ -41,7 +41,11 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         days_until_expiry: policy.days_until_expiry,
         drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
-        document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
+        document: if policy.main_policy_document_key.present?
+                    policy.main_policy_r2_url
+                  elsif policy.health_insurance_documents.any?
+                    policy.health_insurance_documents.first.document_url
+                  end
       }
     end
 
@@ -222,7 +226,11 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
             drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
-            document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil
+            document: if policy.main_policy_document_key.present?
+                        policy.main_policy_r2_url
+                      elsif policy.health_insurance_documents.any?
+                        policy.health_insurance_documents.first.document_url
+                      end
           }
         end
       end
@@ -506,7 +514,11 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         is_expired: policy.policy_end_date < Date.current,
         days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
         insurance_company: policy.insurance_company_name,
-        document: policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
+        document: if policy.main_policy_document_key.present?
+                    policy.main_policy_r2_url
+                  elsif policy.health_insurance_documents.any?
+                    policy.health_insurance_documents.first.document_url
+                  end,
         drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false
       }
     end
