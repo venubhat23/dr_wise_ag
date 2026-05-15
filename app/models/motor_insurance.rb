@@ -81,15 +81,15 @@ class MotorInsurance < ApplicationRecord
 
   # Instance methods
   def active?
-    policy_end_date >= Date.current
+    policy_end_date.present? && policy_end_date >= Date.current
   end
 
   def expired?
-    policy_end_date < Date.current
+    policy_end_date.blank? || policy_end_date < Date.current
   end
 
   def expiring_soon?
-    policy_end_date.between?(Date.current, 30.days.from_now)
+    policy_end_date.present? && policy_end_date.between?(Date.current, 30.days.from_now)
   end
 
   def third_party_insurance?
