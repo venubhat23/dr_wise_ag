@@ -800,6 +800,10 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     # Assign to instance variable for form FIRST
     @health_insurance = @renewed_policy
 
+    # Reset any associations that may have been inherited from the dup
+    @health_insurance.health_insurance_members.reset
+    @health_insurance.health_insurance_nominees.reset
+
     # Copy members from original policy
     if original_members.any?
       original_members.each do |original_member|
@@ -814,7 +818,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       @health_insurance.health_insurance_members.build
     end
 
-    # Copy nominees from original policy
+    # Copy nominees from original policy — all 4 fields
     if original_nominees.any?
       original_nominees.each do |nom|
         @health_insurance.health_insurance_nominees.build(
