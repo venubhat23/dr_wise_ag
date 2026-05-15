@@ -197,7 +197,6 @@ class Admin::CustomersController < Admin::ApplicationController
     # Gather all policies from different insurance types - using preloaded associations
     @all_policies = []
 
-    # Health Insurance policies - no additional queries due to includes
     @customer.health_insurances.each do |policy|
       @all_policies << {
         type: 'Health Insurance',
@@ -212,7 +211,6 @@ class Admin::CustomersController < Admin::ApplicationController
       }
     end
 
-    # Life Insurance policies
     @customer.life_insurances.each do |policy|
       @all_policies << {
         type: 'Life Insurance',
@@ -227,7 +225,6 @@ class Admin::CustomersController < Admin::ApplicationController
       }
     end
 
-    # Motor Insurance policies
     @customer.motor_insurances.each do |policy|
       @all_policies << {
         type: 'Motor Insurance',
@@ -242,36 +239,84 @@ class Admin::CustomersController < Admin::ApplicationController
       }
     end
 
-    # Sort all policies by creation date (newest first)
+    @customer.other_insurances.each do |policy|
+      @all_policies << {
+        type: 'Other Insurance',
+        policy: policy,
+        policy_number: policy.policy_number,
+        company_name: policy.insurance_company_name,
+        premium: policy.total_premium,
+        start_date: policy.policy_start_date,
+        end_date: policy.policy_end_date,
+        status: policy.active? ? 'Active' : 'Expired',
+        created_at: policy.created_at
+      }
+    end
+
     @all_policies.sort_by! { |p| p[:created_at] }.reverse!
 
-    # Calculate policy status counts for policy status cards
-    @active_policies_count = 0
-    @expired_policies_count = 0
-    @past_policies_count = 0
-    @upcoming_installments_count = 0
+    # --- Per-type grouped policies ---
+    @health_policies  = @all_policies.select { |p| p[:type] == 'Health Insurance' }
+    @life_policies    = @all_policies.select { |p| p[:type] == 'Life Insurance' }
+    @motor_policies   = @all_policies.select { |p| p[:type] == 'Motor Insurance' }
+    @other_policies   = @all_policies.select { |p| p[:type] == 'Other Insurance' }
 
-    @all_policies.each do |policy|
-      case policy[:status]
-      when 'Active'
-        # All active policies should count as active
-        @active_policies_count += 1
-      when 'Expired'
-        @expired_policies_count += 1
-      else
-        @past_policies_count += 1
-      end
+    # --- Expired: end_date passed AND policy has NOT been renewed ---
+    @expired_policies = @all_policies.select do |p|
+      next false unless p[:status] == 'Expired'
+      obj = p[:policy]
+      renewed = (obj.respond_to?(:has_been_renewed?) && obj.has_been_renewed?) ||
+                (obj.respond_to?(:is_renewed) && obj.is_renewed == true)
+      !renewed
+    end
 
-      # Check for upcoming installment policies (policies with payment mode other than yearly/lump sum)
-      policy_obj = policy[:policy]
-      if policy_obj.respond_to?(:payment_mode) &&
-         ['Monthly', 'Quarterly', 'Half Yearly', 'Semi-Annual'].include?(policy_obj.payment_mode) &&
-         policy[:status] == 'Active'
-        @upcoming_installments_count += 1
+    # --- Past: end_date passed AND policy WAS renewed ---
+    @past_policies = @all_policies.select do |p|
+      next false unless p[:status] == 'Expired'
+      obj = p[:policy]
+      (obj.respond_to?(:has_been_renewed?) && obj.has_been_renewed?) ||
+      (obj.respond_to?(:is_renewed) && obj.is_renewed == true)
+    end
+
+    # --- Upcoming Renewal: active policies whose end_date is within 60 days ---
+    @upcoming_renewal_policies = @all_policies.select do |p|
+      next false unless p[:status] == 'Active' && p[:end_date]
+      days = (p[:end_date] - Date.current).to_i
+      days >= 0 && days <= 60
+    end
+
+    # --- Upcoming Installments: next installment due within 60 days for installment-mode active policies ---
+    installment_modes = ['Monthly', 'Quarterly', 'Half Yearly', 'Half-Yearly', 'Semi-Annual']
+    installment_intervals = { 'Monthly' => 1, 'Quarterly' => 3, 'Half Yearly' => 6, 'Half-Yearly' => 6, 'Semi-Annual' => 6 }
+
+    @upcoming_installment_policies = []
+    @all_policies.each do |p|
+      next unless p[:status] == 'Active'
+      obj = p[:policy]
+      next unless obj.respond_to?(:payment_mode) && installment_modes.include?(obj.payment_mode)
+      next unless p[:start_date]
+
+      months = installment_intervals[obj.payment_mode] || 1
+      # Find the next installment date from start_date
+      today = Date.current
+      n = 0
+      loop do
+        n += 1
+        next_due = p[:start_date] >> (n * months)
+        break if next_due > (today + 60.days)
+        if next_due >= today && next_due <= (today + 60.days)
+          @upcoming_installment_policies << p.merge(next_installment_date: next_due)
+          break
+        end
       end
     end
 
-    # For backwards compatibility, set @policies
+    # Legacy counts for backward compatibility
+    @active_policies_count        = @all_policies.count { |p| p[:status] == 'Active' }
+    @expired_policies_count       = @expired_policies.count
+    @past_policies_count          = @past_policies.count
+    @upcoming_installments_count  = @upcoming_installment_policies.count
+
     @policies = @all_policies
   end
 
