@@ -1236,63 +1236,86 @@ body {
 </div>
 </div>
 
-<!-- ===== Policy Summary Sections (by type and status) ===== -->
+<!-- ===== Policy Summary Sections ===== -->
+<%
+  ps_sections = [
+    { policies: @health_policies || [],                   id: 'psSec1', icon: 'bi-heart-pulse',    color: '#e74c3c', title: 'Health Insurance' },
+    { policies: @life_policies || [],                     id: 'psSec2', icon: 'bi-shield-heart',   color: '#2980b9', title: 'Life Insurance' },
+    { policies: @motor_policies || [],                    id: 'psSec3', icon: 'bi-car-front',      color: '#f39c12', title: 'Motor Insurance' },
+    { policies: @other_policies || [],                    id: 'psSec4', icon: 'bi-shield-check',   color: '#27ae60', title: 'Other Insurance' },
+    { policies: @expired_policies || [],                  id: 'psSec5', icon: 'bi-clock',          color: '#c0392b', title: 'Expired Policy' },
+    { policies: @past_policies || [],                     id: 'psSec6', icon: 'bi-clock-history',  color: '#7f8c8d', title: 'Past Policy' },
+    { policies: @upcoming_installment_policies || [],     id: 'psSec7', icon: 'bi-calendar-check', color: '#8e44ad', title: 'Upcoming Installment Policy', installment: true },
+    { policies: @upcoming_renewal_policies || [],         id: 'psSec8', icon: 'bi-arrow-repeat',   color: '#16a085', title: 'Upcoming Renewal Policy',     renewal: true }
+  ]
+%>
 
-<% policy_section_helper = ->(policies, collapse_id, icon_class, icon_color, title) do %>
+<% ps_sections.each do |sec| %>
 <div class="info-section-card">
-  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#<%= collapse_id %>" aria-expanded="false">
-    <div class="d-flex align-items-center">
-      <div class="section-icon">
-        <i class="bi bi-<%= icon_class %>" style="color:<%= icon_color %>"></i>
-      </div>
-      <h5 class="section-title mb-0">
-        <%= title %>
-        <span class="badge rounded-pill ms-2" style="background:#1a5276;color:#fff;font-size:0.78rem;padding:3px 8px;"><%= policies.count %></span>
-      </h5>
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#<%= sec[:id] %>" aria-expanded="false">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi <%= sec[:icon] %> fs-5" style="color:<%= sec[:color] %>; width:24px;"></i>
+      <span class="fw-semibold" style="color:#1a3a5c; font-size:15px;"><%= sec[:title] %></span>
+      <span style="display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:50%;background:#d0e4f5;color:#1a3a5c;font-size:12px;font-weight:700;padding:0 5px;"><%= sec[:policies].count %></span>
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
-  <div id="<%= collapse_id %>" class="collapse">
-    <div class="section-body">
-      <% if policies.any? %>
+  <div id="<%= sec[:id] %>" class="collapse">
+    <div class="section-body p-3">
+      <% if sec[:policies].any? %>
         <div class="table-responsive">
-          <table class="table table-hover mb-0">
+          <table class="table table-sm table-hover mb-0">
             <thead class="table-light">
-              <tr>
-                <th>Policy Number</th>
-                <th>Company</th>
-                <th>Premium</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
+              <% if sec[:installment] %>
+              <tr><th>Policy Number</th><th>Type</th><th>Company</th><th>Payment Mode</th><th>Next Installment</th><th></th></tr>
+              <% elsif sec[:renewal] %>
+              <tr><th>Policy Number</th><th>Type</th><th>Company</th><th>End Date</th><th>Days Left</th><th></th></tr>
+              <% else %>
+              <tr><th>Policy Number</th><th>Company</th><th>Premium</th><th>Start Date</th><th>End Date</th><th>Status</th><th></th></tr>
+              <% end %>
             </thead>
             <tbody>
-              <% policies.each do |p| %>
+              <% sec[:policies].each do |p| %>
                 <tr>
                   <td><code><%= p[:policy_number] %></code></td>
-                  <td><%= p[:company_name] %></td>
-                  <td><%= indian_currency(p[:premium].to_i) %></td>
-                  <td><%= p[:start_date]&.strftime("%d %b %Y") || 'N/A' %></td>
-                  <td><%= p[:end_date]&.strftime("%d %b %Y") || 'N/A' %></td>
-                  <td>
-                    <% if p[:status] == 'Active' %>
-                      <span class="badge bg-success">Active</span>
-                    <% else %>
-                      <span class="badge bg-danger">Expired</span>
-                    <% end %>
-                  </td>
+                  <% if sec[:installment] %>
+                    <td><%= p[:type] %></td>
+                    <td><%= p[:company_name] %></td>
+                    <td><span class="badge bg-info text-dark"><%= p[:policy].payment_mode %></span></td>
+                    <td>
+                      <% if p[:next_installment_date] %>
+                        <span class="badge bg-warning text-dark"><%= p[:next_installment_date].strftime("%d %b %Y") %></span>
+                      <% end %>
+                    </td>
+                  <% elsif sec[:renewal] %>
+                    <td><%= p[:type] %></td>
+                    <td><%= p[:company_name] %></td>
+                    <td><span class="text-danger fw-bold"><%= p[:end_date]&.strftime("%d %b %Y") %></span></td>
+                    <td>
+                      <% days_left = p[:end_date] ? (p[:end_date] - Date.current).to_i : nil %>
+                      <% if days_left %>
+                        <span class="badge <%= days_left <= 15 ? 'bg-danger' : days_left <= 30 ? 'bg-warning text-dark' : 'bg-info text-dark' %>"><%= days_left %> days</span>
+                      <% end %>
+                    </td>
+                  <% else %>
+                    <td><%= p[:company_name] %></td>
+                    <td><%= indian_currency(p[:premium].to_i) %></td>
+                    <td><%= p[:start_date]&.strftime("%d %b %Y") || '—' %></td>
+                    <td><%= p[:end_date]&.strftime("%d %b %Y") || '—' %></td>
+                    <td>
+                      <% if p[:status] == 'Active' %>
+                        <span class="badge bg-success">Active</span>
+                      <% else %>
+                        <span class="badge bg-danger">Expired</span>
+                      <% end %>
+                    </td>
+                  <% end %>
                   <td>
                     <% case p[:type] %>
-                    <% when 'Health Insurance' %>
-                      <%= link_to admin_health_insurance_path(p[:policy]), class: "btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% when 'Life Insurance' %>
-                      <%= link_to admin_life_insurance_path(p[:policy]), class: "btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% when 'Motor Insurance' %>
-                      <%= link_to admin_motor_insurance_path(p[:policy]), class: "btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% when 'Other Insurance' %>
-                      <%= link_to admin_other_insurance_path(p[:policy]), class: "btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
+                    <% when 'Health Insurance'  %><%= link_to admin_health_insurance_path(p[:policy]),  class:"btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
+                    <% when 'Life Insurance'    %><%= link_to admin_life_insurance_path(p[:policy]),    class:"btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
+                    <% when 'Motor Insurance'   %><%= link_to admin_motor_insurance_path(p[:policy]),   class:"btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
+                    <% when 'Other Insurance'   %><%= link_to admin_other_insurance_path(p[:policy]),   class:"btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
                     <% end %>
                   </td>
                 </tr>
@@ -1301,133 +1324,12 @@ body {
           </table>
         </div>
       <% else %>
-        <div class="text-center text-muted py-4">
-          <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-          <p class="mb-0">No policies found in this category.</p>
-        </div>
+        <p class="text-muted text-center mb-0 py-3">No policies in this category.</p>
       <% end %>
     </div>
   </div>
 </div>
 <% end %>
-
-<%= policy_section_helper.call(@health_policies || [], 'healthPoliciesCollapse', 'heart-pulse', '#e74c3c', 'Health Insurance') %>
-<%= policy_section_helper.call(@life_policies || [], 'lifePoliciesCollapse', 'shield-heart', '#2980b9', 'Life Insurance') %>
-<%= policy_section_helper.call(@motor_policies || [], 'motorPoliciesCollapse', 'car-front', '#f39c12', 'Motor Insurance') %>
-<%= policy_section_helper.call(@other_policies || [], 'otherPoliciesCollapse', 'shield-check', '#27ae60', 'Other Insurance') %>
-<%= policy_section_helper.call(@expired_policies || [], 'expiredPolicyCollapse2', 'clock', '#c0392b', 'Expired Policy') %>
-<%= policy_section_helper.call(@past_policies || [], 'pastPolicyCollapse2', 'clock-history', '#7f8c8d', 'Past Policy') %>
-
-<!-- Upcoming Installment Policy -->
-<div class="info-section-card">
-  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#upcomingInstallmentCollapse2" aria-expanded="false">
-    <div class="d-flex align-items-center">
-      <div class="section-icon"><i class="bi bi-calendar-check" style="color:#8e44ad"></i></div>
-      <h5 class="section-title mb-0">
-        Upcoming Installment Policy
-        <span class="badge rounded-pill ms-2" style="background:#1a5276;color:#fff;font-size:0.78rem;padding:3px 8px;"><%= (@upcoming_installment_policies || []).count %></span>
-      </h5>
-    </div>
-    <i class="bi bi-chevron-down collapse-icon"></i>
-  </div>
-  <div id="upcomingInstallmentCollapse2" class="collapse">
-    <div class="section-body">
-      <% if (@upcoming_installment_policies || []).any? %>
-        <div class="table-responsive">
-          <table class="table table-hover mb-0">
-            <thead class="table-light">
-              <tr><th>Policy Number</th><th>Type</th><th>Company</th><th>Payment Mode</th><th>Next Installment</th><th>Actions</th></tr>
-            </thead>
-            <tbody>
-              <% @upcoming_installment_policies.each do |p| %>
-                <tr>
-                  <td><code><%= p[:policy_number] %></code></td>
-                  <td><%= p[:type] %></td>
-                  <td><%= p[:company_name] %></td>
-                  <td><span class="badge bg-info"><%= p[:policy].payment_mode %></span></td>
-                  <td>
-                    <% if p[:next_installment_date] %>
-                      <span class="badge bg-warning text-dark"><%= p[:next_installment_date].strftime("%d %b %Y") %></span>
-                    <% end %>
-                  </td>
-                  <td>
-                    <% case p[:type] %>
-                    <% when 'Health Insurance' %><%= link_to admin_health_insurance_path(p[:policy]), class: "btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% when 'Life Insurance' %><%= link_to admin_life_insurance_path(p[:policy]), class: "btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% when 'Motor Insurance' %><%= link_to admin_motor_insurance_path(p[:policy]), class: "btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% when 'Other Insurance' %><%= link_to admin_other_insurance_path(p[:policy]), class: "btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% end %>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      <% else %>
-        <div class="text-center text-muted py-4">
-          <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
-          <p class="mb-0">No installments due in the next 60 days.</p>
-        </div>
-      <% end %>
-    </div>
-  </div>
-</div>
-
-<!-- Upcoming Renewal Policy -->
-<div class="info-section-card">
-  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#upcomingRenewalCollapse2" aria-expanded="false">
-    <div class="d-flex align-items-center">
-      <div class="section-icon"><i class="bi bi-arrow-repeat" style="color:#16a085"></i></div>
-      <h5 class="section-title mb-0">
-        Upcoming Renewal Policy
-        <span class="badge rounded-pill ms-2" style="background:#1a5276;color:#fff;font-size:0.78rem;padding:3px 8px;"><%= (@upcoming_renewal_policies || []).count %></span>
-      </h5>
-    </div>
-    <i class="bi bi-chevron-down collapse-icon"></i>
-  </div>
-  <div id="upcomingRenewalCollapse2" class="collapse">
-    <div class="section-body">
-      <% if (@upcoming_renewal_policies || []).any? %>
-        <div class="table-responsive">
-          <table class="table table-hover mb-0">
-            <thead class="table-light">
-              <tr><th>Policy Number</th><th>Type</th><th>Company</th><th>End Date</th><th>Days Left</th><th>Actions</th></tr>
-            </thead>
-            <tbody>
-              <% @upcoming_renewal_policies.each do |p| %>
-                <% days_left = p[:end_date] ? (p[:end_date] - Date.current).to_i : nil %>
-                <tr>
-                  <td><code><%= p[:policy_number] %></code></td>
-                  <td><%= p[:type] %></td>
-                  <td><%= p[:company_name] %></td>
-                  <td><span class="text-danger fw-bold"><%= p[:end_date]&.strftime("%d %b %Y") %></span></td>
-                  <td>
-                    <% if days_left %>
-                      <span class="badge <%= days_left <= 15 ? 'bg-danger' : days_left <= 30 ? 'bg-warning text-dark' : 'bg-info' %>"><%= days_left %> days</span>
-                    <% end %>
-                  </td>
-                  <td>
-                    <% case p[:type] %>
-                    <% when 'Health Insurance' %><%= link_to admin_health_insurance_path(p[:policy]), class: "btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% when 'Life Insurance' %><%= link_to admin_life_insurance_path(p[:policy]), class: "btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% when 'Motor Insurance' %><%= link_to admin_motor_insurance_path(p[:policy]), class: "btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% when 'Other Insurance' %><%= link_to admin_other_insurance_path(p[:policy]), class: "btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% end %>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      <% else %>
-        <div class="text-center text-muted py-4">
-          <i class="bi bi-arrow-repeat fs-3 d-block mb-2"></i>
-          <p class="mb-0">No renewals due in the next 60 days.</p>
-        </div>
-      <% end %>
-    </div>
-  </div>
-</div>
 
 <!-- Active Policies Section -->
 <%
