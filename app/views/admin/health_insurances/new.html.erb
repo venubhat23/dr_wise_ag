@@ -1807,32 +1807,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Load customer nominees functionality
-    document.getElementById('load_customer_nominees_btn').addEventListener('click', function() {
-      const customerSelect = document.getElementById('customer_select');
-      const customerId = customerSelect ? customerSelect.value : null;
-
-      if (!customerId) {
-        alert('Please select a client first');
-        return;
-      }
-
-      // Show loading state
-      const btn = this;
-      const originalText = btn.innerHTML;
-      btn.innerHTML = '<i class="bi bi-spinner bi-spin me-1"></i>Loading...';
-      btn.disabled = true;
-
-      // Make AJAX request to load nominees
-      fetch(`/admin/insurance/health/load_customer_nominees?customer_id=${customerId}`)
+    function fetchAndLoadNominees(customerId, { silent = false } = {}) {
+      return fetch(`/admin/insurance/health/load_customer_nominees?customer_id=${customerId}`)
         .then(response => response.json())
         .then(data => {
           if (data.success && data.nominees && data.nominees.length > 0) {
-            // Clear existing nominees
-            const existingNominees = document.querySelectorAll('.nominee-row');
-            existingNominees.forEach(row => row.remove());
+            // Clear existing server-rendered blank nominee rows
+            document.querySelectorAll('.nominee-row').forEach(row => row.remove());
 
-            // Add loaded nominees
-            data.nominees.forEach((nominee, index) => {
+            data.nominees.forEach((nominee) => {
               const nomineeTemplate = `
                 <div class="nominee-row border rounded p-3 mb-3 bg-light">
                   <div class="row">
@@ -1875,24 +1858,53 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             toggleNoNomineesMessage();
-            alert(`Loaded ${data.nominees.length} nominee(s) from ${data.customer_name}`);
-          } else {
+            if (!silent) {
+              alert(`Loaded ${data.nominees.length} nominee(s) from ${data.customer_name}`);
+            }
+          } else if (!silent) {
             alert(data.message || 'No nominees found for this client');
           }
         })
         .catch(error => {
           console.error('Error loading nominees:', error);
-          alert('Error loading nominees. Please try again.');
-        })
-        .finally(() => {
-          // Reset button state
-          btn.innerHTML = originalText;
-          btn.disabled = false;
+          if (!silent) alert('Error loading nominees. Please try again.');
         });
+    }
+
+    document.getElementById('load_customer_nominees_btn').addEventListener('click', function() {
+      const customerSelect = document.getElementById('customer_select');
+      const customerId = customerSelect ? customerSelect.value : null;
+
+      if (!customerId) {
+        alert('Please select a client first');
+        return;
+      }
+
+      const btn = this;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="bi bi-spinner bi-spin me-1"></i>Loading...';
+      btn.disabled = true;
+
+      fetchAndLoadNominees(customerId).finally(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      });
     });
 
     // Initialize nominee display
     toggleNoNomineesMessage();
+
+    // Auto-load nominees when page opens with a pre-selected customer
+    (function autoLoadNomineesOnPageLoad() {
+      const customerSelect = document.getElementById('customer_select');
+      const customerId = customerSelect ? customerSelect.value : null;
+      if (customerId) {
+        document.querySelectorAll('.nominee-row').forEach(row => row.remove());
+        nomineeIndex = 0;
+        toggleNoNomineesMessage();
+        fetchAndLoadNominees(customerId, { silent: true });
+      }
+    })();
 
     // Event listeners
     document.getElementById('net_premium').addEventListener('input', function() {
@@ -1945,7 +1957,11 @@ document.addEventListener('DOMContentLoaded', function() {
       $('#affiliate_select').val(null).trigger('change');
       var selectedCustomerId = this.value;
       if (selectedCustomerId) {
-        console.log('Customer selected, filtering affiliates for customer ID:', selectedCustomerId);
+        // Auto-load nominees for newly selected customer
+        document.querySelectorAll('.nominee-row').forEach(row => row.remove());
+        nomineeIndex = 0;
+        toggleNoNomineesMessage();
+        fetchAndLoadNominees(selectedCustomerId, { silent: true });
       }
     });
 
