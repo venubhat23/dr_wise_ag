@@ -240,7 +240,7 @@
                   </button>
                   <% if @sub_agent.has_r2_profile_image? %>
                     <%= link_to "Remove Current Image",
-                                admin_sub_agent_document_path(@sub_agent, @sub_agent.r2_profile_image),
+                                admin_sub_agent_sub_agent_document_path(@sub_agent, @sub_agent.r2_profile_image),
                                 method: :delete,
                                 data: {
                                   confirm: "Are you sure you want to remove this profile image?",
