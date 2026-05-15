@@ -1157,18 +1157,13 @@ body {
                     <div class="col-lg-2 col-md-4 col-sm-6 mb-3 mb-lg-0">
                       <div class="d-flex flex-column align-items-start">
                         <small class="text-muted fw-bold mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase;">Stage</small>
-                        <div class="stage-badge" style="
-                          <% case lead.current_stage %>
-                          <% when 'converted' %>
-                            background: linear-gradient(135deg, #28a745, #20c997);
-                          <% when 'follow_up' %>
-                            background: linear-gradient(135deg, #ffc107, #fd7e14);
-                          <% when 'consultation_scheduled' %>
-                            background: linear-gradient(135deg, #17a2b8, #007bff);
-                          <% else %>
-                            background: linear-gradient(135deg, #6c757d, #495057);
-                          <% end %>
-                          color: white; padding: 10px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; text-transform: capitalize; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: inline-block;">
+                        <% stage_bg = case lead.current_stage
+                             when 'converted'              then 'linear-gradient(135deg, #28a745, #20c997)'
+                             when 'follow_up'              then 'linear-gradient(135deg, #ffc107, #fd7e14)'
+                             when 'consultation_scheduled' then 'linear-gradient(135deg, #17a2b8, #007bff)'
+                             else                               'linear-gradient(135deg, #6c757d, #495057)'
+                             end %>
+                        <div class="stage-badge" style="background: <%= stage_bg %>; color: white; padding: 10px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; text-transform: capitalize; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: inline-block;">
                           <i class="bi bi-<%= lead.current_stage == 'converted' ? 'check-circle-fill' : lead.current_stage == 'follow_up' ? 'clock-fill' : lead.current_stage == 'consultation_scheduled' ? 'calendar-check-fill' : 'hourglass-split' %> me-2"></i><%= lead.current_stage&.humanize || 'Unknown' %>
                         </div>
                       </div>
@@ -1311,12 +1306,13 @@ body {
                     </td>
                   <% end %>
                   <td>
-                    <% case p[:type] %>
-                    <% when 'Health Insurance'  %><%= link_to admin_health_insurance_path(p[:policy]),  class:"btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% when 'Life Insurance'    %><%= link_to admin_life_insurance_path(p[:policy]),    class:"btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% when 'Motor Insurance'   %><%= link_to admin_motor_insurance_path(p[:policy]),   class:"btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% when 'Other Insurance'   %><%= link_to admin_other_insurance_path(p[:policy]),   class:"btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
-                    <% end %>
+                    <% p_view_path = case p[:type]
+                       when 'Health Insurance' then admin_health_insurance_path(p[:policy])
+                       when 'Life Insurance'   then admin_life_insurance_path(p[:policy])
+                       when 'Motor Insurance'  then admin_motor_insurance_path(p[:policy])
+                       when 'Other Insurance'  then admin_other_insurance_path(p[:policy])
+                       end %>
+                    <%= link_to p_view_path, class: "btn btn-sm btn-outline-primary" do %><i class="bi bi-eye"></i><% end %>
                   </td>
                 </tr>
               <% end %>
@@ -1455,19 +1451,13 @@ body {
                     <% end %>
                   </td>
                   <td style="padding: 15px; vertical-align: middle; text-align: center;">
-                    <% case policy[:type] %>
-                    <% when 'Health Insurance' %>
-                      <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm", style: "background: linear-gradient(135deg, #007bff, #0056b3); color: white; border: none; border-radius: 20px; padding: 8px 15px; transition: all 0.3s ease;" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
-                    <% when 'Life Insurance' %>
-                      <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm", style: "background: linear-gradient(135deg, #007bff, #0056b3); color: white; border: none; border-radius: 20px; padding: 8px 15px; transition: all 0.3s ease;" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
-                    <% when 'Motor Insurance' %>
-                      <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm", style: "background: linear-gradient(135deg, #007bff, #0056b3); color: white; border: none; border-radius: 20px; padding: 8px 15px; transition: all 0.3s ease;" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
+                    <% policy_view_path = case policy[:type]
+                       when 'Health Insurance' then admin_health_insurance_path(policy[:policy])
+                       when 'Life Insurance'   then admin_life_insurance_path(policy[:policy])
+                       when 'Motor Insurance'  then admin_motor_insurance_path(policy[:policy])
+                       end %>
+                    <%= link_to policy_view_path, class: "btn btn-sm", style: "background: linear-gradient(135deg, #007bff, #0056b3); color: white; border: none; border-radius: 20px; padding: 8px 15px; transition: all 0.3s ease;" do %>
+                      <i class="bi bi-eye"></i>
                     <% end %>
                   </td>
                 </tr>
@@ -1592,19 +1582,13 @@ body {
                     <% end %>
                   </td>
                   <td style="padding: 15px; vertical-align: middle; text-align: center;">
-                    <% case policy[:type] %>
-                    <% when 'Health Insurance' %>
-                      <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm", style: "background: linear-gradient(135deg, #007bff, #0056b3); color: white; border: none; border-radius: 20px; padding: 8px 15px; transition: all 0.3s ease;" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
-                    <% when 'Life Insurance' %>
-                      <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm", style: "background: linear-gradient(135deg, #007bff, #0056b3); color: white; border: none; border-radius: 20px; padding: 8px 15px; transition: all 0.3s ease;" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
-                    <% when 'Motor Insurance' %>
-                      <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm", style: "background: linear-gradient(135deg, #007bff, #0056b3); color: white; border: none; border-radius: 20px; padding: 8px 15px; transition: all 0.3s ease;" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
+                    <% policy_view_path = case policy[:type]
+                       when 'Health Insurance' then admin_health_insurance_path(policy[:policy])
+                       when 'Life Insurance'   then admin_life_insurance_path(policy[:policy])
+                       when 'Motor Insurance'  then admin_motor_insurance_path(policy[:policy])
+                       end %>
+                    <%= link_to policy_view_path, class: "btn btn-sm", style: "background: linear-gradient(135deg, #007bff, #0056b3); color: white; border: none; border-radius: 20px; padding: 8px 15px; transition: all 0.3s ease;" do %>
+                      <i class="bi bi-eye"></i>
                     <% end %>
                   </td>
                 </tr>
@@ -1701,22 +1685,14 @@ body {
                     <% end %>
                   </td>
                   <td>
-                    <% case policy[:type] %>
-                    <% when 'Health Insurance' %>
-                      <%= link_to "Renew", "#", class: "btn btn-sm btn-warning me-1" %>
-                      <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
-                    <% when 'Life Insurance' %>
-                      <%= link_to "Renew", "#", class: "btn btn-sm btn-warning me-1" %>
-                      <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
-                    <% when 'Motor Insurance' %>
-                      <%= link_to "Renew", "#", class: "btn btn-sm btn-warning me-1" %>
-                      <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
+                    <% renewal_view_path = case policy[:type]
+                       when 'Health Insurance' then admin_health_insurance_path(policy[:policy])
+                       when 'Life Insurance'   then admin_life_insurance_path(policy[:policy])
+                       when 'Motor Insurance'  then admin_motor_insurance_path(policy[:policy])
+                       end %>
+                    <%= link_to "Renew", "#", class: "btn btn-sm btn-warning me-1" %>
+                    <%= link_to renewal_view_path, class: "btn btn-sm btn-outline-primary" do %>
+                      <i class="bi bi-eye"></i>
                     <% end %>
                   </td>
                 </tr>
@@ -1903,19 +1879,13 @@ body {
                     <% elsif is_installment %>
                       <%= link_to "Pay", "#", class: "btn btn-sm btn-primary me-1" %>
                     <% end %>
-                    <% case policy[:type] %>
-                    <% when 'Health Insurance' %>
-                      <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
-                    <% when 'Life Insurance' %>
-                      <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
-                    <% when 'Motor Insurance' %>
-                      <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
+                    <% action_view_path = case policy[:type]
+                       when 'Health Insurance' then admin_health_insurance_path(policy[:policy])
+                       when 'Life Insurance'   then admin_life_insurance_path(policy[:policy])
+                       when 'Motor Insurance'  then admin_motor_insurance_path(policy[:policy])
+                       end %>
+                    <%= link_to action_view_path, class: "btn btn-sm btn-outline-primary" do %>
+                      <i class="bi bi-eye"></i>
                     <% end %>
                   </td>
                 </tr>
@@ -2042,19 +2012,13 @@ body {
                   <td><span class="text-warning"><%= next_date.strftime("%d %b %Y") %></span></td>
                   <td><span class="badge bg-<%= days_until_due <= 7 ? 'danger' : (days_until_due <= 15 ? 'warning' : 'info') %>"><%= days_until_due %> days</span></td>
                   <td>
-                    <% case policy[:type] %>
-                    <% when 'Health Insurance' %>
-                      <%= link_to admin_health_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
-                    <% when 'Life Insurance' %>
-                      <%= link_to admin_life_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
-                    <% when 'Motor Insurance' %>
-                      <%= link_to admin_motor_insurance_path(policy[:policy]), class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
-                        <i class="bi bi-eye"></i>
-                      <% end %>
+                    <% installment_view_path = case policy[:type]
+                       when 'Health Insurance' then admin_health_insurance_path(policy[:policy])
+                       when 'Life Insurance'   then admin_life_insurance_path(policy[:policy])
+                       when 'Motor Insurance'  then admin_motor_insurance_path(policy[:policy])
+                       end %>
+                    <%= link_to installment_view_path, class: "btn btn-sm btn-outline-primary", title: "View Details" do %>
+                      <i class="bi bi-eye"></i>
                     <% end %>
                   </td>
                 </tr>
