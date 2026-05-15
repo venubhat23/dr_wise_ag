@@ -339,24 +339,31 @@
     </div>
     <div class="card-body">
       <div class="row">
-        <div class="col-md-4 mb-3">
-          <%= form.label :nominee_name, "Name", class: "form-label" %>
+        <div class="col-md-3 mb-3">
+          <%= form.label :nominee_name, "Nominee Name", class: "form-label" %>
           <%= form.text_field :nominee_name,
               class: "form-control",
+              id: "renew_nominee_name",
               placeholder: "Nominee Name" %>
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
           <%= form.label :nominee_relationship, "Relationship", class: "form-label" %>
           <%= form.select :nominee_relationship,
               options_for_select(@relationships.map { |r| [r, r] }, @renewed_policy.nominee_relationship),
-              { prompt: 'Nominee Relationship' },
+              { prompt: 'Select Relationship' },
               { class: "form-control", id: "nominee_relationship_select" } %>
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
           <%= form.label :nominee_age, "Age", class: "form-label" %>
           <%= form.number_field :nominee_age,
               class: "form-control",
+              id: "renew_nominee_age",
               placeholder: "Nominee Age" %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Share (%)</label>
+          <input type="number" class="form-control" id="renew_nominee_share" placeholder="100" min="0" max="100" step="0.01" value="100" disabled>
+          <small class="text-muted">Display only</small>
         </div>
       </div>
     </div>
@@ -2050,10 +2057,12 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
 
-    // If we have a broker code type, manually trigger the change to load dropdowns
+    // Only trigger change if broker type was NOT already pre-set from the original policy
+    // (if it was pre-set, the init block above already loaded agents/brokers)
     const finalBrokerCodeType = document.getElementById('life_insurance_broker_code_type')?.value;
-    if (finalBrokerCodeType) {
-      console.log('Triggering broker code type change for:', finalBrokerCodeType);
+    const preSetBrokerCodeType = '<%= @renewed_policy.broker_code_type %>';
+    if (finalBrokerCodeType && !preSetBrokerCodeType) {
+      console.log('Triggering broker code type change for auto-detected type:', finalBrokerCodeType);
       $('#life_insurance_broker_code_type').trigger('change');
     }
   }, 1000);
@@ -2188,6 +2197,57 @@ document.addEventListener('DOMContentLoaded', function() {
     // Also clear distributor when customer is cleared
     $('#distributor_id_hidden').val('');
     console.log('Customer cleared, showing all affiliates and clearing distributor');
+    // Clear nominee fields
+    $('#renew_nominee_name').val('');
+    $('#nominee_relationship_select').val('').trigger('change');
+    $('#renew_nominee_age').val('');
+    $('#renew_nominee_share').val('');
+  });
+
+  // Auto-load nominees for the pre-selected customer on renew page
+  function loadRenewNominees(customerId) {
+    if (!customerId) return;
+    $.ajax({
+      url: '<%= load_customer_nominees_admin_life_insurances_path %>',
+      method: 'GET',
+      data: { customer_id: customerId },
+      success: function(response) {
+        if (response.success && response.nominees && response.nominees.length > 0) {
+          var n = response.nominees[0];
+          $('#renew_nominee_name').val(n.nominee_name || '');
+          var rel = (n.relationship || '').toLowerCase();
+          // Try to match to the available relationship options
+          var matchedRel = '';
+          $('#nominee_relationship_select option').each(function() {
+            if ($(this).val().toLowerCase() === rel || $(this).text().toLowerCase() === rel) {
+              matchedRel = $(this).val();
+            }
+          });
+          if (matchedRel) {
+            $('#nominee_relationship_select').val(matchedRel).trigger('change');
+          }
+          $('#renew_nominee_age').val(n.age || '');
+          $('#renew_nominee_share').val(100);
+          console.log('Nominee auto-loaded for customer:', customerId, n);
+        }
+      },
+      error: function(xhr, status, error) {
+        console.error('Error loading nominees for renew:', error);
+      }
+    });
+  }
+
+  // Load nominees on page load for pre-selected customer
+  setTimeout(function() {
+    var preSelectedCustomer = $('#customer_select').val();
+    if (preSelectedCustomer) {
+      loadRenewNominees(preSelectedCustomer);
+    }
+  }, 600);
+
+  // Also load nominees when customer is manually changed
+  $('#customer_select').on('select2:select', function(e) {
+    loadRenewNominees(e.params.data.id);
   });
 
   // Check for customer-specific affiliate loading after a delay
