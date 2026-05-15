@@ -4050,6 +4050,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (selectedValues.customer_id) {
       restoreSelect2Value('customer_select', selectedValues.customer_id, true); // Trigger change event
       console.log('✅ Restored customer selection and triggered policy holder loading');
+      // Also auto-load nominees for pre-selected customer
+      setTimeout(function() {
+        if (typeof loadCustomerNominees === 'function') {
+          loadCustomerNominees(selectedValues.customer_id);
+        }
+      }, 300);
     }
 
     // Restore affiliate selection
