@@ -41,11 +41,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         days_until_expiry: policy.days_until_expiry,
         drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
-        document: if policy.main_policy_document_key.present?
-                    policy.main_policy_r2_url
-                  elsif policy.health_insurance_documents.any?
-                    policy.health_insurance_documents.first.document_url
-                  end
+        document: policy.main_policy_document_key.present? ? policy.main_policy_r2_url : policy.health_insurance_documents.find { |d| d.r2_file_key.present? }&.document_url,
+        documents: build_documents_list(policy, :health)
       }
     end
 
@@ -68,6 +65,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         document: policy.main_policy_document_key.present? ? policy.main_policy_r2_document_url : nil,
+        documents: build_documents_list(policy, :life),
         # Life insurance specific fields
         nominee_name: policy.nominee_name,
         nominee_relationship: policy.nominee_relationship,
@@ -106,10 +104,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         end,
         drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
-        document: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? {
-          document: 'Policy Document',
-          url: rails_blob_url(policy.policy_documents.first)
-        } : nil
+        document: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
+        documents: build_documents_list(policy, :motor)
       }
     end
 
@@ -226,11 +222,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
             drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
-            document: if policy.main_policy_document_key.present?
-                        policy.main_policy_r2_url
-                      elsif policy.health_insurance_documents.any?
-                        policy.health_insurance_documents.first.document_url
-                      end
+            document: policy.main_policy_document_key.present? ? policy.main_policy_r2_url : policy.health_insurance_documents.find { |d| d.r2_file_key.present? }&.document_url,
+            documents: build_documents_list(policy, :health)
           }
         end
       end
@@ -322,7 +315,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
             drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
         dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
-            document: policy.main_policy_document_key.present? ? generate_r2_public_url(policy.main_policy_document_key) : nil
+            document: policy.main_policy_document_key.present? ? policy.main_policy_r2_url : nil,
+            documents: build_documents_list(policy, :life)
           }
         end
       end
@@ -421,10 +415,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
             installment_type: installment_type, # 'regular' or 'renewal'
             is_expired: policy.policy_end_date < Date.current,
             is_overdue: installment_type == 'renewal' && days_until_installment < 0,
-            document: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? {
-              document: 'Policy Document',
-              url: rails_blob_url(policy.policy_documents.first)
-            } : nil,
+            document: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? rails_blob_url(policy.policy_documents.first) : nil,
+            documents: build_documents_list(policy, :motor),
             drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false
           }
         end
@@ -514,11 +506,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         is_expired: policy.policy_end_date < Date.current,
         days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
         insurance_company: policy.insurance_company_name,
-        document: if policy.main_policy_document_key.present?
-                    policy.main_policy_r2_url
-                  elsif policy.health_insurance_documents.any?
-                    policy.health_insurance_documents.first.document_url
-                  end,
+        document: policy.main_policy_document_key.present? ? policy.main_policy_r2_url : policy.health_insurance_documents.find { |d| d.r2_file_key.present? }&.document_url,
+        documents: build_documents_list(policy, :health),
         drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false
       }
     end
@@ -573,6 +562,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
         insurance_company: policy.insurance_company_name,
         document: policy.main_policy_document_key.present? ? policy.main_policy_r2_document_url : nil,
+        documents: build_documents_list(policy, :life),
         drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false
       }
     end
@@ -666,10 +656,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
               is_expired: policy.policy_end_date < Date.current,
               days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
               insurance_company: policy.respond_to?(:insurance_company_name) ? policy.insurance_company_name : "Unknown",
-              document: policy.respond_to?(:policy_documents) && policy.policy_documents.attached? ? {
-              document: 'Policy Document',
-              url: rails_blob_url(policy.policy_documents.first)
-            } : nil,
+              document: policy.respond_to?(:main_policy_document_key) && policy.main_policy_document_key.present? ? policy.main_policy_r2_url : nil,
+              documents: build_documents_list(policy, insurance_config[:type].downcase.to_sym),
               # Additional fields specific to motor insurance
               vehicle_number: insurance_config[:type] == 'Motor' && policy.respond_to?(:vehicle_number) ? policy.vehicle_number : nil,
               vehicle_make: insurance_config[:type] == 'Motor' && policy.respond_to?(:vehicle_make) ? policy.vehicle_make : nil,
@@ -993,6 +981,47 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
   end
 
   private
+
+  def build_documents_list(policy, type)
+    docs = []
+
+    # Main policy document (stored as R2 key on the policy record itself)
+    if policy.respond_to?(:main_policy_document_key) && policy.main_policy_document_key.present?
+      docs << {
+        title: policy.respond_to?(:main_policy_document_filename) ? (policy.main_policy_document_filename.presence || 'Main Policy Document') : 'Main Policy Document',
+        document_type: 'policy_document',
+        url: policy.main_policy_r2_url,
+        filename: policy.respond_to?(:main_policy_document_filename) ? policy.main_policy_document_filename : nil,
+        size: policy.respond_to?(:main_policy_document_size) ? policy.main_policy_document_size : nil,
+        is_main: true
+      }
+    end
+
+    # Additional R2 documents from the associated documents table
+    associated_docs = case type
+    when :health
+      policy.respond_to?(:health_insurance_documents) ? policy.health_insurance_documents.select { |d| d.r2_file_key.present? } : []
+    when :life
+      policy.respond_to?(:life_insurance_documents) ? policy.life_insurance_documents.select { |d| d.respond_to?(:r2_file_key) && d.r2_file_key.present? } : []
+    when :motor
+      policy.respond_to?(:motor_insurance_documents) ? policy.motor_insurance_documents.select { |d| d.r2_file_key.present? } : []
+    else
+      []
+    end
+
+    associated_docs.each do |doc|
+      docs << {
+        title: doc.respond_to?(:title) ? doc.title : (doc.respond_to?(:document_name) ? doc.document_name : 'Document'),
+        document_type: doc.respond_to?(:document_type) ? doc.document_type : 'other',
+        url: doc.document_url,
+        filename: doc.respond_to?(:r2_filename) ? doc.r2_filename : nil,
+        size: doc.respond_to?(:r2_file_size) ? doc.r2_file_size : nil,
+        is_main: false
+      }
+    end
+
+    docs
+  end
 
   def get_customer_portfolio_summary(customer)
     # Calculate total policies count
