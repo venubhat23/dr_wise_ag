@@ -783,8 +783,9 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       @customer_family_members = @health_insurance.customer.family_members.includes(:customer).to_a
     end
 
-    # Store original insurance members before reassignment
-    original_members = @health_insurance.health_insurance_members.to_a
+    # Store original members and nominees before reassignment
+    original_members  = @health_insurance.health_insurance_members.to_a
+    original_nominees = @health_insurance.health_insurance_nominees.to_a
 
     # Auto-set affiliate based on original policy or customer
     if @renewed_policy.sub_agent_id.present?
@@ -799,9 +800,8 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     # Assign to instance variable for form FIRST
     @health_insurance = @renewed_policy
 
-    # Now build the members on the @health_insurance object that the form will use
+    # Copy members from original policy
     if original_members.any?
-      # Build the members using the association's build method
       original_members.each do |original_member|
         @health_insurance.health_insurance_members.build(
           member_name: original_member.member_name,
@@ -811,8 +811,21 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
         )
       end
     else
-      # Build at least one empty member for the form if no members exist
       @health_insurance.health_insurance_members.build
+    end
+
+    # Copy nominees from original policy
+    if original_nominees.any?
+      original_nominees.each do |nom|
+        @health_insurance.health_insurance_nominees.build(
+          nominee_name: nom.nominee_name,
+          relationship: nom.relationship,
+          age: nom.age,
+          share_percentage: nom.share_percentage
+        )
+      end
+    else
+      @health_insurance.health_insurance_nominees.build
     end
   end
 

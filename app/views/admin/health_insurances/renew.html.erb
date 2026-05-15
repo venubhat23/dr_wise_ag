@@ -641,39 +641,121 @@
     </div>
   </div>
 
-  <!-- Nominee Information Section -->
+  <!-- Nominee Details Section -->
   <div class="card mb-4">
-    <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center">
       <h5 class="mb-0">
         <i class="bi bi-person-heart me-2 text-info"></i>
-        Nominee Information
+        Nominee Details
       </h5>
+      <button type="button" id="renew_add_nominee" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus me-1"></i>Add Nominee
+      </button>
     </div>
     <div class="card-body">
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <%= form.label :nominee_name, "Nominee Name", class: "form-label" %>
-          <%= form.text_field :nominee_name,
-              class: "form-control",
-              placeholder: "Enter nominee name",
-              value: @health_insurance.nominee_name %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :nominee_relation, "Relationship", class: "form-label" %>
-          <%= form.select :nominee_relation,
-              options_for_select([
-                ['Spouse', 'spouse'],
-                ['Child', 'child'],
-                ['Parent', 'parent'],
-                ['Sibling', 'sibling'],
-                ['Other', 'other']
-              ], @health_insurance.nominee_relation),
-              { prompt: 'Select Relationship' },
-              { class: "form-control" } %>
-        </div>
+      <div id="renew_nominees">
+        <% if @health_insurance.health_insurance_nominees.none? %>
+          <div class="text-center py-3 text-muted" id="renew_no_nominees_message">
+            <i class="bi bi-person-x fs-3 d-block mb-2"></i>
+            <p class="mb-0">No nominees added yet.</p>
+          </div>
+        <% end %>
+
+        <% renew_nominee_idx = 0 %>
+        <%= form.fields_for :health_insurance_nominees do |nf| %>
+          <div class="nominee-row border rounded p-3 mb-3 bg-light">
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <%= nf.label :nominee_name, "Nominee Name", class: "form-label required" %>
+                <%= nf.text_field :nominee_name, class: "form-control", placeholder: "Full Name", required: true %>
+              </div>
+              <div class="col-md-3 mb-3">
+                <%= nf.label :relationship, "Relationship", class: "form-label required" %>
+                <%= nf.select :relationship,
+                    options_for_select(HealthInsuranceNominee::RELATIONSHIPS.map { |r| [r.humanize, r] }, nf.object.relationship),
+                    { prompt: 'Select' }, { class: "form-select", required: true } %>
+              </div>
+              <div class="col-md-2 mb-3">
+                <%= nf.label :age, "Age", class: "form-label required" %>
+                <%= nf.number_field :age, class: "form-control", min: 1, max: 120, required: true %>
+              </div>
+              <div class="col-md-2 mb-3">
+                <%= nf.label :share_percentage, "Share %", class: "form-label required" %>
+                <%= nf.number_field :share_percentage, class: "form-control", min: 0, max: 100, step: 0.01, placeholder: "100", required: true %>
+              </div>
+              <div class="col-md-1 d-flex align-items-end mb-3">
+                <button type="button" class="btn btn-outline-danger remove-renew-nominee-btn">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+            <%= nf.check_box :_destroy, style: "display:none;" %>
+          </div>
+          <% renew_nominee_idx += 1 %>
+        <% end %>
       </div>
     </div>
   </div>
+
+  <script>
+    (function() {
+      let renewNomineeIndex = <%= @health_insurance.health_insurance_nominees.length %>;
+
+      function toggleRenewNoNomineesMsg() {
+        const rows = document.querySelectorAll('#renew_nominees .nominee-row');
+        const msg  = document.getElementById('renew_no_nominees_message');
+        if (msg) msg.style.display = rows.length === 0 ? 'block' : 'none';
+      }
+      toggleRenewNoNomineesMsg();
+
+      document.getElementById('renew_add_nominee').addEventListener('click', function() {
+        const tpl = `
+          <div class="nominee-row border rounded p-3 mb-3 bg-light">
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label required">Nominee Name</label>
+                <input type="text" name="health_insurance[health_insurance_nominees_attributes][${renewNomineeIndex}][nominee_name]" class="form-control" placeholder="Full Name" required>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label required">Relationship</label>
+                <select name="health_insurance[health_insurance_nominees_attributes][${renewNomineeIndex}][relationship]" class="form-select" required>
+                  <option value="">Select</option>
+                  <option value="father">Father</option>
+                  <option value="mother">Mother</option>
+                  <option value="spouse">Spouse</option>
+                  <option value="son">Son</option>
+                  <option value="daughter">Daughter</option>
+                  <option value="brother">Brother</option>
+                  <option value="sister">Sister</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="col-md-2 mb-3">
+                <label class="form-label required">Age</label>
+                <input type="number" name="health_insurance[health_insurance_nominees_attributes][${renewNomineeIndex}][age]" class="form-control" min="1" max="120" required>
+              </div>
+              <div class="col-md-2 mb-3">
+                <label class="form-label required">Share %</label>
+                <input type="number" name="health_insurance[health_insurance_nominees_attributes][${renewNomineeIndex}][share_percentage]" class="form-control" min="0" max="100" step="0.01" placeholder="100" required>
+              </div>
+              <div class="col-md-1 d-flex align-items-end mb-3">
+                <button type="button" class="btn btn-outline-danger remove-renew-nominee-btn"><i class="bi bi-trash"></i></button>
+              </div>
+            </div>
+          </div>`;
+        document.getElementById('renew_nominees').insertAdjacentHTML('beforeend', tpl);
+        renewNomineeIndex++;
+        toggleRenewNoNomineesMsg();
+      });
+
+      document.getElementById('renew_nominees').addEventListener('click', function(e) {
+        if (e.target.closest('.remove-renew-nominee-btn')) {
+          e.target.closest('.nominee-row').remove();
+          toggleRenewNoNomineesMsg();
+        }
+      });
+    })();
+  </script>
 
   <!-- Autopay Installment Section -->
   <div class="card mb-4">
