@@ -509,9 +509,11 @@
                 <td><%= policy_data[:company_name] %></td>
                 <td>₹<%= number_to_currency(policy_data[:premium], unit: '', precision: 0) %></td>
                 <td>
-                  <span class="badge bg-<%= policy_data[:status] == 'Active' ? 'success' : 'secondary' %>">
-                    <%= policy_data[:status] %>
-                  </span>
+                  <% if policy_data[:status] == 'Active' %>
+                    <span style="color:#198754; font-weight:600;">Active</span>
+                  <% else %>
+                    <span style="color:#dc3545; font-weight:600;">Expired</span>
+                  <% end %>
                 </td>
                 <td>
                   <% if policy_data[:end_date] %>
