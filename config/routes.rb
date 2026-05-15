@@ -808,6 +808,12 @@ Rails.application.routes.draw do
         get 'commission/summary', to: 'commission#summary'
         get 'commission/history', to: 'commission#history'
         get 'commission/stats', to: 'commission#stats'
+
+        # Commission APIs for Agents (alias routes)
+        get 'agent/commission/breakdown', to: 'commission#breakdown'
+        get 'agent/commission/summary', to: 'commission#summary'
+        get 'agent/commission/history', to: 'commission#history'
+        get 'agent/commission/stats', to: 'commission#stats'
       end
 
       # Sub Agent APIs

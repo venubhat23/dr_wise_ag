@@ -158,10 +158,10 @@ class Api::V1::Mobile::CommissionController < Api::V1::Mobile::BaseController
   private
 
   def validate_sub_agent_access
-    unless current_user.is_a?(SubAgent)
+    unless current_user.is_a?(SubAgent) || current_user.is_a?(User)
       render json: {
         status: 'error',
-        message: 'Access denied. Sub-agent account required.'
+        message: 'Access denied. Agent or sub-agent account required.'
       }, status: :forbidden
     end
   end
@@ -204,22 +204,28 @@ class Api::V1::Mobile::CommissionController < Api::V1::Mobile::BaseController
   end
 
   def get_all_sub_agent_payouts
-    sub_agent = get_current_sub_agent
-    return CommissionPayout.none unless sub_agent
+    user = current_user
+    return CommissionPayout.none unless user
 
-    # Sub-agents get 'affiliate' payouts in the system
-    CommissionPayout.where(
-      policy_type: ['health', 'life', 'motor', 'other'],
-      payout_to: 'affiliate'  # Sub-agents receive 'affiliate' payouts
-    ).joins(
-      "LEFT JOIN health_insurances ON commission_payouts.policy_type = 'health' AND commission_payouts.policy_id = health_insurances.id
-       LEFT JOIN life_insurances ON commission_payouts.policy_type = 'life' AND commission_payouts.policy_id = life_insurances.id
-       LEFT JOIN motor_insurances ON commission_payouts.policy_type = 'motor' AND commission_payouts.policy_id = motor_insurances.id
-       LEFT JOIN other_insurances ON commission_payouts.policy_type = 'other' AND commission_payouts.policy_id = other_insurances.id"
-    ).where(
-      "COALESCE(health_insurances.sub_agent_id, life_insurances.sub_agent_id, motor_insurances.sub_agent_id, other_insurances.sub_agent_id) = ?",
-      sub_agent.id
-    )
+    if user.is_a?(SubAgent)
+      # Sub-agents/affiliates receive 'affiliate' payouts.
+      # other_insurances has no sub_agent_id column so it is excluded from the join.
+      CommissionPayout.where(
+        policy_type: ['health', 'life', 'motor'],
+        payout_to: 'affiliate'
+      ).joins(
+        "LEFT JOIN health_insurances ON commission_payouts.policy_type = 'health' AND commission_payouts.policy_id = health_insurances.id
+         LEFT JOIN life_insurances ON commission_payouts.policy_type = 'life' AND commission_payouts.policy_id = life_insurances.id
+         LEFT JOIN motor_insurances ON commission_payouts.policy_type = 'motor' AND commission_payouts.policy_id = motor_insurances.id"
+      ).where(
+        "COALESCE(health_insurances.sub_agent_id, life_insurances.sub_agent_id, motor_insurances.sub_agent_id) = ?",
+        user.id
+      )
+    else
+      # Regular agents (User) receive 'agent' or 'main_agent' payouts.
+      # There is only one main agent, so no per-agent filtering is needed.
+      CommissionPayout.where(payout_to: ['agent', 'main_agent'])
+    end
   end
 
   def get_sub_agent_payouts_for_period(start_date, end_date)
