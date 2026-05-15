@@ -858,6 +858,7 @@ body {
               <% else %>
               <tr>
                 <th class="text-white border-0 py-3">Policy Number</th>
+                <th class="text-white border-0 py-3">Type</th>
                 <th class="text-white border-0 py-3">Company</th>
                 <th class="text-white border-0 py-3">Premium</th>
                 <th class="text-white border-0 py-3">Start Date</th>
@@ -893,15 +894,16 @@ body {
                       <% end %>
                     </td>
                   <% else %>
+                    <td><%= p[:type] %></td>
                     <td><%= p[:company_name] %></td>
                     <td><%= respond_to?(:indian_currency) ? indian_currency(p[:premium].to_i) : "₹#{p[:premium].to_i}" %></td>
                     <td><%= p[:start_date]&.strftime("%d %b %Y") || '—' %></td>
                     <td><%= p[:end_date]&.strftime("%d %b %Y") || '—' %></td>
                     <td>
                       <% if p[:status] == 'Active' %>
-                        <span class="badge bg-success">Active</span>
+                        <span style="color:#16a34a; font-weight:600;">Active</span>
                       <% else %>
-                        <span class="badge bg-secondary">Expired</span>
+                        <span style="color:#dc2626; font-weight:600;">Expired</span>
                       <% end %>
                     </td>
                   <% end %>
