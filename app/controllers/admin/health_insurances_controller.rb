@@ -71,6 +71,8 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     processed_params = process_broker_params(health_insurance_params)
     # Extract main_policy_document from params to handle separately
     main_policy_document_file = processed_params.delete(:main_policy_document)
+    # Extract additional documents so they go to R2, not Active Storage
+    additional_document_files = Array(processed_params.delete(:documents)).reject(&:blank?)
     @health_insurance = HealthInsurance.new(processed_params)
     @health_insurance.main_policy_document = main_policy_document_file
 
@@ -98,7 +100,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       handle_main_policy_r2_upload(@health_insurance) if @health_insurance.main_policy_document.present?
 
       # Handle R2 document uploads after successful save
-      handle_health_documents_r2_upload(@health_insurance)
+      handle_health_documents_r2_upload(@health_insurance, additional_document_files)
 
       redirect_to admin_health_insurance_path(@health_insurance), notice: 'Health insurance policy was successfully created.'
     else
@@ -111,6 +113,8 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     update_params = process_broker_params(health_insurance_params)
     # Extract main_policy_document from params to handle separately
     main_policy_document_file = update_params.delete(:main_policy_document)
+    # Extract additional documents so they go to R2, not Active Storage
+    additional_document_files = Array(update_params.delete(:documents)).reject(&:blank?)
     @health_insurance.assign_attributes(update_params)
     @health_insurance.main_policy_document = main_policy_document_file if main_policy_document_file.present?
     set_distributor_from_affiliate(@health_insurance)
@@ -120,7 +124,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       handle_main_policy_r2_upload(@health_insurance) if @health_insurance.main_policy_document.present?
 
       # Handle R2 document uploads after successful save
-      handle_health_documents_r2_upload(@health_insurance)
+      handle_health_documents_r2_upload(@health_insurance, additional_document_files)
 
       redirect_to admin_health_insurance_path(@health_insurance), notice: 'Health insurance policy was successfully updated.'
     else
@@ -832,34 +836,27 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   end
 
   # Handle Health Insurance documents R2 upload
-  def handle_health_documents_r2_upload(health_insurance)
+  def handle_health_documents_r2_upload(health_insurance, additional_files = [])
     uploaded_count = 0
     failed_count = 0
 
     Rails.logger.info "Starting R2 document upload for health insurance #{health_insurance.id}"
 
-    # Handle health_insurance_documents_attributes (from form)
+    # Handle health_insurance_documents_attributes (from "Add Document" button)
     if params[:health_insurance][:health_insurance_documents_attributes].present?
-      Rails.logger.info "Found #{params[:health_insurance][:health_insurance_documents_attributes].keys.size} document entries"
-
       params[:health_insurance][:health_insurance_documents_attributes].each do |key, doc_attrs|
-        Rails.logger.info "Processing document #{key}: #{doc_attrs.inspect}"
         next if doc_attrs[:_destroy] == "true"
 
-        # Get the file from the original form data
         file = request.params.dig('health_insurance', 'health_insurance_documents_attributes', key, 'file')
-        Rails.logger.info "File for document #{key}: #{file.present? ? file.original_filename : 'nil'}"
-
         next if file.blank?
 
         begin
           result = R2Service.upload(file, folder: "health_insurance/#{health_insurance.id}/documents")
 
           if result && result[:key] && !result[:error]
-            # Create HealthInsuranceDocument record with R2 info
             health_insurance.health_insurance_documents.create!(
-              document_type: doc_attrs[:document_type],
-              title: doc_attrs[:title],
+              document_type: doc_attrs[:document_type].presence || 'other',
+              title: doc_attrs[:title].presence || file.original_filename,
               description: doc_attrs[:description],
               r2_file_key: result[:key],
               r2_filename: result[:filename],
@@ -867,26 +864,47 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
               r2_file_size: result[:size]
             )
             uploaded_count += 1
-            Rails.logger.info "Uploaded health document: #{result[:filename]} with title: #{doc_attrs[:title]}"
           else
-            error_msg = result[:error] || "Unknown upload error"
-            Rails.logger.error "R2 upload failed for document: #{doc_attrs[:title]} - #{error_msg}"
+            Rails.logger.error "R2 upload failed for document: #{doc_attrs[:title]} - #{result[:error]}"
             failed_count += 1
           end
         rescue => e
           Rails.logger.error "Error uploading health document: #{e.message}"
-          Rails.logger.error "Document attributes: #{doc_attrs.inspect}"
           failed_count += 1
         end
       end
     end
 
-    # Log upload results
-    if uploaded_count > 0
-      Rails.logger.info "Health Insurance documents upload completed: #{uploaded_count} uploaded, #{failed_count} failed"
+    # Handle additional documents (from the "Additional Documents" multi-file field)
+    Array(additional_files).each do |file|
+      next if file.blank?
+
+      begin
+        result = R2Service.upload(file, folder: "health_insurance/#{health_insurance.id}/documents")
+
+        if result && result[:key] && !result[:error]
+          health_insurance.health_insurance_documents.create!(
+            document_type: 'other',
+            title: file.original_filename || 'Additional Document',
+            r2_file_key: result[:key],
+            r2_filename: result[:filename],
+            r2_content_type: result[:content_type],
+            r2_file_size: result[:size]
+          )
+          uploaded_count += 1
+        else
+          Rails.logger.error "R2 upload failed for additional document: #{result[:error]}"
+          failed_count += 1
+        end
+      rescue => e
+        Rails.logger.error "Error uploading additional document: #{e.message}"
+        failed_count += 1
+      end
     end
 
-    return { uploaded: uploaded_count, failed: failed_count }
+    Rails.logger.info "Health Insurance documents upload completed: #{uploaded_count} uploaded, #{failed_count} failed" if uploaded_count > 0
+
+    { uploaded: uploaded_count, failed: failed_count }
   end
 
   # R2 Upload Helper for main policy document

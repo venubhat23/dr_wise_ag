@@ -381,12 +381,9 @@
   <div id="documentsCollapse" class="collapse show">
     <div class="section-body">
       <%
-        # Check multiple document sources
-        policy_documents = PolicyDocument.where(policy_type: 'health', policy_id: @health_insurance.id)
-        uploaded_docs = @health_insurance.respond_to?(:uploaded_documents) ? @health_insurance.uploaded_documents : []
-        health_insurance_docs = @health_insurance.respond_to?(:health_insurance_documents) ? @health_insurance.health_insurance_documents : []
-
-        total_documents = policy_documents.count + uploaded_docs.count + health_insurance_docs.count
+        has_main_policy = @health_insurance.has_main_policy_r2?
+        health_insurance_docs = @health_insurance.health_insurance_documents.to_a
+        total_documents = (has_main_policy ? 1 : 0) + health_insurance_docs.count
       %>
 
       <% if total_documents > 0 %>
@@ -397,104 +394,64 @@
               <strong>Total Documents: <%= total_documents %></strong>
             </div>
 
-            <!-- Policy Documents -->
-            <% if policy_documents.any? %>
-              <h6 class="mt-3">Policy Documents (<%= policy_documents.count %>)</h6>
-              <div class="table-responsive">
-                <table class="table table-bordered table-sm">
-                  <thead class="table-light">
+            <div class="table-responsive">
+              <table class="table table-bordered table-sm">
+                <thead class="table-light">
+                  <tr>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Uploaded</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Main Policy Document -->
+                  <% if has_main_policy %>
                     <tr>
-                      <th>Title</th>
-                      <th>Type</th>
-                      <th>Actions</th>
+                      <td>
+                        <i class="bi bi-file-earmark-text text-success me-1"></i>
+                        <%= @health_insurance.main_policy_r2_filename.presence || 'Main Policy Document' %>
+                        <span class="badge bg-success ms-1">Main</span>
+                      </td>
+                      <td>Policy Document</td>
+                      <td><%= @health_insurance.main_policy_document_size.present? ? number_to_human_size(@health_insurance.main_policy_document_size) : '-' %></td>
+                      <td><%= @health_insurance.updated_at.strftime('%B %d, %Y') %></td>
+                      <td>
+                        <a href="<%= @health_insurance.main_policy_r2_url %>" target="_blank" class="btn btn-sm btn-outline-primary me-1">
+                          <i class="bi bi-eye"></i> View
+                        </a>
+                        <a href="<%= @health_insurance.main_policy_r2_url %>?response-content-disposition=attachment;filename=<%= CGI.escape(@health_insurance.main_policy_r2_filename.presence || 'policy.pdf') %>" class="btn btn-sm btn-outline-success">
+                          <i class="bi bi-download"></i> Download
+                        </a>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    <% policy_documents.each do |doc| %>
-                      <tr>
-                        <td><%= doc.title %></td>
-                        <td><%= doc.document_type %></td>
-                        <td>
-                          <% if doc.document_url.present? %>
-                            <a href="<%= doc.document_url %>" target="_blank" class="btn btn-sm btn-outline-primary me-1">
-                              <i class="bi bi-eye"></i> View
-                            </a>
-                            <%= link_to download_admin_policy_document_path(doc), class: "btn btn-sm btn-outline-success" do %>
-                              <i class="bi bi-download"></i> Download
-                            <% end %>
-                          <% end %>
-                        </td>
-                      </tr>
-                    <% end %>
-                  </tbody>
-                </table>
-              </div>
-            <% end %>
+                  <% end %>
 
-            <!-- Uploaded Documents (ActiveStorage) -->
-            <% if uploaded_docs.any? %>
-              <h6 class="mt-3">Uploaded Documents (<%= uploaded_docs.count %>)</h6>
-              <div class="table-responsive">
-                <table class="table table-bordered table-sm">
-                  <thead class="table-light">
+                  <!-- Additional / Add-Document uploads -->
+                  <% health_insurance_docs.each do |doc| %>
+                    <% next unless doc.has_r2_file? %>
                     <tr>
-                      <th>Filename</th>
-                      <th>Content Type</th>
-                      <th>Size</th>
-                      <th>Actions</th>
+                      <td>
+                        <i class="bi bi-file-earmark me-1"></i>
+                        <%= doc.title %>
+                      </td>
+                      <td><%= doc.document_type.humanize %></td>
+                      <td><%= doc.formatted_file_size %></td>
+                      <td><%= doc.created_at.strftime('%B %d, %Y') %></td>
+                      <td>
+                        <a href="<%= doc.document_url %>" target="_blank" class="btn btn-sm btn-outline-primary me-1">
+                          <i class="bi bi-eye"></i> View
+                        </a>
+                        <a href="<%= doc.download_url %>" class="btn btn-sm btn-outline-success">
+                          <i class="bi bi-download"></i> Download
+                        </a>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    <% uploaded_docs.each do |doc| %>
-                      <tr>
-                        <td><%= doc.filename %></td>
-                        <td><%= doc.content_type %></td>
-                        <td><%= number_to_human_size(doc.byte_size) %></td>
-                        <td>
-                          <%= link_to "View", rails_blob_path(doc), target: "_blank", class: "btn btn-sm btn-outline-primary" %>
-                        </td>
-                      </tr>
-                    <% end %>
-                  </tbody>
-                </table>
-              </div>
-            <% end %>
-
-            <!-- Health Insurance Documents -->
-            <% if health_insurance_docs.any? %>
-              <h6 class="mt-3">Health Insurance Documents (<%= health_insurance_docs.count %>)</h6>
-              <div class="table-responsive">
-                <table class="table table-bordered table-sm">
-                  <thead class="table-light">
-                    <tr>
-                      <th>Title</th>
-                      <th>Type</th>
-                      <th>Uploaded</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <% health_insurance_docs.each do |doc| %>
-                      <tr>
-                        <td><%= doc.title %></td>
-                        <td><%= doc.document_type %></td>
-                        <td><%= doc.created_at.strftime('%B %d, %Y at %I:%M %p') %></td>
-                        <td>
-                          <% if doc.document_url.present? %>
-                            <a href="<%= doc.document_url %>" target="_blank" class="btn btn-sm btn-outline-primary me-1">
-                              <i class="bi bi-eye"></i> View
-                            </a>
-                            <%= link_to download_admin_health_insurance_document_path(doc), class: "btn btn-sm btn-outline-success" do %>
-                              <i class="bi bi-download"></i> Download
-                            <% end %>
-                          <% end %>
-                        </td>
-                      </tr>
-                    <% end %>
-                  </tbody>
-                </table>
-              </div>
-            <% end %>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       <% else %>

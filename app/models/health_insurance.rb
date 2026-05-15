@@ -28,7 +28,7 @@ class HealthInsurance < ApplicationRecord
   # Nested attributes
   accepts_nested_attributes_for :health_insurance_members, allow_destroy: true, reject_if: :all_blank
   accepts_nested_attributes_for :health_insurance_nominees, allow_destroy: true, reject_if: :all_blank
-  accepts_nested_attributes_for :health_insurance_documents, allow_destroy: true, reject_if: :all_blank
+  accepts_nested_attributes_for :health_insurance_documents, allow_destroy: true, reject_if: proc { |attrs| attrs['id'].blank? && attrs['r2_file_key'].blank? }
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Virtual attributes
