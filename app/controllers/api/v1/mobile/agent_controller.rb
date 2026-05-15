@@ -405,7 +405,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                          agent_health_policies
                        end
 
-      health_policies.includes(:customer, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+      health_policies.includes(:customer, :health_insurance_documents, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Health', commission_payouts)
       end
     end
@@ -1620,7 +1620,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # Only show policies where the current agent is affiliated
     if is_admin?(agent)
       # Admin can see all policies for the customer
-      customer.health_insurances.includes(documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+      customer.health_insurances.includes(:health_insurance_documents, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
         policies << format_policy_data_with_commission(policy, 'Health', commission_payouts)
       end
 
@@ -1962,48 +1962,86 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       end
     end
 
-    # Get attached documents
-    documents = []
+    # Build full documents list — R2 first, then Active Storage fallbacks
+    all_documents = []
 
-    # Check for Active Storage documents attachments
-    if policy.respond_to?(:documents) && policy.documents.attached?
-      documents += policy.documents.map do |doc|
-        {
-          document: 'Policy Document',
-          url: begin
-                  Rails.application.routes.url_helpers.rails_blob_url(doc, host: 'dr-wise-ag.onrender.com', protocol: 'https')
-                rescue
-                  nil
-                end
+    # 1. R2 main policy document (stored as columns on the policy record)
+    if policy.respond_to?(:main_policy_document_key) && policy.main_policy_document_key.present?
+      all_documents << {
+        title: policy.respond_to?(:main_policy_document_filename) ? (policy.main_policy_document_filename.presence || 'Main Policy Document') : 'Main Policy Document',
+        document_type: 'policy_document',
+        url: policy.main_policy_r2_url,
+        filename: policy.respond_to?(:main_policy_document_filename) ? policy.main_policy_document_filename : nil,
+        size: policy.respond_to?(:main_policy_document_size) ? policy.main_policy_document_size : nil,
+        is_main: true
+      }
+    end
+
+    # 2. R2 documents from health_insurance_documents association
+    if type.downcase == 'health' && policy.respond_to?(:health_insurance_documents)
+      policy.health_insurance_documents.each do |doc|
+        next unless doc.r2_file_key.present?
+        all_documents << {
+          title: doc.title.presence || doc.r2_filename,
+          document_type: doc.document_type,
+          url: doc.document_url,
+          filename: doc.r2_filename,
+          size: doc.r2_file_size,
+          is_main: false
         }
       end
     end
 
-    # Check for policy_documents (some policies have separate policy_documents)
-    if policy.respond_to?(:policy_documents) && policy.policy_documents.attached?
-      documents += policy.policy_documents.map do |doc|
-        {
-          document: 'Policy Document',
-          url: begin
-                  Rails.application.routes.url_helpers.rails_blob_url(doc, host: 'dr-wise-ag.onrender.com', protocol: 'https')
-                rescue
-                  nil
-                end
+    # 3. R2 documents from motor_insurance_documents association
+    if type.downcase == 'motor' && policy.respond_to?(:motor_insurance_documents)
+      policy.motor_insurance_documents.each do |doc|
+        next unless doc.r2_file_key.present?
+        all_documents << {
+          title: doc.respond_to?(:title) ? doc.title.presence : nil,
+          document_type: doc.respond_to?(:document_type) ? doc.document_type : 'other',
+          url: doc.document_url,
+          filename: doc.respond_to?(:r2_filename) ? doc.r2_filename : nil,
+          size: doc.respond_to?(:r2_file_size) ? doc.r2_file_size : nil,
+          is_main: false
         }
       end
     end
 
-    # For Life Insurance, check for life_insurance_documents association
+    # 4. Active Storage life_insurance_documents
     if type.downcase == 'life' && policy.respond_to?(:life_insurance_documents)
-      policy.life_insurance_documents.includes(:document_attachment).each do |doc_record|
-        if doc_record.document.attached?
-          documents << {
-            document: doc_record.document_type || 'Life Insurance Document',
+      policy.life_insurance_documents.each do |doc_record|
+        next unless doc_record.document.attached?
+        all_documents << {
+          title: doc_record.respond_to?(:document_name) ? doc_record.document_name : (doc_record.document_type || 'Life Insurance Document'),
+          document_type: doc_record.document_type || 'other',
+          url: begin
+                 Rails.application.routes.url_helpers.rails_blob_url(doc_record.document, host: 'dr-wise-ag.onrender.com', protocol: 'https')
+               rescue
+                 nil
+               end,
+          filename: doc_record.document.filename.to_s,
+          size: doc_record.document.byte_size,
+          is_main: false
+        }
+      end
+    end
+
+    # 5. Fallback — Active Storage :documents / :policy_documents (legacy)
+    if all_documents.empty?
+      [:documents, :policy_documents].each do |attachment_name|
+        next unless policy.respond_to?(attachment_name) && policy.send(attachment_name).attached?
+        policy.send(attachment_name).each do |doc|
+          all_documents << {
+            title: 'Policy Document',
+            document_type: 'policy_document',
             url: begin
-                    Rails.application.routes.url_helpers.rails_blob_url(doc_record.document, host: 'dr-wise-ag.onrender.com', protocol: 'https')
-                  rescue
-                    nil
-                  end
+                   Rails.application.routes.url_helpers.rails_blob_url(doc, host: 'dr-wise-ag.onrender.com', protocol: 'https')
+                 rescue
+                   nil
+                 end,
+            filename: doc.filename.to_s,
+            size: doc.byte_size,
+            is_main: all_documents.empty?
           }
         end
       end
@@ -2033,7 +2071,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       is_drwise_policy: determine_drwise_policy(policy),
       drwise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
       dr_wise: policy.respond_to?(:is_admin_added) ? (policy.is_admin_added == true) : false,
-      document: documents.first ? documents.first[:url] : nil,
+      document: all_documents.first&.dig(:url),
+      documents: all_documents,
       created_at: policy.created_at
     }
   end
