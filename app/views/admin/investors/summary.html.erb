@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Investor Summary — <%= @investor.display_name %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --primary: #2c3e7a;
+      --accent:  #e8a020;
+      --green:   #27ae60;
+      --orange:  #e67e22;
+      --blue:    #2980b9;
+      --purple:  #8e44ad;
+      --red:     #e74c3c;
+    }
+    body { background: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+
+    /* ── Header ── */
+    .inv-header {
+      background: linear-gradient(135deg, #1a2550 0%, #2c3e7a 60%, #3a5298 100%);
+      color: #fff;
+      padding: 2rem 2.5rem;
+    }
+    .inv-header .badge-status {
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.3);
+      padding: .35em .8em;
+      border-radius: 20px;
+      font-size: .8rem;
+      letter-spacing: .5px;
+    }
+    .inv-header .badge-status.active  { background: rgba(39,174,96,.3); border-color: #27ae60; }
+    .inv-header .badge-status.inactive{ background: rgba(231,76,60,.3);  border-color: #e74c3c; }
+
+    /* ── KPI strip ── */
+    .kpi-strip { display: flex; gap: .75rem; flex-wrap: nowrap; padding: 1.5rem 2.5rem; }
+    .kpi-card {
+      flex: 1 1 0; min-width: 0;
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.1rem 1.2rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+      border-top: 4px solid var(--c, #2c3e7a);
+    }
+    .kpi-card .kpi-val { font-size: 1.45rem; font-weight: 700; color: var(--c, #2c3e7a); }
+    .kpi-card .kpi-lbl { font-size: .72rem; color: #6c757d; text-transform: uppercase; letter-spacing: .6px; margin-top: .15rem; }
+
+    /* ── Section heading ── */
+    .sec-title {
+      font-size: 1rem; font-weight: 700; letter-spacing: .4px;
+      color: #fff; background: var(--c, var(--primary));
+      padding: .6rem 1.2rem; border-radius: 8px 8px 0 0; margin: 0;
+    }
+
+    /* ── Ambassador card ── */
+    .amb-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 14px rgba(0,0,0,.07);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .amb-header {
+      background: linear-gradient(90deg, #f8f9ff 0%, #eef1ff 100%);
+      padding: .9rem 1.3rem;
+      border-bottom: 1px solid #e4e8ff;
+      display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    }
+    .amb-avatar {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #3a5298);
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 1.1rem; flex-shrink: 0;
+    }
+    .amb-meta .name { font-size: 1rem; font-weight: 700; color: #2c3e7a; }
+    .amb-meta .sub  { font-size: .78rem; color: #6c757d; }
+    .amb-pills { margin-left: auto; display: flex; gap: .5rem; flex-wrap: wrap; }
+    .pill {
+      padding: .3em .85em; border-radius: 20px; font-size: .75rem; font-weight: 600;
+      display: flex; align-items: center; gap: .3rem;
+    }
+    .pill-green  { background: #eafaf1; color: #27ae60; border: 1px solid #a9dfbf; }
+    .pill-orange { background: #fef9ec; color: #e67e22; border: 1px solid #f9d8a0; }
+    .pill-blue   { background: #eaf4fb; color: #2980b9; border: 1px solid #aed6f1; }
+    .pill-purple { background: #f5eef8; color: #8e44ad; border: 1px solid #d7bde2; }
+
+    /* ── Affiliate accordion ── */
+    .aff-section { padding: 1rem 1.3rem; border-top: 1px solid #f0f0f0; }
+    .aff-toggle {
+      background: none; border: none; padding: 0;
+      font-size: .85rem; font-weight: 600; color: var(--primary); cursor: pointer;
+      display: flex; align-items: center; gap: .4rem;
+    }
+    .aff-toggle:hover { color: var(--accent); }
+
+    /* ── Tables ── */
+    .data-table { font-size: .82rem; }
+    .data-table th { background: #f8f9fa; font-weight: 600; color: #495057; border: none; padding: .6rem .8rem; }
+    .data-table td { border-color: #f0f0f0; padding: .55rem .8rem; vertical-align: middle; }
+    .data-table tbody tr:hover { background: #f8f9ff; }
+    .amount-cell { font-weight: 600; }
+    .paid-amt    { color: #27ae60; }
+    .pending-amt { color: #e67e22; }
+    .zero-amt    { color: #adb5bd; }
+
+    /* ── Policy table section ── */
+    .policy-section {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 14px rgba(0,0,0,.07);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .policy-section .sec-body { padding: 1.2rem; }
+
+    /* ── No data ── */
+    .empty-state { text-align: center; padding: 2.5rem 1rem; color: #adb5bd; }
+    .empty-state i { font-size: 2.5rem; display: block; margin-bottom: .5rem; }
+
+    /* ── Print ── */
+    .print-btn {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: var(--primary); color: #fff; border: none;
+      border-radius: 50px; padding: .65rem 1.3rem;
+      font-size: .85rem; font-weight: 600; box-shadow: 0 4px 16px rgba(44,62,122,.35);
+      cursor: pointer; z-index: 999;
+    }
+    .print-btn:hover { background: #1a2550; }
+    @media print {
+      .print-btn { display: none; }
+      body { background: #fff; }
+      .kpi-strip { flex-wrap: wrap; }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .kpi-strip { flex-wrap: wrap; }
+      .kpi-card  { flex: 1 1 45%; }
+      .inv-header { padding: 1.2rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
+<div class="inv-header">
+  <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span style="font-size:.8rem; opacity:.7; letter-spacing:.5px; text-transform:uppercase;">Investor Summary</span>
+        <span class="badge-status <%= @investor.status %>"><%= @investor.status&.capitalize %></span>
+      </div>
+      <h1 style="font-size:1.8rem; font-weight:800; margin:0 0 .3rem;">
+        <%= @investor.display_name %>
+      </h1>
+      <div style="opacity:.75; font-size:.85rem; display:flex; gap:1.2rem; flex-wrap:wrap;">
+        <% if @investor.email.present? %>
+          <span><i class="bi bi-envelope me-1"></i><%= @investor.email %></span>
+        <% end %>
+        <% if @investor.mobile.present? %>
+          <span><i class="bi bi-telephone me-1"></i><%= @investor.mobile %></span>
+        <% end %>
+        <span><i class="bi bi-calendar me-1"></i>Joined <%= @investor.created_at.strftime('%d %b %Y') %></span>
+      </div>
+    </div>
+    <div class="text-end">
+      <% if @investor.invested_amount.present? && @investor.invested_amount > 0 %>
+        <div style="font-size:.75rem; opacity:.65; text-transform:uppercase; letter-spacing:.5px;">Total Invested</div>
+        <div style="font-size:1.6rem; font-weight:800;">₹<%= number_with_delimiter(@investor.invested_amount.to_f.round(0)) %></div>
+      <% end %>
+      <% if @investor.investment_percentage.present? && @investor.investment_percentage > 0 %>
+        <div style="margin-top:.2rem; font-size:.85rem; opacity:.8;"><i class="bi bi-pie-chart me-1"></i><%= @investor.investment_percentage %>% Profit Share</div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ KPI STRIP ══════════════════════════════ -->
+<div class="kpi-strip">
+  <div class="kpi-card" style="--c:#2c3e7a">
+    <div class="kpi-val"><%= @total_ambassadors %></div>
+    <div class="kpi-lbl"><i class="bi bi-person-badge me-1"></i>Ambassadors</div>
+  </div>
+  <div class="kpi-card" style="--c:#e67e22">
+    <div class="kpi-val"><%= @total_affiliates %></div>
+    <div class="kpi-lbl"><i class="bi bi-people me-1"></i>Affiliates</div>
+  </div>
+  <div class="kpi-card" style="--c:#27ae60">
+    <div class="kpi-val"><%= @total_direct_policies %></div>
+    <div class="kpi-lbl"><i class="bi bi-file-earmark-check me-1"></i>Direct Policies</div>
+  </div>
+  <div class="kpi-card" style="--c:#2980b9">
+    <div class="kpi-val" style="font-size:1.2rem;">₹<%= number_with_delimiter((@investor_commission_paid + @investor_commission_pending).round(0)) %></div>
+    <div class="kpi-lbl"><i class="bi bi-cash-coin me-1"></i>Your Commission</div>
+  </div>
+  <div class="kpi-card" style="--c:#8e44ad">
+    <div class="kpi-val" style="font-size:1.2rem;">₹<%= number_with_delimiter((@total_ambassador_comm + @total_affiliate_comm).round(0)) %></div>
+    <div class="kpi-lbl"><i class="bi bi-diagram-3 me-1"></i>Network Commission</div>
+  </div>
+  <div class="kpi-card" style="--c:#16a085">
+    <div class="kpi-val" style="font-size:1.2rem;">₹<%= number_with_delimiter(@total_direct_premium.round(0)) %></div>
+    <div class="kpi-lbl"><i class="bi bi-currency-rupee me-1"></i>Total Premium</div>
+  </div>
+</div>
+
+<div class="container-fluid px-4 pb-5">
+
+  <!-- ══════════════════ YOUR COMMISSION BREAKDOWN ══════════════════ -->
+  <div class="policy-section mb-4">
+    <div class="sec-title d-flex align-items-center gap-2" style="--c:#2c3e7a">
+      <i class="bi bi-cash-coin"></i> Your Commission Breakdown
+    </div>
+    <div class="sec-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="p-3 rounded" style="background:#eafaf1; border:1px solid #a9dfbf;">
+            <div style="font-size:.75rem; color:#27ae60; text-transform:uppercase; font-weight:600; letter-spacing:.5px;">Commission Paid</div>
+            <div style="font-size:1.6rem; font-weight:800; color:#27ae60;">₹<%= number_with_delimiter(@investor_commission_paid.round(2)) %></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 rounded" style="background:#fef9ec; border:1px solid #f9d8a0;">
+            <div style="font-size:.75rem; color:#e67e22; text-transform:uppercase; font-weight:600; letter-spacing:.5px;">Commission Pending</div>
+            <div style="font-size:1.6rem; font-weight:800; color:#e67e22;">₹<%= number_with_delimiter(@investor_commission_pending.round(2)) %></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 rounded" style="background:#eaf4fb; border:1px solid #aed6f1;">
+            <div style="font-size:.75rem; color:#2980b9; text-transform:uppercase; font-weight:600; letter-spacing:.5px;">Total Commission</div>
+            <div style="font-size:1.6rem; font-weight:800; color:#2980b9;">₹<%= number_with_delimiter((@investor_commission_paid + @investor_commission_pending).round(2)) %></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ AMBASSADOR SECTION ══════════════════ -->
+  <% if @ambassador_rows.any? %>
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <h5 class="mb-0 fw-bold" style="color:#2c3e7a;"><i class="bi bi-person-badge me-1"></i>Ambassadors & Their Network</h5>
+      <span class="badge rounded-pill" style="background:#2c3e7a; font-size:.78rem;"><%= @total_ambassadors %> Total</span>
+    </div>
+
+    <% @ambassador_rows.each_with_index do |row, idx| %>
+      <div class="amb-card">
+        <!-- Ambassador header -->
+        <div class="amb-header">
+          <div class="amb-avatar"><%= row[:name][0]&.upcase || '?' %></div>
+          <div class="amb-meta">
+            <div class="name"><%= row[:name] %></div>
+            <div class="sub">
+              <% if row[:ambassador].email.present? %><i class="bi bi-envelope me-1"></i><%= row[:ambassador].email %>&ensp;<% end %>
+              <% if row[:ambassador].mobile.present? %><i class="bi bi-telephone me-1"></i><%= row[:ambassador].mobile %><% end %>
+            </div>
+          </div>
+          <div class="amb-pills ms-auto">
+            <span class="pill pill-blue"><i class="bi bi-file-earmark-check"></i><%= row[:policies] %> Policies</span>
+            <span class="pill pill-purple"><i class="bi bi-people"></i><%= row[:affiliates_count] %> Affiliates</span>
+            <span class="pill pill-green"><i class="bi bi-check-circle"></i>Paid ₹<%= number_with_delimiter(row[:commission_paid].round(0)) %></span>
+            <span class="pill pill-orange"><i class="bi bi-hourglass-split"></i>Pending ₹<%= number_with_delimiter(row[:commission_pending].round(0)) %></span>
+          </div>
+        </div>
+
+        <!-- Ambassador commission mini-bar -->
+        <% total = row[:commission_paid] + row[:commission_pending] %>
+        <% if total > 0 %>
+          <div style="background:#f8f9fa; padding:.5rem 1.3rem; border-bottom:1px solid #f0f0f0;">
+            <div style="font-size:.72rem; color:#6c757d; margin-bottom:.3rem;">Commission Progress</div>
+            <div style="background:#e9ecef; border-radius:20px; height:8px; overflow:hidden;">
+              <% pct = total > 0 ? (row[:commission_paid] / total * 100).round(1) : 0 %>
+              <div style="width:<%= pct %>%; background:#27ae60; height:100%; border-radius:20px; transition:width .4s;"></div>
+            </div>
+            <div style="font-size:.7rem; color:#6c757d; margin-top:.2rem;"><%= pct %>% paid of ₹<%= number_with_delimiter(total.round(0)) %> total</div>
+          </div>
+        <% end %>
+
+        <!-- Affiliates section -->
+        <% if row[:affiliates].any? %>
+          <div class="aff-section">
+            <button class="aff-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#aff-<%= idx %>">
+              <i class="bi bi-chevron-down" style="font-size:.7rem;"></i>
+              Affiliates (<%= row[:affiliates_count] %>)
+            </button>
+            <div class="collapse show" id="aff-<%= idx %>">
+              <table class="table data-table mb-0 mt-2">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Affiliate Name</th>
+                    <th>Contact</th>
+                    <th class="text-center">Policies</th>
+                    <th class="text-end">Commission Paid</th>
+                    <th class="text-end">Commission Pending</th>
+                    <th class="text-end">Total Commission</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% row[:affiliates].each_with_index do |af, aidx| %>
+                    <tr>
+                      <td style="color:#6c757d;"><%= aidx + 1 %></td>
+                      <td>
+                        <div style="font-weight:600; color:#2c3e7a;"><%= af[:name] %></div>
+                        <% if af[:affiliate].email.present? %>
+                          <div style="font-size:.72rem; color:#6c757d;"><%= af[:affiliate].email %></div>
+                        <% end %>
+                      </td>
+                      <td style="color:#6c757d;"><%= af[:affiliate].mobile.presence || '—' %></td>
+                      <td class="text-center">
+                        <span class="badge" style="background:#eaf4fb; color:#2980b9; border:1px solid #aed6f1;"><%= af[:policies] %></span>
+                      </td>
+                      <td class="text-end amount-cell <%= af[:commission_paid] > 0 ? 'paid-amt' : 'zero-amt' %>">
+                        ₹<%= number_with_delimiter(af[:commission_paid].round(2)) %>
+                      </td>
+                      <td class="text-end amount-cell <%= af[:commission_pending] > 0 ? 'pending-amt' : 'zero-amt' %>">
+                        ₹<%= number_with_delimiter(af[:commission_pending].round(2)) %>
+                      </td>
+                      <td class="text-end amount-cell" style="color:#2c3e7a;">
+                        ₹<%= number_with_delimiter(af[:total_commission].round(2)) %>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+                <tfoot style="background:#f8f9ff;">
+                  <tr>
+                    <td colspan="4" style="font-weight:700; color:#2c3e7a;">Affiliate Totals</td>
+                    <td class="text-end paid-amt fw-bold">₹<%= number_with_delimiter(row[:affiliates].sum { |a| a[:commission_paid] }.round(2)) %></td>
+                    <td class="text-end pending-amt fw-bold">₹<%= number_with_delimiter(row[:affiliates].sum { |a| a[:commission_pending] }.round(2)) %></td>
+                    <td class="text-end fw-bold" style="color:#2c3e7a;">₹<%= number_with_delimiter(row[:affiliates].sum { |a| a[:total_commission] }.round(2)) %></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        <% else %>
+          <div class="aff-section">
+            <span style="font-size:.82rem; color:#adb5bd;"><i class="bi bi-info-circle me-1"></i>No affiliates under this ambassador.</span>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <!-- Ambassador totals summary -->
+    <div class="policy-section mb-4">
+      <div class="sec-title d-flex align-items-center gap-2" style="--c:#8e44ad">
+        <i class="bi bi-calculator"></i> Network Commission Summary
+      </div>
+      <div class="sec-body">
+        <table class="table data-table mb-0">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th class="text-end">Commission Paid</th>
+              <th class="text-end">Commission Pending</th>
+              <th class="text-end">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><i class="bi bi-person-badge me-1" style="color:#2c3e7a;"></i><strong>All Ambassadors</strong></td>
+              <td class="text-end paid-amt fw-bold">₹<%= number_with_delimiter(@ambassador_rows.sum { |r| r[:commission_paid] }.round(2)) %></td>
+              <td class="text-end pending-amt fw-bold">₹<%= number_with_delimiter(@ambassador_rows.sum { |r| r[:commission_pending] }.round(2)) %></td>
+              <td class="text-end fw-bold" style="color:#2c3e7a;">₹<%= number_with_delimiter(@total_ambassador_comm.round(2)) %></td>
+            </tr>
+            <tr>
+              <td><i class="bi bi-people me-1" style="color:#e67e22;"></i><strong>All Affiliates</strong></td>
+              <td class="text-end paid-amt fw-bold">₹<%= number_with_delimiter(@ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_paid] } }.round(2)) %></td>
+              <td class="text-end pending-amt fw-bold">₹<%= number_with_delimiter(@ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_pending] } }.round(2)) %></td>
+              <td class="text-end fw-bold" style="color:#e67e22;">₹<%= number_with_delimiter(@total_affiliate_comm.round(2)) %></td>
+            </tr>
+            <tr style="background:#f8f9ff;">
+              <td><i class="bi bi-diagram-3 me-1" style="color:#8e44ad;"></i><strong>Total Network</strong></td>
+              <td class="text-end paid-amt fw-bold">₹<%= number_with_delimiter((@ambassador_rows.sum { |r| r[:commission_paid] } + @ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_paid] } }).round(2)) %></td>
+              <td class="text-end pending-amt fw-bold">₹<%= number_with_delimiter((@ambassador_rows.sum { |r| r[:commission_pending] } + @ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_pending] } }).round(2)) %></td>
+              <td class="text-end fw-bold" style="color:#8e44ad; font-size:1rem;">₹<%= number_with_delimiter((@total_ambassador_comm + @total_affiliate_comm).round(2)) %></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  <% else %>
+    <div class="policy-section mb-4">
+      <div class="sec-title" style="--c:#2c3e7a"><i class="bi bi-person-badge me-1"></i>Ambassadors</div>
+      <div class="sec-body">
+        <div class="empty-state">
+          <i class="bi bi-person-x"></i>
+          No ambassadors connected to this investor yet.
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- ══════════════════ DIRECT POLICIES ══════════════════ -->
+  <div class="policy-section">
+    <div class="sec-title d-flex align-items-center gap-2" style="--c:#16a085">
+      <i class="bi bi-file-earmark-check"></i> Direct Policies
+      <span class="badge rounded-pill ms-1" style="background:rgba(255,255,255,.25); font-size:.78rem;"><%= @total_direct_policies %></span>
+    </div>
+    <div class="sec-body p-0">
+      <% if @direct_policies.any? %>
+        <table class="table data-table mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Policy Number</th>
+              <th>Type</th>
+              <th>Customer</th>
+              <th>Insurance Company</th>
+              <th class="text-end">Premium (₹)</th>
+              <th>Booking Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @direct_policies.each_with_index do |row, i| %>
+              <% p = row[:policy] %>
+              <tr>
+                <td style="color:#6c757d;"><%= i + 1 %></td>
+                <td style="font-weight:600; color:#2c3e7a; font-family:monospace;"><%= p.policy_number.presence || '—' %></td>
+                <td>
+                  <span class="badge"
+                    style="background:<%= row[:type] == 'Health' ? '#eafaf1' : '#eaf4fb' %>;
+                           color:<%= row[:type] == 'Health' ? '#27ae60' : '#2980b9' %>;
+                           border:1px solid <%= row[:type] == 'Health' ? '#a9dfbf' : '#aed6f1' %>;">
+                    <%= row[:type] %>
+                  </span>
+                </td>
+                <td>
+                  <% cname = p.customer&.display_name.presence || 'N/A' %>
+                  <%= cname %>
+                </td>
+                <td style="color:#6c757d;"><%= p.insurance_company_name.presence || '—' %></td>
+                <td class="text-end amount-cell" style="color:#16a085;">₹<%= number_with_delimiter(row[:premium].round(2)) %></td>
+                <td style="color:#6c757d;"><%= p.policy_booking_date&.strftime('%d %b %Y') || '—' %></td>
+                <td>
+                  <% active = p.respond_to?(:active) ? p.active : (p.respond_to?(:status) ? p.status == 'active' : true) %>
+                  <span class="badge" style="background:<%= active ? '#eafaf1' : '#fef9ec' %>; color:<%= active ? '#27ae60' : '#e67e22' %>; border:1px solid <%= active ? '#a9dfbf' : '#f9d8a0' %>;">
+                    <%= active ? 'Active' : 'Inactive' %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+          <tfoot style="background:#f8f9ff;">
+            <tr>
+              <td colspan="5" class="fw-bold" style="color:#16a085;">Total</td>
+              <td class="text-end fw-bold" style="color:#16a085; font-size:1rem;">₹<%= number_with_delimiter(@total_direct_premium.round(2)) %></td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      <% else %>
+        <div class="empty-state">
+          <i class="bi bi-file-earmark-x"></i>
+          No direct policies linked to this investor.
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<button class="print-btn" onclick="window.print()">
+  <i class="bi bi-printer me-1"></i> Print Report
+</button>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 class Admin::InvestorsController < Admin::ApplicationController
   include LocationData
-  before_action :set_investor, only: [:show, :edit, :update, :destroy, :toggle_status]
+  before_action :set_investor, only: [:show, :edit, :update, :destroy, :toggle_status, :summary]
   before_action :load_form_data, only: [:new, :edit, :create, :update]
 
   # GET /admin/investors
@@ -159,6 +159,101 @@ class Admin::InvestorsController < Admin::ApplicationController
     @top_investors_by_percentage = @investors.where.not(investment_percentage: nil)
                                             .order(investment_percentage: :desc)
                                             .limit(10)
+  end
+
+  # GET /admin/investors/1/summary
+  def summary
+    # Ambassadors (Distributors) linked to this investor
+    ambassadors = Distributor.where(investor_id: @investor.id).order(:created_at)
+    all_distributor_ids = ambassadors.pluck(:id)
+
+    # Per-ambassador data
+    @ambassador_rows = ambassadors.map do |amb|
+      name = amb.full_name.presence || "#{amb.first_name} #{amb.last_name}".strip.presence || "Ambassador ##{amb.id}"
+
+      amb_paid    = 0.0
+      amb_pending = 0.0
+      policies_count = 0
+
+      [['health', 'health_insurances'], ['life', 'life_insurances'], ['motor', 'motor_insurances']].each do |ptype, tbl|
+        amb_paid    += CommissionPayout.where(policy_type: ptype, payout_to: 'ambassador', status: 'paid')
+                                       .joins("JOIN #{tbl} ON commission_payouts.policy_id = #{tbl}.id")
+                                       .where("#{tbl}.distributor_id = ?", amb.id)
+                                       .sum(:payout_amount).to_f rescue 0
+        amb_pending += CommissionPayout.where(policy_type: ptype, payout_to: 'ambassador', status: 'pending')
+                                       .joins("JOIN #{tbl} ON commission_payouts.policy_id = #{tbl}.id")
+                                       .where("#{tbl}.distributor_id = ?", amb.id)
+                                       .sum(:payout_amount).to_f rescue 0
+        policies_count += eval("#{ptype.capitalize}Insurance").where(distributor_id: amb.id).count rescue 0
+      end
+
+      # Affiliates under this ambassador
+      affiliates = SubAgent.where(distributor_id: amb.id).order(:created_at)
+      aff_rows = affiliates.map do |af|
+        af_name = af.full_name.presence || "#{af.first_name} #{af.last_name}".strip.presence || "Affiliate ##{af.id}"
+        af_paid    = 0.0
+        af_pending = 0.0
+        af_policies = 0
+
+        [['health', 'health_insurances'], ['life', 'life_insurances'], ['motor', 'motor_insurances']].each do |ptype, tbl|
+          af_paid    += CommissionPayout.where(policy_type: ptype, payout_to: ['sub_agent', 'affiliate'], status: 'paid')
+                                        .joins("JOIN #{tbl} ON commission_payouts.policy_id = #{tbl}.id")
+                                        .where("#{tbl}.sub_agent_id = ?", af.id)
+                                        .sum(:payout_amount).to_f rescue 0
+          af_pending += CommissionPayout.where(policy_type: ptype, payout_to: ['sub_agent', 'affiliate'], status: 'pending')
+                                        .joins("JOIN #{tbl} ON commission_payouts.policy_id = #{tbl}.id")
+                                        .where("#{tbl}.sub_agent_id = ?", af.id)
+                                        .sum(:payout_amount).to_f rescue 0
+          af_policies += eval("#{ptype.capitalize}Insurance").where(sub_agent_id: af.id).count rescue 0
+        end
+
+        {
+          affiliate: af,
+          name: af_name,
+          policies: af_policies,
+          commission_paid: af_paid,
+          commission_pending: af_pending,
+          total_commission: af_paid + af_pending
+        }
+      end
+
+      {
+        ambassador: amb,
+        name: name,
+        policies: policies_count,
+        commission_paid: amb_paid,
+        commission_pending: amb_pending,
+        total_commission: amb_paid + amb_pending,
+        affiliates_count: affiliates.count,
+        affiliates: aff_rows
+      }
+    end
+
+    # Policies directly linked to this investor (health + motor have investor_id)
+    health_policies = HealthInsurance.where(investor_id: @investor.id).includes(:customer).order(created_at: :desc) rescue []
+    motor_policies  = MotorInsurance.where(investor_id: @investor.id).includes(:customer).order(created_at: :desc) rescue []
+
+    @direct_policies = []
+    health_policies.each { |p| @direct_policies << { policy: p, type: 'Health', premium: p.total_premium.to_f } }
+    motor_policies.each  { |p| @direct_policies << { policy: p, type: 'Motor',  premium: p.total_premium.to_f } }
+
+    # Investor's own commission across all policy types
+    @investor_commission_paid    = 0.0
+    @investor_commission_pending = 0.0
+    [['health', 'health_insurances'], ['motor', 'motor_insurances']].each do |ptype, tbl|
+      policy_ids = eval("#{ptype.capitalize}Insurance").where(investor_id: @investor.id).pluck(:id) rescue []
+      next if policy_ids.empty?
+      @investor_commission_paid    += CommissionPayout.where(policy_type: ptype, policy_id: policy_ids, payout_to: 'investor', status: 'paid').sum(:payout_amount).to_f
+      @investor_commission_pending += CommissionPayout.where(policy_type: ptype, policy_id: policy_ids, payout_to: 'investor', status: 'pending').sum(:payout_amount).to_f
+    end
+
+    # Aggregated totals
+    @total_ambassadors       = @ambassador_rows.size
+    @total_affiliates        = @ambassador_rows.sum { |r| r[:affiliates_count] }
+    @total_ambassador_comm   = @ambassador_rows.sum { |r| r[:total_commission] }
+    @total_affiliate_comm    = @ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:total_commission] } }
+    @total_direct_premium    = @direct_policies.sum { |p| p[:premium] }
+    @total_direct_policies   = @direct_policies.size
   end
 
   # GET /admin/investors/1

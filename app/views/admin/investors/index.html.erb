@@ -143,6 +143,9 @@
                 </td>
                 <td>
                   <div class="d-flex gap-1">
+                    <%= link_to summary_admin_investor_path(investor), class: "btn btn-sm btn-info", title: "Summary", target: "_blank" do %>
+                      <i class="bi bi-bar-chart-line"></i> Summary
+                    <% end %>
                     <%= link_to admin_investor_path(investor), class: "btn btn-sm btn-outline-primary", title: "View" do %>
                       <i class="bi bi-eye"></i>
                     <% end %>

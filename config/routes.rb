@@ -267,6 +267,7 @@ Rails.application.routes.draw do
         patch :toggle_status
         get :download_r2_document
         delete :delete_r2_document
+        get :summary
       end
       resources :investor_documents, only: [:destroy]
     end

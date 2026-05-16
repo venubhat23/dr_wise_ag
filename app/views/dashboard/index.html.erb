@@ -1881,110 +1881,91 @@ function loadCommissionsDueData(content, loading) {
       content.style.display = 'block';
 
       if (data.success && data.total_count > 0) {
-        console.log('✅ Showing commission details - conditions met');
-        content.innerHTML = `
-          <div class="alert" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
-            <h6 style="color: #ffffff; font-weight: bold;"><i class="bi bi-calculator me-2"></i>Commission Calculation Formula:</h6>
-            <p class="mb-0" style="color: #ffffff; font-weight: 600;">${data.calculation_method}</p>
-          </div>
+        const fmtAmt = (v) => '₹' + parseFloat(v || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        const sr = data.summary_by_recipient || {};
 
-          <div class="row mb-4">
-            <div class="col-md-4">
-              <div class="kpi-card kpi-primary">
-                <div class="card-body">
-                  <div class="kpi-number">₹${parseFloat(data.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                  <div class="kpi-label">Total Amount Due</div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="kpi-card kpi-warning">
-                <div class="card-body">
-                  <div class="kpi-number">${data.total_count}</div>
-                  <div class="kpi-label">Pending Payouts</div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="kpi-card kpi-info">
-                <div class="card-body">
-                  <div class="kpi-number">₹${data.total_count > 0 ? (parseFloat(data.total_amount) / parseFloat(data.total_count)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}</div>
-                  <div class="kpi-label">Average Payout</div>
-                </div>
-              </div>
-            </div>
-          </div>
+        const recipientConfig = [
+          { key: 'main_agent',      label: 'Main Agent',      color: '#667eea', bg: 'linear-gradient(135deg,#667eea,#764ba2)' },
+          { key: 'affiliate',       label: 'Affiliate',       color: '#27ae60', bg: 'linear-gradient(135deg,#27ae60,#1e8449)' },
+          { key: 'ambassador',      label: 'Ambassador',      color: '#e67e22', bg: 'linear-gradient(135deg,#e67e22,#ca6f1e)' },
+          { key: 'investor',        label: 'Investor',        color: '#2980b9', bg: 'linear-gradient(135deg,#2980b9,#1a5276)' },
+          { key: 'company_expense', label: 'Company Expense', color: '#8e44ad', bg: 'linear-gradient(135deg,#8e44ad,#6c3483)' }
+        ];
 
-          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 15px; border: 2px solid rgba(102, 126, 234, 0.1);">
-            <i class="bi bi-table" style="font-size: 1.5rem; color: #667eea;"></i>
-            <h5 style="font-weight: 800; color: #2c3e50; margin: 0; font-size: 1.3rem;">Detailed Commission Breakdown</h5>
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 700;">
-              ${data.data.length} Records
-            </div>
-          </div>
-          <div class="table-responsive" style="max-height: 600px; overflow-y: auto; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.1);">
-            <table class="table table-hover" style="background: white; border-radius: 15px; overflow: hidden; margin: 0;">
-              <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); position: sticky; top: 0; z-index: 10;">
-                <tr>
-                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Lead ID</th>
-                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Policy</th>
-                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Customer</th>
-                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Type</th>
-                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Recipient</th>
-                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">Premium</th>
-                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">Percentage</th>
-                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">Commission</th>
-                  <th style="color: white; font-weight: 800; border: none; padding: 20px 15px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Calculation</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${data.data.map((comm, index) => `
-                  <tr style="background: ${index % 2 === 0 ? 'rgba(102, 126, 234, 0.05)' : 'white'}; border-bottom: 2px solid #f8f9fa; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'" onmouseout="this.style.background='${index % 2 === 0 ? 'rgba(102, 126, 234, 0.05)' : 'white'}'">
-                    <td style="padding: 15px 12px;">
-                      <div class="commission-lead-id">
-                        <span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 700; font-size: 0.75rem; padding: 6px 10px; border-radius: 8px;">${comm.lead_id}</span>
-                      </div>
-                    </td>
-                    <td style="padding: 15px 12px;">
-                      <div class="commission-policy">
-                        <span style="font-family: 'Monaco', 'Menlo', monospace; font-weight: 700; color: #2c3e50; font-size: 0.9rem; background: #ecf0f1; padding: 4px 8px; border-radius: 6px;">${comm.policy_number}</span>
-                      </div>
-                    </td>
-                    <td style="padding: 15px 12px;">
-                      <div class="commission-customer">
-                        <span style="font-weight: 800; color: #34495e; font-size: 0.95rem;">${comm.customer_name}</span>
-                      </div>
-                    </td>
-                    <td style="padding: 15px 12px;">
-                      <span class="badge" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; font-weight: 700; font-size: 0.75rem; padding: 6px 10px; border-radius: 8px; text-transform: uppercase;">${comm.policy_type}</span>
-                    </td>
-                    <td style="padding: 15px 12px;">
-                      <span class="badge" style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: #212529; font-weight: 800; font-size: 0.75rem; padding: 6px 10px; border-radius: 8px; text-transform: uppercase;">${comm.payout_to.replace(/_/g, ' ')}</span>
-                    </td>
-                    <td style="padding: 15px 12px;">
-                      <div class="commission-premium">
-                        <span style="font-weight: 900; color: #667eea; font-size: 1.1rem; text-shadow: 1px 1px 2px rgba(102, 126, 234, 0.2); font-family: system-ui;">₹${parseFloat(comm.base_premium || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                    </td>
-                    <td style="padding: 15px 12px; text-align: center;">
-                      <div class="commission-percentage">
-                        <span style="font-weight: 900; color: #f39c12; font-size: 1.2rem; background: rgba(243, 156, 18, 0.1); padding: 5px 10px; border-radius: 8px; text-shadow: 1px 1px 2px rgba(243, 156, 18, 0.2);">${parseFloat(comm.percentage || 0).toFixed(1)}%</span>
-                      </div>
-                    </td>
-                    <td style="padding: 15px 12px;">
-                      <div class="commission-amount">
-                        <span style="font-weight: 900; color: #e74c3c; font-size: 1.25rem; background: rgba(231, 76, 60, 0.1); padding: 8px 12px; border-radius: 10px; text-shadow: 1px 1px 3px rgba(231, 76, 60, 0.3); border: 2px solid rgba(231, 76, 60, 0.2); font-family: system-ui;">₹${parseFloat(comm.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                    </td>
-                    <td style="padding: 15px 12px;">
-                      <div class="commission-calculation">
-                        <span style="font-size: 0.85rem; color: #7f8c8d; font-weight: 600; font-style: italic; background: rgba(127, 140, 141, 0.1); padding: 4px 8px; border-radius: 6px;">${comm.calculation}</span>
-                      </div>
-                    </td>
+        const thStyle = 'color:white;font-weight:800;border:none;padding:12px 10px;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.5px;';
+
+        const buildTable = (records, color) => {
+          if (!records.length) return '<p class="text-muted py-3 text-center">No pending records.</p>';
+          return `
+            <div class="table-responsive" style="max-height:420px;overflow-y:auto;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,0.08);">
+              <table class="table table-hover mb-0" style="background:white;border-radius:10px;overflow:hidden;">
+                <thead style="background:${color};position:sticky;top:0;z-index:10;">
+                  <tr>
+                    <th style="${thStyle}">Lead ID</th>
+                    <th style="${thStyle}">Policy</th>
+                    <th style="${thStyle}">Customer</th>
+                    <th style="${thStyle}">Type</th>
+                    <th style="${thStyle}">Premium</th>
+                    <th style="${thStyle}text-align:center;">%</th>
+                    <th style="${thStyle}text-align:center;">Commission</th>
+                    <th style="${thStyle}">Calculation</th>
                   </tr>
-                `).join('')}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  ${records.map((c, i) => `
+                    <tr style="background:${i%2===0?'rgba(0,0,0,0.02)':'white'};border-bottom:1px solid #f0f0f0;">
+                      <td style="padding:10px 8px;"><span class="badge" style="background:${color};color:white;font-size:0.7rem;padding:4px 7px;border-radius:6px;">${c.lead_id}</span></td>
+                      <td style="padding:10px 8px;"><span style="font-family:monospace;font-weight:700;color:#2c3e50;font-size:0.85rem;background:#ecf0f1;padding:3px 6px;border-radius:5px;">${c.policy_number}</span></td>
+                      <td style="padding:10px 8px;font-weight:700;color:#34495e;font-size:0.9rem;">${c.customer_name}</td>
+                      <td style="padding:10px 8px;"><span class="badge bg-info text-white" style="font-size:0.7rem;">${c.policy_type}</span></td>
+                      <td style="padding:10px 8px;font-weight:700;color:#667eea;">${fmtAmt(c.base_premium)}</td>
+                      <td style="padding:10px 8px;text-align:center;font-weight:800;color:#f39c12;">${parseFloat(c.percentage||0).toFixed(1)}%</td>
+                      <td style="padding:10px 8px;text-align:center;"><span style="font-weight:900;color:#e74c3c;font-size:1rem;background:rgba(231,76,60,0.1);padding:4px 8px;border-radius:7px;">${fmtAmt(c.amount)}</span></td>
+                      <td style="padding:10px 8px;font-size:0.8rem;color:#7f8c8d;font-style:italic;">${c.calculation}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>`;
+        };
+
+        content.innerHTML = `
+          <div class="alert mb-3" style="background:linear-gradient(135deg,#667eea,#764ba2);border:none;padding:10px 15px;">
+            <span style="color:#fff;font-weight:700;font-size:0.9rem;"><i class="bi bi-calculator me-2"></i>${data.calculation_method}</span>
+          </div>
+
+          <!-- Summary KPI cards: one per recipient -->
+          <div class="d-flex gap-2 mb-4" style="flex-wrap:nowrap;">
+            ${recipientConfig.map(r => `
+              <div style="flex:1 1 0;min-width:0;">
+                <div style="background:${r.bg};border-radius:12px;padding:12px 10px;color:#fff;text-align:center;height:100%;">
+                  <div style="font-size:1.1rem;font-weight:900;">${fmtAmt(sr[r.key] || 0)}</div>
+                  <div style="font-size:0.75rem;font-weight:600;opacity:0.9;margin-top:3px;">${r.label} Pending</div>
+                </div>
+              </div>`).join('')}
+          </div>
+
+          <!-- Tabs -->
+          <ul class="nav nav-tabs mb-0" id="commTabList" role="tablist" style="border-bottom:2px solid #dee2e6;">
+            ${recipientConfig.map((r, i) => {
+              const count = data.data.filter(d => d.payout_to === r.key).length;
+              return `<li class="nav-item" role="presentation">
+                <button class="nav-link${i===0?' active':''}" id="tab-${r.key}" data-bs-toggle="tab" data-bs-target="#pane-${r.key}" type="button" role="tab" style="font-weight:700;font-size:0.85rem;">
+                  ${r.label} <span class="badge ms-1" style="background:${r.color};color:#fff;">${count}</span>
+                </button>
+              </li>`;
+            }).join('')}
+          </ul>
+          <div class="tab-content" style="border:1px solid #dee2e6;border-top:none;border-radius:0 0 10px 10px;padding:15px;background:#fff;">
+            ${recipientConfig.map((r, i) => `
+              <div class="tab-pane fade${i===0?' show active':''}" id="pane-${r.key}" role="tabpanel">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <span style="width:12px;height:12px;border-radius:50%;background:${r.color};display:inline-block;"></span>
+                  <strong style="color:${r.color};">${r.label} Commissions Pending</strong>
+                  <span style="margin-left:auto;font-weight:800;color:${r.color};font-size:1.1rem;">${fmtAmt(sr[r.key] || 0)}</span>
+                </div>
+                ${buildTable(data.data.filter(d => d.payout_to === r.key), r.bg)}
+              </div>`).join('')}
           </div>
         `;
       } else {
