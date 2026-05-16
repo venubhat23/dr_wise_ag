@@ -568,7 +568,7 @@ class Admin::PayoutsController < Admin::ApplicationController
     events << {
       type: 'payout_created',
       title: 'Payout Created',
-      description: "Commission payout of ₹#{@payout.payout_amount} created for #{@payout.payout_to}",
+      description: "Commission payout of Rs. #{@payout.payout_amount} created for #{@payout.payout_to}",
       date: @payout.created_at,
       icon: 'bi-cash-stack',
       color: 'primary'

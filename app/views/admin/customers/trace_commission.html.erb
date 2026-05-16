@@ -1870,7 +1870,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="col-md-4">
                   <h6 class="text-muted">Total Commission</h6>
-                  <h4 class="text-success mb-0" id="totalCommissionSum">₹0</h4>
+                  <h4 class="text-success mb-0" id="totalCommissionSum">Rs. 0</h4>
                 </div>
                 <div class="col-md-4">
                   <h6 class="text-muted">Breakdown Status</h6>
@@ -2270,7 +2270,7 @@ function showCommissionBreakdown(policyNumber, policyType, payoutsJson) {
                 <div class="commission-details">
                   <div class="d-flex justify-content-between align-items-center mb-2">
                     <span class="text-muted">Amount:</span>
-                    <span class="fw-bold text-${colorScheme} fs-5">₹${parseFloat(payout.payout_amount || 0).toLocaleString()}</span>
+                    <span class="fw-bold text-${colorScheme} fs-5">Rs. ${parseFloat(payout.payout_amount || 0).toLocaleString()}</span>
                   </div>
 
                   <div class="d-flex justify-content-between align-items-center mb-2">
@@ -2515,7 +2515,7 @@ function displayInsurancePolicies(policies, type, insuranceType) {
           </div>
           <div class="detail-item">
             <div class="detail-label">Premium Amount</div>
-            <div class="detail-value text-success">₹${formatCurrency(policy.premium_amount || 0)}</div>
+            <div class="detail-value text-success">Rs. ${formatCurrency(policy.premium_amount || 0)}</div>
           </div>
           <div class="detail-item">
             <div class="detail-label">Policy Period</div>
@@ -2586,7 +2586,7 @@ function getAdditionalPolicyDetails(policy, insuranceType) {
         </div>
         <div class="detail-item">
           <div class="detail-label">IDV Amount</div>
-          <div class="detail-value text-info">₹${formatCurrency(policy.additional_info?.idv_value || 0)}</div>
+          <div class="detail-value text-info">Rs. ${formatCurrency(policy.additional_info?.idv_value || 0)}</div>
         </div>
       `;
     case 'life':
@@ -2594,7 +2594,7 @@ function getAdditionalPolicyDetails(policy, insuranceType) {
       return `
         <div class="detail-item">
           <div class="detail-label">Sum Assured</div>
-          <div class="detail-value text-info">₹${formatCurrency(policy.additional_info?.sum_insured || 0)}</div>
+          <div class="detail-value text-info">Rs. ${formatCurrency(policy.additional_info?.sum_insured || 0)}</div>
         </div>
         <div class="detail-item">
           <div class="detail-label">Payment Mode</div>
@@ -2606,7 +2606,7 @@ function getAdditionalPolicyDetails(policy, insuranceType) {
       return `
         <div class="detail-item">
           <div class="detail-label">Sum Insured</div>
-          <div class="detail-value text-info">₹${formatCurrency(policy.additional_info?.sum_insured || 0)}</div>
+          <div class="detail-value text-info">Rs. ${formatCurrency(policy.additional_info?.sum_insured || 0)}</div>
         </div>
         <div class="detail-item">
           <div class="detail-label">Payment Mode</div>

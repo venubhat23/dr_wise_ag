@@ -944,7 +944,7 @@
       <div class="chart-stats">
         <div class="stat-item">
           <span class="stat-label">Current Month:</span>
-          <span class="stat-value">₹<%= ((@total_premium_collected || 0) / 1000.0).round(0) %>K</span>
+          <span class="stat-value">Rs. <%= ((@total_premium_collected || 0) / 1000.0).round(0) %>K</span>
         </div>
         <div class="stat-item">
           <span class="stat-label">Growth:</span>
@@ -954,7 +954,7 @@
         </div>
         <div class="stat-item">
           <span class="stat-label">Target:</span>
-          <span class="stat-value">₹<%= (((@total_premium_collected || 0) * 1.2) / 1000.0).round(0) %>K</span>
+          <span class="stat-value">Rs. <%= (((@total_premium_collected || 0) * 1.2) / 1000.0).round(0) %>K</span>
         </div>
       </div>
     </div>
@@ -1027,7 +1027,7 @@
           </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-          <div class="system-status-card" style="cursor: pointer; height: 200px;" onclick="showSystemStatusModal('lead_count')">
+          <div class="system-status-card" style="cursor: pointer; height: 200px;" onclick="showSystemStatusModal('lead_conversion')">
             <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
               <i class="bi bi-person-lines-fill fs-1 mb-3 text-info"></i>
               <div class="fs-2 fw-bold text-dark"><%= number_with_delimiter(@total_leads || 0) %></div>
@@ -2107,7 +2107,7 @@ function loadTotalRevenueData(content, loading) {
               <div style="background: rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 1rem; margin-bottom: 1rem;">
                 <i class="bi bi-calendar-month" style="font-size: 2rem; color: white;"></i>
               </div>
-              <h2 style="font-weight: 900; font-size: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0; line-height: 1;">${revenueData.monthly_revenue.length > 0 ? fmtINR(revenueData.monthly_revenue[revenueData.monthly_revenue.length - 1].revenue) : '₹0.00'}</h2>
+              <h2 style="font-weight: 900; font-size: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0; line-height: 1;">${revenueData.monthly_revenue.length > 0 ? fmtINR(revenueData.monthly_revenue[revenueData.monthly_revenue.length - 1].revenue) : 'Rs. 0.00'}</h2>
               <p style="font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 0.5rem; color: rgba(255, 255, 255, 0.9);">This Month</p>
             </div>
           </div>
@@ -2425,7 +2425,7 @@ function loadAvgPolicyValueData(content, loading) {
             <div class="col-md-4">
               <div class="kpi-card kpi-success">
                 <div class="card-body">
-                  <div class="kpi-number">₹${(data.summary.total_premium / 100000).toFixed(1)}L</div>
+                  <div class="kpi-number">Rs. ${(data.summary.total_premium / 100000).toFixed(1)}L</div>
                   <div class="kpi-label">Total Premium</div>
                 </div>
               </div>

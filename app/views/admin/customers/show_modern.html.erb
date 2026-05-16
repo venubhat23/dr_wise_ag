@@ -197,7 +197,7 @@
               </div>
               <div class="detail-card">
                 <label>Annual Income</label>
-                <span><%= @customer.annual_income.present? ? "₹#{number_with_delimiter(@customer.annual_income)}" : '-' %></span>
+                <span><%= @customer.annual_income.present? ? "Rs. #{number_with_delimiter(@customer.annual_income)}" : '-' %></span>
               </div>
               <div class="detail-card full-width">
                 <label>Address</label>

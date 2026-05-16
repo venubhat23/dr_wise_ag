@@ -81,7 +81,7 @@
           </div>
           <div class="metric-footer">
             <span class="metric-period">vs last month</span>
-            <span class="metric-delta">+₹3,42,000</span>
+            <span class="metric-delta">+Rs. 3,42,000</span>
           </div>
         </div>
 
@@ -129,7 +129,7 @@
           </div>
           <div class="metric-footer">
             <span class="metric-period">this month</span>
-            <span class="metric-delta">-₹13,100</span>
+            <span class="metric-delta">-Rs. 13,100</span>
           </div>
         </div>
 
@@ -2243,7 +2243,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p class="mb-0 text-muted">Across ${data.data.length} pending payouts</p>
               </div>
               <div class="text-end">
-                <h3 class="text-danger">₹${data.total_amount.toLocaleString('en-IN')}</h3>
+                <h3 class="text-danger">Rs. ${data.total_amount.toLocaleString('en-IN')}</h3>
               </div>
             </div>
           `;
@@ -2263,7 +2263,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>
                   <span class="badge bg-warning text-dark">${formatPayoutTo(item.payout_to)}</span>
                 </td>
-                <td class="fw-bold text-success">₹${item.amount.toLocaleString('en-IN')}</td>
+                <td class="fw-bold text-success">Rs. ${item.amount.toLocaleString('en-IN')}</td>
                 <td>${item.created_at}</td>
                 <td>
                   <button class="btn btn-sm btn-outline-light" onclick="viewPolicyDetails('${item.policy_type}', ${item.id})">
@@ -2343,11 +2343,11 @@ document.addEventListener('DOMContentLoaded', function() {
                   </div>
                   <div class="col">
                     <small class="d-block" style="color: rgba(255, 255, 255, 0.7); font-weight: 600;">Total Premium</small>
-                    <h5 class="text-success mb-0" style="font-weight: bold; font-size: 1.4rem;"><strong>₹${data.summary.total_premium.toLocaleString('en-IN')}</strong></h5>
+                    <h5 class="text-success mb-0" style="font-weight: bold; font-size: 1.4rem;"><strong>Rs. ${data.summary.total_premium.toLocaleString('en-IN')}</strong></h5>
                   </div>
                   <div class="col">
                     <small class="d-block" style="color: rgba(255, 255, 255, 0.7); font-weight: 600;">Total Commission</small>
-                    <h5 class="text-warning mb-0" style="font-weight: bold; font-size: 1.4rem;"><strong>₹${data.summary.total_commission.toLocaleString('en-IN')}</strong></h5>
+                    <h5 class="text-warning mb-0" style="font-weight: bold; font-size: 1.4rem;"><strong>Rs. ${data.summary.total_commission.toLocaleString('en-IN')}</strong></h5>
                   </div>
                 </div>
               </div>
@@ -2366,8 +2366,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td><span class="badge ${statusBadge}" style="font-weight: bold;">${affiliate.status}</span></td>
                 <td style="color: #ffffff; font-weight: 600;"><strong>${affiliate.joined_date}</strong></td>
                 <td style="color: #ffffff; font-weight: 600; font-size: 1.1rem;"><strong>${affiliate.total_policies}</strong></td>
-                <td style="color: #ffffff; font-weight: 600; font-size: 1.1rem;"><strong>₹${affiliate.total_premium.toLocaleString('en-IN')}</strong></td>
-                <td style="color: #ffffff; font-weight: 600; font-size: 1.1rem;"><strong>₹${affiliate.commission_earned.toLocaleString('en-IN')}</strong></td>
+                <td style="color: #ffffff; font-weight: 600; font-size: 1.1rem;"><strong>Rs. ${affiliate.total_premium.toLocaleString('en-IN')}</strong></td>
+                <td style="color: #ffffff; font-weight: 600; font-size: 1.1rem;"><strong>Rs. ${affiliate.commission_earned.toLocaleString('en-IN')}</strong></td>
               </tr>
             `;
             tableBody.innerHTML += row;

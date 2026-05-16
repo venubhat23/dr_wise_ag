@@ -896,7 +896,7 @@ body {
                   <% else %>
                     <td><%= p[:type] %></td>
                     <td><%= p[:company_name] %></td>
-                    <td><%= respond_to?(:indian_currency) ? indian_currency(p[:premium].to_i) : "₹#{p[:premium].to_i}" %></td>
+                    <td><%= respond_to?(:indian_currency) ? indian_currency(p[:premium].to_i) : "Rs. #{p[:premium].to_i}" %></td>
                     <td><%= p[:start_date]&.strftime("%d %b %Y") || '—' %></td>
                     <td><%= p[:end_date]&.strftime("%d %b %Y") || '—' %></td>
                     <td>

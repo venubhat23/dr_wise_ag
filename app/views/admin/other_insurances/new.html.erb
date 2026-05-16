@@ -239,7 +239,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :net_premium, "Net Premium*", class: "form-label" %>
           <div class="input-group">
-            <span class="input-group-text">₹</span>
+            <span class="input-group-text">Rs. </span>
             <%= form.number_field :net_premium,
                 class: "form-control #{'is-invalid' if @other_insurance.errors[:net_premium].any?}",
                 value: @other_insurance.net_premium || 0,
@@ -273,7 +273,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :total_premium, "Total Premium*", class: "form-label" %>
           <div class="input-group">
-            <span class="input-group-text">₹</span>
+            <span class="input-group-text">Rs. </span>
             <%= form.number_field :total_premium,
                 class: "form-control #{'is-invalid' if @other_insurance.errors[:total_premium].any?}",
                 value: @other_insurance.total_premium || 0,

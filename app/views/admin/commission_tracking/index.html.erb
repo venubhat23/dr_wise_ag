@@ -519,7 +519,7 @@ body.modal-open {
           </div>
 
           <div class="mb-3">
-            <strong>Commission Amount:</strong> ₹<span id="modalCommissionAmount">0</span>
+            <strong>Commission Amount:</strong> Rs. <span id="modalCommissionAmount">0</span>
           </div>
 
           <form id="commissionReceivedForm">
@@ -665,13 +665,13 @@ function generateTransferForm(commissionData, policyId, policyType, policyNumber
       <div class="policy-summary mb-4 p-3 bg-light rounded">
         <h6><strong>Policy:</strong> ${policyNumber} (${policyType.toUpperCase()})</h6>
         <p><strong>Customer:</strong> ${commissionData.policy.customer}</p>
-        <p><strong>Premium:</strong> ₹${breakdown.premium_amount.toLocaleString()}</p>
-        <p><strong>Total Commission:</strong> ₹${breakdown.main_agent.total_commission.toLocaleString()}</p>
+        <p><strong>Premium:</strong> Rs. ${breakdown.premium_amount.toLocaleString()}</p>
+        <p><strong>Total Commission:</strong> Rs. ${breakdown.main_agent.total_commission.toLocaleString()}</p>
       </div>
 
       <div class="row">
         <div class="col-md-6">
-          <h6>Transfer to Affiliate (₹${breakdown.payouts.affiliate.toLocaleString()})</h6>
+          <h6>Transfer to Affiliate (Rs. ${breakdown.payouts.affiliate.toLocaleString()})</h6>
           <div class="transfer-section mb-3">
             <div class="form-group mb-2">
               <input type="number" class="form-control" id="affiliate_amount"
@@ -692,7 +692,7 @@ function generateTransferForm(commissionData, policyId, policyType, policyNumber
         </div>
 
         <div class="col-md-6">
-          <h6>Transfer to Ambassador (₹${breakdown.payouts.ambassador.toLocaleString()})</h6>
+          <h6>Transfer to Ambassador (Rs. ${breakdown.payouts.ambassador.toLocaleString()})</h6>
           <div class="transfer-section mb-3">
             <div class="form-group mb-2">
               <input type="number" class="form-control" id="ambassador_amount"
@@ -715,7 +715,7 @@ function generateTransferForm(commissionData, policyId, policyType, policyNumber
 
       <div class="row">
         <div class="col-md-6">
-          <h6>Transfer to Investor (₹${breakdown.payouts.investor.toLocaleString()})</h6>
+          <h6>Transfer to Investor (Rs. ${breakdown.payouts.investor.toLocaleString()})</h6>
           <div class="transfer-section mb-3">
             <div class="form-group mb-2">
               <input type="number" class="form-control" id="investor_amount"
@@ -736,7 +736,7 @@ function generateTransferForm(commissionData, policyId, policyType, policyNumber
         </div>
 
         <div class="col-md-6">
-          <h6>Company Expense (₹${breakdown.payouts.company_expense.toLocaleString()})</h6>
+          <h6>Company Expense (Rs. ${breakdown.payouts.company_expense.toLocaleString()})</h6>
           <div class="transfer-section mb-3">
             <div class="form-group mb-2">
               <input type="number" class="form-control" id="company_expense_amount"

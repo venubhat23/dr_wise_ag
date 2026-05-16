@@ -329,15 +329,15 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
           when 'end_date'
             policy[:end_date]&.strftime('%d/%m/%Y')
           when 'premium_amount'
-            "₹#{number_with_delimiter(policy[:premium_amount])}"
+            "Rs. #{number_with_delimiter(policy[:premium_amount])}"
           when 'net_premium'
-            "₹#{number_with_delimiter(policy[:net_premium])}"
+            "Rs. #{number_with_delimiter(policy[:net_premium])}"
           when 'profit_amount'
-            "₹#{number_with_delimiter(policy[:profit_amount])}"
+            "Rs. #{number_with_delimiter(policy[:profit_amount])}"
           when 'profit_percentage'
             "#{policy[:profit_percentage]}%"
           when 'company_expenses'
-            "₹#{number_with_delimiter(policy[:company_expenses])}"
+            "Rs. #{number_with_delimiter(policy[:company_expenses])}"
           when 'sub_agent_name'
             policy[:sub_agent_name]
           when 'created_at'

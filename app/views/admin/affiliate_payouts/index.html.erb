@@ -722,7 +722,7 @@ body.modal-open {
             <span class="text-muted">
               <i class="bi bi-info-circle me-1"></i>
               Total: <span id="totalLeadsCount" class="fw-bold">0</span> leads |
-              Total Commission: <span id="totalCommissionAmount" class="fw-bold text-success">₹0</span>
+              Total Commission: <span id="totalCommissionAmount" class="fw-bold text-success">Rs. 0</span>
             </span>
           </div>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -1154,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <span class="badge bg-info text-white">${policyType}</span>
               </td>
               <td>
-                <span class="fw-bold text-success">₹${parseFloat(commission).toLocaleString()}</span>
+                <span class="fw-bold text-success">Rs. ${parseFloat(commission).toLocaleString()}</span>
               </td>
               <td>
                 ${statusBadge}
@@ -1262,7 +1262,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <small class="text-muted">${affiliateData.affiliate.email}</small>
             </div>
             <div class="text-end">
-              <span class="badge bg-warning text-dark">₹${affiliateData.total_pending.toLocaleString()}</span>
+              <span class="badge bg-warning text-dark">Rs. ${affiliateData.total_pending.toLocaleString()}</span>
             </div>
           </div>
 
@@ -1290,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <small class="text-muted">Policy: ${lead.policy_number}</small>
                   </div>
                   <div class="text-end">
-                    <span class="badge bg-success">₹${lead.commission.toLocaleString()}</span>
+                    <span class="badge bg-success">Rs. ${lead.commission.toLocaleString()}</span>
                   </div>
                 </div>
               </label>
@@ -1404,7 +1404,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <hr>
         <div class="d-flex justify-content-between align-items-center">
           <strong>Total Amount:</strong>
-          <span class="badge bg-success fs-6">₹${totalAmount.toLocaleString()}</span>
+          <span class="badge bg-success fs-6">Rs. ${totalAmount.toLocaleString()}</span>
         </div>
       `;
       if (processButton) processButton.disabled = false;

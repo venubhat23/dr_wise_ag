@@ -272,10 +272,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const companyExpensesSummary = document.getElementById('company_expenses_summary');
     const profitSummary = document.getElementById('profit_summary');
 
-    if (mainAgentSummary) mainAgentSummary.textContent = `${mainAgentPercentage}% of Net Premium (₹${((netPremium * mainAgentPercentage) / 100).toFixed(2)})`;
-    if (totalDistSummary) totalDistSummary.textContent = `${totalDistributionPercentage.toFixed(1)}% (₹${((netPremium * totalDistributionPercentage) / 100).toFixed(2)})`;
-    if (companyExpensesSummary) companyExpensesSummary.textContent = `${companyExpensesPercentage}% of Net Premium (₹${((netPremium * companyExpensesPercentage) / 100).toFixed(2)})`;
-    if (profitSummary) profitSummary.textContent = `${profitPercentage.toFixed(2)}% (₹${profitAmount.toFixed(2)})`;
+    if (mainAgentSummary) mainAgentSummary.textContent = `${mainAgentPercentage}% of Net Premium (Rs. ${((netPremium * mainAgentPercentage) / 100).toFixed(2)})`;
+    if (totalDistSummary) totalDistSummary.textContent = `${totalDistributionPercentage.toFixed(1)}% (Rs. ${((netPremium * totalDistributionPercentage) / 100).toFixed(2)})`;
+    if (companyExpensesSummary) companyExpensesSummary.textContent = `${companyExpensesPercentage}% of Net Premium (Rs. ${((netPremium * companyExpensesPercentage) / 100).toFixed(2)})`;
+    if (profitSummary) profitSummary.textContent = `${profitPercentage.toFixed(2)}% (Rs. ${profitAmount.toFixed(2)})`;
 
     console.log('✅ Commission calculations updated for Net Premium: Rs. ' + netPremium);
   }

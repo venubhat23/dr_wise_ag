@@ -770,7 +770,7 @@
       </div>
       <div class="header-stats">
         <div class="header-stat">
-          <span class="value">₹<%= (@total_premium_collected / 1000000.0).round(1) %>M</span>
+          <span class="value">Rs. <%= (@total_premium_collected / 1000000.0).round(1) %>M</span>
           <span class="label">Total Premium</span>
         </div>
         <div class="header-stat">
@@ -842,9 +842,9 @@
         </div>
         <div class="stat-value">
           <% if @total_premium_collected > 1000000 %>
-            ₹<%= (@total_premium_collected / 1000000.0).round(1) %>M
+            Rs. <%= (@total_premium_collected / 1000000.0).round(1) %>M
           <% elsif @total_premium_collected > 1000 %>
-            ₹<%= (@total_premium_collected / 1000.0).round(1) %>K
+            Rs. <%= (@total_premium_collected / 1000.0).round(1) %>K
           <% else %>
             <%= indian_currency(@total_premium_collected.to_i) %>
           <% end %>
@@ -863,9 +863,9 @@
         </div>
         <div class="stat-value">
           <% if @total_sum_insured > 1000000 %>
-            ₹<%= (@total_sum_insured / 1000000.0).round(1) %>M
+            Rs. <%= (@total_sum_insured / 1000000.0).round(1) %>M
           <% elsif @total_sum_insured > 1000 %>
-            ₹<%= (@total_sum_insured / 1000.0).round(1) %>K
+            Rs. <%= (@total_sum_insured / 1000.0).round(1) %>K
           <% else %>
             <%= indian_currency(@total_sum_insured.to_i) %>
           <% end %>
@@ -916,9 +916,9 @@
         </div>
         <div class="stat-value">
           <% if @pending_payouts > 1000000 %>
-            ₹<%= (@pending_payouts / 1000000.0).round(1) %>M
+            Rs. <%= (@pending_payouts / 1000000.0).round(1) %>M
           <% elsif @pending_payouts > 1000 %>
-            ₹<%= (@pending_payouts / 1000.0).round(1) %>K
+            Rs. <%= (@pending_payouts / 1000.0).round(1) %>K
           <% else %>
             <%= indian_currency(@pending_payouts.to_i) %>
           <% end %>
@@ -935,7 +935,7 @@
           <div class="progress-item">
             <div class="progress-header">
               <span class="progress-label">Monthly Premium Target</span>
-              <span class="progress-value">₹<%= (@total_premium_collected / 1000.0).round(0) %>K / ₹500K</span>
+              <span class="progress-value">Rs. <%= (@total_premium_collected / 1000.0).round(0) %>K / Rs. 500K</span>
             </div>
             <div class="progress-bar-bg">
               <div class="progress-bar"

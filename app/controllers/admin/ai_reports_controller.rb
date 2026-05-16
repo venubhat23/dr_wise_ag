@@ -148,7 +148,7 @@ class Admin::AiReportsController < Admin::ApplicationController
         ],
         predictions: {
           renewal_probability: "45% average renewal rate expected",
-          revenue_potential: "₹#{(total_expired * 25000).to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse} potential revenue"
+          revenue_potential: "#{format_currency(total_expired * 25000)} potential revenue"
         },
         recommendations: generate_renewal_recommendations(total_expired)
       },
@@ -239,7 +239,7 @@ class Admin::AiReportsController < Admin::ApplicationController
 
   def generate_commission_summary(total, agents)
     if agents.any?
-      "Generated ₹#{format_currency(total)} in total commissions across #{agents.count} agents. Top performer earned ₹#{format_currency(agents.first[:commission])}."
+      "Generated Rs. #{format_currency(total)} in total commissions across #{agents.count} agents. Top performer earned Rs. #{format_currency(agents.first[:commission])}."
     else
       "No commission data available for the selected period."
     end
@@ -254,7 +254,7 @@ class Admin::AiReportsController < Admin::ApplicationController
 
       insights << {
         type: 'top_performer',
-        insight: "#{top_performer[:agent_name]} is the top performer with ₹#{format_currency(top_performer[:commission])}",
+        insight: "#{top_performer[:agent_name]} is the top performer with Rs. #{format_currency(top_performer[:commission])}",
         impact: 'high',
         recommendation: 'Consider rewarding and learning from their strategies'
       }

@@ -635,7 +635,7 @@ class Admin::DistributorPayoutsController < ApplicationController
         )
 
         Rails.logger.info "✅ Generated monthly invoice #{invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
-        Rails.logger.info "   Amount: ₹#{total_commission}, Payouts: #{paid_payouts.count}"
+        Rails.logger.info "   Amount: Rs. #{total_commission}, Payouts: #{paid_payouts.count}"
         return true
       end
     rescue => e
@@ -859,7 +859,7 @@ class Admin::DistributorPayoutsController < ApplicationController
         )
 
         Rails.logger.info "✅ Generated monthly ambassador invoice #{invoice.invoice_number} for distributor #{distributor.display_name} (#{distributor.id})"
-        Rails.logger.info "   Amount: ₹#{total_amount}, Payouts: #{ambassador_payouts.count}"
+        Rails.logger.info "   Amount: Rs. #{total_amount}, Payouts: #{ambassador_payouts.count}"
         return true
       end
     rescue => e

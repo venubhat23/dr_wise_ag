@@ -678,7 +678,7 @@
         </div>
         <div class="stat-metric-value">
           <% premium = @total_premium_collected || 73200000 %>
-          <%= premium > 1000000 ? "₹#{(premium / 1000000.0).round(1)}M" : indian_currency(premium) %>
+          <%= premium > 1000000 ? "Rs. #{(premium / 1000000.0).round(1)}M" : indian_currency(premium) %>
         </div>
         <div class="stat-metric-label">Premium Collected</div>
         <div class="stat-trend-indicator trend-positive">
@@ -697,7 +697,7 @@
         </div>
         <div class="stat-metric-value">
           <% sum_insured = @total_sum_insured || 861400000 %>
-          <%= sum_insured > 1000000 ? "₹#{(sum_insured / 1000000.0).round(1)}M" : indian_currency(sum_insured) %>
+          <%= sum_insured > 1000000 ? "Rs. #{(sum_insured / 1000000.0).round(1)}M" : indian_currency(sum_insured) %>
         </div>
         <div class="stat-metric-label">Sum Insured</div>
         <div class="stat-trend-indicator trend-positive">
@@ -739,7 +739,7 @@
         </div>
         <div class="stat-metric-value">
           <% payouts = @pending_payouts || 1300000 %>
-          <%= payouts > 1000000 ? "₹#{(payouts / 1000000.0).round(1)}M" : "₹#{number_with_delimiter(payouts)}" %>
+          <%= payouts > 1000000 ? "Rs. #{(payouts / 1000000.0).round(1)}M" : "Rs. #{number_with_delimiter(payouts)}" %>
         </div>
         <div class="stat-metric-label">Pending Payouts</div>
         <div class="stat-trend-indicator trend-negative">
@@ -808,7 +808,7 @@
           <i class="bi bi-cash-stack"></i>
         </div>
         <div class="kpi-details">
-          <div class="kpi-value">₹<%= ((@total_premium_collected || 73200000) / (@total_policies || 427) / 1000).round(1) %>K</div>
+          <div class="kpi-value">Rs. <%= ((@total_premium_collected || 73200000) / (@total_policies || 427) / 1000).round(1) %>K</div>
           <div class="kpi-label">Avg Policy Value</div>
         </div>
       </div>
@@ -896,7 +896,7 @@
         <div class="progress-container">
           <div class="progress-info">
             <span class="progress-label">Rajesh Kumar</span>
-            <span class="progress-value">₹2.4M</span>
+            <span class="progress-value">Rs. 2.4M</span>
           </div>
           <div class="progress-bar-bg">
             <div class="progress-bar-fill" style="width: 95%; --progress-color: #8b5cf6;"></div>
@@ -906,7 +906,7 @@
         <div class="progress-container">
           <div class="progress-info">
             <span class="progress-label">Priya Sharma</span>
-            <span class="progress-value">₹1.8M</span>
+            <span class="progress-value">Rs. 1.8M</span>
           </div>
           <div class="progress-bar-bg">
             <div class="progress-bar-fill" style="width: 75%; --progress-color: #ec4899;"></div>
@@ -916,7 +916,7 @@
         <div class="progress-container">
           <div class="progress-info">
             <span class="progress-label">Amit Patel</span>
-            <span class="progress-value">₹1.2M</span>
+            <span class="progress-value">Rs. 1.2M</span>
           </div>
           <div class="progress-bar-bg">
             <div class="progress-bar-fill" style="width: 60%; --progress-color: #06b6d4;"></div>

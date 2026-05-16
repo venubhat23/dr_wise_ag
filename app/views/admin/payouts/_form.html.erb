@@ -88,7 +88,7 @@
             Payout Amount <span class="text-danger">*</span>
           <% end %>
           <div class="input-group">
-            <span class="input-group-text">₹</span>
+            <span class="input-group-text">Rs. </span>
             <%= form.number_field :payout_amount,
                 class: "form-control #{'is-invalid' if @payout.errors[:payout_amount].any?}",
                 placeholder: "Enter payout amount",
@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function() {
           data.forEach(policy => {
             const option = document.createElement('option');
             option.value = policy.id;
-            option.textContent = `${policy.policy_number || 'Policy #' + policy.id} - ${policy.customer_name} - ₹${policy.premium}`;
+            option.textContent = `${policy.policy_number || 'Policy #' + policy.id} - ${policy.customer_name} - Rs. ${policy.premium}`;
             policyIdSelect.appendChild(option);
           });
         })

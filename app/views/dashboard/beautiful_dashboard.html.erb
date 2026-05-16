@@ -631,9 +631,9 @@ body {
           <div class="stat-content">
             <div class="stat-value">
               <% if @total_premium_collected > 1000000 %>
-                ₹<%= (@total_premium_collected / 1000000.0).round(1) %>M
+                Rs. <%= (@total_premium_collected / 1000000.0).round(1) %>M
               <% elsif @total_premium_collected > 1000 %>
-                ₹<%= (@total_premium_collected / 1000.0).round(1) %>K
+                Rs. <%= (@total_premium_collected / 1000.0).round(1) %>K
               <% else %>
                 <%= indian_currency(@total_premium_collected.to_i) %>
               <% end %>
@@ -650,9 +650,9 @@ body {
           <div class="stat-content">
             <div class="stat-value">
               <% if @total_sum_insured > 1000000 %>
-                ₹<%= (@total_sum_insured / 1000000.0).round(1) %>M
+                Rs. <%= (@total_sum_insured / 1000000.0).round(1) %>M
               <% elsif @total_sum_insured > 1000 %>
-                ₹<%= (@total_sum_insured / 1000.0).round(1) %>K
+                Rs. <%= (@total_sum_insured / 1000.0).round(1) %>K
               <% else %>
                 <%= indian_currency(@total_sum_insured.to_i) %>
               <% end %>

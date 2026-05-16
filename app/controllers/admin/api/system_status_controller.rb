@@ -72,14 +72,15 @@ module Admin
 
       def lead_conversion
         begin
-          # Get all leads - use current_stage for conversion tracking
-          total_leads = Lead.count
-          converted_leads = Lead.where(current_stage: 'converted').count
-          pending_leads = Lead.where.not(current_stage: ['converted', 'lost', 'rejected']).count
+          # Single query for stage breakdown + summary counts
+          stage_breakdown = Lead.group(:current_stage).count
+
+          total_leads     = stage_breakdown.values.sum
+          converted_leads = stage_breakdown['converted'].to_i
+          pending_leads   = stage_breakdown.reject { |s, _| ['converted', 'lost', 'rejected'].include?(s) }.values.sum
 
           conversion_rate = total_leads > 0 ? ((converted_leads.to_f / total_leads) * 100).round(2) : 0
 
-          # Summary data
           summary = {
             total_leads: total_leads,
             converted_leads: converted_leads,
@@ -87,38 +88,41 @@ module Admin
             conversion_rate: conversion_rate
           }
 
-          # Lead breakdown by stage
-          stage_breakdown = Lead.group(:current_stage).count
+          # Single query for monthly trend (last 6 months)
+          six_months_ago = 6.months.ago.beginning_of_month
+          rows = Lead.where(created_at: six_months_ago..Time.current.end_of_month)
+                     .group("DATE_TRUNC('month', created_at)")
+                     .select(
+                       "DATE_TRUNC('month', created_at) AS month_date",
+                       "COUNT(*) AS total",
+                       "SUM(CASE WHEN current_stage = 'converted' THEN 1 ELSE 0 END) AS converted"
+                     )
 
-          # Monthly conversion trends
-          monthly_trend = []
-          6.times do |i|
-            month_start = i.months.ago.beginning_of_month
-            month_end = i.months.ago.end_of_month
-
-            month_leads = Lead.where(created_at: month_start..month_end)
-            month_converted = month_leads.where(current_stage: 'converted')
-
-            monthly_trend << {
-              month: month_start.strftime('%B %Y'),
-              total_leads: month_leads.count,
-              converted_leads: month_converted.count,
-              conversion_rate: month_leads.count > 0 ? ((month_converted.count.to_f / month_leads.count) * 100).round(2) : 0
-            }
+          monthly_map = rows.each_with_object({}) do |row, h|
+            h[row.month_date.to_date.beginning_of_month] = { total: row.total.to_i, converted: row.converted.to_i }
           end
-          monthly_trend.reverse!
 
-          # Source-wise conversion
-          source_conversion = []
-          Lead.distinct.pluck(:lead_source).compact.each do |source|
-            source_total = Lead.where(lead_source: source).count
-            source_converted = Lead.where(lead_source: source, current_stage: 'converted').count
-            source_conversion << {
-              source: source,
-              total: source_total,
-              converted: source_converted,
-              rate: source_total > 0 ? ((source_converted.to_f / source_total) * 100).round(2) : 0
-            }
+          monthly_trend = 6.times.map do |i|
+            month_start = i.months.ago.beginning_of_month.to_date
+            d = monthly_map[month_start] || { total: 0, converted: 0 }
+            rate = d[:total] > 0 ? ((d[:converted].to_f / d[:total]) * 100).round(2) : 0
+            { month: month_start.strftime('%B %Y'), total_leads: d[:total], converted_leads: d[:converted], conversion_rate: rate }
+          end.reverse
+
+          # Single query for source-wise conversion
+          source_rows = Lead.where.not(lead_source: [nil, ''])
+                            .group(:lead_source)
+                            .select(
+                              "lead_source AS source",
+                              "COUNT(*) AS total",
+                              "SUM(CASE WHEN current_stage = 'converted' THEN 1 ELSE 0 END) AS converted"
+                            )
+
+          source_conversion = source_rows.map do |row|
+            total = row.total.to_i
+            converted = row.converted.to_i
+            { source: row.source, total: total, converted: converted,
+              rate: total > 0 ? ((converted.to_f / total) * 100).round(2) : 0 }
           end
 
           render json: {
@@ -134,12 +138,7 @@ module Admin
           render json: {
             success: false,
             error: "Unable to load lead conversion data",
-            summary: {
-              total_leads: 0,
-              converted_leads: 0,
-              pending_leads: 0,
-              conversion_rate: 0
-            }
+            summary: { total_leads: 0, converted_leads: 0, pending_leads: 0, conversion_rate: 0 }
           }, status: 500
         end
       end
@@ -228,11 +227,11 @@ module Admin
 
         # Premium distribution ranges
         premium_ranges = [
-          { range: 'Under ₹25,000', min: 0, max: 25000 },
-          { range: '₹25,000 - ₹50,000', min: 25000, max: 50000 },
-          { range: '₹50,000 - ₹1,00,000', min: 50000, max: 100000 },
-          { range: '₹1,00,000 - ₹2,00,000', min: 100000, max: 200000 },
-          { range: 'Above ₹2,00,000', min: 200000, max: Float::INFINITY }
+          { range: 'Under Rs. 25,000', min: 0, max: 25000 },
+          { range: 'Rs. 25,000 - Rs. 50,000', min: 25000, max: 50000 },
+          { range: 'Rs. 50,000 - Rs. 1,00,000', min: 50000, max: 100000 },
+          { range: 'Rs. 1,00,000 - Rs. 2,00,000', min: 100000, max: 200000 },
+          { range: 'Above Rs. 2,00,000', min: 200000, max: Float::INFINITY }
         ]
 
         range_data = premium_ranges.map do |range|
@@ -309,8 +308,8 @@ module Admin
             commission_amount = payout.payout_amount.round(2)
 
             # Format the calculation string with proper formatting
-            formatted_premium = ActionController::Base.helpers.number_to_currency(premium_amount, unit: '₹', format: '%u%n', delimiter: ',', precision: 2)
-            formatted_commission = ActionController::Base.helpers.number_to_currency(commission_amount, unit: '₹', format: '%u%n', delimiter: ',', precision: 2)
+            formatted_premium = ActionController::Base.helpers.number_to_currency(premium_amount, unit: 'Rs. ', format: '%u%n', delimiter: ',', precision: 2)
+            formatted_commission = ActionController::Base.helpers.number_to_currency(commission_amount, unit: 'Rs. ', format: '%u%n', delimiter: ',', precision: 2)
 
             {
               id: payout.id,

@@ -846,7 +846,7 @@ function generateMetricCards(data) {
       <div class="col-md-4 mb-3">
         <div class="card text-center">
           <div class="card-body">
-            <h5 class="text-success">₹${data.total_commission?.toLocaleString() || '0'}</h5>
+            <h5 class="text-success">Rs. ${data.total_commission?.toLocaleString() || '0'}</h5>
             <p class="card-text">Total Commission</p>
           </div>
         </div>
@@ -872,7 +872,7 @@ function generateMetricCards(data) {
       <div class="col-md-4 mb-3">
         <div class="card text-center">
           <div class="card-body">
-            <h5 class="text-info">₹${Math.round(data.average_commission || 0).toLocaleString()}</h5>
+            <h5 class="text-info">Rs. ${Math.round(data.average_commission || 0).toLocaleString()}</h5>
             <p class="card-text">Average Commission</p>
           </div>
         </div>

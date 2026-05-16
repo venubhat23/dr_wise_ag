@@ -49,7 +49,7 @@
           <div>
             <h6 class="text-muted mb-2">Total Amount Due</h6>
             <h3 class="mb-0 text-danger">
-              ₹<%= @payment_due_policies&.sum(:total_premium)&.to_i || 0 %>
+              Rs. <%= @payment_due_policies&.sum(:total_premium)&.to_i || 0 %>
             </h3>
           </div>
           <div class="bg-danger bg-opacity-10 rounded p-3">
@@ -85,7 +85,7 @@
           <div>
             <h6 class="text-muted mb-2">Average Amount</h6>
             <h3 class="mb-0 text-info">
-              ₹<%= @payment_due_policies&.any? ? (@payment_due_policies.sum(:total_premium) / @payment_due_policies.count).to_i : 0 %>
+              Rs. <%= @payment_due_policies&.any? ? (@payment_due_policies.sum(:total_premium) / @payment_due_policies.count).to_i : 0 %>
             </h3>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">

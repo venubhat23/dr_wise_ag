@@ -607,15 +607,15 @@
     <div class="chart-stats">
       <div class="stat-item">
         <span class="stat-label">Current Month:</span>
-        <span class="stat-value">₹<%= ((@premium_revenue_trend&.values&.last || 0) / 1000.0).round(0) %>K</span>
+        <span class="stat-value">Rs. <%= ((@premium_revenue_trend&.values&.last || 0) / 1000.0).round(0) %>K</span>
       </div>
       <div class="stat-item">
         <span class="stat-label">Average:</span>
-        <span class="stat-value">₹<%= ((@premium_revenue_trend&.values&.sum.to_f / (@premium_revenue_trend&.values&.count.to_f.nonzero? || 1)) / 1000.0).round(0) %>K</span>
+        <span class="stat-value">Rs. <%= ((@premium_revenue_trend&.values&.sum.to_f / (@premium_revenue_trend&.values&.count.to_f.nonzero? || 1)) / 1000.0).round(0) %>K</span>
       </div>
       <div class="stat-item">
         <span class="stat-label">Peak Month:</span>
-        <span class="stat-value">₹<%= ((@premium_revenue_trend&.values&.max || 0) / 1000.0).round(0) %>K</span>
+        <span class="stat-value">Rs. <%= ((@premium_revenue_trend&.values&.max || 0) / 1000.0).round(0) %>K</span>
       </div>
     </div>
   </div>
@@ -1037,7 +1037,7 @@
       <div class="kpi-icon pink-gradient">
         <i class="bi bi-currency-dollar"></i>
       </div>
-      <div class="kpi-value">₹<%= (@avg_policy_value.to_f / 1000.0).round(0) %>K</div>
+      <div class="kpi-value">Rs. <%= (@avg_policy_value.to_f / 1000.0).round(0) %>K</div>
       <div class="kpi-label">Avg Policy Value</div>
     </div>
 

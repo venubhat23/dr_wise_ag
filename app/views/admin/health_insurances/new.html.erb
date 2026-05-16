@@ -1325,12 +1325,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function formatPreviewText(amount) {
       if (amount >= 10000000) {
         const crores = amount / 10000000;
-        return `(₹${crores === Math.floor(crores) ? crores.toString() : crores.toFixed(1)} crore${crores > 1 ? 's' : ''})`;
+        return `(Rs. ${crores === Math.floor(crores) ? crores.toString() : crores.toFixed(1)} crore${crores > 1 ? 's' : ''})`;
       } else if (amount >= 100000) {
         const lakhs = amount / 100000;
-        return `(₹${lakhs === Math.floor(lakhs) ? lakhs.toString() : lakhs.toFixed(1)} lakh${lakhs > 1 ? 's' : ''})`;
+        return `(Rs. ${lakhs === Math.floor(lakhs) ? lakhs.toString() : lakhs.toFixed(1)} lakh${lakhs > 1 ? 's' : ''})`;
       } else if (amount > 0) {
-        return `(₹${amount.toLocaleString()})`;
+        return `(Rs. ${amount.toLocaleString()})`;
       }
       return '';
     }

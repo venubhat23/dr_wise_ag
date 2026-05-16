@@ -22,7 +22,7 @@
     <div class="card border-success">
       <div class="card-body text-center py-3">
         <h6 class="card-title text-success mb-1">Total Commission</h6>
-        <h3 class="text-success mb-0">₹<%= @summary[:total_commission].round(0) %></h3>
+        <h3 class="text-success mb-0">Rs. <%= @summary[:total_commission].round(0) %></h3>
       </div>
     </div>
   </div>
@@ -30,7 +30,7 @@
     <div class="card border-primary">
       <div class="card-body text-center py-3">
         <h6 class="card-title text-primary mb-1">Paid</h6>
-        <h3 class="text-primary mb-0">₹<%= @summary[:paid_amount].round(0) %></h3>
+        <h3 class="text-primary mb-0">Rs. <%= @summary[:paid_amount].round(0) %></h3>
         <small class="text-muted"><%= @summary[:paid_count] %> leads</small>
       </div>
     </div>
@@ -39,7 +39,7 @@
     <div class="card border-warning">
       <div class="card-body text-center py-3">
         <h6 class="card-title text-warning mb-1">Pending</h6>
-        <h3 class="text-warning mb-0">₹<%= @summary[:pending_amount].round(0) %></h3>
+        <h3 class="text-warning mb-0">Rs. <%= @summary[:pending_amount].round(0) %></h3>
         <small class="text-muted"><%= @summary[:pending_count] %> leads</small>
       </div>
     </div>
