@@ -18,8 +18,8 @@ class MotorInsuranceDocument < ApplicationRecord
   }
 
   # Callbacks
-  after_create :upload_file_to_r2, if: -> { file.present? }
-  after_update :upload_file_to_r2, if: -> { file.present? && saved_change_to_file? }
+  after_create :upload_file_to_r2, if: -> { @file.present? }
+  after_update :upload_file_to_r2, if: -> { @file.present? && saved_change_to_file? }
 
   # R2 File Storage - Direct upload to Cloudflare R2 (similar to CustomerDocument)
   # Uses columns: r2_file_key, r2_filename, r2_content_type, r2_file_size
@@ -81,7 +81,7 @@ class MotorInsuranceDocument < ApplicationRecord
       return false
     end
 
-    if file_param.size > 10.megabytes
+    if file_param.size.present? && file_param.size > 10.megabytes
       errors.add(:base, 'File must be less than 10MB')
       return false
     end
@@ -151,8 +151,7 @@ class MotorInsuranceDocument < ApplicationRecord
 
   # Check if file attribute has changed (for virtual attribute)
   def saved_change_to_file?
-    # Since file is a virtual attribute, we check if it's present and different from stored data
-    file.present? && (r2_filename.blank? || r2_filename != file.original_filename)
+    @file.present? && (r2_filename.blank? || r2_filename != @file.original_filename)
   end
 
   def number_to_human_size(number)

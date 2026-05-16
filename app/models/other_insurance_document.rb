@@ -69,7 +69,7 @@ class OtherInsuranceDocument < ApplicationRecord
       return false
     end
 
-    if file_param.size > 10.megabytes
+    if file_param.size.present? && file_param.size > 10.megabytes
       errors.add(:base, 'File must be less than 10MB')
       return false
     end

@@ -479,6 +479,16 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @renewed_policy.reference_by_name = @motor_insurance.reference_by_name
     @renewed_policy.extra_note = @motor_insurance.extra_note
 
+    # Copy nominees from original policy (dup doesn't copy associations)
+    @motor_insurance.motor_insurance_nominees.each do |nominee|
+      @renewed_policy.motor_insurance_nominees.build(
+        nominee_name: nominee.nominee_name,
+        relationship: nominee.relationship,
+        age: nominee.age,
+        share_percentage: nominee.share_percentage
+      )
+    end
+
     # Load form data for the view
     load_form_data
 
