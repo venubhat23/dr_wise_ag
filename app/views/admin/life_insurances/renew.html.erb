@@ -144,7 +144,7 @@
               selected_agency = @renewed_policy.agency_code_id
               agency_prompt = 'Select Agency Code'
             elsif @renewed_policy.broker_code_type == 'broking'
-              agency_options = @brokers.map { |b| ["#{b.name} (#{b.id})", "broker_#{b.id}", { 'data-broker-id' => b.id }] }
+              agency_options = @brokers.map { |b| [b.name, "broker_#{b.id}", { 'data-broker-id' => b.id }] }
               selected_agency = @renewed_policy.broker_id.present? ? "broker_#{@renewed_policy.broker_id}" : nil
               agency_prompt = 'Select Broker'
             else
@@ -1717,7 +1717,7 @@ document.addEventListener('DOMContentLoaded', function() {
           option.value = `broker_${broker.id}`;
           option.setAttribute('data-broker-id', broker.id);
           // Format: Broker-name (Broker-id)
-          option.textContent = `${broker.name} (${broker.id})`;
+          option.textContent = broker.name;
           agencyCodeSelect.appendChild(option);
         });
         console.log('Loaded', brokers.length, 'brokers successfully');
