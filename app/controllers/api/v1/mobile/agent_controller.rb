@@ -21,8 +21,9 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         },
         statistics: stats,
         recent_activities: get_recent_activities(agent),
-        # Additional top-level fields as requested
-        commission_earned: format_indian_amount(stats[:commission_earned]),
+        # Gross commission earned (before TDS deduction)
+        commission_earned: stats[:commission_earned].to_f.round(2),
+        commission_earned_formatted: format_indian_amount(stats[:commission_earned]),
         customers_count: stats[:customers_count].to_i,
         policies_count: stats[:policies_count].to_i
       }
@@ -2997,15 +2998,17 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     life_sum_insured = life_policies.sum(:sum_insured) || 0
     motor_sum_insured = motor_policies.sum(:sum_insured) || 0
 
-    # Commission - Use commission payouts table for accuracy
+    # Commission - gross amount before TDS deduction
     health_policy_ids = health_policies.pluck(:id)
     life_policy_ids = life_policies.pluck(:id)
     motor_policy_ids = motor_policies.pluck(:id)
 
-    health_commission = CommissionPayout.where(policy_type: 'health', policy_id: health_policy_ids, payout_to: 'affiliate').sum(:payout_amount) || 0
-    life_commission = CommissionPayout.where(policy_type: 'life', policy_id: life_policy_ids, payout_to: 'affiliate').sum(:payout_amount) || 0
-    motor_commission = CommissionPayout.where(policy_type: 'motor', policy_id: motor_policy_ids, payout_to: 'affiliate').sum(:payout_amount) || 0
-    total_commission = health_commission + life_commission + motor_commission
+    # Use total_commission_amount (before TDS); fall back to payout_amount + tds_amount for older records
+    gross_sql = "COALESCE(total_commission_amount, payout_amount + COALESCE(tds_amount, 0))"
+    health_commission = CommissionPayout.where(policy_type: 'health', policy_id: health_policy_ids, payout_to: 'affiliate').sum(gross_sql) || 0
+    life_commission   = CommissionPayout.where(policy_type: 'life',   policy_id: life_policy_ids,   payout_to: 'affiliate').sum(gross_sql) || 0
+    motor_commission  = CommissionPayout.where(policy_type: 'motor',  policy_id: motor_policy_ids,  payout_to: 'affiliate').sum(gross_sql) || 0
+    total_commission  = health_commission + life_commission + motor_commission
 
     # Monthly data
     monthly_health_count = health_policies.where(created_at: current_month_start..current_month_end).count
@@ -3014,14 +3017,14 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     monthly_health_premium = health_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
     monthly_life_premium = life_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
     monthly_motor_premium = motor_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
-    # Monthly commission - Use commission payouts for consistency
+    # Monthly commission - gross before TDS
     monthly_health_policy_ids = health_policies.where(created_at: current_month_start..current_month_end).pluck(:id)
-    monthly_life_policy_ids = life_policies.where(created_at: current_month_start..current_month_end).pluck(:id)
-    monthly_motor_policy_ids = motor_policies.where(created_at: current_month_start..current_month_end).pluck(:id)
+    monthly_life_policy_ids   = life_policies.where(created_at: current_month_start..current_month_end).pluck(:id)
+    monthly_motor_policy_ids  = motor_policies.where(created_at: current_month_start..current_month_end).pluck(:id)
 
-    monthly_commission = (CommissionPayout.where(policy_type: 'health', policy_id: monthly_health_policy_ids, payout_to: 'affiliate').sum(:payout_amount) || 0) +
-                        (CommissionPayout.where(policy_type: 'life', policy_id: monthly_life_policy_ids, payout_to: 'affiliate').sum(:payout_amount) || 0) +
-                        (CommissionPayout.where(policy_type: 'motor', policy_id: monthly_motor_policy_ids, payout_to: 'affiliate').sum(:payout_amount) || 0)
+    monthly_commission = (CommissionPayout.where(policy_type: 'health', policy_id: monthly_health_policy_ids, payout_to: 'affiliate').sum(gross_sql) || 0) +
+                         (CommissionPayout.where(policy_type: 'life',   policy_id: monthly_life_policy_ids,   payout_to: 'affiliate').sum(gross_sql) || 0) +
+                         (CommissionPayout.where(policy_type: 'motor',  policy_id: monthly_motor_policy_ids,  payout_to: 'affiliate').sum(gross_sql) || 0)
 
     # Get unique customer IDs for real-time count
     customer_ids = (health_policies.pluck(:customer_id) + life_policies.pluck(:customer_id) + motor_policies.pluck(:customer_id)).uniq
@@ -3082,7 +3085,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       motor_count: agent_motor_policies.count,
       total_policies: total_policies,
       total_premium: agent_health_policies.sum(:total_premium) + agent_life_policies.sum(:total_premium) + agent_motor_policies.sum(:total_premium),
-      commission_earned: (agent_health_policies.sum(:sub_agent_after_tds_value) + agent_life_policies.sum(:sub_agent_after_tds_value) + agent_motor_policies.sum(:sub_agent_after_tds_value)),
+      commission_earned: (agent_health_policies.sum(:sub_agent_commission_amount) + agent_life_policies.sum(:sub_agent_commission_amount) + agent_motor_policies.sum(:sub_agent_commission_amount)),
       monthly_policies: monthly_health.count + monthly_life.count + monthly_motor.count,
       monthly_premium: monthly_health.sum(:total_premium) + monthly_life.sum(:total_premium) + monthly_motor.sum(:total_premium),
       health_percentage: total_policies > 0 ? ((agent_health_policies.count.to_f / total_policies) * 100).round(2) : 0,

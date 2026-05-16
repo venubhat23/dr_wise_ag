@@ -1796,18 +1796,19 @@ document.addEventListener('DOMContentLoaded', function() {
       data: { customer_id: customerId },
       success: function(response) {
         if (response.success && response.nominees && response.nominees.length > 0) {
-          // Clear existing nominees
           $('.nominee-row').remove();
 
-          // Add loaded nominees
-          response.nominees.forEach(function(nominee) {
-            addNomineeFromFamilyMember(nominee);
+          const count = response.nominees.length;
+          const equalShare = parseFloat((100 / count).toFixed(2));
+          response.nominees.forEach(function(nominee, index) {
+            const share = (index === count - 1) ? (100 - equalShare * (count - 1)).toFixed(2) : equalShare;
+            addNomineeFromFamilyMember(Object.assign({}, nominee, { share_percentage: share }));
           });
 
           toggleNoNomineesMessage();
           console.log(`Auto-loaded ${response.nominees.length} nominee(s) from ${response.customer_name}`);
         } else {
-          console.log('No family members found for auto-loading');
+          console.log('No nominee data found for auto-loading');
         }
       },
       error: function(xhr, status, error) {
@@ -1855,7 +1856,8 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="col-md-2 mb-3">
             <label class="form-label">Share %</label>
             <input type="number" name="other_insurance[other_insurance_nominees_attributes][${nomineeIndex}][share_percentage]"
-                   class="form-control" min="0" max="100" step="0.01" placeholder="100">
+                   class="form-control" min="0" max="100" step="0.01" placeholder="100"
+                   value="${nominee.share_percentage !== undefined ? nominee.share_percentage : ''}">
           </div>
           <div class="col-md-1 d-flex align-items-end mb-3">
             <button type="button" class="btn btn-outline-danger remove-nominee-btn">

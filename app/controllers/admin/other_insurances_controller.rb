@@ -665,19 +665,32 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     if customer_id.present?
       begin
         customer = Customer.find(customer_id)
-        family_members = customer.family_members.includes(:customer)
-
-        # Build nominee options from family members
         nominee_options = []
 
-        family_members.each do |member|
-          if member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
-            nominee_options << {
-              nominee_name: member.name,
-              relationship: member.relationship&.downcase || 'other',
-              age: member.age || 0
-            }
+        # Include customer's own registered nominee first
+        if customer.nominee_name.present?
+          age = if customer.nominee_date_of_birth.present?
+            ((Date.today - customer.nominee_date_of_birth) / 365.25).floor
+          else
+            0
           end
+          nominee_options << {
+            nominee_name: customer.nominee_name,
+            relationship: customer.nominee_relation&.downcase || 'other',
+            age: age
+          }
+        end
+
+        # Add family members (skip if already added as primary nominee)
+        customer.family_members.each do |member|
+          next unless member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
+          next if customer.nominee_name.present? && member.name.strip.downcase == customer.nominee_name.strip.downcase
+
+          nominee_options << {
+            nominee_name: member.name,
+            relationship: member.relationship&.downcase || 'other',
+            age: member.age || 0
+          }
         end
 
         render json: {
