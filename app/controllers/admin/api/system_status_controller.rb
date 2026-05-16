@@ -30,7 +30,8 @@ module Admin
                 joined_date: affiliate.created_at ? affiliate.created_at.strftime('%d %b %Y') : 'N/A',
                 total_policies: policies_count,
                 total_premium: calculate_affiliate_premium(affiliate),
-                commission_earned: calculate_affiliate_commission(affiliate)
+                commission_pending: calculate_affiliate_commission(affiliate, 'pending'),
+                commission_paid: calculate_affiliate_commission(affiliate, 'paid')
               }
             rescue => e
               Rails.logger.error "Error processing affiliate #{affiliate.id}: #{e.message}"
@@ -46,7 +47,8 @@ module Admin
               total_active: affiliate_data.length,
               total_policies: affiliate_data.sum { |a| a[:total_policies] },
               total_premium: affiliate_data.sum { |a| a[:total_premium] },
-              total_commission: affiliate_data.sum { |a| a[:commission_earned] }
+              total_commission_pending: affiliate_data.sum { |a| a[:commission_pending] },
+              total_commission_paid: affiliate_data.sum { |a| a[:commission_paid] }
             }
           }
         rescue => e
@@ -61,7 +63,8 @@ module Admin
               total_active: 0,
               total_policies: 0,
               total_premium: 0,
-              total_commission: 0
+              total_commission_pending: 0,
+              total_commission_paid: 0
             }
           }, status: 500
         end
@@ -374,19 +377,23 @@ module Admin
         premium
       end
 
-      def calculate_affiliate_commission(affiliate)
+      def calculate_affiliate_commission(affiliate, status)
         commission = 0
-        commission += CommissionPayout.where(policy_type: 'health', payout_to: 'sub_agent')
+        commission += CommissionPayout.where(policy_type: 'health', payout_to: 'sub_agent', status: status)
                                     .joins("JOIN health_insurances ON commission_payouts.policy_id = health_insurances.id")
                                     .where("health_insurances.sub_agent_id = ?", affiliate.id)
                                     .sum(:payout_amount) rescue 0
-        commission += CommissionPayout.where(policy_type: 'life', payout_to: 'sub_agent')
+        commission += CommissionPayout.where(policy_type: 'life', payout_to: 'sub_agent', status: status)
                                     .joins("JOIN life_insurances ON commission_payouts.policy_id = life_insurances.id")
                                     .where("life_insurances.sub_agent_id = ?", affiliate.id)
                                     .sum(:payout_amount) rescue 0
-        commission += CommissionPayout.where(policy_type: 'motor', payout_to: 'sub_agent')
+        commission += CommissionPayout.where(policy_type: 'motor', payout_to: 'sub_agent', status: status)
                                     .joins("JOIN motor_insurances ON commission_payouts.policy_id = motor_insurances.id")
                                     .where("motor_insurances.sub_agent_id = ?", affiliate.id)
+                                    .sum(:payout_amount) rescue 0
+        commission += CommissionPayout.where(policy_type: 'other', payout_to: 'sub_agent', status: status)
+                                    .joins("JOIN other_insurances ON commission_payouts.policy_id = other_insurances.id")
+                                    .where("other_insurances.sub_agent_id = ?", affiliate.id)
                                     .sum(:payout_amount) rescue 0
         commission
       end
