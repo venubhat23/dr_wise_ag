@@ -378,20 +378,21 @@ module Admin
       end
 
       def calculate_affiliate_commission(affiliate, status)
+        payout_to_values = ['sub_agent', 'affiliate']
         commission = 0
-        commission += CommissionPayout.where(policy_type: 'health', payout_to: 'sub_agent', status: status)
+        commission += CommissionPayout.where(policy_type: 'health', payout_to: payout_to_values, status: status)
                                     .joins("JOIN health_insurances ON commission_payouts.policy_id = health_insurances.id")
                                     .where("health_insurances.sub_agent_id = ?", affiliate.id)
                                     .sum(:payout_amount) rescue 0
-        commission += CommissionPayout.where(policy_type: 'life', payout_to: 'sub_agent', status: status)
+        commission += CommissionPayout.where(policy_type: 'life', payout_to: payout_to_values, status: status)
                                     .joins("JOIN life_insurances ON commission_payouts.policy_id = life_insurances.id")
                                     .where("life_insurances.sub_agent_id = ?", affiliate.id)
                                     .sum(:payout_amount) rescue 0
-        commission += CommissionPayout.where(policy_type: 'motor', payout_to: 'sub_agent', status: status)
+        commission += CommissionPayout.where(policy_type: 'motor', payout_to: payout_to_values, status: status)
                                     .joins("JOIN motor_insurances ON commission_payouts.policy_id = motor_insurances.id")
                                     .where("motor_insurances.sub_agent_id = ?", affiliate.id)
                                     .sum(:payout_amount) rescue 0
-        commission += CommissionPayout.where(policy_type: 'other', payout_to: 'sub_agent', status: status)
+        commission += CommissionPayout.where(policy_type: 'other', payout_to: payout_to_values, status: status)
                                     .joins("JOIN other_insurances ON commission_payouts.policy_id = other_insurances.id")
                                     .where("other_insurances.sub_agent_id = ?", affiliate.id)
                                     .sum(:payout_amount) rescue 0

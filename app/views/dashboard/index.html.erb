@@ -1770,43 +1770,43 @@ function loadActiveAffiliatesData(content, loading) {
       if (data.success) {
         const fmtINR = (val) => '₹' + (val || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         content.innerHTML = `
-          <div class="row mb-4">
-            <div class="col-md-2">
-              <div class="kpi-card kpi-primary">
+          <div class="d-flex gap-2 mb-4" style="flex-wrap:nowrap">
+            <div style="flex:1 1 0;min-width:0">
+              <div class="kpi-card kpi-primary h-100">
                 <div class="card-body">
                   <div class="kpi-number">${data.summary.total_active}</div>
                   <div class="kpi-label">Active Affiliates</div>
                 </div>
               </div>
             </div>
-            <div class="col-md-2">
-              <div class="kpi-card kpi-success">
+            <div style="flex:1 1 0;min-width:0">
+              <div class="kpi-card kpi-success h-100">
                 <div class="card-body">
                   <div class="kpi-number">${data.summary.total_policies}</div>
                   <div class="kpi-label">Total Policies</div>
                 </div>
               </div>
             </div>
-            <div class="col-md-3">
-              <div class="kpi-card kpi-warning">
+            <div style="flex:1 1 0;min-width:0">
+              <div class="kpi-card kpi-warning h-100">
                 <div class="card-body">
-                  <div class="kpi-number" style="font-size:1.4rem">${fmtINR(data.summary.total_premium)}</div>
+                  <div class="kpi-number" style="font-size:1.2rem">${fmtINR(data.summary.total_premium)}</div>
                   <div class="kpi-label">Total Premium</div>
                 </div>
               </div>
             </div>
-            <div class="col-md-2half" style="flex:0 0 auto;width:25%">
-              <div class="kpi-card" style="background:#f39c12;color:#fff">
+            <div style="flex:1 1 0;min-width:0">
+              <div class="kpi-card h-100" style="background:#f39c12;color:#fff">
                 <div class="card-body">
-                  <div class="kpi-number" style="font-size:1.3rem">${fmtINR(data.summary.total_commission_pending)}</div>
+                  <div class="kpi-number" style="font-size:1.2rem">${fmtINR(data.summary.total_commission_pending)}</div>
                   <div class="kpi-label">Commission Pending</div>
                 </div>
               </div>
             </div>
-            <div class="col-md-2half" style="flex:0 0 auto;width:25%">
-              <div class="kpi-card" style="background:#27ae60;color:#fff">
+            <div style="flex:1 1 0;min-width:0">
+              <div class="kpi-card h-100" style="background:#27ae60;color:#fff">
                 <div class="card-body">
-                  <div class="kpi-number" style="font-size:1.3rem">${fmtINR(data.summary.total_commission_paid)}</div>
+                  <div class="kpi-number" style="font-size:1.2rem">${fmtINR(data.summary.total_commission_paid)}</div>
                   <div class="kpi-label">Commission Paid</div>
                 </div>
               </div>
