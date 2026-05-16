@@ -1,0 +1,96 @@
+<% total_premium  = rows.sum { |r| r[:premium] }
+   total_gross    = rows.sum { |r| r[:gross_commission] }
+   total_tds      = rows.sum { |r| r[:tds_amount] }
+   total_after    = rows.sum { |r| r[:after_tds] }
+   avg_comm_pct   = rows.size > 0 ? (rows.sum { |r| r[:comm_percentage] } / rows.size).round(2) : 0
+   avg_tds_pct    = rows.size > 0 ? (rows.sum { |r| r[:tds_percentage]  } / rows.size).round(2) : 0 %>
+
+<div class="table-responsive mt-2 mb-1">
+  <table class="table data-table mb-0" style="font-size:.8rem;">
+    <thead>
+      <tr style="background:#f0f4ff;">
+        <th style="min-width:110px;">Policy No.</th>
+        <th>Customer</th>
+        <th>Type</th>
+        <th class="text-end">Premium (₹)</th>
+        <th class="text-end" title="Commission %">Comm %</th>
+        <th class="text-end" title="Gross commission = Premium × Comm %">Gross Comm (₹)</th>
+        <th class="text-end" title="TDS %">TDS %</th>
+        <th class="text-end" title="TDS deducted">TDS (₹)</th>
+        <th class="text-end" title="After TDS = Gross – TDS">After TDS (₹)</th>
+        <th class="text-center">Status</th>
+        <th>Payout Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.each do |pr| %>
+        <% color = pr[:status] == 'paid' ? '#27ae60' : (pr[:status] == 'pending' ? '#e67e22' : '#adb5bd') %>
+        <tr>
+          <td style="font-weight:600; color:#2c3e7a; font-family:monospace; font-size:.77rem;"><%= pr[:policy_number] %></td>
+          <td style="font-size:.8rem;"><%= pr[:customer_name] %></td>
+          <td>
+            <span class="badge" style="background:#eaf4fb; color:#2980b9; border:1px solid #aed6f1; font-size:.7rem;">
+              <%= pr[:type] %>
+            </span>
+          </td>
+          <td class="text-end amount-cell" style="color:#16a085;"><%= number_with_delimiter(pr[:premium].round(2)) %></td>
+          <td class="text-end" style="color:#8e44ad; font-weight:600;">
+            <%= pr[:comm_percentage] > 0 ? "#{pr[:comm_percentage]}%" : '—' %>
+          </td>
+          <td class="text-end amount-cell" style="color:#8e44ad;">
+            <%= pr[:gross_commission] > 0 ? number_with_delimiter(pr[:gross_commission].round(2)) : '—' %>
+          </td>
+          <td class="text-end" style="color:#e74c3c; font-size:.77rem;">
+            <%= pr[:tds_percentage] > 0 ? "#{pr[:tds_percentage]}%" : '—' %>
+          </td>
+          <td class="text-end" style="color:#e74c3c;">
+            <%= pr[:tds_amount] > 0 ? number_with_delimiter(pr[:tds_amount].round(2)) : '—' %>
+          </td>
+          <td class="text-end amount-cell <%= pr[:after_tds] > 0 ? (pr[:status] == 'paid' ? 'paid-amt' : 'pending-amt') : 'zero-amt' %>">
+            <%= pr[:after_tds] > 0 ? number_with_delimiter(pr[:after_tds].round(2)) : '—' %>
+          </td>
+          <td class="text-center">
+            <span class="badge" style="background:<%= color %>15; color:<%= color %>; border:1px solid <%= color %>50; font-size:.68rem; letter-spacing:.3px;">
+              <%= pr[:status].to_s.titleize %>
+            </span>
+          </td>
+          <td style="color:#6c757d; font-size:.77rem; white-space:nowrap;"><%= pr[:payout_date] || '—' %></td>
+        </tr>
+      <% end %>
+    </tbody>
+    <tfoot style="background:#e8eeff; font-size:.8rem;">
+      <tr>
+        <td colspan="3" style="font-weight:700; color:#2c3e7a;">
+          TOTAL (<%= rows.size %> <%= rows.size == 1 ? 'policy' : 'policies' %>)
+        </td>
+        <td class="text-end fw-bold" style="color:#16a085;"><%= number_with_delimiter(total_premium.round(2)) %></td>
+        <td class="text-end" style="color:#8e44ad; font-weight:600;">
+          <%= avg_comm_pct > 0 ? "#{avg_comm_pct}% avg" : '—' %>
+        </td>
+        <td class="text-end fw-bold" style="color:#8e44ad;"><%= number_with_delimiter(total_gross.round(2)) %></td>
+        <td class="text-end" style="color:#e74c3c; font-weight:600;">
+          <%= avg_tds_pct > 0 ? "#{avg_tds_pct}% avg" : '—' %>
+        </td>
+        <td class="text-end fw-bold" style="color:#e74c3c;"><%= number_with_delimiter(total_tds.round(2)) %></td>
+        <td class="text-end fw-bold paid-amt"><%= number_with_delimiter(total_after.round(2)) %></td>
+        <td colspan="2"></td>
+      </tr>
+      <% if total_premium > 0 %>
+        <tr style="background:#dde4ff; font-size:.75rem;">
+          <td colspan="3" style="color:#6c757d;">Effective commission rate on total premium</td>
+          <td class="text-end" style="color:#16a085; font-weight:600;"><%= number_with_delimiter(total_premium.round(2)) %></td>
+          <td class="text-end" style="color:#8e44ad; font-weight:700;">
+            <%= ((total_gross / total_premium) * 100).round(2) %>%
+          </td>
+          <td class="text-end" style="color:#8e44ad; font-weight:700;"><%= number_with_delimiter(total_gross.round(2)) %></td>
+          <td class="text-end" style="color:#e74c3c; font-weight:700;">
+            <%= total_gross > 0 ? "#{((total_tds / total_gross) * 100).round(2)}% of gross" : '—' %>
+          </td>
+          <td class="text-end" style="color:#e74c3c; font-weight:700;"><%= number_with_delimiter(total_tds.round(2)) %></td>
+          <td class="text-end" style="color:#27ae60; font-weight:700;"><%= number_with_delimiter(total_after.round(2)) %></td>
+          <td colspan="2"></td>
+        </tr>
+      <% end %>
+    </tfoot>
+  </table>
+</div>

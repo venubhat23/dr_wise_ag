@@ -278,66 +278,52 @@
           </div>
         <% end %>
 
+        <!-- Ambassador direct policies -->
+        <% if row[:policy_rows].any? %>
+          <div class="aff-section" style="border-top:1px solid #f0f0f0;">
+            <button class="aff-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#amb-pol-<%= idx %>">
+              <i class="bi bi-chevron-down" style="font-size:.7rem;"></i>
+              Ambassador Policies (<%= row[:policies] %>)
+            </button>
+            <div class="collapse show" id="amb-pol-<%= idx %>">
+              <%= render partial: 'admin/investors/policy_commission_table',
+                    locals: { rows: row[:policy_rows], collapse_id: "amb-pol-#{idx}" } %>
+            </div>
+          </div>
+        <% end %>
+
         <!-- Affiliates section -->
         <% if row[:affiliates].any? %>
-          <div class="aff-section">
+          <div class="aff-section" style="border-top:1px solid #f0f0f0;">
             <button class="aff-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#aff-<%= idx %>">
               <i class="bi bi-chevron-down" style="font-size:.7rem;"></i>
               Affiliates (<%= row[:affiliates_count] %>)
             </button>
             <div class="collapse show" id="aff-<%= idx %>">
-              <table class="table data-table mb-0 mt-2">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Affiliate Name</th>
-                    <th>Contact</th>
-                    <th class="text-center">Policies</th>
-                    <th class="text-end">Premium</th>
-                    <th class="text-end">Commission Paid</th>
-                    <th class="text-end">Commission Pending</th>
-                    <th class="text-end">Total Commission</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% row[:affiliates].each_with_index do |af, aidx| %>
-                    <tr>
-                      <td style="color:#6c757d;"><%= aidx + 1 %></td>
-                      <td>
-                        <div style="font-weight:600; color:#2c3e7a;"><%= af[:name] %></div>
-                        <% if af[:affiliate].email.present? %>
-                          <div style="font-size:.72rem; color:#6c757d;"><%= af[:affiliate].email %></div>
-                        <% end %>
-                      </td>
-                      <td style="color:#6c757d;"><%= af[:affiliate].mobile.presence || '—' %></td>
-                      <td class="text-center">
-                        <span class="badge" style="background:#eaf4fb; color:#2980b9; border:1px solid #aed6f1;"><%= af[:policies] %></span>
-                      </td>
-                      <td class="text-end amount-cell" style="color:#16a085;">
-                        <%= indian_currency(af[:premium].to_f.round(2)) %>
-                      </td>
-                      <td class="text-end amount-cell <%= af[:commission_paid] > 0 ? 'paid-amt' : 'zero-amt' %>">
-                        <%= indian_currency(af[:commission_paid].round(2)) %>
-                      </td>
-                      <td class="text-end amount-cell <%= af[:commission_pending] > 0 ? 'pending-amt' : 'zero-amt' %>">
-                        <%= indian_currency(af[:commission_pending].round(2)) %>
-                      </td>
-                      <td class="text-end amount-cell" style="color:#2c3e7a;">
-                        <%= indian_currency(af[:total_commission].round(2)) %>
-                      </td>
-                    </tr>
+              <% row[:affiliates].each_with_index do |af, aidx| %>
+                <!-- Affiliate header bar -->
+                <div style="background:#f8f9ff; border-radius:8px; padding:.65rem 1rem; margin:.5rem 0; display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; border:1px solid #e4e8ff;">
+                  <div style="font-weight:700; color:#2c3e7a; min-width:160px;"><%= af[:name] %></div>
+                  <div style="font-size:.78rem; color:#6c757d;"><i class="bi bi-telephone me-1"></i><%= af[:affiliate].mobile.presence || '—' %></div>
+                  <span class="pill pill-blue" style="font-size:.72rem;"><i class="bi bi-file-earmark-check"></i><%= af[:policies] %> Policies</span>
+                  <span style="font-size:.8rem; color:#16a085; font-weight:600;"><i class="bi bi-currency-rupee"></i><%= indian_currency(af[:premium].to_f.round(0)) %> Premium</span>
+                  <span class="<%= af[:commission_paid] > 0 ? 'paid-amt' : 'zero-amt' %>" style="font-size:.8rem; font-weight:600;">Paid: <%= indian_currency(af[:commission_paid].round(2)) %></span>
+                  <span class="<%= af[:commission_pending] > 0 ? 'pending-amt' : 'zero-amt' %>" style="font-size:.8rem; font-weight:600;">Pending: <%= indian_currency(af[:commission_pending].round(2)) %></span>
+                  <% if af[:policy_rows].any? %>
+                    <button class="aff-toggle ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#af-pol-<%= idx %>-<%= aidx %>">
+                      <i class="bi bi-list-ul me-1"></i> Policy Breakdown
+                    </button>
                   <% end %>
-                </tbody>
-                <tfoot style="background:#f8f9ff;">
-                  <tr>
-                    <td colspan="4" style="font-weight:700; color:#2c3e7a;">Affiliate Totals</td>
-                    <td class="text-end fw-bold" style="color:#16a085;"><%= indian_currency(row[:affiliates].sum { |a| a[:premium].to_f }.round(2)) %></td>
-                    <td class="text-end paid-amt fw-bold"><%= indian_currency(row[:affiliates].sum { |a| a[:commission_paid] }.round(2)) %></td>
-                    <td class="text-end pending-amt fw-bold"><%= indian_currency(row[:affiliates].sum { |a| a[:commission_pending] }.round(2)) %></td>
-                    <td class="text-end fw-bold" style="color:#2c3e7a;"><%= indian_currency(row[:affiliates].sum { |a| a[:total_commission] }.round(2)) %></td>
-                  </tr>
-                </tfoot>
-              </table>
+                </div>
+
+                <!-- Affiliate policy-wise commission table -->
+                <% if af[:policy_rows].any? %>
+                  <div class="collapse show" id="af-pol-<%= idx %>-<%= aidx %>">
+                    <%= render partial: 'admin/investors/policy_commission_table',
+                          locals: { rows: af[:policy_rows], collapse_id: "af-pol-#{idx}-#{aidx}" } %>
+                  </div>
+                <% end %>
+              <% end %>
             </div>
           </div>
         <% else %>

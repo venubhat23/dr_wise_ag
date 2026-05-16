@@ -178,50 +178,105 @@ class Admin::InvestorsController < Admin::ApplicationController
     @ambassador_rows = ambassadors.map do |amb|
       name = amb.display_name.presence || "#{amb.first_name} #{amb.last_name}".strip.presence || "Ambassador ##{amb.id}"
 
-      amb_paid      = 0.0
-      amb_pending   = 0.0
+      amb_paid       = 0.0
+      amb_pending    = 0.0
       policies_count = 0
-      amb_premium   = 0.0
+      amb_premium    = 0.0
+      amb_policy_rows = []
 
       policy_classes.each do |ptype, klass|
         tbl = klass.table_name
-        scope = klass.where(distributor_id: amb.id)
-        policies_count += scope.count rescue 0
-        amb_premium    += scope.sum(:total_premium).to_f rescue 0
+        klass.where(distributor_id: amb.id).includes(:customer).each do |pol|
+          payout = CommissionPayout.where(
+            policy_type: ptype, policy_id: pol.id, payout_to: 'ambassador'
+          ).order(created_at: :desc).first
 
-        amb_paid    += CommissionPayout.where(policy_type: ptype, payout_to: 'ambassador', status: 'paid')
-                                       .joins("JOIN #{tbl} ON commission_payouts.policy_id = #{tbl}.id")
-                                       .where("#{tbl}.distributor_id = ?", amb.id)
-                                       .sum(:payout_amount).to_f rescue 0
-        amb_pending += CommissionPayout.where(policy_type: ptype, payout_to: 'ambassador', status: 'pending')
-                                       .joins("JOIN #{tbl} ON commission_payouts.policy_id = #{tbl}.id")
-                                       .where("#{tbl}.distributor_id = ?", amb.id)
-                                       .sum(:payout_amount).to_f rescue 0
+          premium       = pol.total_premium.to_f
+          comm_pct      = pol.try(:ambassador_commission_percentage).to_f
+          gross         = pol.try(:ambassador_commission_amount).to_f
+          tds_pct       = pol.try(:ambassador_tds_percentage).to_f
+          tds_amt       = pol.try(:ambassador_tds_amount).to_f
+          after_tds     = pol.try(:ambassador_after_tds_value).to_f
+          after_tds     = (gross - tds_amt).round(2) if after_tds.zero? && gross > 0
+          net           = payout&.payout_amount.to_f
+          p_paid        = payout&.paid?    ? net : 0.0
+          p_pending     = payout&.pending? ? net : 0.0
+
+          amb_paid       += p_paid
+          amb_pending    += p_pending
+          policies_count += 1
+          amb_premium    += premium
+
+          amb_policy_rows << {
+            policy_number:    pol.policy_number.presence || '—',
+            customer_name:    pol.customer&.display_name.presence || 'N/A',
+            type:             ptype.capitalize,
+            premium:          premium,
+            comm_percentage:  comm_pct,
+            gross_commission: gross,
+            tds_percentage:   tds_pct,
+            tds_amount:       tds_amt,
+            after_tds:        after_tds,
+            net_commission:   net,
+            status:           payout&.status || 'no_payout',
+            payout_date:      payout&.payout_date&.strftime('%d %b %Y')
+          }
+        end rescue nil
       end
 
-      # Affiliates under this ambassador
-      affiliates = SubAgent.where(distributor_id: amb.id).order(:created_at)
+      # Affiliates: combine assigned (via junction table) + direct (via distributor_id)
+      assigned_ids = amb.assigned_sub_agents.pluck(:id) rescue []
+      direct_ids   = amb.sub_agents.pluck(:id) rescue []
+      all_af_ids   = (assigned_ids + direct_ids).uniq
+      affiliates   = SubAgent.where(id: all_af_ids).order(:created_at)
+
       aff_rows = affiliates.map do |af|
         af_name    = af.display_name.presence || "#{af.first_name} #{af.last_name}".strip.presence || "Affiliate ##{af.id}"
         af_paid    = 0.0
         af_pending = 0.0
         af_policies = 0
         af_premium  = 0.0
+        af_policy_rows = []
 
         policy_classes.each do |ptype, klass|
           tbl = klass.table_name
-          scope = klass.where(sub_agent_id: af.id)
-          af_policies += scope.count rescue 0
-          af_premium  += scope.sum(:total_premium).to_f rescue 0
+          klass.where(sub_agent_id: af.id).includes(:customer).each do |pol|
+            payout = CommissionPayout.where(
+              policy_type: ptype, policy_id: pol.id,
+              payout_to: ['sub_agent', 'affiliate']
+            ).order(created_at: :desc).first
 
-          af_paid    += CommissionPayout.where(policy_type: ptype, payout_to: ['sub_agent', 'affiliate'], status: 'paid')
-                                        .joins("JOIN #{tbl} ON commission_payouts.policy_id = #{tbl}.id")
-                                        .where("#{tbl}.sub_agent_id = ?", af.id)
-                                        .sum(:payout_amount).to_f rescue 0
-          af_pending += CommissionPayout.where(policy_type: ptype, payout_to: ['sub_agent', 'affiliate'], status: 'pending')
-                                        .joins("JOIN #{tbl} ON commission_payouts.policy_id = #{tbl}.id")
-                                        .where("#{tbl}.sub_agent_id = ?", af.id)
-                                        .sum(:payout_amount).to_f rescue 0
+            premium      = pol.total_premium.to_f
+            comm_pct     = pol.try(:sub_agent_commission_percentage).to_f
+            gross        = pol.try(:sub_agent_commission_amount).to_f
+            tds_pct      = pol.try(:sub_agent_tds_percentage).to_f
+            tds_amt      = pol.try(:sub_agent_tds_amount).to_f
+            after_tds    = pol.try(:sub_agent_after_tds_value).to_f
+            after_tds    = (gross - tds_amt).round(2) if after_tds.zero? && gross > 0
+            net          = payout&.payout_amount.to_f
+            p_paid       = payout&.paid?    ? net : 0.0
+            p_pending    = payout&.pending? ? net : 0.0
+
+            af_paid      += p_paid
+            af_pending   += p_pending
+            af_policies  += 1
+            af_premium   += premium
+
+            af_policy_rows << {
+              policy_number:    pol.policy_number.presence || '—',
+              customer_name:    pol.customer&.display_name.presence || 'N/A',
+              type:             ptype.capitalize,
+              premium:          premium,
+              comm_percentage:  comm_pct,
+              gross_commission: gross,
+              tds_percentage:   tds_pct,
+              tds_amount:       tds_amt,
+              after_tds:        after_tds,
+              net_commission:   net,
+              status:           payout&.status || 'no_payout',
+              payout_date:      payout&.payout_date&.strftime('%d %b %Y')
+            }
+          end rescue nil
         end
 
         {
@@ -231,7 +286,8 @@ class Admin::InvestorsController < Admin::ApplicationController
           premium: af_premium,
           commission_paid: af_paid,
           commission_pending: af_pending,
-          total_commission: af_paid + af_pending
+          total_commission: af_paid + af_pending,
+          policy_rows: af_policy_rows
         }
       end
 
@@ -244,7 +300,8 @@ class Admin::InvestorsController < Admin::ApplicationController
         commission_pending: amb_pending,
         total_commission: amb_paid + amb_pending,
         affiliates_count: affiliates.count,
-        affiliates: aff_rows
+        affiliates: aff_rows,
+        policy_rows: amb_policy_rows
       }
     end
 
