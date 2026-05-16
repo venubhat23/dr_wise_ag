@@ -197,6 +197,17 @@ class Admin::CustomersController < Admin::ApplicationController
     # Gather all policies from different insurance types - using preloaded associations
     @all_policies = []
 
+    policy_status = lambda do |policy|
+      if policy.active?
+        'Active'
+      elsif (policy.respond_to?(:has_been_renewed?) && policy.has_been_renewed?) ||
+            (policy.respond_to?(:is_renewed) && policy.is_renewed == true)
+        'Renewed'
+      else
+        'Expired'
+      end
+    end
+
     @customer.health_insurances.each do |policy|
       @all_policies << {
         type: 'Health Insurance',
@@ -206,7 +217,7 @@ class Admin::CustomersController < Admin::ApplicationController
         premium: policy.total_premium,
         start_date: policy.policy_start_date,
         end_date: policy.policy_end_date,
-        status: policy.active? ? 'Active' : 'Expired',
+        status: policy_status.call(policy),
         created_at: policy.created_at
       }
     end
@@ -220,7 +231,7 @@ class Admin::CustomersController < Admin::ApplicationController
         premium: policy.total_premium,
         start_date: policy.policy_start_date,
         end_date: policy.policy_end_date,
-        status: policy.active? ? 'Active' : 'Expired',
+        status: policy_status.call(policy),
         created_at: policy.created_at
       }
     end
@@ -234,7 +245,7 @@ class Admin::CustomersController < Admin::ApplicationController
         premium: policy.total_premium,
         start_date: policy.policy_start_date,
         end_date: policy.policy_end_date,
-        status: policy.active? ? 'Active' : 'Expired',
+        status: policy_status.call(policy),
         created_at: policy.created_at
       }
     end
@@ -248,7 +259,7 @@ class Admin::CustomersController < Admin::ApplicationController
         premium: policy.total_premium,
         start_date: policy.policy_start_date,
         end_date: policy.policy_end_date,
-        status: policy.active? ? 'Active' : 'Expired',
+        status: policy_status.call(policy),
         created_at: policy.created_at
       }
     end
@@ -262,21 +273,10 @@ class Admin::CustomersController < Admin::ApplicationController
     @other_policies   = @all_policies.select { |p| p[:type] == 'Other Insurance' }
 
     # --- Expired: end_date passed AND policy has NOT been renewed ---
-    @expired_policies = @all_policies.select do |p|
-      next false unless p[:status] == 'Expired'
-      obj = p[:policy]
-      renewed = (obj.respond_to?(:has_been_renewed?) && obj.has_been_renewed?) ||
-                (obj.respond_to?(:is_renewed) && obj.is_renewed == true)
-      !renewed
-    end
+    @expired_policies = @all_policies.select { |p| p[:status] == 'Expired' }
 
     # --- Past: end_date passed AND policy WAS renewed ---
-    @past_policies = @all_policies.select do |p|
-      next false unless p[:status] == 'Expired'
-      obj = p[:policy]
-      (obj.respond_to?(:has_been_renewed?) && obj.has_been_renewed?) ||
-      (obj.respond_to?(:is_renewed) && obj.is_renewed == true)
-    end
+    @past_policies = @all_policies.select { |p| p[:status] == 'Renewed' }
 
     # --- Upcoming Renewal: active policies whose end_date is within 60 days ---
     @upcoming_renewal_policies = @all_policies.select do |p|
@@ -313,6 +313,7 @@ class Admin::CustomersController < Admin::ApplicationController
 
     # Legacy counts for backward compatibility
     @active_policies_count        = @all_policies.count { |p| p[:status] == 'Active' }
+    @renewed_policies_count       = @all_policies.count { |p| p[:status] == 'Renewed' }
     @expired_policies_count       = @expired_policies.count
     @past_policies_count          = @past_policies.count
     @upcoming_installments_count  = @upcoming_installment_policies.count

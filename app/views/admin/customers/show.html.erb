@@ -902,6 +902,8 @@ body {
                     <td>
                       <% if p[:status] == 'Active' %>
                         <span style="color:#16a34a; font-weight:600;">Active</span>
+                      <% elsif p[:status] == 'Renewed' %>
+                        <span style="color:#2563eb; font-weight:600;">Renewed</span>
                       <% else %>
                         <span style="color:#dc2626; font-weight:600;">Expired</span>
                       <% end %>
@@ -1431,6 +1433,8 @@ body {
                     <td>
                       <% if p[:status] == 'Active' %>
                         <span class="badge bg-success">Active</span>
+                      <% elsif p[:status] == 'Renewed' %>
+                        <span class="badge bg-primary">Renewed</span>
                       <% else %>
                         <span class="badge bg-danger">Expired</span>
                       <% end %>
@@ -1460,14 +1464,7 @@ body {
 
 <!-- Active Policies Section -->
 <%
-  # Active policies are those that are currently active AND not renewed
-  active_policies = @all_policies&.select do |p|
-    policy_obj = p[:policy]
-    # Must be active AND not renewed
-    p[:status] == 'Active' &&
-    !(policy_obj.respond_to?(:policy_type) && policy_obj.policy_type == 'Renewal') &&
-    !(policy_obj.respond_to?(:is_renewed) && policy_obj.is_renewed)
-  end || []
+  active_policies = @all_policies&.select { |p| p[:status] == 'Active' } || []
 %>
 <div class="info-section-card">
   <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#activePoliciesCollapse" aria-expanded="false">
@@ -1612,16 +1609,7 @@ body {
 
 <!-- Past Policies Section (Renewed Policies) -->
 <%
-  # Past policies are those that have been renewed (have a renewal policy)
-  past_policies = @all_policies&.select do |p|
-    policy_obj = p[:policy]
-    # Check if this is a renewed policy or if policy has is_renewed flag
-    if policy_obj.respond_to?(:policy_type)
-      policy_obj.policy_type == 'Renewal' || (policy_obj.respond_to?(:is_renewed) && policy_obj.is_renewed)
-    else
-      false
-    end
-  end || []
+  past_policies = @all_policies&.select { |p| p[:status] == 'Renewed' } || []
 %>
 <div class="info-section-card">
   <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#pastPoliciesCollapse" aria-expanded="false">
@@ -1740,14 +1728,7 @@ body {
 
 <!-- Expired Policies Section (Not Renewed) -->
 <%
-  # Expired policies that have NOT been renewed
-  expired_policies = @all_policies&.select do |p|
-    policy_obj = p[:policy]
-    # Check if expired and NOT renewed
-    p[:status] == 'Expired' &&
-    !(policy_obj.respond_to?(:is_renewed) && policy_obj.is_renewed) &&
-    !(policy_obj.respond_to?(:has_been_renewed?) && policy_obj.has_been_renewed?)
-  end || []
+  expired_policies = @all_policies&.select { |p| p[:status] == 'Expired' } || []
 %>
 <div class="info-section-card">
   <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#expiredPoliciesCollapse" aria-expanded="false">

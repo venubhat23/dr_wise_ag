@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_16_050000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_16_060000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -924,6 +924,21 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_16_050000) do
     t.index ["customer_id"], name: "index_loans_on_customer_id"
   end
 
+  create_table "motor_insurance_documents", force: :cascade do |t|
+    t.bigint "motor_insurance_id", null: false
+    t.string "document_type"
+    t.string "title"
+    t.text "description"
+    t.string "r2_file_key"
+    t.string "r2_filename"
+    t.string "r2_content_type"
+    t.bigint "r2_file_size"
+    t.string "r2_url"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["motor_insurance_id"], name: "index_motor_insurance_documents_on_motor_insurance_id"
+  end
+
   create_table "motor_insurance_nominees", force: :cascade do |t|
     t.bigint "motor_insurance_id", null: false
     t.string "nominee_name"
@@ -1045,6 +1060,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_16_050000) do
     t.date "nominee_dob"
     t.string "insurance_company_code"
     t.string "main_policy_document_url"
+    t.string "main_policy_document_key"
+    t.string "main_policy_document_filename"
+    t.string "main_policy_document_content_type"
+    t.bigint "main_policy_document_size"
     t.index ["broker_id"], name: "index_motor_insurances_on_broker_id"
     t.index ["created_at"], name: "index_motor_insurances_on_created_at"
     t.index ["customer_id", "created_at"], name: "index_motor_insurances_on_customer_id_and_created_at"
@@ -1608,6 +1627,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_16_050000) do
   add_foreign_key "life_insurance_nominees", "life_insurances"
   add_foreign_key "life_insurances", "distributors"
   add_foreign_key "loans", "customers"
+  add_foreign_key "motor_insurance_documents", "motor_insurances"
   add_foreign_key "motor_insurance_nominees", "motor_insurances"
   add_foreign_key "motor_insurances", "brokers"
   add_foreign_key "other_insurance_nominees", "other_insurances"

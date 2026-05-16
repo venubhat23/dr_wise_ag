@@ -1019,79 +1019,73 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     end
   end
 
-  # Handle Motor Insurance documents R2 upload
+  # Handle Motor Insurance documents R2 upload (Document Management System entries)
   def handle_motor_documents_r2_upload(motor_insurance)
     uploaded_count = 0
     failed_count = 0
 
-    Rails.logger.info "Starting R2 document upload for motor insurance #{motor_insurance.id}"
+    # Use raw request params to bypass ActionController::Parameters filtering for file uploads
+    raw_motor_params = request.params['motor_insurance'] || {}
+    doc_entries = raw_motor_params['motor_insurance_documents_attributes'] || {}
 
-    # Handle motor_insurance_documents_attributes (from form)
-    # Note: file parameter is accessed directly from original params since it's not in nested attributes
-    if params[:motor_insurance][:motor_insurance_documents_attributes].present?
-      Rails.logger.info "Found #{params[:motor_insurance][:motor_insurance_documents_attributes].keys.size} document entries"
+    return { uploaded: 0, failed: 0 } if doc_entries.blank?
 
-      params[:motor_insurance][:motor_insurance_documents_attributes].each do |key, doc_attrs|
-        Rails.logger.info "Processing document #{key}: #{doc_attrs.inspect}"
-        next if doc_attrs[:_destroy] == "true"
+    Rails.logger.info "Starting DMS document upload for motor insurance #{motor_insurance.id}: #{doc_entries.keys.size} entries"
 
-        # Get the file from the original form data
-        file = request.params.dig('motor_insurance', 'motor_insurance_documents_attributes', key, 'file')
-        Rails.logger.info "File for document #{key}: #{file.present? ? file.original_filename : 'nil'}"
+    doc_entries.each do |key, doc_attrs|
+      next if doc_attrs['_destroy'] == 'true'
 
-        next if file.blank?
+      file = doc_attrs['file']
+      next if file.blank? || !file.respond_to?(:original_filename)
 
-        begin
-          result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/documents")
+      Rails.logger.info "Uploading DMS document #{key}: #{file.original_filename}"
 
-          if result && result[:key] && !result[:error]
-            # Create MotorInsuranceDocument record with R2 info and public URL
-            doc_attrs_to_save = {
-              document_type: doc_attrs[:document_type],
-              title: doc_attrs[:title],
-              description: doc_attrs[:description],
-              r2_file_key: result[:key],
-              r2_filename: result[:filename],
-              r2_content_type: result[:content_type],
-              r2_file_size: result[:size]
-            }
-            doc_attrs_to_save[:r2_url] = result[:public_url] if result[:public_url].present? && MotorInsuranceDocument.column_names.include?('r2_url')
-            motor_insurance.motor_insurance_documents.create!(doc_attrs_to_save)
-            uploaded_count += 1
-            Rails.logger.info "Uploaded motor document: #{result[:filename]} with title: #{doc_attrs[:title]}"
-          else
-            error_msg = result[:error] || "Unknown upload error"
-            Rails.logger.error "R2 upload failed for document: #{doc_attrs[:title]} - #{error_msg}"
-            failed_count += 1
-          end
-        rescue => e
-          Rails.logger.error "Error uploading motor document: #{e.message}"
-          Rails.logger.error "Document attributes: #{doc_attrs.inspect}"
+      begin
+        result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/documents")
+
+        if result && result[:key] && !result[:error]
+          doc_to_save = {
+            document_type: doc_attrs['document_type'].presence || 'other',
+            title: doc_attrs['title'].presence || file.original_filename,
+            description: doc_attrs['description'],
+            r2_file_key: result[:key],
+            r2_filename: result[:filename],
+            r2_content_type: result[:content_type],
+            r2_file_size: result[:size],
+            r2_url: result[:public_url]
+          }
+          motor_insurance.motor_insurance_documents.create!(doc_to_save)
+          uploaded_count += 1
+          Rails.logger.info "Uploaded DMS document: #{result[:filename]}"
+        else
+          Rails.logger.error "R2 upload failed for DMS document #{key}: #{result[:error]}"
           failed_count += 1
         end
+      rescue => e
+        Rails.logger.error "Error uploading DMS document #{key}: #{e.message}"
+        failed_count += 1
       end
     end
 
-    # Log upload results
-    if uploaded_count > 0
-      Rails.logger.info "Motor Insurance documents upload completed: #{uploaded_count} uploaded, #{failed_count} failed"
-    end
-
-    return { uploaded: uploaded_count, failed: failed_count }
+    Rails.logger.info "DMS upload complete: #{uploaded_count} uploaded, #{failed_count} failed" if uploaded_count > 0 || failed_count > 0
+    { uploaded: uploaded_count, failed: failed_count }
   end
 
   # R2 Upload Helper for main policy document
   def handle_main_policy_r2_upload(motor_insurance)
-    file = params[:motor_insurance][:main_policy_document]
-    return unless file.present?
+    # Use raw request params to get the file upload reliably
+    file = request.params.dig('motor_insurance', 'main_policy_document')
+    file ||= params[:motor_insurance][:main_policy_document]
+    return unless file.present? && file.respond_to?(:original_filename)
 
     begin
       result = motor_insurance.upload_main_policy_to_r2(file)
 
       if result && result[:key] && !result[:error]
-        flash[:notice] = (flash[:notice] || '') + " Main policy document uploaded successfully to R2."
+        Rails.logger.info "Main policy document uploaded: #{result[:filename]}"
       else
-        error_msg = result[:error] || "Unknown error"
+        error_msg = result.is_a?(Hash) ? (result[:error] || 'Unknown error') : 'Upload failed'
+        Rails.logger.error "Main policy document upload failed: #{error_msg}"
         flash[:alert] = (flash[:alert] || '') + " Main policy document upload failed: #{error_msg}"
       end
     rescue => e
@@ -1100,81 +1094,56 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     end
   end
 
-  # R2 Upload Helper for additional documents (policy_documents and documents)
+  # R2 Upload Helper for additional documents (the "Additional Documents Optional" field)
   def handle_additional_documents_r2_upload(motor_insurance)
     uploaded_count = 0
     failed_count = 0
 
-    use_r2_url = MotorInsuranceDocument.column_names.include?('r2_url')
+    # Use raw request params to bypass ActionController::Parameters filtering for file upload arrays
+    raw_motor_params = request.params['motor_insurance'] || {}
 
-    # Handle policy_documents (Active Storage -> R2)
-    if params[:motor_insurance][:policy_documents].present?
-      params[:motor_insurance][:policy_documents].each do |file|
-        next if file.blank?
-
-        begin
-          result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/policy_documents")
-
-          if result && result[:key] && !result[:error]
-            doc = {
-              document_type: 'policy_document',
-              title: file.original_filename,
-              description: 'Policy document',
-              r2_file_key: result[:key],
-              r2_filename: result[:filename],
-              r2_content_type: result[:content_type],
-              r2_file_size: result[:size]
-            }
-            doc[:r2_url] = result[:public_url] if use_r2_url && result[:public_url].present?
-            motor_insurance.motor_insurance_documents.create!(doc)
-            uploaded_count += 1
-          else
-            failed_count += 1
-          end
-        rescue => e
-          Rails.logger.error "Error uploading policy document: #{e.message}"
-          failed_count += 1
-        end
-      end
+    # Collect files from both possible field names
+    files = []
+    raw_docs = raw_motor_params['documents']
+    if raw_docs.present?
+      files += raw_docs.is_a?(Array) ? raw_docs : [raw_docs]
+    end
+    raw_policy_docs = raw_motor_params['policy_documents']
+    if raw_policy_docs.present?
+      files += raw_policy_docs.is_a?(Array) ? raw_policy_docs : [raw_policy_docs]
     end
 
-    # Handle documents (Active Storage -> R2)
-    if params[:motor_insurance][:documents].present?
-      params[:motor_insurance][:documents].each do |file|
-        next if file.blank?
+    files.each do |file|
+      next if file.blank? || !file.respond_to?(:original_filename)
 
-        begin
-          result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/additional_documents")
+      begin
+        result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/additional_documents")
 
-          if result && result[:key] && !result[:error]
-            doc = {
-              document_type: 'additional_document',
-              title: file.original_filename,
-              description: 'Additional document',
-              r2_file_key: result[:key],
-              r2_filename: result[:filename],
-              r2_content_type: result[:content_type],
-              r2_file_size: result[:size]
-            }
-            doc[:r2_url] = result[:public_url] if use_r2_url && result[:public_url].present?
-            motor_insurance.motor_insurance_documents.create!(doc)
-            uploaded_count += 1
-          else
-            failed_count += 1
-          end
-        rescue => e
-          Rails.logger.error "Error uploading additional document: #{e.message}"
+        if result && result[:key] && !result[:error]
+          motor_insurance.motor_insurance_documents.create!(
+            document_type: 'additional_document',
+            title: file.original_filename,
+            description: 'Additional document',
+            r2_file_key: result[:key],
+            r2_filename: result[:filename],
+            r2_content_type: result[:content_type],
+            r2_file_size: result[:size],
+            r2_url: result[:public_url]
+          )
+          uploaded_count += 1
+          Rails.logger.info "Uploaded additional document: #{file.original_filename}"
+        else
+          Rails.logger.error "R2 upload failed for additional document: #{result[:error]}"
           failed_count += 1
         end
+      rescue => e
+        Rails.logger.error "Error uploading additional document: #{e.message}"
+        failed_count += 1
       end
-    end
-
-    if uploaded_count > 0
-      flash[:notice] = (flash[:notice] || '') + " #{uploaded_count} additional documents uploaded successfully to R2."
     end
 
     if failed_count > 0
-      flash[:alert] = (flash[:alert] || '') + " #{failed_count} additional documents failed to upload."
+      flash[:alert] = (flash[:alert] || '') + " #{failed_count} additional document(s) failed to upload."
     end
   end
 end
