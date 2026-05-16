@@ -12,7 +12,8 @@ class MotorInsuranceDocument < ApplicationRecord
     in: [
       'Policy Document', 'RC Book', 'Driving License', 'Previous Policy', 'ID Proof', 'Address Proof', 'Medical Certificate', 'Other',
       'rc_book', 'insurance_copy', 'driving_license', 'aadhar', 'pan_card', 'passport', 'vehicle_photos',
-      'fitness_certificate', 'pollution_certificate', 'hypothecation', 'other'
+      'fitness_certificate', 'pollution_certificate', 'hypothecation', 'other',
+      'insurance_certificate', 'noc', 'puc_certificate', 'inspection_report', 'policy_document', 'additional_document'
     ]
   }
 
