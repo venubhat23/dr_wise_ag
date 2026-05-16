@@ -134,6 +134,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
     @active_policies = @all_policies.count { |p| p[:status] == 'Active' }
     @expired_policies = @all_policies.count { |p| p[:status] == 'Expired' }
     @total_premium_handled = @all_policies.sum { |p| p[:premium] || 0 }
+    @unique_clients = Customer.where(sub_agent_id: @sub_agent.id).count
   end
 
   # GET /admin/sub_agents/1/documents
