@@ -144,7 +144,9 @@ class Admin::SubAgentsController < Admin::ApplicationController
       customer = pol ? customers_by_id[pol.try(:customer_id)] : nil
       gross    = pol&.try(:sub_agent_commission_amount).to_f
       tds      = pol&.try(:sub_agent_tds_amount).to_f
-      net      = payout.payout_amount.to_f
+      net      = pol&.try(:sub_agent_after_tds_value).to_f
+      net      = (gross - tds).round(2) if net.zero? && gross > 0
+      net      = payout.payout_amount.to_f if net.zero?
       gross    = net + tds if gross.zero?
       {
         payout: payout,
