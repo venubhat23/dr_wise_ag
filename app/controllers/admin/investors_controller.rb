@@ -163,19 +163,32 @@ class Admin::InvestorsController < Admin::ApplicationController
 
   # GET /admin/investors/1/summary
   def summary
-    # Ambassadors (Distributors) linked to this investor
-    ambassadors = Distributor.where(investor_id: @investor.id).order(:created_at)
-    all_distributor_ids = ambassadors.pluck(:id)
+    # Find ambassadors (distributors) linked to this investor.
+    # Primary path: investor_id on distributor. Fallback: all distributors (investor owns entire business).
+    ambassadors = begin
+      linked = Distributor.where(investor_id: @investor.id).order(:created_at)
+      linked.any? ? linked : Distributor.order(:created_at)
+    rescue => e
+      Rails.logger.warn "investor_id column missing on distributors: #{e.message}"
+      Distributor.order(:created_at)
+    end
 
-    # Per-ambassador data
+    policy_classes = [['health', HealthInsurance], ['life', LifeInsurance], ['motor', MotorInsurance]]
+
     @ambassador_rows = ambassadors.map do |amb|
-      name = amb.full_name.presence || "#{amb.first_name} #{amb.last_name}".strip.presence || "Ambassador ##{amb.id}"
+      name = amb.display_name.presence || "#{amb.first_name} #{amb.last_name}".strip.presence || "Ambassador ##{amb.id}"
 
-      amb_paid    = 0.0
-      amb_pending = 0.0
+      amb_paid      = 0.0
+      amb_pending   = 0.0
       policies_count = 0
+      amb_premium   = 0.0
 
-      [['health', 'health_insurances'], ['life', 'life_insurances'], ['motor', 'motor_insurances']].each do |ptype, tbl|
+      policy_classes.each do |ptype, klass|
+        tbl = klass.table_name
+        scope = klass.where(distributor_id: amb.id)
+        policies_count += scope.count rescue 0
+        amb_premium    += scope.sum(:total_premium).to_f rescue 0
+
         amb_paid    += CommissionPayout.where(policy_type: ptype, payout_to: 'ambassador', status: 'paid')
                                        .joins("JOIN #{tbl} ON commission_payouts.policy_id = #{tbl}.id")
                                        .where("#{tbl}.distributor_id = ?", amb.id)
@@ -184,18 +197,23 @@ class Admin::InvestorsController < Admin::ApplicationController
                                        .joins("JOIN #{tbl} ON commission_payouts.policy_id = #{tbl}.id")
                                        .where("#{tbl}.distributor_id = ?", amb.id)
                                        .sum(:payout_amount).to_f rescue 0
-        policies_count += eval("#{ptype.capitalize}Insurance").where(distributor_id: amb.id).count rescue 0
       end
 
       # Affiliates under this ambassador
       affiliates = SubAgent.where(distributor_id: amb.id).order(:created_at)
       aff_rows = affiliates.map do |af|
-        af_name = af.full_name.presence || "#{af.first_name} #{af.last_name}".strip.presence || "Affiliate ##{af.id}"
+        af_name    = af.display_name.presence || "#{af.first_name} #{af.last_name}".strip.presence || "Affiliate ##{af.id}"
         af_paid    = 0.0
         af_pending = 0.0
         af_policies = 0
+        af_premium  = 0.0
 
-        [['health', 'health_insurances'], ['life', 'life_insurances'], ['motor', 'motor_insurances']].each do |ptype, tbl|
+        policy_classes.each do |ptype, klass|
+          tbl = klass.table_name
+          scope = klass.where(sub_agent_id: af.id)
+          af_policies += scope.count rescue 0
+          af_premium  += scope.sum(:total_premium).to_f rescue 0
+
           af_paid    += CommissionPayout.where(policy_type: ptype, payout_to: ['sub_agent', 'affiliate'], status: 'paid')
                                         .joins("JOIN #{tbl} ON commission_payouts.policy_id = #{tbl}.id")
                                         .where("#{tbl}.sub_agent_id = ?", af.id)
@@ -204,13 +222,13 @@ class Admin::InvestorsController < Admin::ApplicationController
                                         .joins("JOIN #{tbl} ON commission_payouts.policy_id = #{tbl}.id")
                                         .where("#{tbl}.sub_agent_id = ?", af.id)
                                         .sum(:payout_amount).to_f rescue 0
-          af_policies += eval("#{ptype.capitalize}Insurance").where(sub_agent_id: af.id).count rescue 0
         end
 
         {
           affiliate: af,
           name: af_name,
           policies: af_policies,
+          premium: af_premium,
           commission_paid: af_paid,
           commission_pending: af_pending,
           total_commission: af_paid + af_pending
@@ -221,6 +239,7 @@ class Admin::InvestorsController < Admin::ApplicationController
         ambassador: amb,
         name: name,
         policies: policies_count,
+        premium: amb_premium,
         commission_paid: amb_paid,
         commission_pending: amb_pending,
         total_commission: amb_paid + amb_pending,
@@ -240,8 +259,8 @@ class Admin::InvestorsController < Admin::ApplicationController
     # Investor's own commission across all policy types
     @investor_commission_paid    = 0.0
     @investor_commission_pending = 0.0
-    [['health', 'health_insurances'], ['motor', 'motor_insurances']].each do |ptype, tbl|
-      policy_ids = eval("#{ptype.capitalize}Insurance").where(investor_id: @investor.id).pluck(:id) rescue []
+    policy_classes.each do |ptype, klass|
+      policy_ids = klass.where(investor_id: @investor.id).pluck(:id) rescue []
       next if policy_ids.empty?
       @investor_commission_paid    += CommissionPayout.where(policy_type: ptype, policy_id: policy_ids, payout_to: 'investor', status: 'paid').sum(:payout_amount).to_f
       @investor_commission_pending += CommissionPayout.where(policy_type: ptype, policy_id: policy_ids, payout_to: 'investor', status: 'pending').sum(:payout_amount).to_f
@@ -252,6 +271,7 @@ class Admin::InvestorsController < Admin::ApplicationController
     @total_affiliates        = @ambassador_rows.sum { |r| r[:affiliates_count] }
     @total_ambassador_comm   = @ambassador_rows.sum { |r| r[:total_commission] }
     @total_affiliate_comm    = @ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:total_commission] } }
+    @total_network_premium   = @ambassador_rows.sum { |r| r[:premium] + r[:affiliates].sum { |a| a[:premium] } }
     @total_direct_premium    = @direct_policies.sum { |p| p[:premium] }
     @total_direct_policies   = @direct_policies.size
   end

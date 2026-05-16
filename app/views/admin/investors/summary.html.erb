@@ -201,7 +201,7 @@
     <div class="kpi-lbl"><i class="bi bi-diagram-3 me-1"></i>Network Commission</div>
   </div>
   <div class="kpi-card" style="--c:#16a085">
-    <div class="kpi-val" style="font-size:1.2rem;"><%= indian_currency(@total_direct_premium.round(0)) %></div>
+    <div class="kpi-val" style="font-size:1.2rem;"><%= indian_currency((@total_network_premium + @total_direct_premium).round(0)) %></div>
     <div class="kpi-lbl"><i class="bi bi-currency-rupee me-1"></i>Total Premium</div>
   </div>
 </div>
@@ -259,6 +259,7 @@
           <div class="amb-pills ms-auto">
             <span class="pill pill-blue"><i class="bi bi-file-earmark-check"></i><%= row[:policies] %> Policies</span>
             <span class="pill pill-purple"><i class="bi bi-people"></i><%= row[:affiliates_count] %> Affiliates</span>
+            <span class="pill" style="background:#e8f8f5; color:#16a085; border:1px solid #a2d9ce;"><i class="bi bi-currency-rupee"></i><%= indian_currency(row[:premium].to_f.round(0)) %> Premium</span>
             <span class="pill pill-green"><i class="bi bi-check-circle"></i>Paid <%= indian_currency(row[:commission_paid].round(0)) %></span>
             <span class="pill pill-orange"><i class="bi bi-hourglass-split"></i>Pending <%= indian_currency(row[:commission_pending].round(0)) %></span>
           </div>
@@ -292,6 +293,7 @@
                     <th>Affiliate Name</th>
                     <th>Contact</th>
                     <th class="text-center">Policies</th>
+                    <th class="text-end">Premium</th>
                     <th class="text-end">Commission Paid</th>
                     <th class="text-end">Commission Pending</th>
                     <th class="text-end">Total Commission</th>
@@ -311,6 +313,9 @@
                       <td class="text-center">
                         <span class="badge" style="background:#eaf4fb; color:#2980b9; border:1px solid #aed6f1;"><%= af[:policies] %></span>
                       </td>
+                      <td class="text-end amount-cell" style="color:#16a085;">
+                        <%= indian_currency(af[:premium].to_f.round(2)) %>
+                      </td>
                       <td class="text-end amount-cell <%= af[:commission_paid] > 0 ? 'paid-amt' : 'zero-amt' %>">
                         <%= indian_currency(af[:commission_paid].round(2)) %>
                       </td>
@@ -326,6 +331,7 @@
                 <tfoot style="background:#f8f9ff;">
                   <tr>
                     <td colspan="4" style="font-weight:700; color:#2c3e7a;">Affiliate Totals</td>
+                    <td class="text-end fw-bold" style="color:#16a085;"><%= indian_currency(row[:affiliates].sum { |a| a[:premium].to_f }.round(2)) %></td>
                     <td class="text-end paid-amt fw-bold"><%= indian_currency(row[:affiliates].sum { |a| a[:commission_paid] }.round(2)) %></td>
                     <td class="text-end pending-amt fw-bold"><%= indian_currency(row[:affiliates].sum { |a| a[:commission_pending] }.round(2)) %></td>
                     <td class="text-end fw-bold" style="color:#2c3e7a;"><%= indian_currency(row[:affiliates].sum { |a| a[:total_commission] }.round(2)) %></td>
