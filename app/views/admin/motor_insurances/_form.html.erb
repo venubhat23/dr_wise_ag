@@ -3354,8 +3354,11 @@ $(document).ready(function() {
       success: function(response) {
         if (response.success && response.nominees && response.nominees.length > 0) {
           clearNominees();
-          response.nominees.forEach(function(nominee) {
-            addNomineeFromFamilyMember(nominee);
+          const count = response.nominees.length;
+          const equalShare = parseFloat((100 / count).toFixed(2));
+          response.nominees.forEach(function(nominee, index) {
+            const share = (index === count - 1) ? (100 - equalShare * (count - 1)).toFixed(2) : equalShare;
+            addNomineeFromFamilyMember(Object.assign({}, nominee, { share_percentage: share }));
           });
           toggleNoNomineesMessage();
         }
@@ -3396,7 +3399,7 @@ $(document).ready(function() {
           </div>
           <div class="col-md-2 mb-3">
             <label class="form-label">Share (%)</label>
-            <input class="form-control" placeholder="100" min="0" max="100" step="0.01" type="number" value="100" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeIndex}][share_percentage]" id="motor_insurance_motor_insurance_nominees_attributes_${nomineeIndex}_share_percentage">
+            <input class="form-control" placeholder="100" min="0" max="100" step="0.01" type="number" value="${nominee.share_percentage !== undefined ? nominee.share_percentage : 100}" name="motor_insurance[motor_insurance_nominees_attributes][${nomineeIndex}][share_percentage]" id="motor_insurance_motor_insurance_nominees_attributes_${nomineeIndex}_share_percentage">
           </div>
           <div class="col-md-1 mb-3 d-flex align-items-end">
             <button type="button" class="btn btn-danger btn-sm" onclick="removeNominee(this)" title="Remove nominee">

@@ -809,19 +809,32 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     if customer_id.present?
       begin
         customer = Customer.find(customer_id)
-        family_members = customer.family_members.includes(:customer)
-
-        # Build nominee options from family members
         nominee_options = []
 
-        family_members.each do |member|
-          if member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
-            nominee_options << {
-              nominee_name: member.name,
-              relationship: member.relationship&.downcase || 'other',
-              age: member.age || 0
-            }
+        # Include customer's own registered nominee first
+        if customer.nominee_name.present?
+          age = if customer.nominee_date_of_birth.present?
+            ((Date.today - customer.nominee_date_of_birth) / 365.25).floor
+          else
+            0
           end
+          nominee_options << {
+            nominee_name: customer.nominee_name,
+            relationship: customer.nominee_relation&.downcase || 'other',
+            age: age
+          }
+        end
+
+        # Add family members (skip if already added as primary nominee)
+        customer.family_members.each do |member|
+          next unless member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
+          next if customer.nominee_name.present? && member.name.strip.downcase == customer.nominee_name.strip.downcase
+
+          nominee_options << {
+            nominee_name: member.name,
+            relationship: member.relationship&.downcase || 'other',
+            age: member.age || 0
+          }
         end
 
         render json: {
@@ -1022,8 +1035,8 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
           result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/documents")
 
           if result && result[:key] && !result[:error]
-            # Create MotorInsuranceDocument record with R2 info
-            motor_insurance.motor_insurance_documents.create!(
+            # Create MotorInsuranceDocument record with R2 info and public URL
+            doc_attrs_to_save = {
               document_type: doc_attrs[:document_type],
               title: doc_attrs[:title],
               description: doc_attrs[:description],
@@ -1031,7 +1044,9 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
               r2_filename: result[:filename],
               r2_content_type: result[:content_type],
               r2_file_size: result[:size]
-            )
+            }
+            doc_attrs_to_save[:r2_url] = result[:public_url] if result[:public_url].present? && MotorInsuranceDocument.column_names.include?('r2_url')
+            motor_insurance.motor_insurance_documents.create!(doc_attrs_to_save)
             uploaded_count += 1
             Rails.logger.info "Uploaded motor document: #{result[:filename]} with title: #{doc_attrs[:title]}"
           else
@@ -1080,6 +1095,8 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     uploaded_count = 0
     failed_count = 0
 
+    use_r2_url = MotorInsuranceDocument.column_names.include?('r2_url')
+
     # Handle policy_documents (Active Storage -> R2)
     if params[:motor_insurance][:policy_documents].present?
       params[:motor_insurance][:policy_documents].each do |file|
@@ -1089,15 +1106,17 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
           result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/policy_documents")
 
           if result && result[:key] && !result[:error]
-            motor_insurance.motor_insurance_documents.create!(
+            doc = {
               document_type: 'policy_document',
               title: file.original_filename,
-              description: 'Policy document uploaded via additional documents',
+              description: 'Policy document',
               r2_file_key: result[:key],
               r2_filename: result[:filename],
               r2_content_type: result[:content_type],
               r2_file_size: result[:size]
-            )
+            }
+            doc[:r2_url] = result[:public_url] if use_r2_url && result[:public_url].present?
+            motor_insurance.motor_insurance_documents.create!(doc)
             uploaded_count += 1
           else
             failed_count += 1
@@ -1118,7 +1137,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
           result = R2Service.upload(file, folder: "motor_insurance/#{motor_insurance.id}/additional_documents")
 
           if result && result[:key] && !result[:error]
-            motor_insurance.motor_insurance_documents.create!(
+            doc = {
               document_type: 'additional_document',
               title: file.original_filename,
               description: 'Additional document',
@@ -1126,7 +1145,9 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
               r2_filename: result[:filename],
               r2_content_type: result[:content_type],
               r2_file_size: result[:size]
-            )
+            }
+            doc[:r2_url] = result[:public_url] if use_r2_url && result[:public_url].present?
+            motor_insurance.motor_insurance_documents.create!(doc)
             uploaded_count += 1
           else
             failed_count += 1

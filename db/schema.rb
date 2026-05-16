@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_15_000002) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_16_044550) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -1044,6 +1044,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_15_000002) do
     t.string "nominee_relation"
     t.date "nominee_dob"
     t.string "insurance_company_code"
+    t.string "main_policy_document_url"
     t.index ["broker_id"], name: "index_motor_insurances_on_broker_id"
     t.index ["created_at"], name: "index_motor_insurances_on_created_at"
     t.index ["customer_id", "created_at"], name: "index_motor_insurances_on_customer_id_and_created_at"

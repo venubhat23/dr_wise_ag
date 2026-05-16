@@ -36,7 +36,7 @@ class MotorInsuranceDocument < ApplicationRecord
 
   def document_url
     return nil unless r2_file_key.present?
-    R2Service.public_url(r2_file_key)
+    (self.class.column_names.include?('r2_url') && r2_url.present?) ? r2_url : R2Service.public_url(r2_file_key)
   end
 
   def public_document_url

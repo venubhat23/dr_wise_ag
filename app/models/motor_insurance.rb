@@ -256,13 +256,15 @@ class MotorInsurance < ApplicationRecord
       return false
     end
 
-    # Store R2 file information
-    update!(
+    # Store R2 file information including public URL
+    attrs = {
       main_policy_document_key: result[:key],
       main_policy_document_filename: result[:filename],
       main_policy_document_content_type: result[:content_type],
       main_policy_document_size: result[:size]
-    )
+    }
+    attrs[:main_policy_document_url] = result[:public_url] if result[:public_url].present? && self.class.column_names.include?('main_policy_document_url')
+    update!(attrs)
 
     result
   end
@@ -281,7 +283,8 @@ class MotorInsurance < ApplicationRecord
 
   def main_policy_r2_url
     return nil unless main_policy_document_key.present?
-    R2Service.public_url(main_policy_document_key)
+    (self.class.column_names.include?('main_policy_document_url') && main_policy_document_url.present?) ?
+      main_policy_document_url : R2Service.public_url(main_policy_document_key)
   end
 
   def has_main_policy_r2?
