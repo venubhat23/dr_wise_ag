@@ -171,27 +171,27 @@ class Api::V1::Mobile::CommissionController < Api::V1::Mobile::BaseController
   end
 
   def calculate_commission_summary
-    # Get all commission payouts for current sub-agent
-    all_payouts = get_all_sub_agent_payouts
+    # Load all payouts into memory so we can call model methods for gross amounts
+    all_payouts = get_all_sub_agent_payouts.to_a
 
-    total_earned = all_payouts.sum(:payout_amount)
-    paid_amount = all_payouts.paid.sum(:payout_amount)
-    pending_amount = all_payouts.pending.sum(:payout_amount)
-    processing_amount = all_payouts.processing.sum(:payout_amount)
+    total_gross      = all_payouts.sum { |p| p.gross_commission_amount.to_f }
+    paid_gross       = all_payouts.select(&:paid?).sum       { |p| p.gross_commission_amount.to_f }
+    pending_gross    = all_payouts.select(&:pending?).sum    { |p| p.gross_commission_amount.to_f }
+    processing_gross = all_payouts.select(&:processing?).sum { |p| p.gross_commission_amount.to_f }
 
     {
-      commission_earned: format_currency(total_earned),
-      commission_earned_raw: total_earned,
-      total_earned: format_currency(paid_amount),
-      total_earned_raw: paid_amount,
-      paid: format_currency(paid_amount),
-      paid_raw: paid_amount,
-      pending: format_currency(pending_amount),
-      pending_raw: pending_amount,
-      processing: format_currency(processing_amount),
-      processing_raw: processing_amount,
-      total_policies: all_payouts.count,
-      active_policies: all_payouts.where.not(status: 'cancelled').count
+      commission_earned:     format_currency(total_gross),
+      commission_earned_raw: total_gross.round(2).to_s,
+      total_earned:          format_currency(paid_gross),
+      total_earned_raw:      paid_gross.round(2).to_s,
+      paid:                  format_currency(paid_gross),
+      paid_raw:              paid_gross.round(2).to_s,
+      pending:               format_currency(pending_gross),
+      pending_raw:           pending_gross.round(2).to_s,
+      processing:            format_currency(processing_gross),
+      processing_raw:        processing_gross.round(2).to_s,
+      total_policies:        all_payouts.count,
+      active_policies:       all_payouts.count { |p| p.status != 'cancelled' }
     }
   end
 
@@ -237,17 +237,22 @@ class Api::V1::Mobile::CommissionController < Api::V1::Mobile::BaseController
       policy = payout.policy
       customer = policy&.customer
 
+      gross = payout.gross_commission_amount.to_f
+      tds   = payout.tds_amount.to_f
+      net   = payout.net_amount.to_f
+
       {
         id: payout.id,
         policy_number: payout.policy_number,
         policy_type: format_policy_type(payout.policy_type),
         customer_name: customer&.display_name || 'Unknown Customer',
-        commission_amount: format_currency(payout.payout_amount),
-        commission_amount_raw: payout.payout_amount || 0,
-        tds_amount: format_currency(payout.tds_amount),
-        tds_amount_raw: payout.tds_amount || 0,
-        net_amount: format_currency(payout.net_amount),
-        net_amount_raw: payout.net_amount || 0,
+        commission_amount: format_currency(gross),
+        commission_amount_raw: gross.round(2).to_s,
+        tds_percentage: payout.tds_percentage.to_f,
+        tds_amount: format_currency(tds),
+        tds_amount_raw: tds.round(2),
+        net_amount: format_currency(net),
+        net_amount_raw: net.round(2).to_s,
         commission_percentage: payout.payout_percentage || 0,
         status: payout.status&.titleize || 'Unknown',
         status_raw: payout.status,
@@ -267,11 +272,12 @@ class Api::V1::Mobile::CommissionController < Api::V1::Mobile::BaseController
         policy_type: format_policy_type(payout.policy_type),
         customer_name: 'Unknown Customer',
         commission_amount: format_currency(payout.payout_amount),
-        commission_amount_raw: payout.payout_amount || 0,
+        commission_amount_raw: payout.payout_amount.to_f.round(2).to_s,
+        tds_percentage: 0,
         tds_amount: format_currency(0),
         tds_amount_raw: 0,
         net_amount: format_currency(payout.payout_amount),
-        net_amount_raw: payout.payout_amount || 0,
+        net_amount_raw: payout.payout_amount.to_f.round(2).to_s,
         commission_percentage: 0,
         status: payout.status&.titleize || 'Unknown',
         status_raw: payout.status,

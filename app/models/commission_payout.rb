@@ -112,7 +112,7 @@ class CommissionPayout < ApplicationRecord
     return 0 unless policy
 
     case payout_to
-    when 'sub_agent'
+    when 'sub_agent', 'affiliate'
       policy.try(:sub_agent_tds_percentage) || 0
     when 'distributor'
       policy.try(:distributor_tds_percentage) || 0
@@ -120,7 +120,7 @@ class CommissionPayout < ApplicationRecord
       policy.try(:investor_tds_percentage) || 0
     when 'ambassador'
       policy.try(:ambassador_tds_percentage) || 0
-    when 'main_agent'
+    when 'main_agent', 'agent'
       policy.try(:main_agent_tds_percent) || policy.try(:main_agent_tds_percentage) || 0
     else
       0
@@ -131,7 +131,7 @@ class CommissionPayout < ApplicationRecord
     return 0 unless policy && payout_amount
 
     case payout_to
-    when 'sub_agent'
+    when 'sub_agent', 'affiliate'
       policy.try(:sub_agent_tds_amount) || calculate_tds_from_percentage
     when 'distributor'
       policy.try(:distributor_tds_amount) || calculate_tds_from_percentage
@@ -139,22 +139,47 @@ class CommissionPayout < ApplicationRecord
       policy.try(:investor_tds_amount) || calculate_tds_from_percentage
     when 'ambassador'
       policy.try(:ambassador_tds_amount) || calculate_tds_from_percentage
-    when 'main_agent'
+    when 'main_agent', 'agent'
       policy.try(:main_agent_tds_amount) || calculate_tds_from_percentage
     else
       0
     end
   end
 
+  # gross_commission_amount is the commission BEFORE TDS deduction
+  def gross_commission_amount
+    return payout_amount unless policy
+
+    case payout_to
+    when 'sub_agent', 'affiliate'
+      policy.try(:sub_agent_commission_amount) || payout_amount
+    when 'main_agent', 'agent'
+      policy.try(:main_agent_commission_amount) || payout_amount
+    when 'ambassador'
+      policy.try(:ambassador_commission_amount) || payout_amount
+    when 'investor'
+      policy.try(:investor_commission_amount) || payout_amount
+    else
+      payout_amount
+    end
+  end
+
+  # net_amount: payout_amount IS already the after-TDS net for affiliate/sub_agent payouts;
+  # for other types where payout_amount = gross, compute gross - tds.
   def net_amount
-    (payout_amount || 0) - (tds_amount || 0)
+    case payout_to
+    when 'sub_agent', 'affiliate'
+      payout_amount || 0
+    else
+      (payout_amount || 0) - (tds_amount || 0)
+    end
   end
 
   def payout_percentage
     return 0 unless policy
 
     case payout_to
-    when 'sub_agent'
+    when 'sub_agent', 'affiliate'
       policy.try(:sub_agent_commission_percentage) || 0
     when 'distributor'
       policy.try(:distributor_commission_percentage) || 0
@@ -162,7 +187,7 @@ class CommissionPayout < ApplicationRecord
       policy.try(:investor_commission_percentage) || 0
     when 'ambassador'
       policy.try(:ambassador_commission_percentage) || 0
-    when 'main_agent'
+    when 'main_agent', 'agent'
       policy.try(:main_agent_commission_percentage) || 0
     else
       0
