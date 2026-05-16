@@ -310,6 +310,26 @@ class DashboardController < ApplicationController
     results[:commissions_due] = results[:pending_payouts] || 0
     results[:avg_policy_value] = results[:total_policies] > 0 ? (results[:total_premium_collected] / results[:total_policies]).round(0) : 0
 
+    # Total profit across all policy types for the period
+    begin
+      profit_result = ActiveRecord::Base.connection.execute("
+        SELECT COALESCE(SUM(profit_amount), 0) as total_profit FROM (
+          SELECT profit_amount FROM health_insurances
+            WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+          UNION ALL
+          SELECT profit_amount FROM life_insurances
+            WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+          UNION ALL
+          SELECT profit_amount FROM motor_insurances
+            WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+        ) AS p
+      ").first
+      results[:total_profit] = (profit_result['total_profit'] || 0).to_f
+    rescue => e
+      Rails.logger.error "Profit calculation failed: #{e.message}"
+      results[:total_profit] = 0
+    end
+
     # Add filter information
     results[:filter_start_date] = start_date
     results[:filter_end_date] = end_date

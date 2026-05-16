@@ -358,6 +358,111 @@ module Admin
         end
       end
 
+      def profit_summary
+        start_date = params[:start_date].present? ? (Date.parse(params[:start_date]) rescue Date.current.beginning_of_year) : Date.current.beginning_of_year
+        end_date   = params[:end_date].present?   ? (Date.parse(params[:end_date])   rescue Date.current.end_of_year)   : Date.current.end_of_year
+
+        date_range = start_date..end_date
+
+        policies = []
+
+        [
+          [HealthInsurance, 'Health'],
+          [LifeInsurance,   'Life'],
+          [MotorInsurance,  'Motor']
+        ].each do |klass, label|
+          begin
+            klass.where(product_through_dr: true, created_at: date_range)
+                 .includes(:customer)
+                 .order(created_at: :desc)
+                 .limit(200)
+                 .each do |p|
+              net       = p.net_premium.to_f
+              main_pct  = p.try(:main_agent_commission_percentage).to_f
+              main_amt  = p.try(:main_agent_commission_amount).to_f
+              main_tds_pct = p.try(:main_agent_tds_percent).to_f.nonzero? || p.try(:tds_percentage).to_f
+              main_tds_amt = p.try(:main_agent_tds_amount).to_f.nonzero? || p.try(:tds_amount).to_f
+              main_net  = p.try(:after_tds_value).to_f.nonzero? || (main_amt - main_tds_amt)
+
+              aff_pct   = p.try(:sub_agent_commission_percentage).to_f
+              aff_amt   = p.try(:sub_agent_commission_amount).to_f
+              aff_tds_pct = p.try(:sub_agent_tds_percentage).to_f
+              aff_tds_amt = p.try(:sub_agent_tds_amount).to_f
+              aff_net   = p.try(:sub_agent_after_tds_value).to_f.nonzero? || (aff_amt - aff_tds_amt)
+
+              amb_pct   = p.try(:ambassador_commission_percentage).to_f
+              amb_amt   = p.try(:ambassador_commission_amount).to_f
+              amb_tds_pct = p.try(:ambassador_tds_percentage).to_f
+              amb_tds_amt = p.try(:ambassador_tds_amount).to_f
+              amb_net   = p.try(:ambassador_after_tds_value).to_f.nonzero? || (amb_amt - amb_tds_amt)
+
+              inv_pct   = p.try(:investor_commission_percentage).to_f
+              inv_amt   = p.try(:investor_commission_amount).to_f
+              inv_tds_pct = p.try(:investor_tds_percentage).to_f
+              inv_tds_amt = p.try(:investor_tds_amount).to_f
+              inv_net   = p.try(:investor_after_tds_value).to_f.nonzero? || (inv_amt - inv_tds_amt)
+
+              co_pct    = p.try(:company_expenses_percentage).to_f
+              co_amt    = net > 0 && co_pct > 0 ? (net * co_pct / 100.0).round(2) : 0.0
+
+              profit_pct = p.try(:profit_percentage).to_f
+              profit_amt = p.try(:profit_amount).to_f
+              if profit_amt.zero? && main_amt > 0
+                profit_amt = (main_amt - aff_amt - amb_amt - inv_amt - co_amt).round(2)
+                profit_pct = net > 0 ? (profit_amt / net * 100).round(2) : 0
+              end
+
+              total_dist_pct = p.try(:total_distribution_percentage).to_f
+
+              policies << {
+                policy_number:    p.try(:policy_number) || 'N/A',
+                policy_type:      label,
+                customer:         p.customer&.display_name || 'N/A',
+                company:          p.try(:insurance_company_name) || 'N/A',
+                booking_date:     p.try(:policy_booking_date)&.strftime('%d %b %Y') || p.created_at.strftime('%d %b %Y'),
+                net_premium:      net.round(2),
+                total_distribution_pct: total_dist_pct,
+                company_expenses_pct:   co_pct,
+                profit_amount:    profit_amt.round(2),
+                profit_pct:       profit_pct.round(2),
+                rows: [
+                  { label: 'Main Agent',      pct: main_pct, amount: main_amt.round(2), tds_pct: main_tds_pct, tds_amt: main_tds_amt.round(2), actual: main_net.round(2) },
+                  { label: 'Affiliate',       pct: aff_pct,  amount: aff_amt.round(2),  tds_pct: aff_tds_pct,  tds_amt: aff_tds_amt.round(2),  actual: aff_net.round(2) },
+                  { label: 'Ambassador',      pct: amb_pct,  amount: amb_amt.round(2),  tds_pct: amb_tds_pct,  tds_amt: amb_tds_amt.round(2),  actual: amb_net.round(2) },
+                  { label: 'Investor',        pct: inv_pct,  amount: inv_amt.round(2),  tds_pct: inv_tds_pct,  tds_amt: inv_tds_amt.round(2),  actual: inv_net.round(2) },
+                  { label: 'Company Expense', pct: co_pct,   amount: co_amt.round(2),   tds_pct: nil,           tds_amt: nil,                   actual: co_amt.round(2) },
+                  { label: 'Profit',          pct: profit_pct, amount: profit_amt.round(2), tds_pct: nil,       tds_amt: nil,                   actual: profit_amt.round(2) }
+                ]
+              }
+            end
+          rescue => e
+            Rails.logger.error "profit_summary #{label}: #{e.message}"
+          end
+        end
+
+        total_net_premium   = policies.sum { |p| p[:net_premium] }
+        total_profit        = policies.sum { |p| p[:profit_amount] }
+        total_main_agent    = policies.sum { |p| p[:rows][0][:actual] }
+        avg_profit_pct      = policies.any? ? (policies.sum { |p| p[:profit_pct] } / policies.size).round(2) : 0
+
+        render json: {
+          success: true,
+          start_date: start_date.strftime('%d %b %Y'),
+          end_date:   end_date.strftime('%d %b %Y'),
+          summary: {
+            total_policies:   policies.size,
+            total_net_premium: total_net_premium.round(2),
+            total_profit:     total_profit.round(2),
+            total_main_agent: total_main_agent.round(2),
+            avg_profit_pct:   avg_profit_pct
+          },
+          policies: policies
+        }
+      rescue => e
+        Rails.logger.error "Error in profit_summary: #{e.message}"
+        render json: { success: false, error: e.message, policies: [], summary: {} }, status: 500
+      end
+
       private
 
       def calculate_affiliate_policies(affiliate)

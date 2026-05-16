@@ -1035,6 +1035,18 @@
             </div>
           </div>
         </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+          <div class="system-status-card" style="cursor: pointer; height: 200px; border-top: 3px solid #27ae60;" onclick="showSystemStatusModal('profit')">
+            <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
+              <i class="bi bi-graph-up-arrow fs-1 mb-3 text-success"></i>
+              <div class="fs-2 fw-bold text-success"><%= indian_currency(@total_profit || 0) %></div>
+              <div class="h6 text-muted">Net Profit</div>
+              <div class="mt-2">
+                <small class="text-info"><i class="bi bi-info-circle"></i> Click for details</small>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1762,6 +1774,10 @@ function showSystemStatusModal(type) {
       modalTitle.innerHTML = '<i class="bi bi-graph-up-arrow me-2"></i>Total Revenue Breakdown';
       loadTotalRevenueData(content, loading);
       break;
+    case 'profit':
+      modalTitle.innerHTML = '<i class="bi bi-graph-up-arrow me-2 text-success"></i>Net Profit — Policy Commission Breakdown';
+      loadProfitSummaryData(content, loading);
+      break;
   }
 
   // Add event listener to restore body overflow when modal is closed
@@ -2382,6 +2398,100 @@ function loadLeadConversionData(content, loading) {
       content.style.display = 'block';
       content.innerHTML = '<div class="alert alert-danger">Error loading data. Please try again.</div>';
       console.error('Error:', error);
+    });
+}
+
+function loadProfitSummaryData(content, loading) {
+  const startDate = document.getElementById('start_date_field')?.value || '';
+  const endDate   = document.getElementById('end_date_field')?.value   || '';
+  const params    = new URLSearchParams({ start_date: startDate, end_date: endDate });
+
+  fetch(`/admin/api/system_status/profit_summary?${params}`, { credentials: 'same-origin' })
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(data => {
+      loading.style.display = 'none';
+      content.style.display = 'block';
+      if (!data.success) { content.innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to load'}</div>`; return; }
+
+      const s = data.summary;
+      const typeColor = { Health: '#27ae60', Life: '#2980b9', Motor: '#e67e22' };
+
+      const kpiHtml = `
+        <div class="d-flex gap-2 mb-4" style="flex-wrap:nowrap">
+          <div style="flex:1 1 0;min-width:0"><div class="kpi-card kpi-primary h-100"><div class="card-body text-center">
+            <div class="kpi-number">${s.total_policies}</div><div class="kpi-label">Policies Analysed</div>
+          </div></div></div>
+          <div style="flex:1 1 0;min-width:0"><div class="kpi-card kpi-warning h-100"><div class="card-body text-center">
+            <div class="kpi-number" style="font-size:1.1rem">${fmtINR(s.total_net_premium)}</div><div class="kpi-label">Total Net Premium</div>
+          </div></div></div>
+          <div style="flex:1 1 0;min-width:0"><div class="kpi-card h-100" style="background:#27ae60;color:#fff"><div class="card-body text-center">
+            <div class="kpi-number" style="font-size:1.1rem">${fmtINR(s.total_profit)}</div><div class="kpi-label">Total Profit</div>
+          </div></div></div>
+          <div style="flex:1 1 0;min-width:0"><div class="kpi-card h-100" style="background:#2c3e7a;color:#fff"><div class="card-body text-center">
+            <div class="kpi-number" style="font-size:1.1rem">${fmtINR(s.total_main_agent)}</div><div class="kpi-label">Main Agent (Net)</div>
+          </div></div></div>
+          <div style="flex:1 1 0;min-width:0"><div class="kpi-card h-100" style="background:#8e44ad;color:#fff"><div class="card-body text-center">
+            <div class="kpi-number">${s.avg_profit_pct}%</div><div class="kpi-label">Avg Profit %</div>
+          </div></div></div>
+        </div>
+        <p class="text-muted mb-3" style="font-size:.82rem">
+          <i class="bi bi-info-circle me-1"></i>
+          <strong>Formula:</strong> Profit = Main Agent Commission − (Affiliate + Ambassador + Investor + Company Expenses) &nbsp;|&nbsp;
+          Period: ${data.start_date} – ${data.end_date}
+        </p>`;
+
+      const rowsHtml = data.policies.map(pol => {
+        const tc = typeColor[pol.policy_type] || '#6c757d';
+        const detailRows = pol.rows.map(r => `
+          <tr style="${r.label==='Profit'?'background:#eafaf1;font-weight:700':''}">
+            <td style="padding:6px 10px">${r.label}</td>
+            <td style="padding:6px 10px;text-align:center">${r.pct > 0 ? r.pct+'%' : '—'}</td>
+            <td style="padding:6px 10px;text-align:right">${fmtINR(r.amount)}</td>
+            <td style="padding:6px 10px;text-align:center">${r.tds_pct != null ? (r.tds_pct > 0 ? r.tds_pct+'%' : '0%') : '—'}</td>
+            <td style="padding:6px 10px;text-align:right">${r.tds_amt != null ? fmtINR(r.tds_amt) : '—'}</td>
+            <td style="padding:6px 10px;text-align:right;font-weight:600;color:${r.label==='Profit'?'#27ae60':''}">${fmtINR(r.actual)}</td>
+          </tr>`).join('');
+
+        return `
+          <div class="mb-4" style="background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.07);overflow:hidden">
+            <div style="background:linear-gradient(90deg,#f8f9ff,#eef1ff);padding:.75rem 1rem;border-bottom:2px solid ${tc};display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+              <span style="font-weight:700;color:#2c3e7a;font-size:.9rem">${pol.policy_number}</span>
+              <span style="background:${tc};color:#fff;padding:.2em .7em;border-radius:12px;font-size:.75rem;font-weight:600">${pol.policy_type}</span>
+              <span style="color:#555;font-size:.82rem">${pol.customer}</span>
+              <span style="color:#888;font-size:.78rem">${pol.company}</span>
+              <span style="color:#888;font-size:.78rem;margin-left:auto">${pol.booking_date}</span>
+              <span style="background:#eafaf1;color:#27ae60;border:1px solid #a9dfbf;padding:.2em .7em;border-radius:12px;font-size:.78rem;font-weight:700">Profit: ${fmtINR(pol.profit_amount)}</span>
+            </div>
+            <div style="padding:.5rem 1rem .75rem">
+              <div style="display:flex;gap:1.5rem;font-size:.78rem;color:#6c757d;margin-bottom:.5rem;flex-wrap:wrap">
+                <span><strong>Net Premium:</strong> ${fmtINR(pol.net_premium)}</span>
+                <span><strong>Total Distribution:</strong> ${pol.total_distribution_pct}%</span>
+                <span><strong>Company Expenses:</strong> ${pol.company_expenses_pct}%</span>
+                <span><strong>Final Profit:</strong> <span style="color:#27ae60;font-weight:700">${fmtINR(pol.profit_amount)}</span></span>
+              </div>
+              <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+                <thead>
+                  <tr style="background:#f1f3f9">
+                    <th style="padding:6px 10px;text-align:left">Commission Details</th>
+                    <th style="padding:6px 10px;text-align:center">%</th>
+                    <th style="padding:6px 10px;text-align:right">Commission</th>
+                    <th style="padding:6px 10px;text-align:center">TDS %</th>
+                    <th style="padding:6px 10px;text-align:right">TDS Amount</th>
+                    <th style="padding:6px 10px;text-align:right">Actual Amount</th>
+                  </tr>
+                </thead>
+                <tbody>${detailRows}</tbody>
+              </table>
+            </div>
+          </div>`;
+      }).join('');
+
+      content.innerHTML = kpiHtml + (data.policies.length ? rowsHtml : '<div class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2"></i>No policies found for this date range.</div>');
+    })
+    .catch(err => {
+      loading.style.display = 'none';
+      content.style.display = 'block';
+      content.innerHTML = '<div class="alert alert-danger">Error loading profit data. Please try again.</div>';
     });
 }
 

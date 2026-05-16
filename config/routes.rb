@@ -193,6 +193,7 @@ Rails.application.routes.draw do
       get 'system_status/lead_conversion', to: 'system_status#lead_conversion'
       get 'system_status/avg_policy_value', to: 'system_status#avg_policy_value'
       get 'system_status/commissions_due_detailed', to: 'system_status#commissions_due_detailed'
+      get 'system_status/profit_summary', to: 'system_status#profit_summary'
 
       # Policy endpoints for modals
       get 'policies/expiring', to: 'policies#expiring'
