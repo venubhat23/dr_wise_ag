@@ -77,21 +77,21 @@
                   <div class="bg-primary rounded" style="width: 20px; height: 20px;"></div>
                   <div class="ms-3">
                     <div class="fw-bold">Health Insurance</div>
-                    <div class="text-muted">₹<%= number_with_delimiter(@commission_breakdown[:health_insurance], delimiter: ',') %></div>
+                    <div class="text-muted"><%= indian_currency(@commission_breakdown[:health_insurance], delimiter: ',') %></div>
                   </div>
                 </div>
                 <div class="d-flex align-items-center">
                   <div class="bg-success rounded" style="width: 20px; height: 20px;"></div>
                   <div class="ms-3">
                     <div class="fw-bold">Life Insurance</div>
-                    <div class="text-muted">₹<%= number_with_delimiter(@commission_breakdown[:life_insurance], delimiter: ',') %></div>
+                    <div class="text-muted"><%= indian_currency(@commission_breakdown[:life_insurance], delimiter: ',') %></div>
                   </div>
                 </div>
                 <div class="d-flex align-items-center">
                   <div class="bg-warning rounded" style="width: 20px; height: 20px;"></div>
                   <div class="ms-3">
                     <div class="fw-bold">Motor Insurance</div>
-                    <div class="text-muted">₹<%= number_with_delimiter(@commission_breakdown[:motor_insurance], delimiter: ',') %></div>
+                    <div class="text-muted"><%= indian_currency(@commission_breakdown[:motor_insurance], delimiter: ',') %></div>
                   </div>
                 </div>
               </div>
@@ -116,7 +116,7 @@
               <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
                 <div>
                   <div class="text-muted small">Total Commission</div>
-                  <div class="fw-bold fs-5">₹<%= number_with_delimiter(@commission_breakdown.values.sum, delimiter: ',') %></div>
+                  <div class="fw-bold fs-5"><%= indian_currency(@commission_breakdown.values.sum, delimiter: ',') %></div>
                 </div>
                 <i class="bi bi-currency-rupee text-primary fs-3"></i>
               </div>
@@ -126,7 +126,7 @@
                 <div>
                   <div class="text-muted small">Average per Policy</div>
                   <div class="fw-bold fs-5">
-                    ₹<%= @commission_reports.any? ? number_with_delimiter((@commission_breakdown.values.sum / @commission_reports.count.to_f).round(2), delimiter: ',') : '0' %>
+                    <%= indian_currency(@commission_reports.any? ? (@commission_breakdown.values.sum / @commission_reports.count.to_f) : 0) %>
                   </div>
                 </div>
                 <i class="bi bi-calculator text-success fs-3"></i>
@@ -198,7 +198,7 @@
                            end %>
                         <%= customer_name %>
                       </td>
-                      <td class="fw-bold text-success">₹<%= number_with_delimiter(report.payout_amount, delimiter: ',') %></td>
+                      <td class="fw-bold text-success"><%= indian_currency(report.payout_amount, delimiter: ',') %></td>
                       <td>
                         <span class="badge bg-<%= report.status == 'completed' ? 'success' : report.status == 'pending' ? 'warning' : 'info' %>">
                           <%= report.status.humanize %>
@@ -270,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
           callbacks: {
             label: function(context) {
               const value = context.parsed;
-              return context.label + ': ₹' + value.toLocaleString();
+              return context.label + ': Rs. ' + value.toLocaleString();
             }
           }
         }

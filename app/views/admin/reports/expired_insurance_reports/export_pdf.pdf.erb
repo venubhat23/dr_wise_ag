@@ -173,8 +173,8 @@
                   when 'insurance_company' then 'Insurance Company'
                   when 'end_date' then 'Expiry Date'
                   when 'days_expired' then 'Days Expired'
-                  when 'premium_amount' then 'Premium (₹)'
-                  when 'sum_insured' then 'Sum Insured (₹)'
+                  when 'premium_amount' then 'Premium (Rs.)'
+                  when 'sum_insured' then 'Sum Insured (Rs.)'
                   when 'sub_agent_name' then 'Sub Agent'
                   when 'policy_holder' then 'Policy Holder'
                   when 'payment_mode' then 'Payment Mode'
@@ -201,9 +201,9 @@
                     <%= policy[:days_expired] %> days
                   </span>
                 <% when 'premium_amount' %>
-                  ₹<%= number_with_delimiter(policy[:premium_amount]) %>
+                  <%= indian_currency(policy[:premium_amount]) %>
                 <% when 'sum_insured' %>
-                  ₹<%= number_with_delimiter(policy[:sum_insured]) %>
+                  <%= indian_currency(policy[:sum_insured]) %>
                 <% when 'sub_agent_name' %>
                   <%= policy[:sub_agent_name] == 'N/A' ? 'Direct' : policy[:sub_agent_name] %>
                 <% else %>
@@ -236,7 +236,7 @@
           <span class="label">Other Policies</span>
         </div>
         <div class="summary-stat">
-          <span class="number">₹<%= number_with_delimiter(@expired_data.sum { |p| p[:premium_amount] || 0 }) %></span>
+          <span class="number"><%= indian_currency(@expired_data.sum { |p| p[:premium_amount] || 0 }) %></span>
           <span class="label">Total Premium Value</span>
         </div>
       </div>

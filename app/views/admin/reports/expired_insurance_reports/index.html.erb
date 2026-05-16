@@ -90,7 +90,7 @@
               <div class="d-flex justify-content-between">
                 <div>
                   <h6 class="text-muted mb-2">Premium Lost</h6>
-                  <h3 class="mb-0 text-dark">₹<%= number_with_delimiter((@total_premium_lost || 0).round(2)) %></h3>
+                  <h3 class="mb-0 text-dark"><%= indian_currency((@total_premium_lost || 0).round(2)) %></h3>
                 </div>
                 <div class="bg-warning text-white rounded p-3">
                   <i class="bi bi-currency-rupee fs-4"></i>
@@ -105,7 +105,7 @@
               <div class="d-flex justify-content-between">
                 <div>
                   <h6 class="text-muted mb-2">Sum Insured Lost</h6>
-                  <h3 class="mb-0 text-dark">₹<%= number_with_delimiter((@total_sum_insured_lost || 0).round(2)) %></h3>
+                  <h3 class="mb-0 text-dark"><%= indian_currency((@total_sum_insured_lost || 0).round(2)) %></h3>
                 </div>
                 <div class="bg-info text-white rounded p-3">
                   <i class="bi bi-shield-x fs-4"></i>
@@ -197,10 +197,10 @@
                         </span>
                       </td>
                       <td class="text-end">
-                        <strong>₹<%= number_with_delimiter(policy[:premium_amount]) %></strong>
+                        <strong><%= indian_currency(policy[:premium_amount]) %></strong>
                       </td>
                       <td class="text-end">
-                        <strong>₹<%= number_with_delimiter(policy[:sum_insured]) %></strong>
+                        <strong><%= indian_currency(policy[:sum_insured]) %></strong>
                       </td>
                       <td><%= policy[:payment_mode] %></td>
                       <td>

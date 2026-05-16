@@ -2118,13 +2118,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const commissionPercentage = parseFloat(commissionPercentageField.value) || 0;
     const tdsPercentage = parseFloat(tdsPercentageField.value) || 0;
 
-    console.log(`📊 Net Premium: ₹${netPremium}, Commission %: ${commissionPercentage}%, TDS %: ${tdsPercentage}%`);
+    console.log(`📊 Net Premium: Rs. ${netPremium}, Commission %: ${commissionPercentage}%, TDS %: ${tdsPercentage}%`);
 
     const commissionAmount = netPremium * (commissionPercentage / 100);
     const tdsAmount = commissionAmount * (tdsPercentage / 100);
     const afterTdsValue = commissionAmount - tdsAmount;
 
-    console.log(`💰 Calculated - Commission: ₹${commissionAmount.toFixed(2)}, TDS: ₹${tdsAmount.toFixed(2)}, After TDS: ₹${afterTdsValue.toFixed(2)}`);
+    console.log(`💰 Calculated - Commission: Rs. ${commissionAmount.toFixed(2)}, TDS: Rs. ${tdsAmount.toFixed(2)}, After TDS: Rs. ${afterTdsValue.toFixed(2)}`);
 
     if (commissionAmountField) commissionAmountField.value = commissionAmount.toFixed(2);
     if (tdsAmountField) tdsAmountField.value = tdsAmount.toFixed(2);

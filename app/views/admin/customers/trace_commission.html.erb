@@ -2188,7 +2188,7 @@ function showCommissionBreakdown(policyNumber, policyType, payoutsJson) {
 
     // Update summary statistics
     document.getElementById('totalBreakdownCount').textContent = totalBreakdownCount;
-    document.getElementById('totalCommissionSum').textContent = '₹' + totalCommissionSum.toLocaleString();
+    document.getElementById('totalCommissionSum').textContent = 'Rs. ' + totalCommissionSum.toLocaleString();
 
     // Check if all payouts are paid
     const allPaid = payouts.every(payout => payout.status === 'paid');

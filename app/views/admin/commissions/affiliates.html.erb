@@ -26,7 +26,7 @@
           <div class="d-flex align-items-center">
             <div class="flex-grow-1">
               <h6 class="text-white-50 mb-0">Affiliate Commission</h6>
-              <h3 class="mb-0">₹<%= number_with_delimiter(@affiliates_commission, delimiter: ',') %></h3>
+              <h3 class="mb-0"><%= indian_currency(@affiliates_commission, delimiter: ',') %></h3>
             </div>
             <div class="ms-3">
               <i class="bi bi-currency-rupee bg-white bg-opacity-20 rounded-circle p-3 fs-4"></i>
@@ -116,7 +116,7 @@
                         </div>
                       </td>
                       <td class="fw-bold text-info"><%= performer[:referrals] %></td>
-                      <td class="fw-bold text-success">₹<%= number_with_delimiter(performer[:commission], delimiter: ',') %></td>
+                      <td class="fw-bold text-success"><%= indian_currency(performer[:commission], delimiter: ',') %></td>
                       <td>
                         <div class="d-flex align-items-center">
                           <div class="progress flex-grow-1 me-2" style="height: 8px;">

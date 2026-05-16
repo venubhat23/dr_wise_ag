@@ -1123,7 +1123,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data: {
           labels: revenueData.labels,
           datasets: [{
-            label: 'Premium Revenue (₹)',
+            label: 'Premium Revenue (Rs.)',
             data: revenueData.values,
             borderColor: '#10b981',
             backgroundColor: gradientRevenue,
@@ -1163,7 +1163,7 @@ document.addEventListener('DOMContentLoaded', function() {
               callbacks: {
                 label: function(context) {
                   const value = context.raw;
-                  return 'Revenue: ₹' + (value / 1000).toFixed(1) + 'K';
+                  return 'Revenue: Rs. ' + (value / 1000).toFixed(1) + 'K';
                 }
               }
             },
@@ -1177,7 +1177,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 size: 10,
                 weight: 'bold'
               },
-              formatter: (value) => '₹' + (value / 1000).toFixed(0) + 'K',
+              formatter: (value) => 'Rs. ' + (value / 1000).toFixed(0) + 'K',
               padding: 4,
               anchor: 'end',
               align: 'top',
@@ -1197,7 +1197,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   size: 11
                 },
                 callback: function(value) {
-                  return '₹' + (value / 1000) + 'K';
+                  return 'Rs. ' + (value / 1000) + 'K';
                 }
               }
             },
@@ -1624,7 +1624,7 @@ function renderPolicyTable(tableBody, policies, type) {
           </div>
         </td>
         <td><span class="badge bg-info text-white">${policy.insurance_type || 'General'}</span></td>
-        <td class="fw-bold">₹${(policy.premium || 0).toLocaleString()}</td>
+        <td class="fw-bold">${fmtINR(policy.premium)}</td>
         <td>${policy.end_date || 'N/A'}</td>
         <td>${statusBadge}</td>
         <td>
@@ -1673,8 +1673,8 @@ function renderHealthPolicyTable(tableBody, policies, type) {
           </div>
         </td>
         <td><span class="badge bg-primary">Health</span></td>
-        <td class="fw-bold">₹${(policy.sum_insured || 0).toLocaleString()}</td>
-        <td>₹${(policy.premium || 0).toLocaleString()}</td>
+        <td class="fw-bold">${fmtINR(policy.sum_insured)}</td>
+        <td>${fmtINR(policy.premium)}</td>
         <td>${policy.end_date || 'N/A'}</td>
         <td>${daysLeftBadge}</td>
         <td>
@@ -1692,6 +1692,19 @@ function renderHealthPolicyTable(tableBody, policies, type) {
   });
 
   tableBody.innerHTML = html;
+}
+
+// Indian number format helper — reliable across all browsers/locales
+function fmtINR(val) {
+  const num = parseFloat(val || 0);
+  const [intPart, decPart] = num.toFixed(2).split('.');
+  let result = intPart;
+  if (intPart.length > 3) {
+    const last3 = intPart.slice(-3);
+    const rest  = intPart.slice(0, -3);
+    result = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + last3;
+  }
+  return 'Rs. ' + result + '.' + decPart;
 }
 
 // System Status Modal Functions
@@ -1768,7 +1781,7 @@ function loadActiveAffiliatesData(content, loading) {
       content.style.display = 'block';
 
       if (data.success) {
-        const fmtINR = (val) => '₹' + (val || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        // fmtINR is the global Indian formatter defined above
         content.innerHTML = `
           <div class="d-flex gap-2 mb-4" style="flex-wrap:nowrap">
             <div style="flex:1 1 0;min-width:0">
@@ -1881,7 +1894,7 @@ function loadCommissionsDueData(content, loading) {
       content.style.display = 'block';
 
       if (data.success && data.total_count > 0) {
-        const fmtAmt = (v) => '₹' + parseFloat(v || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        const fmtAmt = fmtINR; // use global Indian formatter
         const sr = data.summary_by_recipient || {};
 
         const recipientConfig = [
@@ -2072,7 +2085,7 @@ function loadTotalRevenueData(content, loading) {
               <div style="background: rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 1rem; margin-bottom: 1rem;">
                 <i class="bi bi-cash-stack" style="font-size: 2rem; color: white;"></i>
               </div>
-              <h2 style="font-weight: 900; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0; line-height: 1;">₹${revenueData.total_revenue.toLocaleString('en-IN')}</h2>
+              <h2 style="font-weight: 900; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0; line-height: 1;">${fmtINR(revenueData.total_revenue)}</h2>
               <p style="font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 0.5rem; color: rgba(255, 255, 255, 0.9);">Total Revenue</p>
             </div>
           </div>
@@ -2094,7 +2107,7 @@ function loadTotalRevenueData(content, loading) {
               <div style="background: rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 1rem; margin-bottom: 1rem;">
                 <i class="bi bi-calendar-month" style="font-size: 2rem; color: white;"></i>
               </div>
-              <h2 style="font-weight: 900; font-size: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0; line-height: 1;">₹${revenueData.monthly_revenue.length > 0 ? revenueData.monthly_revenue[revenueData.monthly_revenue.length - 1].revenue.toLocaleString('en-IN') : '0'}</h2>
+              <h2 style="font-weight: 900; font-size: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0; line-height: 1;">${revenueData.monthly_revenue.length > 0 ? fmtINR(revenueData.monthly_revenue[revenueData.monthly_revenue.length - 1].revenue) : '₹0.00'}</h2>
               <p style="font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 0.5rem; color: rgba(255, 255, 255, 0.9);">This Month</p>
             </div>
           </div>
@@ -2130,7 +2143,7 @@ function loadTotalRevenueData(content, loading) {
                         </span>
                       </td>
                       <td style="padding: 12px 15px; text-align: right; font-weight: bold; font-size: 1.1rem; color: #2c3e50;">
-                        ₹${amount.toLocaleString('en-IN')}
+                        ${fmtINR(amount)}
                       </td>
                       <td style="padding: 12px 15px; text-align: right;">
                         <div class="progress" style="height: 25px; background: rgba(0,0,0,0.1); border-radius: 10px;">
@@ -2170,7 +2183,7 @@ function loadTotalRevenueData(content, loading) {
                     <tr style="background: ${index % 2 === 0 ? 'rgba(17, 153, 142, 0.05)' : 'white'};">
                       <td style="padding: 12px 15px; font-weight: 600;">${month.month}</td>
                       <td style="padding: 12px 15px; text-align: right; font-weight: bold; font-size: 1.1rem; color: #2c3e50;">
-                        ₹${month.revenue.toLocaleString('en-IN')}
+                        ${fmtINR(month.revenue)}
                       </td>
                       <td style="padding: 12px 15px; text-align: center;">
                         ${index > 0 ? `
@@ -2396,7 +2409,7 @@ function loadAvgPolicyValueData(content, loading) {
             <div class="col-md-4">
               <div class="kpi-card kpi-warning">
                 <div class="card-body">
-                  <div class="kpi-number">₹${data.summary.overall_average.toLocaleString('en-IN')}</div>
+                  <div class="kpi-number">${fmtINR(data.summary.overall_average)}</div>
                   <div class="kpi-label">Overall Average</div>
                 </div>
               </div>
@@ -2440,8 +2453,8 @@ function loadAvgPolicyValueData(content, loading) {
                     <tr>
                       <td><span class="badge bg-info">${details.type}</span></td>
                       <td>${details.count}</td>
-                      <td class="fw-bold">₹${details.total_premium.toLocaleString('en-IN')}</td>
-                      <td class="fw-bold text-warning">₹${details.average.toLocaleString('en-IN')}</td>
+                      <td class="fw-bold">${fmtINR(details.total_premium)}</td>
+                      <td class="fw-bold text-warning">${fmtINR(details.average)}</td>
                       <td>
                         <div class="progress" style="height: 20px;">
                           <div class="progress-bar bg-success" role="progressbar" style="width: ${contribution}%">${contribution}%</div>

@@ -444,29 +444,41 @@
     <h5 class="mb-0">Policy Summary</h5>
   </div>
   <div class="card-body">
-    <div class="row text-center mb-4">
-      <div class="col-md-3">
+    <div class="row text-center mb-4 g-2">
+      <div class="col-md-2">
         <div class="border rounded p-3">
           <h4 class="text-primary mb-1"><%= @total_policies %></h4>
           <small class="text-muted">Total Policies</small>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <div class="border rounded p-3">
           <h4 class="text-success mb-1"><%= @active_policies %></h4>
           <small class="text-muted">Active Policies</small>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <div class="border rounded p-3">
           <h4 class="text-warning mb-1"><%= @expired_policies %></h4>
           <small class="text-muted">Expired Policies</small>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <div class="border rounded p-3">
-          <h4 class="text-info mb-1">₹<%= number_to_currency(@total_premium_handled, unit: '', precision: 0) %></h4>
+          <h4 class="text-info mb-1"><%= indian_currency(@total_premium_handled) %></h4>
           <small class="text-muted">Total Premium</small>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="border rounded p-3">
+          <h4 class="text-danger mb-1"><%= @unique_clients %></h4>
+          <small class="text-muted">No. of Clients</small>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="border rounded p-3">
+          <h4 class="text-success mb-1"><%= indian_currency(@total_commission_earned) %></h4>
+          <small class="text-muted">Commission Earned</small>
         </div>
       </div>
     </div>
@@ -507,7 +519,7 @@
                 </td>
                 <td><%= policy_data[:customer_name] %></td>
                 <td><%= policy_data[:company_name] %></td>
-                <td>₹<%= number_to_currency(policy_data[:premium], unit: '', precision: 0) %></td>
+                <td><%= indian_currency(policy_data[:premium]) %></td>
                 <td>
                   <% if policy_data[:status] == 'Active' %>
                     <span style="color:#198754; font-weight:600;">Active</span>
@@ -561,33 +573,42 @@
 
 <!-- Commission Summary -->
 <div class="card border-0 shadow-sm mb-4">
-  <div class="card-header bg-transparent border-0 d-flex align-items-center">
-    <i class="bi bi-cash-coin me-2 text-warning"></i>
-    <h5 class="mb-0">Commission Earned</h5>
+  <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center">
+      <i class="bi bi-cash-coin me-2 text-warning"></i>
+      <h5 class="mb-0">Commission Earned</h5>
+    </div>
+    <%= button_to create_missing_payouts_admin_sub_agent_path(@sub_agent),
+        method: :post,
+        form: { data: { "turbo-confirm": "This will create commission payouts for any policies that are missing one. Continue?" } },
+        class: "btn btn-sm btn-outline-warning",
+        title: "Create payouts for policies that are missing commission records" do %>
+      <i class="bi bi-plus-circle me-1"></i> Create Missing Payouts
+    <% end %>
   </div>
   <div class="card-body">
     <div class="row text-center mb-4">
       <div class="col-md-3">
         <div class="border rounded p-3 bg-light">
-          <h4 class="text-success mb-1">₹<%= number_to_currency(@total_commission_earned, unit: '', precision: 0) %></h4>
+          <h4 class="text-success mb-1"><%= indian_currency(@total_commission_earned) %></h4>
           <small class="text-muted">Total Earned</small>
         </div>
       </div>
       <div class="col-md-3">
         <div class="border rounded p-3">
-          <h4 class="text-primary mb-1">₹<%= number_to_currency(@paid_commission, unit: '', precision: 0) %></h4>
+          <h4 class="text-primary mb-1"><%= indian_currency(@paid_commission) %></h4>
           <small class="text-muted">Paid</small>
         </div>
       </div>
       <div class="col-md-3">
         <div class="border rounded p-3">
-          <h4 class="text-info mb-1">₹<%= number_to_currency(@processing_commission, unit: '', precision: 0) %></h4>
+          <h4 class="text-info mb-1"><%= indian_currency(@processing_commission) %></h4>
           <small class="text-muted">Processing</small>
         </div>
       </div>
       <div class="col-md-3">
         <div class="border rounded p-3">
-          <h4 class="text-warning mb-1">₹<%= number_to_currency(@pending_commission, unit: '', precision: 0) %></h4>
+          <h4 class="text-warning mb-1"><%= indian_currency(@pending_commission) %></h4>
           <small class="text-muted">Pending</small>
         </div>
       </div>
@@ -626,7 +647,7 @@
                   </span>
                 </td>
                 <td><%= payout.customer_name %></td>
-                <td>₹<%= number_to_currency(payout.payout_amount, unit: '', precision: 0) %></td>
+                <td><%= indian_currency(payout.payout_amount) %></td>
                 <td>
                   <span class="badge bg-<%=
                     case payout.status

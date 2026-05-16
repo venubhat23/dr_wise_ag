@@ -10,7 +10,7 @@
           <div class="d-flex align-items-center">
             <div class="flex-grow-1">
               <h6 class="text-white-50 mb-0">Total Earned</h6>
-              <h3 class="mb-0">₹<%= number_with_delimiter(@commission_stats[:total_earned], delimiter: ',') %></h3>
+              <h3 class="mb-0"><%= indian_currency(@commission_stats[:total_earned], delimiter: ',') %></h3>
             </div>
             <div class="ms-3">
               <i class="bi bi-currency-rupee bg-white bg-opacity-20 rounded-circle p-3 fs-4"></i>
@@ -26,7 +26,7 @@
           <div class="d-flex align-items-center">
             <div class="flex-grow-1">
               <h6 class="text-white-50 mb-0">This Month</h6>
-              <h3 class="mb-0">₹<%= number_with_delimiter(@commission_stats[:this_month], delimiter: ',') %></h3>
+              <h3 class="mb-0"><%= indian_currency(@commission_stats[:this_month], delimiter: ',') %></h3>
             </div>
             <div class="ms-3">
               <i class="bi bi-calendar-month bg-white bg-opacity-20 rounded-circle p-3 fs-4"></i>
@@ -42,7 +42,7 @@
           <div class="d-flex align-items-center">
             <div class="flex-grow-1">
               <h6 class="text-white-50 mb-0">Pending Amount</h6>
-              <h3 class="mb-0">₹<%= number_with_delimiter(@commission_stats[:pending_amount], delimiter: ',') %></h3>
+              <h3 class="mb-0"><%= indian_currency(@commission_stats[:pending_amount], delimiter: ',') %></h3>
             </div>
             <div class="ms-3">
               <i class="bi bi-clock-history bg-white bg-opacity-20 rounded-circle p-3 fs-4"></i>
@@ -120,7 +120,7 @@
                       <span class="badge bg-<%= payout.status == 'completed' ? 'success' : payout.status == 'pending' ? 'warning' : 'info' %> mb-1">
                         <%= payout.status.humanize %>
                       </span>
-                      <div class="fw-bold text-primary">₹<%= number_with_delimiter(payout.payout_amount, delimiter: ',') %></div>
+                      <div class="fw-bold text-primary"><%= indian_currency(payout.payout_amount, delimiter: ',') %></div>
                     </div>
                   </div>
                 </div>
@@ -212,7 +212,7 @@
               </select>
             </div>
             <div class="mb-3">
-              <label class="form-label">Premium Amount (₹)</label>
+              <label class="form-label">Premium Amount (Rs.)</label>
               <input type="number" class="form-control" id="premiumAmount" placeholder="Enter premium amount">
             </div>
             <div class="mb-3">
@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
     data: {
       labels: chartData.map(item => item.month),
       datasets: [{
-        label: 'Commission Amount (₹)',
+        label: 'Commission Amount (Rs.)',
         data: chartData.map(item => item.amount),
         borderColor: '#0d6efd',
         backgroundColor: 'rgba(13, 110, 253, 0.1)',
@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
           beginAtZero: true,
           ticks: {
             callback: function(value) {
-              return '₹' + value.toLocaleString();
+              return 'Rs. ' + value.toLocaleString();
             }
           }
         }

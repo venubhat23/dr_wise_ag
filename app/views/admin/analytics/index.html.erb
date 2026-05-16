@@ -1155,7 +1155,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data: {
           labels: premiumLabels,
           datasets: [{
-            label: 'Premium Revenue (₹)',
+            label: 'Premium Revenue (Rs.)',
             data: premiumValues,
             borderColor: '#10b981',
             backgroundColor: gradientPremium,
@@ -1195,7 +1195,7 @@ document.addEventListener('DOMContentLoaded', function() {
               callbacks: {
                 label: function(context) {
                   const value = context.raw;
-                  return 'Revenue: ₹' + (value / 1000).toFixed(1) + 'K';
+                  return 'Revenue: Rs. ' + (value / 1000).toFixed(1) + 'K';
                 }
               }
             },
@@ -1209,7 +1209,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 size: 10,
                 weight: 'bold'
               },
-              formatter: (value) => '₹' + (value / 1000).toFixed(0) + 'K',
+              formatter: (value) => 'Rs. ' + (value / 1000).toFixed(0) + 'K',
               padding: 4,
               anchor: 'end',
               align: 'top',
@@ -1229,7 +1229,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   size: 11
                 },
                 callback: function(value) {
-                  return '₹' + (value / 1000) + 'K';
+                  return 'Rs. ' + (value / 1000) + 'K';
                 }
               }
             },
@@ -1468,9 +1468,9 @@ document.addEventListener('DOMContentLoaded', function() {
           },
           formatter: (value) => {
             if (value >= 1000) {
-              return '₹' + (value / 1000).toFixed(1) + 'K';
+              return 'Rs. ' + (value / 1000).toFixed(1) + 'K';
             }
-            return '₹' + value;
+            return 'Rs. ' + value;
           },
           anchor: 'center',
           align: 'center'

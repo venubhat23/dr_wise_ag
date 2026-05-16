@@ -145,11 +145,11 @@
       </div>
       <div class="summary-item">
         <div class="label">Total Premium</div>
-        <div class="value">₹<%= number_with_delimiter(@policy_data.sum { |p| p[:premium_amount] || 0 }.round(0)) %></div>
+        <div class="value"><%= indian_currency(@policy_data.sum { |p| p[:premium_amount] || 0 }.round(0)) %></div>
       </div>
       <div class="summary-item">
         <div class="label">Total Sum Insured</div>
-        <div class="value">₹<%= number_with_delimiter(@policy_data.sum { |p| p[:sum_insured] || 0 }.round(0)) %></div>
+        <div class="value"><%= indian_currency(@policy_data.sum { |p| p[:sum_insured] || 0 }.round(0)) %></div>
       </div>
       <div class="summary-item">
         <div class="label">Report Date</div>
@@ -228,8 +228,8 @@
           <% if @selected_columns.include?('policy_holder') %><td><%= policy[:policy_holder] %></td><% end %>
           <% if @selected_columns.include?('start_date') %><td><%= policy[:start_date]&.strftime('%d/%m/%Y') || '-' %></td><% end %>
           <% if @selected_columns.include?('end_date') %><td><%= policy[:end_date]&.strftime('%d/%m/%Y') || '-' %></td><% end %>
-          <% if @selected_columns.include?('premium_amount') %><td class="text-right">₹<%= number_with_delimiter((policy[:premium_amount] || 0).round(0)) %></td><% end %>
-          <% if @selected_columns.include?('sum_insured') %><td class="text-right">₹<%= number_with_delimiter((policy[:sum_insured] || 0).round(0)) %></td><% end %>
+          <% if @selected_columns.include?('premium_amount') %><td class="text-right"><%= indian_currency((policy[:premium_amount] || 0).round(0)) %></td><% end %>
+          <% if @selected_columns.include?('sum_insured') %><td class="text-right"><%= indian_currency((policy[:sum_insured] || 0).round(0)) %></td><% end %>
           <% if @selected_columns.include?('payment_mode') %><td><%= policy[:payment_mode] %></td><% end %>
           <% if @selected_columns.include?('status') %>
             <td class="text-center">

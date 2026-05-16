@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function() {
     data: {
       labels: labels,
       datasets: [{
-        label: 'Commission (₹)',
+        label: 'Commission (Rs.)',
         data: commissionData,
         borderColor: 'rgb(75, 192, 192)',
         backgroundColor: 'rgba(75, 192, 192, 0.1)',
@@ -371,8 +371,8 @@ document.addEventListener('DOMContentLoaded', function() {
         tooltip: {
           callbacks: {
             label: function(context) {
-              if (context.dataset.label === 'Commission (₹)') {
-                return 'Commission: ₹' + context.parsed.y.toLocaleString('en-IN');
+              if (context.dataset.label === 'Commission (Rs.)') {
+                return 'Commission: Rs. ' + context.parsed.y.toLocaleString('en-IN');
               } else {
                 return 'Policies: ' + context.parsed.y;
               }
@@ -394,11 +394,11 @@ document.addEventListener('DOMContentLoaded', function() {
           position: 'left',
           title: {
             display: true,
-            text: 'Commission (₹)'
+            text: 'Commission (Rs.)'
           },
           ticks: {
             callback: function(value) {
-              return '₹' + value.toLocaleString('en-IN');
+              return 'Rs. ' + value.toLocaleString('en-IN');
             }
           }
         },

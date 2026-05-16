@@ -1962,7 +1962,7 @@ document.addEventListener('DOMContentLoaded', function() {
           colors: '#64748b',
           fontSize: '12px'
         },
-        formatter: (val) => '₹' + (val/1000) + 'K'
+        formatter: (val) => 'Rs. ' + (val/1000) + 'K'
       }
     },
     grid: {
@@ -1972,7 +1972,7 @@ document.addEventListener('DOMContentLoaded', function() {
     tooltip: {
       theme: 'dark',
       y: {
-        formatter: (val) => '₹' + val.toLocaleString('en-IN')
+        formatter: (val) => 'Rs. ' + val.toLocaleString('en-IN')
       }
     },
     legend: {

@@ -365,7 +365,7 @@
                             customer_name: policy.customer&.display_name,
                             insurance_type: policy.insurance_type,
                             company_name: policy.insurance_company_name,
-                            premium_amount: number_to_currency(policy.net_premium, unit: '₹', precision: 0),
+                            premium_amount: number_to_currency(policy.net_premium, unit: 'Rs. ', precision: 0),
                             turbo_method: :delete,
                             turbo_confirm: false
                           },

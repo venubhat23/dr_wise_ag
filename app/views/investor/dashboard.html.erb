@@ -194,15 +194,15 @@
         </h2>
         <div class="info-grid">
           <div class="info-item">
-            <div class="info-value">₹<%= number_with_delimiter((@company_stats[:total_premium_collected]/100000).round(2)) %>L</div>
+            <div class="info-value"><span>Rs. </span><%= number_with_delimiter((@company_stats[:total_premium_collected]/100000).round(2)) %>L</div>
             <div class="info-label">Total Premium Collected</div>
           </div>
           <div class="info-item">
-            <div class="info-value">₹<%= number_with_delimiter((@company_stats[:total_profit]/100000).round(2)) %>L</div>
+            <div class="info-value"><span>Rs. </span><%= number_with_delimiter((@company_stats[:total_profit]/100000).round(2)) %>L</div>
             <div class="info-label">Gross Profit</div>
           </div>
           <div class="info-item">
-            <div class="info-value">₹<%= number_with_delimiter((@company_stats[:net_profit]/100000).round(2)) %>L</div>
+            <div class="info-value"><span>Rs. </span><%= number_with_delimiter((@company_stats[:net_profit]/100000).round(2)) %>L</div>
             <div class="info-label">Net Profit</div>
           </div>
           <div class="info-item">
@@ -216,7 +216,7 @@
           <div class="row">
             <div class="col-md-3">
               <div style="text-align: center;">
-                <div class="info-value" style="font-size: 20px;">₹<%= number_with_delimiter((@company_stats[:total_company_expenses]/100000).round(2)) %>L</div>
+                <div class="info-value" style="font-size: 20px;"><span>Rs. </span><%= number_with_delimiter((@company_stats[:total_company_expenses]/100000).round(2)) %>L</div>
                 <div class="info-label">Total Expenses</div>
               </div>
             </div>
@@ -228,13 +228,13 @@
             </div>
             <div class="col-md-3">
               <div style="text-align: center;">
-                <div class="info-value" style="font-size: 20px;">₹<%= number_with_delimiter((@company_stats[:current_month_profit]/1000).round(0)) %>K</div>
+                <div class="info-value" style="font-size: 20px;"><span>Rs. </span><%= number_with_delimiter((@company_stats[:current_month_profit]/1000).round(0)) %>K</div>
                 <div class="info-label">This Month Profit</div>
               </div>
             </div>
             <div class="col-md-3">
               <div style="text-align: center;">
-                <div class="info-value" style="font-size: 20px;">₹<%= number_with_delimiter((@company_stats[:last_month_profit]/1000).round(0)) %>K</div>
+                <div class="info-value" style="font-size: 20px;"><span>Rs. </span><%= number_with_delimiter((@company_stats[:last_month_profit]/1000).round(0)) %>K</div>
                 <div class="info-label">Last Month Profit</div>
               </div>
             </div>
@@ -259,7 +259,7 @@
 
         <div class="info-grid">
           <div class="info-item">
-            <div class="info-value">₹<%= number_with_delimiter(@investor_portion[:total_commission].round(0)) %></div>
+            <div class="info-value"><%= indian_currency(@investor_portion[:total_commission].round(0)) %></div>
             <div class="info-label">Your Total Returns</div>
           </div>
           <div class="info-item">
@@ -280,7 +280,7 @@
           <div class="row">
             <div class="col-md-6">
               <div class="highlight-value">
-                ₹<%= number_with_delimiter(@investor_portion[:paid_amount].round(0)) %>
+                <%= indian_currency(@investor_portion[:paid_amount].round(0)) %>
               </div>
               <div class="highlight-label">
                 <span class="status-badge badge-success">Paid Amount</span>
@@ -288,7 +288,7 @@
             </div>
             <div class="col-md-6">
               <div class="highlight-value">
-                ₹<%= number_with_delimiter(@investor_portion[:pending_amount].round(0)) %>
+                <%= indian_currency(@investor_portion[:pending_amount].round(0)) %>
               </div>
               <div class="highlight-label">
                 <span class="status-badge badge-warning">Pending Amount</span>
@@ -306,11 +306,11 @@
         </h2>
         <div class="info-grid">
           <div class="info-item">
-            <div class="info-value">₹<%= number_with_delimiter((@revenue_stats[:annual_revenue]/100000).round(2)) %>L</div>
+            <div class="info-value"><span>Rs. </span><%= number_with_delimiter((@revenue_stats[:annual_revenue]/100000).round(2)) %>L</div>
             <div class="info-label">Annual Revenue</div>
           </div>
           <div class="info-item">
-            <div class="info-value">₹<%= number_with_delimiter((@revenue_stats[:revenue_per_policy]/1000).round(1)) %>K</div>
+            <div class="info-value"><span>Rs. </span><%= number_with_delimiter((@revenue_stats[:revenue_per_policy]/1000).round(1)) %>K</div>
             <div class="info-label">Revenue Per Policy</div>
           </div>
           <div class="info-item">
@@ -330,7 +330,7 @@
             <% @revenue_stats[:quarterly_data].each do |quarter, data| %>
               <div class="col-md-3">
                 <div style="text-align: center; padding: 10px;">
-                  <div class="info-value" style="font-size: 18px;">₹<%= number_with_delimiter((data[:revenue]/100000).round(1)) %>L</div>
+                  <div class="info-value" style="font-size: 18px;"><span>Rs. </span><%= number_with_delimiter((data[:revenue]/100000).round(1)) %>L</div>
                   <div class="info-label"><%= quarter %> Revenue</div>
                   <small style="opacity: 0.8;">Margin: <%= data[:profit_margin] %>%</small>
                 </div>
@@ -356,7 +356,7 @@
         </div>
         <div class="stat-box">
           <div class="stat-label">Current Month</div>
-          <div class="stat-value">₹<%= number_with_delimiter((@growth_metrics[:current_month_revenue]/1000).round(1)) %>K</div>
+          <div class="stat-value"><span>Rs. </span><%= number_with_delimiter((@growth_metrics[:current_month_revenue]/1000).round(1)) %>K</div>
           <div class="stat-subtitle"><%= @growth_metrics[:current_month_policies] %> policies this month</div>
         </div>
         <div class="stat-box">

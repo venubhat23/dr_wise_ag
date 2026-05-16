@@ -277,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (companyExpensesSummary) companyExpensesSummary.textContent = `${companyExpensesPercentage}% of Net Premium (₹${((netPremium * companyExpensesPercentage) / 100).toFixed(2)})`;
     if (profitSummary) profitSummary.textContent = `${profitPercentage.toFixed(2)}% (₹${profitAmount.toFixed(2)})`;
 
-    console.log('✅ Commission calculations updated for Net Premium: ₹' + netPremium);
+    console.log('✅ Commission calculations updated for Net Premium: Rs. ' + netPremium);
   }
 
   // Add event listeners for commission calculations
@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (netPremiumField) {
     netPremiumField.addEventListener('input', function() {
       calculateCommissions();
-      console.log('Net Premium changed: ₹' + this.value);
+      console.log('Net Premium changed: Rs. ' + this.value);
     });
 
     netPremiumField.addEventListener('blur', calculateCommissions);

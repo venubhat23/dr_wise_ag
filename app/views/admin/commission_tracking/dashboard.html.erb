@@ -1893,7 +1893,7 @@ document.addEventListener('DOMContentLoaded', function() {
           fontSize: '12px'
         },
         formatter: function(val) {
-          return '₹' + (val/100000).toFixed(1) + 'L';
+          return 'Rs. ' + (val/100000).toFixed(1) + 'L';
         }
       }
     },
@@ -1901,7 +1901,7 @@ document.addEventListener('DOMContentLoaded', function() {
       theme: 'dark',
       y: {
         formatter: function(val) {
-          return '₹' + val.toLocaleString('en-IN');
+          return 'Rs. ' + val.toLocaleString('en-IN');
         }
       }
     },
@@ -1973,7 +1973,7 @@ document.addEventListener('DOMContentLoaded', function() {
           fontSize: '12px'
         },
         formatter: function(val) {
-          return '₹' + (val/1000) + 'K';
+          return 'Rs. ' + (val/1000) + 'K';
         }
       }
     },
@@ -1984,7 +1984,7 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       y: {
         formatter: function(val) {
-          return '₹' + val.toLocaleString('en-IN');
+          return 'Rs. ' + val.toLocaleString('en-IN');
         }
       }
     },

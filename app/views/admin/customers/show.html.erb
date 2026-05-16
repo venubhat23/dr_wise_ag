@@ -1539,7 +1539,7 @@ body {
                   </td>
                   <td style="border-right: 1px solid #e9ecef; padding: 15px; vertical-align: middle;">
                     <span class="badge" style="background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 10px 14px; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
-                      <i class="bi bi-currency-rupee me-1"></i><%= indian_currency(policy[:premium].to_i).gsub('₹', '') %>
+                      <i class="bi bi-currency-rupee me-1"></i><%= indian_currency(policy[:premium].to_i).gsub('Rs. ', '') %>
                     </span>
                   </td>
                   <td style="border-right: 1px solid #e9ecef; padding: 15px; vertical-align: middle;">
@@ -1683,7 +1683,7 @@ body {
                   <td style="border-right: 1px solid #e9ecef; padding: 15px; vertical-align: middle;">
                     <div class="d-flex flex-column gap-2">
                       <span class="badge" style="background: linear-gradient(135deg, #6c757d, #495057); color: white; padding: 10px 14px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; opacity: 0.8;">
-                        <i class="bi bi-currency-rupee me-1"></i><%= indian_currency(policy[:premium].to_i).gsub('₹', '') %>
+                        <i class="bi bi-currency-rupee me-1"></i><%= indian_currency(policy[:premium].to_i).gsub('Rs. ', '') %>
                       </span>
                       <span class="badge" style="background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 8px 12px; border-radius: 15px; font-size: 0.8rem; font-weight: 600;">
                         <i class="bi bi-check-circle-fill me-1"></i>Renewed

@@ -62,7 +62,7 @@
           <tr>
             <th>Affiliate Name</th>
             <th>Lead IDs & Commission</th>
-            <th>Total Amount (₹)</th>
+            <th>Total Amount (Rs.)</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -91,7 +91,7 @@
                   </button>
                   <br>
                   <small class="text-muted mt-1">
-                    Total Commission: ₹<%= affiliate_data[:leads].sum { |lead| lead[:commission] }.to_i.to_s.gsub(/\B(?=(\d{3})+(?!\d))/, ',') %>
+                    Total Commission: Rs. <%= affiliate_data[:leads].sum { |lead| lead[:commission] }.to_i.to_s.gsub(/\B(?=(\d{3})+(?!\d))/, ',') %>
                   </small>
 
                   <!-- Store affiliate data for JavaScript -->
@@ -660,7 +660,7 @@ body.modal-open {
         <div class="modal-body">
           <div class="mb-3">
             <p class="fw-bold">Affiliate: <span id="modalAffiliateName"></span></p>
-            <p class="text-muted">Amount: ₹<span id="modalAmount"></span> for <span id="modalLeadCount"></span> lead(s)</p>
+            <p class="text-muted">Amount: Rs. <span id="modalAmount"></span> for <span id="modalLeadCount"></span> lead(s)</p>
           </div>
 
           <div class="mb-3">
@@ -1055,7 +1055,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Update summary
       document.getElementById('totalLeadsCount').textContent = totalLeads;
-      document.getElementById('totalCommissionAmount').textContent = '₹' + totalCommission.toLocaleString();
+      document.getElementById('totalCommissionAmount').textContent = 'Rs. ' + totalCommission.toLocaleString();
 
       // Generate table rows
       const tableBody = document.getElementById('leadsTableBody');
@@ -1436,7 +1436,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return sum + parseFloat(lead.dataset.commission || 0);
       }, 0);
 
-      const confirmMessage = `Process payment for ${selectedLeads.length} leads?\n\nTotal Amount: ₹${totalAmount.toLocaleString()}\nTransaction ID: ${transactionId}`;
+      const confirmMessage = `Process payment for ${selectedLeads.length} leads?\n\nTotal Amount: Rs. ${totalAmount.toLocaleString()}\nTransaction ID: ${transactionId}`;
 
       if (confirm(confirmMessage)) {
         processBulkPayment(selectedLeads, transactionId, paymentDate, notes);

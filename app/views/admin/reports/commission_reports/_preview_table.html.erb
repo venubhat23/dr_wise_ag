@@ -42,13 +42,13 @@
 
             <!-- Premium -->
             <td>
-              <strong>₹<%= number_with_delimiter(policy[:premium_amount] || 0) %></strong>
+              <strong><%= indian_currency(policy[:premium_amount] || 0) %></strong>
             </td>
 
             <!-- Commission Generated -->
             <td>
               <strong class="text-success">
-                ₹<%= number_with_delimiter(policy[:total_commission] || 0) %>
+                <%= indian_currency(policy[:total_commission] || 0) %>
               </strong>
             </td>
 
@@ -56,7 +56,7 @@
             <td>
               <div>
                 <div>Main Agent:
-                  <strong>₹<%= number_with_delimiter(policy[:main_agent_amount] || 0) %></strong>
+                  <strong><%= indian_currency(policy[:main_agent_amount] || 0) %></strong>
                   <small class="text-muted">(<%= policy[:main_agent_percentage] || 0 %>%)</small>
                 </div>
                 <% if policy[:main_agent_status] == 'pending' %>
@@ -78,7 +78,7 @@
                   </span>
                 </div>
                 <div>
-                  Amount: <strong>₹<%= number_with_delimiter(policy[:paid_amount] || 0) %></strong>
+                  Amount: <strong><%= indian_currency(policy[:paid_amount] || 0) %></strong>
                 </div>
               </div>
             </td>
@@ -88,31 +88,31 @@
               <div class="small">
                 <% if policy[:affiliate_amount] && policy[:affiliate_amount] > 0 %>
                   <div>Affiliate:
-                    <strong>₹<%= number_with_delimiter(policy[:affiliate_amount]) %></strong>
+                    <strong><%= indian_currency(policy[:affiliate_amount]) %></strong>
                     <small class="text-muted">(<%= policy[:affiliate_percentage] %>%)</small>
                   </div>
                 <% end %>
                 <% if policy[:ambassador_amount] && policy[:ambassador_amount] > 0 %>
                   <div>Ambassador:
-                    <strong>₹<%= number_with_delimiter(policy[:ambassador_amount]) %></strong>
+                    <strong><%= indian_currency(policy[:ambassador_amount]) %></strong>
                     <small class="text-muted">(<%= policy[:ambassador_percentage] %>%)</small>
                   </div>
                 <% end %>
                 <% if policy[:investor_amount] && policy[:investor_amount] > 0 %>
                   <div>Investor:
-                    <strong>₹<%= number_with_delimiter(policy[:investor_amount]) %></strong>
+                    <strong><%= indian_currency(policy[:investor_amount]) %></strong>
                     <small class="text-muted">(<%= policy[:investor_percentage] %>%)</small>
                   </div>
                 <% end %>
                 <% if policy[:company_amount] && policy[:company_amount] > 0 %>
                   <div>Company:
-                    <strong>₹<%= number_with_delimiter(policy[:company_amount]) %></strong>
+                    <strong><%= indian_currency(policy[:company_amount]) %></strong>
                     <small class="text-muted">(<%= policy[:company_percentage] %>%)</small>
                   </div>
                 <% end %>
                 <% if policy[:distributor_amount] && policy[:distributor_amount] > 0 %>
                   <div>Distributor:
-                    <strong>₹<%= number_with_delimiter(policy[:distributor_amount]) %></strong>
+                    <strong><%= indian_currency(policy[:distributor_amount]) %></strong>
                     <small class="text-muted">(<%= policy[:distributor_percentage] %>%)</small>
                   </div>
                 <% end %>
@@ -134,19 +134,19 @@
       <div class="col-md-3">
         <h6 class="text-muted mb-1">Total Premium</h6>
         <h4 class="mb-0 text-primary">
-          ₹<%= number_with_delimiter(@preview_data.sum { |p| p[:premium_amount] || 0 }) %>
+          <%= indian_currency(@preview_data.sum { |p| p[:premium_amount] || 0 }) %>
         </h4>
       </div>
       <div class="col-md-3">
         <h6 class="text-muted mb-1">Total Commission</h6>
         <h4 class="mb-0 text-success">
-          ₹<%= number_with_delimiter(@preview_data.sum { |p| p[:total_commission] || 0 }) %>
+          <%= indian_currency(@preview_data.sum { |p| p[:total_commission] || 0 }) %>
         </h4>
       </div>
       <div class="col-md-3">
         <h6 class="text-muted mb-1">Total Paid</h6>
         <h4 class="mb-0 text-info">
-          ₹<%= number_with_delimiter(@preview_data.sum { |p| p[:paid_amount] || 0 }) %>
+          <%= indian_currency(@preview_data.sum { |p| p[:paid_amount] || 0 }) %>
         </h4>
       </div>
     </div>

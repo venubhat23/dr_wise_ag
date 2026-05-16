@@ -98,7 +98,7 @@
               <div class="d-flex justify-content-between">
                 <div>
                   <h6 class="text-muted mb-2">Total Premium</h6>
-                  <h3 class="mb-0 text-success">₹<%= number_with_delimiter((@total_premium || 0).round(0)) %></h3>
+                  <h3 class="mb-0 text-success"><%= indian_currency((@total_premium || 0).round(0)) %></h3>
                 </div>
                 <div class="bg-success bg-opacity-10 rounded p-3">
                   <i class="bi bi-currency-rupee fs-4 text-success"></i>
@@ -113,7 +113,7 @@
               <div class="d-flex justify-content-between">
                 <div>
                   <h6 class="text-muted mb-2">Total Sum Insured</h6>
-                  <h3 class="mb-0 text-warning">₹<%= number_with_delimiter((@total_sum_insured || 0).round(0)) %></h3>
+                  <h3 class="mb-0 text-warning"><%= indian_currency((@total_sum_insured || 0).round(0)) %></h3>
                 </div>
                 <div class="bg-warning bg-opacity-10 rounded p-3">
                   <i class="bi bi-shield-fill fs-4 text-warning"></i>
@@ -193,10 +193,10 @@
                         <small><%= policy[:end_date]&.strftime('%d/%m/%Y') || '-' %></small>
                       </td>
                       <td class="text-end">
-                        <strong class="text-success">₹<%= number_with_delimiter((policy[:premium_amount] || 0).round(0)) %></strong>
+                        <strong class="text-success"><%= indian_currency((policy[:premium_amount] || 0).round(0)) %></strong>
                       </td>
                       <td class="text-end">
-                        <span class="text-info">₹<%= number_with_delimiter((policy[:sum_insured] || 0).round(0)) %></span>
+                        <span class="text-info"><%= indian_currency((policy[:sum_insured] || 0).round(0)) %></span>
                       </td>
                       <td>
                         <% case policy[:status]&.downcase %>

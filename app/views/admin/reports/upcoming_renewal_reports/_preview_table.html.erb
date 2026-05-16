@@ -24,7 +24,7 @@
                   <%= policy[:insurance_company] %>
                 </small>
                 <small class="text-muted">
-                  Sum Insured: ₹<%= number_with_delimiter(policy[:sum_insured] || 0) %>
+                  Sum Insured: <%= indian_currency(policy[:sum_insured] || 0) %>
                 </small>
               </div>
             </td>
@@ -78,7 +78,7 @@
 
             <!-- Premium -->
             <td>
-              <strong class="text-success">₹<%= number_with_delimiter(policy[:premium_amount] || 0) %></strong>
+              <strong class="text-success"><%= indian_currency(policy[:premium_amount] || 0) %></strong>
             </td>
 
             <!-- Status -->
@@ -136,13 +136,13 @@
       <div class="col-md-3">
         <h6 class="text-muted mb-1">Total Premium</h6>
         <h4 class="mb-0 text-success">
-          ₹<%= number_with_delimiter(@preview_data.sum { |p| p[:premium_amount] || 0 }) %>
+          <%= indian_currency(@preview_data.sum { |p| p[:premium_amount] || 0 }) %>
         </h4>
       </div>
       <div class="col-md-3">
         <h6 class="text-muted mb-1">Total Sum Insured</h6>
         <h4 class="mb-0 text-info">
-          ₹<%= number_with_delimiter(@preview_data.sum { |p| p[:sum_insured] || 0 }) %>
+          <%= indian_currency(@preview_data.sum { |p| p[:sum_insured] || 0 }) %>
         </h4>
       </div>
       <div class="col-md-3">

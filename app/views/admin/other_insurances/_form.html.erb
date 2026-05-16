@@ -1293,7 +1293,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update investor after TDS display (no TDS for investor)
     const investorAfterTdsDisplay = document.getElementById('investor_after_tds_display');
     if (investorAfterTdsDisplay) {
-      investorAfterTdsDisplay.textContent = '₹' + investorAmount.toFixed(2);
+      investorAfterTdsDisplay.textContent = 'Rs. ' + investorAmount.toFixed(2);
     }
 
     // Ambassador Commission
@@ -1314,7 +1314,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update company expenses amount display
     const companyExpensesAmountDisplay = document.getElementById('company_expenses_amount');
     if (companyExpensesAmountDisplay) {
-      companyExpensesAmountDisplay.textContent = '₹' + companyExpensesAmount.toFixed(2);
+      companyExpensesAmountDisplay.textContent = 'Rs. ' + companyExpensesAmount.toFixed(2);
     }
 
     // Total Distribution & Profit
@@ -1335,12 +1335,12 @@ document.addEventListener('DOMContentLoaded', function() {
       profitPercentageDisplay.textContent = profitPercentage.toFixed(2) + '%';
     }
     if (profitAmountDisplay) {
-      profitAmountDisplay.textContent = '₹' + profitAmount.toFixed(2);
+      profitAmountDisplay.textContent = 'Rs. ' + profitAmount.toFixed(2);
     }
 
     // Format amounts with Indian currency formatting
     const formatIndianCurrency = (amount) => {
-      return '₹' + amount.toLocaleString('en-IN', {
+      return 'Rs. ' + amount.toLocaleString('en-IN', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
       });

@@ -97,7 +97,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Premium Value</h6>
-            <h3 class="mb-0 text-warning">₹<%= number_to_currency((@total_premium_value || 0).round(2), unit: '', precision: 2, delimiter: ',') %></h3>
+            <h3 class="mb-0 text-warning"><%= indian_currency((@total_premium_value || 0).round(2)) %></h3>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
             <i class="bi bi-currency-rupee text-warning fs-4"></i>
@@ -188,7 +188,7 @@
                 <td>
                   <div class="text-end">
                     <strong class="text-success d-block">
-                      ₹<%= number_to_currency((report.report_data&.dig('statistics', 'total_premium') || 0).to_f.round(2), unit: '', precision: 2, delimiter: ',') %>
+                      <%= indian_currency((report.report_data&.dig('statistics', 'total_premium') || 0).to_f.round(2)) %>
                     </strong>
                     <% total_policies = report.report_data&.dig('statistics', 'total_policies') || 0 %>
                     <% if total_policies > 0 %>

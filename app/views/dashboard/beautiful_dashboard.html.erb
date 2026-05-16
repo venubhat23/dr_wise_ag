@@ -879,9 +879,9 @@ body {
             grid: { color: 'rgba(0, 0, 0, 0.05)' },
             ticks: {
               callback: function(value) {
-                if (value > 1000000) return '₹' + (value/1000000).toFixed(1) + 'M';
-                if (value > 1000) return '₹' + (value/1000).toFixed(0) + 'K';
-                return '₹' + value;
+                if (value > 1000000) return 'Rs. ' + (value/1000000).toFixed(1) + 'M';
+                if (value > 1000) return 'Rs. ' + (value/1000).toFixed(0) + 'K';
+                return 'Rs. ' + value;
               },
               font: { weight: 'bold' }
             }
@@ -898,7 +898,7 @@ body {
         labels: Object.keys(agentData).length > 0 ? Object.keys(agentData) : Object.keys(leadData),
         datasets: [
           {
-            label: 'Agent Performance (₹)',
+            label: 'Agent Performance (Rs.)',
             data: Object.keys(agentData).length > 0 ? Object.values(agentData) : [0, 0, 0],
             backgroundColor: modernColors.blue + 'CC',
             borderColor: modernColors.blue,
@@ -941,9 +941,9 @@ body {
             grid: { color: 'rgba(0, 0, 0, 0.05)' },
             ticks: {
               callback: function(value) {
-                if (value > 1000000) return '₹' + (value/1000000).toFixed(1) + 'M';
-                if (value > 1000) return '₹' + (value/1000).toFixed(0) + 'K';
-                return '₹' + value;
+                if (value > 1000000) return 'Rs. ' + (value/1000000).toFixed(1) + 'M';
+                if (value > 1000) return 'Rs. ' + (value/1000).toFixed(0) + 'K';
+                return 'Rs. ' + value;
               }
             }
           },

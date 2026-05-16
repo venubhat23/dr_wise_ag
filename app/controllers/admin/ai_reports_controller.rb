@@ -406,10 +406,21 @@ class Admin::AiReportsController < Admin::ApplicationController
   end
 
   def format_currency(amount)
-    return "0" if amount.nil? || amount.zero?
-
-    # Convert to string and add commas
-    amount.to_i.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse
+    return "Rs. 0.00" if amount.nil? || amount.zero?
+    amount = amount.to_f
+    integer_part = amount.to_i.to_s
+    decimal_part = sprintf("%.2f", amount).split('.').last
+    reversed = integer_part.reverse
+    result = []
+    reversed.chars.each_with_index do |char, index|
+      result << char
+      if index == 2 && reversed.length > 3
+        result << ','
+      elsif index > 2 && (index - 2) % 2 == 0 && index < reversed.length - 1
+        result << ','
+      end
+    end
+    "Rs. #{result.reverse.join}.#{decimal_part}"
   end
 
   def save_report_to_history(report)

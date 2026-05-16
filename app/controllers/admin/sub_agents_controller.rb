@@ -1,6 +1,6 @@
 class Admin::SubAgentsController < Admin::ApplicationController
   include ConfigurablePagination
-  before_action :set_sub_agent, only: [:show, :edit, :update, :destroy, :documents]
+  before_action :set_sub_agent, only: [:show, :edit, :update, :destroy, :documents, :create_missing_payouts]
 
   # GET /admin/sub_agents
   def index
@@ -135,6 +135,74 @@ class Admin::SubAgentsController < Admin::ApplicationController
     @expired_policies = @all_policies.count { |p| p[:status] == 'Expired' }
     @total_premium_handled = @all_policies.sum { |p| p[:premium] || 0 }
     @unique_clients = Customer.where(sub_agent_id: @sub_agent.id).count
+  end
+
+  # POST /admin/sub_agents/1/create_missing_payouts
+  def create_missing_payouts
+    created = 0
+    skipped = 0
+    errors   = []
+
+    policy_types = [
+      [HealthInsurance, 'health'],
+      [LifeInsurance,   'life'],
+      [MotorInsurance,  'motor']
+    ]
+
+    policy_types.each do |klass, ptype|
+      policies = klass.where(sub_agent_id: @sub_agent.id)
+      policies.each do |policy|
+        already_exists = CommissionPayout.where(
+          policy_type: ptype,
+          policy_id:   policy.id,
+          payout_to:   ['affiliate', 'sub_agent']
+        ).exists?
+
+        if already_exists
+          skipped += 1
+          next
+        end
+
+        begin
+          amount = policy.try(:sub_agent_after_tds_value).presence ||
+                   policy.try(:sub_agent_commission_amount).presence ||
+                   (policy.net_premium.to_f * 0.02)
+          amount = amount.to_f
+
+          if amount <= 0
+            skipped += 1
+            next
+          end
+
+          CommissionPayout.create!(
+            policy_type:             ptype,
+            policy_id:               policy.id,
+            lead_id:                 policy.try(:lead_id),
+            payout_to:               'affiliate',
+            payout_amount:           amount.round(2),
+            payout_date:             Date.current,
+            status:                  'pending',
+            payment_mode:            'bank_transfer',
+            reference_number:        "AFF_MANUAL_#{policy.id}_#{Time.current.to_i}",
+            distribution_percentage: policy.try(:sub_agent_commission_percentage).to_f,
+            notes:                   "Affiliate commission for #{ptype} policy ##{policy.policy_number}. Created manually for missing payout.",
+            processed_by:            'admin_manual'
+          )
+          created += 1
+        rescue => e
+          errors << "#{ptype} policy ##{policy.try(:policy_number)}: #{e.message}"
+          Rails.logger.error "create_missing_payouts error: #{e.message}"
+        end
+      end
+    end
+
+    if errors.any?
+      redirect_to admin_sub_agent_path(@sub_agent),
+        alert: "Created #{created} payout(s). #{errors.count} error(s): #{errors.join('; ')}"
+    else
+      redirect_to admin_sub_agent_path(@sub_agent),
+        notice: "Done — #{created} payout(s) created, #{skipped} already existed."
+    end
   end
 
   # GET /admin/sub_agents/1/documents

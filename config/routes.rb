@@ -236,6 +236,7 @@ Rails.application.routes.draw do
         patch :activate
         get :distributor
         get :documents
+        post :create_missing_payouts
       end
       resources :sub_agent_documents, except: [:show, :index] do
         member do

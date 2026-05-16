@@ -31,11 +31,11 @@
         <span class="label">Total Policies</span>
       </div>
       <div class="summary-card">
-        <span class="number">₹<%= number_with_delimiter(@policy_data.sum { |p| p[:profit_amount] || 0 }) %></span>
+        <span class="number"><%= indian_currency(@policy_data.sum { |p| p[:profit_amount] || 0 }) %></span>
         <span class="label">Total Profit</span>
       </div>
       <div class="summary-card">
-        <span class="number">₹<%= number_with_delimiter(@policy_data.sum { |p| p[:premium_amount] || 0 }) %></span>
+        <span class="number"><%= indian_currency(@policy_data.sum { |p| p[:premium_amount] || 0 }) %></span>
         <span class="label">Total Premium</span>
       </div>
       <div class="summary-card">
@@ -57,11 +57,11 @@
                   when 'policy_holder' then 'Policy Holder'
                   when 'start_date' then 'Start Date'
                   when 'end_date' then 'End Date'
-                  when 'premium_amount' then 'Premium (₹)'
-                  when 'net_premium' then 'Net Premium (₹)'
-                  when 'profit_amount' then 'Profit (₹)'
+                  when 'premium_amount' then 'Premium (Rs.)'
+                  when 'net_premium' then 'Net Premium (Rs.)'
+                  when 'profit_amount' then 'Profit (Rs.)'
                   when 'profit_percentage' then 'Profit %'
-                  when 'company_expenses' then 'Expenses (₹)'
+                  when 'company_expenses' then 'Expenses (Rs.)'
                   when 'sub_agent_name' then 'Sub Agent'
                   when 'created_at' then 'Created Date'
                   else column.humanize
@@ -86,7 +86,7 @@
                 <% when 'start_date', 'end_date' %>
                   <%= policy[column.to_sym]&.strftime('%d/%m/%Y') || 'N/A' %>
                 <% when 'premium_amount', 'net_premium', 'profit_amount', 'company_expenses' %>
-                  ₹<%= number_with_delimiter(policy[column.to_sym] || 0) %>
+                  <%= indian_currency(policy[column.to_sym] || 0) %>
                 <% when 'profit_percentage' %>
                   <%= number_with_precision(policy[:profit_percentage] || 0, precision: 2) %>%
                 <% when 'sub_agent_name' %>

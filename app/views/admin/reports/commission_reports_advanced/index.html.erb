@@ -133,13 +133,13 @@
                         <%= commission.policy&.insurance_company_name || '-' %>
                       </td>
                       <td class="text-end">
-                        <strong class="text-success">₹<%= number_with_delimiter(commission.payout_amount.round(2)) %></strong>
+                        <strong class="text-success"><%= indian_currency(commission.payout_amount.round(2)) %></strong>
                       </td>
                       <td class="text-end">
-                        <span class="text-warning">₹<%= number_with_delimiter((commission.tds_amount || 0).round(2)) %></span>
+                        <span class="text-warning"><%= indian_currency((commission.tds_amount || 0).round(2)) %></span>
                       </td>
                       <td class="text-end">
-                        <strong class="text-primary">₹<%= number_with_delimiter(commission.net_amount.round(2)) %></strong>
+                        <strong class="text-primary"><%= indian_currency(commission.net_amount.round(2)) %></strong>
                       </td>
                       <td>
                         <% case commission.status&.downcase %>

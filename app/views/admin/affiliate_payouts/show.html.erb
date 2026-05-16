@@ -94,7 +94,7 @@
                   </div>
                 </td>
                 <td>
-                  <strong class="text-success">₹<%= lead[:commission_amount].round(2) %></strong>
+                  <strong class="text-success"><%= indian_currency(lead[:commission_amount]) %></strong>
                 </td>
                 <td>
                   <% if lead[:status] == 'paid' %>

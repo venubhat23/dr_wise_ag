@@ -1355,9 +1355,9 @@
               color: '#64748b',
               font: { weight: '600' },
               callback: function(value) {
-                if (value > 1000000) return '₹' + (value/1000000).toFixed(1) + 'M';
-                if (value > 1000) return '₹' + (value/1000).toFixed(0) + 'K';
-                return '₹' + value;
+                if (value > 1000000) return 'Rs. ' + (value/1000000).toFixed(1) + 'M';
+                if (value > 1000) return 'Rs. ' + (value/1000).toFixed(0) + 'K';
+                return 'Rs. ' + value;
               }
             }
           }
@@ -1492,9 +1492,9 @@
               color: '#64748b',
               font: { weight: '600' },
               callback: function(value) {
-                if (value > 1000000) return '₹' + (value/1000000).toFixed(1) + 'M';
-                if (value > 1000) return '₹' + (value/1000).toFixed(0) + 'K';
-                return '₹' + value;
+                if (value > 1000000) return 'Rs. ' + (value/1000000).toFixed(1) + 'M';
+                if (value > 1000) return 'Rs. ' + (value/1000).toFixed(0) + 'K';
+                return 'Rs. ' + value;
               }
             }
           },

@@ -169,7 +169,7 @@
     <div class="text-end">
       <% if @investor.invested_amount.present? && @investor.invested_amount > 0 %>
         <div style="font-size:.75rem; opacity:.65; text-transform:uppercase; letter-spacing:.5px;">Total Invested</div>
-        <div style="font-size:1.6rem; font-weight:800;">₹<%= number_with_delimiter(@investor.invested_amount.to_f.round(0)) %></div>
+        <div style="font-size:1.6rem; font-weight:800;"><%= indian_currency(@investor.invested_amount.to_f.round(0)) %></div>
       <% end %>
       <% if @investor.investment_percentage.present? && @investor.investment_percentage > 0 %>
         <div style="margin-top:.2rem; font-size:.85rem; opacity:.8;"><i class="bi bi-pie-chart me-1"></i><%= @investor.investment_percentage %>% Profit Share</div>
@@ -193,15 +193,15 @@
     <div class="kpi-lbl"><i class="bi bi-file-earmark-check me-1"></i>Direct Policies</div>
   </div>
   <div class="kpi-card" style="--c:#2980b9">
-    <div class="kpi-val" style="font-size:1.2rem;">₹<%= number_with_delimiter((@investor_commission_paid + @investor_commission_pending).round(0)) %></div>
+    <div class="kpi-val" style="font-size:1.2rem;"><%= indian_currency((@investor_commission_paid + @investor_commission_pending).round(0)) %></div>
     <div class="kpi-lbl"><i class="bi bi-cash-coin me-1"></i>Your Commission</div>
   </div>
   <div class="kpi-card" style="--c:#8e44ad">
-    <div class="kpi-val" style="font-size:1.2rem;">₹<%= number_with_delimiter((@total_ambassador_comm + @total_affiliate_comm).round(0)) %></div>
+    <div class="kpi-val" style="font-size:1.2rem;"><%= indian_currency((@total_ambassador_comm + @total_affiliate_comm).round(0)) %></div>
     <div class="kpi-lbl"><i class="bi bi-diagram-3 me-1"></i>Network Commission</div>
   </div>
   <div class="kpi-card" style="--c:#16a085">
-    <div class="kpi-val" style="font-size:1.2rem;">₹<%= number_with_delimiter(@total_direct_premium.round(0)) %></div>
+    <div class="kpi-val" style="font-size:1.2rem;"><%= indian_currency(@total_direct_premium.round(0)) %></div>
     <div class="kpi-lbl"><i class="bi bi-currency-rupee me-1"></i>Total Premium</div>
   </div>
 </div>
@@ -218,19 +218,19 @@
         <div class="col-md-4">
           <div class="p-3 rounded" style="background:#eafaf1; border:1px solid #a9dfbf;">
             <div style="font-size:.75rem; color:#27ae60; text-transform:uppercase; font-weight:600; letter-spacing:.5px;">Commission Paid</div>
-            <div style="font-size:1.6rem; font-weight:800; color:#27ae60;">₹<%= number_with_delimiter(@investor_commission_paid.round(2)) %></div>
+            <div style="font-size:1.6rem; font-weight:800; color:#27ae60;"><%= indian_currency(@investor_commission_paid.round(2)) %></div>
           </div>
         </div>
         <div class="col-md-4">
           <div class="p-3 rounded" style="background:#fef9ec; border:1px solid #f9d8a0;">
             <div style="font-size:.75rem; color:#e67e22; text-transform:uppercase; font-weight:600; letter-spacing:.5px;">Commission Pending</div>
-            <div style="font-size:1.6rem; font-weight:800; color:#e67e22;">₹<%= number_with_delimiter(@investor_commission_pending.round(2)) %></div>
+            <div style="font-size:1.6rem; font-weight:800; color:#e67e22;"><%= indian_currency(@investor_commission_pending.round(2)) %></div>
           </div>
         </div>
         <div class="col-md-4">
           <div class="p-3 rounded" style="background:#eaf4fb; border:1px solid #aed6f1;">
             <div style="font-size:.75rem; color:#2980b9; text-transform:uppercase; font-weight:600; letter-spacing:.5px;">Total Commission</div>
-            <div style="font-size:1.6rem; font-weight:800; color:#2980b9;">₹<%= number_with_delimiter((@investor_commission_paid + @investor_commission_pending).round(2)) %></div>
+            <div style="font-size:1.6rem; font-weight:800; color:#2980b9;"><%= indian_currency((@investor_commission_paid + @investor_commission_pending).round(2)) %></div>
           </div>
         </div>
       </div>
@@ -259,8 +259,8 @@
           <div class="amb-pills ms-auto">
             <span class="pill pill-blue"><i class="bi bi-file-earmark-check"></i><%= row[:policies] %> Policies</span>
             <span class="pill pill-purple"><i class="bi bi-people"></i><%= row[:affiliates_count] %> Affiliates</span>
-            <span class="pill pill-green"><i class="bi bi-check-circle"></i>Paid ₹<%= number_with_delimiter(row[:commission_paid].round(0)) %></span>
-            <span class="pill pill-orange"><i class="bi bi-hourglass-split"></i>Pending ₹<%= number_with_delimiter(row[:commission_pending].round(0)) %></span>
+            <span class="pill pill-green"><i class="bi bi-check-circle"></i>Paid <%= indian_currency(row[:commission_paid].round(0)) %></span>
+            <span class="pill pill-orange"><i class="bi bi-hourglass-split"></i>Pending <%= indian_currency(row[:commission_pending].round(0)) %></span>
           </div>
         </div>
 
@@ -273,7 +273,7 @@
               <% pct = total > 0 ? (row[:commission_paid] / total * 100).round(1) : 0 %>
               <div style="width:<%= pct %>%; background:#27ae60; height:100%; border-radius:20px; transition:width .4s;"></div>
             </div>
-            <div style="font-size:.7rem; color:#6c757d; margin-top:.2rem;"><%= pct %>% paid of ₹<%= number_with_delimiter(total.round(0)) %> total</div>
+            <div style="font-size:.7rem; color:#6c757d; margin-top:.2rem;"><%= pct %>% paid of <%= indian_currency(total.round(0)) %> total</div>
           </div>
         <% end %>
 
@@ -312,13 +312,13 @@
                         <span class="badge" style="background:#eaf4fb; color:#2980b9; border:1px solid #aed6f1;"><%= af[:policies] %></span>
                       </td>
                       <td class="text-end amount-cell <%= af[:commission_paid] > 0 ? 'paid-amt' : 'zero-amt' %>">
-                        ₹<%= number_with_delimiter(af[:commission_paid].round(2)) %>
+                        <%= indian_currency(af[:commission_paid].round(2)) %>
                       </td>
                       <td class="text-end amount-cell <%= af[:commission_pending] > 0 ? 'pending-amt' : 'zero-amt' %>">
-                        ₹<%= number_with_delimiter(af[:commission_pending].round(2)) %>
+                        <%= indian_currency(af[:commission_pending].round(2)) %>
                       </td>
                       <td class="text-end amount-cell" style="color:#2c3e7a;">
-                        ₹<%= number_with_delimiter(af[:total_commission].round(2)) %>
+                        <%= indian_currency(af[:total_commission].round(2)) %>
                       </td>
                     </tr>
                   <% end %>
@@ -326,9 +326,9 @@
                 <tfoot style="background:#f8f9ff;">
                   <tr>
                     <td colspan="4" style="font-weight:700; color:#2c3e7a;">Affiliate Totals</td>
-                    <td class="text-end paid-amt fw-bold">₹<%= number_with_delimiter(row[:affiliates].sum { |a| a[:commission_paid] }.round(2)) %></td>
-                    <td class="text-end pending-amt fw-bold">₹<%= number_with_delimiter(row[:affiliates].sum { |a| a[:commission_pending] }.round(2)) %></td>
-                    <td class="text-end fw-bold" style="color:#2c3e7a;">₹<%= number_with_delimiter(row[:affiliates].sum { |a| a[:total_commission] }.round(2)) %></td>
+                    <td class="text-end paid-amt fw-bold"><%= indian_currency(row[:affiliates].sum { |a| a[:commission_paid] }.round(2)) %></td>
+                    <td class="text-end pending-amt fw-bold"><%= indian_currency(row[:affiliates].sum { |a| a[:commission_pending] }.round(2)) %></td>
+                    <td class="text-end fw-bold" style="color:#2c3e7a;"><%= indian_currency(row[:affiliates].sum { |a| a[:total_commission] }.round(2)) %></td>
                   </tr>
                 </tfoot>
               </table>
@@ -360,21 +360,21 @@
           <tbody>
             <tr>
               <td><i class="bi bi-person-badge me-1" style="color:#2c3e7a;"></i><strong>All Ambassadors</strong></td>
-              <td class="text-end paid-amt fw-bold">₹<%= number_with_delimiter(@ambassador_rows.sum { |r| r[:commission_paid] }.round(2)) %></td>
-              <td class="text-end pending-amt fw-bold">₹<%= number_with_delimiter(@ambassador_rows.sum { |r| r[:commission_pending] }.round(2)) %></td>
-              <td class="text-end fw-bold" style="color:#2c3e7a;">₹<%= number_with_delimiter(@total_ambassador_comm.round(2)) %></td>
+              <td class="text-end paid-amt fw-bold"><%= indian_currency(@ambassador_rows.sum { |r| r[:commission_paid] }.round(2)) %></td>
+              <td class="text-end pending-amt fw-bold"><%= indian_currency(@ambassador_rows.sum { |r| r[:commission_pending] }.round(2)) %></td>
+              <td class="text-end fw-bold" style="color:#2c3e7a;"><%= indian_currency(@total_ambassador_comm.round(2)) %></td>
             </tr>
             <tr>
               <td><i class="bi bi-people me-1" style="color:#e67e22;"></i><strong>All Affiliates</strong></td>
-              <td class="text-end paid-amt fw-bold">₹<%= number_with_delimiter(@ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_paid] } }.round(2)) %></td>
-              <td class="text-end pending-amt fw-bold">₹<%= number_with_delimiter(@ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_pending] } }.round(2)) %></td>
-              <td class="text-end fw-bold" style="color:#e67e22;">₹<%= number_with_delimiter(@total_affiliate_comm.round(2)) %></td>
+              <td class="text-end paid-amt fw-bold"><%= indian_currency(@ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_paid] } }.round(2)) %></td>
+              <td class="text-end pending-amt fw-bold"><%= indian_currency(@ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_pending] } }.round(2)) %></td>
+              <td class="text-end fw-bold" style="color:#e67e22;"><%= indian_currency(@total_affiliate_comm.round(2)) %></td>
             </tr>
             <tr style="background:#f8f9ff;">
               <td><i class="bi bi-diagram-3 me-1" style="color:#8e44ad;"></i><strong>Total Network</strong></td>
-              <td class="text-end paid-amt fw-bold">₹<%= number_with_delimiter((@ambassador_rows.sum { |r| r[:commission_paid] } + @ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_paid] } }).round(2)) %></td>
-              <td class="text-end pending-amt fw-bold">₹<%= number_with_delimiter((@ambassador_rows.sum { |r| r[:commission_pending] } + @ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_pending] } }).round(2)) %></td>
-              <td class="text-end fw-bold" style="color:#8e44ad; font-size:1rem;">₹<%= number_with_delimiter((@total_ambassador_comm + @total_affiliate_comm).round(2)) %></td>
+              <td class="text-end paid-amt fw-bold"><%= indian_currency((@ambassador_rows.sum { |r| r[:commission_paid] } + @ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_paid] } }).round(2)) %></td>
+              <td class="text-end pending-amt fw-bold"><%= indian_currency((@ambassador_rows.sum { |r| r[:commission_pending] } + @ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_pending] } }).round(2)) %></td>
+              <td class="text-end fw-bold" style="color:#8e44ad; font-size:1rem;"><%= indian_currency((@total_ambassador_comm + @total_affiliate_comm).round(2)) %></td>
             </tr>
           </tbody>
         </table>
@@ -409,7 +409,7 @@
               <th>Type</th>
               <th>Customer</th>
               <th>Insurance Company</th>
-              <th class="text-end">Premium (₹)</th>
+              <th class="text-end">Premium (Rs.)</th>
               <th>Booking Date</th>
               <th>Status</th>
             </tr>
@@ -433,7 +433,7 @@
                   <%= cname %>
                 </td>
                 <td style="color:#6c757d;"><%= p.insurance_company_name.presence || '—' %></td>
-                <td class="text-end amount-cell" style="color:#16a085;">₹<%= number_with_delimiter(row[:premium].round(2)) %></td>
+                <td class="text-end amount-cell" style="color:#16a085;"><%= indian_currency(row[:premium].round(2)) %></td>
                 <td style="color:#6c757d;"><%= p.policy_booking_date&.strftime('%d %b %Y') || '—' %></td>
                 <td>
                   <% active = p.respond_to?(:active) ? p.active : (p.respond_to?(:status) ? p.status == 'active' : true) %>
@@ -447,7 +447,7 @@
           <tfoot style="background:#f8f9ff;">
             <tr>
               <td colspan="5" class="fw-bold" style="color:#16a085;">Total</td>
-              <td class="text-end fw-bold" style="color:#16a085; font-size:1rem;">₹<%= number_with_delimiter(@total_direct_premium.round(2)) %></td>
+              <td class="text-end fw-bold" style="color:#16a085; font-size:1rem;"><%= indian_currency(@total_direct_premium.round(2)) %></td>
               <td colspan="2"></td>
             </tr>
           </tfoot>

@@ -420,7 +420,7 @@
                             customer_name: policy.customer&.display_name,
                             vehicle_registration: policy.registration_number,
                             vehicle_type: policy.class_of_vehicle,
-                            premium_amount: number_to_currency(policy.total_premium, unit: '₹', precision: 0),
+                            premium_amount: number_to_currency(policy.total_premium, unit: 'Rs. ', precision: 0),
                             turbo_method: :delete,
                             turbo_confirm: false
                           },

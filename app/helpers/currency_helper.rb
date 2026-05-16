@@ -6,7 +6,7 @@ module CurrencyHelper
   # indian_currency(1000000) => "₹10,00,000"
   # indian_currency(10000000) => "₹1,00,00,000"
   def indian_currency(amount, options = {})
-    return "₹0" if amount.nil? || amount == 0
+    return "Rs. 0.00" if amount.nil? || amount == 0
 
     # Convert to float to handle both integers and strings
     amount = amount.to_f
@@ -22,12 +22,8 @@ module CurrencyHelper
     # Format integer part in Indian numbering system
     formatted_integer = format_indian_number(integer_part)
 
-    # Determine if we should show decimals
-    show_decimals = options.fetch(:show_decimals, decimal_part.to_i > 0)
-
-    # Build the result
-    result = "₹#{formatted_integer}"
-    result += ".#{decimal_part}" if show_decimals
+    # Build the result — always show 2 decimal places
+    result = "Rs. #{formatted_integer}.#{decimal_part}"
 
     # Add negative sign if needed
     result = "-#{result}" if negative
@@ -37,7 +33,7 @@ module CurrencyHelper
 
   # Formats just the number part without currency symbol
   def indian_number(amount)
-    return "0" if amount.nil? || amount == 0
+    return "0.00" if amount.nil? || amount == 0
 
     amount = amount.to_f
     negative = amount < 0
@@ -48,8 +44,7 @@ module CurrencyHelper
 
     formatted_integer = format_indian_number(integer_part)
 
-    result = formatted_integer
-    result += ".#{decimal_part}" if decimal_part.to_i > 0
+    result = "#{formatted_integer}.#{decimal_part}"
     result = "-#{result}" if negative
 
     result

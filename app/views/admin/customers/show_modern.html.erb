@@ -337,7 +337,7 @@
                       <h4><%= policy[:policy_number] %></h4>
                       <p class="company"><%= policy[:company_name] %></p>
                       <div class="policy-meta">
-                        <span class="premium">₹<%= number_with_delimiter(policy[:premium]) %></span>
+                        <span class="premium"><%= indian_currency(policy[:premium]) %></span>
                         <span class="end-date">Expires: <%= policy[:end_date]&.strftime('%d %b %Y') %></span>
                       </div>
                     </div>
