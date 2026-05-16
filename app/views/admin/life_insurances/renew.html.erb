@@ -135,12 +135,29 @@
         <!-- 2nd: Agency Code (shows Agents when Direct selected, Brokers when Broking selected) -->
         <div class="col-md-4 mb-3">
           <%= form.label :agency_code_id, "Agency Code (All Agents)*", class: "form-label" %>
-          <span class="agency-code-label-extra" id="agency_code_label_text"> (All Agents)</span>
+          <span class="agency-code-label-extra" id="agency_code_label_text">
+            <%= @renewed_policy.broker_code_type == 'broking' ? ' (All Brokers)' : ' (All Agents)' %>
+          </span>
+          <%
+            if @renewed_policy.broker_code_type == 'direct'
+              agency_options = @agency_codes.map { |ac| ["#{ac.agent_name} (#{ac.code})", ac.id, { 'data-agent-name' => ac.agent_name, 'data-agent-code' => ac.code, 'data-company-name' => ac.insurance_company_name.to_s }] }
+              selected_agency = @renewed_policy.agency_code_id
+              agency_prompt = 'Select Agency Code'
+            elsif @renewed_policy.broker_code_type == 'broking'
+              agency_options = @brokers.map { |b| ["#{b.name} (#{b.id})", "broker_#{b.id}", { 'data-broker-id' => b.id }] }
+              selected_agency = @renewed_policy.broker_id.present? ? "broker_#{@renewed_policy.broker_id}" : nil
+              agency_prompt = 'Select Broker'
+            else
+              agency_options = []
+              selected_agency = nil
+              agency_prompt = 'Select Agency Code'
+            end
+          %>
           <%= form.select :agency_code_id,
-              options_for_select([]),
-              { prompt: 'Loading...' },
+              options_for_select(agency_options, selected_agency),
+              { prompt: agency_prompt },
               { class: "form-control", id: "life_insurance_agency_code_id", required: false } %>
-          <%= form.hidden_field :broker_id, id: "broker_id_hidden" %>
+          <%= form.hidden_field :broker_id, id: "broker_id_hidden", value: @renewed_policy.broker_id %>
           <%= form.hidden_field :distributor_id, id: "distributor_id_hidden" %>
         </div>
 
@@ -1076,8 +1093,8 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Pre-load affiliate data if exists
-  var originalAffiliateId = '<%= @renewed_policy.sub_agent_id %>';
-  var originalAffiliateName = '<%= @sub_agents.find { |a| a.id.to_s == @renewed_policy.sub_agent_id.to_s }&.display_name rescue "" %>';
+  var originalAffiliateId = '<%= j(@renewed_policy.sub_agent_id.to_s) %>';
+  var originalAffiliateName = '<%= j(@sub_agents.find { |a| a.id.to_s == @renewed_policy.sub_agent_id.to_s }&.display_name || "") %>';
 
   // Initialize Select2 for Affiliate dropdown with AJAX search
   $('#affiliate_select').select2({
@@ -1953,9 +1970,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize functionality on page load - check existing values and pre-select from original policy
   if (brokerCodeTypeSelect && agencyCodeSelect && insuranceCompanySelect) {
     const currentBrokerCodeType = brokerCodeTypeSelect.value;
-    const originalAgencyCodeId = '<%= @renewed_policy.agency_code_id %>';
-    const originalBrokerId = '<%= @renewed_policy.broker_id %>';
-    const originalInsuranceCompany = '<%= @renewed_policy.insurance_company_name %>';
+    const originalAgencyCodeId = '<%= j(@renewed_policy.agency_code_id.to_s) %>';
+    const originalBrokerId = '<%= j(@renewed_policy.broker_id.to_s) %>';
+    const originalInsuranceCompany = '<%= j(@renewed_policy.insurance_company_name.to_s) %>';
 
     console.log('Initializing with original values:');
     console.log('Broker Code Type:', currentBrokerCodeType);
@@ -2031,8 +2048,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Check if broker code type should be auto-selected
     const currentBrokerCodeType = document.getElementById('life_insurance_broker_code_type')?.value;
-    const originalAgencyCodeId = '<%= @renewed_policy.agency_code_id %>';
-    const originalBrokerId = '<%= @renewed_policy.broker_id %>';
+    const originalAgencyCodeId = '<%= j(@renewed_policy.agency_code_id.to_s) %>';
+    const originalBrokerId = '<%= j(@renewed_policy.broker_id.to_s) %>';
 
     console.log('Post-init check - Broker Code Type:', currentBrokerCodeType);
     console.log('Post-init check - Agency Code ID:', originalAgencyCodeId);
