@@ -123,11 +123,46 @@ class Admin::SubAgentsController < Admin::ApplicationController
                                            @sub_agent.id, @sub_agent.id, @sub_agent.id
                                          ).order(:payout_date => :desc)
 
-    # Commission summary calculations
-    @total_commission_earned = @commission_payouts.sum(:payout_amount)
-    @paid_commission = @commission_payouts.paid.sum(:payout_amount)
-    @pending_commission = @commission_payouts.pending.sum(:payout_amount)
-    @processing_commission = @commission_payouts.processing.sum(:payout_amount)
+    # Preload policies once to avoid N+1 when computing TDS breakdowns
+    payout_records = @commission_payouts.to_a
+    preloaded_policies = {}
+    payout_records.group_by(&:policy_type).each do |ptype, ps|
+      klass = { 'health' => HealthInsurance, 'life' => LifeInsurance,
+                'motor' => MotorInsurance,   'other' => OtherInsurance }[ptype]
+      next unless klass
+      ids = ps.map(&:policy_id).uniq.compact
+      preloaded_policies[ptype] = klass.where(id: ids).index_by(&:id)
+    end
+
+    customer_ids = preloaded_policies.values
+                    .flat_map { |h| h.values.map { |p| p.try(:customer_id) } }
+                    .uniq.compact
+    customers_by_id = Customer.where(id: customer_ids).index_by(&:id)
+
+    @commission_details = payout_records.map do |payout|
+      pol      = preloaded_policies.dig(payout.policy_type, payout.policy_id)
+      customer = pol ? customers_by_id[pol.try(:customer_id)] : nil
+      gross    = pol&.try(:sub_agent_commission_amount).to_f
+      tds      = pol&.try(:sub_agent_tds_amount).to_f
+      net      = payout.payout_amount.to_f
+      gross    = net + tds if gross.zero?
+      {
+        payout: payout,
+        policy_number: pol&.policy_number || 'N/A',
+        customer_name: customer&.display_name || 'Unknown',
+        gross: gross,
+        tds: tds,
+        net: net
+      }
+    end
+
+    @total_gross_commission  = @commission_details.sum { |d| d[:gross] }
+    @total_tds_amount        = @commission_details.sum { |d| d[:tds] }
+    @total_net_commission    = @commission_details.sum { |d| d[:net] }
+    @total_commission_earned = @total_net_commission
+    @paid_commission         = @commission_details.select { |d| d[:payout].status == 'paid' }.sum { |d| d[:net] }
+    @pending_commission      = @commission_details.select { |d| d[:payout].status == 'pending' }.sum { |d| d[:net] }
+    @processing_commission   = @commission_details.select { |d| d[:payout].status == 'processing' }.sum { |d| d[:net] }
 
     # Policy summary calculations
     @total_policies = @all_policies.count

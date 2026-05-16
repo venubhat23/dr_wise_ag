@@ -587,26 +587,42 @@
     <% end %>
   </div>
   <div class="card-body">
-    <div class="row text-center mb-4">
-      <div class="col-md-3">
+    <!-- Row 1: TDS breakdown -->
+    <div class="row text-center mb-3">
+      <div class="col-md-4">
         <div class="border rounded p-3 bg-light">
-          <h4 class="text-success mb-1"><%= indian_currency(@total_commission_earned) %></h4>
-          <small class="text-muted">Total Earned</small>
+          <h4 class="text-secondary mb-1"><%= indian_currency(@total_gross_commission) %></h4>
+          <small class="text-muted">Commission Amount</small>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-4">
+        <div class="border rounded p-3 bg-light">
+          <h4 class="text-danger mb-1"><%= indian_currency(@total_tds_amount) %></h4>
+          <small class="text-muted">TDS Deducted</small>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="border rounded p-3" style="background: rgba(25,135,84,0.08);">
+          <h4 class="text-success mb-1"><%= indian_currency(@total_net_commission) %></h4>
+          <small class="text-muted">Commission After TDS</small>
+        </div>
+      </div>
+    </div>
+    <!-- Row 2: Payment status breakdown -->
+    <div class="row text-center mb-4">
+      <div class="col-md-4">
         <div class="border rounded p-3">
           <h4 class="text-primary mb-1"><%= indian_currency(@paid_commission) %></h4>
           <small class="text-muted">Paid</small>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-4">
         <div class="border rounded p-3">
           <h4 class="text-info mb-1"><%= indian_currency(@processing_commission) %></h4>
           <small class="text-muted">Processing</small>
         </div>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-4">
         <div class="border rounded p-3">
           <h4 class="text-warning mb-1"><%= indian_currency(@pending_commission) %></h4>
           <small class="text-muted">Pending</small>
@@ -614,26 +630,28 @@
       </div>
     </div>
 
-    <% if @commission_payouts.any? %>
-      <h6 class="mb-3">Recent Commission Payouts (<%= @commission_payouts.count %>)</h6>
+    <% if @commission_details.any? %>
+      <h6 class="mb-3">Recent Commission Payouts (<%= @commission_details.count %>)</h6>
       <div class="table-responsive">
+        <% visible = @commission_details.first(10) %>
         <table class="table table-hover">
           <thead class="table-light">
             <tr>
               <th>Policy Number</th>
               <th>Policy Type</th>
               <th>Customer</th>
-              <th>Commission Amount</th>
+              <th class="text-end">Commission Amount</th>
+              <th class="text-end">TDS</th>
+              <th class="text-end">After TDS</th>
               <th>Status</th>
               <th>Payout Date</th>
             </tr>
           </thead>
           <tbody>
-            <% @commission_payouts.first(10).each do |payout| %>
+            <% visible.each do |detail| %>
+              <% payout = detail[:payout] %>
               <tr>
-                <td>
-                  <strong><%= payout.policy_number %></strong>
-                </td>
+                <td><strong><%= detail[:policy_number] %></strong></td>
                 <td>
                   <span class="badge bg-<%=
                     case payout.policy_type
@@ -646,8 +664,10 @@
                     <%= payout.policy_type.humanize %> Insurance
                   </span>
                 </td>
-                <td><%= payout.customer_name %></td>
-                <td><%= indian_currency(payout.payout_amount) %></td>
+                <td><%= detail[:customer_name] %></td>
+                <td class="text-end"><%= indian_currency(detail[:gross]) %></td>
+                <td class="text-end text-danger"><%= indian_currency(detail[:tds]) %></td>
+                <td class="text-end"><strong class="text-success"><%= indian_currency(detail[:net]) %></strong></td>
                 <td>
                   <span class="badge bg-<%=
                     case payout.status
@@ -671,12 +691,21 @@
               </tr>
             <% end %>
           </tbody>
+          <tfoot class="table-secondary fw-bold">
+            <tr>
+              <td colspan="3">Total</td>
+              <td class="text-end"><%= indian_currency(visible.sum { |d| d[:gross] }) %></td>
+              <td class="text-end text-danger"><%= indian_currency(visible.sum { |d| d[:tds] }) %></td>
+              <td class="text-end text-success"><%= indian_currency(visible.sum { |d| d[:net] }) %></td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
 
-      <% if @commission_payouts.count > 10 %>
+      <% if @commission_details.count > 10 %>
         <div class="text-center mt-3">
-          <p class="text-muted">Showing 10 of <%= @commission_payouts.count %> commission payouts</p>
+          <p class="text-muted">Showing 10 of <%= @commission_details.count %> commission payouts</p>
         </div>
       <% end %>
     <% else %>
