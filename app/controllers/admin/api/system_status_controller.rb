@@ -383,7 +383,7 @@ module Admin
           [MotorInsurance,  'Motor']
         ].each do |klass, label|
           begin
-            klass.where(created_at: date_range)
+            klass.where(product_through_dr: true, created_at: date_range)
                  .includes(:customer)
                  .order(created_at: :desc)
                  .limit(200)

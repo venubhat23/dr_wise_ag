@@ -358,12 +358,12 @@ class DashboardController < ApplicationController
 
     # Add motor and other insurances if they exist
     begin
-      count += MotorInsurance.where(created_at: start_date..end_date, policy_end_date: end_date..forty_five_days_from_end).count
+      count += MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date, policy_end_date: end_date..forty_five_days_from_end).count
     rescue
     end
 
     begin
-      count += OtherInsurance.where(created_at: start_date..end_date, policy_end_date: end_date..forty_five_days_from_end).count
+      count += OtherInsurance.where(product_through_dr: true, created_at: start_date..end_date, policy_end_date: end_date..forty_five_days_from_end).count
     rescue
     end
 
@@ -438,9 +438,9 @@ class DashboardController < ApplicationController
     renewed_count = 0
 
     begin
-      renewed_count += HealthInsurance.where(created_at: start_date..end_date, policy_type: 'Renewal').count
-      renewed_count += LifeInsurance.where(created_at: start_date..end_date, policy_type: 'Renewal').count
-      renewed_count += (MotorInsurance.where(created_at: start_date..end_date, policy_type: 'Renewal').count rescue 0)
+      renewed_count += HealthInsurance.where(product_through_dr: true, created_at: start_date..end_date, policy_type: 'Renewal').count
+      renewed_count += LifeInsurance.where(product_through_dr: true, created_at: start_date..end_date, policy_type: 'Renewal').count
+      renewed_count += (MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date, policy_type: 'Renewal').count rescue 0)
     rescue => e
       Rails.logger.error "Error calculating renewal status for period: #{e.message}"
       renewed_count = 0
