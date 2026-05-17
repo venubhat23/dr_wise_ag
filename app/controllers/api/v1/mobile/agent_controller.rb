@@ -2998,11 +2998,53 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     life_sum_insured = life_policies.sum(:sum_insured) || 0
     motor_sum_insured = motor_policies.sum(:sum_insured) || 0
 
-    # Commission - gross amount before TDS, read directly from policy records
-    health_commission = health_policies.sum(:sub_agent_commission_amount) || 0
-    life_commission   = life_policies.sum(:sub_agent_commission_amount) || 0
-    motor_commission  = motor_policies.sum(:sub_agent_commission_amount) || 0
-    total_commission  = health_commission + life_commission + motor_commission
+    # Commission - sourced from CommissionPayout records (matches admin web view)
+    payout_base = CommissionPayout.where(payout_to: ['sub_agent', 'affiliate'])
+      .joins("LEFT JOIN health_insurances ON commission_payouts.policy_type = 'health' AND commission_payouts.policy_id = health_insurances.id
+              LEFT JOIN life_insurances ON commission_payouts.policy_type = 'life' AND commission_payouts.policy_id = life_insurances.id
+              LEFT JOIN motor_insurances ON commission_payouts.policy_type = 'motor' AND commission_payouts.policy_id = motor_insurances.id")
+      .where("(commission_payouts.policy_type = 'health' AND health_insurances.sub_agent_id = ?) OR
+              (commission_payouts.policy_type = 'life' AND life_insurances.sub_agent_id = ?) OR
+              (commission_payouts.policy_type = 'motor' AND motor_insurances.sub_agent_id = ?)",
+              agent.id, agent.id, agent.id)
+
+    all_payouts = payout_base.to_a
+    h_map = HealthInsurance.where(id: all_payouts.select { |p| p.policy_type == 'health' }.map(&:policy_id)).index_by(&:id)
+    l_map = LifeInsurance.where(id: all_payouts.select { |p| p.policy_type == 'life' }.map(&:policy_id)).index_by(&:id)
+    m_map = begin; MotorInsurance.where(id: all_payouts.select { |p| p.policy_type == 'motor' }.map(&:policy_id)).index_by(&:id); rescue; {}; end
+
+    health_commission = 0.0; life_commission = 0.0; motor_commission = 0.0
+    all_payouts.each do |payout|
+      case payout.policy_type
+      when 'health'
+        g = h_map[payout.policy_id]&.sub_agent_commission_amount.to_f
+        health_commission += g.zero? ? payout.payout_amount.to_f : g
+      when 'life'
+        g = l_map[payout.policy_id]&.sub_agent_commission_amount.to_f
+        life_commission += g.zero? ? payout.payout_amount.to_f : g
+      when 'motor'
+        g = m_map[payout.policy_id]&.try(:sub_agent_commission_amount).to_f
+        motor_commission += g.zero? ? payout.payout_amount.to_f : g
+      end
+    end
+    total_commission = health_commission + life_commission + motor_commission
+
+    # Monthly commission from payouts in current month
+    monthly_payouts = all_payouts.select { |p| p.payout_date && p.payout_date >= current_month_start && p.payout_date <= current_month_end }
+    monthly_commission = monthly_payouts.sum do |payout|
+      case payout.policy_type
+      when 'health'
+        g = h_map[payout.policy_id]&.sub_agent_commission_amount.to_f
+        g.zero? ? payout.payout_amount.to_f : g
+      when 'life'
+        g = l_map[payout.policy_id]&.sub_agent_commission_amount.to_f
+        g.zero? ? payout.payout_amount.to_f : g
+      when 'motor'
+        g = m_map[payout.policy_id]&.try(:sub_agent_commission_amount).to_f
+        g.zero? ? payout.payout_amount.to_f : g
+      else; 0.0
+      end
+    end
 
     # Monthly data
     monthly_health_count = health_policies.where(created_at: current_month_start..current_month_end).count
@@ -3011,10 +3053,6 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     monthly_health_premium = health_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
     monthly_life_premium = life_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
     monthly_motor_premium = motor_policies.where(created_at: current_month_start..current_month_end).sum(:total_premium) || 0
-    # Monthly commission - gross before TDS
-    monthly_commission = (health_policies.where(created_at: current_month_start..current_month_end).sum(:sub_agent_commission_amount) || 0) +
-                         (life_policies.where(created_at: current_month_start..current_month_end).sum(:sub_agent_commission_amount) || 0) +
-                         (motor_policies.where(created_at: current_month_start..current_month_end).sum(:sub_agent_commission_amount) || 0)
 
     # Get unique customer IDs for real-time count
     customer_ids = (health_policies.pluck(:customer_id) + life_policies.pluck(:customer_id) + motor_policies.pluck(:customer_id)).uniq

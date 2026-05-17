@@ -815,65 +815,66 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
   end
 
   def get_sub_agent_statistics(sub_agent)
-    # Get policies where sub-agent is involved (using sub_agent_id)
+    # Policy counts and customer counts come from policy tables directly
     health_policies = HealthInsurance.where(sub_agent_id: sub_agent.id)
-    life_policies = LifeInsurance.where(sub_agent_id: sub_agent.id)
-    motor_policies = []
-
-    begin
-      motor_policies = MotorInsurance.where(sub_agent_id: sub_agent.id) if defined?(MotorInsurance)
-    rescue => e
-      # Skip motor insurance if there's an error
-      motor_policies = []
+    life_policies   = LifeInsurance.where(sub_agent_id: sub_agent.id)
+    motor_policies  = begin
+      defined?(MotorInsurance) ? MotorInsurance.where(sub_agent_id: sub_agent.id) : []
+    rescue
+      []
     end
 
-    # Calculate commission from each policy type using actual database values
-    health_commission = health_policies.sum do |policy|
-      commission = 0.0
-      # Try multiple commission fields for HealthInsurance
-      commission = policy.sub_agent_commission_amount.to_f if policy.respond_to?(:sub_agent_commission_amount) && policy.sub_agent_commission_amount.present?
-      commission = policy.commission_amount.to_f if commission == 0.0 && policy.respond_to?(:commission_amount) && policy.commission_amount.present?
-      commission = policy.after_tds_value.to_f if commission == 0.0 && policy.respond_to?(:after_tds_value) && policy.after_tds_value.present?
-      commission = policy.main_agent_commission_amount.to_f if commission == 0.0 && policy.respond_to?(:main_agent_commission_amount) && policy.main_agent_commission_amount.present?
-      commission = calculate_health_commission(policy) if commission == 0.0
-      commission
+    total_policies = health_policies.count + life_policies.count + (motor_policies&.any? ? motor_policies.count : 0)
+    customer_ids   = health_policies.pluck(:customer_id) + life_policies.pluck(:customer_id)
+    customer_ids  += motor_policies.pluck(:customer_id) if motor_policies&.any?
+    real_customers_count = customer_ids.uniq.count
+
+    # Commission is computed from CommissionPayout records (same source as admin web view)
+    payouts = CommissionPayout.where(payout_to: ['sub_agent', 'affiliate'])
+      .joins("LEFT JOIN health_insurances ON commission_payouts.policy_type = 'health' AND commission_payouts.policy_id = health_insurances.id
+              LEFT JOIN life_insurances ON commission_payouts.policy_type = 'life' AND commission_payouts.policy_id = life_insurances.id
+              LEFT JOIN motor_insurances ON commission_payouts.policy_type = 'motor' AND commission_payouts.policy_id = motor_insurances.id")
+      .where("(commission_payouts.policy_type = 'health' AND health_insurances.sub_agent_id = ?) OR
+              (commission_payouts.policy_type = 'life' AND life_insurances.sub_agent_id = ?) OR
+              (commission_payouts.policy_type = 'motor' AND motor_insurances.sub_agent_id = ?)",
+              sub_agent.id, sub_agent.id, sub_agent.id)
+      .to_a
+
+    # Preload linked policies to read gross commission (sub_agent_commission_amount)
+    h_map = HealthInsurance.where(id: payouts.select { |p| p.policy_type == 'health' }.map(&:policy_id)).index_by(&:id)
+    l_map = LifeInsurance.where(id: payouts.select { |p| p.policy_type == 'life' }.map(&:policy_id)).index_by(&:id)
+    m_map = begin
+      MotorInsurance.where(id: payouts.select { |p| p.policy_type == 'motor' }.map(&:policy_id)).index_by(&:id)
+    rescue
+      {}
     end
 
-    life_commission = life_policies.sum do |policy|
-      commission = 0.0
-      # LifeInsurance has sub_agent_commission_amount field
-      commission = policy.sub_agent_commission_amount.to_f if policy.respond_to?(:sub_agent_commission_amount) && policy.sub_agent_commission_amount.present?
-      commission = policy.after_tds_value.to_f if commission == 0.0 && policy.respond_to?(:after_tds_value) && policy.after_tds_value.present?
-      commission = policy.commission_amount.to_f if commission == 0.0 && policy.respond_to?(:commission_amount) && policy.commission_amount.present?
-      commission = calculate_life_commission(policy) if commission == 0.0
-      commission
-    end
+    health_commission = 0.0
+    life_commission   = 0.0
+    motor_commission  = 0.0
 
-    motor_commission = 0
-    if motor_policies&.any?
-      motor_commission = motor_policies.sum do |policy|
-        commission = 0.0
-        # MotorInsurance may have different commission field names
-        commission = policy.main_agent_commission_amount.to_f if policy.respond_to?(:main_agent_commission_amount) && policy.main_agent_commission_amount.present?
-        commission = policy.commission_amount.to_f if commission == 0.0 && policy.respond_to?(:commission_amount) && policy.commission_amount.present?
-        commission = policy.after_tds_value.to_f if commission == 0.0 && policy.respond_to?(:after_tds_value) && policy.after_tds_value.present?
-        commission = calculate_motor_commission(policy) if commission == 0.0
-        commission
+    payouts.each do |payout|
+      case payout.policy_type
+      when 'health'
+        pol = h_map[payout.policy_id]
+        gross = pol&.sub_agent_commission_amount.to_f
+        gross = payout.payout_amount.to_f if gross.zero?
+        health_commission += gross
+      when 'life'
+        pol = l_map[payout.policy_id]
+        gross = pol&.sub_agent_commission_amount.to_f
+        gross = payout.payout_amount.to_f if gross.zero?
+        life_commission += gross
+      when 'motor'
+        pol = m_map[payout.policy_id]
+        gross = pol&.try(:sub_agent_commission_amount).to_f
+        gross = payout.payout_amount.to_f if gross.zero?
+        motor_commission += gross
       end
     end
 
     total_commission = health_commission + life_commission + motor_commission
-
-    # Get unique customer IDs from actual policies - this is the real-time customer count
-    customer_ids = (health_policies.pluck(:customer_id) + life_policies.pluck(:customer_id))
-    customer_ids += motor_policies.pluck(:customer_id) if motor_policies&.any?
-
-    total_policies = health_policies.count + life_policies.count
-    total_policies += motor_policies.count if motor_policies&.any?
-
-    # Use only customers who have active policies for real-time data
-    real_customers_count = customer_ids.uniq.count
-    monthly_target = 50000.0
+    monthly_target   = 50000.0
 
     {
       commission_earned: total_commission,
