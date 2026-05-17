@@ -684,13 +684,8 @@
 
     const nodeUpdate = nodeEnter.merge(node);
 
-    // Re-attach click + cursor on every update so toggling always works
-    nodeUpdate
-        .style('cursor', d => (d.children || d._children) ? 'pointer' : 'default')
-        .on('click', (event, d) => {
-          event.stopPropagation();
-          if (d.children || d._children) { toggle(d); update(); }
-        });
+    // Update cursor on every render
+    nodeUpdate.style('cursor', d => (d.children || d._children) ? 'pointer' : 'default');
 
     nodeUpdate.transition().duration(300)
         .attr('transform', d => `translate(${d.y},${d.x})`);
@@ -728,6 +723,19 @@
   // ── Init ─────────────────────────────────────────────────────────────────
   buildHierarchy(rawData);
   update();
+
+  // ── Single delegated click handler (works for both expand AND collapse) ──
+  // Using event delegation on the SVG ensures the handler always reads the
+  // freshest datum bound to the node, regardless of D3 update cycles.
+  document.getElementById('tree-svg').addEventListener('click', function(e) {
+    const nodeEl = e.target.closest('g.node');
+    if (!nodeEl) return;
+    e.stopPropagation();
+    const d = d3.select(nodeEl).datum();
+    if (!d || (!d.children && !d._children)) return;
+    toggle(d);
+    update();
+  });
 
   // ── Drag-to-scroll ───────────────────────────────────────────────────────
   const el = document.getElementById('family-tree');
