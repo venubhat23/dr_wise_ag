@@ -129,7 +129,7 @@
           <%= form.label :contact_number, "Contact Number *", class: "form-label" %>
           <%= form.telephone_field :contact_number, class: "form-control", placeholder: "9876543210 or +91 9876543210", required: true, id: "contact_number_field" %>
           <div class="invalid-feedback" id="contact_number_error">
-            Mobile number must be 10 digits starting with 7, 8, or 9
+            Mobile number must be 10 digits starting with 6, 7, 8, or 9
           </div>
         </div>
         <div class="col-md-6 mb-3">
@@ -1616,10 +1616,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Only remove 91 prefix if:
     // 1. Number has exactly 12 digits AND starts with 91
-    // 2. After removing 91, the remaining number starts with 7, 8, or 9
+    // 2. After removing 91, the remaining number starts with 6, 7, 8, or 9
     if (cleanNumber.length === 12 && cleanNumber.startsWith('91')) {
       const remainingNumber = cleanNumber.substring(2);
-      if (/^[789]/.test(remainingNumber)) {
+      if (/^[6789]/.test(remainingNumber)) {
         cleanNumber = remainingNumber;
       }
     }
@@ -1630,7 +1630,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function validateMobileNumber(input) {
     const cleanedValue = cleanMobileNumber(input.value.trim());
     const errorDiv = document.getElementById('contact_number_error');
-    const mobilePattern = /^[789]\d{9}$/;
+    const mobilePattern = /^[6789]\d{9}$/;
     const invalidPattern = /^91\d{8}$/; // Looks like incomplete +91 number
 
     if (cleanedValue === '') {
@@ -1655,7 +1655,7 @@ document.addEventListener('DOMContentLoaded', function() {
       input.classList.remove('is-valid');
       if (errorDiv) {
         errorDiv.style.display = 'block';
-        errorDiv.textContent = 'Mobile number must be 10 digits starting with 7, 8, or 9';
+        errorDiv.textContent = 'Mobile number must be 10 digits starting with 6, 7, 8, or 9';
       }
       return false;
     } else {
@@ -2044,7 +2044,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Validate mobile number format
     if (phoneField.value.trim() && !validateMobileNumber(phoneField)) {
-      errors.push('Mobile number must be 10 digits starting with 7, 8, or 9');
+      errors.push('Mobile number must be 10 digits starting with 6, 7, 8, or 9');
       isValid = false;
     }
 

@@ -43,14 +43,14 @@ class Customer < ApplicationRecord
   validates :last_name, presence: true, if: :individual?
   validates :mobile, presence: true, if: :individual?
   validates :mobile, uniqueness: true, allow_blank: true, if: :individual?
-  validates :mobile, format: { with: /\A[789]\d{9}\z/, message: "must be a valid 10-digit Indian mobile number starting with 7, 8, or 9" }, if: :individual?
+  validates :mobile, format: { with: /\A[6789]\d{9}\z/, message: "must be a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9" }, if: :individual?
   validates :birth_date, presence: true, if: :individual?
 
   # Corporate Customer Required Fields
   validates :company_name, presence: true, if: :corporate?
   validates :mobile, presence: true, if: :corporate?
   validates :mobile, uniqueness: true, allow_blank: true, if: :corporate?
-  validates :mobile, format: { with: /\A[789]\d{9}\z/, message: "must be a valid 10-digit Indian mobile number starting with 7, 8, or 9" }, if: :corporate?
+  validates :mobile, format: { with: /\A[6789]\d{9}\z/, message: "must be a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9" }, if: :corporate?
   validates :gst_no, presence: true, if: :corporate?
   validates :birth_date, presence: true, if: :corporate?
 

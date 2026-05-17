@@ -63,13 +63,13 @@ window.FormEnhancements = (function() {
         let value = e.target.value.trim();
         const digitsOnly = value.replace(/\D/g, '');
 
-        // Format Indian mobile numbers (10 digits starting with 7, 8, or 9)
-        if (digitsOnly.length === 10 && /^[789]/.test(digitsOnly)) {
+        // Format Indian mobile numbers (10 digits starting with 6, 7, 8, or 9)
+        if (digitsOnly.length === 10 && /^[6789]/.test(digitsOnly)) {
           e.target.value = '+91 ' + digitsOnly.substring(0, 5) + ' ' + digitsOnly.substring(5);
         } else if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) {
           // Handle numbers with country code (12 digits total: 91 + 10 digit mobile)
           const number = digitsOnly.substring(2);
-          if (number.length === 10 && /^[789]/.test(number)) {
+          if (number.length === 10 && /^[6789]/.test(number)) {
             e.target.value = '+91 ' + number.substring(0, 5) + ' ' + number.substring(5);
           }
         }

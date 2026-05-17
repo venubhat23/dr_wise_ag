@@ -33,8 +33,8 @@ class Distributor < ApplicationRecord
               case_sensitive: false
             }
   validates :mobile, format: {
-    with: /\A[789]\d{9}\z/,
-    message: "must be a valid 10-digit mobile number starting with 7, 8, or 9"
+    with: /\A[6789]\d{9}\z/,
+    message: "must be a valid 10-digit mobile number starting with 6, 7, 8, or 9"
   }
   validates :email, presence: true,
             uniqueness: {
@@ -170,7 +170,7 @@ class Distributor < ApplicationRecord
     if clean_mobile.length == 12 && clean_mobile.start_with?('91')
       # 91XXXXXXXXXX format - extract 10-digit part
       digits_part = clean_mobile[2..-1]
-      if digits_part.length == 10 && digits_part.match?(/\A[789]\d{9}\z/)
+      if digits_part.length == 10 && digits_part.match?(/\A[6789]\d{9}\z/)
         self.mobile = digits_part
       else
         # Invalid format, let validation handle it
@@ -179,26 +179,26 @@ class Distributor < ApplicationRecord
     elsif clean_mobile.length == 11 && clean_mobile.start_with?('0')
       # 0XXXXXXXXXX format - remove leading zero
       digits_part = clean_mobile[1..-1]
-      if digits_part.length == 10 && digits_part.match?(/\A[789]\d{9}\z/)
+      if digits_part.length == 10 && digits_part.match?(/\A[6789]\d{9}\z/)
         self.mobile = digits_part
       else
         # Invalid format, let validation handle it
         self.mobile = clean_mobile
       end
-    elsif clean_mobile.length == 10 && clean_mobile.match?(/\A[789]\d{9}\z/)
-      # XXXXXXXXXX format - valid 10 digit number starting with 7, 8, or 9
+    elsif clean_mobile.length == 10 && clean_mobile.match?(/\A[6789]\d{9}\z/)
+      # XXXXXXXXXX format - valid 10 digit number starting with 6, 7, 8, or 9
       self.mobile = clean_mobile
     elsif clean_mobile.length > 10
       # Extract last 10 digits if longer than 10
       last_ten = clean_mobile[-10..-1]
-      if last_ten.match?(/\A[789]\d{9}\z/)
+      if last_ten.match?(/\A[6789]\d{9}\z/)
         self.mobile = last_ten
       else
-        # Try to find a valid 10-digit sequence starting with 7, 8, or 9
+        # Try to find a valid 10-digit sequence starting with 6, 7, 8, or 9
         found_valid = false
         (clean_mobile.length - 9).downto(1) do |i|
           candidate = clean_mobile[i-1, 10]
-          if candidate.length == 10 && candidate.match?(/\A[789]\d{9}\z/)
+          if candidate.length == 10 && candidate.match?(/\A[6789]\d{9}\z/)
             self.mobile = candidate
             found_valid = true
             break

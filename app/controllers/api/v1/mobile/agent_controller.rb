@@ -70,6 +70,12 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
     customers = customers.includes(:documents, profile_image_attachment: :blob).active.page(page).per(per_page)
 
+    # Preload users by email/mobile to fetch original_password without N+1
+    customer_emails  = customers.map(&:email).compact
+    customer_mobiles = customers.map(&:mobile).compact
+    users_by_email  = User.where(email: customer_emails).index_by(&:email)
+    users_by_mobile = User.where(mobile: customer_mobiles).index_by(&:mobile)
+
     # Preload commission data
     payout_to_value = if is_sub_agent?(current_user) || is_affiliate?(current_user)
                         'affiliate'
@@ -113,7 +119,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         name: customer.display_name,
         mobile: customer.mobile,
         email: customer.email,
-        password: generate_demo_password(customer), # Demo password for testing
+        password: (users_by_email[customer.email] || users_by_mobile[customer.mobile])&.original_password,
         customer_type: customer.customer_type,
         status: customer.active? ? 'Active' : 'Inactive',
         policies_count: get_customer_policies_count(customer),

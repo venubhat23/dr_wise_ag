@@ -637,10 +637,10 @@ class Lead < ApplicationRecord
 
     # Only remove 91 prefix if:
     # 1. Number has exactly 12 digits AND starts with 91
-    # 2. After removing 91, the remaining number starts with 7, 8, or 9
+    # 2. After removing 91, the remaining number starts with 6, 7, 8, or 9
     if clean_number.length == 12 && clean_number.start_with?('91')
       remaining_number = clean_number[2..-1]
-      if remaining_number.match?(/\A[789]/)
+      if remaining_number.match?(/\A[6789]/)
         clean_number = remaining_number
       end
     end
@@ -653,8 +653,8 @@ class Lead < ApplicationRecord
     return if contact_number.blank?
 
     # After cleaning, validate the format
-    unless contact_number.match?(/\A[789]\d{9}\z/)
-      errors.add(:contact_number, 'Mobile number must be 10 digits starting with 7, 8, or 9')
+    unless contact_number.match?(/\A[6789]\d{9}\z/)
+      errors.add(:contact_number, 'Mobile number must be 10 digits starting with 6, 7, 8, or 9')
     end
   end
 
