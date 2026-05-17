@@ -836,7 +836,8 @@ class Admin::CustomersController < Admin::ApplicationController
 
         # Map height and weight with correct field names
         # Lead only has 'height' and 'weight' fields, map them to Customer's specific fields
-        @customer.height_feet = @lead.height
+        # Convert BigDecimal → Float → String so the value matches the dropdown option format ("5.08", not "0.508e1")
+        @customer.height_feet = @lead.height.present? ? @lead.height.to_f.to_s : nil
         @customer.weight_kg = @lead.weight
 
         @customer.education = @lead.education

@@ -643,11 +643,7 @@
 
     const nodeEnter = node.enter().append('g')
         .attr('class','node')
-        .attr('transform', d => `translate(${d.y},${d.x})`)
-        .style('cursor', d => (d.children || d._children) ? 'pointer' : 'default')
-        .on('click', (event, d) => {
-          if (d.children || d._children) { toggle(d); update(); }
-        });
+        .attr('transform', d => `translate(${d.y},${d.x})`);
 
     // Card rect
     nodeEnter.append('rect')
@@ -670,7 +666,6 @@
         .attr('x', NODE_W/2 - 10).attr('y', 4)
         .attr('text-anchor','middle')
         .style('font-size','14px')
-        .style('fill', d => COLOR[d.data.type])
         .style('font-weight','bold');
 
     // Name text
@@ -688,6 +683,15 @@
         .attr('dominant-baseline','middle');
 
     const nodeUpdate = nodeEnter.merge(node);
+
+    // Re-attach click + cursor on every update so toggling always works
+    nodeUpdate
+        .style('cursor', d => (d.children || d._children) ? 'pointer' : 'default')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          if (d.children || d._children) { toggle(d); update(); }
+        });
+
     nodeUpdate.transition().duration(300)
         .attr('transform', d => `translate(${d.y},${d.x})`);
 
@@ -696,6 +700,7 @@
         .attr('stroke', d => COLOR[d.data.type]);
 
     nodeUpdate.select('.collapse-dot')
+        .style('fill', d => COLOR[d.data.type])
         .text(d => d._children ? '▸' : (d.children && d.children.length ? '▾' : ''));
 
     nodeUpdate.select('.node-name')
