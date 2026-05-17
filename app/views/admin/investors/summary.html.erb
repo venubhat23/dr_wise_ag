@@ -475,7 +475,7 @@
         <button onclick="collapseAll()" class="btn btn-sm btn-outline-secondary" style="font-size:.75rem; padding:.2rem .7rem;">Collapse All</button>
       </div>
 
-      <div id="family-tree" style="overflow-x:auto; overflow-y:hidden;"></div>
+      <div id="family-tree" style="overflow-x:auto; overflow-y:visible; padding-bottom:8px; -webkit-overflow-scrolling:touch; cursor:grab;"></div>
     </div>
   </div>
 
@@ -526,7 +526,7 @@
   const NODE_H  = 48;
   const COL_GAP = 220;
   const ROW_GAP = 64;
-  const MARGIN  = { top:30, right:30, bottom:30, left:30 };
+  const MARGIN  = { top:30, right: NODE_W/2 + 20, bottom:30, left: NODE_W/2 + 20 };
 
   // ── SVG setup ────────────────────────────────────────────────────────────
   const container = document.getElementById('family-tree');
@@ -590,14 +590,15 @@
     // Resize SVG to fit
     const xs = nodes.map(d => d.x);
     const ys = nodes.map(d => d.y);
-    const minX = Math.min(...xs) - NODE_H / 2;
-    const maxX = Math.max(...xs) + NODE_H / 2 + 20;
-    const maxY = Math.max(...ys) + NODE_W + 40;
+    const minX = Math.min(...xs) - NODE_H;
+    const maxX = Math.max(...xs) + NODE_H + 20;
+    const minY = Math.min(...ys) - NODE_W / 2;
+    const maxY = Math.max(...ys) + NODE_W / 2 + 20;
     const svgH = maxX - minX + MARGIN.top + MARGIN.bottom;
-    const svgW = Math.max(maxY + MARGIN.left + MARGIN.right, contW);
+    const svgW = maxY - minY + MARGIN.left + MARGIN.right;
 
     svg.attr('width', svgW).attr('height', svgH);
-    g.attr('transform', `translate(${MARGIN.left},${MARGIN.top - minX})`);
+    g.attr('transform', `translate(${MARGIN.left - minY},${MARGIN.top - minX})`);
 
     // ── Links ──────────────────────────────────────────────────────────────
     const link = g.selectAll('path.link').data(links, d => d.target.id);
@@ -701,6 +702,22 @@
   // ── Init ─────────────────────────────────────────────────────────────────
   buildHierarchy(rawData);
   update();
+
+  // ── Drag-to-scroll ───────────────────────────────────────────────────────
+  const el = document.getElementById('family-tree');
+  let isDown = false, startX, scrollLeft;
+  el.addEventListener('mousedown', e => {
+    if (e.target.closest('g.node')) return; // let node clicks through
+    isDown = true; startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft;
+    el.style.cursor = 'grabbing';
+  });
+  el.addEventListener('mouseleave', () => { isDown = false; el.style.cursor = 'grab'; });
+  el.addEventListener('mouseup',    () => { isDown = false; el.style.cursor = 'grab'; });
+  el.addEventListener('mousemove',  e => {
+    if (!isDown) return;
+    e.preventDefault();
+    el.scrollLeft = scrollLeft - (e.pageX - el.offsetLeft - startX);
+  });
 })();
 </script>
 </body>
