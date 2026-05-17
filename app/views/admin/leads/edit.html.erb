@@ -686,14 +686,44 @@ document.addEventListener('DOMContentLoaded', function() {
   const corporateFields = document.getElementById('corporate_fields');
   const generalFields = document.getElementById('general_fields');
 
-  // Phone number formatting - strip country code, keep only 10 digits
-  phoneField.addEventListener('input', function() {
-    let value = this.value.replace(/\D/g, '');
-    if (value.length === 12 && value.startsWith('91')) value = value.slice(2);
-    else if (value.length === 11 && value.startsWith('0')) value = value.slice(1);
-    if (value.length > 10) value = value.slice(0, 10);
-    this.value = value;
-  });
+  // Contact number validation — accepts +91 format, validates without overwriting user input
+  function validateContactNumber(input) {
+    const mobilePattern = /^[6-9]\d{9}$/;
+    let rawValue = input.value.trim();
+    let digits = rawValue.replace(/\D/g, '');
+
+    // Strip country code prefix if present
+    if (digits.length === 13 && digits.startsWith('91')) digits = digits.slice(2);
+    else if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+    else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+
+    // Remove previous custom feedback (preserve user's formatted input — do NOT change input.value)
+    input.classList.remove('is-valid', 'is-invalid');
+    const prev = input.parentNode.querySelector('.contact-feedback');
+    if (prev) prev.remove();
+
+    if (rawValue.length === 0) return;
+
+    if (digits.length !== 10) {
+      input.classList.add('is-invalid');
+      const err = document.createElement('div');
+      err.className = 'invalid-feedback contact-feedback';
+      err.textContent = 'Mobile number must be exactly 10 digits';
+      input.parentNode.appendChild(err);
+    } else if (!mobilePattern.test(digits)) {
+      input.classList.add('is-invalid');
+      const err = document.createElement('div');
+      err.className = 'invalid-feedback contact-feedback';
+      err.textContent = 'Mobile number must start with 6, 7, 8, or 9';
+      input.parentNode.appendChild(err);
+    } else {
+      input.classList.add('is-valid');
+    }
+  }
+
+  phoneField.addEventListener('input', function() { validateContactNumber(this); });
+  phoneField.addEventListener('blur', function() { validateContactNumber(this); });
+  if (phoneField.value) validateContactNumber(phoneField);
 
   // Handle direct lead checkbox
   const directLeadCheckbox = document.getElementById('direct_lead_checkbox');

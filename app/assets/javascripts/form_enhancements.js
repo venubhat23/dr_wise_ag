@@ -52,12 +52,14 @@ window.FormEnhancements = (function() {
 
       // Format on blur (when user finishes editing) - DISABLED FOR DISTRIBUTORS AND INVESTORS
       field.addEventListener('blur', function(e) {
-        // Skip formatting for distributor and investor forms to allow clean 10-digit input
+        // Skip formatting for forms that have their own mobile validation handling
         const form = e.target.closest('form');
         const isDistributorForm = form?.action?.includes('distributors');
         const isInvestorForm = form?.action?.includes('investors');
-        if (isDistributorForm || isInvestorForm) {
-          return; // Don't add +91 formatting for distributors and investors
+        const isCustomerForm = form?.action?.includes('customers');
+        const isLeadForm = form?.action?.includes('leads');
+        if (isDistributorForm || isInvestorForm || isCustomerForm || isLeadForm) {
+          return;
         }
 
         let value = e.target.value.trim();
