@@ -1709,14 +1709,15 @@ function renderHealthPolicyTable(tableBody, policies, type) {
 // Indian number format helper — reliable across all browsers/locales
 function fmtINR(val) {
   const num = parseFloat(val || 0);
-  const [intPart, decPart] = num.toFixed(2).split('.');
+  const isNeg = num < 0;
+  const [intPart, decPart] = Math.abs(num).toFixed(2).split('.');
   let result = intPart;
   if (intPart.length > 3) {
     const last3 = intPart.slice(-3);
     const rest  = intPart.slice(0, -3);
     result = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + last3;
   }
-  return 'Rs. ' + result + '.' + decPart;
+  return (isNeg ? '-' : '') + 'Rs. ' + result + '.' + decPart;
 }
 
 // System Status Modal Functions

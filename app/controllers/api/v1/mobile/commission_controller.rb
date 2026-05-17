@@ -171,25 +171,30 @@ class Api::V1::Mobile::CommissionController < Api::V1::Mobile::BaseController
   end
 
   def calculate_commission_summary
-    # Load all payouts into memory so we can call model methods for gross amounts
+    # Load all payouts into memory so we can call model methods for gross/tds amounts
     all_payouts = get_all_sub_agent_payouts.to_a
 
     total_gross      = all_payouts.sum { |p| p.gross_commission_amount.to_f }
-    paid_gross       = all_payouts.select(&:paid?).sum       { |p| p.gross_commission_amount.to_f }
-    pending_gross    = all_payouts.select(&:pending?).sum    { |p| p.gross_commission_amount.to_f }
-    processing_gross = all_payouts.select(&:processing?).sum { |p| p.gross_commission_amount.to_f }
+    total_tds        = all_payouts.sum { |p| p.tds_amount.to_f }
+    total_net        = total_gross - total_tds
+
+    paid_net         = all_payouts.select(&:paid?).sum       { |p| p.net_amount.to_f }
+    pending_net      = all_payouts.select(&:pending?).sum    { |p| p.net_amount.to_f }
+    processing_net   = all_payouts.select(&:processing?).sum { |p| p.net_amount.to_f }
 
     {
       commission_earned:     format_currency(total_gross),
       commission_earned_raw: total_gross.round(2).to_s,
-      total_earned:          format_currency(paid_gross),
-      total_earned_raw:      paid_gross.round(2).to_s,
-      paid:                  format_currency(paid_gross),
-      paid_raw:              paid_gross.round(2).to_s,
-      pending:               format_currency(pending_gross),
-      pending_raw:           pending_gross.round(2).to_s,
-      processing:            format_currency(processing_gross),
-      processing_raw:        processing_gross.round(2).to_s,
+      total_tds_deducted:    format_currency(total_tds),
+      total_tds_deducted_raw: total_tds.round(2).to_s,
+      total_earned:          format_currency(total_net),
+      total_earned_raw:      total_net.round(2).to_s,
+      paid:                  format_currency(paid_net),
+      paid_raw:              paid_net.round(2).to_s,
+      pending:               format_currency(pending_net),
+      pending_raw:           pending_net.round(2).to_s,
+      processing:            format_currency(processing_net),
+      processing_raw:        processing_net.round(2).to_s,
       total_policies:        all_payouts.count,
       active_policies:       all_payouts.count { |p| p.status != 'cancelled' }
     }
