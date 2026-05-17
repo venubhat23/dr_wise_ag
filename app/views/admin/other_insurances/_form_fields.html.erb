@@ -338,7 +338,7 @@
                 ['Expired', 'expired'],
                 ['Cancelled', 'cancelled'],
                 ['Pending', 'pending']
-              ], @other_insurance.status || 'active'),
+              ], @other_insurance.try(:status) || 'active'),
               {},
               { class: "form-control" } %>
         </div>
