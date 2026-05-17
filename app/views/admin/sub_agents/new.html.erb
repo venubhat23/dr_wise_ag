@@ -327,12 +327,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // Add input validation for mobile number
   if (mobileInput) {
     mobileInput.addEventListener('input', function(e) {
-      // Remove non-digit characters
-      this.value = this.value.replace(/\D/g, '');
-      // Limit to 10 digits
-      if (this.value.length > 10) {
-        this.value = this.value.slice(0, 10);
-      }
+      // Remove non-digit characters and strip country code
+      let _val = this.value.replace(/\D/g, '');
+      if (_val.length === 12 && _val.startsWith('91')) _val = _val.slice(2);
+      else if (_val.length === 11 && _val.startsWith('0')) _val = _val.slice(1);
+      if (_val.length > 10) _val = _val.slice(0, 10);
+      this.value = _val;
 
       // Remove validation classes
       this.classList.remove('is-invalid', 'is-valid');

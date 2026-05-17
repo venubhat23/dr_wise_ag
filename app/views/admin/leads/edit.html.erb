@@ -686,16 +686,13 @@ document.addEventListener('DOMContentLoaded', function() {
   const corporateFields = document.getElementById('corporate_fields');
   const generalFields = document.getElementById('general_fields');
 
-  // Phone number formatting - just keep numeric digits, no +91 prefix
+  // Phone number formatting - strip country code, keep only 10 digits
   phoneField.addEventListener('input', function() {
     let value = this.value.replace(/\D/g, '');
-    // Just show the 10-digit number without any prefix
-    if (value.length <= 10) {
-      this.value = value;
-    } else {
-      // Limit to 10 digits
-      this.value = value.substring(0, 10);
-    }
+    if (value.length === 12 && value.startsWith('91')) value = value.slice(2);
+    else if (value.length === 11 && value.startsWith('0')) value = value.slice(1);
+    if (value.length > 10) value = value.slice(0, 10);
+    this.value = value;
   });
 
   // Handle direct lead checkbox

@@ -1453,14 +1453,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add input validation for mobile number
     mobileInput.addEventListener('input', function(e) {
-      // Remove non-digit characters
+      // Remove non-digit characters and strip country code
       let value = this.value.replace(/\D/g, '');
-
-      // Limit to 10 digits
-      if (value.length > 10) {
-        value = value.slice(0, 10);
-      }
-
+      if (value.length === 12 && value.startsWith('91')) value = value.slice(2);
+      else if (value.length === 11 && value.startsWith('0')) value = value.slice(1);
+      if (value.length > 10) value = value.slice(0, 10);
       this.value = value;
 
       // Remove validation classes

@@ -1404,12 +1404,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }, false);
   });
 
-  // Mobile Number Validation for Indian Numbers (7, 8, 9 starting digits)
+  // Mobile Number Validation for Indian Numbers (6, 7, 8, 9 starting digits)
   function validateMobileNumber(input) {
     const mobilePattern = /^[6789]\d{9}$/;
-    const value = input.value.replace(/\D/g, ''); // Remove non-digits
+    let value = input.value.replace(/\D/g, ''); // Remove non-digits
+    // Strip country code prefix if present
+    if (value.length === 12 && value.startsWith('91')) value = value.slice(2);
+    else if (value.length === 11 && value.startsWith('0')) value = value.slice(1);
 
-    // Auto-format the input to only contain digits
+    // Auto-format the input to only contain the clean 10 digits
     input.value = value;
 
     // Clear previous validation state
