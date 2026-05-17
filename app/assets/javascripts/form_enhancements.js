@@ -209,6 +209,15 @@ window.FormEnhancements = (function() {
 
       // Form submission validation
       form.addEventListener('submit', function(e) {
+        // Strip +91/91/0 prefix from mobile/contact fields before HTML5 pattern check
+        form.querySelectorAll('input[name*="mobile"], input[name*="contact_number"]').forEach(function(field) {
+          let v = field.value.replace(/\D/g, '');
+          if (v.length === 12 && v.startsWith('91')) v = v.slice(2);
+          else if (v.length === 13 && v.startsWith('91')) v = v.slice(2);
+          else if (v.length === 11 && v.startsWith('0')) v = v.slice(1);
+          field.value = v;
+        });
+
         if (!form.checkValidity()) {
           e.preventDefault();
           e.stopPropagation();
