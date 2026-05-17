@@ -1172,6 +1172,7 @@
   width: 280px !important;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  z-index: 9999 !important;
 }
 
 .stage-option:hover {
@@ -2060,13 +2061,15 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 /* Stage Conversion Menu Styling */
-.stage-conversion-menu {
+.stage-conversion-menu,
+.stage-dropdown-menu {
   min-width: 280px;
   max-height: 400px;
   overflow-y: auto;
   border: none !important;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.1) !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15) !important;
   border-radius: 12px !important;
+  z-index: 9999 !important;
 }
 
 .stage-conversion-menu .dropdown-header {
@@ -2386,71 +2389,24 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Fix dropdown positioning for stage conversion dropdowns
-  function adjustDropdownPosition() {
-    const dropdowns = document.querySelectorAll('.stage-dropdown-btn');
+  // Fix stage dropdowns clipped by table-responsive overflow
+  // Use Popper strategy:'fixed' so the menu renders relative to the viewport,
+  // bypassing any overflow:hidden/auto ancestor.
+  function initStageDropdowns() {
+    document.querySelectorAll('.stage-dropdown-btn').forEach(function(btn) {
+      // Destroy any existing Bootstrap Dropdown instance first
+      const existing = bootstrap.Dropdown.getInstance(btn);
+      if (existing) existing.dispose();
 
-    dropdowns.forEach(button => {
-      button.addEventListener('show.bs.dropdown', function() {
-        const dropdown = this.parentElement;
-        const menu = dropdown.querySelector('.stage-dropdown-menu');
-
-        // Reset classes
-        dropdown.classList.remove('dropup');
-
-        // Get button position relative to viewport
-        const buttonRect = button.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-
-        // Calculate available space below and above the button
-        const spaceBelow = viewportHeight - buttonRect.bottom;
-        const spaceAbove = buttonRect.top;
-
-        // If there's not enough space below (less than 300px for the dropdown),
-        // and there's more space above, use dropup
-        if (spaceBelow < 300 && spaceAbove > spaceBelow) {
-          dropdown.classList.add('dropup');
+      new bootstrap.Dropdown(btn, {
+        popperConfig: {
+          strategy: 'fixed',
+          modifiers: [{ name: 'flip', enabled: true }]
         }
       });
     });
   }
 
-  // Apply dropdown positioning fix
-  adjustDropdownPosition();
-
-  // Reapply when page content changes (for pagination, etc.)
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-      if (mutation.type === 'childList') {
-        adjustDropdownPosition();
-      }
-    });
-  });
-
-  // Observe changes to the table body
-  const tableBody = document.querySelector('tbody');
-  if (tableBody) {
-    observer.observe(tableBody, { childList: true, subtree: true });
-  }
+  initStageDropdowns();
 });
-
-// Add CSS for better dropup behavior
-const style = document.createElement('style');
-style.textContent = `
-  .dropup .dropdown-menu {
-    top: auto !important;
-    bottom: 100% !important;
-    margin-bottom: 2px !important;
-  }
-
-  .stage-dropdown-menu {
-    z-index: 1050;
-  }
-
-  .dropdown-menu {
-    border: 1px solid rgba(0, 0, 0, 0.15);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
-  }
-`;
-document.head.appendChild(style);
 </script>

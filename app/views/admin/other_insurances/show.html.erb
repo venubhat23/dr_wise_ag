@@ -140,7 +140,7 @@
 
       <div class="col-md-4 mb-3">
         <label class="form-label">Status</label>
-        <input type="text" class="form-control" value="<%= @other_insurance.status || 'Active' %>" readonly>
+        <input type="text" class="form-control" value="<%= @other_insurance.active? ? 'Active' : 'Expired' %>" readonly>
       </div>
 
       <div class="col-md-4 mb-3">
@@ -190,7 +190,7 @@
 
       <div class="col-md-4 mb-3">
         <label class="form-label">Status</label>
-        <input type="text" class="form-control" value="<%= @other_insurance.status || 'Active' %>" readonly>
+        <input type="text" class="form-control" value="<%= @other_insurance.active? ? 'Active' : 'Expired' %>" readonly>
       </div>
 
       <div class="col-md-4 mb-3">
