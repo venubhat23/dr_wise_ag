@@ -164,14 +164,13 @@ class CommissionPayout < ApplicationRecord
     end
   end
 
-  # net_amount: payout_amount IS already the after-TDS net for affiliate/sub_agent payouts;
-  # for other types where payout_amount = gross, compute gross - tds.
   def net_amount
-    case payout_to
-    when 'sub_agent', 'affiliate'
-      payout_amount || 0
+    gross = gross_commission_amount.to_f
+    tds   = tds_amount.to_f
+    if gross > 0
+      (gross - tds).round(2)
     else
-      (payout_amount || 0) - (tds_amount || 0)
+      (payout_amount || 0) - tds
     end
   end
 
