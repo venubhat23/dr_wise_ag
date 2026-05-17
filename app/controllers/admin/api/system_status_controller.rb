@@ -391,24 +391,29 @@ module Admin
               net       = p.net_premium.to_f
               main_pct  = p.try(:main_agent_commission_percentage).to_f
               main_amt  = p.try(:main_agent_commission_amount).to_f
+              # Derive gross from percentage × premium when the stored amount is missing
+              main_amt  = (net * main_pct / 100.0).round(2) if main_amt.zero? && main_pct > 0 && net > 0
               main_tds_pct = p.try(:main_agent_tds_percent).to_f.nonzero? || p.try(:tds_percentage).to_f
-              main_tds_amt = p.try(:main_agent_tds_amount).to_f.nonzero? || p.try(:tds_amount).to_f
+              main_tds_amt = p.try(:main_agent_tds_amount).to_f.nonzero? || (main_amt * main_tds_pct / 100.0).round(2)
               main_net  = p.try(:after_tds_value).to_f.nonzero? || (main_amt - main_tds_amt)
 
               aff_pct   = p.try(:sub_agent_commission_percentage).to_f
               aff_amt   = p.try(:sub_agent_commission_amount).to_f
+              aff_amt   = (net * aff_pct / 100.0).round(2) if aff_amt.zero? && aff_pct > 0 && net > 0
               aff_tds_pct = p.try(:sub_agent_tds_percentage).to_f
               aff_tds_amt = p.try(:sub_agent_tds_amount).to_f
               aff_net   = p.try(:sub_agent_after_tds_value).to_f.nonzero? || (aff_amt - aff_tds_amt)
 
               amb_pct   = p.try(:ambassador_commission_percentage).to_f
               amb_amt   = p.try(:ambassador_commission_amount).to_f
+              amb_amt   = (net * amb_pct / 100.0).round(2) if amb_amt.zero? && amb_pct > 0 && net > 0
               amb_tds_pct = p.try(:ambassador_tds_percentage).to_f
               amb_tds_amt = p.try(:ambassador_tds_amount).to_f
               amb_net   = p.try(:ambassador_after_tds_value).to_f.nonzero? || (amb_amt - amb_tds_amt)
 
               inv_pct   = p.try(:investor_commission_percentage).to_f
               inv_amt   = p.try(:investor_commission_amount).to_f
+              inv_amt   = (net * inv_pct / 100.0).round(2) if inv_amt.zero? && inv_pct > 0 && net > 0
               inv_tds_pct = p.try(:investor_tds_percentage).to_f
               inv_tds_amt = p.try(:investor_tds_amount).to_f
               inv_net   = p.try(:investor_after_tds_value).to_f.nonzero? || (inv_amt - inv_tds_amt)
@@ -416,12 +421,10 @@ module Admin
               co_pct    = p.try(:company_expenses_percentage).to_f
               co_amt    = net > 0 && co_pct > 0 ? (net * co_pct / 100.0).round(2) : 0.0
 
-              profit_pct = p.try(:profit_percentage).to_f
-              profit_amt = p.try(:profit_amount).to_f
-              if profit_amt.zero? && main_amt > 0
-                profit_amt = (main_amt - aff_amt - amb_amt - inv_amt - co_amt).round(2)
-                profit_pct = net > 0 ? (profit_amt / net * 100).round(2) : 0
-              end
+              # Always recalculate profit from live components — stored profit_amount
+              # can be wrong when main_agent_commission_amount was saved as 0
+              profit_amt = (main_amt - aff_amt - amb_amt - inv_amt - co_amt).round(2)
+              profit_pct = net > 0 ? (profit_amt / net * 100).round(2) : 0
 
               total_dist_pct = p.try(:total_distribution_percentage).to_f
 

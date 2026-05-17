@@ -985,61 +985,61 @@
   <!-- System Status -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-body py-2 px-3">
-      <div class="d-flex align-items-center gap-2 flex-nowrap overflow-auto">
-        <span class="text-muted small fw-semibold text-nowrap me-1" style="font-size:11px;letter-spacing:.5px;">
-          <i class="bi bi-gear-fill me-1"></i>SYSTEM STATUS
-        </span>
+      <div class="text-muted small fw-semibold mb-2" style="font-size:11px;letter-spacing:.5px;">
+        <i class="bi bi-gear-fill me-1"></i>SYSTEM STATUS
+      </div>
+      <div class="d-flex gap-2 flex-nowrap overflow-auto">
         <!-- Active Affiliates -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:160px;border-radius:8px;" onclick="showSystemStatusModal('active_affiliates')">
-          <div class="px-3 py-2 d-flex align-items-center gap-2">
-            <i class="bi bi-people fs-5 text-primary"></i>
-            <div>
-              <div class="fw-bold text-dark" style="font-size:1rem;line-height:1.2;"><%= number_with_delimiter(@total_affiliates) %></div>
-              <div class="text-muted" style="font-size:11px;">Active Affiliates</div>
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="showSystemStatusModal('active_affiliates')">
+          <div class="px-3 py-2 d-flex align-items-center gap-2 h-100">
+            <i class="bi bi-people fs-4 text-primary flex-shrink-0"></i>
+            <div class="overflow-hidden">
+              <div class="fw-bold text-dark text-truncate" style="font-size:1rem;line-height:1.2;"><%= number_with_delimiter(@total_affiliates) %></div>
+              <div class="text-muted text-truncate" style="font-size:11px;">Active Affiliates</div>
               <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
             </div>
           </div>
         </div>
         <!-- Avg Policy Value -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:160px;border-radius:8px;" onclick="showSystemStatusModal('avg_policy_value')">
-          <div class="px-3 py-2 d-flex align-items-center gap-2">
-            <i class="bi bi-cash-stack fs-5 text-warning"></i>
-            <div>
-              <div class="fw-bold text-dark" style="font-size:1rem;line-height:1.2;"><%= indian_currency(@avg_policy_value || 0) %></div>
-              <div class="text-muted" style="font-size:11px;">Avg Policy Value</div>
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="showSystemStatusModal('avg_policy_value')">
+          <div class="px-3 py-2 d-flex align-items-center gap-2 h-100">
+            <i class="bi bi-cash-stack fs-4 text-warning flex-shrink-0"></i>
+            <div class="overflow-hidden">
+              <div class="fw-bold text-dark text-truncate" style="font-size:1rem;line-height:1.2;"><%= indian_currency(@avg_policy_value || 0) %></div>
+              <div class="text-muted text-truncate" style="font-size:11px;">Avg Policy Value</div>
               <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
             </div>
           </div>
         </div>
         <!-- Commissions Due -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:160px;border-radius:8px;" onclick="showSystemStatusModal('commissions_due')">
-          <div class="px-3 py-2 d-flex align-items-center gap-2">
-            <i class="bi bi-wallet2 fs-5 <%= (@commissions_due || 0) > 0 ? 'text-danger' : 'text-success' %>"></i>
-            <div>
-              <div class="fw-bold text-dark" style="font-size:1rem;line-height:1.2;"><%= indian_currency(@commissions_due || 0) %></div>
-              <div class="text-muted" style="font-size:11px;">Commissions Due</div>
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="showSystemStatusModal('commissions_due')">
+          <div class="px-3 py-2 d-flex align-items-center gap-2 h-100">
+            <i class="bi bi-wallet2 fs-4 <%= (@commissions_due || 0) > 0 ? 'text-danger' : 'text-success' %> flex-shrink-0"></i>
+            <div class="overflow-hidden">
+              <div class="fw-bold text-dark text-truncate" style="font-size:1rem;line-height:1.2;"><%= indian_currency(@commissions_due || 0) %></div>
+              <div class="text-muted text-truncate" style="font-size:11px;">Commissions Due</div>
               <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
             </div>
           </div>
         </div>
         <!-- Total Leads -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:160px;border-radius:8px;" onclick="showSystemStatusModal('lead_conversion')">
-          <div class="px-3 py-2 d-flex align-items-center gap-2">
-            <i class="bi bi-person-lines-fill fs-5 text-info"></i>
-            <div>
-              <div class="fw-bold text-dark" style="font-size:1rem;line-height:1.2;"><%= number_with_delimiter(@total_leads || 0) %></div>
-              <div class="text-muted" style="font-size:11px;">Total Leads</div>
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="showSystemStatusModal('lead_conversion')">
+          <div class="px-3 py-2 d-flex align-items-center gap-2 h-100">
+            <i class="bi bi-person-lines-fill fs-4 text-info flex-shrink-0"></i>
+            <div class="overflow-hidden">
+              <div class="fw-bold text-dark text-truncate" style="font-size:1rem;line-height:1.2;"><%= number_with_delimiter(@total_leads || 0) %></div>
+              <div class="text-muted text-truncate" style="font-size:11px;">Total Leads</div>
               <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
             </div>
           </div>
         </div>
         <!-- Net Profit -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:160px;border-radius:8px;border-top:3px solid #27ae60;" onclick="showSystemStatusModal('profit')">
-          <div class="px-3 py-2 d-flex align-items-center gap-2">
-            <i class="bi bi-graph-up-arrow fs-5 text-success"></i>
-            <div>
-              <div class="fw-bold text-success" style="font-size:1rem;line-height:1.2;"><%= indian_currency(@total_profit || 0) %></div>
-              <div class="text-muted" style="font-size:11px;">Net Profit</div>
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;border-top:3px solid #27ae60;" onclick="showSystemStatusModal('profit')">
+          <div class="px-3 py-2 d-flex align-items-center gap-2 h-100">
+            <i class="bi bi-graph-up-arrow fs-4 text-success flex-shrink-0"></i>
+            <div class="overflow-hidden">
+              <div class="fw-bold text-success text-truncate" style="font-size:1rem;line-height:1.2;"><%= indian_currency(@total_profit || 0) %></div>
+              <div class="text-muted text-truncate" style="font-size:11px;">Net Profit</div>
               <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
             </div>
           </div>

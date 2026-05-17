@@ -118,7 +118,7 @@ class DashboardController < ApplicationController
     end
 
     # Create cache key based on filter parameters
-    cache_key = "dashboard_data_#{@filter_start_date}_#{@filter_end_date}_v3"
+    cache_key = "dashboard_data_#{@filter_start_date}_#{@filter_end_date}_v4"
 
     # Try to get cached data first (5 minutes cache)
     filtered_data = Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
@@ -212,6 +212,10 @@ class DashboardController < ApplicationController
     # Execute all database queries with date filtering - optimized version
     results = {}
 
+    h_dr = dr_filter(:health_insurances)
+    l_dr = dr_filter(:life_insurances)
+    m_dr = dr_filter(:motor_insurances)
+
     # Simplified count queries focusing only on created_at for better performance
     count_results = ActiveRecord::Base.connection.execute("
       SELECT 'total_customers' as metric, COUNT(*) as count FROM customers
@@ -219,19 +223,19 @@ class DashboardController < ApplicationController
       SELECT 'active_customers', COUNT(*) FROM customers WHERE status = true
       UNION ALL
       SELECT 'total_ambassadors', COUNT(*) FROM distributors
-      WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
       UNION ALL
       SELECT 'total_leads', COUNT(*) FROM leads
-      WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
       UNION ALL
       SELECT 'converted_leads', COUNT(*) FROM leads
       WHERE current_stage = 'converted' AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
       UNION ALL
       SELECT 'health_count', COUNT(*) FROM health_insurances
-      WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      WHERE TRUE #{h_dr} AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
       UNION ALL
       SELECT 'life_count', COUNT(*) FROM life_insurances
-      WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      WHERE TRUE #{l_dr} AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
     ")
 
     # Process count results
@@ -240,11 +244,11 @@ class DashboardController < ApplicationController
     end
 
     # Handle optional tables that might not exist - simplified for performance
-    results[:motor_count] = (MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date).count rescue 0)
-    results[:other_count] = (OtherInsurance.where(product_through_dr: true, created_at: start_date..end_date).count rescue 0)
+    results[:motor_count] = (dr_scope(MotorInsurance).where(created_at: start_date..end_date).count rescue 0)
+    results[:other_count] = (dr_scope(OtherInsurance).where(created_at: start_date..end_date).count rescue 0)
 
-    # Calculate active affiliates for the period - simplified for performance
-    results[:total_affiliates] = SubAgent.where(created_at: start_date..end_date).count
+    # Active affiliates = all sub-agents with at least one policy (not filtered by date)
+    results[:total_affiliates] = calculate_active_affiliates_with_policies
 
     # Calculate derived values
     results[:inactive_customers] = results[:total_customers].to_i - results[:active_customers].to_i
@@ -258,10 +262,10 @@ class DashboardController < ApplicationController
         COALESCE(SUM(sum_insured), 0) as total_sum_insured
       FROM (
         SELECT total_premium, sum_insured FROM health_insurances
-        WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+        WHERE TRUE #{h_dr} AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
         UNION ALL
         SELECT total_premium, sum_insured FROM life_insurances
-        WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+        WHERE TRUE #{l_dr} AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
       ) as combined_insurance
     ").first
 
@@ -270,7 +274,7 @@ class DashboardController < ApplicationController
 
     # Add motor insurance for the period if table exists - simplified for performance
     begin
-      motor_data = MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date)
+      motor_data = dr_scope(MotorInsurance).where(created_at: start_date..end_date)
                                 .select('COALESCE(SUM(total_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
       results[:total_premium_collected] += motor_data.premium.to_f if motor_data
       results[:total_sum_insured] += motor_data.sum.to_f if motor_data
@@ -315,13 +319,13 @@ class DashboardController < ApplicationController
       profit_result = ActiveRecord::Base.connection.execute("
         SELECT COALESCE(SUM(profit_amount), 0) as total_profit FROM (
           SELECT profit_amount FROM health_insurances
-            WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+            WHERE TRUE #{h_dr} AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
           UNION ALL
           SELECT profit_amount FROM life_insurances
-            WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+            WHERE TRUE #{l_dr} AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
           UNION ALL
           SELECT profit_amount FROM motor_insurances
-            WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+            WHERE TRUE #{m_dr} AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
         ) AS p
       ").first
       results[:total_profit] = (profit_result['total_profit'] || 0).to_f
@@ -342,87 +346,71 @@ class DashboardController < ApplicationController
   # Helper methods for filtered data
   def get_renewal_due_count_for_period(start_date, end_date)
     forty_five_days_from_end = end_date + 45.days
+    h_dr = dr_filter(:health_insurances)
+    l_dr = dr_filter(:life_insurances)
 
-    # Use direct SQL interpolation instead of bound parameters to avoid array issues
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{forty_five_days_from_end}'
+        SELECT id FROM health_insurances WHERE TRUE #{h_dr} AND created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{forty_five_days_from_end}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{forty_five_days_from_end}'
+        SELECT id FROM life_insurances WHERE TRUE #{l_dr} AND created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{forty_five_days_from_end}'
       ) as renewals
     "
 
-    result = ActiveRecord::Base.connection.execute(sql)
-
-    count = result.first['count'].to_i
-
-    # Add motor and other insurances if they exist
-    begin
-      count += MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date, policy_end_date: end_date..forty_five_days_from_end).count
-    rescue
-    end
+    count = ActiveRecord::Base.connection.execute(sql).first['count'].to_i
 
     begin
-      count += OtherInsurance.where(product_through_dr: true, created_at: start_date..end_date, policy_end_date: end_date..forty_five_days_from_end).count
-    rescue
-    end
+      count += dr_scope(MotorInsurance).where(created_at: start_date..end_date, policy_end_date: end_date..forty_five_days_from_end).count
+    rescue; end
+
+    begin
+      count += dr_scope(OtherInsurance).where(created_at: start_date..end_date, policy_end_date: end_date..forty_five_days_from_end).count
+    rescue; end
 
     count
   end
 
   def get_expired_policies_count_for_period(start_date, end_date)
-    # Use direct SQL interpolation instead of bound parameters to avoid array issues
+    h_dr = dr_filter(:health_insurances)
+    l_dr = dr_filter(:life_insurances)
+
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date < '#{end_date}'
+        SELECT id FROM health_insurances WHERE TRUE #{h_dr} AND created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date < '#{end_date}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date < '#{end_date}'
+        SELECT id FROM life_insurances WHERE TRUE #{l_dr} AND created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date < '#{end_date}'
       ) as expired
     "
 
-    result = ActiveRecord::Base.connection.execute(sql)
-
-    count = result.first['count'].to_i
-
-    # Add motor and other insurances if they exist
-    begin
-      count += MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date).where('policy_end_date < ?', end_date).count
-    rescue
-    end
+    count = ActiveRecord::Base.connection.execute(sql).first['count'].to_i
 
     begin
-      count += OtherInsurance.where(product_through_dr: true, created_at: start_date..end_date).where('policy_end_date < ?', end_date).count
-    rescue
-    end
+      count += dr_scope(MotorInsurance).where(created_at: start_date..end_date).where('policy_end_date < ?', end_date).count
+    rescue; end
+
+    begin
+      count += dr_scope(OtherInsurance).where(created_at: start_date..end_date).where('policy_end_date < ?', end_date).count
+    rescue; end
 
     count
   end
 
   def get_optimized_payout_data_for_period(start_date, end_date)
-    commission_data = CommissionPayout
-      .where(created_at: start_date..end_date)
-      .group(:status)
-      .sum(:payout_amount)
-
-    commission_pending = commission_data['pending'] || 0
-    commission_paid = commission_data['paid'] || 0
-    commission_total = CommissionPayout.where(created_at: start_date..end_date).sum(:payout_amount) || 0
+    # Show all pending commissions regardless of date (pending = still owed)
+    # Paid/total filtered by payout_date for the period
+    commission_pending = CommissionPayout.where(status: 'pending').sum(:payout_amount) || 0
+    commission_paid    = CommissionPayout.where(status: 'paid', payout_date: start_date..end_date).sum(:payout_amount) || 0
+    commission_total   = CommissionPayout.where(payout_date: start_date..end_date).sum(:payout_amount) || 0
 
     distributor_pending = 0
-    distributor_paid = 0
-    distributor_total = 0
+    distributor_paid    = 0
+    distributor_total   = 0
 
-    # Check if distributor payouts exist
     begin
       if ActiveRecord::Base.connection.table_exists?('distributor_payouts')
-        distributor_data = DistributorPayout
-          .where(created_at: start_date..end_date)
-          .group(:status)
-          .sum(:payout_amount)
-
-        distributor_pending = distributor_data['pending'] || 0
-        distributor_paid = distributor_data['paid'] || 0
-        distributor_total = DistributorPayout.where(created_at: start_date..end_date).sum(:payout_amount) || 0
+        distributor_pending = DistributorPayout.where(status: 'pending').sum(:payout_amount) || 0
+        distributor_paid    = DistributorPayout.where(status: 'paid', payout_date: start_date..end_date).sum(:payout_amount) || 0
+        distributor_total   = DistributorPayout.where(payout_date: start_date..end_date).sum(:payout_amount) || 0
       end
     rescue
     end
@@ -438,9 +426,9 @@ class DashboardController < ApplicationController
     renewed_count = 0
 
     begin
-      renewed_count += HealthInsurance.where(product_through_dr: true, created_at: start_date..end_date, policy_type: 'Renewal').count
-      renewed_count += LifeInsurance.where(product_through_dr: true, created_at: start_date..end_date, policy_type: 'Renewal').count
-      renewed_count += (MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date, policy_type: 'Renewal').count rescue 0)
+      renewed_count += dr_scope(HealthInsurance).where(created_at: start_date..end_date, policy_type: 'Renewal').count
+      renewed_count += dr_scope(LifeInsurance).where(created_at: start_date..end_date, policy_type: 'Renewal').count
+      renewed_count += (dr_scope(MotorInsurance).where(created_at: start_date..end_date, policy_type: 'Renewal').count rescue 0)
     rescue => e
       Rails.logger.error "Error calculating renewal status for period: #{e.message}"
       renewed_count = 0
@@ -883,28 +871,45 @@ class DashboardController < ApplicationController
 
   private
 
+  # Returns "AND product_through_dr = true" only when the column actually exists in the given table.
+  # Falls back to "AND TRUE" so queries stay valid even before the migration runs.
+  def dr_filter(table = :health_insurances)
+    conn = ActiveRecord::Base.connection
+    conn.column_exists?(table, :product_through_dr) ? "AND product_through_dr = true" : "AND TRUE"
+  rescue
+    "AND TRUE"
+  end
+
+  # Whether product_through_dr exists on a given ActiveRecord model (for .where usage)
+  def dr_scope(model)
+    conn = ActiveRecord::Base.connection
+    conn.column_exists?(model.table_name, :product_through_dr) ? model.where(product_through_dr: true) : model.all
+  rescue
+    model.all
+  end
+
   def get_policies_count_for_period(start_date, end_date)
-    health = HealthInsurance.where(product_through_dr: true, created_at: start_date..end_date).count
-    life = LifeInsurance.where(product_through_dr: true, created_at: start_date..end_date).count
-    motor = (MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date).count rescue 0)
-    other = (OtherInsurance.where(product_through_dr: true, created_at: start_date..end_date).count rescue 0)
+    health = dr_scope(HealthInsurance).where(created_at: start_date..end_date).count
+    life   = dr_scope(LifeInsurance).where(created_at: start_date..end_date).count
+    motor  = (dr_scope(MotorInsurance).where(created_at: start_date..end_date).count rescue 0)
+    other  = (dr_scope(OtherInsurance).where(created_at: start_date..end_date).count rescue 0)
     health + life + motor + other
   end
 
   def get_premium_for_period(start_date, end_date)
-    health = HealthInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:total_premium) || 0
-    life = LifeInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:total_premium) || 0
-    motor = (MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:total_premium) rescue 0)
+    health = dr_scope(HealthInsurance).where(created_at: start_date..end_date).sum(:total_premium) || 0
+    life   = dr_scope(LifeInsurance).where(created_at: start_date..end_date).sum(:total_premium) || 0
+    motor  = (dr_scope(MotorInsurance).where(created_at: start_date..end_date).sum(:total_premium) rescue 0)
     health + life + motor
   end
 
   def get_renewals_count_for_period(start_date, end_date)
     forty_five_days_ahead = end_date + 45.days
-    health = HealthInsurance.where(product_through_dr: true, created_at: start_date..end_date)
+    health = dr_scope(HealthInsurance).where(created_at: start_date..end_date)
                            .where('policy_end_date BETWEEN ? AND ?', end_date, forty_five_days_ahead).count
-    life = LifeInsurance.where(product_through_dr: true, created_at: start_date..end_date)
+    life   = dr_scope(LifeInsurance).where(created_at: start_date..end_date)
                         .where('policy_end_date BETWEEN ? AND ?', end_date, forty_five_days_ahead).count
-    motor = (MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date)
+    motor  = (dr_scope(MotorInsurance).where(created_at: start_date..end_date)
                           .where('policy_end_date BETWEEN ? AND ?', end_date, forty_five_days_ahead).count rescue 0)
     health + life + motor
   end
@@ -916,9 +921,9 @@ class DashboardController < ApplicationController
   end
 
   def get_sum_insured_for_period(start_date, end_date)
-    health = HealthInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:sum_insured) || 0
-    life = LifeInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:sum_insured) || 0
-    motor = (MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:sum_insured) rescue 0)
+    health = dr_scope(HealthInsurance).where(created_at: start_date..end_date).sum(:sum_insured) || 0
+    life   = dr_scope(LifeInsurance).where(created_at: start_date..end_date).sum(:sum_insured) || 0
+    motor  = (dr_scope(MotorInsurance).where(created_at: start_date..end_date).sum(:sum_insured) rescue 0)
     health + life + motor
   end
 
