@@ -457,6 +457,28 @@
     </div>
   </div>
 
+  <!-- ══════════════════ NETWORK FAMILY TREE ══════════════════ -->
+  <div class="policy-section mb-4">
+    <div class="sec-title d-flex align-items-center gap-2" style="--c:#1a2550;">
+      <i class="bi bi-diagram-3-fill"></i> Network Family Tree
+      <small style="font-size:.75rem; font-weight:400; opacity:.8;">Click any node to expand / collapse</small>
+    </div>
+    <div class="sec-body" style="padding:1.2rem 0;">
+
+      <!-- Legend -->
+      <div class="d-flex gap-3 flex-wrap px-3 mb-3" style="font-size:.78rem;">
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#2c3e7a;margin-right:5px;"></span>Investor</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#8e44ad;margin-right:5px;"></span>Ambassador</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#e67e22;margin-right:5px;"></span>Affiliate</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#27ae60;margin-right:5px;"></span>Customer</span>
+        <button onclick="expandAll()" class="btn btn-sm btn-outline-secondary ms-auto" style="font-size:.75rem; padding:.2rem .7rem;">Expand All</button>
+        <button onclick="collapseAll()" class="btn btn-sm btn-outline-secondary" style="font-size:.75rem; padding:.2rem .7rem;">Collapse All</button>
+      </div>
+
+      <div id="family-tree" style="overflow-x:auto; overflow-y:hidden;"></div>
+    </div>
+  </div>
+
 </div><!-- /container -->
 
 <button class="print-btn" onclick="window.print()">
@@ -464,5 +486,222 @@
 </button>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script>
+(function() {
+  // ── Build tree data from Rails ──────────────────────────────────────────
+  const rawData = {
+    name: <%= @investor.display_name.to_json.html_safe %>,
+    type: "investor",
+    sub: "<%= @total_ambassadors %> Ambassador<%= @total_ambassadors == 1 ? '' : 's' %> · <%= @total_affiliates %> Affiliate<%= @total_affiliates == 1 ? '' : 's' %>",
+    children: [
+      <% @ambassador_rows.each do |row| %>
+      {
+        name: <%= row[:name].to_json.html_safe %>,
+        type: "ambassador",
+        sub: "<%= row[:affiliates_count] %> affiliate<%= row[:affiliates_count] == 1 ? '' : 's' %> · <%= row[:policies] %> polic<%= row[:policies] == 1 ? 'y' : 'ies' %>",
+        children: [
+          <% row[:affiliates].each do |af| %>
+          {
+            name: <%= af[:name].to_json.html_safe %>,
+            type: "affiliate",
+            sub: "<%= af[:policies] %> polic<%= af[:policies] == 1 ? 'y' : 'ies' %>",
+            children: [
+              <% af[:policy_rows].map { |pr| pr[:customer_name] }.uniq.compact.reject { |c| c.blank? || c == 'N/A' || c == 'Unknown' }.each do |cust| %>
+              { name: <%= cust.to_json.html_safe %>, type: "customer", sub: "", children: [] },
+              <% end %>
+            ]
+          },
+          <% end %>
+        ]
+      },
+      <% end %>
+    ]
+  };
+
+  // ── Config ───────────────────────────────────────────────────────────────
+  const COLOR   = { investor:'#2c3e7a', ambassador:'#8e44ad', affiliate:'#e67e22', customer:'#27ae60' };
+  const BGFILL  = { investor:'#eaf0fb', ambassador:'#f5eef8', affiliate:'#fef6ec', customer:'#eafaf1' };
+  const NODE_W  = 160;
+  const NODE_H  = 48;
+  const COL_GAP = 220;
+  const ROW_GAP = 64;
+  const MARGIN  = { top:30, right:30, bottom:30, left:30 };
+
+  // ── SVG setup ────────────────────────────────────────────────────────────
+  const container = document.getElementById('family-tree');
+  const contW = Math.max(container.offsetWidth || 1100, 900);
+
+  const svg = d3.select('#family-tree').append('svg')
+      .attr('id', 'tree-svg')
+      .style('font-family', "'Segoe UI', sans-serif");
+
+  const g = svg.append('g').attr('transform', `translate(${MARGIN.left},${MARGIN.top})`);
+
+  // Defs: arrow marker
+  svg.append('defs').append('marker')
+      .attr('id','arrow').attr('viewBox','0 -5 10 10')
+      .attr('refX',8).attr('refY',0)
+      .attr('markerWidth',6).attr('markerHeight',6)
+      .attr('orient','auto')
+    .append('path').attr('d','M0,-5L10,0L0,5').attr('fill','#b0bec5');
+
+  let nodeIdCounter = 0;
+  let root;
+
+  function buildHierarchy(data) {
+    root = d3.hierarchy(data, d => d.children && d.children.length ? d.children : null);
+    root.x0 = 0; root.y0 = 0;
+    root.each(d => { d.id = ++nodeIdCounter; });
+    // Start with customers collapsed
+    root.children && root.children.forEach(d => {
+      d.children && d.children.forEach(af => {
+        if (af.children && af.children.length > 6) {
+          af._children = af.children;
+          af.children = null;
+        }
+      });
+    });
+    return root;
+  }
+
+  function toggle(d) {
+    if (d.children) { d._children = d.children; d.children = null; }
+    else             { d.children = d._children; d._children = null; }
+  }
+
+  window.expandAll = function() {
+    root.each(d => { if (d._children) { d.children = d._children; d._children = null; } });
+    update();
+  };
+  window.collapseAll = function() {
+    root.each(d => { if (d.children && d.depth > 0) { d._children = d.children; d.children = null; } });
+    update();
+  };
+
+  function update() {
+    // Compute tree layout
+    const treeLayout = d3.tree().nodeSize([ROW_GAP, COL_GAP]);
+    treeLayout(root);
+
+    const nodes = root.descendants();
+    const links = root.links();
+
+    // Resize SVG to fit
+    const xs = nodes.map(d => d.x);
+    const ys = nodes.map(d => d.y);
+    const minX = Math.min(...xs) - NODE_H / 2;
+    const maxX = Math.max(...xs) + NODE_H / 2 + 20;
+    const maxY = Math.max(...ys) + NODE_W + 40;
+    const svgH = maxX - minX + MARGIN.top + MARGIN.bottom;
+    const svgW = Math.max(maxY + MARGIN.left + MARGIN.right, contW);
+
+    svg.attr('width', svgW).attr('height', svgH);
+    g.attr('transform', `translate(${MARGIN.left},${MARGIN.top - minX})`);
+
+    // ── Links ──────────────────────────────────────────────────────────────
+    const link = g.selectAll('path.link').data(links, d => d.target.id);
+
+    link.enter().append('path')
+        .attr('class','link')
+        .attr('fill','none')
+        .attr('stroke','#b0bec5')
+        .attr('stroke-width', 1.5)
+        .attr('marker-end','url(#arrow)')
+        .attr('d', d => stepPath(d.source, d.target))
+      .merge(link)
+        .transition().duration(300)
+        .attr('d', d => stepPath(d.source, d.target));
+
+    link.exit().transition().duration(300)
+        .attr('opacity',0).remove();
+
+    // ── Nodes ──────────────────────────────────────────────────────────────
+    const node = g.selectAll('g.node').data(nodes, d => d.id);
+
+    const nodeEnter = node.enter().append('g')
+        .attr('class','node')
+        .attr('transform', d => `translate(${d.y},${d.x})`)
+        .style('cursor', d => (d.children || d._children) ? 'pointer' : 'default')
+        .on('click', (event, d) => {
+          if (d.children || d._children) { toggle(d); update(); }
+        });
+
+    // Card rect
+    nodeEnter.append('rect')
+        .attr('x', -NODE_W/2).attr('y', -NODE_H/2)
+        .attr('width', NODE_W).attr('height', NODE_H)
+        .attr('rx', 8).attr('ry', 8)
+        .attr('fill', d => BGFILL[d.data.type])
+        .attr('stroke', d => COLOR[d.data.type])
+        .attr('stroke-width', 2);
+
+    // Left accent bar
+    nodeEnter.append('rect')
+        .attr('x', -NODE_W/2).attr('y', -NODE_H/2)
+        .attr('width', 4).attr('height', NODE_H)
+        .attr('rx', 2).attr('fill', d => COLOR[d.data.type]);
+
+    // Collapse indicator
+    nodeEnter.append('text')
+        .attr('class','collapse-dot')
+        .attr('x', NODE_W/2 - 10).attr('y', 4)
+        .attr('text-anchor','middle')
+        .style('font-size','14px')
+        .style('fill', d => COLOR[d.data.type])
+        .style('font-weight','bold');
+
+    // Name text
+    nodeEnter.append('text')
+        .attr('class','node-name')
+        .attr('x', -NODE_W/2 + 14).attr('y', -8)
+        .style('font-size','11px').style('font-weight','700')
+        .attr('dominant-baseline','middle');
+
+    // Sub text
+    nodeEnter.append('text')
+        .attr('class','node-sub')
+        .attr('x', -NODE_W/2 + 14).attr('y', 10)
+        .style('font-size','9.5px')
+        .attr('dominant-baseline','middle');
+
+    const nodeUpdate = nodeEnter.merge(node);
+    nodeUpdate.transition().duration(300)
+        .attr('transform', d => `translate(${d.y},${d.x})`);
+
+    nodeUpdate.select('rect:first-of-type')
+        .attr('fill', d => BGFILL[d.data.type])
+        .attr('stroke', d => COLOR[d.data.type]);
+
+    nodeUpdate.select('.collapse-dot')
+        .text(d => d._children ? '▸' : (d.children && d.children.length ? '▾' : ''));
+
+    nodeUpdate.select('.node-name')
+        .attr('fill', d => COLOR[d.data.type])
+        .text(d => {
+          const max = 18;
+          return d.data.name.length > max ? d.data.name.slice(0, max) + '…' : d.data.name;
+        });
+
+    nodeUpdate.select('.node-sub')
+        .attr('fill','#6c757d')
+        .text(d => d.data.sub || '');
+
+    node.exit().transition().duration(300)
+        .attr('opacity',0).remove();
+  }
+
+  // Elbow / step connector
+  function stepPath(s, t) {
+    const mx = (s.y + NODE_W/2 + t.y - NODE_W/2) / 2;
+    return `M${s.y + NODE_W/2},${s.x}
+            C${mx},${s.x} ${mx},${t.x} ${t.y - NODE_W/2 - 6},${t.x}`;
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  buildHierarchy(rawData);
+  update();
+})();
+</script>
 </body>
 </html>

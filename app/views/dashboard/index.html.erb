@@ -990,7 +990,7 @@
           <i class="bi bi-gear-fill me-1"></i>SYSTEM STATUS
         </span>
         <!-- Active Affiliates -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:130px;border-radius:8px;" onclick="showSystemStatusModal('active_affiliates')">
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:160px;border-radius:8px;" onclick="showSystemStatusModal('active_affiliates')">
           <div class="px-3 py-2 d-flex align-items-center gap-2">
             <i class="bi bi-people fs-5 text-primary"></i>
             <div>
@@ -1023,12 +1023,13 @@
           </div>
         </div>
         <!-- Total Leads -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:120px;border-radius:8px;" onclick="showSystemStatusModal('lead_conversion')">
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:160px;border-radius:8px;" onclick="showSystemStatusModal('lead_conversion')">
           <div class="px-3 py-2 d-flex align-items-center gap-2">
             <i class="bi bi-person-lines-fill fs-5 text-info"></i>
             <div>
               <div class="fw-bold text-dark" style="font-size:1rem;line-height:1.2;"><%= number_with_delimiter(@total_leads || 0) %></div>
               <div class="text-muted" style="font-size:11px;">Total Leads</div>
+              <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
             </div>
           </div>
         </div>
