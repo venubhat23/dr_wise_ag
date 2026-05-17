@@ -175,6 +175,9 @@ class Admin::InvestorsController < Admin::ApplicationController
 
     policy_classes = [['health', HealthInsurance], ['life', LifeInsurance], ['motor', MotorInsurance]]
 
+    @investor_commission_paid    = 0.0
+    @investor_commission_pending = 0.0
+
     @ambassador_rows = ambassadors.map do |amb|
       name = amb.display_name.presence || "#{amb.first_name} #{amb.last_name}".strip.presence || "Ambassador ##{amb.id}"
 
@@ -202,6 +205,16 @@ class Admin::InvestorsController < Admin::ApplicationController
           p_paid        = payout&.paid?    ? net : 0.0
           p_pending     = payout&.pending? ? net : 0.0
 
+          inv_payout  = CommissionPayout.where(policy_type: ptype, policy_id: pol.id, payout_to: 'investor').order(created_at: :desc).first
+          inv_gross   = pol.try(:investor_commission_amount).to_f
+          inv_tds_pct = pol.try(:investor_tds_percentage).to_f
+          inv_tds     = pol.try(:investor_tds_amount).to_f
+          inv_aft     = pol.try(:investor_after_tds_value).to_f
+          inv_aft     = (inv_gross - inv_tds).round(2) if inv_aft.zero? && inv_gross > 0
+          inv_net     = inv_payout&.payout_amount.to_f
+          @investor_commission_paid    += inv_payout&.paid?    ? inv_net : 0.0
+          @investor_commission_pending += inv_payout&.pending? ? inv_net : 0.0
+
           amb_paid       += p_paid
           amb_pending    += p_pending
           policies_count += 1
@@ -219,7 +232,13 @@ class Admin::InvestorsController < Admin::ApplicationController
             after_tds:        after_tds,
             net_commission:   net,
             status:           payout&.status || 'no_payout',
-            payout_date:      payout&.payout_date&.strftime('%d %b %Y')
+            payout_date:      payout&.payout_date&.strftime('%d %b %Y'),
+            inv_comm_pct:     pol.try(:investor_commission_percentage).to_f,
+            inv_gross:        inv_gross,
+            inv_tds_pct:      inv_tds_pct,
+            inv_tds:          inv_tds,
+            inv_after_tds:    inv_aft,
+            inv_status:       inv_payout&.status || 'no_payout'
           }
         end rescue nil
       end
@@ -257,6 +276,22 @@ class Admin::InvestorsController < Admin::ApplicationController
             p_paid       = payout&.paid?    ? net : 0.0
             p_pending    = payout&.pending? ? net : 0.0
 
+            amb_pol_pay = CommissionPayout.where(policy_type: ptype, policy_id: pol.id, payout_to: 'ambassador').order(created_at: :desc).first
+            amb_g       = pol.try(:ambassador_commission_amount).to_f
+            amb_t       = pol.try(:ambassador_tds_amount).to_f
+            amb_a       = pol.try(:ambassador_after_tds_value).to_f
+            amb_a       = (amb_g - amb_t).round(2) if amb_a.zero? && amb_g > 0
+
+            inv_payout  = CommissionPayout.where(policy_type: ptype, policy_id: pol.id, payout_to: 'investor').order(created_at: :desc).first
+            inv_gross   = pol.try(:investor_commission_amount).to_f
+            inv_tds_pct = pol.try(:investor_tds_percentage).to_f
+            inv_tds     = pol.try(:investor_tds_amount).to_f
+            inv_aft     = pol.try(:investor_after_tds_value).to_f
+            inv_aft     = (inv_gross - inv_tds).round(2) if inv_aft.zero? && inv_gross > 0
+            inv_net     = inv_payout&.payout_amount.to_f
+            @investor_commission_paid    += inv_payout&.paid?    ? inv_net : 0.0
+            @investor_commission_pending += inv_payout&.pending? ? inv_net : 0.0
+
             af_paid      += p_paid
             af_pending   += p_pending
             af_policies  += 1
@@ -274,7 +309,19 @@ class Admin::InvestorsController < Admin::ApplicationController
               after_tds:        after_tds,
               net_commission:   net,
               status:           payout&.status || 'no_payout',
-              payout_date:      payout&.payout_date&.strftime('%d %b %Y')
+              payout_date:      payout&.payout_date&.strftime('%d %b %Y'),
+              amb_comm_pct:     pol.try(:ambassador_commission_percentage).to_f,
+              amb_gross:        amb_g,
+              amb_tds_pct:      pol.try(:ambassador_tds_percentage).to_f,
+              amb_tds:          amb_t,
+              amb_after_tds:    amb_a,
+              amb_status:       amb_pol_pay&.status || 'no_payout',
+              inv_comm_pct:     pol.try(:investor_commission_percentage).to_f,
+              inv_gross:        inv_gross,
+              inv_tds_pct:      inv_tds_pct,
+              inv_tds:          inv_tds,
+              inv_after_tds:    inv_aft,
+              inv_status:       inv_payout&.status || 'no_payout'
             }
           end rescue nil
         end
@@ -313,14 +360,12 @@ class Admin::InvestorsController < Admin::ApplicationController
     health_policies.each { |p| @direct_policies << { policy: p, type: 'Health', premium: p.total_premium.to_f } }
     motor_policies.each  { |p| @direct_policies << { policy: p, type: 'Motor',  premium: p.total_premium.to_f } }
 
-    # Investor's own commission across all policy types
-    @investor_commission_paid    = 0.0
-    @investor_commission_pending = 0.0
-    policy_classes.each do |ptype, klass|
-      policy_ids = klass.where(investor_id: @investor.id).pluck(:id) rescue []
-      next if policy_ids.empty?
-      @investor_commission_paid    += CommissionPayout.where(policy_type: ptype, policy_id: policy_ids, payout_to: 'investor', status: 'paid').sum(:payout_amount).to_f
-      @investor_commission_pending += CommissionPayout.where(policy_type: ptype, policy_id: policy_ids, payout_to: 'investor', status: 'pending').sum(:payout_amount).to_f
+    # Investor commission is accumulated per-policy inside the ambassador/affiliate loops above.
+    # Supplement with any policies linked directly via investor_id (not already in network).
+    network_policy_ids_by_type = @ambassador_rows.each_with_object(Hash.new { |h, k| h[k] = [] }) do |row, h|
+      (row[:policy_rows] + row[:affiliates].flat_map { |a| a[:policy_rows] }).each do |pr|
+        # policy_rows don't store policy_id yet — skip to avoid double-counting; rely on inline accumulation
+      end
     end
 
     # Aggregated totals

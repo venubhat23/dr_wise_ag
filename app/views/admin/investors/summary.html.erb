@@ -287,7 +287,9 @@
             </button>
             <div class="collapse show" id="amb-pol-<%= idx %>">
               <%= render partial: 'admin/investors/policy_commission_table',
-                    locals: { rows: row[:policy_rows], collapse_id: "amb-pol-#{idx}" } %>
+                    locals: { rows: row[:policy_rows], collapse_id: "amb-pol-#{idx}",
+                              section_label: 'Ambassador Commission',
+                              show_ambassador: false, show_investor: true } %>
             </div>
           </div>
         <% end %>
@@ -320,7 +322,9 @@
                 <% if af[:policy_rows].any? %>
                   <div class="collapse show" id="af-pol-<%= idx %>-<%= aidx %>">
                     <%= render partial: 'admin/investors/policy_commission_table',
-                          locals: { rows: af[:policy_rows], collapse_id: "af-pol-#{idx}-#{aidx}" } %>
+                          locals: { rows: af[:policy_rows], collapse_id: "af-pol-#{idx}-#{aidx}",
+                                    section_label: 'Affiliate Commission',
+                                    show_ambassador: true, show_investor: true } %>
                   </div>
                 <% end %>
               <% end %>

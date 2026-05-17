@@ -659,7 +659,7 @@
   <!-- Filters and Search - Moved to top with no padding -->
   <div class="card shadow-sm mb-4" style="margin-top: 0 !important;">
     <div class="card-body">
-      <%= form_with url: root_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end" do |form| %>
+      <%= form_with url: dashboard_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end" do |form| %>
         <!-- Year Filter -->
         <div>
           <%= form.select :year,
@@ -984,66 +984,62 @@
 
   <!-- System Status -->
   <div class="card border-0 shadow-sm mb-4">
-    <div class="card-body">
-      <h5 class="card-title d-flex align-items-center mb-3">
-        <i class="bi bi-gear-fill text-secondary me-2"></i>
-        System Status
-      </h5>
-      <div class="row">
-        <div class="col-xl-3 col-md-6 mb-3">
-          <div class="system-status-card" style="cursor: pointer; height: 200px;" onclick="showSystemStatusModal('active_affiliates')">
-            <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
-              <i class="bi bi-people fs-1 mb-3 text-primary"></i>
-              <div class="fs-2 fw-bold text-dark"><%= number_with_delimiter(@total_affiliates) %></div>
-              <div class="h6 text-muted">Active Affiliates</div>
-              <div class="mt-2">
-                <small class="text-info"><i class="bi bi-info-circle"></i> Click for details</small>
-              </div>
+    <div class="card-body py-2 px-3">
+      <div class="d-flex align-items-center gap-2 flex-nowrap overflow-auto">
+        <span class="text-muted small fw-semibold text-nowrap me-1" style="font-size:11px;letter-spacing:.5px;">
+          <i class="bi bi-gear-fill me-1"></i>SYSTEM STATUS
+        </span>
+        <!-- Active Affiliates -->
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:130px;border-radius:8px;" onclick="showSystemStatusModal('active_affiliates')">
+          <div class="px-3 py-2 d-flex align-items-center gap-2">
+            <i class="bi bi-people fs-5 text-primary"></i>
+            <div>
+              <div class="fw-bold text-dark" style="font-size:1rem;line-height:1.2;"><%= number_with_delimiter(@total_affiliates) %></div>
+              <div class="text-muted" style="font-size:11px;">Active Affiliates</div>
+              <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
             </div>
           </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-          <div class="system-status-card" style="cursor: pointer; height: 200px;" onclick="showSystemStatusModal('avg_policy_value')">
-            <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
-              <i class="bi bi-cash-stack fs-1 mb-3 text-warning"></i>
-              <div class="fs-2 fw-bold text-dark"><%= indian_currency(@avg_policy_value || 0) %></div>
-              <div class="h6 text-muted">Avg Policy Value</div>
-              <div class="mt-2">
-                <small class="text-info"><i class="bi bi-info-circle"></i> Click for details</small>
-              </div>
+        <!-- Avg Policy Value -->
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:160px;border-radius:8px;" onclick="showSystemStatusModal('avg_policy_value')">
+          <div class="px-3 py-2 d-flex align-items-center gap-2">
+            <i class="bi bi-cash-stack fs-5 text-warning"></i>
+            <div>
+              <div class="fw-bold text-dark" style="font-size:1rem;line-height:1.2;"><%= indian_currency(@avg_policy_value || 0) %></div>
+              <div class="text-muted" style="font-size:11px;">Avg Policy Value</div>
+              <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
             </div>
           </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-          <div class="system-status-card" style="cursor: pointer; height: 200px;" onclick="showSystemStatusModal('commissions_due')">
-            <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
-              <i class="bi bi-wallet2 fs-1 mb-3 <%= (@commissions_due || 0) > 0 ? 'text-danger' : 'text-success' %>"></i>
-              <div class="fs-2 fw-bold text-dark"><%= indian_currency(@commissions_due || 0) %></div>
-              <div class="h6 text-muted">Commissions Due</div>
-              <div class="mt-2">
-                <small class="text-info"><i class="bi bi-info-circle"></i> Click for details</small>
-              </div>
+        <!-- Commissions Due -->
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:160px;border-radius:8px;" onclick="showSystemStatusModal('commissions_due')">
+          <div class="px-3 py-2 d-flex align-items-center gap-2">
+            <i class="bi bi-wallet2 fs-5 <%= (@commissions_due || 0) > 0 ? 'text-danger' : 'text-success' %>"></i>
+            <div>
+              <div class="fw-bold text-dark" style="font-size:1rem;line-height:1.2;"><%= indian_currency(@commissions_due || 0) %></div>
+              <div class="text-muted" style="font-size:11px;">Commissions Due</div>
+              <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
             </div>
           </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-          <div class="system-status-card" style="cursor: pointer; height: 200px;" onclick="showSystemStatusModal('lead_conversion')">
-            <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
-              <i class="bi bi-person-lines-fill fs-1 mb-3 text-info"></i>
-              <div class="fs-2 fw-bold text-dark"><%= number_with_delimiter(@total_leads || 0) %></div>
-              <div class="h6 text-muted">Total Leads</div>
+        <!-- Total Leads -->
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:120px;border-radius:8px;" onclick="showSystemStatusModal('lead_conversion')">
+          <div class="px-3 py-2 d-flex align-items-center gap-2">
+            <i class="bi bi-person-lines-fill fs-5 text-info"></i>
+            <div>
+              <div class="fw-bold text-dark" style="font-size:1rem;line-height:1.2;"><%= number_with_delimiter(@total_leads || 0) %></div>
+              <div class="text-muted" style="font-size:11px;">Total Leads</div>
             </div>
           </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-          <div class="system-status-card" style="cursor: pointer; height: 200px; border-top: 3px solid #27ae60;" onclick="showSystemStatusModal('profit')">
-            <div class="card-body h-100 d-flex flex-column justify-content-center text-center">
-              <i class="bi bi-graph-up-arrow fs-1 mb-3 text-success"></i>
-              <div class="fs-2 fw-bold text-success"><%= indian_currency(@total_profit || 0) %></div>
-              <div class="h6 text-muted">Net Profit</div>
-              <div class="mt-2">
-                <small class="text-info"><i class="bi bi-info-circle"></i> Click for details</small>
-              </div>
+        <!-- Net Profit -->
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:160px;border-radius:8px;border-top:3px solid #27ae60;" onclick="showSystemStatusModal('profit')">
+          <div class="px-3 py-2 d-flex align-items-center gap-2">
+            <i class="bi bi-graph-up-arrow fs-5 text-success"></i>
+            <div>
+              <div class="fw-bold text-success" style="font-size:1rem;line-height:1.2;"><%= indian_currency(@total_profit || 0) %></div>
+              <div class="text-muted" style="font-size:11px;">Net Profit</div>
+              <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
             </div>
           </div>
         </div>
@@ -2417,22 +2413,22 @@ function loadProfitSummaryData(content, loading) {
       const typeColor = { Health: '#27ae60', Life: '#2980b9', Motor: '#e67e22' };
 
       const kpiHtml = `
-        <div class="d-flex gap-2 mb-4" style="flex-wrap:nowrap">
-          <div style="flex:1 1 0;min-width:0"><div class="kpi-card kpi-primary h-100"><div class="card-body text-center">
-            <div class="kpi-number">${s.total_policies}</div><div class="kpi-label">Policies Analysed</div>
-          </div></div></div>
-          <div style="flex:1 1 0;min-width:0"><div class="kpi-card kpi-warning h-100"><div class="card-body text-center">
-            <div class="kpi-number" style="font-size:1.1rem">${fmtINR(s.total_net_premium)}</div><div class="kpi-label">Total Net Premium</div>
-          </div></div></div>
-          <div style="flex:1 1 0;min-width:0"><div class="kpi-card h-100" style="background:#27ae60;color:#fff"><div class="card-body text-center">
-            <div class="kpi-number" style="font-size:1.1rem">${fmtINR(s.total_profit)}</div><div class="kpi-label">Total Profit</div>
-          </div></div></div>
-          <div style="flex:1 1 0;min-width:0"><div class="kpi-card h-100" style="background:#2c3e7a;color:#fff"><div class="card-body text-center">
-            <div class="kpi-number" style="font-size:1.1rem">${fmtINR(s.total_main_agent)}</div><div class="kpi-label">Main Agent (Net)</div>
-          </div></div></div>
-          <div style="flex:1 1 0;min-width:0"><div class="kpi-card h-100" style="background:#8e44ad;color:#fff"><div class="card-body text-center">
-            <div class="kpi-number">${s.avg_profit_pct}%</div><div class="kpi-label">Avg Profit %</div>
-          </div></div></div>
+        <div class="d-flex gap-2 mb-4" style="flex-wrap:wrap">
+          <div style="flex:1 1 0;min-width:130px"><div style="background:#fff;border:1px solid #dee2e6;border-top:3px solid #0d6efd;border-radius:8px;padding:14px 10px;text-align:center;height:100%">
+            <div style="font-size:1.6rem;font-weight:700;color:#0d6efd;margin-bottom:4px">${s.total_policies}</div><div style="font-size:.8rem;color:#6c757d;font-weight:600">Policies Analysed</div>
+          </div></div>
+          <div style="flex:1 1 0;min-width:130px"><div style="background:#fff;border:1px solid #dee2e6;border-top:3px solid #e67e22;border-radius:8px;padding:14px 10px;text-align:center;height:100%">
+            <div style="font-size:1rem;font-weight:700;color:#e67e22;margin-bottom:4px">${fmtINR(s.total_net_premium)}</div><div style="font-size:.8rem;color:#6c757d;font-weight:600">Total Net Premium</div>
+          </div></div>
+          <div style="flex:1 1 0;min-width:130px"><div style="background:#fff;border:1px solid #dee2e6;border-top:3px solid #27ae60;border-radius:8px;padding:14px 10px;text-align:center;height:100%">
+            <div style="font-size:1rem;font-weight:700;color:#27ae60;margin-bottom:4px">${fmtINR(s.total_profit)}</div><div style="font-size:.8rem;color:#6c757d;font-weight:600">Total Profit</div>
+          </div></div>
+          <div style="flex:1 1 0;min-width:130px"><div style="background:#fff;border:1px solid #dee2e6;border-top:3px solid #2c3e7a;border-radius:8px;padding:14px 10px;text-align:center;height:100%">
+            <div style="font-size:1rem;font-weight:700;color:#2c3e7a;margin-bottom:4px">${fmtINR(s.total_main_agent)}</div><div style="font-size:.8rem;color:#6c757d;font-weight:600">Main Agent (Net)</div>
+          </div></div>
+          <div style="flex:1 1 0;min-width:130px"><div style="background:#fff;border:1px solid #dee2e6;border-top:3px solid #8e44ad;border-radius:8px;padding:14px 10px;text-align:center;height:100%">
+            <div style="font-size:1.6rem;font-weight:700;color:#8e44ad;margin-bottom:4px">${s.avg_profit_pct}%</div><div style="font-size:.8rem;color:#6c757d;font-weight:600">Avg Profit %</div>
+          </div></div>
         </div>
         <p class="text-muted mb-3" style="font-size:.82rem">
           <i class="bi bi-info-circle me-1"></i>
