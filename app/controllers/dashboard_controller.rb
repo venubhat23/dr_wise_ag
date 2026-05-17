@@ -219,10 +219,10 @@ class DashboardController < ApplicationController
       SELECT 'active_customers', COUNT(*) FROM customers WHERE status = true
       UNION ALL
       SELECT 'total_ambassadors', COUNT(*) FROM distributors
-      WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
       UNION ALL
       SELECT 'total_leads', COUNT(*) FROM leads
-      WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
       UNION ALL
       SELECT 'converted_leads', COUNT(*) FROM leads
       WHERE current_stage = 'converted' AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
@@ -346,9 +346,9 @@ class DashboardController < ApplicationController
     # Use direct SQL interpolation instead of bound parameters to avoid array issues
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{forty_five_days_from_end}'
+        SELECT id FROM health_insurances WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{forty_five_days_from_end}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{forty_five_days_from_end}'
+        SELECT id FROM life_insurances WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date BETWEEN '#{end_date}' AND '#{forty_five_days_from_end}'
       ) as renewals
     "
 
@@ -374,9 +374,9 @@ class DashboardController < ApplicationController
     # Use direct SQL interpolation instead of bound parameters to avoid array issues
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date < '#{end_date}'
+        SELECT id FROM health_insurances WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date < '#{end_date}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date < '#{end_date}'
+        SELECT id FROM life_insurances WHERE product_through_dr = true AND created_at BETWEEN '#{start_date}' AND '#{end_date}' AND policy_end_date < '#{end_date}'
       ) as expired
     "
 
@@ -386,12 +386,12 @@ class DashboardController < ApplicationController
 
     # Add motor and other insurances if they exist
     begin
-      count += MotorInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', end_date).count
+      count += MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date).where('policy_end_date < ?', end_date).count
     rescue
     end
 
     begin
-      count += OtherInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', end_date).count
+      count += OtherInsurance.where(product_through_dr: true, created_at: start_date..end_date).where('policy_end_date < ?', end_date).count
     rescue
     end
 
@@ -608,9 +608,9 @@ class DashboardController < ApplicationController
       UNION ALL
       SELECT 'converted_leads', COUNT(*) FROM leads WHERE current_stage = 'converted'
       UNION ALL
-      SELECT 'health_count', COUNT(*) FROM health_insurances WHERE product_through_dr = true
+      SELECT 'health_count', COUNT(*) FROM health_insurances WHERE 1=1
       UNION ALL
-      SELECT 'life_count', COUNT(*) FROM life_insurances WHERE product_through_dr = true
+      SELECT 'life_count', COUNT(*) FROM life_insurances WHERE 1=1
     ")
 
     # Process count results
@@ -619,8 +619,8 @@ class DashboardController < ApplicationController
     end
 
     # Handle optional tables that might not exist
-    results[:motor_count] = (MotorInsurance.where(product_through_dr: true).count rescue 0)
-    results[:other_count] = (OtherInsurance.where(product_through_dr: true).count rescue 0)
+    results[:motor_count] = (MotorInsurance.count rescue 0)
+    results[:other_count] = (OtherInsurance.count rescue 0)
 
     # Calculate active affiliates (only those with policies)
     results[:total_affiliates] = calculate_active_affiliates_with_policies
@@ -636,9 +636,9 @@ class DashboardController < ApplicationController
         COALESCE(SUM(total_premium), 0) as total_premium,
         COALESCE(SUM(sum_insured), 0) as total_sum_insured
       FROM (
-        SELECT total_premium, sum_insured FROM health_insurances WHERE product_through_dr = true
+        SELECT total_premium, sum_insured FROM health_insurances WHERE 1=1
         UNION ALL
-        SELECT total_premium, sum_insured FROM life_insurances WHERE product_through_dr = true
+        SELECT total_premium, sum_insured FROM life_insurances WHERE 1=1
       ) as combined_insurance
     ").first
 
@@ -647,7 +647,7 @@ class DashboardController < ApplicationController
 
     # Add motor insurance if table exists
     begin
-      motor_data = MotorInsurance.where(product_through_dr: true).select('COALESCE(SUM(total_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
+      motor_data = MotorInsurance.select('COALESCE(SUM(total_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
       results[:total_premium_collected] += motor_data.premium.to_f
       results[:total_sum_insured] += motor_data.sum.to_f
     rescue
@@ -900,11 +900,11 @@ class DashboardController < ApplicationController
 
   def get_renewals_count_for_period(start_date, end_date)
     forty_five_days_ahead = end_date + 45.days
-    health = HealthInsurance.where(created_at: start_date..end_date)
+    health = HealthInsurance.where(product_through_dr: true, created_at: start_date..end_date)
                            .where('policy_end_date BETWEEN ? AND ?', end_date, forty_five_days_ahead).count
-    life = LifeInsurance.where(created_at: start_date..end_date)
+    life = LifeInsurance.where(product_through_dr: true, created_at: start_date..end_date)
                         .where('policy_end_date BETWEEN ? AND ?', end_date, forty_five_days_ahead).count
-    motor = (MotorInsurance.where(created_at: start_date..end_date)
+    motor = (MotorInsurance.where(product_through_dr: true, created_at: start_date..end_date)
                           .where('policy_end_date BETWEEN ? AND ?', end_date, forty_five_days_ahead).count rescue 0)
     health + life + motor
   end

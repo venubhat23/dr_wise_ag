@@ -1074,6 +1074,9 @@
         </div>
       </div>
       <div class="modal-footer">
+        <button type="button" id="downloadCsvBtn" class="btn btn-success" onclick="downloadModalCSV()" style="display:none;">
+          <i class="bi bi-download me-1"></i>Download CSV
+        </button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
           <i class="bi bi-x me-1"></i>Close
         </button>
@@ -1717,8 +1720,93 @@ function fmtINR(val) {
 }
 
 // System Status Modal Functions
+let _csvModalType = null;
+let _csvModalData = null;
+
+// ── CSV helpers ────────────────────────────────────────────────────────────
+function _esc(v) {
+  if (v === null || v === undefined) return '';
+  const s = String(v);
+  return (s.includes(',') || s.includes('"') || s.includes('\n'))
+    ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function _buildCSV(headers, rows) {
+  return [headers.map(_esc).join(','), ...rows.map(r => r.map(_esc).join(','))].join('\n');
+}
+function _triggerDownload(csv, filename) {
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function downloadModalCSV() {
+  if (!_csvModalData || !_csvModalType) {
+    alert('Data not loaded yet. Please wait for the modal to finish loading.');
+    return;
+  }
+  const d = _csvModalData;
+  let csv = '', filename = 'export.csv';
+
+  if (_csvModalType === 'active_affiliates') {
+    filename = 'active_affiliates.csv';
+    csv = _buildCSV(
+      ['ID','Name','Email','Phone','Status','Joined Date','Total Policies','Total Premium (Rs.)','Commission Paid (Rs.)','Commission Pending (Rs.)'],
+      (d.affiliates || []).map(a => [a.id, a.name, a.email, a.phone, a.status, a.joined_date, a.total_policies, a.total_premium, a.commission_paid, a.commission_pending])
+    );
+  }
+  else if (_csvModalType === 'avg_policy_value') {
+    filename = 'avg_policy_value.csv';
+    const typeRows = (d.by_type || []).map(p => [p.type, p.count, p.total_premium, p.average, p.min_premium, p.max_premium]);
+    const distRows = (d.distribution || []).map(r => [r.range, r.count, r.percentage + '%', '', '', '']);
+    csv = _buildCSV(
+      ['Insurance Type','Policy Count','Total Premium (Rs.)','Average Premium (Rs.)','Min Premium (Rs.)','Max Premium (Rs.)'],
+      [...typeRows, ['--- Distribution ---','','','','',''], ...distRows]
+    );
+  }
+  else if (_csvModalType === 'commissions_due') {
+    filename = 'commissions_due.csv';
+    csv = _buildCSV(
+      ['Policy Number','Customer','Policy Type','Payout To','Commission Amount (Rs.)','Percentage (%)','Base Premium (Rs.)','Created Date','Due Date'],
+      (d.data || []).map(r => [r.policy_number, r.customer_name, r.policy_type, r.payout_to, r.amount, r.percentage, r.base_premium, r.created_at, r.due_date])
+    );
+  }
+  else if (_csvModalType === 'lead_conversion') {
+    filename = 'lead_conversion.csv';
+    const monthRows = (d.monthly_trend || []).map(m => ['Monthly', m.month, m.total_leads, m.converted_leads, m.conversion_rate + '%', '']);
+    const srcRows   = (d.source_conversion || []).map(s => ['Source', s.source, s.total, s.converted, s.rate + '%', '']);
+    const stageRows = Object.entries(d.stage_breakdown || {}).map(([stage, cnt]) => ['Stage', stage, cnt, '', '', '']);
+    csv = _buildCSV(
+      ['Section','Name / Month','Total Leads','Converted','Rate (%)',''],
+      [...monthRows, ['---','','','','',''], ...srcRows, ['---','','','','',''], ...stageRows]
+    );
+  }
+  else if (_csvModalType === 'profit') {
+    filename = 'net_profit.csv';
+    const rows = [];
+    (d.policies || []).forEach(pol => {
+      rows.push([pol.policy_number, pol.policy_type, pol.customer, pol.company, pol.booking_date, 'Net Premium', '', '', '', pol.net_premium]);
+      (pol.rows || []).forEach(r => rows.push([pol.policy_number, pol.policy_type, pol.customer, pol.company, pol.booking_date, r.label, r.pct + '%', r.amount, r.tds_pct != null ? r.tds_pct + '%' : '', r.actual]));
+    });
+    csv = _buildCSV(
+      ['Policy Number','Type','Customer','Company','Booking Date','Commission Item','%','Gross Amount (Rs.)','TDS %','Net Amount (Rs.)'],
+      rows
+    );
+  }
+
+  if (csv) _triggerDownload(csv, filename);
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 function showSystemStatusModal(type) {
   console.log('Opening system status modal for:', type);
+  _csvModalType = type;
+  _csvModalData = null;
+  const btn = document.getElementById('downloadCsvBtn');
+  if (btn) btn.style.display = 'none';
 
   // Hide scrollbars on body
   document.body.style.overflow = 'hidden';
@@ -1792,6 +1880,7 @@ function loadActiveAffiliatesData(content, loading) {
     .then(data => {
       loading.style.display = 'none';
       content.style.display = 'block';
+      if (data.success) { _csvModalData = data; const b = document.getElementById('downloadCsvBtn'); if (b) b.style.display = ''; }
 
       if (data.success) {
         // fmtINR is the global Indian formatter defined above
@@ -1905,6 +1994,7 @@ function loadCommissionsDueData(content, loading) {
 
       loading.style.display = 'none';
       content.style.display = 'block';
+      if (data.success) { _csvModalData = data; const b = document.getElementById('downloadCsvBtn'); if (b) b.style.display = ''; }
 
       if (data.success && data.total_count > 0) {
         const fmtAmt = fmtINR; // use global Indian formatter
@@ -1930,6 +2020,7 @@ function loadCommissionsDueData(content, loading) {
                     <th style="${thStyle}">Lead ID</th>
                     <th style="${thStyle}">Policy</th>
                     <th style="${thStyle}">Customer</th>
+                    <th style="${thStyle}">Affiliate</th>
                     <th style="${thStyle}">Type</th>
                     <th style="${thStyle}">Premium</th>
                     <th style="${thStyle}text-align:center;">%</th>
@@ -1943,6 +2034,7 @@ function loadCommissionsDueData(content, loading) {
                       <td style="padding:10px 8px;"><span class="badge" style="background:${color};color:white;font-size:0.7rem;padding:4px 7px;border-radius:6px;">${c.lead_id}</span></td>
                       <td style="padding:10px 8px;"><span style="font-family:monospace;font-weight:700;color:#2c3e50;font-size:0.85rem;background:#ecf0f1;padding:3px 6px;border-radius:5px;">${c.policy_number}</span></td>
                       <td style="padding:10px 8px;font-weight:700;color:#34495e;font-size:0.9rem;">${c.customer_name}</td>
+                      <td style="padding:10px 8px;font-size:0.82rem;color:#2c3e7a;">${c.affiliate_name !== 'N/A' ? `<span style="background:#eaf4fb;color:#2980b9;border:1px solid #aed6f1;padding:2px 8px;border-radius:10px;font-weight:600;font-size:0.75rem;">${c.affiliate_name}</span>` : '<span style="color:#adb5bd;font-size:0.75rem;">—</span>'}</td>
                       <td style="padding:10px 8px;"><span class="badge bg-info text-white" style="font-size:0.7rem;">${c.policy_type}</span></td>
                       <td style="padding:10px 8px;font-weight:700;color:#667eea;">${fmtAmt(c.base_premium)}</td>
                       <td style="padding:10px 8px;text-align:center;font-weight:800;color:#f39c12;">${parseFloat(c.percentage||0).toFixed(1)}%</td>
@@ -2226,6 +2318,7 @@ function loadLeadConversionData(content, loading) {
     .then(data => {
       loading.style.display = 'none';
       content.style.display = 'block';
+      if (data.success) { _csvModalData = data; const b = document.getElementById('downloadCsvBtn'); if (b) b.style.display = ''; }
 
       if (data.success) {
         // Update the main dashboard display with real-time data
@@ -2409,6 +2502,7 @@ function loadProfitSummaryData(content, loading) {
       loading.style.display = 'none';
       content.style.display = 'block';
       if (!data.success) { content.innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to load'}</div>`; return; }
+      _csvModalData = data; const _b = document.getElementById('downloadCsvBtn'); if (_b) _b.style.display = '';
 
       const s = data.summary;
       const typeColor = { Health: '#27ae60', Life: '#2980b9', Motor: '#e67e22' };
@@ -2504,6 +2598,7 @@ function loadAvgPolicyValueData(content, loading) {
       console.log('Avg Policy Value API Response:', data); // Debug log
       loading.style.display = 'none';
       content.style.display = 'block';
+      if (data.success) { _csvModalData = data; const b = document.getElementById('downloadCsvBtn'); if (b) b.style.display = ''; }
 
       if (data.success) {
         content.innerHTML = `

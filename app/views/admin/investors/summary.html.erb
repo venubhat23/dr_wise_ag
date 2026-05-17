@@ -90,11 +90,21 @@
     /* ── Affiliate accordion ── */
     .aff-section { padding: 1rem 1.3rem; border-top: 1px solid #f0f0f0; }
     .aff-toggle {
-      background: none; border: none; padding: 0;
+      background: none; border: none; padding: .35rem .75rem;
       font-size: .85rem; font-weight: 600; color: var(--primary); cursor: pointer;
       display: flex; align-items: center; gap: .4rem;
+      border: 1px solid #c5ceff; border-radius: 6px;
+      background: #f5f7ff;
+      transition: background .15s, color .15s;
     }
-    .aff-toggle:hover { color: var(--accent); }
+    .aff-toggle:hover { background: #e8eeff; color: var(--accent); }
+    .aff-toggle .chev {
+      font-size: .72rem;
+      transition: transform .25s ease;
+      display: inline-block;
+    }
+    .aff-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); }
+    .aff-toggle[aria-expanded="false"] .chev { transform: rotate(0deg); }
 
     /* ── Tables ── */
     .data-table { font-size: .82rem; }
@@ -281,11 +291,14 @@
         <!-- Ambassador direct policies -->
         <% if row[:policy_rows].any? %>
           <div class="aff-section" style="border-top:1px solid #f0f0f0;">
-            <button class="aff-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#amb-pol-<%= idx %>">
-              <i class="bi bi-chevron-down" style="font-size:.7rem;"></i>
+            <button class="aff-toggle" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#amb-pol-<%= idx %>"
+                    aria-expanded="false" aria-controls="amb-pol-<%= idx %>">
+              <i class="bi bi-file-earmark-text me-1"></i>
               Ambassador Policies (<%= row[:policies] %>)
+              <i class="bi bi-chevron-down chev ms-1"></i>
             </button>
-            <div class="collapse show" id="amb-pol-<%= idx %>">
+            <div class="collapse" id="amb-pol-<%= idx %>">
               <%= render partial: 'admin/investors/policy_commission_table',
                     locals: { rows: row[:policy_rows], collapse_id: "amb-pol-#{idx}",
                               section_label: 'Ambassador Commission',
@@ -297,11 +310,15 @@
         <!-- Affiliates section -->
         <% if row[:affiliates].any? %>
           <div class="aff-section" style="border-top:1px solid #f0f0f0;">
-            <button class="aff-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#aff-<%= idx %>">
-              <i class="bi bi-chevron-down" style="font-size:.7rem;"></i>
+            <button class="aff-toggle" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#aff-<%= idx %>"
+                    aria-expanded="false" aria-controls="aff-<%= idx %>"
+                    style="border-color:#f9d8a0; background:#fef9ec; color:#b7650c;">
+              <i class="bi bi-people me-1"></i>
               Affiliates (<%= row[:affiliates_count] %>)
+              <i class="bi bi-chevron-down chev ms-1"></i>
             </button>
-            <div class="collapse show" id="aff-<%= idx %>">
+            <div class="collapse" id="aff-<%= idx %>">
               <% row[:affiliates].each_with_index do |af, aidx| %>
                 <!-- Affiliate header bar -->
                 <div style="background:#f8f9ff; border-radius:8px; padding:.65rem 1rem; margin:.5rem 0; display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; border:1px solid #e4e8ff;">
@@ -312,15 +329,19 @@
                   <span class="<%= af[:commission_paid] > 0 ? 'paid-amt' : 'zero-amt' %>" style="font-size:.8rem; font-weight:600;">Paid: <%= indian_currency(af[:commission_paid].round(2)) %></span>
                   <span class="<%= af[:commission_pending] > 0 ? 'pending-amt' : 'zero-amt' %>" style="font-size:.8rem; font-weight:600;">Pending: <%= indian_currency(af[:commission_pending].round(2)) %></span>
                   <% if af[:policy_rows].any? %>
-                    <button class="aff-toggle ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#af-pol-<%= idx %>-<%= aidx %>">
+                    <button class="aff-toggle ms-auto" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#af-pol-<%= idx %>-<%= aidx %>"
+                            aria-expanded="false" aria-controls="af-pol-<%= idx %>-<%= aidx %>"
+                            style="border-color:#a9dfbf; background:#eafaf1; color:#1a7a45;">
                       <i class="bi bi-list-ul me-1"></i> Policy Breakdown
+                      <i class="bi bi-chevron-down chev ms-1"></i>
                     </button>
                   <% end %>
                 </div>
 
                 <!-- Affiliate policy-wise commission table -->
                 <% if af[:policy_rows].any? %>
-                  <div class="collapse show" id="af-pol-<%= idx %>-<%= aidx %>">
+                  <div class="collapse" id="af-pol-<%= idx %>-<%= aidx %>">
                     <%= render partial: 'admin/investors/policy_commission_table',
                           locals: { rows: af[:policy_rows], collapse_id: "af-pol-#{idx}-#{aidx}",
                                     section_label: 'Affiliate Commission',
@@ -348,28 +369,28 @@
           <thead>
             <tr>
               <th>Category</th>
-              <th class="text-end">Commission Paid</th>
               <th class="text-end">Commission Pending</th>
+              <th class="text-end">Commission Paid</th>
               <th class="text-end">Total</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td><i class="bi bi-person-badge me-1" style="color:#2c3e7a;"></i><strong>All Ambassadors</strong></td>
-              <td class="text-end paid-amt fw-bold"><%= indian_currency(@ambassador_rows.sum { |r| r[:commission_paid] }.round(2)) %></td>
               <td class="text-end pending-amt fw-bold"><%= indian_currency(@ambassador_rows.sum { |r| r[:commission_pending] }.round(2)) %></td>
+              <td class="text-end paid-amt fw-bold"><%= indian_currency(@ambassador_rows.sum { |r| r[:commission_paid] }.round(2)) %></td>
               <td class="text-end fw-bold" style="color:#2c3e7a;"><%= indian_currency(@total_ambassador_comm.round(2)) %></td>
             </tr>
             <tr>
               <td><i class="bi bi-people me-1" style="color:#e67e22;"></i><strong>All Affiliates</strong></td>
-              <td class="text-end paid-amt fw-bold"><%= indian_currency(@ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_paid] } }.round(2)) %></td>
               <td class="text-end pending-amt fw-bold"><%= indian_currency(@ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_pending] } }.round(2)) %></td>
+              <td class="text-end paid-amt fw-bold"><%= indian_currency(@ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_paid] } }.round(2)) %></td>
               <td class="text-end fw-bold" style="color:#e67e22;"><%= indian_currency(@total_affiliate_comm.round(2)) %></td>
             </tr>
             <tr style="background:#f8f9ff;">
               <td><i class="bi bi-diagram-3 me-1" style="color:#8e44ad;"></i><strong>Total Network</strong></td>
-              <td class="text-end paid-amt fw-bold"><%= indian_currency((@ambassador_rows.sum { |r| r[:commission_paid] } + @ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_paid] } }).round(2)) %></td>
               <td class="text-end pending-amt fw-bold"><%= indian_currency((@ambassador_rows.sum { |r| r[:commission_pending] } + @ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_pending] } }).round(2)) %></td>
+              <td class="text-end paid-amt fw-bold"><%= indian_currency((@ambassador_rows.sum { |r| r[:commission_paid] } + @ambassador_rows.sum { |r| r[:affiliates].sum { |a| a[:commission_paid] } }).round(2)) %></td>
               <td class="text-end fw-bold" style="color:#8e44ad; font-size:1rem;"><%= indian_currency((@total_ambassador_comm + @total_affiliate_comm).round(2)) %></td>
             </tr>
           </tbody>

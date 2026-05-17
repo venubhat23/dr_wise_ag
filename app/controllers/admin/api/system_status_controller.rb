@@ -291,24 +291,34 @@ module Admin
           pending_commissions = CommissionPayout.where(status: 'pending')
                                                .order(created_at: :desc)
 
+          # Preload sub_agents for affiliate name lookup
+          all_sub_agent_ids = []
+          pending_commissions.each do |payout|
+            pol = get_policy_for_payout(payout)
+            all_sub_agent_ids << pol.try(:sub_agent_id) if pol
+          end
+          sub_agents_map = SubAgent.where(id: all_sub_agent_ids.compact.uniq)
+                                   .index_by(&:id)
+
           commission_data = pending_commissions.map do |payout|
             policy = get_policy_for_payout(payout)
             percentage = payout.distribution_percentage || calculate_percentage_from_policy(policy, payout)
 
-            # Handle missing policy data gracefully
-            customer_name = if policy&.customer
-                           policy.customer.display_name || 'N/A'
-                         else
-                           'N/A'
-                         end
+            customer_name = policy&.customer&.display_name || 'N/A'
 
-            # Format numbers properly for calculation string
-            premium_amount = policy&.total_premium || 0
-            percentage_value = percentage || 0
+            # Affiliate name from sub_agent linked to the policy
+            affiliate_name = if policy&.try(:sub_agent_id)
+                               sa = sub_agents_map[policy.sub_agent_id]
+                               sa ? (sa.full_name.presence || "#{sa.first_name} #{sa.last_name}".strip.presence || "Affiliate ##{sa.id}") : 'N/A'
+                             else
+                               'N/A'
+                             end
+
+            premium_amount    = policy&.total_premium || 0
+            percentage_value  = percentage || 0
             commission_amount = payout.payout_amount.round(2)
 
-            # Format the calculation string with proper formatting
-            formatted_premium = ActionController::Base.helpers.number_to_currency(premium_amount, unit: 'Rs. ', format: '%u%n', delimiter: ',', precision: 2)
+            formatted_premium    = ActionController::Base.helpers.number_to_currency(premium_amount,    unit: 'Rs. ', format: '%u%n', delimiter: ',', precision: 2)
             formatted_commission = ActionController::Base.helpers.number_to_currency(commission_amount, unit: 'Rs. ', format: '%u%n', delimiter: ',', precision: 2)
 
             {
@@ -316,6 +326,7 @@ module Admin
               lead_id: policy&.lead_id || 'N/A',
               policy_number: policy&.policy_number || 'N/A',
               customer_name: customer_name,
+              affiliate_name: affiliate_name,
               policy_type: payout.policy_type,
               payout_to: payout.payout_to,
               amount: commission_amount,
@@ -372,7 +383,7 @@ module Admin
           [MotorInsurance,  'Motor']
         ].each do |klass, label|
           begin
-            klass.where(product_through_dr: true, created_at: date_range)
+            klass.where(created_at: date_range)
                  .includes(:customer)
                  .order(created_at: :desc)
                  .limit(200)

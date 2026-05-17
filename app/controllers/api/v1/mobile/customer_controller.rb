@@ -848,7 +848,6 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         registration_number: 'To be assigned',
         vehicle_idv: policy_params[:sum_insured].to_f,
         # Set vehicle details to be filled by admin later
-        vehicle_number: 'To be assigned',
         vehicle_make: 'To be assigned',
         vehicle_model: 'To be assigned',
         is_customer_added: true,
