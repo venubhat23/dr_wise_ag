@@ -266,11 +266,11 @@ class Admin::CustomersController < Admin::ApplicationController
 
     @all_policies.sort_by! { |p| p[:created_at] }.reverse!
 
-    # --- Per-type grouped policies ---
-    @health_policies  = @all_policies.select { |p| p[:type] == 'Health Insurance' }
-    @life_policies    = @all_policies.select { |p| p[:type] == 'Life Insurance' }
-    @motor_policies   = @all_policies.select { |p| p[:type] == 'Motor Insurance' }
-    @other_policies   = @all_policies.select { |p| p[:type] == 'Other Insurance' }
+    # --- Per-type grouped policies (exclude Renewed — those belong in Past Policy only) ---
+    @health_policies  = @all_policies.select { |p| p[:type] == 'Health Insurance' && p[:status] != 'Renewed' }
+    @life_policies    = @all_policies.select { |p| p[:type] == 'Life Insurance'   && p[:status] != 'Renewed' }
+    @motor_policies   = @all_policies.select { |p| p[:type] == 'Motor Insurance'  && p[:status] != 'Renewed' }
+    @other_policies   = @all_policies.select { |p| p[:type] == 'Other Insurance'  && p[:status] != 'Renewed' }
 
     # --- Expired: end_date passed AND policy has NOT been renewed ---
     @expired_policies = @all_policies.select { |p| p[:status] == 'Expired' }

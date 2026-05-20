@@ -693,11 +693,131 @@ function removeMfNominee(btn) {
   });
 })();
 
-// Select2 initialization
+// Select2 + affiliate & nominee auto-load
 document.addEventListener('DOMContentLoaded', function() {
-  if (typeof $ !== 'undefined' && $.fn.select2) {
-    $('#mf_customer_select').select2({ placeholder: 'Type to search clients...', width: '100%' });
-    $('#mf_affiliate_select').select2({ placeholder: 'Type to search affiliates...', width: '100%' });
+  if (typeof $ === 'undefined' || !$.fn.select2) return;
+
+  $('#mf_customer_select').select2({ placeholder: 'Type to search clients...', width: '100%', allowClear: true });
+  $('#mf_affiliate_select').select2({ placeholder: 'Type to search affiliates...', width: '100%', allowClear: true });
+
+  // ── On customer select: load affiliate + nominees automatically ──────────
+  $('#mf_customer_select').on('select2:select', function(e) {
+    var customerId = e.params.data.id;
+    if (!customerId) return;
+
+    autoLoadAffiliate(customerId);
+    autoLoadNominees(customerId);
+  });
+
+  // ── On customer clear: reset affiliate + nominees ────────────────────────
+  $('#mf_customer_select').on('select2:clear', function() {
+    $('#mf_affiliate_select').val('').trigger('change');
+    clearMfNominees();
+  });
+
+  // ── Affiliate auto-load ──────────────────────────────────────────────────
+  function autoLoadAffiliate(customerId) {
+    var $affiliateSelect = $('#mf_affiliate_select');
+    $affiliateSelect.prop('disabled', true);
+
+    $.ajax({
+      url: '/admin/customers/' + customerId + '/affiliate_info',
+      type: 'GET',
+      success: function(data) {
+        $affiliateSelect.val(data.affiliate_id || '').trigger('change');
+      },
+      error: function() {
+        $affiliateSelect.val('').trigger('change');
+      },
+      complete: function() {
+        $affiliateSelect.prop('disabled', false);
+      }
+    });
+  }
+
+  // ── Nominee auto-load ────────────────────────────────────────────────────
+  function autoLoadNominees(customerId) {
+    $.ajax({
+      url: '<%= load_customer_nominees_admin_mutual_funds_path %>',
+      type: 'GET',
+      data: { customer_id: customerId },
+      success: function(response) {
+        if (response.success && response.nominees && response.nominees.length > 0) {
+          clearMfNominees();
+          response.nominees.forEach(function(nominee) {
+            appendMfNomineeRow(nominee);
+          });
+          document.getElementById('mf_no_nominees_message').style.display = 'none';
+        }
+      },
+      error: function() {
+        console.error('Failed to load nominees');
+      }
+    });
+  }
+
+  // ── Clear all nominee rows ───────────────────────────────────────────────
+  function clearMfNominees() {
+    document.querySelectorAll('#mf-nominees-container .nominee-row').forEach(function(row) {
+      var destroyFlag = row.querySelector('.destroy-flag');
+      if (destroyFlag && destroyFlag.name) {
+        destroyFlag.value = 'true';
+        row.style.display = 'none';
+      } else {
+        row.remove();
+      }
+    });
+    var visible = document.querySelectorAll('#mf-nominees-container .nominee-row:not([style*="display: none"])');
+    if (visible.length === 0) {
+      document.getElementById('mf_no_nominees_message').style.display = '';
+    }
+  }
+
+  // ── Append a pre-filled nominee row ─────────────────────────────────────
+  function appendMfNomineeRow(nominee) {
+    var idx = Date.now() + mfNomineeIndex++;
+    var rel = (nominee.relationship || '').toLowerCase();
+    var relationships = ['spouse','father','mother','son','daughter','brother','sister','other'];
+
+    var options = relationships.map(function(r) {
+      return '<option value="' + r + '"' + (rel === r ? ' selected' : '') + '>' +
+        r.charAt(0).toUpperCase() + r.slice(1) + '</option>';
+    }).join('');
+
+    var html = '<div class="nominee-row border rounded p-3 mb-3 bg-light">' +
+      '<input type="hidden" name="mutual_fund[mutual_fund_nominees_attributes][' + idx + '][id]">' +
+      '<div class="row">' +
+        '<div class="col-md-4 mb-3">' +
+          '<label class="form-label">Nominee Name <span class="text-danger">*</span></label>' +
+          '<input type="text" name="mutual_fund[mutual_fund_nominees_attributes][' + idx + '][nominee_name]"' +
+          ' class="form-control" value="' + (nominee.nominee_name || '') + '" placeholder="Enter nominee name" required>' +
+        '</div>' +
+        '<div class="col-md-3 mb-3">' +
+          '<label class="form-label">Relationship</label>' +
+          '<select name="mutual_fund[mutual_fund_nominees_attributes][' + idx + '][relationship]" class="form-control">' +
+            '<option value="">Select</option>' + options +
+          '</select>' +
+        '</div>' +
+        '<div class="col-md-2 mb-3">' +
+          '<label class="form-label">Age</label>' +
+          '<input type="number" name="mutual_fund[mutual_fund_nominees_attributes][' + idx + '][age]"' +
+          ' class="form-control" value="' + (nominee.age || '') + '" min="0" max="120">' +
+        '</div>' +
+        '<div class="col-md-2 mb-3">' +
+          '<label class="form-label">Share (%)</label>' +
+          '<input type="number" name="mutual_fund[mutual_fund_nominees_attributes][' + idx + '][share_percentage]"' +
+          ' class="form-control" value="100" min="0" max="100" step="0.01">' +
+        '</div>' +
+        '<div class="col-md-1 mb-3 d-flex align-items-end">' +
+          '<button type="button" class="btn btn-danger btn-sm" onclick="removeMfNominee(this)" title="Remove">' +
+            '<i class="bi bi-trash"></i>' +
+          '</button>' +
+        '</div>' +
+      '</div>' +
+      '<input type="hidden" name="mutual_fund[mutual_fund_nominees_attributes][' + idx + '][_destroy]" value="false" class="destroy-flag">' +
+    '</div>';
+
+    document.getElementById('mf-nominees-container').insertAdjacentHTML('beforeend', html);
   }
 });
 </script>

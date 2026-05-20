@@ -399,7 +399,11 @@ Rails.application.routes.draw do
     end
 
     # Mutual Funds
-    resources :mutual_funds, path: 'investments/mutual-funds'
+    resources :mutual_funds, path: 'investments/mutual-funds' do
+      collection do
+        get :load_customer_nominees
+      end
+    end
 
     # Other Insurance - Alternative routes for backward compatibility
     scope :other_insurances, controller: :other_insurances do

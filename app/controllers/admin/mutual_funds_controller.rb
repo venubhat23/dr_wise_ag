@@ -104,6 +104,36 @@ class Admin::MutualFundsController < Admin::ApplicationController
     end
   end
 
+  def load_customer_nominees
+    customer_id = params[:customer_id]
+    return render json: { success: false, message: 'Customer ID required', nominees: [] } unless customer_id.present?
+
+    customer = Customer.find(customer_id)
+    nominee_options = []
+
+    customer.family_members.each do |member|
+      next unless member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
+      nominee_options << {
+        nominee_name: member.name,
+        relationship: member.relationship&.downcase || 'other',
+        age: member.age || 0
+      }
+    end
+
+    if nominee_options.empty? && customer.nominee_name.present?
+      age = customer.nominee_date_of_birth.present? ? (Date.current.year - customer.nominee_date_of_birth.year) : 0
+      nominee_options << {
+        nominee_name: customer.nominee_name,
+        relationship: customer.nominee_relation&.downcase || 'other',
+        age: age
+      }
+    end
+
+    render json: { success: true, nominees: nominee_options, customer_name: customer.display_name }
+  rescue ActiveRecord::RecordNotFound
+    render json: { success: false, message: 'Customer not found', nominees: [] }
+  end
+
   def destroy
     @mutual_fund.delete_main_policy_from_r2 if @mutual_fund.has_main_policy_r2_document?
     @mutual_fund.policy_documents_records.each do |doc|
