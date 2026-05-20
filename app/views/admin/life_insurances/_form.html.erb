@@ -518,6 +518,7 @@
     </div>
   </div>
 
+  <% if @life_insurance.new_record? || @life_insurance.drwise_policy? %>
   <!-- Commission Calculation Table -->
   <div class="card mb-4 shadow-sm commission-table">
     <div class="card-header" style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
@@ -740,6 +741,7 @@
       <%= form.hidden_field :investor_tds_percentage, value: 0, class: "investor-tds-percentage" %>
     </div>
   </div>
+  <% end %>
 
   <!-- Policy Upload Section -->
   <div class="card mb-4">

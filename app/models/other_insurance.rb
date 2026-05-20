@@ -276,6 +276,7 @@ class OtherInsurance < ApplicationRecord
   private
 
   def create_commission_payouts
+    return unless drwise_policy? # Only create payouts for DrWise policies
     # Create commission payouts using StructuredPayoutService
     StructuredPayoutService.create_for_policy(self, 'other') if defined?(StructuredPayoutService)
     Rails.logger.info "Commission payouts handled by StructuredPayoutService for other insurance #{id}"

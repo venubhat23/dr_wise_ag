@@ -249,10 +249,9 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
   # GET /api/v1/mobile/settings/contact
   def contact_us
     user = current_user
+    info = SystemSetting.company_info
 
-    # Check user role from token and respond accordingly
     if user.is_a?(Customer)
-      # Customer role - Show assigned agent details
       agent_info = get_customer_agent(user)
 
       render json: {
@@ -263,43 +262,33 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
           agent_email: agent_info[:email],
           agent_address: agent_info[:address],
           company_info: {
-            name: "Drwise Admin",
-            mobile: "+918431174477",
-            email: "support@dr-wise.in",
-            address: "123 Insurance Street, Mumbai, Maharashtra, India",
-            website: "www.dr-wise.in"
+            name:    info[:name],
+            mobile:  info[:mobile],
+            email:   info[:email],
+            address: info[:address],
+            website: info[:website]
           },
-          support_hours: "Monday to Friday: 9:00 AM - 6:00 PM",
-          emergency_contact: "+918431174477"
+          support_hours:     info[:support_hours],
+          emergency_contact: info[:mobile]
         }
       }
     elsif user.is_a?(User) || user.is_a?(SubAgent)
-      # Agent role - Show company support details
       render json: {
         success: true,
         data: {
-          company_name: "Drwise Admin",
-          support_mobile: "+918431174477",
-          support_email: "support@dr-wise.in",
-          support_address: "123 Insurance Street, Mumbai, Maharashtra, India",
-          website: "www.dr-wise.in",
-          support_hours: "Monday to Friday: 9:00 AM - 6:00 PM",
-          emergency_contact: "+918431174477",
-          technical_support: {
-            mobile: "+918431174477",
-            email: "support@dr-wise.in"
-          },
-          sales_support: {
-            mobile: "+918431174477",
-            email: "support@dr-wise.in"
-          }
+          company_name:    info[:name],
+          support_mobile:  info[:mobile],
+          support_email:   info[:email],
+          support_address: info[:address],
+          website:         info[:website],
+          support_hours:   info[:support_hours],
+          emergency_contact: info[:mobile],
+          technical_support: { mobile: info[:mobile], email: info[:email] },
+          sales_support:     { mobile: info[:mobile], email: info[:email] }
         }
       }
     else
-      render json: {
-        success: false,
-        message: "Invalid user role"
-      }, status: :unauthorized
+      render json: { success: false, message: "Invalid user role" }, status: :unauthorized
     end
   end
 
@@ -523,12 +512,12 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
         address: sub_agent.address || "Not provided"
       }
     else
-      # Default company agent
+      info = SystemSetting.company_info
       {
-        name: "Drwise Support Team",
-        mobile: "+918431174477",
-        email: "support@dr-wise.in",
-        address: "123 Insurance Street, Mumbai, Maharashtra, India"
+        name:    info[:name],
+        mobile:  info[:mobile],
+        email:   info[:email],
+        address: info[:address]
       }
     end
   end

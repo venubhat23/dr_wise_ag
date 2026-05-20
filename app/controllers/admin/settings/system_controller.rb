@@ -1,34 +1,15 @@
 class Admin::Settings::SystemController < Admin::Settings::BaseController
 
   def index
-    # Placeholder for system settings
-    @system_settings = {
-      app_name: 'Dr WISE Admin',
-      version: '1.0.0',
-      maintenance_mode: false,
-      email_notifications: true,
-      backup_frequency: 'Daily',
-      session_timeout: 30,
-      max_file_upload_size: 10
-    }
-
-    # Get company expenses percentage from database
     @company_expenses_percentage = SystemSetting.company_expenses_percentage
-
-    # Get default pagination per page from database
     @default_pagination_per_page = SystemSetting.default_pagination_per_page
-
-    # Get commission settings from database
     @default_main_agent_commission = SystemSetting.default_main_agent_commission
     @default_affiliate_commission = SystemSetting.default_affiliate_commission
     @default_ambassador_commission = SystemSetting.default_ambassador_commission
     @default_company_expenses = SystemSetting.default_company_expenses
-
-    # Get terms and conditions
     @terms_and_conditions = SystemSetting.terms_and_conditions
-
-    # Get investment amount
     @investment_amount = SystemSetting.investment_amount
+    @company_info = SystemSetting.company_info
   end
 
   def update
@@ -122,6 +103,24 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
         end
       else
         redirect_to admin_settings_system_path, alert: 'Please enter a valid investment amount (must be 0 or greater).'
+        return
+      end
+    end
+
+    # Handle company info update
+    if params[:company_info_update] == "true"
+      begin
+        SystemSetting.update_company_info(
+          company_name:    params[:company_name],
+          company_mobile:  params[:company_mobile],
+          company_email:   params[:company_email],
+          company_address: params[:company_address],
+          company_website: params[:company_website],
+          support_hours:   params[:support_hours]
+        )
+        success_messages << 'Company information updated successfully!'
+      rescue => e
+        redirect_to admin_settings_system_path, alert: "Error updating company info: #{e.message}"
         return
       end
     end

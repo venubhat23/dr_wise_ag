@@ -209,9 +209,8 @@
 </div>
 
 <!-- Commission Calculation Table -->
-<% if @other_insurance.respond_to?(:product_through_dr) && @other_insurance.product_through_dr? %>
+<% if @other_insurance.drwise_policy? %>
   <%= render 'shared/commission_calculation_table', policy: @other_insurance %>
-<% end %>
 
 <!-- Commission Transaction Details -->
 <div class="info-section-card">
@@ -251,6 +250,7 @@
     </div>
   </div>
 </div>
+<% end %>
 
 <!-- Autopay Installment Section -->
 <div class="info-section-card">

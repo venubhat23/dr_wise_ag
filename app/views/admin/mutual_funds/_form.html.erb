@@ -1,0 +1,703 @@
+<%= form_with model: [:admin, @mutual_fund], local: true, class: "needs-validation", novalidate: true,
+    id: "mutual-fund-form", html: { enctype: "multipart/form-data" } do |form| %>
+
+  <!-- Client & Agent Details -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-person me-2 text-primary"></i>
+        Client & Agent Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <% if @mutual_fund.errors.any? %>
+        <div class="alert alert-danger alert-dismissible fade show">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Please correct the following errors:</strong>
+          <ul class="mb-0 mt-2">
+            <% @mutual_fund.errors.full_messages.each do |msg| %>
+              <li><%= msg %></li>
+            <% end %>
+          </ul>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :customer_id, "Client Name *", class: "form-label" %>
+          <%= form.select :customer_id,
+              options_for_select(@customers.map { |c| [c.display_name, c.id] }, @selected_customer&.id || @mutual_fund.customer_id),
+              { prompt: 'Search and select client...' },
+              { class: "form-control select2-customer #{'is-invalid' if @mutual_fund.errors[:customer_id].any?}",
+                required: true, id: "mf_customer_select" } %>
+          <% if @mutual_fund.errors[:customer_id].any? %>
+            <div class="invalid-feedback"><%= @mutual_fund.errors[:customer_id].first %></div>
+          <% end %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :sub_agent_id, "Affiliate Name", class: "form-label" %>
+          <%= form.select :sub_agent_id,
+              options_for_select([['Self', '']] + @sub_agents.map { |a| [a.display_name, a.id] }, (@auto_select_affiliate == 'self' ? '' : @auto_select_affiliate)),
+              { prompt: 'Search and select affiliate...' },
+              { class: "form-control select2-affiliate", id: "mf_affiliate_select" } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fund / Investment Details -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-graph-up me-2 text-success"></i>
+        Investment Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <!-- Investment Type -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :investment_type, "Investment Type *", class: "form-label" %>
+          <div class="d-flex gap-3 mt-1">
+            <% MutualFund::INVESTMENT_TYPES.each do |type| %>
+              <div class="form-check form-check-inline">
+                <%= form.radio_button :investment_type, type,
+                    class: "form-check-input",
+                    id: "investment_type_#{type.downcase}",
+                    required: @mutual_fund.investment_type.blank? %>
+                <label class="form-check-label fw-semibold" for="investment_type_<%= type.downcase %>">
+                  <%= type %>
+                </label>
+              </div>
+            <% end %>
+          </div>
+          <% if @mutual_fund.errors[:investment_type].any? %>
+            <div class="text-danger small mt-1"><%= @mutual_fund.errors[:investment_type].first %></div>
+          <% end %>
+        </div>
+
+        <!-- Amount -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :amount, "Amount *", class: "form-label" %>
+          <%= form.number_field :amount,
+              class: "form-control #{'is-invalid' if @mutual_fund.errors[:amount].any?}",
+              placeholder: "0.00", step: 0.01, min: 0, required: true, id: "mf_amount" %>
+          <% if @mutual_fund.errors[:amount].any? %>
+            <div class="invalid-feedback"><%= @mutual_fund.errors[:amount].first %></div>
+          <% end %>
+        </div>
+
+        <!-- Fund Name (AMC) -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :fund_name, "Fund Name / AMC", class: "form-label" %>
+          <%= form.text_field :fund_name,
+              class: "form-control",
+              placeholder: "e.g. HDFC AMC, SBI Mutual Fund" %>
+        </div>
+
+        <!-- Folio Number -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :folio_number, "Folio Number", class: "form-label" %>
+          <%= form.text_field :folio_number,
+              class: "form-control",
+              placeholder: "Enter folio number" %>
+        </div>
+
+        <!-- Plan Name -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :plan_name, "Plan Name", class: "form-label" %>
+          <%= form.text_field :plan_name,
+              class: "form-control",
+              placeholder: "e.g. Growth, Dividend" %>
+        </div>
+
+        <!-- Start Date -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :start_date, "Start Date", class: "form-label" %>
+          <%= form.date_field :start_date,
+              class: "form-control",
+              min: "1900-01-01", max: "2099-12-31" %>
+        </div>
+
+        <!-- Maturity Date -->
+        <div class="col-md-4 mb-3">
+          <%= form.label :maturity_date, "Maturity Date", class: "form-label" %>
+          <%= form.date_field :maturity_date,
+              class: "form-control",
+              min: "1900-01-01", max: "2099-12-31" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nominee Details -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-people me-2 text-primary"></i>
+        Nominee Details *
+      </h5>
+    </div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">Add nominee details for this mutual fund.</p>
+      <div id="mf-nominees-container">
+        <div id="mf_no_nominees_message" class="text-muted text-center py-3"
+             style="<%= @mutual_fund.mutual_fund_nominees.any? ? 'display: none;' : '' %>">
+          <i class="bi bi-info-circle me-1"></i>No nominees added yet. Click "Add Nominee" to add nominee details.
+        </div>
+
+        <%= form.fields_for :mutual_fund_nominees do |nf| %>
+          <div class="nominee-row border rounded p-3 mb-3 bg-light">
+            <%= nf.hidden_field :id %>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Nominee Name <span class="text-danger">*</span></label>
+                <%= nf.text_field :nominee_name, class: "form-control", placeholder: "Enter nominee name", required: true %>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Relationship</label>
+                <%= nf.select :relationship,
+                    options_for_select([['Select', '']] + MutualFund::RELATIONSHIPS.map { |r| [r, r.downcase] }, nf.object.relationship),
+                    {},
+                    { class: "form-control" } %>
+              </div>
+              <div class="col-md-2 mb-3">
+                <label class="form-label">Age</label>
+                <%= nf.number_field :age, class: "form-control", placeholder: "Age", min: 0, max: 120 %>
+              </div>
+              <div class="col-md-2 mb-3">
+                <label class="form-label">Share (%)</label>
+                <%= nf.number_field :share_percentage, class: "form-control", placeholder: "100", min: 0, max: 100, step: 0.01 %>
+              </div>
+              <div class="col-md-1 mb-3 d-flex align-items-end">
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeMfNominee(this)" title="Remove">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+            <%= nf.hidden_field :_destroy, value: false, class: 'destroy-flag' %>
+          </div>
+        <% end %>
+      </div>
+
+      <button type="button" class="btn btn-outline-primary btn-sm" onclick="addMfNominee()">
+        <i class="bi bi-plus-circle me-1"></i>Add Nominee
+      </button>
+    </div>
+  </div>
+
+  <!-- Bank Details -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-bank me-2 text-primary"></i>
+        Bank Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <%= form.label :bank_name, "Bank Name", class: "form-label" %>
+          <%= form.text_field :bank_name, class: "form-control", placeholder: "Bank Name" %>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= form.label :account_type, "Account Type", class: "form-label" %>
+          <%= form.select :account_type,
+              options_for_select([['Account Type', '']] + MutualFund::ACCOUNT_TYPES.map { |t| [t, t] }, @mutual_fund.account_type),
+              {},
+              { class: "form-control" } %>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= form.label :account_number, "Account Number", class: "form-label" %>
+          <%= form.text_field :account_number, class: "form-control", placeholder: "Account Number" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :ifsc_code, "IFSC CODE", class: "form-label" %>
+          <%= form.text_field :ifsc_code, class: "form-control", placeholder: "IFSC CODE" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :account_holder_name, "Account Holder Name", class: "form-label" %>
+          <%= form.text_field :account_holder_name, class: "form-control", placeholder: "Holder Name" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Other Details -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-info-circle me-2 text-primary"></i>
+        Other Details
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :reference_by_name, "Reference By Name", class: "form-label" %>
+          <%= form.text_field :reference_by_name, class: "form-control", placeholder: "Enter reference name" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :broker_name, "Broker Name", class: "form-label" %>
+          <%= form.text_field :broker_name, class: "form-control", placeholder: "Broker Name" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :bonus, "Bonus", class: "form-label" %>
+          <%= form.number_field :bonus, class: "form-control", value: @mutual_fund.bonus || 0, step: 0.01 %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :fund, "Fund", class: "form-label" %>
+          <%= form.number_field :fund, class: "form-control", value: @mutual_fund.fund || 0, step: 0.01 %>
+        </div>
+        <div class="col-12 mb-3">
+          <%= form.label :extra_note, "Extra Note", class: "form-label" %>
+          <%= form.text_area :extra_note, class: "form-control", rows: 4, placeholder: "Enter additional notes or comments..." %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Commission Calculation -->
+  <div class="card mb-4 shadow-sm commission-table">
+    <div class="card-header" style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-dark fw-bold">
+          <i class="bi bi-calculator me-2 text-primary"></i>Commission Calculation
+        </h5>
+        <div class="text-end">
+          <small class="text-muted fw-bold">Profit Formula:</small>
+          <div class="badge bg-light text-dark border" style="font-size: 0.8rem;">
+            Main Agent Commission - Total Distribution - Company Expenses
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table mb-0" style="font-size: 0.95rem;">
+          <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+            <tr>
+              <th class="py-3 px-4 fw-bold text-dark border-0" style="width: 20%;">COMMISSION DETAILS</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 12%;">(%)</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 18%;">COMMISSION</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 12%;">TDS (%)</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 15%;">TDS AMOUNT</th>
+              <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 23%;">ACTUAL AMOUNT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Main Agent -->
+            <tr class="border-bottom">
+              <td class="py-3 px-4 fw-bold text-dark bg-light">Main Agent</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :main_agent_commission_percentage,
+                    class: "form-control border-1 text-center fw-bold", value: @mutual_fund.main_agent_commission_percentage || 0,
+                    step: 0.01, id: "mf_commission_pct" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :commission_amount, class: "form-control border-1 text-center",
+                    value: @mutual_fund.commission_amount || 0, step: 0.01, readonly: true, id: "mf_commission_amt" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :tds_percentage, class: "form-control border-1 text-center",
+                    value: @mutual_fund.tds_percentage || 0, step: 0.01, id: "mf_tds_pct" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :tds_amount, class: "form-control border-1 text-center",
+                    value: @mutual_fund.tds_amount || 0, step: 0.01, readonly: true, id: "mf_tds_amt" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :after_tds_value, class: "form-control border-1 text-center fw-bold",
+                    value: @mutual_fund.after_tds_value || 0, step: 0.01, readonly: true, id: "mf_after_tds" %>
+              </td>
+            </tr>
+
+            <!-- Affiliate -->
+            <tr class="border-bottom">
+              <td class="py-3 px-4 fw-bold text-dark">Affiliate</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :sub_agent_commission_percentage,
+                    class: "form-control border-1 text-center sub-agent-commission-percentage",
+                    value: @mutual_fund.sub_agent_commission_percentage || 2.0, step: 0.01 %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :sub_agent_commission_amount, class: "form-control border-1 text-center",
+                    value: @mutual_fund.sub_agent_commission_amount || 0, step: 0.01, readonly: true %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :sub_agent_tds_percentage, class: "form-control border-1 text-center",
+                    value: @mutual_fund.sub_agent_tds_percentage || 0, step: 0.01 %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :sub_agent_tds_amount, class: "form-control border-1 text-center",
+                    value: @mutual_fund.sub_agent_tds_amount || 0, step: 0.01, readonly: true %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :sub_agent_after_tds_value, class: "form-control border-1 text-center",
+                    value: @mutual_fund.sub_agent_after_tds_value || 0, step: 0.01, readonly: true %>
+              </td>
+            </tr>
+
+            <!-- Ambassador -->
+            <tr class="border-bottom">
+              <td class="py-3 px-4 fw-bold text-dark">Ambassador</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :distributor_commission_percentage,
+                    class: "form-control border-1 text-center ambassador-commission-percentage",
+                    value: @mutual_fund.distributor_commission_percentage || 0, step: 0.01 %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :distributor_commission_amount, class: "form-control border-1 text-center",
+                    value: @mutual_fund.distributor_commission_amount || 0, step: 0.01, readonly: true %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :distributor_tds_percentage, class: "form-control border-1 text-center",
+                    value: @mutual_fund.distributor_tds_percentage || 0, step: 0.01 %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :distributor_tds_amount, class: "form-control border-1 text-center",
+                    value: @mutual_fund.distributor_tds_amount || 0, step: 0.01, readonly: true %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :distributor_after_tds_value, class: "form-control border-1 text-center",
+                    value: @mutual_fund.distributor_after_tds_value || 0, step: 0.01, readonly: true %>
+              </td>
+            </tr>
+
+            <!-- Investor -->
+            <tr class="border-bottom">
+              <td class="py-3 px-4 fw-bold text-dark">Investor</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :investor_commission_percentage,
+                    class: "form-control border-1 text-center investor-commission-percentage",
+                    value: @mutual_fund.investor_commission_percentage || 2.0, step: 0.01 %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :investor_commission_amount, class: "form-control border-1 text-center",
+                    value: @mutual_fund.investor_commission_amount || 0, step: 0.01, readonly: true %>
+              </td>
+              <td class="py-2 px-1 text-center text-muted">—</td>
+              <td class="py-2 px-1 text-center text-muted">—</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :investor_commission_amount, class: "form-control border-1 text-center",
+                    value: @mutual_fund.investor_commission_amount || 0, step: 0.01, readonly: true,
+                    id: "mf_investor_actual", name: nil %>
+              </td>
+            </tr>
+
+            <!-- Company -->
+            <tr class="border-bottom">
+              <td class="py-3 px-4 fw-bold text-dark">Company</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :company_expenses_percentage,
+                    class: "form-control border-1 text-center company-expenses-percentage",
+                    value: @mutual_fund.company_expenses_percentage || 0, step: 0.01 %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :company_expenses_amount, class: "form-control border-1 text-center",
+                    value: @mutual_fund.company_expenses_amount || 0, step: 0.01, readonly: true %>
+              </td>
+              <td class="py-2 px-1 text-center text-muted">—</td>
+              <td class="py-2 px-1 text-center text-muted">—</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :company_expenses_amount, class: "form-control border-1 text-center",
+                    value: @mutual_fund.company_expenses_amount || 0, step: 0.01, readonly: true,
+                    id: "mf_company_actual", name: nil %>
+              </td>
+            </tr>
+
+            <!-- Profit -->
+            <tr style="background: #f0fff4;">
+              <td class="py-3 px-4 fw-bold text-success">Profit</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :profit_percentage, class: "form-control border-1 text-center fw-bold text-success",
+                    value: @mutual_fund.profit_percentage || 0, step: 0.01, readonly: true, id: "mf_profit_pct" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :profit_amount, class: "form-control border-1 text-center fw-bold text-success",
+                    value: @mutual_fund.profit_amount || 0, step: 0.01, readonly: true, id: "mf_profit_amt" %>
+              </td>
+              <td class="py-2 px-1 text-center text-muted">—</td>
+              <td class="py-2 px-1 text-center text-muted">—</td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :profit_amount, class: "form-control border-1 text-center fw-bold text-success",
+                    value: @mutual_fund.profit_amount || 0, step: 0.01, readonly: true,
+                    id: "mf_profit_actual", name: nil %>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Hidden fields for total distribution -->
+      <%= form.hidden_field :total_distribution_percentage, id: "mf_total_dist_pct" %>
+    </div>
+  </div>
+
+  <!-- Policy Documents Manager (R2 Storage) -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="bi bi-folder2-open me-2 text-primary"></i>Policy Documents Manager
+      </h5>
+      <small class="text-muted">Upload, organize and manage all fund-related documents with secure storage</small>
+    </div>
+    <div class="card-body">
+      <!-- Main Policy Document -->
+      <div class="mb-4 p-3 border rounded bg-light">
+        <label class="form-label fw-bold">
+          <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+          Main Policy Document (R2 Storage)
+        </label>
+        <% if @mutual_fund.has_main_policy_r2_document? %>
+          <div class="alert alert-success py-2 mb-2">
+            <i class="bi bi-check-circle me-1"></i>
+            Current: <strong><%= @mutual_fund.main_policy_document_filename %></strong>
+            <a href="<%= @mutual_fund.main_policy_r2_url %>" target="_blank" class="btn btn-sm btn-outline-success ms-2">
+              <i class="bi bi-eye me-1"></i>View
+            </a>
+            <%= link_to edit_admin_mutual_fund_path(@mutual_fund, delete_main_policy_document: 'true'),
+                method: :patch,
+                data: { confirm: "Delete this document?" },
+                class: "btn btn-sm btn-outline-danger ms-1" do %>
+              <i class="bi bi-trash me-1"></i>Delete
+            <% end %>
+          </div>
+        <% end %>
+        <input type="file" name="mutual_fund[main_policy_document]" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+        <small class="text-muted">
+          <i class="bi bi-shield-check text-success me-1"></i>
+          Secure R2 Storage: Supports PDF, JPEG, PNG, Word files (Max: 10MB) - files stored securely in Cloudflare R2
+        </small>
+      </div>
+
+      <!-- Additional Documents -->
+      <div class="p-3 border rounded">
+        <label class="form-label fw-bold">
+          <i class="bi bi-paperclip me-2 text-secondary"></i>
+          Additional Documents <span class="text-muted fw-normal">(Optional)</span>
+        </label>
+        <input type="file" name="mutual_fund[documents][]" class="form-control mb-2" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple>
+        <small class="text-muted">Supports PDF, Images, Word files - Identity proofs, statements, etc.</small>
+
+        <!-- Existing additional documents -->
+        <% if @mutual_fund.persisted? && @mutual_fund.policy_documents_records.any? %>
+          <div class="mt-3">
+            <p class="fw-semibold text-muted small">Existing Documents:</p>
+            <% @mutual_fund.policy_documents_records.each do |doc| %>
+              <div class="d-flex align-items-center justify-content-between p-2 border rounded mb-2 bg-white">
+                <div>
+                  <i class="bi bi-file-earmark me-2 text-primary"></i>
+                  <span class="fw-semibold"><%= doc.title %></span>
+                  <span class="badge bg-light text-dark ms-2"><%= doc.document_type %></span>
+                </div>
+                <div class="d-flex gap-2">
+                  <% if doc.has_r2_document? %>
+                    <a href="<%= doc.document_url %>" target="_blank" class="btn btn-sm btn-outline-primary">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Autopay Installment -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-calendar-check me-2 text-primary"></i>
+        Autopay Installment
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :installment_autopay_start_date, "Installment Autopay Start Date", class: "form-label" %>
+          <%= form.date_field :installment_autopay_start_date,
+              class: "form-control",
+              value: @mutual_fund.installment_autopay_start_date || Date.current,
+              min: "1900-01-01", max: "2099-12-31" %>
+        </div>
+        <div class="col-md-6 mb-3">
+          <%= form.label :installment_autopay_end_date, "Installment Autopay End Date", class: "form-label" %>
+          <%= form.date_field :installment_autopay_end_date,
+              class: "form-control",
+              value: @mutual_fund.installment_autopay_end_date || Date.current,
+              min: "1900-01-01", max: "2099-12-31" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <div class="d-flex gap-2 justify-content-end mb-4">
+    <%= link_to admin_mutual_funds_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-x-circle me-1"></i>Cancel
+    <% end %>
+    <%= form.submit @mutual_fund.new_record? ? "Create Mutual Fund" : "Update Mutual Fund",
+        class: "btn btn-primary px-4" %>
+  </div>
+
+<% end %>
+
+<!-- Nominee template for JS cloning -->
+<template id="mf-nominee-template">
+  <div class="nominee-row border rounded p-3 mb-3 bg-light">
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Nominee Name <span class="text-danger">*</span></label>
+        <input type="text" name="mutual_fund[mutual_fund_nominees_attributes][NEW_INDEX][nominee_name]"
+               class="form-control" placeholder="Enter nominee name" required>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Relationship</label>
+        <select name="mutual_fund[mutual_fund_nominees_attributes][NEW_INDEX][relationship]" class="form-control">
+          <option value="">Select</option>
+          <option value="spouse">Spouse</option>
+          <option value="father">Father</option>
+          <option value="mother">Mother</option>
+          <option value="son">Son</option>
+          <option value="daughter">Daughter</option>
+          <option value="brother">Brother</option>
+          <option value="sister">Sister</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="col-md-2 mb-3">
+        <label class="form-label">Age</label>
+        <input type="number" name="mutual_fund[mutual_fund_nominees_attributes][NEW_INDEX][age]"
+               class="form-control" placeholder="Age" min="0" max="120">
+      </div>
+      <div class="col-md-2 mb-3">
+        <label class="form-label">Share (%)</label>
+        <input type="number" name="mutual_fund[mutual_fund_nominees_attributes][NEW_INDEX][share_percentage]"
+               class="form-control" placeholder="100" min="0" max="100" step="0.01">
+      </div>
+      <div class="col-md-1 mb-3 d-flex align-items-end">
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeMfNominee(this)" title="Remove">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </div>
+    <input type="hidden" name="mutual_fund[mutual_fund_nominees_attributes][NEW_INDEX][_destroy]" value="false" class="destroy-flag">
+  </div>
+</template>
+
+<script>
+let mfNomineeIndex = <%= @mutual_fund.mutual_fund_nominees.size %>;
+
+function addMfNominee() {
+  const template = document.getElementById('mf-nominee-template');
+  const clone = template.content.cloneNode(true);
+  const html = clone.querySelector('.nominee-row').outerHTML.replace(/NEW_INDEX/g, Date.now() + mfNomineeIndex++);
+  document.getElementById('mf-nominees-container').insertAdjacentHTML('beforeend', html);
+  document.getElementById('mf_no_nominees_message').style.display = 'none';
+}
+
+function removeMfNominee(btn) {
+  const row = btn.closest('.nominee-row');
+  const destroyFlag = row.querySelector('.destroy-flag');
+  if (destroyFlag && destroyFlag.name) {
+    destroyFlag.value = 'true';
+    row.style.display = 'none';
+  } else {
+    row.remove();
+  }
+  const container = document.getElementById('mf-nominees-container');
+  const visibleRows = container.querySelectorAll('.nominee-row:not([style*="display: none"])');
+  if (visibleRows.length === 0) {
+    document.getElementById('mf_no_nominees_message').style.display = '';
+  }
+}
+
+// Commission calculation
+(function() {
+  function getVal(id) { return parseFloat(document.getElementById(id)?.value) || 0; }
+  function setVal(id, v) { const el = document.getElementById(id); if (el) el.value = v.toFixed(2); }
+
+  function recalculate() {
+    const amount = getVal('mf_amount');
+    const mainPct = getVal('mf_commission_pct');
+    const tdsPct = getVal('mf_tds_pct');
+
+    // Main agent
+    const commAmt = amount * mainPct / 100;
+    const tdsAmt = commAmt * tdsPct / 100;
+    const afterTds = commAmt - tdsAmt;
+    setVal('mf_commission_amt', commAmt);
+    setVal('mf_tds_amt', tdsAmt);
+    setVal('mf_after_tds', afterTds);
+
+    // Sub totals
+    const subPct = parseFloat(document.querySelector('.sub-agent-commission-percentage')?.value) || 0;
+    const ambPct = parseFloat(document.querySelector('.ambassador-commission-percentage')?.value) || 0;
+    const invPct = parseFloat(document.querySelector('.investor-commission-percentage')?.value) || 0;
+    const expPct = parseFloat(document.querySelector('.company-expenses-percentage')?.value) || 0;
+
+    // Sub agent amount
+    const subAmt = amount * subPct / 100;
+    const ambAmt = amount * ambPct / 100;
+    const invAmt = amount * invPct / 100;
+    const expAmt = amount * expPct / 100;
+
+    // Update sub-agent amounts (readonly fields after pct)
+    const rows = document.querySelectorAll('.commission-table tbody tr');
+    if (rows[1]) {
+      const inputs = rows[1].querySelectorAll('input[type="number"]');
+      if (inputs[1]) inputs[1].value = subAmt.toFixed(2);
+      const subTdsPct = parseFloat(inputs[2]?.value) || 0;
+      const subTdsAmt = subAmt * subTdsPct / 100;
+      if (inputs[3]) inputs[3].value = subTdsAmt.toFixed(2);
+      if (inputs[4]) inputs[4].value = (subAmt - subTdsAmt).toFixed(2);
+    }
+    if (rows[2]) {
+      const inputs = rows[2].querySelectorAll('input[type="number"]');
+      if (inputs[1]) inputs[1].value = ambAmt.toFixed(2);
+      const ambTdsPct = parseFloat(inputs[2]?.value) || 0;
+      const ambTdsAmt = ambAmt * ambTdsPct / 100;
+      if (inputs[3]) inputs[3].value = ambTdsAmt.toFixed(2);
+      if (inputs[4]) inputs[4].value = (ambAmt - ambTdsAmt).toFixed(2);
+    }
+    if (rows[3]) {
+      const inputs = rows[3].querySelectorAll('input[type="number"]');
+      if (inputs[1]) inputs[1].value = invAmt.toFixed(2);
+    }
+    if (rows[4]) {
+      const inputs = rows[4].querySelectorAll('input[type="number"]');
+      if (inputs[1]) inputs[1].value = expAmt.toFixed(2);
+    }
+
+    // Profit
+    const totalDist = subPct + ambPct + invPct;
+    const profitPct = mainPct - totalDist - expPct;
+    const profitAmt = amount * profitPct / 100;
+    setVal('mf_profit_pct', profitPct);
+    setVal('mf_profit_amt', profitAmt);
+
+    const distField = document.getElementById('mf_total_dist_pct');
+    if (distField) distField.value = totalDist.toFixed(2);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.commission-table input[type="number"]:not([readonly])').forEach(el => {
+      el.addEventListener('input', recalculate);
+    });
+    document.getElementById('mf_amount')?.addEventListener('input', recalculate);
+    recalculate();
+  });
+})();
+
+// Select2 initialization
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof $ !== 'undefined' && $.fn.select2) {
+    $('#mf_customer_select').select2({ placeholder: 'Type to search clients...', width: '100%' });
+    $('#mf_affiliate_select').select2({ placeholder: 'Type to search affiliates...', width: '100%' });
+  }
+});
+</script>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_17_070000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_20_100001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -1076,6 +1076,77 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_17_070000) do
     t.unique_constraint ["policy_number"], name: "motor_insurances_policy_number_key"
   end
 
+  create_table "mutual_fund_nominees", force: :cascade do |t|
+    t.bigint "mutual_fund_id", null: false
+    t.string "nominee_name", null: false
+    t.string "relationship"
+    t.integer "age"
+    t.decimal "share_percentage", precision: 5, scale: 2
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mutual_fund_id"], name: "index_mutual_fund_nominees_on_mutual_fund_id"
+  end
+
+  create_table "mutual_funds", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.bigint "sub_agent_id"
+    t.bigint "distributor_id"
+    t.string "investment_type", null: false
+    t.decimal "amount", precision: 15, scale: 2, null: false
+    t.string "fund_name"
+    t.string "folio_number"
+    t.string "plan_name"
+    t.date "start_date"
+    t.date "maturity_date"
+    t.string "bank_name"
+    t.string "account_type"
+    t.string "account_number"
+    t.string "ifsc_code"
+    t.string "account_holder_name"
+    t.string "reference_by_name"
+    t.string "broker_name"
+    t.decimal "bonus", precision: 15, scale: 2, default: "0.0"
+    t.decimal "fund", precision: 15, scale: 2, default: "0.0"
+    t.text "extra_note"
+    t.decimal "main_agent_commission_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "commission_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "tds_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "tds_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "after_tds_value", precision: 15, scale: 2, default: "0.0"
+    t.decimal "sub_agent_commission_percentage", precision: 8, scale: 2, default: "2.0"
+    t.decimal "sub_agent_commission_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "sub_agent_tds_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "sub_agent_tds_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "sub_agent_after_tds_value", precision: 15, scale: 2, default: "0.0"
+    t.decimal "distributor_commission_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "distributor_commission_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "distributor_tds_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "distributor_tds_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "distributor_after_tds_value", precision: 15, scale: 2, default: "0.0"
+    t.decimal "investor_commission_percentage", precision: 8, scale: 2, default: "2.0"
+    t.decimal "investor_commission_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "company_expenses_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "company_expenses_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "total_distribution_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "profit_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "profit_amount", precision: 15, scale: 2, default: "0.0"
+    t.string "main_policy_document_key"
+    t.string "main_policy_document_filename"
+    t.string "main_policy_document_content_type"
+    t.bigint "main_policy_document_size"
+    t.date "installment_autopay_start_date"
+    t.date "installment_autopay_end_date"
+    t.boolean "is_admin_added", default: false
+    t.boolean "is_customer_added", default: false
+    t.boolean "is_agent_added", default: false
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_mutual_funds_on_customer_id"
+    t.index ["distributor_id"], name: "index_mutual_funds_on_distributor_id"
+    t.index ["sub_agent_id"], name: "index_mutual_funds_on_sub_agent_id"
+  end
+
   create_table "other_insurance_nominees", force: :cascade do |t|
     t.bigint "other_insurance_id", null: false
     t.string "nominee_name"
@@ -1630,6 +1701,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_17_070000) do
   add_foreign_key "motor_insurance_documents", "motor_insurances"
   add_foreign_key "motor_insurance_nominees", "motor_insurances"
   add_foreign_key "motor_insurances", "brokers"
+  add_foreign_key "mutual_fund_nominees", "mutual_funds"
+  add_foreign_key "mutual_funds", "customers"
+  add_foreign_key "mutual_funds", "distributors"
+  add_foreign_key "mutual_funds", "sub_agents"
   add_foreign_key "other_insurance_nominees", "other_insurances"
   add_foreign_key "other_insurances", "policies"
   add_foreign_key "session_activities", "users"

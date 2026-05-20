@@ -480,6 +480,7 @@ class MotorInsurance < ApplicationRecord
   end
 
   def create_commission_payouts
+    return unless drwise_policy? # Only create payouts for DrWise policies
     # Create commission payouts using StructuredPayoutService
     StructuredPayoutService.create_for_policy(self, 'motor')
     Rails.logger.info "Commission payouts handled by StructuredPayoutService for motor insurance #{id}"

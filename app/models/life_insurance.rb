@@ -618,7 +618,7 @@ class LifeInsurance < ApplicationRecord
 
   def create_structured_payout
     return unless net_premium.present? && net_premium > 0
-    return if is_customer_added? # Skip auto-creation for customer-added policies
+    return unless drwise_policy? # Only create payouts for DrWise policies
 
     # Create structured payout with hierarchical commission structure
     StructuredPayoutService.create_for_policy(self, 'life')

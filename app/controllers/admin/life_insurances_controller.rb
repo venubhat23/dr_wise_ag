@@ -112,6 +112,8 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
         current_sub_agent = SubAgent.find_by(id: @life_insurance.sub_agent_id)
         @sub_agents = ([current_sub_agent].compact + @sub_agents.to_a).uniq(&:id)
       end
+    elsif @selected_customer&.affiliate.present?
+      @auto_select_affiliate = @selected_customer.affiliate.id
     else
       @auto_select_affiliate = 'self'
     end

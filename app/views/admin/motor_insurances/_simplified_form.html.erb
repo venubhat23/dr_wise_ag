@@ -502,6 +502,7 @@
     </div>
   </div>
 
+  <% if @motor_insurance.new_record? || @motor_insurance.drwise_policy? %>
   <!-- Commission Calculation Table -->
   <div class="card mb-4 shadow-sm commission-table">
     <div class="card-header" style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
@@ -765,6 +766,7 @@
       <%= form.hidden_field :profit_amount, class: "profit-amount" %>
     </div>
   </div>
+  <% end %>
 
   <!-- Policy Documents Section -->
   <div class="card mb-4">

@@ -419,6 +419,7 @@
     </div>
   </div>
 
+  <% if @health_insurance.drwise_policy? %>
   <!-- Commission Calculation Table -->
   <div class="card mb-4 shadow-sm commission-table">
     <div class="card-header" style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
@@ -640,6 +641,7 @@
       <%= form.hidden_field :total_distribution_percentage, class: "total-distribution-percentage", value: @health_insurance.total_distribution_percentage || 0 %>
     </div>
   </div>
+  <% end %>
 
   <!-- Nominee Details Section -->
   <div class="card mb-4">

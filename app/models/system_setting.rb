@@ -113,6 +113,41 @@ class SystemSetting < ApplicationRecord
     setting.update!(terms_and_conditions: content)
   end
 
+  # ─── Company Info ────────────────────────────────────────────────────────────
+
+  def self.company_info
+    setting = find_by(key: 'system_config')
+    {
+      name:          setting&.company_name    || 'Drwise Admin',
+      mobile:        setting&.company_phone   || '+918431174477',
+      email:         setting&.company_email   || 'support@dr-wise.in',
+      address:       setting&.company_address || '123 Insurance Street, Mumbai, Maharashtra, India',
+      website:       get_value('company_website') || 'www.dr-wise.in',
+      support_hours: get_value('support_hours')   || 'Monday to Friday: 9:00 AM - 6:00 PM'
+    }
+  end
+
+  def self.update_company_info(params)
+    setting = find_by(key: 'system_config') || create!(
+      key: 'system_config',
+      value: 'system configuration',
+      setting_type: 'configuration',
+      description: 'System configuration settings'
+    )
+
+    setting.update!(
+      company_name:    params[:company_name],
+      company_phone:   params[:company_mobile],
+      company_email:   params[:company_email],
+      company_address: params[:company_address]
+    )
+
+    set_value('company_website', params[:company_website], description: 'Company website URL', setting_type: 'string') if params[:company_website].present?
+    set_value('support_hours', params[:support_hours], description: 'Customer support hours', setting_type: 'string') if params[:support_hours].present?
+  end
+
+  # ─── Investment Amount ────────────────────────────────────────────────────────
+
   # Get investment amount
   def self.investment_amount
     setting = find_by(key: 'system_config')

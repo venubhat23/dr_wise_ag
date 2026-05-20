@@ -346,6 +346,7 @@
     </div>
   </div>
 
+  <% if @other_insurance&.drwise_policy? %>
   <!-- Commission Details Section (Read-Only for Renewals) -->
   <div class="card mb-4">
     <div class="card-header bg-warning bg-opacity-10">
@@ -566,6 +567,7 @@
       </div>
     </div>
   </div>
+  <% end %>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

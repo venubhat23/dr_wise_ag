@@ -398,6 +398,9 @@ Rails.application.routes.draw do
       end
     end
 
+    # Mutual Funds
+    resources :mutual_funds, path: 'investments/mutual-funds'
+
     # Other Insurance - Alternative routes for backward compatibility
     scope :other_insurances, controller: :other_insurances do
       get :all_brokers

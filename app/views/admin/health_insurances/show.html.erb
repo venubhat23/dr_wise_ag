@@ -211,7 +211,7 @@
 </div>
 
 <!-- Commission Calculation Table -->
-<% if @health_insurance.respond_to?(:product_through_dr) && @health_insurance.product_through_dr? %>
+<% if @health_insurance.drwise_policy? %>
   <%= render 'shared/commission_calculation_table', policy: @health_insurance %>
 <% end %>
 

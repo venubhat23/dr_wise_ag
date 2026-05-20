@@ -6,7 +6,7 @@ class PolicyDocument < ApplicationRecord
   validates :title, presence: true
 
   validates :policy_type, inclusion: {
-    in: ['health', 'life', 'motor', 'other']
+    in: ['health', 'life', 'motor', 'other', 'mutual_fund']
   }
 
   validates :document_type, inclusion: {
@@ -117,6 +117,8 @@ class PolicyDocument < ApplicationRecord
       MotorInsurance.find_by(id: policy_id)
     when 'other'
       OtherInsurance.find_by(id: policy_id)
+    when 'mutual_fund'
+      MutualFund.find_by(id: policy_id)
     end
   end
 

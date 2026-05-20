@@ -280,7 +280,7 @@
 </div>
 
 <!-- Commission Calculation Table -->
-<% if @motor_insurance.respond_to?(:product_through_dr) && @motor_insurance.product_through_dr? %>
+<% if @motor_insurance.drwise_policy? %>
   <%= render 'shared/commission_calculation_table', policy: @motor_insurance %>
 <% end %>
 
