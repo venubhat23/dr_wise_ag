@@ -55,6 +55,7 @@ class LifeInsurance < ApplicationRecord
   validates :policy_term, presence: true, numericality: { greater_than: 0 }
   validates :distributor_id, presence: true
   # investor_id removed - commission is collectively distributed
+  validate :agency_code_must_exist
 
   # Custom validation
   validate :company_name_must_be_valid
@@ -492,6 +493,13 @@ class LifeInsurance < ApplicationRecord
     # Use policy_term as default if available, otherwise default to 10 years
     if premium_payment_term.blank?
       self.premium_payment_term = policy_term.present? ? policy_term : 10
+    end
+  end
+
+  def agency_code_must_exist
+    return if agency_code_id.blank?
+    unless AgencyCode.exists?(agency_code_id)
+      errors.add(:agency_code_id, "is invalid or no longer exists")
     end
   end
 

@@ -107,6 +107,11 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     # Set auto_select_affiliate for the form
     if @life_insurance.sub_agent_id.present?
       @auto_select_affiliate = @life_insurance.sub_agent_id
+      # Ensure the current sub_agent is included in the dropdown even if inactive
+      unless @sub_agents.exists?(id: @life_insurance.sub_agent_id)
+        current_sub_agent = SubAgent.find_by(id: @life_insurance.sub_agent_id)
+        @sub_agents = ([current_sub_agent].compact + @sub_agents.to_a).uniq(&:id)
+      end
     else
       @auto_select_affiliate = 'self'
     end
@@ -175,6 +180,11 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       set_form_data
       preserve_form_state_on_error
       render :new, status: :unprocessable_entity
+    rescue ActiveRecord::InvalidForeignKey
+      @life_insurance.errors.add(:base, 'Selected agency code or related record no longer exists. Please reselect.')
+      set_form_data
+      preserve_form_state_on_error
+      render :new, status: :unprocessable_entity
     end
   end
 
@@ -218,6 +228,10 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       else
         @life_insurance.errors.add(:base, 'A record with similar details already exists')
       end
+      set_form_data
+      render :edit, status: :unprocessable_entity
+    rescue ActiveRecord::InvalidForeignKey
+      @life_insurance.errors.add(:base, 'Selected agency code or related record no longer exists. Please reselect.')
       set_form_data
       render :edit, status: :unprocessable_entity
     end

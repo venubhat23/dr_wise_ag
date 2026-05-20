@@ -4198,6 +4198,26 @@ document.addEventListener('DOMContentLoaded', function() {
   <% if @life_insurance.persisted? %>
     console.log('🔧 Edit mode detected - ensuring field visibility...');
 
+    // Restore affiliate (sub_agent) selection in edit mode
+    setTimeout(function() {
+      var affiliateSelect = $('#affiliate_select');
+      if (affiliateSelect.length && affiliateSelect.hasClass('select2-hidden-accessible')) {
+        <% if @life_insurance.sub_agent_id.present? %>
+          var affiliateId = '<%= @life_insurance.sub_agent_id %>';
+          // Ensure the option exists in DOM before setting value
+          if (!affiliateSelect.find('option[value="' + affiliateId + '"]').length) {
+            var affiliateName = '<%= @life_insurance.sub_agent&.display_name.to_s.gsub("'", "\\'") %>';
+            affiliateSelect.append(new Option(affiliateName, affiliateId, true, true));
+          }
+          affiliateSelect.val(affiliateId).trigger('change.select2');
+          console.log('✅ Restored affiliate selection:', affiliateId);
+        <% else %>
+          affiliateSelect.val('').trigger('change.select2');
+          console.log('✅ Affiliate set to Self');
+        <% end %>
+      }
+    }, 400);
+
     // Policy holder is now a simple text input field
     const policyHolderInput = document.getElementById('life_insurance_policy_holder');
     if (policyHolderInput) {
