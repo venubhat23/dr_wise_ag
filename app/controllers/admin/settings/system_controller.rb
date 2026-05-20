@@ -10,6 +10,15 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
     @terms_and_conditions = SystemSetting.terms_and_conditions
     @investment_amount = SystemSetting.investment_amount
     @company_info = SystemSetting.company_info
+
+    @system_settings = {
+      app_name: 'InsureBook Admin',
+      version: '1.0.0',
+      maintenance_mode: false,
+      email_notifications: true,
+      backup_frequency: 'Daily',
+      session_timeout: 60
+    }
   end
 
   def update
