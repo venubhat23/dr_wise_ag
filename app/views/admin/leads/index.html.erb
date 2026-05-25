@@ -393,9 +393,21 @@
         </div>
 
         <!-- Pagination for Active Leads -->
-        <% if params[:tab] != 'converted' && @leads.respond_to?(:total_pages) && @leads.total_pages > 1 %>
-          <div class="pagination-wrapper mt-3">
-            <%= paginate @leads %>
+        <% if params[:tab] != 'converted' %>
+          <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+              <% if @leads.respond_to?(:total_count) %>
+                <small class="text-muted">
+                  Showing <strong><%= @leads.offset_value + 1 %></strong>–<strong><%= [@leads.offset_value + @leads.limit_value, @leads.total_count].min %></strong> of <strong><%= number_with_delimiter(@leads.total_count) %></strong>
+                </small>
+              <% end %>
+              <%= render 'shared/per_page_selector' %>
+            </div>
+            <% if @leads.respond_to?(:total_pages) && @leads.total_pages > 1 %>
+              <div class="pagination-wrapper">
+                <%= paginate @leads %>
+              </div>
+            <% end %>
           </div>
         <% end %>
       </div>
@@ -625,9 +637,21 @@
         </div>
 
         <!-- Pagination for Converted Leads -->
-        <% if params[:tab] == 'converted' && @leads.respond_to?(:total_pages) && @leads.total_pages > 1 %>
-          <div class="pagination-wrapper mt-3">
-            <%= paginate @leads %>
+        <% if params[:tab] == 'converted' %>
+          <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+              <% if @leads.respond_to?(:total_count) %>
+                <small class="text-muted">
+                  Showing <strong><%= @leads.offset_value + 1 %></strong>–<strong><%= [@leads.offset_value + @leads.limit_value, @leads.total_count].min %></strong> of <strong><%= number_with_delimiter(@leads.total_count) %></strong>
+                </small>
+              <% end %>
+              <%= render 'shared/per_page_selector' %>
+            </div>
+            <% if @leads.respond_to?(:total_pages) && @leads.total_pages > 1 %>
+              <div class="pagination-wrapper">
+                <%= paginate @leads %>
+              </div>
+            <% end %>
           </div>
         <% end %>
       </div>

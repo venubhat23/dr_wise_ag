@@ -339,21 +339,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
       <!-- Pagination -->
       <div class="card-footer bg-transparent border-0">
-        <div class="d-flex justify-content-between align-items-center flex-wrap">
-          <small class="text-muted mb-2 mb-md-0">
-            <% if defined?(@total_filtered_count) && @total_filtered_count.present? %>
-              Showing <%= @customers.current_page == 1 ? 1 : ((@customers.current_page - 1) * @customers.limit_value + 1) %>
-              to <%= [@customers.current_page * @customers.limit_value, @total_filtered_count].min %>
-              of <%= number_with_delimiter(@total_filtered_count) %> clients
-            <% elsif @customers.respond_to?(:total_count) %>
-              Showing <%= @customers.current_page == 1 ? 1 : ((@customers.current_page - 1) * @customers.limit_value + 1) %>
-              to <%= [@customers.current_page * @customers.limit_value, @customers.total_count].min %>
-              of <%= number_with_delimiter(@customers.total_count) %> clients
-            <% else %>
-              Showing <%= @customers.count %> clients
-            <% end %>
-          </small>
-
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <small class="text-muted">
+              <% total = defined?(@total_filtered_count) && @total_filtered_count.present? ? @total_filtered_count : (@customers.respond_to?(:total_count) ? @customers.total_count : @customers.count) %>
+              <% if @customers.respond_to?(:offset_value) %>
+                Showing <strong><%= @customers.offset_value + 1 %></strong>–<strong><%= [@customers.offset_value + @customers.limit_value, total].min %></strong> of <strong><%= number_with_delimiter(total) %></strong> clients
+              <% else %>
+                Showing <strong><%= number_with_delimiter(total) %></strong> clients
+              <% end %>
+            </small>
+            <%= render 'shared/per_page_selector' %>
+          </div>
           <% if @customers.respond_to?(:total_pages) && @customers.total_pages > 1 %>
             <div class="pagination-wrapper">
               <%= paginate @customers %>

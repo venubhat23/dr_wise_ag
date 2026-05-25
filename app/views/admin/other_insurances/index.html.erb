@@ -382,9 +382,21 @@
       </div>
 
       <!-- Pagination -->
-      <% if respond_to?(:paginate) && @other_insurances.respond_to?(:current_page) %>
+      <% if @other_insurances.respond_to?(:current_page) %>
         <div class="card-footer bg-transparent border-0">
-          <%= paginate @other_insurances %>
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+              <% if @other_insurances.respond_to?(:total_count) %>
+                <small class="text-muted">
+                  Showing <strong><%= @other_insurances.offset_value + 1 %></strong>–<strong><%= [@other_insurances.offset_value + @other_insurances.limit_value, @other_insurances.total_count].min %></strong> of <strong><%= number_with_delimiter(@other_insurances.total_count) %></strong>
+                </small>
+              <% end %>
+              <%= render 'shared/per_page_selector' %>
+            </div>
+            <% if @other_insurances.respond_to?(:total_pages) && @other_insurances.total_pages > 1 %>
+              <%= paginate @other_insurances %>
+            <% end %>
+          </div>
         </div>
       <% end %>
     <% else %>

@@ -1,4 +1,6 @@
 class Admin::OtherInsurancesController < Admin::ApplicationController
+  include ConfigurablePagination
+
   before_action :set_other_insurance, only: [:show, :edit, :update, :destroy, :renew, :create_renewal]
   before_action :load_form_data, only: [:new, :edit, :create, :update, :renew]
   skip_before_action :verify_authenticity_token, only: [:all_agency_codes, :all_brokers, :insurance_companies_for_type, :insurance_companies_by_agency]
@@ -70,7 +72,7 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
       true, false, false, true, false, false
     ).count
 
-    @other_insurances = @other_insurances.order(created_at: :desc).page(params[:page])
+    @other_insurances = paginate_records(@other_insurances.order(created_at: :desc))
 
     # Calculate statistics for tabs
     drwise_policies = OtherInsurance.where(
