@@ -118,7 +118,7 @@ class DashboardController < ApplicationController
     end
 
     # Create cache key based on filter parameters
-    cache_key = "dashboard_data_#{@filter_start_date}_#{@filter_end_date}_v4"
+    cache_key = "dashboard_data_#{@filter_start_date}_#{@filter_end_date}_v5"
 
     # Try to get cached data first (5 minutes cache)
     filtered_data = Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
@@ -252,10 +252,20 @@ class DashboardController < ApplicationController
 
     # Calculate derived values
     results[:inactive_customers] = results[:total_customers].to_i - results[:active_customers].to_i
-    results[:total_policies] = results[:health_count].to_i + results[:life_count].to_i + results[:motor_count].to_i + results[:other_count].to_i
     results[:lead_conversion_percentage] = results[:total_leads].to_i > 0 ? ((results[:converted_leads].to_f / results[:total_leads].to_f) * 100).round(2) : 0
 
-    # Premium data for the filtered period - simplified for performance
+    # All-time totals for the main KPI cards — matches analytics page logic so both pages show the same numbers
+    results[:total_policies] = HealthInsurance.where(product_through_dr: true).count +
+                               LifeInsurance.where(product_through_dr: true).count +
+                               (MotorInsurance.count rescue 0) +
+                               (OtherInsurance.count rescue 0)
+
+    results[:total_premium_collected] = (HealthInsurance.where(product_through_dr: true).sum(:net_premium) || 0).to_f +
+                                        (LifeInsurance.where(product_through_dr: true).sum(:net_premium) || 0).to_f +
+                                        (MotorInsurance.sum(:net_premium).to_f rescue 0) +
+                                        (OtherInsurance.sum(:net_premium).to_f rescue 0)
+
+    # Premium data for the filtered period (used for growth metrics and avg policy value)
     premium_results = ActiveRecord::Base.connection.execute("
       SELECT
         COALESCE(SUM(net_premium), 0) as total_premium,
@@ -269,14 +279,12 @@ class DashboardController < ApplicationController
       ) as combined_insurance
     ").first
 
-    results[:total_premium_collected] = (premium_results['total_premium'] || 0).to_f
     results[:total_sum_insured] = (premium_results['total_sum_insured'] || 0).to_f
 
-    # Add motor insurance for the period if table exists - simplified for performance
+    # Add motor insurance for the period if table exists
     begin
       motor_data = dr_scope(MotorInsurance).where(created_at: start_date..end_date)
                                 .select('COALESCE(SUM(net_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
-      results[:total_premium_collected] += motor_data.premium.to_f if motor_data
       results[:total_sum_insured] += motor_data.sum.to_f if motor_data
     rescue
       # Motor insurance table doesn't exist

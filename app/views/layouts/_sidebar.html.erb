@@ -773,6 +773,19 @@ body.sidebar-collapsed .main-content {
           </li>
         <% end %>
 
+        <!-- Appointments -->
+        <li class="nav-item">
+          <%= link_to admin_appointments_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/appointments')}", data: { tooltip: "Appointments" } do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-indigo">
+                <i class="bi bi-calendar3"></i>
+              </div>
+            </div>
+            <span class="nav-text">Appointments</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
         <!-- Clients (renamed from Customers) -->
         <% if show_sidebar_item?('customers') %>
           <li class="nav-item">
