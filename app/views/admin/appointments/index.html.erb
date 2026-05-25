@@ -557,7 +557,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4">
-        <%= form_with url: admin_appointments_path, method: :post, id: 'appointmentForm', local: true, data: { turbo: false } do |f| %>
+        <%= form_with url: admin_appointments_path, scope: :appointment, method: :post, id: 'appointmentForm', local: true, data: { turbo: false } do |f| %>
           <div class="mb-3">
             <label class="form-label fw-semibold" style="font-size:0.85rem;color:#374151;">Customer</label>
             <div class="customer-source-toggle">
