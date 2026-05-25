@@ -314,19 +314,21 @@ module Admin
                                'N/A'
                              end
 
-            premium_amount    = policy&.total_premium || 0
-            percentage_value  = percentage || 0
+            premium_amount    = policy&.net_premium || policy&.total_premium || 0
+            percentage_value  = (percentage || 0).to_f
             commission_amount = payout.payout_amount.round(2)
+
+            # When the stored percentage is 0 but both premium and commission are known,
+            # back-calculate the actual rate so the formula column is meaningful.
+            if percentage_value == 0 && commission_amount > 0 && premium_amount > 0
+              percentage_value = (commission_amount / premium_amount * 100).round(2)
+            end
 
             formatted_premium    = ActionController::Base.helpers.number_to_currency(premium_amount,    unit: 'Rs. ', format: '%u%n', delimiter: ',', precision: 2)
             formatted_commission = ActionController::Base.helpers.number_to_currency(commission_amount, unit: 'Rs. ', format: '%u%n', delimiter: ',', precision: 2)
 
-            # Build a meaningful calculation string; when the linked policy is missing
-            # (orphaned payout), premium and % are both 0 so the formula is misleading.
             calculation = if policy.nil?
                             "Fixed amount: #{formatted_commission} (policy not found)"
-                          elsif premium_amount > 0 && percentage_value > 0
-                            "#{formatted_premium} × #{percentage_value}% = #{formatted_commission}"
                           else
                             "#{formatted_premium} × #{percentage_value}% = #{formatted_commission}"
                           end
