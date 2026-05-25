@@ -557,7 +557,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4">
-        <%= form_with url: admin_appointments_path, method: :post, id: 'appointmentForm', local: false do |f| %>
+        <%= form_with url: admin_appointments_path, method: :post, id: 'appointmentForm', local: true, data: { turbo: false } do |f| %>
           <div class="mb-3">
             <label class="form-label fw-semibold" style="font-size:0.85rem;color:#374151;">Customer</label>
             <div class="customer-source-toggle">
@@ -571,10 +571,8 @@
           </div>
           <div id="existingCustomerSection" class="mb-3">
             <div style="position:relative;" id="customerSearch">
-              <div class="form-floating">
-                <input type="text" class="form-control" id="customerSearchInput" placeholder="Search..." autocomplete="off" style="border-radius:12px;">
-                <label>Search by name, email, or phone</label>
-              </div>
+              <label class="form-label fw-semibold" style="font-size:0.82rem;color:#6b7280;margin-bottom:6px;">Search by name, email, or phone</label>
+              <input type="text" class="form-control" id="customerSearchInput" placeholder="Search by name, email, or phone..." autocomplete="off" style="border-radius:12px;">
               <div class="customer-suggestions" id="customerSuggestions"></div>
             </div>
             <input type="hidden" name="appointment[customer_id]"    id="selectedCustomerId">
@@ -613,17 +611,13 @@
           </div>
           <div class="row g-3 mb-3">
             <div class="col-md-5">
-              <div class="form-floating">
-                <%= f.date_field :appointment_date, class:'form-control', id:'appointmentDate',
-                    value: Date.current.to_s, min: Date.current.to_s, style:'border-radius:12px;' %>
-                <%= f.label :appointment_date, 'Appointment Date *' %>
-              </div>
+              <label class="form-label fw-semibold" style="font-size:0.82rem;color:#374151;margin-bottom:6px;">Appointment Date *</label>
+              <%= f.date_field :appointment_date, class:'form-control', id:'appointmentDate',
+                  value: Date.current.to_s, min: Date.current.to_s, style:'border-radius:12px;' %>
             </div>
             <div class="col-md-7">
-              <div class="form-floating">
-                <%= f.text_field :meeting_agenda, class:'form-control', placeholder:'Meeting agenda', style:'border-radius:12px;' %>
-                <%= f.label :meeting_agenda, 'Meeting Agenda' %>
-              </div>
+              <label class="form-label fw-semibold" style="font-size:0.82rem;color:#374151;margin-bottom:6px;">Meeting Agenda</label>
+              <%= f.text_field :meeting_agenda, class:'form-control', placeholder:'Meeting agenda', style:'border-radius:12px;' %>
             </div>
           </div>
           <div class="mb-3">
@@ -639,10 +633,8 @@
             <div id="timeSlotError" class="text-danger small mt-1" style="display:none;">Please select a time slot.</div>
           </div>
           <div class="mb-4">
-            <div class="form-floating">
-              <%= f.text_area :notes, class:'form-control', placeholder:'Notes', style:'border-radius:12px;min-height:90px;' %>
-              <%= f.label :notes, 'Notes (optional)' %>
-            </div>
+            <label class="form-label fw-semibold" style="font-size:0.82rem;color:#374151;margin-bottom:6px;">Notes (optional)</label>
+            <%= f.text_area :notes, class:'form-control', placeholder:'Add any notes...', style:'border-radius:12px;min-height:90px;' %>
           </div>
           <div id="formErrors" class="alert alert-danger rounded-3" style="display:none;font-size:0.85rem;"></div>
           <button type="submit" class="btn-create-appt" id="submitAppointmentBtn">
@@ -841,28 +833,44 @@ function openCreateModal() {
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('appointmentForm');
   if (!form) return;
-  form.addEventListener('ajax:before', () => {
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
     if (!document.getElementById('selectedTimeSlot').value) {
-      document.getElementById('timeSlotError').style.display = 'block'; return false;
+      document.getElementById('timeSlotError').style.display = 'block';
+      return;
     }
-    document.getElementById('submitAppointmentBtn').disabled = true;
-    document.getElementById('submitAppointmentBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
-  });
-  form.addEventListener('ajax:success', e => {
-    const d = e.detail[0];
-    if (d.success) { bootstrap.Modal.getInstance(document.getElementById('createAppointmentModal')).hide(); window.location.reload(); }
-    else {
-      document.getElementById('formErrors').innerHTML = d.errors.join('<br>');
+    document.getElementById('timeSlotError').style.display = 'none';
+    document.getElementById('formErrors').style.display = 'none';
+
+    const btn = document.getElementById('submitAppointmentBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+    try {
+      const formData = new FormData(form);
+      const res = await fetch(form.action, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+        body: formData
+      });
+      const d = await res.json();
+      if (d.success) {
+        bootstrap.Modal.getInstance(document.getElementById('createAppointmentModal')).hide();
+        window.location.reload();
+      } else {
+        document.getElementById('formErrors').innerHTML = (d.errors || ['Something went wrong.']).join('<br>');
+        document.getElementById('formErrors').style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-calendar-check me-2"></i>Create Appointment';
+      }
+    } catch (_) {
+      document.getElementById('formErrors').innerHTML = 'Something went wrong. Please try again.';
       document.getElementById('formErrors').style.display = 'block';
-      document.getElementById('submitAppointmentBtn').disabled = false;
-      document.getElementById('submitAppointmentBtn').innerHTML = '<i class="bi bi-calendar-check me-2"></i>Create Appointment';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-calendar-check me-2"></i>Create Appointment';
     }
-  });
-  form.addEventListener('ajax:error', () => {
-    document.getElementById('formErrors').innerHTML = 'Something went wrong. Please try again.';
-    document.getElementById('formErrors').style.display = 'block';
-    document.getElementById('submitAppointmentBtn').disabled = false;
-    document.getElementById('submitAppointmentBtn').innerHTML = '<i class="bi bi-calendar-check me-2"></i>Create Appointment';
   });
 });
 
