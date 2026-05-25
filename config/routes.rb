@@ -536,6 +536,14 @@ Rails.application.routes.draw do
       end
     end
 
+    # Appointments
+    resources :appointments do
+      collection do
+        get :calendar_data
+        get :search_customers
+      end
+    end
+
     # Banner management
     resources :banners do
       member do

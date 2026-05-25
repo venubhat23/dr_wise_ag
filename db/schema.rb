@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_23_000001) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_25_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -137,6 +137,25 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_23_000001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["cache_identifier"], name: "index_analytics_caches_on_cache_identifier", unique: true
+  end
+
+  create_table "appointments", force: :cascade do |t|
+    t.bigint "customer_id"
+    t.string "customer_name", null: false
+    t.string "customer_email"
+    t.string "customer_phone"
+    t.text "meeting_agenda"
+    t.text "notes"
+    t.date "appointment_date", null: false
+    t.string "time_slot", null: false
+    t.string "status", default: "pending", null: false
+    t.bigint "created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["appointment_date"], name: "index_appointments_on_appointment_date"
+    t.index ["created_by_id"], name: "index_appointments_on_created_by_id"
+    t.index ["customer_id"], name: "index_appointments_on_customer_id"
+    t.index ["status"], name: "index_appointments_on_status"
   end
 
   create_table "banners", force: :cascade do |t|
@@ -1689,6 +1708,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_23_000001) do
     t.index ["user_type"], name: "index_users_on_user_type"
   end
 
+  add_foreign_key "appointments", "customers"
+  add_foreign_key "appointments", "users", column: "created_by_id"
   add_foreign_key "health_insurance_nominees", "health_insurances"
   add_foreign_key "health_insurances", "health_insurances", column: "original_policy_id", name: "health_insurances_original_policy_id_fkey"
   add_foreign_key "helpdesk_tickets", "customers"

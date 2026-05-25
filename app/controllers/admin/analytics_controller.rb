@@ -149,10 +149,10 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_total_premium_for_period(start_date, end_date)
-    health_premium = HealthInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:total_premium) || 0
-    life_premium = LifeInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:total_premium) || 0
-    motor_premium = (MotorInsurance.where(created_at: start_date..end_date).sum(:total_premium) || 0 rescue 0)
-    other_premium = (OtherInsurance.where(created_at: start_date..end_date).sum(:total_premium) || 0 rescue 0)
+    health_premium = HealthInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:net_premium) || 0
+    life_premium = LifeInsurance.where(product_through_dr: true, created_at: start_date..end_date).sum(:net_premium) || 0
+    motor_premium = (MotorInsurance.where(created_at: start_date..end_date).sum(:net_premium) || 0 rescue 0)
+    other_premium = (OtherInsurance.where(created_at: start_date..end_date).sum(:net_premium) || 0 rescue 0)
     health_premium + life_premium + motor_premium + other_premium
   end
 
@@ -209,10 +209,10 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_premium_for_month_in_period(month_start, month_end)
-    HealthInsurance.where(product_through_dr: true, created_at: month_start..month_end).sum(:total_premium) +
-    LifeInsurance.where(product_through_dr: true, created_at: month_start..month_end).sum(:total_premium) +
-    (MotorInsurance.where(created_at: month_start..month_end).sum(:total_premium) || 0 rescue 0) +
-    (OtherInsurance.where(created_at: month_start..month_end).sum(:total_premium) || 0 rescue 0)
+    HealthInsurance.where(product_through_dr: true, created_at: month_start..month_end).sum(:net_premium) +
+    LifeInsurance.where(product_through_dr: true, created_at: month_start..month_end).sum(:net_premium) +
+    (MotorInsurance.where(created_at: month_start..month_end).sum(:net_premium) || 0 rescue 0) +
+    (OtherInsurance.where(created_at: month_start..month_end).sum(:net_premium) || 0 rescue 0)
   end
 
   def calculate_top_affiliates_for_period(start_date, end_date)
@@ -250,7 +250,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
         type: 'Health Insurance',
         customer: policy.customer.display_name,
         policy_number: policy.policy_number,
-        premium: policy.total_premium,
+        premium: policy.net_premium,
         date: policy.created_at
       }
     end
@@ -261,7 +261,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
         type: 'Life Insurance',
         customer: policy.customer.display_name,
         policy_number: policy.policy_number,
-        premium: policy.total_premium,
+        premium: policy.net_premium,
         date: policy.created_at
       }
     end
@@ -272,7 +272,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
         type: 'Motor Insurance',
         customer: policy.customer.display_name,
         policy_number: policy.policy_number,
-        premium: policy.total_premium,
+        premium: policy.net_premium,
         date: policy.created_at
       }
     end
@@ -673,10 +673,10 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_total_premium_collected
-    health_premium = HealthInsurance.where(product_through_dr: true).sum(:total_premium) || 0
-    life_premium = LifeInsurance.where(product_through_dr: true).sum(:total_premium) || 0
-    motor_premium = (MotorInsurance.sum(:total_premium) || 0 rescue 0) # motor_insurances doesn't have product_through_dr column
-    other_premium = (OtherInsurance.sum(:total_premium) || 0 rescue 0) # other_insurances doesn't have product_through_dr column
+    health_premium = HealthInsurance.where(product_through_dr: true).sum(:net_premium) || 0
+    life_premium = LifeInsurance.where(product_through_dr: true).sum(:net_premium) || 0
+    motor_premium = (MotorInsurance.sum(:net_premium) || 0 rescue 0) # motor_insurances doesn't have product_through_dr column
+    other_premium = (OtherInsurance.sum(:net_premium) || 0 rescue 0) # other_insurances doesn't have product_through_dr column
     health_premium + life_premium + motor_premium + other_premium
   end
 
@@ -689,15 +689,15 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_premium_growth
-    current_premium = HealthInsurance.where(product_through_dr: true, created_at: @current_month..).sum(:total_premium) +
-                      LifeInsurance.where(product_through_dr: true, created_at: @current_month..).sum(:total_premium) +
-                      (MotorInsurance.where(created_at: @current_month..).sum(:total_premium) || 0 rescue 0) +
-                      (OtherInsurance.where(created_at: @current_month..).sum(:total_premium) || 0 rescue 0)
+    current_premium = HealthInsurance.where(product_through_dr: true, created_at: @current_month..).sum(:net_premium) +
+                      LifeInsurance.where(product_through_dr: true, created_at: @current_month..).sum(:net_premium) +
+                      (MotorInsurance.where(created_at: @current_month..).sum(:net_premium) || 0 rescue 0) +
+                      (OtherInsurance.where(created_at: @current_month..).sum(:net_premium) || 0 rescue 0)
 
-    previous_premium = HealthInsurance.where(product_through_dr: true, created_at: @last_month..(@current_month - 1.day)).sum(:total_premium) +
-                       LifeInsurance.where(product_through_dr: true, created_at: @last_month..(@current_month - 1.day)).sum(:total_premium) +
-                       (MotorInsurance.where(created_at: @last_month..(@current_month - 1.day)).sum(:total_premium) || 0 rescue 0) +
-                       (OtherInsurance.where(created_at: @last_month..(@current_month - 1.day)).sum(:total_premium) || 0 rescue 0)
+    previous_premium = HealthInsurance.where(product_through_dr: true, created_at: @last_month..(@current_month - 1.day)).sum(:net_premium) +
+                       LifeInsurance.where(product_through_dr: true, created_at: @last_month..(@current_month - 1.day)).sum(:net_premium) +
+                       (MotorInsurance.where(created_at: @last_month..(@current_month - 1.day)).sum(:net_premium) || 0 rescue 0) +
+                       (OtherInsurance.where(created_at: @last_month..(@current_month - 1.day)).sum(:net_premium) || 0 rescue 0)
 
     return 0 if previous_premium == 0
     ((current_premium.to_f - previous_premium.to_f) / previous_premium.to_f * 100).round(1)
@@ -727,10 +727,10 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_premium_for_month(month_date)
-    HealthInsurance.where(product_through_dr: true, created_at: month_date..(month_date.end_of_month)).sum(:total_premium) +
-    LifeInsurance.where(product_through_dr: true, created_at: month_date..(month_date.end_of_month)).sum(:total_premium) +
-    (MotorInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:total_premium) || 0 rescue 0) +
-    (OtherInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:total_premium) || 0 rescue 0)
+    HealthInsurance.where(product_through_dr: true, created_at: month_date..(month_date.end_of_month)).sum(:net_premium) +
+    LifeInsurance.where(product_through_dr: true, created_at: month_date..(month_date.end_of_month)).sum(:net_premium) +
+    (MotorInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:net_premium) || 0 rescue 0) +
+    (OtherInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:net_premium) || 0 rescue 0)
   end
 
   def calculate_top_affiliates
@@ -775,7 +775,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
         type: 'Health Insurance',
         customer: policy.customer.display_name,
         policy_number: policy.policy_number,
-        premium: policy.total_premium,
+        premium: policy.net_premium,
         date: policy.created_at
       }
     end
@@ -786,7 +786,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
         type: 'Life Insurance',
         customer: policy.customer.display_name,
         policy_number: policy.policy_number,
-        premium: policy.total_premium,
+        premium: policy.net_premium,
         date: policy.created_at
       }
     end
@@ -797,7 +797,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
         type: 'Motor Insurance',
         customer: policy.customer.display_name,
         policy_number: policy.policy_number,
-        premium: policy.total_premium,
+        premium: policy.net_premium,
         date: policy.created_at
       }
     end
@@ -858,7 +858,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     # Get performance from health insurance
     HealthInsurance.joins(:sub_agent)
                    .group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)")
-                   .sum(:total_premium)
+                   .sum(:net_premium)
                    .each do |name, premium|
       agent_premiums[name] = (agent_premiums[name] || 0) + premium
     end
@@ -866,7 +866,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     # Get performance from life insurance
     LifeInsurance.joins(:sub_agent)
                  .group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)")
-                 .sum(:total_premium)
+                 .sum(:net_premium)
                  .each do |name, premium|
       agent_premiums[name] = (agent_premiums[name] || 0) + premium
     end
@@ -874,7 +874,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     # Get performance from motor insurance
     MotorInsurance.joins(:sub_agent)
                   .group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)")
-                  .sum(:total_premium)
+                  .sum(:net_premium)
                   .each do |name, premium|
       agent_premiums[name] = (agent_premiums[name] || 0) + premium
     end
@@ -1068,9 +1068,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
       month_name = month_date.strftime('%b %Y')
 
       # Calculate total premium for the month across all insurance types
-      health_premium = HealthInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:total_premium)
-      life_premium = LifeInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:total_premium)
-      motor_premium = MotorInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:total_premium)
+      health_premium = HealthInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:net_premium)
+      life_premium = LifeInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:net_premium)
+      motor_premium = MotorInsurance.where(created_at: month_date..(month_date.end_of_month)).sum(:net_premium)
 
       total_premium = health_premium + life_premium + motor_premium
       trend_data[month_name] = total_premium.round(0)

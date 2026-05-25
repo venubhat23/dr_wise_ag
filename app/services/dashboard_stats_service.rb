@@ -107,7 +107,7 @@ class DashboardStatsService
         SELECT
           'health' as type,
           COUNT(*) as count,
-          COALESCE(SUM(total_premium), 0) as total_premium,
+          COALESCE(SUM(net_premium), 0) as total_premium,
           COALESCE(SUM(sum_insured), 0) as total_sum_insured,
           COUNT(CASE WHEN policy_end_date >= CURRENT_DATE THEN 1 END) as active_count,
           COUNT(CASE WHEN policy_end_date < CURRENT_DATE THEN 1 END) as expired_count,
@@ -117,7 +117,7 @@ class DashboardStatsService
         SELECT
           'life' as type,
           COUNT(*) as count,
-          COALESCE(SUM(total_premium), 0) as total_premium,
+          COALESCE(SUM(net_premium), 0) as total_premium,
           COALESCE(SUM(sum_insured), 0) as total_sum_insured,
           COUNT(CASE WHEN policy_end_date >= CURRENT_DATE THEN 1 END) as active_count,
           COUNT(CASE WHEN policy_end_date < CURRENT_DATE THEN 1 END) as expired_count,
@@ -147,7 +147,7 @@ class DashboardStatsService
         motor_stats = ActiveRecord::Base.connection.select_one(
           "SELECT
             COUNT(*) as count,
-            COALESCE(SUM(total_premium), 0) as premium,
+            COALESCE(SUM(net_premium), 0) as premium,
             COALESCE(SUM(sum_insured), 0) as sum_insured,
             COUNT(CASE WHEN policy_end_date < CURRENT_DATE THEN 1 END) as expired,
             COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '45 days' THEN 1 END) as expiring
@@ -168,7 +168,7 @@ class DashboardStatsService
         other_stats = ActiveRecord::Base.connection.select_one(
           "SELECT
             COUNT(*) as count,
-            COALESCE(SUM(total_premium), 0) as premium,
+            COALESCE(SUM(net_premium), 0) as premium,
             COALESCE(SUM(sum_insured), 0) as sum_insured,
             COUNT(CASE WHEN policy_end_date < CURRENT_DATE THEN 1 END) as expired,
             COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '45 days' THEN 1 END) as expiring
@@ -271,7 +271,7 @@ class DashboardStatsService
         SELECT
           'Health Insurance' as policy_type,
           h.policy_number,
-          h.total_premium,
+          h.net_premium as total_premium,
           h.created_at,
           CASE
             WHEN c.customer_type = 'individual' THEN TRIM(CONCAT(c.first_name, ' ', COALESCE(c.middle_name, ''), ' ', c.last_name))
@@ -287,7 +287,7 @@ class DashboardStatsService
         SELECT
           'Life Insurance' as policy_type,
           l.policy_number,
-          l.total_premium,
+          l.net_premium as total_premium,
           l.created_at,
           CASE
             WHEN c.customer_type = 'individual' THEN TRIM(CONCAT(c.first_name, ' ', COALESCE(c.middle_name, ''), ' ', c.last_name))

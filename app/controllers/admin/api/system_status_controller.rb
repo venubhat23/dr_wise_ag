@@ -321,9 +321,19 @@ module Admin
             formatted_premium    = ActionController::Base.helpers.number_to_currency(premium_amount,    unit: 'Rs. ', format: '%u%n', delimiter: ',', precision: 2)
             formatted_commission = ActionController::Base.helpers.number_to_currency(commission_amount, unit: 'Rs. ', format: '%u%n', delimiter: ',', precision: 2)
 
+            # Build a meaningful calculation string; when the linked policy is missing
+            # (orphaned payout), premium and % are both 0 so the formula is misleading.
+            calculation = if policy.nil?
+                            "Fixed amount: #{formatted_commission} (policy not found)"
+                          elsif premium_amount > 0 && percentage_value > 0
+                            "#{formatted_premium} × #{percentage_value}% = #{formatted_commission}"
+                          else
+                            "#{formatted_premium} × #{percentage_value}% = #{formatted_commission}"
+                          end
+
             {
               id: payout.id,
-              lead_id: policy&.lead_id || 'N/A',
+              lead_id: policy&.lead_id || payout.lead_id || 'N/A',
               policy_number: policy&.policy_number || 'N/A',
               customer_name: customer_name,
               affiliate_name: affiliate_name,
@@ -332,7 +342,8 @@ module Admin
               amount: commission_amount,
               percentage: percentage_value,
               base_premium: premium_amount,
-              calculation: "#{formatted_premium} × #{percentage_value}% = #{formatted_commission}",
+              calculation: calculation,
+              orphaned: policy.nil?,
               created_at: payout.created_at.strftime('%d %b %Y'),
               due_date: (payout.created_at + 30.days).strftime('%d %b %Y')
             }

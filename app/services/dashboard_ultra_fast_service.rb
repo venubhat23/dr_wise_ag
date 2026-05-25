@@ -139,27 +139,27 @@ class DashboardUltraFastService
         health_stats AS (
           SELECT
             COUNT(*) as count,
-            COALESCE(SUM(total_premium), 0) as premium,
+            COALESCE(SUM(net_premium), 0) as premium,
             COALESCE(SUM(sum_insured), 0) as sum_insured,
             COUNT(CASE WHEN policy_end_date >= (SELECT current_date FROM date_series) THEN 1 END) as active,
             COUNT(CASE WHEN policy_end_date < (SELECT current_date FROM date_series) THEN 1 END) as expired,
             COUNT(CASE WHEN policy_end_date BETWEEN (SELECT current_date FROM date_series) AND (SELECT future_date FROM date_series) THEN 1 END) as expiring,
             COUNT(CASE WHEN policy_type = 'Renewal' AND created_at >= (SELECT month_start FROM date_series) THEN 1 END) as renewed_this_month,
-            COALESCE(SUM(CASE WHEN created_at >= (SELECT month_start FROM date_series) THEN total_premium END), 0) as current_month_premium,
-            COALESCE(SUM(CASE WHEN created_at BETWEEN (SELECT last_month_start FROM date_series) AND (SELECT last_month_end FROM date_series) THEN total_premium END), 0) as last_month_premium
+            COALESCE(SUM(CASE WHEN created_at >= (SELECT month_start FROM date_series) THEN net_premium END), 0) as current_month_premium,
+            COALESCE(SUM(CASE WHEN created_at BETWEEN (SELECT last_month_start FROM date_series) AND (SELECT last_month_end FROM date_series) THEN net_premium END), 0) as last_month_premium
           FROM health_insurances
         ),
         life_stats AS (
           SELECT
             COUNT(*) as count,
-            COALESCE(SUM(total_premium), 0) as premium,
+            COALESCE(SUM(net_premium), 0) as premium,
             COALESCE(SUM(sum_insured), 0) as sum_insured,
             COUNT(CASE WHEN policy_end_date >= (SELECT current_date FROM date_series) THEN 1 END) as active,
             COUNT(CASE WHEN policy_end_date < (SELECT current_date FROM date_series) THEN 1 END) as expired,
             COUNT(CASE WHEN policy_end_date BETWEEN (SELECT current_date FROM date_series) AND (SELECT future_date FROM date_series) THEN 1 END) as expiring,
             COUNT(CASE WHEN policy_type = 'Renewal' AND created_at >= (SELECT month_start FROM date_series) THEN 1 END) as renewed_this_month,
-            COALESCE(SUM(CASE WHEN created_at >= (SELECT month_start FROM date_series) THEN total_premium END), 0) as current_month_premium,
-            COALESCE(SUM(CASE WHEN created_at BETWEEN (SELECT last_month_start FROM date_series) AND (SELECT last_month_end FROM date_series) THEN total_premium END), 0) as last_month_premium
+            COALESCE(SUM(CASE WHEN created_at >= (SELECT month_start FROM date_series) THEN net_premium END), 0) as current_month_premium,
+            COALESCE(SUM(CASE WHEN created_at BETWEEN (SELECT last_month_start FROM date_series) AND (SELECT last_month_end FROM date_series) THEN net_premium END), 0) as last_month_premium
           FROM life_insurances
         ),
         commission_stats AS (
@@ -266,7 +266,7 @@ class DashboardUltraFastService
         motor_sql = <<-SQL
           SELECT
             COUNT(*) as count,
-            COALESCE(SUM(total_premium), 0) as premium,
+            COALESCE(SUM(net_premium), 0) as premium,
             COALESCE(SUM(sum_insured), 0) as sum_insured,
             COUNT(CASE WHEN policy_end_date < CURRENT_DATE THEN 1 END) as expired,
             COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '45 days' THEN 1 END) as expiring
@@ -290,7 +290,7 @@ class DashboardUltraFastService
         other_sql = <<-SQL
           SELECT
             COUNT(*) as count,
-            COALESCE(SUM(total_premium), 0) as premium,
+            COALESCE(SUM(net_premium), 0) as premium,
             COALESCE(SUM(sum_insured), 0) as sum_insured,
             COUNT(CASE WHEN policy_end_date < CURRENT_DATE THEN 1 END) as expired,
             COUNT(CASE WHEN policy_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '45 days' THEN 1 END) as expiring
@@ -340,7 +340,7 @@ class DashboardUltraFastService
             SELECT
               'Health Insurance' as policy_type,
               h.policy_number,
-              h.total_premium,
+              h.net_premium as total_premium,
               h.created_at,
               CASE
                 WHEN c.customer_type = 'individual' THEN TRIM(CONCAT(c.first_name, ' ', COALESCE(c.middle_name, ''), ' ', c.last_name))
@@ -356,7 +356,7 @@ class DashboardUltraFastService
             SELECT
               'Life Insurance' as policy_type,
               l.policy_number,
-              l.total_premium,
+              l.net_premium as total_premium,
               l.created_at,
               CASE
                 WHEN c.customer_type = 'individual' THEN TRIM(CONCAT(c.first_name, ' ', COALESCE(c.middle_name, ''), ' ', c.last_name))

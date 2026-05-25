@@ -258,13 +258,13 @@ class DashboardController < ApplicationController
     # Premium data for the filtered period - simplified for performance
     premium_results = ActiveRecord::Base.connection.execute("
       SELECT
-        COALESCE(SUM(total_premium), 0) as total_premium,
+        COALESCE(SUM(net_premium), 0) as total_premium,
         COALESCE(SUM(sum_insured), 0) as total_sum_insured
       FROM (
-        SELECT total_premium, sum_insured FROM health_insurances
+        SELECT net_premium, sum_insured FROM health_insurances
         WHERE TRUE #{h_dr} AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
         UNION ALL
-        SELECT total_premium, sum_insured FROM life_insurances
+        SELECT net_premium, sum_insured FROM life_insurances
         WHERE TRUE #{l_dr} AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
       ) as combined_insurance
     ").first
@@ -275,7 +275,7 @@ class DashboardController < ApplicationController
     # Add motor insurance for the period if table exists - simplified for performance
     begin
       motor_data = dr_scope(MotorInsurance).where(created_at: start_date..end_date)
-                                .select('COALESCE(SUM(total_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
+                                .select('COALESCE(SUM(net_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
       results[:total_premium_collected] += motor_data.premium.to_f if motor_data
       results[:total_sum_insured] += motor_data.sum.to_f if motor_data
     rescue
@@ -447,7 +447,7 @@ class DashboardController < ApplicationController
         SELECT
           'Health Insurance' as policy_type,
           h.policy_number,
-          h.total_premium,
+          h.net_premium as total_premium,
           h.created_at,
           CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
         FROM health_insurances h
@@ -461,7 +461,7 @@ class DashboardController < ApplicationController
         SELECT
           'Life Insurance' as policy_type,
           l.policy_number,
-          l.total_premium,
+          l.net_premium as total_premium,
           l.created_at,
           CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
         FROM life_insurances l
@@ -481,7 +481,7 @@ class DashboardController < ApplicationController
             SELECT
               'Motor Insurance' as policy_type,
               m.policy_number,
-              m.total_premium,
+              m.net_premium as total_premium,
               m.created_at,
               CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
             FROM motor_insurances m
@@ -621,12 +621,12 @@ class DashboardController < ApplicationController
     # Premium data - single query with UNION for better performance
     premium_results = ActiveRecord::Base.connection.execute("
       SELECT
-        COALESCE(SUM(total_premium), 0) as total_premium,
+        COALESCE(SUM(net_premium), 0) as total_premium,
         COALESCE(SUM(sum_insured), 0) as total_sum_insured
       FROM (
-        SELECT total_premium, sum_insured FROM health_insurances WHERE 1=1
+        SELECT net_premium, sum_insured FROM health_insurances WHERE 1=1
         UNION ALL
-        SELECT total_premium, sum_insured FROM life_insurances WHERE 1=1
+        SELECT net_premium, sum_insured FROM life_insurances WHERE 1=1
       ) as combined_insurance
     ").first
 
@@ -635,7 +635,7 @@ class DashboardController < ApplicationController
 
     # Add motor insurance if table exists
     begin
-      motor_data = MotorInsurance.select('COALESCE(SUM(total_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
+      motor_data = MotorInsurance.select('COALESCE(SUM(net_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
       results[:total_premium_collected] += motor_data.premium.to_f
       results[:total_sum_insured] += motor_data.sum.to_f
     rescue
@@ -684,10 +684,10 @@ class DashboardController < ApplicationController
 
   def get_optimized_premium_data
     # Simpler direct sum queries
-    health_premium = HealthInsurance.sum(:total_premium) || 0
-    life_premium = LifeInsurance.sum(:total_premium) || 0
+    health_premium = HealthInsurance.sum(:net_premium) || 0
+    life_premium = LifeInsurance.sum(:net_premium) || 0
     motor_premium = begin
-      MotorInsurance.sum(:total_premium) || 0
+      MotorInsurance.sum(:net_premium) || 0
     rescue
       0
     end
@@ -897,9 +897,9 @@ class DashboardController < ApplicationController
   end
 
   def get_premium_for_period(start_date, end_date)
-    health = dr_scope(HealthInsurance).where(created_at: start_date..end_date).sum(:total_premium) || 0
-    life   = dr_scope(LifeInsurance).where(created_at: start_date..end_date).sum(:total_premium) || 0
-    motor  = (dr_scope(MotorInsurance).where(created_at: start_date..end_date).sum(:total_premium) rescue 0)
+    health = dr_scope(HealthInsurance).where(created_at: start_date..end_date).sum(:net_premium) || 0
+    life   = dr_scope(LifeInsurance).where(created_at: start_date..end_date).sum(:net_premium) || 0
+    motor  = (dr_scope(MotorInsurance).where(created_at: start_date..end_date).sum(:net_premium) rescue 0)
     health + life + motor
   end
 
@@ -976,7 +976,7 @@ class DashboardController < ApplicationController
         SELECT
           'Health Insurance' as policy_type,
           h.policy_number,
-          h.total_premium,
+          h.net_premium as total_premium,
           h.created_at,
           CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
         FROM health_insurances h
@@ -989,7 +989,7 @@ class DashboardController < ApplicationController
         SELECT
           'Life Insurance' as policy_type,
           l.policy_number,
-          l.total_premium,
+          l.net_premium as total_premium,
           l.created_at,
           CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
         FROM life_insurances l
@@ -1008,7 +1008,7 @@ class DashboardController < ApplicationController
             SELECT
               'Motor Insurance' as policy_type,
               m.policy_number,
-              m.total_premium,
+              m.net_premium as total_premium,
               m.created_at,
               CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
             FROM motor_insurances m

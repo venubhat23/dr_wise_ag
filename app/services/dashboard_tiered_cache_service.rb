@@ -112,7 +112,7 @@ class DashboardTieredCacheService
         SELECT
           'Health Insurance' as type,
           h.policy_number,
-          h.total_premium,
+          h.net_premium as total_premium,
           h.created_at,
           CASE
             WHEN c.customer_type = 'individual' THEN TRIM(CONCAT(c.first_name, ' ', COALESCE(c.middle_name, ''), ' ', c.last_name))

@@ -125,7 +125,7 @@ class DashboardInstantService
         # Motor insurance
         if ActiveRecord::Base.connection.table_exists?('motor_insurances')
           motor_result = ActiveRecord::Base.connection.select_one(
-            'SELECT COUNT(*) as count, COALESCE(SUM(total_premium), 0) as premium FROM motor_insurances'
+            'SELECT COUNT(*) as count, COALESCE(SUM(net_premium), 0) as premium FROM motor_insurances'
           )
           stats[:motor_count] = motor_result['count'].to_i
           stats[:motor_premium] = motor_result['premium'].to_f
@@ -134,7 +134,7 @@ class DashboardInstantService
         # Other insurance
         if ActiveRecord::Base.connection.table_exists?('other_insurances')
           other_result = ActiveRecord::Base.connection.select_one(
-            'SELECT COUNT(*) as count, COALESCE(SUM(total_premium), 0) as premium FROM other_insurances'
+            'SELECT COUNT(*) as count, COALESCE(SUM(net_premium), 0) as premium FROM other_insurances'
           )
           stats[:other_count] = other_result['count'].to_i
           stats[:other_premium] = other_result['premium'].to_f
