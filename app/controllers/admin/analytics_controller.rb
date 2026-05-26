@@ -32,6 +32,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
   private
 
+  # Matches the DrWise tab filter used in every policy list index action.
+  DRWISE = { is_admin_added: true, is_customer_added: false, is_agent_added: false }.freeze
+
   def setup_filter_dates
     # Get date filter parameters (default to current year)
     current_year = Date.current.year
@@ -244,40 +247,37 @@ class Admin::AnalyticsController < Admin::ApplicationController
   def get_recent_policies_for_period(start_date, end_date)
     policies = []
 
-    # Get recent health insurance policies for the period
     HealthInsurance.includes(:customer).where(created_at: start_date..end_date).order(created_at: :desc).limit(3).each do |policy|
       policies << {
         type: 'Health Insurance',
-        customer: policy.customer&.display_name || 'Unknown',
+        customer: policy.customer&.display_name&.presence || 'Unknown',
         policy_number: policy.policy_number,
         premium: policy.net_premium.to_f,
         date: policy.created_at
       }
     end
 
-    # Get recent life insurance policies for the period
     LifeInsurance.includes(:customer).where(created_at: start_date..end_date).order(created_at: :desc).limit(3).each do |policy|
       policies << {
         type: 'Life Insurance',
-        customer: policy.customer&.display_name || 'Unknown',
+        customer: policy.customer&.display_name&.presence || 'Unknown',
         policy_number: policy.policy_number,
         premium: policy.net_premium.to_f,
         date: policy.created_at
       }
     end
 
-    # Get recent motor insurance policies for the period
     MotorInsurance.includes(:customer).where(created_at: start_date..end_date).order(created_at: :desc).limit(2).each do |policy|
       policies << {
         type: 'Motor Insurance',
-        customer: policy.customer&.display_name || 'Unknown',
+        customer: policy.customer&.display_name&.presence || 'Unknown',
         policy_number: policy.policy_number,
         premium: policy.net_premium.to_f,
         date: policy.created_at
       }
     end
 
-    policies.sort_by { |p| p[:date] }.reverse.first(10)
+    policies.sort_by { |p| p[:date] || Time.at(0) }.reverse.first(10)
   end
 
   def calculate_commission_summary_for_period(start_date, end_date)
@@ -388,10 +388,10 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
   def calculate_conversion_rate_for_period(start_date, end_date)
     total_leads = Lead.where(created_at: start_date..end_date).count
-    total_policies = @total_policies || 0
+    converted = Lead.where(created_at: start_date..end_date, current_stage: 'converted').count
 
     return 0 if total_leads == 0
-    ((total_policies.to_f / total_leads.to_f) * 100).round(1)
+    ((converted.to_f / total_leads.to_f) * 100).round(1)
   rescue => e
     Rails.logger.error "Error calculating conversion rate for period: #{e.message}"
     0
@@ -436,11 +436,12 @@ class Admin::AnalyticsController < Admin::ApplicationController
   def refresh_analytics_cache
     Rails.logger.info "🔄 Refreshing analytics cache..."
     AnalyticsCache.clear_cache('main_analytics')
+    AnalyticsCache.clear_cache('main_analytics_v2')
     load_fresh_analytics_data
   end
 
   def load_analytics_data
-    cache_identifier = 'main_analytics'
+    cache_identifier = 'main_analytics_v2'
 
     # Try to get cached data first
     if AnalyticsCache.cache_fresh?(cache_identifier, 1.hour)
@@ -457,7 +458,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def load_fresh_analytics_data
-    cache_identifier = 'main_analytics'
+    cache_identifier = 'main_analytics_v2'
     start_time = Time.current
 
     Rails.logger.info "🔄 Starting fresh analytics calculation..."
@@ -780,7 +781,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     HealthInsurance.includes(:customer).order(created_at: :desc).limit(3).each do |policy|
       policies << {
         type: 'Health Insurance',
-        customer: policy.customer&.display_name || 'Unknown',
+        customer: policy.customer&.display_name&.presence || 'Unknown',
         policy_number: policy.policy_number,
         premium: policy.net_premium.to_f,
         date: policy.created_at
@@ -791,7 +792,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     LifeInsurance.includes(:customer).order(created_at: :desc).limit(3).each do |policy|
       policies << {
         type: 'Life Insurance',
-        customer: policy.customer&.display_name || 'Unknown',
+        customer: policy.customer&.display_name&.presence || 'Unknown',
         policy_number: policy.policy_number,
         premium: policy.net_premium.to_f,
         date: policy.created_at
@@ -802,14 +803,14 @@ class Admin::AnalyticsController < Admin::ApplicationController
     MotorInsurance.includes(:customer).order(created_at: :desc).limit(2).each do |policy|
       policies << {
         type: 'Motor Insurance',
-        customer: policy.customer&.display_name || 'Unknown',
+        customer: policy.customer&.display_name&.presence || 'Unknown',
         policy_number: policy.policy_number,
         premium: policy.net_premium.to_f,
         date: policy.created_at
       }
     end
 
-    policies.sort_by { |p| p[:date] }.reverse.first(10)
+    policies.sort_by { |p| p[:date] || Time.at(0) }.reverse.first(10)
   end
 
   def calculate_commission_summary
@@ -876,18 +877,13 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_agent_commission
-    # Sum actual CommissionPayout amounts per sub_agent by joining through policies
     agent_commissions = {}
 
-    [
-      ['health', HealthInsurance],
-      ['life',   LifeInsurance],
-      ['motor',  MotorInsurance]
-    ].each do |policy_type, model|
+    [HealthInsurance, LifeInsurance, MotorInsurance].each do |model|
       model.joins(:sub_agent)
-           .joins("INNER JOIN commission_payouts cp ON cp.policy_type = '#{policy_type}' AND cp.policy_id = #{model.table_name}.id AND cp.payout_to = 'sub_agent'")
+           .where.not(sub_agent_id: nil)
            .group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)")
-           .sum("cp.payout_amount")
+           .sum(:sub_agent_commission_amount)
            .each do |name, commission|
         agent_commissions[name] = (agent_commissions[name] || 0) + commission.to_f
       end
@@ -928,12 +924,11 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_conversion_rate
-    # Calculate lead to policy conversion rate
     total_leads = Lead.count
-    total_policies = @total_policies
+    converted = Lead.where(current_stage: 'converted').count
 
     return 0 if total_leads == 0
-    ((total_policies.to_f / total_leads.to_f) * 100).round(1)
+    ((converted.to_f / total_leads.to_f) * 100).round(1)
   rescue => e
     Rails.logger.error "Error calculating conversion rate: #{e.message}"
     0

@@ -593,20 +593,20 @@
             <div class="row g-3 mb-3">
               <div class="col-12">
                 <div class="form-floating">
-                  <%= f.text_field :customer_name, class:'form-control', id:'newCustomerName', placeholder:'Full Name', style:'border-radius:12px;' %>
-                  <%= f.label :customer_name, 'Full Name *' %>
+                  <%= f.text_field :customer_name, class:'form-control', id:'newCustomerName', placeholder:'Full Name', autocomplete:'off', style:'border-radius:12px;' %>
+                  <label for="newCustomerName">Full Name *</label>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="form-floating">
-                  <%= f.email_field :customer_email, class:'form-control', id:'newCustomerEmail', placeholder:'Email', style:'border-radius:12px;' %>
-                  <%= f.label :customer_email, 'Email Address' %>
+                  <%= f.email_field :customer_email, class:'form-control', id:'newCustomerEmail', placeholder:'Email Address', autocomplete:'off', style:'border-radius:12px;' %>
+                  <label for="newCustomerEmail">Email Address</label>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="form-floating">
-                  <%= f.phone_field :customer_phone, class:'form-control', id:'newCustomerPhone', placeholder:'Phone', style:'border-radius:12px;' %>
-                  <%= f.label :customer_phone, 'Phone Number' %>
+                  <%= f.telephone_field :customer_phone, class:'form-control', id:'newCustomerPhone', placeholder:'Phone Number', autocomplete:'off', style:'border-radius:12px;' %>
+                  <label for="newCustomerPhone">Phone Number</label>
                 </div>
               </div>
             </div>
