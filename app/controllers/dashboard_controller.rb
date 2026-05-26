@@ -117,8 +117,9 @@ class DashboardController < ApplicationController
       @filter_end_date = @filter_start_date.end_of_month
     end
 
-    # Create cache key based on filter parameters
-    cache_key = "dashboard_data_#{@filter_start_date}_#{@filter_end_date}_v5"
+    # Create cache key based on filter parameters; gen is bumped on any record change
+    cache_gen = Rails.cache.read("dashboard_cache_gen") || "0"
+    cache_key = "dashboard_data_#{cache_gen}_#{@filter_start_date}_#{@filter_end_date}_v5"
 
     # Try to get cached data first (5 minutes cache)
     filtered_data = Rails.cache.fetch(cache_key, expires_in: 5.minutes) do

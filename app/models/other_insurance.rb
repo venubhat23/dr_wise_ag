@@ -277,7 +277,7 @@ class OtherInsurance < ApplicationRecord
   private
 
   def clear_dashboard_cache
-    Rails.cache.delete_matched("dashboard_data_")
+    Rails.cache.write("dashboard_cache_gen", SecureRandom.hex(4))
     Rails.cache.delete("dashboard_filter_independent_#{Date.current}_v3")
   rescue => e
     Rails.logger.warn "Failed to clear dashboard cache: #{e.message}"
