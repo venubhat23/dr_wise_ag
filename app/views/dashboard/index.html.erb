@@ -2010,6 +2010,12 @@ function loadCommissionsDueData(content, loading) {
 
         const thStyle = 'color:white;font-weight:800;border:none;padding:12px 10px;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.5px;';
 
+        const policyPath = (type, id) => {
+          if (!id) return null;
+          const map = { health: '/admin/insurance/health', life: '/admin/insurance/life', motor: '/admin/insurance/motor', other: '/admin/insurance/other' };
+          return (map[type] || null) ? `${map[type]}/${id}` : null;
+        };
+
         const buildTable = (records, color) => {
           if (!records.length) return '<p class="text-muted py-3 text-center">No pending records.</p>';
           return `
@@ -2032,10 +2038,20 @@ function loadCommissionsDueData(content, loading) {
                   ${records.map((c, i) => {
                     const isOrphaned = c.orphaned === true;
                     const rowBg = isOrphaned ? 'rgba(255,243,205,0.6)' : (i%2===0?'rgba(0,0,0,0.02)':'white');
+                    const leadUrl  = c.lead_db_id ? `/admin/leads/${c.lead_db_id}` : null;
+                    const polUrl   = policyPath(c.policy_type, c.policy_db_id);
+                    const linkStyle = 'color:white;text-decoration:none;cursor:pointer;';
+                    const polLinkStyle = 'font-family:monospace;font-weight:700;color:#2c3e50;font-size:0.85rem;background:#ecf0f1;padding:3px 6px;border-radius:5px;text-decoration:none;';
+                    const leadCell = leadUrl
+                      ? `<a href="${leadUrl}" target="_blank" style="${linkStyle}"><span class="badge" style="background:${isOrphaned?'#adb5bd':color};color:white;font-size:0.7rem;padding:4px 7px;border-radius:6px;">${c.lead_id} <i class="bi bi-box-arrow-up-right" style="font-size:0.6rem;"></i></span></a>`
+                      : `<span class="badge" style="background:${isOrphaned?'#adb5bd':color};color:white;font-size:0.7rem;padding:4px 7px;border-radius:6px;">${c.lead_id}</span>`;
+                    const policyCell = (polUrl && c.policy_number !== 'N/A')
+                      ? `<a href="${polUrl}" target="_blank" style="${polLinkStyle}">${c.policy_number} <i class="bi bi-box-arrow-up-right" style="font-size:0.6rem;color:#667eea;"></i></a>`
+                      : `<span style="${polLinkStyle.replace('text-decoration:none;','')}">${c.policy_number}</span>`;
                     return `
                     <tr style="background:${rowBg};border-bottom:1px solid #f0f0f0;${isOrphaned?'opacity:0.85;':''}" title="${isOrphaned?'Policy record not found for this payout':''}">
-                      <td style="padding:10px 8px;"><span class="badge" style="background:${isOrphaned?'#adb5bd':color};color:white;font-size:0.7rem;padding:4px 7px;border-radius:6px;">${c.lead_id}</span></td>
-                      <td style="padding:10px 8px;"><span style="font-family:monospace;font-weight:700;color:#2c3e50;font-size:0.85rem;background:#ecf0f1;padding:3px 6px;border-radius:5px;">${c.policy_number}</span></td>
+                      <td style="padding:10px 8px;">${leadCell}</td>
+                      <td style="padding:10px 8px;">${policyCell}</td>
                       <td style="padding:10px 8px;font-weight:700;color:#34495e;font-size:0.9rem;">${c.customer_name}${isOrphaned?' <span title="Policy not found" style="color:#e67e22;font-size:0.75rem;">⚠ policy missing</span>':''}</td>
                       <td style="padding:10px 8px;font-size:0.82rem;color:#2c3e7a;">${c.affiliate_name !== 'N/A' ? `<span style="background:#eaf4fb;color:#2980b9;border:1px solid #aed6f1;padding:2px 8px;border-radius:10px;font-weight:600;font-size:0.75rem;">${c.affiliate_name}</span>` : '<span style="color:#adb5bd;font-size:0.75rem;">—</span>'}</td>
                       <td style="padding:10px 8px;"><span class="badge bg-info text-white" style="font-size:0.7rem;">${c.policy_type}</span></td>

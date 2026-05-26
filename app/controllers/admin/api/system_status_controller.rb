@@ -300,6 +300,10 @@ module Admin
           sub_agents_map = SubAgent.where(id: all_sub_agent_ids.compact.uniq)
                                    .index_by(&:id)
 
+          # Batch-load Lead records keyed by display lead_id for DB-id lookup
+          display_lead_ids = pending_commissions.map { |p| p.lead_id }.compact.uniq
+          leads_map = Lead.where(lead_id: display_lead_ids).index_by(&:lead_id)
+
           commission_data = pending_commissions.map do |payout|
             policy = get_policy_for_payout(payout)
             percentage = payout.distribution_percentage || calculate_percentage_from_policy(policy, payout)
@@ -333,10 +337,15 @@ module Admin
                             "#{formatted_premium} × #{percentage_value}% = #{formatted_commission}"
                           end
 
+            display_lead_id = policy&.lead_id || payout.lead_id
+            lead_record     = leads_map[display_lead_id]
+
             {
               id: payout.id,
-              lead_id: policy&.lead_id || payout.lead_id || 'N/A',
+              lead_id: display_lead_id || 'N/A',
+              lead_db_id: lead_record&.id,
               policy_number: policy&.policy_number || 'N/A',
+              policy_db_id: policy&.id,
               customer_name: customer_name,
               affiliate_name: affiliate_name,
               policy_type: payout.policy_type,
