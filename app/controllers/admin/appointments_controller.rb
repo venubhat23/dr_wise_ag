@@ -59,6 +59,7 @@ class Admin::AppointmentsController < Admin::ApplicationController
   end
 
   def show
+    render layout: false if request.xhr?
   end
 
   def edit

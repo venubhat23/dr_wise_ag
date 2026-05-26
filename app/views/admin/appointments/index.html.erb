@@ -489,7 +489,9 @@
                   <i class="bi bi-check2"></i> Done
                 <% end %>
               <% end %>
-              <%= link_to edit_admin_appointment_path(appt), class: 'reminder-action-btn edit-btn' do %>
+              <%= link_to edit_admin_appointment_path(appt),
+                  data: { turbo: false },
+                  class: 'reminder-action-btn edit-btn' do %>
                 <i class="bi bi-pencil"></i> Edit
               <% end %>
             </div>
@@ -666,8 +668,13 @@
 function switchTab(tab) {
   document.getElementById('tabAppointments').style.display = tab === 'appointments' ? '' : 'none';
   document.getElementById('tabReminders').style.display    = tab === 'reminders'    ? '' : 'none';
-  document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.page-tab').forEach(b => {
+    b.classList.remove('active');
+    if ((tab === 'appointments' && b.textContent.trim().startsWith('Appointments')) ||
+        (tab === 'reminders'    && b.textContent.trim().startsWith('Reminders'))) {
+      b.classList.add('active');
+    }
+  });
   history.replaceState(null, '', tab === 'reminders' ? '?tab=reminders' : '<%= admin_appointments_path %>');
   if (tab === 'appointments') loadCalendar();
 }
@@ -881,7 +888,7 @@ async function showAppointmentDetail(id) {
     '<div class="text-center py-4"><div class="spinner-border text-primary" style="width:2rem;height:2rem;"></div></div>';
   modal.show();
   try {
-    const res = await fetch(`<%= admin_appointments_path %>/${id}`, { headers:{'Accept':'text/html'} });
+    const res = await fetch(`<%= admin_appointments_path %>/${id}`, { headers:{'Accept':'text/html','X-Requested-With':'XMLHttpRequest'} });
     if (res.ok) document.getElementById('appointmentDetailBody').innerHTML = await res.text();
   } catch(e) {}
 }
