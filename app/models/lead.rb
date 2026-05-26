@@ -1,5 +1,6 @@
 class Lead < ApplicationRecord
   include PgSearch::Model
+  include ClearsAnalyticsCache
 
   validates :name, presence: true
   validates :contact_number, presence: true

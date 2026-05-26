@@ -1,6 +1,7 @@
 class MotorInsurance < ApplicationRecord
   include PgSearch::Model
   include InsuranceCompanyConstants
+  include ClearsAnalyticsCache
 
   # Associations
   belongs_to :customer, counter_cache: :policies_count

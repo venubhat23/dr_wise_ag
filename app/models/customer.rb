@@ -1,5 +1,6 @@
 class Customer < ApplicationRecord
   include PgSearch::Model
+  include ClearsAnalyticsCache
 
   # Callbacks
   before_validation :format_mobile_number

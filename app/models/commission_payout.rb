@@ -1,5 +1,6 @@
 class CommissionPayout < ApplicationRecord
   include PgSearch::Model
+  include ClearsAnalyticsCache
 
   # Set correct table name
   self.table_name = "commission_payouts"

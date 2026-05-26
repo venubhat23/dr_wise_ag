@@ -248,9 +248,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
     HealthInsurance.includes(:customer).where(created_at: start_date..end_date).order(created_at: :desc).limit(3).each do |policy|
       policies << {
         type: 'Health Insurance',
-        customer: policy.customer.display_name,
+        customer: policy.customer&.display_name || 'Unknown',
         policy_number: policy.policy_number,
-        premium: policy.net_premium,
+        premium: policy.net_premium.to_f,
         date: policy.created_at
       }
     end
@@ -259,9 +259,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
     LifeInsurance.includes(:customer).where(created_at: start_date..end_date).order(created_at: :desc).limit(3).each do |policy|
       policies << {
         type: 'Life Insurance',
-        customer: policy.customer.display_name,
+        customer: policy.customer&.display_name || 'Unknown',
         policy_number: policy.policy_number,
-        premium: policy.net_premium,
+        premium: policy.net_premium.to_f,
         date: policy.created_at
       }
     end
@@ -270,9 +270,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
     MotorInsurance.includes(:customer).where(created_at: start_date..end_date).order(created_at: :desc).limit(2).each do |policy|
       policies << {
         type: 'Motor Insurance',
-        customer: policy.customer.display_name,
+        customer: policy.customer&.display_name || 'Unknown',
         policy_number: policy.policy_number,
-        premium: policy.net_premium,
+        premium: policy.net_premium.to_f,
         date: policy.created_at
       }
     end
@@ -328,40 +328,34 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
   def calculate_lead_conversion_funnel_for_period(start_date, end_date)
     {
-      'Leads Generated' => Lead.where(created_at: start_date..end_date).count,
-      'Contacted' => Lead.where(created_at: start_date..end_date, current_stage: ['contacted', 'interested', 'quoted', 'policy_created']).count,
-      'Interested' => Lead.where(created_at: start_date..end_date, current_stage: ['interested', 'quoted', 'policy_created']).count,
-      'Quoted' => Lead.where(created_at: start_date..end_date, current_stage: ['quoted', 'policy_created']).count,
-      'Converted' => Lead.where(created_at: start_date..end_date, current_stage: 'policy_created').count
+      'Lead Generated'           => Lead.where(created_at: start_date..end_date).count,
+      'Consultation Scheduled'   => Lead.where(created_at: start_date..end_date, current_stage: %w[consultation_scheduled one_on_one follow_up follow_up_successful re_follow_up converted]).count,
+      'One on One'               => Lead.where(created_at: start_date..end_date, current_stage: %w[one_on_one follow_up follow_up_successful re_follow_up converted]).count,
+      'Follow Up'                => Lead.where(created_at: start_date..end_date, current_stage: %w[follow_up follow_up_successful re_follow_up converted]).count,
+      'Converted'                => Lead.where(created_at: start_date..end_date, current_stage: 'converted').count
     }
   rescue => e
     Rails.logger.error "Error calculating lead conversion funnel for period: #{e.message}"
-    {
-      'Leads Generated' => 0,
-      'Contacted' => 0,
-      'Interested' => 0,
-      'Quoted' => 0,
-      'Converted' => 0
-    }
+    { 'Lead Generated' => 0, 'Consultation Scheduled' => 0, 'One on One' => 0, 'Follow Up' => 0, 'Converted' => 0 }
   end
 
   def calculate_lead_stage_distribution_for_period(start_date, end_date)
     {
-      'New Leads' => Lead.where(created_at: start_date..end_date, current_stage: 'lead_generated').count,
-      'Contacted' => Lead.where(created_at: start_date..end_date, current_stage: ['follow_up', 'follow_up_successful']).count,
-      'Consultation' => Lead.where(created_at: start_date..end_date, current_stage: 'consultation_scheduled').count,
-      'One-on-One' => Lead.where(created_at: start_date..end_date, current_stage: 'one_on_one').count,
-      'Converted' => Lead.where(created_at: start_date..end_date, current_stage: 'converted').count
+      'Lead Generated'         => Lead.where(created_at: start_date..end_date, current_stage: 'lead_generated').count,
+      'Consultation Scheduled' => Lead.where(created_at: start_date..end_date, current_stage: 'consultation_scheduled').count,
+      'One on One'             => Lead.where(created_at: start_date..end_date, current_stage: 'one_on_one').count,
+      'Follow Up'              => Lead.where(created_at: start_date..end_date, current_stage: %w[follow_up re_follow_up]).count,
+      'Follow Up Successful'   => Lead.where(created_at: start_date..end_date, current_stage: 'follow_up_successful').count,
+      'Follow Up Unsuccessful' => Lead.where(created_at: start_date..end_date, current_stage: 'follow_up_unsuccessful').count,
+      'Not Interested'         => Lead.where(created_at: start_date..end_date, current_stage: 'not_interested').count,
+      'Converted'              => Lead.where(created_at: start_date..end_date, current_stage: 'converted').count,
+      'Lead Closed'            => Lead.where(created_at: start_date..end_date, current_stage: 'lead_closed').count
     }
   rescue => e
     Rails.logger.error "Error calculating lead stage distribution for period: #{e.message}"
-    {
-      'New Leads' => 0,
-      'Contacted' => 0,
-      'Consultation' => 0,
-      'One-on-One' => 0,
-      'Converted' => 0
-    }
+    { 'Lead Generated' => 0, 'Consultation Scheduled' => 0, 'One on One' => 0, 'Follow Up' => 0,
+      'Follow Up Successful' => 0, 'Follow Up Unsuccessful' => 0, 'Not Interested' => 0,
+      'Converted' => 0, 'Lead Closed' => 0 }
   end
 
   def calculate_customer_location_for_period(start_date, end_date)
@@ -519,6 +513,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
     # Agent customer data for affiliate performance table
     @agent_customer_data = calculate_agent_customer_data
 
+    # Actual commission per agent from CommissionPayout records
+    @agent_commission = calculate_agent_commission
+
     # Commission metrics
     @commissions_due = (@commission_summary[:total_commission_due] || 0).to_f
     @conversion_rate = calculate_conversion_rate.to_f
@@ -575,8 +572,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
       recent_leads: @recent_leads.map(&:attributes),
       commission_summary: @commission_summary,
       renewal_analytics: @renewal_analytics,
-      agent_performance: @agent_performance,
+      agent_performance: @agent_performance.transform_values(&:to_f),
       agent_customer_data: @agent_customer_data,
+      agent_commission: @agent_commission.transform_values(&:to_f),
       commissions_due: @commissions_due,
       conversion_rate: @conversion_rate,
       avg_policy_value: @avg_policy_value,
@@ -623,7 +621,15 @@ class Admin::AnalyticsController < Admin::ApplicationController
       OpenStruct.new(affiliate_hash)
     end
 
-    @recent_policies = cached_data['recent_policies']
+    @recent_policies = (cached_data['recent_policies'] || []).map do |p|
+      {
+        type:    p['type'],
+        customer: p['customer'],
+        policy_number: p['policy_number'],
+        premium:  p['premium'].to_f,
+        date:    p['date'].present? ? Time.parse(p['date']) : nil
+      }
+    end
 
     # Convert recent leads back to objects for view compatibility
     @recent_leads = (cached_data['recent_leads'] || []).map do |lead_hash|
@@ -631,8 +637,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
     end
     @commission_summary = cached_data['commission_summary']
     @renewal_analytics = cached_data['renewal_analytics']
-    @agent_performance = cached_data['agent_performance']
+    @agent_performance = (cached_data['agent_performance'] || {}).transform_values(&:to_f)
     @agent_customer_data = cached_data['agent_customer_data']
+    @agent_commission = (cached_data['agent_commission'] || {}).transform_values(&:to_f)
     @commissions_due = (cached_data['commissions_due'] || 0).to_f
     @conversion_rate = (cached_data['conversion_rate'] || 0).to_f
     @avg_policy_value = cached_data['avg_policy_value']
@@ -773,9 +780,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
     HealthInsurance.includes(:customer).order(created_at: :desc).limit(3).each do |policy|
       policies << {
         type: 'Health Insurance',
-        customer: policy.customer.display_name,
+        customer: policy.customer&.display_name || 'Unknown',
         policy_number: policy.policy_number,
-        premium: policy.net_premium,
+        premium: policy.net_premium.to_f,
         date: policy.created_at
       }
     end
@@ -784,9 +791,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
     LifeInsurance.includes(:customer).order(created_at: :desc).limit(3).each do |policy|
       policies << {
         type: 'Life Insurance',
-        customer: policy.customer.display_name,
+        customer: policy.customer&.display_name || 'Unknown',
         policy_number: policy.policy_number,
-        premium: policy.net_premium,
+        premium: policy.net_premium.to_f,
         date: policy.created_at
       }
     end
@@ -795,9 +802,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
     MotorInsurance.includes(:customer).order(created_at: :desc).limit(2).each do |policy|
       policies << {
         type: 'Motor Insurance',
-        customer: policy.customer.display_name,
+        customer: policy.customer&.display_name || 'Unknown',
         policy_number: policy.policy_number,
-        premium: policy.net_premium,
+        premium: policy.net_premium.to_f,
         date: policy.created_at
       }
     end
@@ -852,38 +859,43 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_agent_performance
-    # Calculate agent performance based on premium collected
     agent_premiums = {}
 
-    # Get performance from health insurance
-    HealthInsurance.joins(:sub_agent)
-                   .group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)")
-                   .sum(:net_premium)
-                   .each do |name, premium|
-      agent_premiums[name] = (agent_premiums[name] || 0) + premium
+    [
+      HealthInsurance.joins(:sub_agent).group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)").sum(:net_premium),
+      LifeInsurance.joins(:sub_agent).group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)").sum(:net_premium),
+      MotorInsurance.joins(:sub_agent).group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)").sum(:net_premium)
+    ].each do |result|
+      result.each { |name, premium| agent_premiums[name] = (agent_premiums[name] || 0) + premium.to_f }
     end
 
-    # Get performance from life insurance
-    LifeInsurance.joins(:sub_agent)
-                 .group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)")
-                 .sum(:net_premium)
-                 .each do |name, premium|
-      agent_premiums[name] = (agent_premiums[name] || 0) + premium
-    end
-
-    # Get performance from motor insurance
-    MotorInsurance.joins(:sub_agent)
-                  .group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)")
-                  .sum(:net_premium)
-                  .each do |name, premium|
-      agent_premiums[name] = (agent_premiums[name] || 0) + premium
-    end
-
-    # Sort by premium amount and return hash
-    agent_premiums.sort_by { |name, premium| -premium }.to_h
+    agent_premiums.sort_by { |_, premium| -premium }.to_h
   rescue => e
-    # Return empty hash if there's an error
     Rails.logger.error "Error calculating agent performance: #{e.message}"
+    {}
+  end
+
+  def calculate_agent_commission
+    # Sum actual CommissionPayout amounts per sub_agent by joining through policies
+    agent_commissions = {}
+
+    [
+      ['health', HealthInsurance],
+      ['life',   LifeInsurance],
+      ['motor',  MotorInsurance]
+    ].each do |policy_type, model|
+      model.joins(:sub_agent)
+           .joins("INNER JOIN commission_payouts cp ON cp.policy_type = '#{policy_type}' AND cp.policy_id = #{model.table_name}.id AND cp.payout_to = 'sub_agent'")
+           .group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)")
+           .sum("cp.payout_amount")
+           .each do |name, commission|
+        agent_commissions[name] = (agent_commissions[name] || 0) + commission.to_f
+      end
+    end
+
+    agent_commissions
+  rescue => e
+    Rails.logger.error "Error calculating agent commission: #{e.message}"
     {}
   end
 
@@ -959,43 +971,35 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_lead_conversion_funnel
-    # Calculate conversion funnel showing leads at different stages
     {
-      'Leads Generated' => Lead.count,
-      'Contacted' => Lead.where(current_stage: ['contacted', 'interested', 'quoted', 'policy_created']).count,
-      'Interested' => Lead.where(current_stage: ['interested', 'quoted', 'policy_created']).count,
-      'Quoted' => Lead.where(current_stage: ['quoted', 'policy_created']).count,
-      'Converted' => Lead.where(current_stage: 'policy_created').count
+      'Lead Generated'           => Lead.count,
+      'Consultation Scheduled'   => Lead.where(current_stage: %w[consultation_scheduled one_on_one follow_up follow_up_successful re_follow_up converted]).count,
+      'One on One'               => Lead.where(current_stage: %w[one_on_one follow_up follow_up_successful re_follow_up converted]).count,
+      'Follow Up'                => Lead.where(current_stage: %w[follow_up follow_up_successful re_follow_up converted]).count,
+      'Converted'                => Lead.where(current_stage: 'converted').count
     }
   rescue => e
     Rails.logger.error "Error calculating lead conversion funnel: #{e.message}"
-    {
-      'Leads Generated' => 0,
-      'Contacted' => 0,
-      'Interested' => 0,
-      'Quoted' => 0,
-      'Converted' => 0
-    }
+    { 'Lead Generated' => 0, 'Consultation Scheduled' => 0, 'One on One' => 0, 'Follow Up' => 0, 'Converted' => 0 }
   end
 
   def calculate_lead_stage_distribution
-    # Calculate lead distribution by current stage for analytics view
     {
-      'New Leads' => Lead.where(current_stage: 'lead_generated').count,
-      'Contacted' => Lead.where(current_stage: ['follow_up', 'follow_up_successful']).count,
-      'Consultation' => Lead.where(current_stage: 'consultation_scheduled').count,
-      'One-on-One' => Lead.where(current_stage: 'one_on_one').count,
-      'Converted' => Lead.where(current_stage: 'converted').count
+      'Lead Generated'         => Lead.where(current_stage: 'lead_generated').count,
+      'Consultation Scheduled' => Lead.where(current_stage: 'consultation_scheduled').count,
+      'One on One'             => Lead.where(current_stage: 'one_on_one').count,
+      'Follow Up'              => Lead.where(current_stage: %w[follow_up re_follow_up]).count,
+      'Follow Up Successful'   => Lead.where(current_stage: 'follow_up_successful').count,
+      'Follow Up Unsuccessful' => Lead.where(current_stage: 'follow_up_unsuccessful').count,
+      'Not Interested'         => Lead.where(current_stage: 'not_interested').count,
+      'Converted'              => Lead.where(current_stage: 'converted').count,
+      'Lead Closed'            => Lead.where(current_stage: 'lead_closed').count
     }
   rescue => e
     Rails.logger.error "Error calculating lead stage distribution: #{e.message}"
-    {
-      'New Leads' => 0,
-      'Contacted' => 0,
-      'Consultation' => 0,
-      'One-on-One' => 0,
-      'Converted' => 0
-    }
+    { 'Lead Generated' => 0, 'Consultation Scheduled' => 0, 'One on One' => 0, 'Follow Up' => 0,
+      'Follow Up Successful' => 0, 'Follow Up Unsuccessful' => 0, 'Not Interested' => 0,
+      'Converted' => 0, 'Lead Closed' => 0 }
   end
 
   def calculate_customer_location

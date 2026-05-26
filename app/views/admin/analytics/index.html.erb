@@ -855,10 +855,10 @@
               <td>
                 <%= (@agent_customer_data&.dig(affiliate_name) || 0) %>
               </td>
-              <td><%= indian_currency(premium || 0) %></td>
+              <td><%= indian_currency(premium.to_f) %></td>
               <td>
                 <span class="badge bg-success">
-                  <%= indian_currency((premium * 0.05) || 0) %>
+                  <%= indian_currency((@agent_commission&.dig(affiliate_name) || 0).to_f) %>
                 </span>
               </td>
             </tr>
@@ -874,16 +874,17 @@
       <h3 class="chart-title">Commission Analytics</h3>
       <div style="margin-top: 1rem;">
         <%
-          # Ensure numeric values for calculations
-          commissions_due_safe = (@commissions_due.to_f rescue 0)
-          total_policies_safe = (@total_policies.to_i rescue 0)
-          conversion_rate_safe = (@conversion_rate.to_f rescue 0)
+          commissions_due_safe  = (@commissions_due.to_f rescue 0)
+          commissions_paid_safe = ((@commission_summary.is_a?(Hash) ? (@commission_summary['total_commission_paid'] || @commission_summary[:total_commission_paid]) : 0).to_f rescue 0)
+          total_policies_safe   = (@total_policies.to_i rescue 0)
+          total_commission      = commissions_due_safe + commissions_paid_safe
+          commission_paid_rate  = total_commission > 0 ? ((commissions_paid_safe / total_commission) * 100).round(1) : 0
 
           commission_stats = {
-            'Total Commission Due' => { value: commissions_due_safe, format: 'currency', color: '#ef4444' },
+            'Total Commission Due'    => { value: commissions_due_safe, format: 'currency', color: '#ef4444' },
+            'Total Commission Paid'   => { value: commissions_paid_safe, format: 'currency', color: '#10b981' },
             'Avg Commission per Policy' => { value: total_policies_safe > 0 ? (commissions_due_safe / total_policies_safe.to_f).round(0) : 0, format: 'currency', color: '#3b82f6' },
-            'Commission Conversion Rate' => { value: conversion_rate_safe, format: 'percentage', color: '#10b981' },
-            'Monthly Payout Target' => { value: (commissions_due_safe * 0.8).round(0), format: 'currency', color: '#f59e0b' }
+            'Commission Paid Rate'    => { value: commission_paid_rate, format: 'percentage', color: '#8b5cf6' }
           }
         %>
         <% commission_stats.each do |label, data| %>

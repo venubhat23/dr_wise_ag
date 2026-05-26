@@ -1,4 +1,5 @@
 class OtherInsurance < ApplicationRecord
+  include ClearsAnalyticsCache
   belongs_to :policy, optional: true
   belongs_to :customer
   belongs_to :sub_agent, optional: true
