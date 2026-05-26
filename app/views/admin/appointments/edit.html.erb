@@ -22,54 +22,38 @@
 
           <div class="row g-3 mb-3">
             <div class="col-12">
-              <div class="form-floating">
-                <%= f.text_field :customer_name, class: 'form-control', placeholder: 'Customer Name', style: 'border-radius:12px;' %>
-                <%= f.label :customer_name, 'Customer Name *' %>
-              </div>
+              <label class="form-label fw-semibold">Customer Name <span class="text-danger">*</span></label>
+              <%= f.text_field :customer_name, class: 'form-control', placeholder: 'Customer Name', style: 'border-radius:12px;' %>
             </div>
             <div class="col-md-6">
-              <div class="form-floating">
-                <%= f.email_field :customer_email, class: 'form-control', placeholder: 'Email', style: 'border-radius:12px;' %>
-                <%= f.label :customer_email, 'Email' %>
-              </div>
+              <label class="form-label fw-semibold">Email</label>
+              <%= f.email_field :customer_email, class: 'form-control', placeholder: 'Email', style: 'border-radius:12px;' %>
             </div>
             <div class="col-md-6">
-              <div class="form-floating">
-                <%= f.phone_field :customer_phone, class: 'form-control', placeholder: 'Phone', style: 'border-radius:12px;' %>
-                <%= f.label :customer_phone, 'Phone' %>
-              </div>
+              <label class="form-label fw-semibold">Phone</label>
+              <%= f.phone_field :customer_phone, class: 'form-control', placeholder: 'Phone', style: 'border-radius:12px;' %>
             </div>
             <div class="col-md-6">
-              <div class="form-floating">
-                <%= f.date_field :appointment_date, class: 'form-control', style: 'border-radius:12px;' %>
-                <%= f.label :appointment_date, 'Appointment Date *' %>
-              </div>
+              <label class="form-label fw-semibold">Appointment Date <span class="text-danger">*</span></label>
+              <%= f.date_field :appointment_date, class: 'form-control', style: 'border-radius:12px;' %>
             </div>
             <div class="col-md-6">
-              <div class="form-floating">
-                <%= f.select :time_slot, options_for_select(Appointment::TIME_SLOTS.map { |s| [s, s] }, @appointment.time_slot),
-                    {}, class: 'form-select', style: 'border-radius:12px;' %>
-                <%= f.label :time_slot, 'Time Slot *' %>
-              </div>
+              <label class="form-label fw-semibold">Time Slot <span class="text-danger">*</span></label>
+              <%= f.select :time_slot, options_for_select(Appointment::TIME_SLOTS.map { |s| [s, s] }, @appointment.time_slot),
+                  {}, class: 'form-select', style: 'border-radius:12px;' %>
             </div>
             <div class="col-md-6">
-              <div class="form-floating">
-                <%= f.select :status, options_for_select(Appointment::STATUSES.map { |s| [s.capitalize, s] }, @appointment.status),
-                    {}, class: 'form-select', style: 'border-radius:12px;' %>
-                <%= f.label :status, 'Status' %>
-              </div>
+              <label class="form-label fw-semibold">Status</label>
+              <%= f.select :status, options_for_select(Appointment::STATUSES.map { |s| [s.capitalize, s] }, @appointment.status),
+                  {}, class: 'form-select', style: 'border-radius:12px;' %>
             </div>
             <div class="col-12">
-              <div class="form-floating">
-                <%= f.text_field :meeting_agenda, class: 'form-control', placeholder: 'Meeting Agenda', style: 'border-radius:12px;' %>
-                <%= f.label :meeting_agenda, 'Meeting Agenda' %>
-              </div>
+              <label class="form-label fw-semibold">Meeting Agenda</label>
+              <%= f.text_field :meeting_agenda, class: 'form-control', placeholder: 'Meeting Agenda', style: 'border-radius:12px;' %>
             </div>
             <div class="col-12">
-              <div class="form-floating">
-                <%= f.text_area :notes, class: 'form-control', placeholder: 'Notes', style: 'border-radius:12px;min-height:100px;' %>
-                <%= f.label :notes, 'Notes' %>
-              </div>
+              <label class="form-label fw-semibold">Notes</label>
+              <%= f.text_area :notes, class: 'form-control', placeholder: 'Notes', style: 'border-radius:12px;min-height:120px;' %>
             </div>
           </div>
 

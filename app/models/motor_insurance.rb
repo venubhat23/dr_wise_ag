@@ -78,6 +78,7 @@ class MotorInsurance < ApplicationRecord
   before_create :inherit_customer_lead_id
   after_create :create_commission_payouts
   after_create :create_lead_record
+  after_commit :clear_dashboard_cache
 
   # Instance methods
   def active?
@@ -319,6 +320,13 @@ class MotorInsurance < ApplicationRecord
   end
 
   private
+
+  def clear_dashboard_cache
+    Rails.cache.delete_matched("dashboard_data_")
+    Rails.cache.delete("dashboard_filter_independent_#{Date.current}_v3")
+  rescue => e
+    Rails.logger.warn "Failed to clear dashboard cache: #{e.message}"
+  end
 
   def calculate_totals
     if net_premium.present? && gst_percentage.present?

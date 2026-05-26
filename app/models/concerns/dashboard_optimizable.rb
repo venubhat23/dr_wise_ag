@@ -2,6 +2,8 @@ module DashboardOptimizable
   extend ActiveSupport::Concern
 
   included do
+    after_commit :clear_dashboard_cache
+
     # Common scopes for all insurance models
     scope :with_customer, -> { includes(:customer) }
     scope :recent, ->(limit = 10) { order(created_at: :desc).limit(limit) }
@@ -39,6 +41,13 @@ module DashboardOptimizable
         .limit(limit)
         .select(:id, :policy_number, :total_premium, :created_at, :customer_id)
     end
+  end
+
+  def clear_dashboard_cache
+    Rails.cache.delete_matched("dashboard_data_")
+    Rails.cache.delete("dashboard_filter_independent_#{Date.current}_v3")
+  rescue => e
+    Rails.logger.warn "Failed to clear dashboard cache: #{e.message}"
   end
 
   class_methods do

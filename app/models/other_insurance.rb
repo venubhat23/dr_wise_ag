@@ -24,6 +24,7 @@ class OtherInsurance < ApplicationRecord
   before_create :inherit_customer_lead_id
   after_create :create_commission_payouts
   after_create :create_lead_record
+  after_commit :clear_dashboard_cache
 
   # Validations
   validates :customer_id, presence: { message: "Client name is required" }
@@ -274,6 +275,13 @@ class OtherInsurance < ApplicationRecord
   end
 
   private
+
+  def clear_dashboard_cache
+    Rails.cache.delete_matched("dashboard_data_")
+    Rails.cache.delete("dashboard_filter_independent_#{Date.current}_v3")
+  rescue => e
+    Rails.logger.warn "Failed to clear dashboard cache: #{e.message}"
+  end
 
   def create_commission_payouts
     return unless drwise_policy? # Only create payouts for DrWise policies
