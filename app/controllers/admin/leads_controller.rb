@@ -715,7 +715,7 @@ class Admin::LeadsController < Admin::ApplicationController
       customer_mobile = customer_data[:mobile]
       customer_email = customer_data[:email]
 
-      # Find leads for this customer by their mobile and email
+      # Find leads for this customer by their mobile and email only
       customer_leads = []
 
       # Search by mobile (clean both numbers for comparison)
@@ -727,18 +727,6 @@ class Admin::LeadsController < Admin::ApplicationController
       # Search by email
       if customer_email.present?
         customer_leads += Lead.where(email: customer_email)
-      end
-
-      # Search by customer name patterns (first name, last name)
-      customer_name = customer_data[:name]
-      if customer_name.present?
-        name_parts = customer_name.split(' ')
-        if name_parts.length >= 2
-          first_name = name_parts.first
-          last_name = name_parts.last
-          customer_leads += Lead.where("name ILIKE ? OR name ILIKE ? OR name ILIKE ?",
-                                     "%#{first_name}%", "%#{last_name}%", "%#{customer_name}%")
-        end
       end
 
       # Remove duplicates and avoid duplicating leads already found by direct search

@@ -1208,129 +1208,6 @@ body {
   </div>
 </div>
 
-<!-- Associated Leads Section -->
-<div class="info-section-card">
-  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#associatedLeadsCollapse" aria-expanded="false">
-    <div class="d-flex align-items-center">
-      <div class="section-icon">
-        <i class="bi bi-funnel"></i>
-      </div>
-      <h5 class="section-title">Associated Leads</h5>
-      <span class="section-count"><%= @associated_leads&.count || 0 %> Total</span>
-    </div>
-    <i class="bi bi-chevron-down collapse-icon"></i>
-  </div>
-  <div id="associatedLeadsCollapse" class="collapse">
-    <div class="section-body">
-      <% if @associated_leads&.any? %>
-        <div class="row g-3">
-          <% @associated_leads.each_with_index do |lead, index| %>
-            <div class="col-12">
-              <div class="card border-0 shadow-sm mb-3 lead-card" style="transition: all 0.3s ease; border-left: 4px solid #667eea !important; background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 249, 255, 0.9) 100%);" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(102, 126, 234, 0.15)'; this.style.borderLeftColor='#28a745';" onmouseout="this.style.transform=''; this.style.boxShadow='0 2px 10px rgba(0,0,0,0.1)'; this.style.borderLeftColor='#667eea';">
-                <div class="card-body py-4 px-4">
-                  <div class="row align-items-center">
-                    <!-- Lead ID Section -->
-                    <div class="col-lg-2 col-md-3 col-sm-6 mb-3 mb-lg-0">
-                      <div class="d-flex flex-column align-items-start">
-                        <small class="text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase;">Lead ID</small>
-                        <div class="lead-id-badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 8px 12px; border-radius: 12px; color: white; font-weight: 600; font-size: 0.85rem; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);">
-                          <i class="bi bi-tag-fill me-2"></i><%= lead.lead_id %>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Name & Contact Section -->
-                    <div class="col-lg-4 col-md-5 col-sm-6 mb-3 mb-lg-0">
-                      <div class="d-flex flex-column">
-                        <small class="text-muted fw-bold mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase;">Contact Details</small>
-                        <div class="mb-2">
-                          <div class="d-flex align-items-center mb-1">
-                            <div class="icon-circle me-3" style="width: 35px; height: 35px; background: linear-gradient(135deg, #28a745, #20c997); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);">
-                              <i class="bi bi-person-fill text-white" style="font-size: 1rem;"></i>
-                            </div>
-                            <strong style="color: #2c3e50; font-size: 1.1rem;"><%= lead.name %></strong>
-                          </div>
-                        </div>
-                        <div class="contact-info" style="margin-left: 45px;">
-                          <% if lead.contact_number.present? %>
-                            <a href="tel:<%= lead.contact_number %>" class="text-decoration-none d-flex align-items-center mb-1 contact-link" style="color: #28a745; font-size: 0.9rem; transition: all 0.2s ease;" onmouseover="this.style.color='#1e7e34'; this.style.transform='translateX(3px)';" onmouseout="this.style.color='#28a745'; this.style.transform='';">
-                              <i class="bi bi-telephone-fill me-2" style="font-size: 0.8rem;"></i><%= lead.contact_number %>
-                            </a>
-                          <% end %>
-                          <% if lead.email.present? %>
-                            <a href="mailto:<%= lead.email %>" class="text-decoration-none d-flex align-items-center contact-link" style="color: #dc3545; font-size: 0.9rem; transition: all 0.2s ease;" onmouseover="this.style.color='#c82333'; this.style.transform='translateX(3px)';" onmouseout="this.style.color='#dc3545'; this.style.transform='';">
-                              <i class="bi bi-envelope-fill me-2" style="font-size: 0.8rem;"></i><%= lead.email %>
-                            </a>
-                          <% end %>
-                          <% if lead.contact_number.blank? && lead.email.blank? %>
-                            <span class="text-muted"><i class="bi bi-dash me-2"></i>No contact info</span>
-                          <% end %>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Product Section -->
-                    <div class="col-lg-2 col-md-4 col-sm-6 mb-3 mb-lg-0">
-                      <div class="d-flex flex-column align-items-start">
-                        <small class="text-muted fw-bold mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase;">Product</small>
-                        <div class="d-flex flex-column gap-1">
-                          <span class="badge product-badge" style="background: linear-gradient(135deg, #fd7e14, #dc3545); color: white; padding: 8px 12px; border-radius: 15px; font-size: 0.85rem; font-weight: 600; box-shadow: 0 2px 8px rgba(253, 126, 20, 0.3);">
-                            <i class="bi bi-grid-fill me-2"></i><%= lead.product_category %>
-                          </span>
-                          <% if lead.product_subcategory.present? %>
-                            <small class="badge" style="background: rgba(108, 117, 125, 0.1); color: #495057; padding: 4px 8px; border-radius: 10px; border: 1px solid rgba(108, 117, 125, 0.2); font-size: 0.75rem;">
-                              <%= lead.product_subcategory %>
-                            </small>
-                          <% end %>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Stage Section -->
-                    <div class="col-lg-2 col-md-4 col-sm-6 mb-3 mb-lg-0">
-                      <div class="d-flex flex-column align-items-start">
-                        <small class="text-muted fw-bold mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase;">Stage</small>
-                        <% stage_bg = case lead.current_stage
-                             when 'converted'              then 'linear-gradient(135deg, #28a745, #20c997)'
-                             when 'follow_up'              then 'linear-gradient(135deg, #ffc107, #fd7e14)'
-                             when 'consultation_scheduled' then 'linear-gradient(135deg, #17a2b8, #007bff)'
-                             else                               'linear-gradient(135deg, #6c757d, #495057)'
-                             end %>
-                        <div class="stage-badge" style="background: <%= stage_bg %>; color: white; padding: 10px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; text-transform: capitalize; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: inline-block;">
-                          <i class="bi bi-<%= lead.current_stage == 'converted' ? 'check-circle-fill' : lead.current_stage == 'follow_up' ? 'clock-fill' : lead.current_stage == 'consultation_scheduled' ? 'calendar-check-fill' : 'hourglass-split' %> me-2"></i><%= lead.current_stage&.humanize || 'Unknown' %>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Date Section -->
-                    <div class="col-lg-2 col-md-4 col-sm-6">
-                      <div class="d-flex flex-column align-items-start">
-                        <small class="text-muted fw-bold mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase;">Date</small>
-                        <div class="date-display" style="background: rgba(102, 126, 234, 0.1); padding: 8px 12px; border-radius: 12px; color: #667eea; font-weight: 600; border: 1px solid rgba(102, 126, 234, 0.2);">
-                          <i class="bi bi-calendar-event me-2"></i><%= lead.created_at.strftime("%d %b %Y") %>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          <% end %>
-        </div>
-      <% else %>
-        <div class="text-center text-muted py-4">
-          <i class="bi bi-funnel fs-3 d-block mb-3"></i>
-          <h6>No Leads Found</h6>
-          <p class="mb-3">This client doesn't have any associated leads.</p>
-          <%= link_to new_admin_lead_path(customer_id: @customer.id), class: "btn btn-primary btn-sm" do %>
-            <i class="bi bi-plus me-1"></i>Create New Lead
-          <% end %>
-        </div>
-      <% end %>
-    </div>
-  </div>
-</div>
-
 <!-- Financial Information Section -->
 <div class="info-section-card">
   <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#financialCollapse" aria-expanded="false">
@@ -2223,6 +2100,130 @@ body {
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Associated Leads Section -->
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#associatedLeadsCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-funnel"></i>
+      </div>
+      <h5 class="section-title">Associated Leads</h5>
+      <span class="section-count"><%= @associated_leads&.count || 0 %> Total</span>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="associatedLeadsCollapse" class="collapse">
+    <div class="section-body">
+      <% if @associated_leads&.any? %>
+        <div class="row g-3">
+          <% @associated_leads.each_with_index do |lead, index| %>
+            <div class="col-12">
+              <div class="card border-0 shadow-sm mb-3 lead-card" style="transition: all 0.3s ease; border-left: 4px solid #667eea !important; background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 249, 255, 0.9) 100%);" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(102, 126, 234, 0.15)'; this.style.borderLeftColor='#28a745';" onmouseout="this.style.transform=''; this.style.boxShadow='0 2px 10px rgba(0,0,0,0.1)'; this.style.borderLeftColor='#667eea';">
+                <div class="card-body py-4 px-4">
+                  <div class="row align-items-center">
+                    <!-- Lead ID Section -->
+                    <div class="col-lg-2 col-md-3 col-sm-6 mb-3 mb-lg-0">
+                      <div class="d-flex flex-column align-items-start">
+                        <small class="text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase;">Lead ID</small>
+                        <%= link_to admin_lead_path(lead), class: "lead-id-badge text-decoration-none", style: "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 8px 12px; border-radius: 12px; color: white; font-weight: 600; font-size: 0.85rem; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3); display: inline-flex; align-items: center; transition: all 0.2s ease;", onmouseover: "this.style.opacity='0.85'; this.style.transform='translateY(-1px)';", onmouseout: "this.style.opacity='1'; this.style.transform='';" do %>
+                          <i class="bi bi-tag-fill me-2"></i><%= lead.lead_id %>
+                          <i class="bi bi-arrow-up-right-square ms-2" style="font-size: 0.75rem; opacity: 0.8;"></i>
+                        <% end %>
+                      </div>
+                    </div>
+
+                    <!-- Name & Contact Section -->
+                    <div class="col-lg-4 col-md-5 col-sm-6 mb-3 mb-lg-0">
+                      <div class="d-flex flex-column">
+                        <small class="text-muted fw-bold mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase;">Contact Details</small>
+                        <div class="mb-2">
+                          <div class="d-flex align-items-center mb-1">
+                            <div class="icon-circle me-3" style="width: 35px; height: 35px; background: linear-gradient(135deg, #28a745, #20c997); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);">
+                              <i class="bi bi-person-fill text-white" style="font-size: 1rem;"></i>
+                            </div>
+                            <strong style="color: #2c3e50; font-size: 1.1rem;"><%= lead.name %></strong>
+                          </div>
+                        </div>
+                        <div class="contact-info" style="margin-left: 45px;">
+                          <% if lead.contact_number.present? %>
+                            <a href="tel:<%= lead.contact_number %>" class="text-decoration-none d-flex align-items-center mb-1 contact-link" style="color: #28a745; font-size: 0.9rem; transition: all 0.2s ease;" onmouseover="this.style.color='#1e7e34'; this.style.transform='translateX(3px)';" onmouseout="this.style.color='#28a745'; this.style.transform='';">
+                              <i class="bi bi-telephone-fill me-2" style="font-size: 0.8rem;"></i><%= lead.contact_number %>
+                            </a>
+                          <% end %>
+                          <% if lead.email.present? %>
+                            <a href="mailto:<%= lead.email %>" class="text-decoration-none d-flex align-items-center contact-link" style="color: #dc3545; font-size: 0.9rem; transition: all 0.2s ease;" onmouseover="this.style.color='#c82333'; this.style.transform='translateX(3px)';" onmouseout="this.style.color='#dc3545'; this.style.transform='';">
+                              <i class="bi bi-envelope-fill me-2" style="font-size: 0.8rem;"></i><%= lead.email %>
+                            </a>
+                          <% end %>
+                          <% if lead.contact_number.blank? && lead.email.blank? %>
+                            <span class="text-muted"><i class="bi bi-dash me-2"></i>No contact info</span>
+                          <% end %>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Product Section -->
+                    <div class="col-lg-2 col-md-4 col-sm-6 mb-3 mb-lg-0">
+                      <div class="d-flex flex-column align-items-start">
+                        <small class="text-muted fw-bold mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase;">Product</small>
+                        <div class="d-flex flex-column gap-1">
+                          <span class="badge product-badge" style="background: linear-gradient(135deg, #fd7e14, #dc3545); color: white; padding: 8px 12px; border-radius: 15px; font-size: 0.85rem; font-weight: 600; box-shadow: 0 2px 8px rgba(253, 126, 20, 0.3);">
+                            <i class="bi bi-grid-fill me-2"></i><%= lead.product_category %>
+                          </span>
+                          <% if lead.product_subcategory.present? %>
+                            <small class="badge" style="background: rgba(108, 117, 125, 0.1); color: #495057; padding: 4px 8px; border-radius: 10px; border: 1px solid rgba(108, 117, 125, 0.2); font-size: 0.75rem;">
+                              <%= lead.product_subcategory %>
+                            </small>
+                          <% end %>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Stage Section -->
+                    <div class="col-lg-2 col-md-4 col-sm-6 mb-3 mb-lg-0">
+                      <div class="d-flex flex-column align-items-start">
+                        <small class="text-muted fw-bold mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase;">Stage</small>
+                        <% stage_bg = case lead.current_stage
+                             when 'converted'              then 'linear-gradient(135deg, #28a745, #20c997)'
+                             when 'follow_up'              then 'linear-gradient(135deg, #ffc107, #fd7e14)'
+                             when 'consultation_scheduled' then 'linear-gradient(135deg, #17a2b8, #007bff)'
+                             else                               'linear-gradient(135deg, #6c757d, #495057)'
+                             end %>
+                        <div class="stage-badge" style="background: <%= stage_bg %>; color: white; padding: 10px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; text-transform: capitalize; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: inline-block;">
+                          <i class="bi bi-<%= lead.current_stage == 'converted' ? 'check-circle-fill' : lead.current_stage == 'follow_up' ? 'clock-fill' : lead.current_stage == 'consultation_scheduled' ? 'calendar-check-fill' : 'hourglass-split' %> me-2"></i><%= lead.current_stage&.humanize || 'Unknown' %>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Date Section -->
+                    <div class="col-lg-2 col-md-4 col-sm-6">
+                      <div class="d-flex flex-column align-items-start">
+                        <small class="text-muted fw-bold mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase;">Date</small>
+                        <div class="date-display" style="background: rgba(102, 126, 234, 0.1); padding: 8px 12px; border-radius: 12px; color: #667eea; font-weight: 600; border: 1px solid rgba(102, 126, 234, 0.2);">
+                          <i class="bi bi-calendar-event me-2"></i><%= lead.created_at.strftime("%d %b %Y") %>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-funnel fs-3 d-block mb-3"></i>
+          <h6>No Leads Found</h6>
+          <p class="mb-3">This client doesn't have any associated leads.</p>
+          <%= link_to new_admin_lead_path(customer_id: @customer.id), class: "btn btn-primary btn-sm" do %>
+            <i class="bi bi-plus me-1"></i>Create New Lead
+          <% end %>
+        </div>
+      <% end %>
     </div>
   </div>
 </div>
