@@ -33,6 +33,9 @@ namespace :payouts do
       end
 
       begin
+        # Older records may have product_through_dr = false/nil; force it in memory so the service doesn't skip them
+        policy.product_through_dr = true if policy.respond_to?(:product_through_dr) && !policy.product_through_dr
+
         payout = StructuredPayoutService.create_for_policy(policy, 'motor')
         if payout
           cp_count = payout.commission_payouts.count
@@ -73,6 +76,8 @@ namespace :payouts do
       end
 
       begin
+        policy.product_through_dr = true if policy.respond_to?(:product_through_dr) && !policy.product_through_dr
+
         payout = StructuredPayoutService.create_for_policy(policy, 'life')
         if payout
           cp_count = payout.commission_payouts.count
@@ -113,6 +118,8 @@ namespace :payouts do
       end
 
       begin
+        policy.product_through_dr = true if policy.respond_to?(:product_through_dr) && !policy.product_through_dr
+
         payout = StructuredPayoutService.create_for_policy(policy, 'health')
         if payout
           cp_count = payout.commission_payouts.count
@@ -153,6 +160,8 @@ namespace :payouts do
       end
 
       begin
+        policy.product_through_dr = true if policy.respond_to?(:product_through_dr) && !policy.product_through_dr
+
         payout = StructuredPayoutService.create_for_policy(policy, 'other')
         if payout
           cp_count = payout.commission_payouts.count
