@@ -374,6 +374,7 @@ Rails.application.routes.draw do
         get :renew
         post :create_renewal
         delete :delete_document
+        post :regenerate_payout
       end
       resources :motor_insurance_documents, path: 'documents', except: [:edit, :update] do
         member do
@@ -395,6 +396,7 @@ Rails.application.routes.draw do
       member do
         get :renew
         post :create_renewal
+        post :regenerate_payout
       end
     end
 

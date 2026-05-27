@@ -23,6 +23,7 @@ class OtherInsurance < ApplicationRecord
 
   # Callbacks
   before_create :inherit_customer_lead_id
+  before_create :set_product_through_dr
   after_create :create_commission_payouts
   after_create :create_lead_record
   after_commit :clear_dashboard_cache
@@ -304,6 +305,10 @@ class OtherInsurance < ApplicationRecord
   end
 
   # Inherit lead_id from customer if not already set
+  def set_product_through_dr
+    self.product_through_dr = true
+  end
+
   def inherit_customer_lead_id
     return if lead_id.present? || customer.nil?
 

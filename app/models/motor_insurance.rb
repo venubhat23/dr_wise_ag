@@ -77,6 +77,7 @@ class MotorInsurance < ApplicationRecord
   before_save :set_total_idv
   after_save :set_notification_dates
   before_create :inherit_customer_lead_id
+  before_create :set_product_through_dr
   after_create :create_commission_payouts
   after_create :create_lead_record
   after_commit :clear_dashboard_cache
@@ -508,5 +509,9 @@ class MotorInsurance < ApplicationRecord
     # Don't inherit customer lead_id to avoid unique constraint violations
     # Let the create_lead_record callback handle lead_id generation
     return
+  end
+
+  def set_product_through_dr
+    self.product_through_dr = true
   end
 end

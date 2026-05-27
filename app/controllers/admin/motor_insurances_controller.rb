@@ -7,7 +7,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   # Custom CSRF handling for renewal action
   before_action :verify_renewal_authenticity_token, only: [:create_renewal]
 
-  before_action :set_motor_insurance, only: [:show, :edit, :update, :destroy, :delete_document, :renew, :create_renewal]
+  before_action :set_motor_insurance, only: [:show, :edit, :update, :destroy, :delete_document, :renew, :create_renewal, :regenerate_payout]
   before_action :load_form_data, only: [:new, :edit, :create, :update, :renew, :create_renewal]
 
   def index
@@ -504,6 +504,27 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     end
 
     render :renew
+  end
+
+  def regenerate_payout
+    existing_payout = Payout.find_by(policy_type: 'motor', policy_id: @motor_insurance.id)
+    if existing_payout
+      redirect_to admin_motor_insurance_path(@motor_insurance), alert: 'Payout already exists for this policy.'
+      return
+    end
+
+    unless @motor_insurance.is_admin_added?
+      redirect_to admin_motor_insurance_path(@motor_insurance), alert: 'Payout can only be generated for DrWise (admin-added) policies.'
+      return
+    end
+
+    begin
+      StructuredPayoutService.create_for_policy(@motor_insurance, 'motor')
+      redirect_to admin_motor_insurance_path(@motor_insurance), notice: 'Payout generated successfully.'
+    rescue => e
+      Rails.logger.error "Failed to regenerate payout for motor insurance #{@motor_insurance.id}: #{e.message}"
+      redirect_to admin_motor_insurance_path(@motor_insurance), alert: "Failed to generate payout: #{e.message}"
+    end
   end
 
   def create_renewal

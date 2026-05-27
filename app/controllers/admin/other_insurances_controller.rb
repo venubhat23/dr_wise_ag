@@ -1,7 +1,7 @@
 class Admin::OtherInsurancesController < Admin::ApplicationController
   include ConfigurablePagination
 
-  before_action :set_other_insurance, only: [:show, :edit, :update, :destroy, :renew, :create_renewal]
+  before_action :set_other_insurance, only: [:show, :edit, :update, :destroy, :renew, :create_renewal, :regenerate_payout]
   before_action :load_form_data, only: [:new, :edit, :create, :update, :renew]
   skip_before_action :verify_authenticity_token, only: [:all_agency_codes, :all_brokers, :insurance_companies_for_type, :insurance_companies_by_agency]
 
@@ -388,6 +388,27 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
   #     data: companies_data
   #   }
   # end
+
+  def regenerate_payout
+    existing_payout = Payout.find_by(policy_type: 'other', policy_id: @other_insurance.id)
+    if existing_payout
+      redirect_to admin_other_insurance_path(@other_insurance), alert: 'Payout already exists for this policy.'
+      return
+    end
+
+    unless @other_insurance.is_admin_added?
+      redirect_to admin_other_insurance_path(@other_insurance), alert: 'Payout can only be generated for DrWise (admin-added) policies.'
+      return
+    end
+
+    begin
+      StructuredPayoutService.create_for_policy(@other_insurance, 'other')
+      redirect_to admin_other_insurance_path(@other_insurance), notice: 'Payout generated successfully.'
+    rescue => e
+      Rails.logger.error "Failed to regenerate payout for other insurance #{@other_insurance.id}: #{e.message}"
+      redirect_to admin_other_insurance_path(@other_insurance), alert: "Failed to generate payout: #{e.message}"
+    end
+  end
 
   def renew
     # Check if policy expires within 60 days

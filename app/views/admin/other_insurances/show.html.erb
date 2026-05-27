@@ -11,6 +11,12 @@
   </div>
 
   <div class="d-flex gap-2">
+    <% if @other_insurance.is_admin_added? && !Payout.exists?(policy_type: 'other', policy_id: @other_insurance.id) %>
+      <%= button_to regenerate_payout_admin_other_insurance_path(@other_insurance), method: :post, class: "btn btn-warning", data: { confirm: 'Generate payout for this policy?' } do %>
+        <i class="bi bi-cash-coin me-2"></i>
+        Generate Payout
+      <% end %>
+    <% end %>
     <%= link_to edit_admin_other_insurance_path(@other_insurance), class: "btn btn-primary" do %>
       <i class="bi bi-pencil me-2"></i>
       Edit Policy
