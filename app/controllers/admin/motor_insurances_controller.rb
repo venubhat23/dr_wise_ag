@@ -41,6 +41,11 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       base_query = base_query.where(policy_type: params[:policy_type])
     end
 
+    # Filter by vehicle number (registration number)
+    if params[:vehicle_number].present?
+      base_query = base_query.where("registration_number ILIKE ?", "%#{params[:vehicle_number]}%")
+    end
+
     # Filter by insurance company
     if params[:company].present?
       base_query = base_query.where(insurance_company_name: params[:company])

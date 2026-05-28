@@ -199,7 +199,7 @@
   <div class="card-body p-0">
     <ul class="nav nav-tabs border-0" role="tablist">
       <li class="nav-item" role="presentation">
-        <%= link_to admin_motor_insurances_path(tab: 'drwise', search: params[:search], vehicle_type: params[:vehicle_type], payment_mode: params[:payment_mode]),
+        <%= link_to admin_motor_insurances_path(tab: 'drwise', search: params[:search], vehicle_number: params[:vehicle_number], vehicle_type: params[:vehicle_type], payment_mode: params[:payment_mode]),
             class: "nav-link #{'active' if @current_tab == 'drwise'}",
             role: "tab" do %>
           <i class="bi bi-check-circle me-2"></i>
@@ -208,7 +208,7 @@
         <% end %>
       </li>
       <li class="nav-item" role="presentation">
-        <%= link_to admin_motor_insurances_path(tab: 'non_drwise', search: params[:search], vehicle_type: params[:vehicle_type], payment_mode: params[:payment_mode]),
+        <%= link_to admin_motor_insurances_path(tab: 'non_drwise', search: params[:search], vehicle_number: params[:vehicle_number], vehicle_type: params[:vehicle_type], payment_mode: params[:payment_mode]),
             class: "nav-link #{'active' if @current_tab == 'non_drwise'}",
             role: "tab" do %>
           <i class="bi bi-x-circle me-2"></i>
@@ -225,10 +225,13 @@
   <div class="card-body">
     <%= form_with url: admin_motor_insurances_path, method: :get, local: true, class: "row g-3" do |form| %>
       <%= form.hidden_field :tab, value: @current_tab %>
-      <div class="col-md-4">
+      <div class="col-md-3">
         <%= form.text_field :search, placeholder: "Search policies...", value: params[:search], class: "form-control" %>
       </div>
       <div class="col-md-3">
+        <%= form.text_field :vehicle_number, placeholder: "Vehicle Number (e.g. MH12AB1234)", value: params[:vehicle_number], class: "form-control" %>
+      </div>
+      <div class="col-md-2">
         <%= form.select :vehicle_type, options_for_select([
           ['All Vehicle Types', ''],
           ['Car', 'Car'],
@@ -237,7 +240,7 @@
           ['Bus', 'Bus']
         ], params[:vehicle_type]), {}, { class: "form-select" } %>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <%= form.select :payment_mode, options_for_select([
           ['All Payment Modes', ''],
           ['Yearly', 'yearly'],
@@ -459,7 +462,7 @@
         <i class="bi bi-car-front fs-1 text-muted d-block mb-3"></i>
         <h5 class="text-muted">No motor insurance policies found</h5>
         <p class="text-muted mb-3">
-          <% if params[:search].present? || params[:vehicle_type].present? || params[:payment_mode].present? %>
+          <% if params[:search].present? || params[:vehicle_number].present? || params[:vehicle_type].present? || params[:payment_mode].present? %>
             Try adjusting your search criteria or
             <%= link_to "view all policies", admin_motor_insurances_path, class: "text-decoration-none" %>.
           <% else %>
