@@ -592,11 +592,10 @@ class Admin::DistributorPayoutsController < ApplicationController
     )
 
     # Get all paid distributor payouts for this month
-    paid_payouts = DistributorPayout.where(
-      distributor_id: distributor_id,
-      status: 'paid',
-      payout_date: current_month_start..current_month_end
-    )
+    paid_payouts = DistributorPayout.where(distributor_id: distributor_id, status: 'paid')
+                                    .where('payout_date BETWEEN ? AND ? OR (payout_date IS NULL AND updated_at BETWEEN ? AND ?)',
+                                           current_month_start, current_month_end,
+                                           current_month_start.to_time, (current_month_end + 1.day).to_time)
 
     total_commission = paid_payouts.sum(&:payout_amount).to_f
     Rails.logger.info "Calculated monthly commission: #{total_commission} for #{paid_payouts.count} payouts"
@@ -808,11 +807,11 @@ class Admin::DistributorPayoutsController < ApplicationController
     )
 
     # Get all ambassador commission payouts for this distributor in current month
-    ambassador_payouts = CommissionPayout.where(
-      payout_to: 'ambassador',
-      status: 'paid',
-      payout_date: current_month_start..current_month_end
-    ).select do |payout|
+    ambassador_payouts = CommissionPayout.where(payout_to: 'ambassador', status: 'paid')
+                                          .where('payout_date BETWEEN ? AND ? OR (payout_date IS NULL AND updated_at BETWEEN ? AND ?)',
+                                                 current_month_start, current_month_end,
+                                                 current_month_start.to_time, (current_month_end + 1.day).to_time)
+                                          .select do |payout|
       policy = get_policy_from_commission_payout(payout)
       policy&.respond_to?(:distributor_id) && policy.distributor_id == distributor_id.to_i
     end

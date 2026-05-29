@@ -49,26 +49,26 @@ module Admin
       def expired
         policies = []
 
-        # All expired policies (matches dashboard logic)
-        # Dashboard uses: policy_end_date < Date.current
+        # Recently expired policies — last 45 days only, matching the dashboard badge count
+        forty_five_days_ago = Date.current - 45.days
 
         # Health Insurance
         HealthInsurance.includes(:customer)
-                      .where('policy_end_date < ?', Date.current)
+                      .where(policy_end_date: forty_five_days_ago...Date.current)
                       .each do |policy|
           policies << format_policy(policy, 'health')
         end
 
         # Life Insurance
         LifeInsurance.includes(:customer)
-                    .where('policy_end_date < ?', Date.current)
+                    .where(policy_end_date: forty_five_days_ago...Date.current)
                     .each do |policy|
           policies << format_policy(policy, 'life')
         end
 
         # Motor Insurance
         MotorInsurance.includes(:customer)
-                      .where('policy_end_date < ?', Date.current)
+                      .where(policy_end_date: forty_five_days_ago...Date.current)
                       .each do |policy|
           policies << format_policy(policy, 'motor')
         end
@@ -76,7 +76,7 @@ module Admin
         # Other Insurance
         if defined?(OtherInsurance)
           OtherInsurance.includes(:customer)
-                        .where('policy_end_date < ?', Date.current)
+                        .where(policy_end_date: forty_five_days_ago...Date.current)
                         .each do |policy|
             policies << format_policy(policy, 'other')
           end

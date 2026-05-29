@@ -313,7 +313,11 @@ class Admin::CommissionTrackingController < ApplicationController
     sample_policies
   end
 
+  public
+
   def dashboard
+    @commission_summary = { total_generated: 0, total_transferred: 0, pending_transfers: 0, company_expenses: 0 }
+
     begin
       @commission_summary = {
         total_generated: calculate_total_commission_generated || 0,
@@ -754,6 +758,11 @@ class Admin::CommissionTrackingController < ApplicationController
     )
 
     if payout.save
+      begin
+        generate_invoice_for_transfer(policy, payout)
+      rescue => e
+        Rails.logger.error "Invoice generation failed after commission transfer: #{e.message}"
+      end
       { success: true, message: "Transfer completed successfully", payout: payout }
     else
       { success: false, message: payout.errors.full_messages.join(', ') }
@@ -1003,5 +1012,134 @@ class Admin::CommissionTrackingController < ApplicationController
     else
       nil
     end
+  end
+
+  def generate_invoice_for_transfer(policy, payout)
+    case payout.payout_to
+    when 'affiliate'
+      sub_agent_id = policy.respond_to?(:sub_agent_id) ? policy.sub_agent_id : nil
+      return unless sub_agent_id.present?
+      generate_monthly_affiliate_invoice_ct(sub_agent_id, payout.payout_date)
+    when 'ambassador'
+      distributor_id = policy.respond_to?(:distributor_id) ? policy.distributor_id : nil
+      return unless distributor_id.present?
+      generate_monthly_ambassador_invoice_ct(distributor_id, payout.payout_date)
+    end
+  end
+
+  def generate_monthly_affiliate_invoice_ct(sub_agent_id, reference_date = nil)
+    sub_agent = SubAgent.find_by(id: sub_agent_id)
+    return unless sub_agent
+
+    invoice_month = reference_date || Date.current
+    month_start = invoice_month.beginning_of_month
+    month_end = invoice_month.end_of_month
+
+    existing_invoice = Invoice.where(
+      payout_type: 'affiliate',
+      payout_id: sub_agent_id,
+      invoice_date: month_start..month_end
+    ).first
+
+    paid_payouts = CommissionPayout.where(payout_to: 'affiliate', status: 'paid')
+                                   .where('payout_date BETWEEN ? AND ? OR (payout_date IS NULL AND updated_at BETWEEN ? AND ?)',
+                                          month_start, month_end, month_start.to_time, (month_end + 1.day).to_time)
+                                   .select do |cp|
+      p = get_policy_for_payout(cp)
+      p&.respond_to?(:sub_agent_id) && p.sub_agent_id.to_i == sub_agent_id.to_i
+    end
+
+    return if paid_payouts.empty?
+
+    total_commission = paid_payouts.sum(&:payout_amount).to_f
+    return if total_commission <= 0
+
+    policies_processed = paid_payouts.map { |cp| get_policy_for_payout(cp)&.policy_number }.compact.uniq
+
+    if existing_invoice
+      existing_invoice.update!(
+        total_amount: total_commission,
+        notes: "Monthly affiliate commission for #{paid_payouts.count} policies in #{invoice_month.strftime('%B %Y')}: #{policies_processed.join(', ')}"
+      )
+    else
+      invoice_number = generate_ct_invoice_number('AFF', sub_agent_id, invoice_month)
+      Invoice.create!(
+        invoice_number: invoice_number,
+        payout_type: 'affiliate',
+        payout_id: sub_agent_id,
+        total_amount: total_commission,
+        status: 'paid',
+        invoice_date: invoice_month,
+        due_date: invoice_month,
+        paid_at: Time.current,
+        recipient_name: "#{sub_agent.first_name} #{sub_agent.last_name}",
+        recipient_email: sub_agent.email,
+        notes: "Monthly affiliate commission for #{paid_payouts.count} policies in #{invoice_month.strftime('%B %Y')}: #{policies_processed.join(', ')}"
+      )
+    end
+    Rails.logger.info "Generated/updated affiliate invoice for sub_agent #{sub_agent_id} in #{invoice_month.strftime('%B %Y')}"
+  end
+
+  def generate_monthly_ambassador_invoice_ct(distributor_id, reference_date = nil)
+    distributor = Distributor.find_by(id: distributor_id)
+    return unless distributor
+
+    invoice_month = reference_date || Date.current
+    month_start = invoice_month.beginning_of_month
+    month_end = invoice_month.end_of_month
+
+    existing_invoice = Invoice.where(
+      payout_type: 'ambassador',
+      payout_id: distributor_id,
+      invoice_date: month_start..month_end
+    ).first
+
+    ambassador_payouts = CommissionPayout.where(payout_to: 'ambassador', status: 'paid')
+                                         .where('payout_date BETWEEN ? AND ? OR (payout_date IS NULL AND updated_at BETWEEN ? AND ?)',
+                                                month_start, month_end, month_start.to_time, (month_end + 1.day).to_time)
+                                         .select do |cp|
+      p = get_policy_for_payout(cp)
+      p&.respond_to?(:distributor_id) && p.distributor_id.to_i == distributor_id.to_i
+    end
+
+    return if ambassador_payouts.empty?
+
+    total_amount = ambassador_payouts.sum(&:payout_amount).to_f
+    return if total_amount <= 0
+
+    if existing_invoice
+      existing_invoice.update!(
+        total_amount: total_amount,
+        notes: "Monthly ambassador commission for #{ambassador_payouts.count} payouts in #{invoice_month.strftime('%B %Y')}"
+      )
+    else
+      invoice_number = generate_ct_invoice_number('AMB', distributor_id, invoice_month)
+      Invoice.create!(
+        invoice_number: invoice_number,
+        payout_type: 'ambassador',
+        payout_id: distributor_id,
+        total_amount: total_amount,
+        status: 'paid',
+        invoice_date: invoice_month,
+        due_date: invoice_month,
+        paid_at: Time.current,
+        recipient_name: distributor.display_name,
+        recipient_email: distributor.email || 'no-email@example.com',
+        notes: "Monthly ambassador commission for #{ambassador_payouts.count} payouts in #{invoice_month.strftime('%B %Y')}"
+      )
+    end
+    Rails.logger.info "Generated/updated ambassador invoice for distributor #{distributor_id} in #{invoice_month.strftime('%B %Y')}"
+  end
+
+  def generate_ct_invoice_number(prefix, entity_id, month)
+    year_month = month.strftime('%Y%m')
+    base = "INV-#{prefix}-#{year_month}-#{entity_id.to_s.rjust(5, '0')}"
+    counter = 1
+    number = base
+    while Invoice.exists?(invoice_number: number)
+      number = "#{base}-#{counter}"
+      counter += 1
+    end
+    number
   end
 end
