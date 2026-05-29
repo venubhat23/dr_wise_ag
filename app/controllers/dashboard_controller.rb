@@ -159,7 +159,7 @@ class DashboardController < ApplicationController
     # These sections should always show current real-time data, not filtered by date
     results = {}
     current_date = Date.current
-    forty_five_days_from_now = current_date + 45.days
+    forty_five_days_from_now = current_date + 30.days
 
     # Renewal Alerts - always based on current date
     results[:renewal_due_count] = get_renewal_due_count(forty_five_days_from_now)
@@ -656,7 +656,7 @@ class DashboardController < ApplicationController
     results[:pending_leads] = Lead.where(current_stage: pending_stages).count
 
     # Renewals and expired policies (date-based queries)
-    forty_five_days_from_now = Date.current + 45.days
+    forty_five_days_from_now = Date.current + 30.days
     results[:renewal_due_count] = get_renewal_due_count(forty_five_days_from_now)
     results[:expired_policies_count] = get_expired_policies_count
     results[:renewal_status] = get_renewal_status_counts

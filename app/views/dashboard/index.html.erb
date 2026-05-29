@@ -811,7 +811,7 @@
           </h5>
           <div class="d-flex justify-content-between align-items-center mb-2">
             <a href="javascript:void(0)" onclick="showRenewalModal('expiring')" class="text-decoration-none text-muted">
-              Expiring in 45 days
+              Expiring in 30 days
             </a>
             <span class="badge bg-warning text-dark" style="cursor: pointer;" onclick="showRenewalModal('expiring')">
               <%= renewal_counts[:expiring] %>
@@ -1462,7 +1462,7 @@ function showRenewalModal(type) {
   // Update modal title based on type
   switch(type) {
     case 'expiring':
-      modalTitle.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>Policies Expiring in 45 Days';
+      modalTitle.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>Policies Expiring in 30 Days';
       loadExpiringPolicies(tableBody);
       break;
     case 'expired':
