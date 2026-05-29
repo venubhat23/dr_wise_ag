@@ -11,19 +11,32 @@ class Admin::CommissionTrackingController < ApplicationController
   skip_load_and_authorize_resource
 
   def index
-    @page = params[:page] || 1
-    @per_page = 10
     @tab = params[:tab] || 'all'
+    @filter_customer_id = params[:customer_id]
+    @filter_date_from   = params[:date_from]
+    @filter_date_to     = params[:date_to]
+    @filter_month       = params[:month]
+    @filter_year        = params[:year]
+
+    if @filter_customer_id.present?
+      customer = Customer.find_by(id: @filter_customer_id)
+      @filter_customer_name = customer&.display_name
+    end
+
+    @customers_for_filter = Customer.order(:first_name, :last_name).all
+
+    @page     = [params[:page].to_i, 1].max
+    @per_page = [[params[:per_page].to_i, 5].max, 100].min
+    @per_page = SystemSetting.default_pagination_per_page if params[:per_page].blank?
+    @items_per_page = @per_page
 
     begin
       @all_count     = Payout.count
       @paid_count    = Payout.where(main_agent_commission_received: true).count
       @pending_count = Payout.where(main_agent_commission_received: [false, nil]).count
 
-      @policies_with_commission = fetch_policies_with_commission_optimized(@page, @per_page)
-      # @total_policies_count, @total_pages, @has_next_page, @has_prev_page are set by the fetch method
+      @policies_with_commission = fetch_policies_with_commission_filtered
 
-      # Real calculations based on payout data
       @total_commission_generated = calculate_total_commission_generated
       @total_transferred = calculate_total_transferred
       @pending_transfers = calculate_pending_transfers
@@ -31,24 +44,17 @@ class Admin::CommissionTrackingController < ApplicationController
     rescue => e
       Rails.logger.error "Commission tracking failed: #{e.message}"
 
-      # Emergency fallback with static data
-      @page = 1
-      @per_page = 10
-      @tab = 'all'
-      @all_count     = 0
-      @paid_count    = 0
-      @pending_count = 0
-      @total_policies_count = 20
-      @total_pages = 2
-      @has_next_page = false
-      @has_prev_page = false
-
-      # Use same calculation methods even in fallback
+      @all_count            = 0
+      @paid_count           = 0
+      @pending_count        = 0
+      @total_policies_count = 0
+      @total_pages          = 1
+      @has_prev_page        = false
+      @has_next_page        = false
       @total_commission_generated = calculate_total_commission_generated
       @total_transferred = calculate_total_transferred
       @pending_transfers = calculate_pending_transfers
       @company_expenses = calculate_company_expenses
-
       @policies_with_commission = create_sample_policies
     end
   end
@@ -238,7 +244,6 @@ class Admin::CommissionTrackingController < ApplicationController
     policies = []
 
     if search_term.present?
-      # Search Dr WISE all insurance types
       policies = search_policies_across_types(search_term)
     end
 
@@ -246,6 +251,22 @@ class Admin::CommissionTrackingController < ApplicationController
       format.json { render json: policies }
       format.html { @policies = policies }
     end
+  end
+
+  def search_customers
+    query = params[:q].to_s.strip
+    customers = if query.present?
+      Customer.where(
+        "first_name ILIKE :q OR last_name ILIKE :q OR CONCAT(first_name, ' ', last_name) ILIKE :q",
+        q: "%#{query}%"
+      ).order(:first_name).limit(30)
+    else
+      Customer.order(:first_name).limit(30)
+    end.select(:id, :first_name, :last_name)
+
+    render json: {
+      results: customers.map { |c| { id: c.id, text: "#{c.first_name} #{c.last_name}".strip } }
+    }
   end
 
   def summary
@@ -547,11 +568,71 @@ class Admin::CommissionTrackingController < ApplicationController
     end
   end
 
+  def fetch_policies_with_commission_filtered
+    payout_scope = case @tab
+                   when 'paid'    then Payout.where(main_agent_commission_received: true)
+                   when 'pending' then Payout.where(main_agent_commission_received: [false, nil])
+                   else                Payout.all
+                   end
+
+    # Customer filter
+    if @filter_customer_id.present?
+      customer = Customer.find_by(id: @filter_customer_id)
+      if customer
+        health_ids = HealthInsurance.where(customer_id: customer.id).pluck(:id)
+        life_ids   = LifeInsurance.where(customer_id: customer.id).pluck(:id)
+        motor_ids  = MotorInsurance.where(customer_id: customer.id).pluck(:id)
+        other_ids  = OtherInsurance.where(customer_id: customer.id).pluck(:id)
+
+        payout_scope = payout_scope.where(
+          "(policy_type = 'health' AND policy_id IN (:h)) OR " \
+          "(policy_type = 'life'   AND policy_id IN (:l)) OR " \
+          "(policy_type = 'motor'  AND policy_id IN (:m)) OR " \
+          "(policy_type = 'other'  AND policy_id IN (:o))",
+          h: health_ids.presence || [0],
+          l: life_ids.presence   || [0],
+          m: motor_ids.presence  || [0],
+          o: other_ids.presence  || [0]
+        )
+      end
+    end
+
+    # Date range filter
+    if @filter_date_from.present?
+      payout_scope = payout_scope.where('created_at >= ?', Date.parse(@filter_date_from).beginning_of_day)
+    end
+    if @filter_date_to.present?
+      payout_scope = payout_scope.where('created_at <= ?', Date.parse(@filter_date_to).end_of_day)
+    end
+
+    # Month / Year filter
+    if @filter_month.present? && @filter_year.present?
+      payout_scope = payout_scope.where(
+        'EXTRACT(MONTH FROM created_at) = ? AND EXTRACT(YEAR FROM created_at) = ?',
+        @filter_month.to_i, @filter_year.to_i
+      )
+    elsif @filter_year.present?
+      payout_scope = payout_scope.where('EXTRACT(YEAR FROM created_at) = ?', @filter_year.to_i)
+    elsif @filter_month.present?
+      payout_scope = payout_scope.where('EXTRACT(MONTH FROM created_at) = ?', @filter_month.to_i)
+    end
+
+    @total_policies_count = payout_scope.count
+    @total_pages          = [(@total_policies_count.to_f / @per_page).ceil, 1].max
+    @page                 = [[@page, 1].max, @total_pages].min
+    @has_prev_page        = @page > 1
+    @has_next_page        = @page < @total_pages
+
+    payouts = payout_scope.order(created_at: :desc)
+                          .limit(@per_page)
+                          .offset((@page - 1) * @per_page)
+
+    build_policies_from_payouts(payouts)
+  end
+
   def fetch_policies_with_commission_optimized(page = 1, per_page = 10)
     page = page.to_i
     page = 1 if page < 1
-
-    all_policies = []
 
     payout_scope = case @tab
                    when 'paid'    then Payout.where(main_agent_commission_received: true)
@@ -559,7 +640,6 @@ class Admin::CommissionTrackingController < ApplicationController
                    else                Payout.all
                    end
 
-    # Use database-level pagination for better performance
     offset = (page - 1) * per_page
     payouts = payout_scope.order(created_at: :desc).limit(per_page).offset(offset)
     @total_policies_count = payout_scope.count
@@ -567,33 +647,37 @@ class Admin::CommissionTrackingController < ApplicationController
     @has_next_page = page < @total_pages
     @has_prev_page = page > 1
 
-    # Bulk load all policies and customers to avoid N+1 queries
-    # Extract policy IDs from the loaded payouts collection
-    life_policy_ids = payouts.select { |p| p.policy_type == 'life' }.map(&:policy_id)
-    health_policy_ids = payouts.select { |p| p.policy_type == 'health' }.map(&:policy_id)
-    motor_policy_ids = payouts.select { |p| p.policy_type == 'motor' }.map(&:policy_id)
-    other_policy_ids = payouts.select { |p| p.policy_type == 'other' }.map(&:policy_id)
+    build_policies_from_payouts(payouts)
+  end
 
-    # Load all policies in bulk with customers
-    life_policies = defined?(LifeInsurance) && life_policy_ids.any? ? LifeInsurance.includes(:customer).where(id: life_policy_ids).index_by(&:id) : {}
-    health_policies = defined?(HealthInsurance) && health_policy_ids.any? ? HealthInsurance.includes(:customer).where(id: health_policy_ids).index_by(&:id) : {}
-    motor_policies = defined?(MotorInsurance) && motor_policy_ids.any? ? MotorInsurance.includes(:customer).where(id: motor_policy_ids).index_by(&:id) : {}
-    other_policies = defined?(OtherInsurance) && other_policy_ids.any? ? OtherInsurance.includes(:customer).where(id: other_policy_ids).index_by(&:id) : {}
+  def fetch_policies_with_commission
+    fetch_policies_with_commission_optimized(1, 50)
+  end
 
-    payouts.each do |payout|
+  def build_policies_from_payouts(payouts)
+    all_policies = []
+
+    payouts_array = payouts.to_a
+
+    life_policy_ids   = payouts_array.select { |p| p.policy_type == 'life' }.map(&:policy_id)
+    health_policy_ids = payouts_array.select { |p| p.policy_type == 'health' }.map(&:policy_id)
+    motor_policy_ids  = payouts_array.select { |p| p.policy_type == 'motor' }.map(&:policy_id)
+    other_policy_ids  = payouts_array.select { |p| p.policy_type == 'other' }.map(&:policy_id)
+
+    life_policies   = life_policy_ids.any?   ? LifeInsurance.includes(:customer).where(id: life_policy_ids).index_by(&:id)     : {}
+    health_policies = health_policy_ids.any? ? HealthInsurance.includes(:customer).where(id: health_policy_ids).index_by(&:id) : {}
+    motor_policies  = motor_policy_ids.any?  ? MotorInsurance.includes(:customer).where(id: motor_policy_ids).index_by(&:id)   : {}
+    other_policies  = other_policy_ids.any?  ? OtherInsurance.includes(:customer).where(id: other_policy_ids).index_by(&:id)   : {}
+
+    payouts_array.each do |payout|
       begin
         policy = case payout.policy_type
-                 when 'health'
-                   health_policies[payout.policy_id]
-                 when 'life'
-                   life_policies[payout.policy_id]
-                 when 'motor'
-                   motor_policies[payout.policy_id]
-                 when 'other'
-                   other_policies[payout.policy_id]
+                 when 'health' then health_policies[payout.policy_id]
+                 when 'life'   then life_policies[payout.policy_id]
+                 when 'motor'  then motor_policies[payout.policy_id]
+                 when 'other'  then other_policies[payout.policy_id]
                  end
 
-        # Skip if policy or customer is missing
         next unless policy && policy.customer
 
         all_policies << {
@@ -617,16 +701,11 @@ class Admin::CommissionTrackingController < ApplicationController
         }
       rescue => e
         Rails.logger.warn "Error processing payout #{payout.id}: #{e.message}"
-        # Continue processing other payouts rather than breaking the entire page
         next
       end
     end
 
     all_policies
-  end
-
-  def fetch_policies_with_commission
-    fetch_policies_with_commission_optimized(1, 50)
   end
 
   def get_transfer_status_optimized(policy, type, all_payouts)
