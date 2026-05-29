@@ -297,13 +297,13 @@ body.modal-open { overflow:visible !important; padding-right:0 !important; }
         <thead>
           <tr>
             <th>Policy Details</th>
+            <th><i class="bi bi-calendar-event me-1"></i>Created</th>
             <th>Customer</th>
             <th>Premium</th>
             <th>Commission</th>
             <th>Main Agent</th>
             <th>Transfer Status</th>
             <th>Breakdown</th>
-            <th><i class="bi bi-calendar-event me-1"></i>Created</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -331,6 +331,16 @@ body.modal-open { overflow:visible !important; padding-right:0 !important; }
                 <% end %>
                 <br>
                 <span class="text-muted" style="font-size:12px;"><%= type.titleize %> Insurance</span>
+              </td>
+
+              <td>
+                <% payout_created = policy_data[:saved_payout]&.created_at %>
+                <% if payout_created %>
+                  <div class="created-date"><%= payout_created.strftime('%d %b %Y') %></div>
+                  <div class="created-time"><%= payout_created.strftime('%I:%M %p') %></div>
+                <% else %>
+                  <span class="text-muted">—</span>
+                <% end %>
               </td>
 
               <td>
@@ -391,16 +401,6 @@ body.modal-open { overflow:visible !important; padding-right:0 !important; }
                   <span class="text-muted">Investor: </span><span class="fw-medium"><%= indian_currency(cd.dig(:payouts, :investor).to_f.round(2)) %></span> <span class="text-muted">(<%= cd.dig(:percentages, :investor) || '0' %>%)</span><br>
                   <span class="text-muted">Company: </span><span class="fw-medium"><%= indian_currency(cd.dig(:payouts, :company_expense).to_f.round(2)) %></span>
                 </div>
-              </td>
-
-              <td>
-                <% payout_created = policy_data[:saved_payout]&.created_at %>
-                <% if payout_created %>
-                  <div class="created-date"><%= payout_created.strftime('%d %b %Y') %></div>
-                  <div class="created-time"><%= payout_created.strftime('%I:%M %p') %></div>
-                <% else %>
-                  <span class="text-muted">—</span>
-                <% end %>
               </td>
 
               <td>

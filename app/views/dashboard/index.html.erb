@@ -845,28 +845,36 @@
             <i class="bi bi-exclamation-triangle text-warning me-2"></i>
             Policy Alerts
           </h5>
-          <!-- Policy alerts are now calculated using consistent helper methods above -->
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <a href="javascript:void(0)" onclick="showPolicyModal('expiring')" class="text-decoration-none text-muted">
-              Policies expiring soon
-            </a>
-            <span class="badge bg-warning text-dark" style="cursor: pointer;" onclick="showPolicyModal('expiring')">
+
+          <div class="d-flex align-items-center justify-content-between py-2 px-3 rounded-3 mb-2"
+               style="background:#fffbeb; cursor:pointer;" onclick="showPolicyModal('expiring')">
+            <div>
+              <div class="fw-semibold text-dark" style="font-size:13px;">Expiring Soon</div>
+              <div class="text-muted" style="font-size:11px;">Next 30 days</div>
+            </div>
+            <span class="fw-bold text-warning" style="font-size:1.6rem; line-height:1;">
               <%= health_alerts[:expiring_soon] %>
             </span>
           </div>
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <a href="javascript:void(0)" onclick="showPolicyModal('expired_month')" class="text-decoration-none text-muted">
-              Expired this month
-            </a>
-            <span class="badge bg-danger" style="cursor: pointer;" onclick="showPolicyModal('expired_month')">
+
+          <div class="d-flex align-items-center justify-content-between py-2 px-3 rounded-3 mb-2"
+               style="background:#fff1f2; cursor:pointer;" onclick="showPolicyModal('expired_month')">
+            <div>
+              <div class="fw-semibold text-dark" style="font-size:13px;">Expired</div>
+              <div class="text-muted" style="font-size:11px;">This month</div>
+            </div>
+            <span class="fw-bold text-danger" style="font-size:1.6rem; line-height:1;">
               <%= health_alerts[:expired_month] %>
             </span>
           </div>
-          <div class="d-flex justify-content-between align-items-center">
-            <a href="javascript:void(0)" onclick="showPolicyModal('opportunities')" class="text-decoration-none text-muted">
-              Renewal opportunities
-            </a>
-            <span class="badge bg-success" style="cursor: pointer;" onclick="showPolicyModal('opportunities')">
+
+          <div class="d-flex align-items-center justify-content-between py-2 px-3 rounded-3"
+               style="background:#f0fdf4; cursor:pointer;" onclick="showPolicyModal('opportunities')">
+            <div>
+              <div class="fw-semibold text-dark" style="font-size:13px;">Renewal Opportunities</div>
+              <div class="text-muted" style="font-size:11px;">Ready to renew</div>
+            </div>
+            <span class="fw-bold text-success" style="font-size:1.6rem; line-height:1;">
               <%= health_alerts[:opportunities] %>
             </span>
           </div>

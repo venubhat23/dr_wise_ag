@@ -163,14 +163,12 @@ class Admin::InvestorsController < Admin::ApplicationController
 
   # GET /admin/investors/1/summary
   def summary
-    # Find ambassadors (distributors) linked to this investor.
-    # Primary path: investor_id on distributor. Fallback: all distributors (investor owns entire business).
+    # Find only ambassadors (distributors) explicitly linked to this investor.
     ambassadors = begin
-      linked = Distributor.where(investor_id: @investor.id).order(:created_at)
-      linked.any? ? linked : Distributor.order(:created_at)
+      Distributor.where(investor_id: @investor.id).order(:created_at)
     rescue => e
       Rails.logger.warn "investor_id column missing on distributors: #{e.message}"
-      Distributor.order(:created_at)
+      Distributor.none
     end
 
     policy_classes = [['health', HealthInsurance], ['life', LifeInsurance], ['motor', MotorInsurance]]

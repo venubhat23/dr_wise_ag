@@ -398,16 +398,6 @@
       </div>
     </div>
 
-  <% else %>
-    <div class="policy-section mb-4">
-      <div class="sec-title" style="--c:#2c3e7a"><i class="bi bi-person-badge me-1"></i>Ambassadors</div>
-      <div class="sec-body">
-        <div class="empty-state">
-          <i class="bi bi-person-x"></i>
-          No ambassadors connected to this investor yet.
-        </div>
-      </div>
-    </div>
   <% end %>
 
   <!-- ══════════════════ DIRECT POLICIES ══════════════════ -->
@@ -479,6 +469,7 @@
   </div>
 
   <!-- ══════════════════ NETWORK FAMILY TREE ══════════════════ -->
+  <% if @ambassador_rows.any? %>
   <div class="policy-section mb-4">
     <div class="sec-title d-flex align-items-center gap-2" style="--c:#1a2550;">
       <i class="bi bi-diagram-3-fill"></i> Network Family Tree
@@ -754,5 +745,6 @@
   });
 })();
 </script>
+  <% end %>
 </body>
 </html>

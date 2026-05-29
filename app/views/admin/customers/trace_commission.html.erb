@@ -508,7 +508,48 @@
           <tbody>
             <% grouped_payouts.each do |policy_number, payouts| %>
               <% first_payout = payouts.first %>
-              <% total_amount = payouts.sum(&:payout_amount) %>
+              <%
+                # Fetch insurance policy — source of truth for commission amounts
+                _policy_rec = case first_payout.policy_type
+                              when 'motor'  then MotorInsurance.find_by(id: first_payout.policy_id)
+                              when 'life'   then LifeInsurance.find_by(id: first_payout.policy_id)
+                              when 'health' then HealthInsurance.find_by(id: first_payout.policy_id)
+                              when 'other'  then OtherInsurance.find_by(id: first_payout.policy_id)
+                              end
+
+                _corrected = payouts.map do |p|
+                  amt = if _policy_rec
+                    case p.payout_to
+                    when 'main_agent'
+                      _policy_rec.try(:commission_amount).to_f
+                    when 'affiliate'
+                      _policy_rec.try(:sub_agent_commission_amount).to_f
+                    when 'ambassador'
+                      _policy_rec.try(:ambassador_commission_amount).to_f
+                    when 'investor'
+                      _policy_rec.try(:investor_commission_amount).to_f
+                    when 'company_expense'
+                      ca = _policy_rec.try(:company_expenses_amount).to_f
+                      if ca > 0
+                        ca
+                      else
+                        pct = _policy_rec.try(:company_expenses_percentage).to_f
+                        net = _policy_rec.try(:net_premium).to_f
+                        (pct * net / 100.0).round(2)
+                      end
+                    else
+                      p.payout_amount.to_f
+                    end
+                  else
+                    p.payout_amount.to_f
+                  end
+                  { payout_to: p.payout_to, payout_amount: amt.round(2),
+                    status: p.status, payout_date: p.payout_date,
+                    customer_name: p.try(:customer_name) }
+                end
+
+                total_amount = _corrected.sum { |p| p[:payout_amount] }
+              %>
               <tr>
                 <td>
                   <div class="fw-bold"><%= policy_number %></div>
@@ -529,7 +570,7 @@
                 <td>
                   <button type="button"
                           class="btn btn-info btn-sm text-white commission-breakdown-btn"
-                          onclick="showCommissionBreakdown('<%= policy_number %>', '<%= first_payout.policy_type %>', '<%= payouts.to_json.gsub("'", "\\'") %>')"
+                          onclick="showCommissionBreakdown('<%= policy_number %>', '<%= first_payout.policy_type %>', '<%= _corrected.to_json.gsub("'", "\\'") %>')"
                           style="border-radius: 20px;">
                     <i class="bi bi-pie-chart me-1"></i><%= payouts.count %> breakdown
                   </button>

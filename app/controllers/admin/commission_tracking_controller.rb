@@ -31,9 +31,10 @@ class Admin::CommissionTrackingController < ApplicationController
     @items_per_page = @per_page
 
     begin
-      @all_count     = Payout.count
-      @paid_count    = Payout.where(main_agent_commission_received: true).count
-      @pending_count = Payout.where(main_agent_commission_received: [false, nil]).count
+      filtered_scope = base_filtered_payout_scope
+      @all_count     = filtered_scope.count
+      @paid_count    = filtered_scope.where(main_agent_commission_received: true).count
+      @pending_count = filtered_scope.where(main_agent_commission_received: [false, nil]).count
 
       @policies_with_commission = fetch_policies_with_commission_filtered
 
@@ -566,14 +567,9 @@ class Admin::CommissionTrackingController < ApplicationController
     end
   end
 
-  def fetch_policies_with_commission_filtered
-    payout_scope = case @tab
-                   when 'paid'    then Payout.where(main_agent_commission_received: true)
-                   when 'pending' then Payout.where(main_agent_commission_received: [false, nil])
-                   else                Payout.all
-                   end
+  def base_filtered_payout_scope
+    scope = Payout.all
 
-    # Customer filter
     if @filter_customer_id.present?
       customer = Customer.find_by(id: @filter_customer_id)
       if customer
@@ -582,7 +578,7 @@ class Admin::CommissionTrackingController < ApplicationController
         motor_ids  = MotorInsurance.where(customer_id: customer.id).pluck(:id)
         other_ids  = OtherInsurance.where(customer_id: customer.id).pluck(:id)
 
-        payout_scope = payout_scope.where(
+        scope = scope.where(
           "(policy_type = 'health' AND policy_id IN (:h)) OR " \
           "(policy_type = 'life'   AND policy_id IN (:l)) OR " \
           "(policy_type = 'motor'  AND policy_id IN (:m)) OR " \
@@ -595,25 +591,33 @@ class Admin::CommissionTrackingController < ApplicationController
       end
     end
 
-    # Date range filter
     if @filter_date_from.present?
-      payout_scope = payout_scope.where('created_at >= ?', Date.parse(@filter_date_from).beginning_of_day)
+      scope = scope.where('created_at >= ?', Date.parse(@filter_date_from).beginning_of_day)
     end
     if @filter_date_to.present?
-      payout_scope = payout_scope.where('created_at <= ?', Date.parse(@filter_date_to).end_of_day)
+      scope = scope.where('created_at <= ?', Date.parse(@filter_date_to).end_of_day)
     end
 
-    # Month / Year filter
     if @filter_month.present? && @filter_year.present?
-      payout_scope = payout_scope.where(
+      scope = scope.where(
         'EXTRACT(MONTH FROM created_at) = ? AND EXTRACT(YEAR FROM created_at) = ?',
         @filter_month.to_i, @filter_year.to_i
       )
     elsif @filter_year.present?
-      payout_scope = payout_scope.where('EXTRACT(YEAR FROM created_at) = ?', @filter_year.to_i)
+      scope = scope.where('EXTRACT(YEAR FROM created_at) = ?', @filter_year.to_i)
     elsif @filter_month.present?
-      payout_scope = payout_scope.where('EXTRACT(MONTH FROM created_at) = ?', @filter_month.to_i)
+      scope = scope.where('EXTRACT(MONTH FROM created_at) = ?', @filter_month.to_i)
     end
+
+    scope
+  end
+
+  def fetch_policies_with_commission_filtered
+    payout_scope = case @tab
+                   when 'paid'    then base_filtered_payout_scope.where(main_agent_commission_received: true)
+                   when 'pending' then base_filtered_payout_scope.where(main_agent_commission_received: [false, nil])
+                   else                base_filtered_payout_scope
+                   end
 
     @paginated_payouts    = payout_scope.order(created_at: :desc).page(@page).per(@per_page)
     @total_policies_count = @paginated_payouts.total_count
