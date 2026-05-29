@@ -144,6 +144,7 @@ Rails.application.routes.draw do
         get :modern_dashboard
         get :summary
         get :policy_search
+        get :search_customers
         post :manual_transfer
         get :commission_details_modal
       end

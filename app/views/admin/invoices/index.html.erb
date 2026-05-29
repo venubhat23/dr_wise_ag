@@ -177,7 +177,20 @@
                       <i class="bi bi-eye me-1"></i>View
                     <% end %>
 
-
+                    <!-- View Payout -->
+                    <% payout_path = case invoice.payout_type
+                       when 'commission' then admin_payout_path(invoice.payout_id)
+                       when 'affiliate'  then admin_affiliate_payouts_path
+                       when 'distributor', 'ambassador' then admin_distributor_payouts_path
+                       end %>
+                    <% if payout_path %>
+                      <%= link_to payout_path,
+                          class: "btn btn-outline-success btn-sm rounded-pill px-3",
+                          title: "View Payout",
+                          data: { bs_toggle: "tooltip" } do %>
+                        <i class="bi bi-cash-coin me-1"></i>Payout
+                      <% end %>
+                    <% end %>
                   </div>
                 </td>
               </tr>
