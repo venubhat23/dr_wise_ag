@@ -1,3 +1,4 @@
+<% return unless policy.respond_to?(:drwise_policy?) && policy.drwise_policy? %>
 <%
   _main_pct   = (policy.try(:main_agent_commission_percentage) || 0).to_f
   _sub_pct    = (policy.try(:sub_agent_commission_percentage)   || 0).to_f
@@ -8,6 +9,17 @@
   _total_dist = _sub_pct + _amb_pct + _inv_pct
   _profit_pct = _main_pct - _total_dist - _exp_pct
   _profit_amt = _net * _profit_pct / 100.0
+
+  _policy_type = policy.class.name.underscore.gsub('_insurance', '')
+  _ct_url      = admin_commission_tracking_path(policy.id, policy_type: _policy_type)
+
+  _payouts = CommissionPayout.where(policy_type: _policy_type, policy_id: policy.id)
+                             .index_by(&:payout_to)
+  _main_payout = _payouts['main_agent']
+  _aff_payout  = _payouts['affiliate']
+  _amb_payout  = _payouts['ambassador']
+  _inv_payout  = _payouts['investor']
+  _comp_payout = _payouts['company_expense']
 %>
 <!-- Commission Calculation Table for View Pages -->
 <div class="card mb-4 shadow-sm commission-table">
@@ -33,12 +45,13 @@
       <table class="table mb-0" style="font-size: 0.95rem;">
         <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
           <tr>
-            <th class="py-3 px-4 fw-bold text-dark border-0" style="width: 20%;">COMMISSION DETAILS</th>
-            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 12%;">(%)</th>
-            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 18%;">COMMISSION</th>
-            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 12%;">TDS (%)</th>
-            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 15%;">TDS AMOUNT</th>
-            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 23%; background: #f8f9fa;">ACTUAL AMOUNT</th>
+            <th class="py-3 px-4 fw-bold text-dark border-0" style="width: 16%;">COMMISSION DETAILS</th>
+            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 10%;">(%)</th>
+            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 14%;">COMMISSION</th>
+            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 10%;">TDS (%)</th>
+            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 13%;">TDS AMOUNT</th>
+            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 19%; background: #f8f9fa;">ACTUAL AMOUNT</th>
+            <th class="py-3 px-3 fw-bold text-dark border-0 text-center" style="width: 18%; background: #eef2ff;">PAYOUT STATUS</th>
           </tr>
         </thead>
         <tbody>
@@ -70,6 +83,28 @@
                 <%= indian_currency(policy.try(:after_tds_value)) || 'Rs. 0.00' %>
               </div>
             </td>
+            <td class="py-2 px-2 text-center" style="background: #eef2ff;">
+              <% if _main_payout&.status == 'paid' %>
+                <%= link_to admin_payout_path(_main_payout), class: "payout-badge payout-paid" do %>
+                  <i class="bi bi-check-circle-fill me-1"></i>Paid
+                <% end %>
+                <div class="payout-date mt-1"><%= _main_payout.payout_date&.strftime('%d %b %Y') %></div>
+              <% elsif _main_payout %>
+                <span class="payout-badge payout-pending">
+                  <i class="bi bi-clock me-1"></i>Pending
+                </span>
+                <%= link_to _ct_url, class: "btn btn-xs-pay btn-pay mt-1" do %>
+                  <i class="bi bi-credit-card me-1"></i>Pay
+                <% end %>
+              <% else %>
+                <span class="payout-badge payout-none">
+                  <i class="bi bi-dash-circle me-1"></i>No Payout
+                </span>
+                <%= link_to _ct_url, class: "btn btn-xs-pay btn-create mt-1" do %>
+                  <i class="bi bi-plus-circle me-1"></i>Pay
+                <% end %>
+              <% end %>
+            </td>
           </tr>
 
           <!-- Affiliate -->
@@ -99,6 +134,28 @@
               <div class="form-control border-1 text-center fw-bold fs-6" style="background: #e3f2fd; border-color: #2196f3; color: #0d47a1;">
                 <%= indian_currency(policy.try(:sub_agent_after_tds_value)) || 'Rs. 0.00' %>
               </div>
+            </td>
+            <td class="py-2 px-2 text-center" style="background: #eef2ff;">
+              <% if _aff_payout&.status == 'paid' %>
+                <%= link_to admin_payout_path(_aff_payout), class: "payout-badge payout-paid" do %>
+                  <i class="bi bi-check-circle-fill me-1"></i>Paid
+                <% end %>
+                <div class="payout-date mt-1"><%= _aff_payout.payout_date&.strftime('%d %b %Y') %></div>
+              <% elsif _aff_payout %>
+                <span class="payout-badge payout-pending">
+                  <i class="bi bi-clock me-1"></i>Pending
+                </span>
+                <%= link_to admin_affiliate_payouts_path, class: "btn btn-xs-pay btn-pay mt-1" do %>
+                  <i class="bi bi-credit-card me-1"></i>Pay
+                <% end %>
+              <% else %>
+                <span class="payout-badge payout-none">
+                  <i class="bi bi-dash-circle me-1"></i>No Payout
+                </span>
+                <%= link_to admin_affiliate_payouts_path, class: "btn btn-xs-pay btn-create mt-1" do %>
+                  <i class="bi bi-plus-circle me-1"></i>Pay
+                <% end %>
+              <% end %>
             </td>
           </tr>
 
@@ -130,6 +187,28 @@
                 <%= indian_currency(policy.try(:ambassador_after_tds_value) || policy.try(:ambassador_commission_amount)) || 'Rs. 0.00' %>
               </div>
             </td>
+            <td class="py-2 px-2 text-center" style="background: #eef2ff;">
+              <% if _amb_payout&.status == 'paid' %>
+                <%= link_to admin_payout_path(_amb_payout), class: "payout-badge payout-paid" do %>
+                  <i class="bi bi-check-circle-fill me-1"></i>Paid
+                <% end %>
+                <div class="payout-date mt-1"><%= _amb_payout.payout_date&.strftime('%d %b %Y') %></div>
+              <% elsif _amb_payout %>
+                <span class="payout-badge payout-pending">
+                  <i class="bi bi-clock me-1"></i>Pending
+                </span>
+                <%= link_to admin_distributor_payouts_path, class: "btn btn-xs-pay btn-pay mt-1" do %>
+                  <i class="bi bi-credit-card me-1"></i>Pay
+                <% end %>
+              <% else %>
+                <span class="payout-badge payout-none">
+                  <i class="bi bi-dash-circle me-1"></i>No Payout
+                </span>
+                <%= link_to admin_distributor_payouts_path, class: "btn btn-xs-pay btn-create mt-1" do %>
+                  <i class="bi bi-plus-circle me-1"></i>Pay
+                <% end %>
+              <% end %>
+            </td>
           </tr>
 
           <!-- Investor -->
@@ -159,6 +238,28 @@
               <div class="form-control border-1 text-center fw-bold fs-6" style="background: #e8f5e8; border-color: #4caf50; color: #2e7d32;">
                 <%= indian_currency(policy.try(:investor_after_tds_value) || policy.try(:investor_commission_amount)) || 'Rs. 0.00' %>
               </div>
+            </td>
+            <td class="py-2 px-2 text-center" style="background: #eef2ff;">
+              <% if _inv_payout&.status == 'paid' %>
+                <%= link_to admin_payout_path(_inv_payout), class: "payout-badge payout-paid" do %>
+                  <i class="bi bi-check-circle-fill me-1"></i>Paid
+                <% end %>
+                <div class="payout-date mt-1"><%= _inv_payout.payout_date&.strftime('%d %b %Y') %></div>
+              <% elsif _inv_payout %>
+                <span class="payout-badge payout-pending">
+                  <i class="bi bi-clock me-1"></i>Pending
+                </span>
+                <%= link_to _ct_url, class: "btn btn-xs-pay btn-pay mt-1" do %>
+                  <i class="bi bi-credit-card me-1"></i>Pay
+                <% end %>
+              <% else %>
+                <span class="payout-badge payout-none">
+                  <i class="bi bi-dash-circle me-1"></i>No Payout
+                </span>
+                <%= link_to _ct_url, class: "btn btn-xs-pay btn-create mt-1" do %>
+                  <i class="bi bi-plus-circle me-1"></i>Pay
+                <% end %>
+              <% end %>
             </td>
           </tr>
 
@@ -190,6 +291,28 @@
                 <%= indian_currency(policy.try(:company_expenses_amount)) || 'Rs. 0.00' %>
               </div>
             </td>
+            <td class="py-2 px-2 text-center" style="background: #eef2ff;">
+              <% if _comp_payout&.status == 'paid' %>
+                <%= link_to admin_payout_path(_comp_payout), class: "payout-badge payout-paid" do %>
+                  <i class="bi bi-check-circle-fill me-1"></i>Paid
+                <% end %>
+                <div class="payout-date mt-1"><%= _comp_payout.payout_date&.strftime('%d %b %Y') %></div>
+              <% elsif _comp_payout %>
+                <span class="payout-badge payout-pending">
+                  <i class="bi bi-clock me-1"></i>Pending
+                </span>
+                <%= link_to _ct_url, class: "btn btn-xs-pay btn-pay mt-1" do %>
+                  <i class="bi bi-credit-card me-1"></i>Pay
+                <% end %>
+              <% else %>
+                <span class="payout-badge payout-none">
+                  <i class="bi bi-dash-circle me-1"></i>No Payout
+                </span>
+                <%= link_to _ct_url, class: "btn btn-xs-pay btn-create mt-1" do %>
+                  <i class="bi bi-plus-circle me-1"></i>Pay
+                <% end %>
+              <% end %>
+            </td>
           </tr>
 
           <!-- Profit -->
@@ -219,6 +342,9 @@
               <div class="form-control border-1 text-center fw-bold fs-6" style="background: #fff9c4; border-color: #ffc107; color: #856404;">
                 <%= indian_currency(_profit_amt) %>
               </div>
+            </td>
+            <td class="py-2 px-2 text-center" style="background: #fffbf0;">
+              <span class="text-muted" style="font-size: 0.78rem;">—</span>
             </td>
           </tr>
         </tbody>
@@ -273,42 +399,93 @@
     padding: 8px 12px;
     border-radius: 6px;
     transition: all 0.2s ease;
-  }
-  .commission-table .form-control:read-only {
-    background-color: #f8f9fa !important;
-    color: #6c757d !important;
-  }
-  .commission-table tr:hover {
-    background-color: rgba(102, 126, 234, 0.03);
-  }
-  .net-premium-display {
-    background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
-    border: 2px solid #e9ecef;
-    border-radius: 8px;
-    font-weight: bold;
-    color: #495057;
-  }
-
-  /* Remove borders from form-control divs to make them look like display elements */
-  .commission-table .form-control {
     border: none !important;
     box-shadow: none !important;
-    padding: 8px 12px;
     margin: 0;
-    font-size: 0.9rem;
     font-weight: 500;
     text-align: center;
-    border-radius: 4px;
   }
-
   .commission-table .form-control:focus {
     outline: none !important;
     box-shadow: none !important;
   }
-
-  /* Make profit row more prominent */
+  .commission-table tr:hover {
+    background-color: rgba(102, 126, 234, 0.03);
+  }
   .commission-table tr:last-child .form-control {
     font-weight: 600 !important;
     font-size: 0.95rem !important;
+  }
+
+  /* Payout status badges */
+  .payout-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .payout-paid {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .payout-paid:hover {
+    background: #c3e6cb;
+    color: #0d3d1e;
+    text-decoration: none;
+  }
+  .payout-pending {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+  }
+  .payout-none {
+    background: #e9ecef;
+    color: #6c757d;
+    border: 1px solid #ced4da;
+  }
+  .payout-date {
+    font-size: 0.7rem;
+    color: #6c757d;
+  }
+
+  /* Pay / Create buttons */
+  .btn-xs-pay {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn-pay {
+    background: #17a2b8;
+    color: #fff;
+    border: 1px solid #138496;
+    transition: background 0.15s ease;
+  }
+  .btn-pay:hover {
+    background: #138496;
+    color: #fff;
+    text-decoration: none;
+  }
+  .btn-create {
+    background: #fff;
+    color: #6c757d;
+    border: 1px solid #adb5bd;
+    transition: background 0.15s ease;
+  }
+  .btn-create:hover {
+    background: #6c757d;
+    color: #fff;
+    text-decoration: none;
   }
 </style>
