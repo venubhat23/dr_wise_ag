@@ -1098,19 +1098,25 @@ class DashboardController < ApplicationController
 
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE policy_end_date BETWEEN '#{forty_five_days_ago}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
+        SELECT id FROM health_insurances WHERE policy_end_date >= '#{forty_five_days_ago}' AND policy_end_date < '#{current_date}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE policy_end_date BETWEEN '#{forty_five_days_ago}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
+        SELECT id FROM life_insurances WHERE policy_end_date >= '#{forty_five_days_ago}' AND policy_end_date < '#{current_date}'
       ) as recently_expired
     "
 
     result = ActiveRecord::Base.connection.execute(sql)
     count = result.first['count'].to_i
 
-    # Add motor and other insurances if they exist
     begin
       if ActiveRecord::Base.connection.table_exists?('motor_insurances')
-        count += MotorInsurance.where(policy_end_date: forty_five_days_ago..current_date).where('policy_end_date < ?', current_date).count
+        count += MotorInsurance.where(policy_end_date: forty_five_days_ago...current_date).count
+      end
+    rescue
+    end
+
+    begin
+      if ActiveRecord::Base.connection.table_exists?('other_insurances')
+        count += OtherInsurance.where(policy_end_date: forty_five_days_ago...current_date).count
       end
     rescue
     end
