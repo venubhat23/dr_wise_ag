@@ -98,7 +98,7 @@
         <div class="btn-group">
           <% current_page = @page.to_i %>
           <% if @has_prev_page %>
-            <%= link_to "Previous", admin_commission_tracking_index_path(page: current_page - 1),
+            <%= link_to "Previous", admin_commission_tracking_index_path(page: current_page - 1, tab: @tab),
                 class: "btn btn-sm btn-outline-primary" %>
           <% else %>
             <span class="btn btn-sm btn-outline-primary disabled">Previous</span>
@@ -107,7 +107,7 @@
           <span class="btn btn-sm btn-primary"><%= current_page %></span>
 
           <% if @has_next_page %>
-            <%= link_to "Next", admin_commission_tracking_index_path(page: current_page + 1),
+            <%= link_to "Next", admin_commission_tracking_index_path(page: current_page + 1, tab: @tab),
                 class: "btn btn-sm btn-outline-primary" %>
           <% else %>
             <span class="btn btn-sm btn-outline-primary disabled">Next</span>
@@ -246,10 +246,44 @@ body.modal-open {
 }
 </style>
 
+<!-- Status Tabs -->
+<ul class="nav nav-tabs mb-0" id="policyTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <%= link_to admin_commission_tracking_index_path(tab: 'all', page: 1),
+        class: "nav-link #{'active' if @tab == 'all'}" do %>
+      All Policies
+      <span class="badge rounded-pill ms-1 <%= @tab == 'all' ? 'bg-primary' : 'bg-secondary' %>">
+        <%= number_with_delimiter(@all_count) %>
+      </span>
+    <% end %>
+  </li>
+  <li class="nav-item" role="presentation">
+    <%= link_to admin_commission_tracking_index_path(tab: 'paid', page: 1),
+        class: "nav-link #{'active' if @tab == 'paid'}" do %>
+      Paid
+      <span class="badge rounded-pill ms-1 <%= @tab == 'paid' ? 'bg-success' : 'bg-secondary' %>">
+        <%= number_with_delimiter(@paid_count) %>
+      </span>
+    <% end %>
+  </li>
+  <li class="nav-item" role="presentation">
+    <%= link_to admin_commission_tracking_index_path(tab: 'pending', page: 1),
+        class: "nav-link #{'active' if @tab == 'pending'}" do %>
+      Pending
+      <span class="badge rounded-pill ms-1 <%= @tab == 'pending' ? 'bg-warning text-dark' : 'bg-secondary' %>">
+        <%= number_with_delimiter(@pending_count) %>
+      </span>
+    <% end %>
+  </li>
+</ul>
+
 <!-- Policies with Commission Table -->
-<div class="card border-0 shadow-sm">
+<div class="card border-0 shadow-sm" style="border-top-left-radius: 0;">
   <div class="card-header bg-transparent border-0">
-    <h5 class="mb-0">Total Policies (<%= @policies_with_commission.count %>)</h5>
+    <h5 class="mb-0">
+      <%= @tab == 'paid' ? 'Paid' : @tab == 'pending' ? 'Pending' : 'All' %> Policies
+      (<%= @policies_with_commission.count %>)
+    </h5>
   </div>
   <div class="card-body p-0">
 
@@ -432,7 +466,7 @@ body.modal-open {
             <!-- Previous Button -->
             <li class="page-item <%= 'disabled' unless @has_prev_page %>">
               <% if @has_prev_page %>
-                <%= link_to "Previous", admin_commission_tracking_index_path(page: current_page - 1),
+                <%= link_to "Previous", admin_commission_tracking_index_path(page: current_page - 1, tab: @tab),
                     class: "page-link" %>
               <% else %>
                 <span class="page-link">Previous</span>
@@ -445,7 +479,7 @@ body.modal-open {
 
             <% if start_page > 1 %>
               <li class="page-item">
-                <%= link_to "1", admin_commission_tracking_index_path(page: 1), class: "page-link" %>
+                <%= link_to "1", admin_commission_tracking_index_path(page: 1, tab: @tab), class: "page-link" %>
               </li>
               <% if start_page > 2 %>
                 <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -454,7 +488,7 @@ body.modal-open {
 
             <% (start_page..end_page).each do |page_num| %>
               <li class="page-item <%= 'active' if page_num == current_page %>">
-                <%= link_to page_num, admin_commission_tracking_index_path(page: page_num),
+                <%= link_to page_num, admin_commission_tracking_index_path(page: page_num, tab: @tab),
                     class: "page-link" %>
               </li>
             <% end %>
@@ -464,14 +498,14 @@ body.modal-open {
                 <li class="page-item disabled"><span class="page-link">...</span></li>
               <% end %>
               <li class="page-item">
-                <%= link_to total_pages, admin_commission_tracking_index_path(page: total_pages), class: "page-link" %>
+                <%= link_to total_pages, admin_commission_tracking_index_path(page: total_pages, tab: @tab), class: "page-link" %>
               </li>
             <% end %>
 
             <!-- Next Button -->
             <li class="page-item <%= 'disabled' unless @has_next_page %>">
               <% if @has_next_page %>
-                <%= link_to "Next", admin_commission_tracking_index_path(page: current_page + 1),
+                <%= link_to "Next", admin_commission_tracking_index_path(page: current_page + 1, tab: @tab),
                     class: "page-link" %>
               <% else %>
                 <span class="page-link">Next</span>

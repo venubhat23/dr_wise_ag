@@ -13,8 +13,13 @@ class Admin::CommissionTrackingController < ApplicationController
   def index
     @page = params[:page] || 1
     @per_page = 10
+    @tab = params[:tab] || 'all'
 
     begin
+      @all_count     = Payout.count
+      @paid_count    = Payout.where(main_agent_commission_received: true).count
+      @pending_count = Payout.where(main_agent_commission_received: [false, nil]).count
+
       @policies_with_commission = fetch_policies_with_commission_optimized(@page, @per_page)
       # @total_policies_count, @total_pages, @has_next_page, @has_prev_page are set by the fetch method
 
@@ -29,6 +34,10 @@ class Admin::CommissionTrackingController < ApplicationController
       # Emergency fallback with static data
       @page = 1
       @per_page = 10
+      @tab = 'all'
+      @all_count     = 0
+      @paid_count    = 0
+      @pending_count = 0
       @total_policies_count = 20
       @total_pages = 2
       @has_next_page = false
@@ -544,10 +553,16 @@ class Admin::CommissionTrackingController < ApplicationController
 
     all_policies = []
 
+    payout_scope = case @tab
+                   when 'paid'    then Payout.where(main_agent_commission_received: true)
+                   when 'pending' then Payout.where(main_agent_commission_received: [false, nil])
+                   else                Payout.all
+                   end
+
     # Use database-level pagination for better performance
     offset = (page - 1) * per_page
-    payouts = Payout.order(created_at: :desc).limit(per_page).offset(offset)
-    @total_policies_count = Payout.count
+    payouts = payout_scope.order(created_at: :desc).limit(per_page).offset(offset)
+    @total_policies_count = payout_scope.count
     @total_pages = (@total_policies_count.to_f / per_page).ceil
     @has_next_page = page < @total_pages
     @has_prev_page = page > 1
