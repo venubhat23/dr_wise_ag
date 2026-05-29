@@ -175,23 +175,21 @@ body.modal-open { overflow:visible !important; padding-right:0 !important; }
 <div class="ct-filter-card p-3 mb-3">
   <%= form_with url: admin_commission_tracking_index_path, method: :get, local: true, id: "filterForm" do %>
     <input type="hidden" name="tab"       value="<%= @tab %>">
-    <input type="hidden" name="month"     id="hiddenMonth"    value="<%= @filter_month %>">
-    <input type="hidden" name="year"      id="hiddenYear"     value="<%= @filter_year %>">
-    <input type="hidden" name="date_from" id="hiddenDateFrom" value="<%= @filter_date_from %>">
-    <input type="hidden" name="date_to"   id="hiddenDateTo"   value="<%= @filter_date_to %>">
+    <input type="hidden" name="month" id="hiddenMonth" value="<%= @filter_month %>">
+    <input type="hidden" name="year"  id="hiddenYear"  value="<%= @filter_year %>">
 
     <div class="row g-2 align-items-end">
-      <div class="col-lg-4 col-md-6">
+      <div class="col-lg-3 col-md-6">
         <label class="filter-label"><i class="bi bi-person-circle me-1"></i>Customer</label>
-        <select name="customer_id" class="filter-select">
-          <option value="">All Customers</option>
+        <select id="customerSelect" name="customer_id" style="width:100%">
+          <option value=""></option>
           <% @customers_for_filter.each do |c| %>
             <option value="<%= c.id %>" <%= 'selected' if @filter_customer_id.to_s == c.id.to_s %>><%= c.display_name %></option>
           <% end %>
         </select>
       </div>
 
-      <div class="col-lg-4 col-md-6">
+      <div class="col-lg-3 col-md-6">
         <label class="filter-label"><i class="bi bi-calendar3 me-1"></i>Period</label>
         <select class="filter-select" id="periodSelect">
           <option value="">— All Time —</option>
@@ -222,7 +220,21 @@ body.modal-open { overflow:visible !important; padding-right:0 !important; }
         </select>
       </div>
 
-      <div class="col-lg-4 col-md-12">
+      <div class="col-lg-2 col-md-6">
+        <label class="filter-label"><i class="bi bi-calendar-event me-1"></i>From</label>
+        <input type="date" id="dateFromInput" name="date_from" class="filter-select"
+               value="<%= @filter_date_from %>" placeholder="From date"
+               style="padding: 0 10px; cursor:pointer;">
+      </div>
+
+      <div class="col-lg-2 col-md-6">
+        <label class="filter-label"><i class="bi bi-calendar-event me-1"></i>To</label>
+        <input type="date" id="dateToInput" name="date_to" class="filter-select"
+               value="<%= @filter_date_to %>" placeholder="To date"
+               style="padding: 0 10px; cursor:pointer;">
+      </div>
+
+      <div class="col-lg-2 col-md-12">
         <div class="d-flex gap-2 align-items-center flex-wrap">
           <button type="submit" class="btn-filter-apply">
             <i class="bi bi-funnel-fill me-1"></i>Apply
@@ -230,8 +242,8 @@ body.modal-open { overflow:visible !important; padding-right:0 !important; }
           <%= link_to admin_commission_tracking_index_path(tab: @tab), class: "btn-filter-clear" do %>
             <i class="bi bi-x-lg"></i> Clear
           <% end %>
-          <span class="ms-auto text-muted fw-semibold" style="font-size:12px;">
-            <i class="bi bi-list-ul me-1"></i><%= number_with_delimiter(@policies_with_commission.count) %> records
+          <span class="w-100 text-muted fw-semibold mt-1" style="font-size:12px;">
+            <i class="bi bi-list-ul me-1"></i><%= number_with_delimiter(@total_policies_count.to_i) %> records
           </span>
         </div>
       </div>
@@ -402,6 +414,26 @@ body.modal-open { overflow:visible !important; padding-right:0 !important; }
         </tbody>
       </table>
     </div>
+
+    <!-- Pagination -->
+    <% if @paginated_payouts&.respond_to?(:current_page) %>
+      <div class="card-footer bg-transparent border-0">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-3">
+            <% if @paginated_payouts.respond_to?(:total_count) %>
+              <small class="text-muted">
+                Showing <strong><%= @paginated_payouts.offset_value + 1 %></strong>–<strong><%= [@paginated_payouts.offset_value + @paginated_payouts.limit_value, @paginated_payouts.total_count].min %></strong> of <strong><%= number_with_delimiter(@paginated_payouts.total_count) %></strong>
+              </small>
+            <% end %>
+            <%= render 'shared/per_page_selector' %>
+          </div>
+          <% if @paginated_payouts.respond_to?(:total_pages) && @paginated_payouts.total_pages > 1 %>
+            <%= paginate @paginated_payouts %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
   <% else %>
     <div class="text-center py-5">
       <i class="bi bi-wallet fs-1 text-muted d-block mb-3"></i>
@@ -473,8 +505,8 @@ function currentQ() { return Math.ceil(CURR_MONTH / 3); }
 function applyPeriod(val) {
   const mEl = document.getElementById('hiddenMonth');
   const yEl = document.getElementById('hiddenYear');
-  const fEl = document.getElementById('hiddenDateFrom');
-  const tEl = document.getElementById('hiddenDateTo');
+  const fEl = document.getElementById('dateFromInput');
+  const tEl = document.getElementById('dateToInput');
   mEl.value = yEl.value = fEl.value = tEl.value = '';
 
   if (!val) return;
@@ -506,6 +538,19 @@ function applyPeriod(val) {
   }
   if (val.startsWith('year:')) { yEl.value = val.split(':')[1]; return; }
 }
+
+// Clear Period preset when user manually picks dates
+document.addEventListener('DOMContentLoaded', function() {
+  ['dateFromInput', 'dateToInput'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', function() {
+      const ps = document.getElementById('periodSelect');
+      if (ps) ps.value = '';
+      document.getElementById('hiddenMonth').value = '';
+      document.getElementById('hiddenYear').value = '';
+    });
+  });
+});
 
 function detectCurrentPeriod() {
   const month = '<%= @filter_month %>',
@@ -613,5 +658,62 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
   if (window.paymentProgressInterval) clearInterval(window.paymentProgressInterval);
+});
+</script>
+
+<!-- jQuery + Select2 (Bootstrap-5 theme) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<style>
+  .select2-container--bootstrap-5 .select2-selection--single {
+    height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+  }
+  .select2-container--bootstrap-5 .select2-selection__rendered {
+    color: #495057;
+    padding-left: 12px;
+    line-height: 36px;
+  }
+  .select2-dropdown { border: 1px solid #ced4da; border-radius: 0.375rem; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+  .select2-results__options { max-height: 300px !important; overflow-y: auto; }
+  .select2-search__field { border: 1px solid #ced4da !important; border-radius: 0.25rem !important; padding: 6px 10px !important; width: 100% !important; }
+  .ct-client-opt { display:flex; align-items:center; gap:10px; padding:4px 0; }
+  .ct-client-avatar { width:32px; height:32px; border-radius:50%; background:#667eea; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .ct-client-name { font-size:13.5px; font-weight:500; color:#1e293b; }
+  .ct-client-id { font-size:11px; color:#94a3b8; }
+</style>
+
+<script>
+$(function() {
+  $('#customerSelect').select2({
+    theme: 'bootstrap-5',
+    placeholder: 'Search and select customer...',
+    allowClear: true,
+    width: '100%',
+    dropdownParent: $('body'),
+    minimumResultsForSearch: 0,
+    closeOnSelect: true,
+    templateResult: function(option) {
+      if (!option.id) return option.text;
+      var initials = option.text.trim().split(/\s+/).map(function(w){ return w.charAt(0).toUpperCase(); }).join('').substring(0,2);
+      return $(
+        '<div class="ct-client-opt">' +
+          '<div class="ct-client-avatar">' + initials + '</div>' +
+          '<div>' +
+            '<div class="ct-client-name">' + option.text + '</div>' +
+            '<div class="ct-client-id">ID #' + option.id + '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    },
+    templateSelection: function(option) {
+      return option.text || 'Search and select customer...';
+    },
+    escapeMarkup: function(m) { return m; }
+  });
 });
 </script>

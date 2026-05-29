@@ -48,9 +48,7 @@ class Admin::CommissionTrackingController < ApplicationController
       @paid_count           = 0
       @pending_count        = 0
       @total_policies_count = 0
-      @total_pages          = 1
-      @has_prev_page        = false
-      @has_next_page        = false
+      @paginated_payouts    = nil
       @total_commission_generated = calculate_total_commission_generated
       @total_transferred = calculate_total_transferred
       @pending_transfers = calculate_pending_transfers
@@ -617,17 +615,10 @@ class Admin::CommissionTrackingController < ApplicationController
       payout_scope = payout_scope.where('EXTRACT(MONTH FROM created_at) = ?', @filter_month.to_i)
     end
 
-    @total_policies_count = payout_scope.count
-    @total_pages          = [(@total_policies_count.to_f / @per_page).ceil, 1].max
-    @page                 = [[@page, 1].max, @total_pages].min
-    @has_prev_page        = @page > 1
-    @has_next_page        = @page < @total_pages
+    @paginated_payouts    = payout_scope.order(created_at: :desc).page(@page).per(@per_page)
+    @total_policies_count = @paginated_payouts.total_count
 
-    payouts = payout_scope.order(created_at: :desc)
-                          .limit(@per_page)
-                          .offset((@page - 1) * @per_page)
-
-    build_policies_from_payouts(payouts)
+    build_policies_from_payouts(@paginated_payouts)
   end
 
   def fetch_policies_with_commission_optimized(page = 1, per_page = 10)
