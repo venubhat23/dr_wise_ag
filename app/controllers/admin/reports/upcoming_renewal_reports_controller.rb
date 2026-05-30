@@ -180,64 +180,78 @@ class Admin::Reports::UpcomingRenewalReportsController < Admin::Reports::BaseCon
   end
 
   def build_policy_query(filters)
-    # Default date range for upcoming renewals (today to next 45 days)
     start_date = filters[:start_date] || Date.current
     end_date = filters[:end_date] || 45.days.from_now.to_date
 
-    # Start with base query depending on policy type filter
     if filters[:policy_type].present?
       case filters[:policy_type]
       when 'health'
         policies = HealthInsurance.includes(:customer, :sub_agent)
+                                  .where('policy_end_date BETWEEN ? AND ?', start_date, end_date)
+        if filters[:status].present?
+          case filters[:status]
+          when 'due_soon'      then policies = policies.where('policy_end_date BETWEEN ? AND ?', Date.current, 7.days.from_now)
+          when 'due_this_month' then policies = policies.where('policy_end_date BETWEEN ? AND ?', Date.current, Date.current.end_of_month)
+          when 'due_next_month' then policies = policies.where('policy_end_date BETWEEN ? AND ?', Date.current.next_month.beginning_of_month, Date.current.next_month.end_of_month)
+          end
+        end
+        return policies
       when 'motor'
         policies = MotorInsurance.includes(:customer, :sub_agent)
+                                 .where('policy_end_date BETWEEN ? AND ?', start_date, end_date)
+        if filters[:status].present?
+          case filters[:status]
+          when 'due_soon'      then policies = policies.where('policy_end_date BETWEEN ? AND ?', Date.current, 7.days.from_now)
+          when 'due_this_month' then policies = policies.where('policy_end_date BETWEEN ? AND ?', Date.current, Date.current.end_of_month)
+          when 'due_next_month' then policies = policies.where('policy_end_date BETWEEN ? AND ?', Date.current.next_month.beginning_of_month, Date.current.next_month.end_of_month)
+          end
+        end
+        return policies
       when 'life'
-        policies = LifeInsurance.includes(:customer, :sub_agent) if defined?(LifeInsurance)
-      end
-    else
-      # Combine all policy types
-      health_policies = HealthInsurance.includes(:customer, :sub_agent)
-      motor_policies = MotorInsurance.includes(:customer, :sub_agent)
-
-      # Apply date filters for upcoming renewals
-      health_policies = health_policies.where('policy_end_date BETWEEN ? AND ?', start_date, end_date)
-      motor_policies = motor_policies.where('policy_end_date BETWEEN ? AND ?', start_date, end_date)
-
-      # Combine and return results
-      policies = []
-      policies += health_policies.to_a
-      policies += motor_policies.to_a
-
-      return policies
-    end
-
-    # Apply date filters for upcoming renewals
-    policies = policies.where('policy_end_date BETWEEN ? AND ?', start_date, end_date)
-
-    # Apply status filter if needed
-    if filters[:status].present?
-      case filters[:status]
-      when 'due_soon'
-        policies = policies.where('policy_end_date BETWEEN ? AND ?', Date.current, 7.days.from_now)
-      when 'due_this_month'
-        policies = policies.where('policy_end_date BETWEEN ? AND ?', Date.current, Date.current.end_of_month)
-      when 'due_next_month'
-        policies = policies.where('policy_end_date BETWEEN ? AND ?', Date.current.next_month.beginning_of_month, Date.current.next_month.end_of_month)
+        # Life insurance renewal = next premium due date (policy_end_date is 10-20 years away)
+        return life_policies_due_in_range(start_date, end_date)
       end
     end
 
+    # All types combined
+    health_policies = HealthInsurance.includes(:customer, :sub_agent)
+                                     .where('policy_end_date BETWEEN ? AND ?', start_date, end_date)
+    motor_policies  = MotorInsurance.includes(:customer, :sub_agent)
+                                    .where('policy_end_date BETWEEN ? AND ?', start_date, end_date)
+
+    policies = health_policies.to_a + motor_policies.to_a
+    policies += life_policies_due_in_range(start_date, end_date)
     policies
+  end
+
+  # Returns life insurance policies whose next premium payment falls within [start_date, end_date].
+  # Uses payment cycle from policy_start_date rather than policy_end_date.
+  def life_policies_due_in_range(start_date, end_date)
+    LifeInsurance.includes(:customer, :sub_agent)
+                 .where('policy_end_date >= ?', Date.current)
+                 .select do |p|
+                   due = next_life_premium_due(p)
+                   due.present? && due.between?(start_date, end_date)
+                 end
   end
 
   def build_policy_preview_data(policy)
     policy_type = policy.class.name.underscore.gsub('_insurance', '')
-    days_until_renewal = policy.policy_end_date ? (policy.policy_end_date - Date.current).to_i : 0
 
-    status = if policy.policy_end_date <= 7.days.from_now
+    # For life insurance use next premium due date; for others use policy_end_date
+    effective_renewal_date = if policy_type == 'life'
+                               next_life_premium_due(policy) || policy.policy_end_date
+                             else
+                               policy.policy_end_date
+                             end
+
+    days_until_renewal = effective_renewal_date ? (effective_renewal_date - Date.current).to_i : 0
+
+    status = if effective_renewal_date <= 7.days.from_now
                'Due Soon'
-             elsif policy.policy_end_date <= Date.current.end_of_month
+             elsif effective_renewal_date <= Date.current.end_of_month
                'Due This Month'
-             elsif policy.policy_end_date <= Date.current.next_month.end_of_month
+             elsif effective_renewal_date <= Date.current.next_month.end_of_month
                'Due Next Month'
              else
                'Future Renewal'
@@ -252,7 +266,7 @@ class Admin::Reports::UpcomingRenewalReportsController < Admin::Reports::BaseCon
       customer_mobile: policy.customer&.mobile,
       insurance_company: policy.insurance_company_name || 'N/A',
       policy_start_date: policy.policy_start_date,
-      policy_end_date: policy.policy_end_date,
+      policy_end_date: effective_renewal_date,
       days_until_renewal: days_until_renewal,
       premium_amount: policy.total_premium || 0,
       sum_insured: policy.try(:sum_insured) || policy.try(:total_idv) || 0,
@@ -363,5 +377,33 @@ class Admin::Reports::UpcomingRenewalReportsController < Admin::Reports::BaseCon
         ]
       end
     end
+  end
+
+  # Returns the next future premium due date for a life insurance policy
+  # by advancing from policy_start_date in payment_mode intervals.
+  def next_life_premium_due(policy)
+    return nil if policy.policy_start_date.blank? || policy.payment_mode.blank?
+    calculate_next_premium_due(policy.policy_start_date, policy.payment_mode)
+  end
+
+  def calculate_next_premium_due(start_date, payment_mode)
+    return nil if start_date.nil? || payment_mode.nil?
+    return nil if ['single', 'one time', 'lump sum'].include?(payment_mode.to_s.downcase)
+
+    interval = case payment_mode.to_s.downcase
+               when 'monthly'                    then 1.month
+               when 'quarterly'                  then 3.months
+               when 'half-yearly', 'half yearly' then 6.months
+               when 'yearly'                     then 1.year
+               else return nil
+               end
+
+    due = start_date
+    safety = 0
+    while due <= Date.current && safety < 300
+      due += interval
+      safety += 1
+    end
+    due
   end
 end

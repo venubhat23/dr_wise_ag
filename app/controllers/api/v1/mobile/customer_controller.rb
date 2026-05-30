@@ -512,34 +512,27 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
       }
     end
 
-    # Life Insurance renewals - show only policies with renewals within next 2 months
-    life_policies = LifeInsurance.where(customer_id: customer_id)
-                                .where('policy_end_date BETWEEN ? AND ?', Date.current, 2.months.from_now)
-                                .where.not(policy_end_date: nil)
+    # Life Insurance renewals — use next premium due date (not policy_end_date which is 10–20 years away)
+    LifeInsurance.where(customer_id: customer_id)
+                 .where('policy_end_date >= ?', Date.current)
+                 .where.not(policy_end_date: nil)
+                 .each do |policy|
+      next_due = next_premium_due_from_start(policy)
+      next unless next_due.present? && next_due <= 2.months.from_now.to_date
 
-    life_policies.each do |policy|
-      days_since_end = (Date.current - policy.policy_end_date).to_i
+      days_until_renewal = (next_due - Date.current).to_i
 
-      # Determine renewal status based on whether policy is expired or expiring
-      renewal_status = if policy.policy_end_date < Date.current
-                        # Policy is expired - need to renew soon
-                        'overdue'
-                      else
-                        # Policy is still active - categorize by time until expiry
-                        days_until_expiry = (policy.policy_end_date - Date.current).to_i
-                        if days_until_expiry <= 7
-                          'urgent' # Renewal in 7 days
-                        elsif days_until_expiry <= 30
-                          'due_soon' # Renewal in 30 days
-                        elsif days_until_expiry <= 60
-                          'approaching'
-                        else
-                          'upcoming'
-                        end
-                      end
-
-      # Calculate days until renewal (negative for overdue)
-      days_until_renewal = (policy.policy_end_date - Date.current).to_i
+      renewal_status = if days_until_renewal < 0
+                         'overdue'
+                       elsif days_until_renewal <= 7
+                         'urgent'
+                       elsif days_until_renewal <= 30
+                         'due_soon'
+                       elsif days_until_renewal <= 60
+                         'approaching'
+                       else
+                         'upcoming'
+                       end
 
       renewals << {
         id: policy.id,
@@ -549,7 +542,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         policy_holder: policy.policy_holder,
         start_date: policy.policy_start_date,
         end_date: policy.policy_end_date,
-        renewal_date: policy.policy_end_date + 1.day,
+        renewal_date: next_due,
         total_premium: format_indian_amount(policy.total_premium),
         total_premium_raw: policy.total_premium.to_f,
         sum_insured: format_indian_amount(policy.sum_insured),
@@ -558,8 +551,8 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
         premium_payment_term: policy.premium_payment_term,
         days_until_renewal: days_until_renewal,
         renewal_status: renewal_status,
-        is_expired: policy.policy_end_date < Date.current,
-        days_since_expiry: policy.policy_end_date < Date.current ? days_since_end : nil,
+        is_expired: false,
+        days_since_expiry: nil,
         insurance_company: policy.insurance_company_name,
         document: policy.main_policy_document_key.present? ? policy.main_policy_r2_document_url : nil,
         documents: build_documents_list(policy, :life),
@@ -1164,11 +1157,11 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
                                     .where.not(policy_end_date: nil)
     count += health_policies.count
 
-    # Life insurance renewals within 2 months
+    # Life insurance renewals within 2 months — based on next premium due, not policy_end_date
     life_policies = LifeInsurance.where(customer_id: customer.id)
-                                .where('policy_end_date BETWEEN ? AND ?', Date.current, 2.months.from_now)
-                                .where.not(policy_end_date: nil)
-    count += life_policies.count
+                                 .where('policy_end_date >= ?', Date.current)
+                                 .where.not(policy_end_date: nil)
+    count += life_policies.count { |p| (next_premium_due_from_start(p) || p.policy_end_date)&.between?(Date.current, 2.months.from_now.to_date) }
 
     # Motor insurance renewals within 2 months
     begin
@@ -1223,6 +1216,22 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     else
       nil
     end
+  end
+
+  # Advances from policy_start_date in payment_mode intervals until a future date is found.
+  # Used for life insurance where policy_end_date is 10–20 years away but premiums are due periodically.
+  def next_premium_due_from_start(policy)
+    return nil if policy.policy_start_date.blank? || policy.payment_mode.blank?
+    return nil if ['single', 'one time', 'lump sum'].include?(policy.payment_mode.to_s.downcase)
+
+    due = policy.policy_start_date
+    safety = 0
+    while due <= Date.current && safety < 300
+      due = calculate_next_installment_date(due, policy.payment_mode)
+      break if due.nil?
+      safety += 1
+    end
+    due
   end
 
   def calculate_installment_amount(total_premium, payment_mode)
