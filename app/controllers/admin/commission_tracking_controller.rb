@@ -703,11 +703,13 @@ class Admin::CommissionTrackingController < ApplicationController
     all_policies
   end
 
+  PAYABLE_PAYOUT_TYPES = %w[main_agent affiliate ambassador].freeze
+
   def get_transfer_status_optimized(policy, type, all_payouts)
     policy_key = "#{type}_#{policy.id}"
-    existing_payouts = all_payouts[policy_key] || []
+    existing_payouts = (all_payouts[policy_key] || []).select { |p| PAYABLE_PAYOUT_TYPES.include?(p.payout_to) }
 
-    paid_payouts = existing_payouts.select { |p| p.status == 'paid' }
+    paid_payouts    = existing_payouts.select { |p| p.status == 'paid' }
     pending_payouts = existing_payouts.select { |p| p.status == 'pending' }
 
     {
@@ -722,7 +724,8 @@ class Admin::CommissionTrackingController < ApplicationController
   def get_transfer_status(policy, type)
     existing_payouts = CommissionPayout.where(
       policy_type: type,
-      policy_id: policy.id
+      policy_id: policy.id,
+      payout_to: PAYABLE_PAYOUT_TYPES
     )
 
     {
@@ -1013,7 +1016,8 @@ class Admin::CommissionTrackingController < ApplicationController
   end
 
   def get_transfer_status_from_payout(payout)
-    commission_payouts = payout.commission_payouts || []
+    payable_types = %w[main_agent affiliate ambassador]
+    commission_payouts = (payout.commission_payouts || []).select { |cp| payable_types.include?(cp.payout_to) }
 
     {
       total_payouts: commission_payouts.count,
