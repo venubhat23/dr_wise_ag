@@ -309,7 +309,7 @@
                 </td>
                 <td>
                   <% if policy.has_been_renewed? && policy.expired? %>
-                    <span class="badge bg-secondary">Renewed</span>
+                    <span class="badge" style="background-color:#6f42c1;">Renewed</span>
                   <% elsif policy.policy_end_date && policy.policy_end_date < Date.current %>
                     <span class="badge bg-danger">Expired</span>
                   <% elsif policy.policy_end_date && policy.policy_end_date <= 30.days.from_now %>

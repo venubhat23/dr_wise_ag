@@ -354,7 +354,7 @@
                 </td>
                 <td>
                   <% if policy.has_been_renewed? && policy.expired? %>
-                    <span class="badge bg-secondary">Renewed</span>
+                    <span class="badge" style="background-color:#6f42c1;">Renewed</span>
                   <% elsif policy.active? %>
                     <span class="badge bg-success">Active</span>
                   <% elsif policy.expiring_soon? %>
