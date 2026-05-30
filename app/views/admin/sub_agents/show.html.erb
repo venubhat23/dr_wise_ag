@@ -718,6 +718,12 @@
   </div>
 </div>
 
+<!-- Commission Ledger -->
+<%= render 'shared/ledger_table',
+    ledger_entries: @ledger_entries,
+    closing_balance: @ledger_closing_balance,
+    entity_name: @sub_agent.display_name %>
+
 <!-- Timestamps -->
 <div class="card border-0 shadow-sm">
   <div class="card-header bg-transparent border-0 d-flex align-items-center">

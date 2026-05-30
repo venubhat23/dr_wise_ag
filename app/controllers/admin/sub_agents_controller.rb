@@ -172,6 +172,44 @@ class Admin::SubAgentsController < Admin::ApplicationController
     @expired_policies = @all_policies.count { |p| p[:status] == 'Expired' }
     @total_premium_handled = @all_policies.sum { |p| p[:premium] || 0 }
     @unique_clients = Customer.where(sub_agent_id: @sub_agent.id).count
+
+    # Build commission ledger
+    raw_ledger = []
+    @commission_details.each do |detail|
+      payout = detail[:payout]
+      net_amount = detail[:net].to_f
+      next if net_amount <= 0
+
+      raw_ledger << {
+        date: payout.created_at&.to_date || Date.current,
+        description: 'Commission Earned',
+        policy_number: detail[:policy_number],
+        policy_type: payout.policy_type&.humanize,
+        customer_name: detail[:customer_name],
+        credit: net_amount,
+        debit: 0.0
+      }
+
+      if payout.status == 'paid'
+        raw_ledger << {
+          date: payout.payout_date || payout.updated_at&.to_date || Date.current,
+          description: 'Payout Received',
+          policy_number: detail[:policy_number],
+          policy_type: payout.policy_type&.humanize,
+          customer_name: detail[:customer_name],
+          credit: 0.0,
+          debit: net_amount
+        }
+      end
+    end
+
+    raw_ledger.sort_by! { |e| [e[:date], e[:credit] > 0 ? 0 : 1] }
+    balance = 0.0
+    @ledger_entries = raw_ledger.map do |entry|
+      balance = (balance + entry[:credit] - entry[:debit]).round(2)
+      entry.merge(balance: balance)
+    end
+    @ledger_closing_balance = balance
   end
 
   # POST /admin/sub_agents/1/create_missing_payouts

@@ -51,6 +51,10 @@ class Admin::DistributorsController < Admin::ApplicationController
 
     # Overall distributor statistics (excluding commission calculation)
     @distributor_stats = calculate_distributor_stats_basic
+
+    # Build commission ledger
+    @ledger_entries = build_distributor_ledger(@distributor)
+    @ledger_closing_balance = @ledger_entries.last&.dig(:balance) || 0.0
   end
 
   # GET /admin/distributors/new
@@ -615,6 +619,68 @@ class Admin::DistributorsController < Admin::ApplicationController
       MotorInsurance.find_by(id: commission_payout.policy_id)
     when 'other'
       OtherInsurance.find_by(id: commission_payout.policy_id) if defined?(OtherInsurance)
+    end
+  end
+
+  def build_distributor_ledger(distributor)
+    health_ids = HealthInsurance.where(distributor_id: distributor.id).pluck(:id)
+    life_ids   = LifeInsurance.where(distributor_id: distributor.id).pluck(:id)
+    motor_ids  = MotorInsurance.where(distributor_id: distributor.id).pluck(:id)
+
+    return [] if health_ids.empty? && life_ids.empty? && motor_ids.empty?
+
+    scope = CommissionPayout.none
+    scope = scope.or(CommissionPayout.where(payout_to: 'ambassador', policy_type: 'health', policy_id: health_ids)) if health_ids.any?
+    scope = scope.or(CommissionPayout.where(payout_to: 'ambassador', policy_type: 'life',   policy_id: life_ids))   if life_ids.any?
+    scope = scope.or(CommissionPayout.where(payout_to: 'ambassador', policy_type: 'motor',  policy_id: motor_ids))  if motor_ids.any?
+    payouts = scope.order(:created_at)
+
+    all_health = HealthInsurance.includes(:customer).where(id: health_ids).index_by(&:id)
+    all_life   = LifeInsurance.includes(:customer).where(id: life_ids).index_by(&:id)
+    all_motor  = MotorInsurance.includes(:customer).where(id: motor_ids).index_by(&:id)
+
+    raw_ledger = []
+    payouts.each do |payout|
+      policy = case payout.policy_type
+               when 'health' then all_health[payout.policy_id]
+               when 'life'   then all_life[payout.policy_id]
+               when 'motor'  then all_motor[payout.policy_id]
+               end
+      next unless policy
+
+      amount = payout.payout_amount.to_f
+      next if amount <= 0
+
+      customer_name = policy.customer&.display_name || 'Unknown'
+
+      raw_ledger << {
+        date: payout.created_at&.to_date || Date.current,
+        description: 'Commission Earned',
+        policy_number: policy.policy_number,
+        policy_type: payout.policy_type.humanize,
+        customer_name: customer_name,
+        credit: amount,
+        debit: 0.0
+      }
+
+      if payout.status == 'paid'
+        raw_ledger << {
+          date: payout.payout_date || payout.updated_at&.to_date || Date.current,
+          description: 'Payout Received',
+          policy_number: policy.policy_number,
+          policy_type: payout.policy_type.humanize,
+          customer_name: customer_name,
+          credit: 0.0,
+          debit: amount
+        }
+      end
+    end
+
+    raw_ledger.sort_by! { |e| [e[:date], e[:credit] > 0 ? 0 : 1] }
+    balance = 0.0
+    raw_ledger.map do |entry|
+      balance = (balance + entry[:credit] - entry[:debit]).round(2)
+      entry.merge(balance: balance)
     end
   end
 
