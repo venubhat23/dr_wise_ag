@@ -335,7 +335,7 @@
         data.items.forEach(function(item, index) {
           var row = '<tr>' +
             '<td class="py-2"><span class="fw-medium">' + (item.description || '—') + '</span></td>' +
-            '<td class="py-2"><span class="badge bg-primary bg-opacity-10 text-primary">' + (item.payout_type || '—') + '</span></td>' +
+            '<td class="py-2 text-muted">' + (item.payout_type || '—') + '</td>' +
             '<td class="py-2 text-muted small">' + item.date + '</td>' +
             '<td class="py-2 text-end fw-bold text-success">' + item.amount + '</td>' +
             '</tr>';
