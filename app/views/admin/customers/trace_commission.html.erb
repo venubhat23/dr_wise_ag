@@ -517,35 +517,67 @@
                               when 'other'  then OtherInsurance.find_by(id: first_payout.policy_id)
                               end
 
+                # Resolve actual recipient names once (outside the map)
+                _sub_agent   = _policy_rec&.sub_agent
+                _distributor = _policy_rec.respond_to?(:distributor) ? _policy_rec.distributor : nil
+
                 _corrected = payouts.map do |p|
-                  amt = if _policy_rec
+                  if _policy_rec
                     case p.payout_to
                     when 'main_agent'
-                      _policy_rec.try(:commission_amount).to_f
+                      gross      = _policy_rec.try(:commission_amount).to_f
+                      tds_pct    = _policy_rec.try(:tds_percentage).to_f || _policy_rec.try(:main_agent_tds_percent).to_f
+                      tds_amt    = _policy_rec.try(:tds_amount).to_f || _policy_rec.try(:main_agent_tds_amount).to_f
+                      actual     = _policy_rec.try(:after_tds_value).to_f
+                      actual     = (gross - tds_amt).round(2) if actual.zero? && gross > 0
                     when 'affiliate'
-                      _policy_rec.try(:sub_agent_commission_amount).to_f
+                      gross      = _policy_rec.try(:sub_agent_commission_amount).to_f
+                      tds_pct    = _policy_rec.try(:sub_agent_tds_percentage).to_f
+                      tds_amt    = _policy_rec.try(:sub_agent_tds_amount).to_f
+                      actual     = _policy_rec.try(:sub_agent_after_tds_value).to_f
+                      actual     = (gross - tds_amt).round(2) if actual.zero? && gross > 0
                     when 'ambassador'
-                      _policy_rec.try(:ambassador_commission_amount).to_f
+                      gross      = _policy_rec.try(:ambassador_commission_amount).to_f
+                      tds_pct    = _policy_rec.try(:ambassador_tds_percentage).to_f
+                      tds_amt    = _policy_rec.try(:ambassador_tds_amount).to_f
+                      actual     = _policy_rec.try(:ambassador_after_tds_value).to_f
+                      actual     = (gross - tds_amt).round(2) if actual.zero? && gross > 0
                     when 'investor'
-                      _policy_rec.try(:investor_commission_amount).to_f
+                      gross      = _policy_rec.try(:investor_commission_amount).to_f
+                      tds_pct    = _policy_rec.try(:investor_tds_percentage).to_f
+                      tds_amt    = _policy_rec.try(:investor_tds_amount).to_f
+                      actual     = _policy_rec.try(:investor_after_tds_value).to_f
+                      actual     = (gross - tds_amt).round(2) if actual.zero? && gross > 0
                     when 'company_expense'
-                      ca = _policy_rec.try(:company_expenses_amount).to_f
-                      if ca > 0
-                        ca
-                      else
-                        pct = _policy_rec.try(:company_expenses_percentage).to_f
-                        net = _policy_rec.try(:net_premium).to_f
-                        (pct * net / 100.0).round(2)
-                      end
+                      ca         = _policy_rec.try(:company_expenses_amount).to_f
+                      gross      = ca > 0 ? ca : (_policy_rec.try(:company_expenses_percentage).to_f * _policy_rec.try(:net_premium).to_f / 100.0).round(2)
+                      tds_pct    = 0.0; tds_amt = 0.0; actual = gross
                     else
-                      p.payout_amount.to_f
+                      gross      = p.payout_amount.to_f
+                      tds_pct    = 0.0; tds_amt = 0.0; actual = gross
                     end
                   else
-                    p.payout_amount.to_f
+                    gross = p.payout_amount.to_f; tds_pct = 0.0; tds_amt = 0.0; actual = gross
                   end
-                  { payout_to: p.payout_to, payout_amount: amt.round(2),
-                    status: p.status, payout_date: p.payout_date,
-                    customer_name: p.try(:customer_name) }
+
+                  recipient_name = case p.payout_to
+                                   when 'main_agent'      then 'Dr Wise (Main Agent)'
+                                   when 'affiliate'       then _sub_agent&.display_name.presence || 'Affiliate'
+                                   when 'ambassador'      then _distributor&.display_name.presence || 'Ambassador'
+                                   when 'investor'        then 'Investor'
+                                   when 'company_expense' then 'Company Expense'
+                                   else p.payout_to.humanize
+                                   end
+
+                  { payout_to: p.payout_to,
+                    payout_amount: actual.round(2),
+                    gross_amount:  gross.round(2),
+                    tds_pct:       tds_pct.round(2),
+                    tds_amt:       tds_amt.round(2),
+                    status:        p.status,
+                    payout_date:   p.payout_date,
+                    customer_name: p.try(:customer_name),
+                    recipient_name: recipient_name }
                 end
 
                 total_amount = _corrected.sum { |p| p[:payout_amount] }
@@ -2304,43 +2336,40 @@ function showCommissionBreakdown(policyNumber, policyType, payoutsJson) {
                   </div>
                   <div class="flex-grow-1">
                     <h6 class="mb-0 text-${colorScheme} fw-bold">${payout.payout_to.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</h6>
-                    <small class="text-muted">Commission Recipient</small>
+                    <small class="text-muted fw-semibold">${payout.recipient_name || 'Commission Recipient'}</small>
                   </div>
                 </div>
 
                 <div class="commission-details">
-                  <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="text-muted">Amount:</span>
-                    <span class="fw-bold text-${colorScheme} fs-5">Rs. ${parseFloat(payout.payout_amount || 0).toLocaleString()}</span>
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted small">Gross Commission:</span>
+                    <span class="fw-semibold">Rs. ${parseFloat(payout.gross_amount || 0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+                  </div>
+
+                  ${payout.tds_pct > 0 ? `
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted small">TDS (${payout.tds_pct}%):</span>
+                    <span class="text-danger small">- Rs. ${parseFloat(payout.tds_amt || 0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+                  </div>
+                  ` : ''}
+
+                  <div class="d-flex justify-content-between align-items-center mb-2 pt-1 border-top">
+                    <span class="text-muted small fw-semibold">Net Payable:</span>
+                    <span class="fw-bold text-${colorScheme} fs-6">Rs. ${parseFloat(payout.payout_amount || 0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
                   </div>
 
                   <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="text-muted">Status:</span>
+                    <span class="text-muted small">Status:</span>
                     <span class="badge bg-${statusClass}">
                       <i class="${statusIcon} me-1"></i>${payout.status ? payout.status.charAt(0).toUpperCase() + payout.status.slice(1) : 'Unknown'}
                     </span>
                   </div>
 
-                  ${payout.payout_date ? `
-                    <div class="d-flex justify-content-between align-items-center">
-                      <span class="text-muted">Date:</span>
-                      <span class="text-dark">${new Date(payout.payout_date).toLocaleDateString('en-IN')}</span>
-                    </div>
-                  ` : `
-                    <div class="d-flex justify-content-between align-items-center">
-                      <span class="text-muted">Date:</span>
-                      <span class="text-muted">Pending</span>
-                    </div>
-                  `}
-                </div>
-
-                ${payout.customer_name ? `
-                  <div class="mt-3 pt-3 border-top">
-                    <small class="text-muted">
-                      <i class="bi bi-person me-1"></i>Customer: ${payout.customer_name}
-                    </small>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">Paid Date:</span>
+                    <span class="text-dark small">${payout.payout_date ? new Date(payout.payout_date).toLocaleDateString('en-IN') : 'Pending'}</span>
                   </div>
-                ` : ''}
+                </div>
               </div>
             </div>
           </div>

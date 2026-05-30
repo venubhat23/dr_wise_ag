@@ -81,21 +81,45 @@ class Admin::InvoicesController < ApplicationController
   end
 
   def line_items
-    items = @invoice.invoice_items.order(created_at: :desc).limit(5)
-    render json: {
-      invoice_number: @invoice.invoice_number,
-      total_amount: @invoice.formatted_amount,
-      status: @invoice.status,
-      invoice_date: @invoice.invoice_date.strftime('%d %b %Y'),
-      total_line_items: @invoice.invoice_items.count,
-      items: items.map do |item|
+    saved_items = @invoice.invoice_items.order(created_at: :desc)
+
+    if saved_items.any?
+      items_data = saved_items.limit(5).map do |item|
         {
           description: item.description,
           payout_type: item.payout_type&.humanize,
-          amount: "₹#{item.amount.to_f.round(2).to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}",
+          amount: format_inr(item.amount),
           date: item.created_at.strftime('%d %b %Y')
         }
       end
+      total_count  = saved_items.count
+      total_amount = @invoice.formatted_amount
+    else
+      # Dynamically compute line items from CommissionPayout records
+      commission_payouts = fetch_commission_payouts_for_invoice(@invoice)
+      items_data = commission_payouts.first(5).map do |cp|
+        policy = find_policy_for_payout(cp)
+        {
+          description: "#{@invoice.payout_type.humanize} Commission — #{policy&.policy_number || "Policy ##{cp.policy_id}"} (#{cp.policy_type.humanize})",
+          payout_type: @invoice.payout_type.humanize,
+          amount: format_inr(cp.payout_amount),
+          date: cp.payout_date&.strftime('%d %b %Y') || @invoice.invoice_date.strftime('%d %b %Y')
+        }
+      end
+      total_count  = commission_payouts.size
+      computed_total = commission_payouts.sum(&:payout_amount).to_f.round(2)
+      # Sync total_amount if it has drifted
+      @invoice.update_column(:total_amount, computed_total) if computed_total > 0 && computed_total != @invoice.total_amount.to_f.round(2)
+      total_amount = "₹#{computed_total.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"
+    end
+
+    render json: {
+      invoice_number: @invoice.invoice_number,
+      total_amount:   total_amount,
+      status:         @invoice.status,
+      invoice_date:   @invoice.invoice_date.strftime('%d %b %Y'),
+      total_line_items: total_count,
+      items: items_data
     }
   end
 
@@ -150,6 +174,45 @@ class Admin::InvoicesController < ApplicationController
   end
 
   private
+
+  def format_inr(amount)
+    "₹#{amount.to_f.round(2).to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"
+  end
+
+  def find_policy_for_payout(cp)
+    case cp.policy_type
+    when 'health' then HealthInsurance.find_by(id: cp.policy_id)
+    when 'life'   then LifeInsurance.find_by(id: cp.policy_id)
+    when 'motor'  then MotorInsurance.find_by(id: cp.policy_id)
+    when 'other'  then OtherInsurance.find_by(id: cp.policy_id)
+    end
+  end
+
+  def fetch_commission_payouts_for_invoice(invoice)
+    case invoice.payout_type
+    when 'affiliate'
+      sub_agent = SubAgent.find_by(id: invoice.payout_id)
+      return [] unless sub_agent
+      [HealthInsurance, LifeInsurance, MotorInsurance, OtherInsurance].flat_map do |klass|
+        ptype = klass.name.underscore.gsub('_insurance', '')
+        klass.where(sub_agent_id: sub_agent.id).flat_map do |pol|
+          CommissionPayout.where(policy_type: ptype, policy_id: pol.id, payout_to: 'affiliate', status: 'paid')
+        end
+      end.sort_by { |cp| [cp.policy_type, cp.policy_id] }
+
+    when 'distributor', 'ambassador'
+      distributor = Distributor.find_by(id: invoice.payout_id)
+      return [] unless distributor
+      DistributorPayout.where(distributor_id: distributor.id, status: 'paid')
+                       .order(created_at: :desc)
+
+    when 'commission'
+      payout = Payout.find_by(id: invoice.payout_id)
+      payout ? [payout] : []
+    else
+      []
+    end
+  end
 
   def set_invoice
     @invoice = Invoice.find(params[:id])

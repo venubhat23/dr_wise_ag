@@ -737,6 +737,13 @@
         </tbody>
       </table>
 
+      <%
+        # Sync invoice total_amount with the actual line items sum so the index shows the correct figure
+        if total_line_items > 0 && total_line_items.round(2) != @invoice.total_amount.to_f.round(2)
+          @invoice.update_column(:total_amount, total_line_items.round(2))
+        end
+      %>
+
       <!-- Subtotal section -->
       <table class="subtotal-table">
         <tr class="section-border">
@@ -745,7 +752,6 @@
           <td style="width: 40%;">
             <table class="subtotal-values-table">
               <tr>
-                <td>Rs.  0.00</td>
                 <td><%= indian_currency(total_line_items) %></td>
               </tr>
             </table>
