@@ -274,8 +274,12 @@
                   </div>
                 </td>
                 <td>
-                  <% if policy.status == 'active' %>
+                  <% if policy.has_been_renewed? && policy.expired? %>
+                    <span class="badge bg-secondary">Renewed</span>
+                  <% elsif policy.status == 'active' %>
                     <span class="badge bg-success">Active</span>
+                  <% elsif policy.status == 'expiring_soon' %>
+                    <span class="badge bg-warning">Expiring Soon</span>
                   <% elsif policy.status == 'expired' %>
                     <span class="badge bg-danger">Expired</span>
                   <% else %>

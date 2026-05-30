@@ -353,12 +353,14 @@
                   </div>
                 </td>
                 <td>
-                  <% if policy.active? %>
+                  <% if policy.has_been_renewed? && policy.expired? %>
+                    <span class="badge bg-secondary">Renewed</span>
+                  <% elsif policy.active? %>
                     <span class="badge bg-success">Active</span>
-                  <% elsif policy.expired? %>
-                    <span class="badge bg-danger">Expired</span>
                   <% elsif policy.expiring_soon? %>
                     <span class="badge bg-warning">Expiring Soon</span>
+                  <% elsif policy.expired? %>
+                    <span class="badge bg-danger">Expired</span>
                   <% else %>
                     <span class="badge bg-info">Active</span>
                   <% end %>

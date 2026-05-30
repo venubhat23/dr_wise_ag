@@ -59,13 +59,13 @@ class OtherInsurance < ApplicationRecord
     (policy_end_date - Date.current).to_i
   end
 
+  # Renewal relationships
+  belongs_to :original_policy, class_name: 'OtherInsurance', foreign_key: 'original_policy_id', optional: true
+  has_one :renewal_policy, class_name: 'OtherInsurance', foreign_key: 'original_policy_id', dependent: :destroy
+
   # Renewal-related methods
   def is_renewal?
     policy_type == 'Renewal' || original_policy_id.present?
-  end
-
-  def renewal_policy
-    OtherInsurance.find_by(original_policy_id: id)
   end
 
   def has_been_renewed?

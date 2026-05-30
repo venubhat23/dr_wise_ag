@@ -4,7 +4,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
   # GET /admin/insurance/life
   def index
-    @life_insurances = LifeInsurance.includes(:customer, :sub_agent, :agency_code, :broker)
+    @life_insurances = LifeInsurance.includes(:customer, :sub_agent, :agency_code, :broker, :renewal_policy)
 
     # Tab-based filtering for DrWise vs Non-DrWise policies
     @current_tab = params[:tab] || 'drwise'

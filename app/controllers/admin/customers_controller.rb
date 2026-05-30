@@ -176,10 +176,10 @@ class Admin::CustomersController < Admin::ApplicationController
     # Eager load all associations to avoid N+1 queries
     @customer = Customer.includes(
       :family_members,
-      :health_insurances,
-      :life_insurances,
+      { health_insurances: :renewal_policy },
+      { life_insurances: :renewal_policy },
+      { other_insurances: :renewal_policy },
       :motor_insurances,
-      :other_insurances,
       :uploaded_documents
     ).find(params[:id])
 
