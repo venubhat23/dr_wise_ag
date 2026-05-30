@@ -5,7 +5,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   skip_before_action :verify_authenticity_token, only: [:insurance_companies_by_agency]
 
   def index
-    @health_insurances = HealthInsurance.includes(:customer, :sub_agent, :agency_code, :broker)
+    @health_insurances = HealthInsurance.includes(:customer, :sub_agent, :agency_code, :broker, :renewal_policy)
 
     # Tab-based filtering for DrWise vs Non-DrWise policies
     @current_tab = params[:tab] || 'drwise'
