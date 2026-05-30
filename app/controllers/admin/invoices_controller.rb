@@ -88,8 +88,9 @@ class Admin::InvoicesController < ApplicationController
         {
           description: item.description,
           payout_type: item.payout_type&.humanize,
-          amount: format_inr(item.amount),
-          date: item.created_at.strftime('%d %b %Y')
+          qty:  '1 Policy',
+          rate: format_inr(item.amount),
+          amount: format_inr(item.amount)
         }
       end
       total_count  = saved_items.count
@@ -102,8 +103,9 @@ class Admin::InvoicesController < ApplicationController
         {
           description: "#{@invoice.payout_type.humanize} Commission — #{policy&.policy_number || "Policy ##{cp.policy_id}"} (#{cp.policy_type.humanize})",
           payout_type: @invoice.payout_type.humanize,
-          amount: format_inr(cp.payout_amount),
-          date: cp.payout_date&.strftime('%d %b %Y') || @invoice.invoice_date.strftime('%d %b %Y')
+          qty:  '1 Policy',
+          rate: format_inr(cp.payout_amount),
+          amount: format_inr(cp.payout_amount)
         }
       end
       total_count  = commission_payouts.size

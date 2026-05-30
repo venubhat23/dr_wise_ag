@@ -271,7 +271,8 @@
                   <tr>
                     <th class="border-0" style="width:40%">Description</th>
                     <th class="border-0">Type</th>
-                    <th class="border-0">Date</th>
+                    <th class="border-0">Qty</th>
+                    <th class="border-0 text-end">Rate</th>
                     <th class="border-0 text-end">Amount</th>
                   </tr>
                 </thead>
@@ -336,7 +337,8 @@
           var row = '<tr>' +
             '<td class="py-2"><span class="fw-medium">' + (item.description || '—') + '</span></td>' +
             '<td class="py-2 text-muted">' + (item.payout_type || '—') + '</td>' +
-            '<td class="py-2 text-muted small">' + item.date + '</td>' +
+            '<td class="py-2 text-muted">' + (item.qty || '1 Policy') + '</td>' +
+            '<td class="py-2 text-end text-muted">' + (item.rate || item.amount) + '</td>' +
             '<td class="py-2 text-end fw-bold text-success">' + item.amount + '</td>' +
             '</tr>';
           tbody.insertAdjacentHTML('beforeend', row);
