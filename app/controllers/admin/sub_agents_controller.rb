@@ -185,6 +185,8 @@ class Admin::SubAgentsController < Admin::ApplicationController
         description: 'Commission Earned',
         policy_number: detail[:policy_number],
         policy_type: payout.policy_type&.humanize,
+        policy_type_raw: payout.policy_type,
+        policy_id: payout.policy_id,
         customer_name: detail[:customer_name],
         credit: net_amount,
         debit: 0.0
@@ -196,6 +198,8 @@ class Admin::SubAgentsController < Admin::ApplicationController
           description: 'Payout Received',
           policy_number: detail[:policy_number],
           policy_type: payout.policy_type&.humanize,
+          policy_type_raw: payout.policy_type,
+          policy_id: payout.policy_id,
           customer_name: detail[:customer_name],
           credit: 0.0,
           debit: net_amount

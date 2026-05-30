@@ -1,6 +1,5 @@
 class Invoice < ApplicationRecord
-  # Associations - these are conditional associations
-  # Note: We'll keep the polymorphic method approach since the associations depend on payout_type
+  has_many :invoice_items, dependent: :destroy
 
   validates :invoice_number, presence: true, uniqueness: true
   validates :payout_type, presence: true, inclusion: { in: %w[affiliate distributor ambassador commission] }

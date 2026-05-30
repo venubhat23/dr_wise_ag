@@ -182,6 +182,7 @@ Rails.application.routes.draw do
         get :download_pdf
         get :show_premium
         get :download_premium_pdf
+        get :line_items
       end
       collection do
         post :generate_invoice

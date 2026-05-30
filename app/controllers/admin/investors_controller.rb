@@ -210,8 +210,11 @@ class Admin::InvestorsController < Admin::ApplicationController
           inv_aft     = pol.try(:investor_after_tds_value).to_f
           inv_aft     = (inv_gross - inv_tds).round(2) if inv_aft.zero? && inv_gross > 0
           inv_net     = inv_payout&.payout_amount.to_f
-          @investor_commission_paid    += inv_payout&.paid?    ? inv_net : 0.0
-          @investor_commission_pending += inv_payout&.pending? ? inv_net : 0.0
+          pol_investor_id = pol.try(:investor_id)
+          if pol_investor_id.nil? || pol_investor_id == @investor.id
+            @investor_commission_paid    += inv_payout&.paid?    ? inv_net : 0.0
+            @investor_commission_pending += inv_payout&.pending? ? inv_net : 0.0
+          end
 
           amb_paid       += p_paid
           amb_pending    += p_pending
@@ -287,8 +290,11 @@ class Admin::InvestorsController < Admin::ApplicationController
             inv_aft     = pol.try(:investor_after_tds_value).to_f
             inv_aft     = (inv_gross - inv_tds).round(2) if inv_aft.zero? && inv_gross > 0
             inv_net     = inv_payout&.payout_amount.to_f
-            @investor_commission_paid    += inv_payout&.paid?    ? inv_net : 0.0
-            @investor_commission_pending += inv_payout&.pending? ? inv_net : 0.0
+            pol_investor_id = pol.try(:investor_id)
+            if pol_investor_id.nil? || pol_investor_id == @investor.id
+              @investor_commission_paid    += inv_payout&.paid?    ? inv_net : 0.0
+              @investor_commission_pending += inv_payout&.pending? ? inv_net : 0.0
+            end
 
             af_paid      += p_paid
             af_pending   += p_pending

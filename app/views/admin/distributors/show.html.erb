@@ -318,6 +318,41 @@
               <%= @distributor.investor.status.humanize %>
             </span>
           </div>
+          <!-- Investor Bank Details -->
+          <% inv = @distributor.investor %>
+          <% if inv.bank_name.present? || inv.account_no.present? || inv.ifsc_code.present? %>
+            <hr class="my-3">
+            <div class="mb-1" style="font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#6c757d;">
+              <i class="bi bi-bank me-1"></i>Bank Details
+            </div>
+            <div class="small">
+              <% if inv.bank_name.present? %>
+                <div class="d-flex justify-content-between py-1 border-bottom">
+                  <span class="text-muted">Bank</span>
+                  <span class="fw-semibold"><%= inv.bank_name %></span>
+                </div>
+              <% end %>
+              <% if inv.account_no.present? %>
+                <div class="d-flex justify-content-between py-1 border-bottom">
+                  <span class="text-muted">Account No</span>
+                  <span class="fw-semibold"><%= inv.account_no %></span>
+                </div>
+              <% end %>
+              <% if inv.ifsc_code.present? %>
+                <div class="d-flex justify-content-between py-1 border-bottom">
+                  <span class="text-muted">IFSC</span>
+                  <span class="fw-semibold"><%= inv.ifsc_code %></span>
+                </div>
+              <% end %>
+              <% if inv.account_holder_name.present? %>
+                <div class="d-flex justify-content-between py-1">
+                  <span class="text-muted">Holder</span>
+                  <span class="fw-semibold"><%= inv.account_holder_name %></span>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+
           <div class="mt-3">
             <%= link_to admin_investor_path(@distributor.investor),
                 class: "btn btn-sm btn-outline-warning w-100" do %>

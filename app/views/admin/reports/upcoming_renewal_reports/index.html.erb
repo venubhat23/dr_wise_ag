@@ -26,85 +26,150 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="mb-1">Upcoming Renewal Reports</h2>
-    <p class="text-muted mb-0">View and manage generated upcoming renewal reports</p>
+    <h2 class="mb-1">Upcoming Renewals</h2>
+    <p class="text-muted mb-0">Policies renewing in the next <strong><%= @renewal_days %> days</strong> — <%= @renewal_start.strftime('%d %b %Y') %> to <%= @renewal_end.strftime('%d %b %Y') %></p>
   </div>
-  <div class="d-flex gap-2">
-    <%= link_to generate_admin_reports_upcoming_renewal_reports_path, class: "btn btn-primary" do %>
-      <i class="bi bi-plus-lg me-2"></i>Generate Report
+  <div class="d-flex gap-2 align-items-center">
+    <!-- Quick range switcher -->
+    <% [15, 30, 60, 90].each do |d| %>
+      <%= link_to admin_reports_upcoming_renewal_reports_path(renewal_days: d),
+          class: "btn btn-sm #{ @renewal_days == d ? 'btn-primary' : 'btn-outline-secondary' }" do %>
+        <%= d %>d
+      <% end %>
+    <% end %>
+    <%= link_to generate_admin_reports_upcoming_renewal_reports_path, class: "btn btn-outline-primary ms-2" do %>
+      <i class="bi bi-plus-lg me-1"></i>Generate Report
     <% end %>
     <button type="button" class="btn btn-success" id="exportBtn">
-      <i class="bi bi-download me-2"></i>Export CSV
+      <i class="bi bi-download me-1"></i>Export CSV
     </button>
   </div>
 </div>
 
-<!-- Statistics Cards -->
-<div class="row mb-4">
-  <div class="col-xl-3 col-md-6 mb-3">
-    <div class="card h-100 border-0 shadow-sm">
-      <div class="card-body">
-        <div class="d-flex justify-content-between">
-          <div>
-            <h6 class="text-muted mb-2">Total Reports</h6>
-            <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_reports || 0) %></h3>
-          </div>
-          <div class="bg-primary bg-opacity-10 rounded p-3">
-            <i class="bi bi-file-text text-primary fs-4"></i>
-          </div>
+<!-- Summary KPI strip -->
+<div class="row g-3 mb-4">
+  <% due_soon  = @upcoming_policies.count { |p| p[:days_until_renewal] <= 7 } %>
+  <% due_month = @upcoming_policies.count { |p| p[:days_until_renewal] > 7 && p[:days_until_renewal] <= 30 } %>
+  <% total_prem = @upcoming_policies.sum { |p| p[:premium_amount].to_f } %>
+
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="bg-danger bg-opacity-10 rounded p-3"><i class="bi bi-exclamation-circle text-danger fs-4"></i></div>
+        <div>
+          <div class="text-muted small">Due within 7 days</div>
+          <div class="fw-bold fs-4 text-danger"><%= due_soon %></div>
         </div>
       </div>
     </div>
   </div>
-
-  <div class="col-xl-3 col-md-6 mb-3">
-    <div class="card h-100 border-0 shadow-sm">
-      <div class="card-body">
-        <div class="d-flex justify-content-between">
-          <div>
-            <h6 class="text-muted mb-2">This Month</h6>
-            <h3 class="mb-0 text-success"><%= number_with_delimiter(@this_month_reports || 0) %></h3>
-          </div>
-          <div class="bg-success bg-opacity-10 rounded p-3">
-            <i class="bi bi-calendar-month text-success fs-4"></i>
-          </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="bg-warning bg-opacity-10 rounded p-3"><i class="bi bi-clock text-warning fs-4"></i></div>
+        <div>
+          <div class="text-muted small">Next 8–30 days</div>
+          <div class="fw-bold fs-4 text-warning"><%= due_month %></div>
         </div>
       </div>
     </div>
   </div>
-
-  <div class="col-xl-3 col-md-6 mb-3">
-    <div class="card h-100 border-0 shadow-sm">
-      <div class="card-body">
-        <div class="d-flex justify-content-between">
-          <div>
-            <h6 class="text-muted mb-2">Last Generated</h6>
-            <p class="mb-0 text-info">
-              <%= @last_generated ? @last_generated.strftime('%d %b %Y') : 'Never' %>
-            </p>
-          </div>
-          <div class="bg-info bg-opacity-10 rounded p-3">
-            <i class="bi bi-clock-history text-info fs-4"></i>
-          </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="bg-primary bg-opacity-10 rounded p-3"><i class="bi bi-file-earmark-check text-primary fs-4"></i></div>
+        <div>
+          <div class="text-muted small">Total Policies</div>
+          <div class="fw-bold fs-4 text-primary"><%= @upcoming_policies.count %></div>
         </div>
       </div>
     </div>
   </div>
-
-  <div class="col-xl-3 col-md-6 mb-3">
-    <div class="card h-100 border-0 shadow-sm">
-      <div class="card-body">
-        <div class="d-flex justify-content-between">
-          <div>
-            <h6 class="text-muted mb-2">Total Premium Value</h6>
-            <h3 class="mb-0 text-warning"><%= indian_currency((@total_premium_value || 0).round(2)) %></h3>
-          </div>
-          <div class="bg-warning bg-opacity-10 rounded p-3">
-            <i class="bi bi-currency-rupee text-warning fs-4"></i>
-          </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="bg-success bg-opacity-10 rounded p-3"><i class="bi bi-currency-rupee text-success fs-4"></i></div>
+        <div>
+          <div class="text-muted small">Total Premium</div>
+          <div class="fw-bold fs-5 text-success"><%= indian_currency(total_prem.round(0)) %></div>
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Live Upcoming Renewals Table -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between">
+    <h5 class="mb-0"><i class="bi bi-arrow-repeat text-warning me-2"></i>Policies Renewing in Next <%= @renewal_days %> Days</h5>
+    <span class="badge bg-warning text-dark"><%= @upcoming_policies.count %> policies</span>
+  </div>
+  <div class="card-body p-0">
+    <% if @upcoming_policies.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" id="renewalTable">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0">Policy</th>
+              <th class="border-0">Customer</th>
+              <th class="border-0">Insurance Company</th>
+              <th class="border-0">Renewal Date</th>
+              <th class="border-0">Days Left</th>
+              <th class="border-0 text-end">Premium</th>
+              <th class="border-0">Affiliate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @upcoming_policies.each do |p| %>
+              <% days = p[:days_until_renewal] %>
+              <% urgency_class = days <= 7 ? 'table-danger' : days <= 15 ? 'table-warning' : '' %>
+              <tr class="<%= urgency_class %>">
+                <td>
+                  <div class="fw-semibold" style="font-size:13px;"><%= p[:policy_number] %></div>
+                  <span class="badge rounded-pill <%= p[:policy_type] == 'health' ? 'bg-success' : p[:policy_type] == 'motor' ? 'bg-warning text-dark' : 'bg-primary' %>" style="font-size:10px;">
+                    <%= p[:policy_type]&.capitalize %>
+                  </span>
+                </td>
+                <td>
+                  <div class="fw-semibold" style="font-size:13px;"><%= p[:customer_name] %></div>
+                  <% if p[:customer_mobile].present? %>
+                    <small class="text-muted"><i class="bi bi-telephone me-1"></i><%= p[:customer_mobile] %></small>
+                  <% end %>
+                </td>
+                <td><small><%= p[:insurance_company] %></small></td>
+                <td>
+                  <div class="fw-semibold" style="font-size:13px;"><%= p[:policy_end_date]&.strftime('%d %b %Y') %></div>
+                </td>
+                <td>
+                  <% if days <= 7 %>
+                    <span class="badge bg-danger"><%= days %> days</span>
+                  <% elsif days <= 15 %>
+                    <span class="badge bg-warning text-dark"><%= days %> days</span>
+                  <% else %>
+                    <span class="badge bg-secondary"><%= days %> days</span>
+                  <% end %>
+                </td>
+                <td class="text-end fw-semibold text-success"><%= indian_currency(p[:premium_amount].to_f.round(0)) %></td>
+                <td><small class="text-muted"><%= p[:affiliate] %></small></td>
+              </tr>
+            <% end %>
+          </tbody>
+          <tfoot class="bg-light">
+            <tr>
+              <td colspan="5" class="fw-bold text-end">Total Premium</td>
+              <td class="text-end fw-bold text-success"><%= indian_currency(@upcoming_policies.sum { |p| p[:premium_amount].to_f }.round(0)) %></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    <% else %>
+      <div class="text-center py-5">
+        <i class="bi bi-calendar-check fs-1 text-muted d-block mb-3"></i>
+        <h5 class="text-muted">No renewals in the next <%= @renewal_days %> days</h5>
+        <p class="text-muted">All policies are up to date for this period.</p>
+      </div>
+    <% end %>
   </div>
 </div>
 

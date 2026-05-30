@@ -658,6 +658,8 @@ class Admin::DistributorsController < Admin::ApplicationController
         description: 'Commission Earned',
         policy_number: policy.policy_number,
         policy_type: payout.policy_type.humanize,
+        policy_type_raw: payout.policy_type,
+        policy_id: policy.id,
         customer_name: customer_name,
         credit: amount,
         debit: 0.0
@@ -669,6 +671,8 @@ class Admin::DistributorsController < Admin::ApplicationController
           description: 'Payout Received',
           policy_number: policy.policy_number,
           policy_type: payout.policy_type.humanize,
+          policy_type_raw: payout.policy_type,
+          policy_id: policy.id,
           customer_name: customer_name,
           credit: 0.0,
           debit: amount

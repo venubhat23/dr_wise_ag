@@ -1,5 +1,5 @@
 class Admin::InvoicesController < ApplicationController
-  before_action :set_invoice, only: [:show, :show_premium, :download_pdf, :download_premium_pdf, :mark_as_paid]
+  before_action :set_invoice, only: [:show, :show_premium, :download_pdf, :download_premium_pdf, :mark_as_paid, :line_items]
 
   def index
     @invoices = Invoice.order(created_at: :desc)
@@ -78,6 +78,25 @@ class Admin::InvoicesController < ApplicationController
     }
   rescue => e
     render json: { error: e.message }, status: 500
+  end
+
+  def line_items
+    items = @invoice.invoice_items.order(created_at: :desc).limit(5)
+    render json: {
+      invoice_number: @invoice.invoice_number,
+      total_amount: @invoice.formatted_amount,
+      status: @invoice.status,
+      invoice_date: @invoice.invoice_date.strftime('%d %b %Y'),
+      total_line_items: @invoice.invoice_items.count,
+      items: items.map do |item|
+        {
+          description: item.description,
+          payout_type: item.payout_type&.humanize,
+          amount: "₹#{item.amount.to_f.round(2).to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}",
+          date: item.created_at.strftime('%d %b %Y')
+        }
+      end
+    }
   end
 
   def mark_as_paid

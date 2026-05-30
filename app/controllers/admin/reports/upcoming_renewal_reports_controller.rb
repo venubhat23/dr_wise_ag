@@ -41,6 +41,15 @@ class Admin::Reports::UpcomingRenewalReportsController < Admin::Reports::BaseCon
                             .maximum(:created_at)
     @total_premium_value = calculate_total_premium_value_from_reports
 
+    # Live: upcoming renewals for the next 30 days by default
+    @renewal_days = (params[:renewal_days] || 30).to_i
+    @renewal_start = Date.current
+    @renewal_end   = @renewal_days.days.from_now.to_date
+    @upcoming_policies = generate_preview_data(
+      start_date: @renewal_start,
+      end_date:   @renewal_end
+    ).sort_by { |p| p[:days_until_renewal] }
+
     respond_to do |format|
       format.html
     end
