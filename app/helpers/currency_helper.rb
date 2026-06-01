@@ -31,6 +31,32 @@ module CurrencyHelper
     result
   end
 
+  # Converts a number to compact Indian words: 1 Crore, 50 Lakh, 5 Thousand, etc.
+  # Examples:
+  #   amount_in_words(10000000)  => "1 Crore"
+  #   amount_in_words(15000000)  => "1.5 Crore"
+  #   amount_in_words(500000)    => "5 Lakh"
+  #   amount_in_words(750000)    => "7.5 Lakh"
+  #   amount_in_words(5000)      => "5 Thousand"
+  def amount_in_words(amount)
+    return "0" if amount.nil? || amount == 0
+
+    amount = amount.to_f
+
+    if amount >= 10_000_000
+      val = amount / 10_000_000.0
+      "#{compact_number(val)} Crore"
+    elsif amount >= 100_000
+      val = amount / 100_000.0
+      "#{compact_number(val)} Lakh"
+    elsif amount >= 1_000
+      val = amount / 1_000.0
+      "#{compact_number(val)} Thousand"
+    else
+      amount.to_i.to_s
+    end
+  end
+
   # Formats just the number part without currency symbol
   def indian_number(amount)
     return "0.00" if amount.nil? || amount == 0
@@ -51,6 +77,11 @@ module CurrencyHelper
   end
 
   private
+
+  # Formats a decimal, stripping trailing zeros: 1.50 => "1.5", 2.00 => "2", 1.25 => "1.25"
+  def compact_number(val)
+    sprintf("%.2f", val).sub(/\.?0+$/, '')
+  end
 
   # Formats a number string according to Indian numbering system
   # 1,000 -> 1,000

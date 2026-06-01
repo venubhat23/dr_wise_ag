@@ -264,7 +264,10 @@
                 <td>
                   <div>
                     <small class="text-muted d-block" style="font-size: 0.75rem;">Sum Assured</small>
-                    <div class="fw-bold text-primary" style="font-size: 1rem;"><%= indian_currency(policy.sum_insured) %></div>
+                    <div class="fw-bold text-primary" style="font-size: 1rem;"
+                         title="<%= indian_currency(policy.sum_insured) %>" data-bs-toggle="tooltip">
+                      <%= amount_in_words(policy.sum_insured) %>
+                    </div>
                   </div>
                 </td>
                 <td>
