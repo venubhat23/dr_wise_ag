@@ -135,54 +135,72 @@ module Admin
         }
       end
 
-      # Health specific endpoints
-      def health_expiring
-        policies = HealthInsurance.includes(:customer)
-                                 .where(policy_end_date: Date.current..30.days.from_now)
-                                 .map { |p| format_health_policy(p) }
+      # Policy Alerts endpoints — each query matches the dashboard badge count logic exactly
 
-        render json: {
-          success: true,
-          policies: policies.sort_by { |p| p[:days_left] }
-        }
+      def health_expiring
+        date_range = Date.current..30.days.from_now
+        policies = []
+
+        HealthInsurance.includes(:customer).where(policy_end_date: date_range).each do |p|
+          policies << format_all_policy(p, 'health')
+        end
+        LifeInsurance.includes(:customer).where(policy_end_date: date_range).each do |p|
+          policies << format_all_policy(p, 'life')
+        end
+        begin
+          MotorInsurance.includes(:customer).where(policy_end_date: date_range).each do |p|
+            policies << format_all_policy(p, 'motor')
+          end
+        rescue; end
+        begin
+          OtherInsurance.includes(:customer).where(policy_end_date: date_range).each do |p|
+            policies << format_all_policy(p, 'other')
+          end
+        rescue; end
+
+        render json: { success: true, policies: policies.sort_by { |p| p[:days_left] } }
       end
 
       def health_expired_month
-        # Match dashboard logic - ALL expired policies, not just this month
-        policies = HealthInsurance.includes(:customer)
-                                 .where('policy_end_date < ?', Date.current)
-                                 .map { |p| format_health_policy(p) }
+        month_start  = Date.current.beginning_of_month
+        current_date = Date.current
+        date_range   = month_start...current_date
+        policies     = []
 
-        render json: {
-          success: true,
-          policies: policies
-        }
+        HealthInsurance.includes(:customer).where(policy_end_date: date_range).each do |p|
+          policies << format_all_policy(p, 'health')
+        end
+        LifeInsurance.includes(:customer).where(policy_end_date: date_range).each do |p|
+          policies << format_all_policy(p, 'life')
+        end
+        begin
+          MotorInsurance.includes(:customer).where(policy_end_date: date_range).each do |p|
+            policies << format_all_policy(p, 'motor')
+          end
+        rescue; end
+
+        render json: { success: true, policies: policies.sort_by { |p| p[:end_date] }.reverse }
       end
 
       def health_opportunities
-        # Policies that expired recently but haven't been renewed
-        expired_policies = HealthInsurance.includes(:customer)
-                                         .where(policy_end_date: 60.days.ago..Date.current)
-                                         .where(policy_type: ['New', nil])
+        current_date      = Date.current
+        sixty_days_ahead  = current_date + 60.days
+        date_range        = current_date..sixty_days_ahead
+        policies          = []
 
-        # Check which ones don't have renewals
-        opportunities = []
-        expired_policies.each do |policy|
-          renewal_exists = HealthInsurance.where(
-            customer_id: policy.customer_id,
-            policy_type: 'Renewal',
-            policy_booking_date: policy.policy_end_date..Date.current
-          ).exists?
-
-          unless renewal_exists
-            opportunities << format_health_policy(policy)
-          end
+        HealthInsurance.includes(:customer).where(policy_end_date: date_range).where.not(policy_type: 'Renewal').each do |p|
+          policies << format_all_policy(p, 'health')
         end
+        LifeInsurance.includes(:customer).where(policy_end_date: date_range).where.not(policy_type: 'Renewal').each do |p|
+          policies << format_all_policy(p, 'life')
+        end
+        begin
+          MotorInsurance.includes(:customer).where(policy_end_date: date_range).where.not(policy_type: 'Renewal').each do |p|
+            policies << format_all_policy(p, 'motor')
+          end
+        rescue; end
 
-        render json: {
-          success: true,
-          policies: opportunities
-        }
+        render json: { success: true, policies: policies.sort_by { |p| p[:days_left] } }
       end
 
       private
@@ -203,17 +221,23 @@ module Admin
         }
       end
 
-      def format_health_policy(policy)
+      def format_all_policy(policy, type)
         {
           id: policy.id,
           policy_number: policy.policy_number,
           customer_name: policy.customer&.display_name,
           customer_email: policy.customer&.email,
-          sum_insured: policy.sum_insured || 0,
-          premium: policy.total_premium || 0,
+          insurance_type: type.capitalize,
+          type_slug: "#{type}_insurances",
+          sum_insured: policy.try(:sum_insured) || 0,
+          premium: policy.try(:total_premium) || policy.try(:net_premium) || 0,
           end_date: policy.policy_end_date&.strftime('%d %b %Y'),
           days_left: policy.policy_end_date ? (policy.policy_end_date - Date.current).to_i : 0
         }
+      end
+
+      def format_health_policy(policy)
+        format_all_policy(policy, 'health')
       end
     end
   end

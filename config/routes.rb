@@ -402,6 +402,9 @@ Rails.application.routes.draw do
       end
     end
 
+    # Client Services (Taxation, Loans, Travel, Credit Card)
+    resources :client_services
+
     # Mutual Funds
     resources :mutual_funds, path: 'investments/mutual-funds' do
       collection do

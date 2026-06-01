@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_27_000002) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_01_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -224,6 +224,47 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_27_000002) do
     t.index ["submitted_at"], name: "index_client_requests_on_submitted_at"
     t.index ["submitter_type", "submitter_id"], name: "index_client_requests_on_submitter_type_and_submitter_id"
     t.index ["ticket_number"], name: "index_client_requests_on_ticket_number", unique: true
+  end
+
+  create_table "client_services", force: :cascade do |t|
+    t.string "service_type", null: false
+    t.string "service_category", null: false
+    t.bigint "customer_id", null: false
+    t.bigint "sub_agent_id"
+    t.bigint "distributor_id"
+    t.decimal "amount", precision: 15, scale: 2, default: "0.0"
+    t.string "status", default: "pending"
+    t.string "reference_number"
+    t.date "start_date"
+    t.text "notes"
+    t.decimal "main_agent_commission_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "commission_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "tds_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "tds_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "after_tds_value", precision: 15, scale: 2, default: "0.0"
+    t.decimal "sub_agent_commission_percentage", precision: 8, scale: 2, default: "2.0"
+    t.decimal "sub_agent_commission_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "sub_agent_tds_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "sub_agent_tds_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "sub_agent_after_tds_value", precision: 15, scale: 2, default: "0.0"
+    t.decimal "distributor_commission_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "distributor_commission_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "distributor_tds_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "distributor_tds_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "distributor_after_tds_value", precision: 15, scale: 2, default: "0.0"
+    t.decimal "investor_commission_percentage", precision: 8, scale: 2, default: "2.0"
+    t.decimal "investor_commission_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "company_expenses_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "company_expenses_amount", precision: 15, scale: 2, default: "0.0"
+    t.decimal "total_distribution_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "profit_percentage", precision: 8, scale: 2, default: "0.0"
+    t.decimal "profit_amount", precision: 15, scale: 2, default: "0.0"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_client_services_on_customer_id"
+    t.index ["service_category"], name: "index_client_services_on_service_category"
+    t.index ["service_type"], name: "index_client_services_on_service_type"
+    t.index ["sub_agent_id"], name: "index_client_services_on_sub_agent_id"
   end
 
   create_table "commission_payouts", force: :cascade do |t|

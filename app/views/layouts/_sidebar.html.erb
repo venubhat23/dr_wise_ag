@@ -946,16 +946,16 @@ body.sidebar-collapsed .main-content {
           <div class="collapse submenu" id="taxation-menu">
             <ul class="nav-menu submenu-list">
               <li class="nav-item">
-                <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
+                <%= link_to admin_client_services_path(service_type: 'taxation_itr'), class: "nav-link-modern submenu-link #{'active' if request.path.include?('/admin/client_services') && params[:service_type] == 'taxation_itr'}" do %>
                   <i class="bi bi-file-text text-info me-2"></i>
                   <span class="nav-text">ITR</span>
-                </div>
+                <% end %>
               </li>
               <li class="nav-item">
-                <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
+                <%= link_to admin_client_services_path(service_type: 'taxation_tax_planning'), class: "nav-link-modern submenu-link #{'active' if request.path.include?('/admin/client_services') && params[:service_type] == 'taxation_tax_planning'}" do %>
                   <i class="bi bi-calendar-check text-success me-2"></i>
                   <span class="nav-text">Tax Planning</span>
-                </div>
+                <% end %>
               </li>
             </ul>
           </div>
@@ -975,28 +975,28 @@ body.sidebar-collapsed .main-content {
           <div class="collapse submenu" id="loans-menu">
             <ul class="nav-menu submenu-list">
               <li class="nav-item">
-                <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
+                <%= link_to admin_client_services_path(service_type: 'loans_personal'), class: "nav-link-modern submenu-link #{'active' if params[:service_type] == 'loans_personal'}" do %>
                   <i class="bi bi-person-fill text-primary me-2"></i>
                   <span class="nav-text">Personal</span>
-                </div>
+                <% end %>
               </li>
               <li class="nav-item">
-                <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
+                <%= link_to admin_client_services_path(service_type: 'loans_home'), class: "nav-link-modern submenu-link #{'active' if params[:service_type] == 'loans_home'}" do %>
                   <i class="bi bi-house-fill text-success me-2"></i>
                   <span class="nav-text">Home</span>
-                </div>
+                <% end %>
               </li>
               <li class="nav-item">
-                <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
+                <%= link_to admin_client_services_path(service_type: 'loans_mortgage'), class: "nav-link-modern submenu-link #{'active' if params[:service_type] == 'loans_mortgage'}" do %>
                   <i class="bi bi-building text-warning me-2"></i>
                   <span class="nav-text">Mortgage</span>
-                </div>
+                <% end %>
               </li>
               <li class="nav-item">
-                <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
+                <%= link_to admin_client_services_path(service_type: 'loans_business'), class: "nav-link-modern submenu-link #{'active' if params[:service_type] == 'loans_business'}" do %>
                   <i class="bi bi-briefcase-fill text-info me-2"></i>
                   <span class="nav-text">Business</span>
-                </div>
+                <% end %>
               </li>
             </ul>
           </div>
@@ -1016,16 +1016,16 @@ body.sidebar-collapsed .main-content {
           <div class="collapse submenu" id="travel-menu">
             <ul class="nav-menu submenu-list">
               <li class="nav-item">
-                <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
+                <%= link_to admin_client_services_path(service_type: 'travel_domestic'), class: "nav-link-modern submenu-link #{'active' if params[:service_type] == 'travel_domestic'}" do %>
                   <i class="bi bi-geo-alt-fill text-primary me-2"></i>
                   <span class="nav-text">Domestic</span>
-                </div>
+                <% end %>
               </li>
               <li class="nav-item">
-                <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
+                <%= link_to admin_client_services_path(service_type: 'travel_international'), class: "nav-link-modern submenu-link #{'active' if params[:service_type] == 'travel_international'}" do %>
                   <i class="bi bi-globe text-success me-2"></i>
                   <span class="nav-text">International</span>
-                </div>
+                <% end %>
               </li>
             </ul>
           </div>
@@ -1045,22 +1045,22 @@ body.sidebar-collapsed .main-content {
           <div class="collapse submenu" id="credit-card-menu">
             <ul class="nav-menu submenu-list">
               <li class="nav-item">
-                <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
+                <%= link_to admin_client_services_path(service_type: 'credit_card_rewards'), class: "nav-link-modern submenu-link #{'active' if params[:service_type] == 'credit_card_rewards'}" do %>
                   <i class="bi bi-star-fill text-warning me-2"></i>
                   <span class="nav-text">Rewards Card</span>
-                </div>
+                <% end %>
               </li>
               <li class="nav-item">
-                <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
+                <%= link_to admin_client_services_path(service_type: 'credit_card_business'), class: "nav-link-modern submenu-link #{'active' if params[:service_type] == 'credit_card_business'}" do %>
                   <i class="bi bi-briefcase-fill text-info me-2"></i>
                   <span class="nav-text">Business Card</span>
-                </div>
+                <% end %>
               </li>
               <li class="nav-item">
-                <div class="nav-link-modern submenu-link disabled" style="cursor: not-allowed; opacity: 0.6;">
+                <%= link_to admin_client_services_path(service_type: 'credit_card_travel'), class: "nav-link-modern submenu-link #{'active' if params[:service_type] == 'credit_card_travel'}" do %>
                   <i class="bi bi-airplane-fill text-primary me-2"></i>
                   <span class="nav-text">Travel Card</span>
-                </div>
+                <% end %>
               </li>
             </ul>
           </div>
