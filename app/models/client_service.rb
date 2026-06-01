@@ -16,28 +16,33 @@ class ClientService < ApplicationRecord
     'travel_international'   => 'International Travel',
     'credit_card_rewards'    => 'Rewards Card',
     'credit_card_business'   => 'Business Card',
-    'credit_card_travel'     => 'Travel Card'
+    'credit_card_travel'     => 'Travel Card',
+    'investments_fd'         => 'Fixed Deposit (FD)',
+    'investments_other'      => 'Other Investment'
   }.freeze
 
   CATEGORY_LABELS = {
-    'taxation'    => 'Taxation',
-    'loans'       => 'Loans',
-    'travel'      => 'Travel',
-    'credit_card' => 'Credit Card'
+    'taxation'     => 'Taxation',
+    'loans'        => 'Loans',
+    'travel'       => 'Travel',
+    'credit_card'  => 'Credit Card',
+    'investments'  => 'Investments'
   }.freeze
 
   CATEGORY_ICONS = {
     'taxation'    => 'bi-calculator',
     'loans'       => 'bi-cash-stack',
     'travel'      => 'bi-airplane',
-    'credit_card' => 'bi-credit-card'
+    'credit_card' => 'bi-credit-card',
+    'investments' => 'bi-graph-up'
   }.freeze
 
   TYPES_BY_CATEGORY = {
     'taxation'    => %w[taxation_itr taxation_tax_planning],
     'loans'       => %w[loans_personal loans_home loans_mortgage loans_business],
     'travel'      => %w[travel_domestic travel_international],
-    'credit_card' => %w[credit_card_rewards credit_card_business credit_card_travel]
+    'credit_card' => %w[credit_card_rewards credit_card_business credit_card_travel],
+    'investments' => %w[investments_fd investments_other]
   }.freeze
 
   validates :customer_id, presence: true
