@@ -3,15 +3,10 @@ require 'ostruct'
 class Admin::AnalyticsController < Admin::ApplicationController
   def index
     setup_filter_dates
-
-    if has_filter_params?
-      # Filtered path always runs fresh queries — no cache involved
-      load_filtered_analytics_data
-    else
-      # Unfiltered path: clear cache only when explicitly requested
-      refresh_analytics_cache if params[:refresh] == 'true'
-      load_analytics_data
-    end
+    # Always use filtered queries so dashboard and analytics show matching data
+    # for the same date range. setup_filter_dates defaults to the current year
+    # when no params are present, which mirrors the dashboard's default behaviour.
+    load_filtered_analytics_data
 
     # AJAX chart-data requests return JSON from the already-loaded instance vars
     if request.xhr? && params[:chart].present?
@@ -27,8 +22,8 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
   private
 
-  # Matches the DrWise tab filter used in every policy list index action.
-  DRWISE = { is_admin_added: true, is_customer_added: false, is_agent_added: false }.freeze
+  # Same filter used by the dashboard dr_scope/dr_filter helpers.
+  DRWISE = { product_through_dr: true }.freeze
 
   def setup_filter_dates
     # Get date filter parameters (default to current year)
