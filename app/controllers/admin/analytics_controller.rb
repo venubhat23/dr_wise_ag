@@ -128,6 +128,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
     @avg_policy_value = @total_policies > 0 ? (@total_premium / @total_policies).round(0) : 0
     @commissions_due = (@commission_summary[:total_commission_due] || 0).to_f
 
+    # Top customers by premium for the filtered period
+    @top_customers_by_premium = calculate_top_customers_by_premium_for_period(start_date, end_date)
+
     # Investor analytics (all-time — investors don't have a policy_start_date)
     @total_investors = Investor.count rescue 0
     @investor_status_distribution = calculate_investor_status_distribution
@@ -324,6 +327,32 @@ class Admin::AnalyticsController < Admin::ApplicationController
     rescue; end
 
     policies.sort_by { |p| p[:date] || Date.new(1900) }.reverse.first(10)
+  end
+
+  def calculate_top_customers_by_premium_for_period(start_date, end_date)
+    range = start_date..end_date
+    totals = Hash.new(0.0)
+
+    [HealthInsurance, LifeInsurance].each do |model|
+      model.where(DRWISE).where(policy_start_date: range)
+           .joins(:customer)
+           .group("CONCAT(customers.first_name, ' ', customers.last_name)")
+           .sum(:net_premium)
+           .each { |name, amt| totals[name.strip] += amt.to_f }
+    end
+
+    begin
+      MotorInsurance.where(DRWISE).where(policy_start_date: range)
+                    .joins(:customer)
+                    .group("CONCAT(customers.first_name, ' ', customers.last_name)")
+                    .sum(:net_premium)
+                    .each { |name, amt| totals[name.strip] += amt.to_f }
+    rescue; end
+
+    totals.sort_by { |_, v| -v }.first(8).to_h
+  rescue => e
+    Rails.logger.error "Error calculating top customers: #{e.message}"
+    {}
   end
 
   def calculate_commission_summary_for_period(start_date, end_date)

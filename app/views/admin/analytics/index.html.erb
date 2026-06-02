@@ -883,13 +883,13 @@
       </div>
     </div>
 
-    <!-- Top Investors by Commission Earned -->
+    <!-- Top Customers by Premium -->
     <div class="chart-card">
       <div class="chart-header">
-        <h3 class="chart-title">Top Investors by Commission Earned</h3>
+        <h3 class="chart-title">Top Customers by Premium</h3>
       </div>
       <div class="chart-container">
-        <canvas id="investorCommissionChart"></canvas>
+        <canvas id="topCustomersChart"></canvas>
       </div>
     </div>
   </div>
@@ -2370,7 +2370,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // ---- Investor Analytics Charts ----
   const investorAmbassadorData = <%= (@top_investors_by_ambassadors || {}).to_json.html_safe %>;
-  const investorCommissionData = <%= (@top_investors_by_commission || {}).to_json.html_safe %>;
   const investorStatusData = <%= (@investor_status_distribution || { 'Active' => 0, 'Inactive' => 0 }).to_json.html_safe %>;
 
   try {
@@ -2421,20 +2420,21 @@ document.addEventListener('DOMContentLoaded', function() {
   } catch(e) { console.error('Investor ambassador chart error:', e); }
 
   try {
-    // Top Investors by Commission Earned (bar chart)
-    const invCommCtx = document.getElementById('investorCommissionChart');
-    if (invCommCtx && Object.keys(investorCommissionData).length > 0) {
-      new Chart(invCommCtx.getContext('2d'), {
+    // Top Customers by Premium (horizontal bar chart)
+    const topCustomersData = <%= (@top_customers_by_premium || {}).to_json.html_safe %>;
+    const topCustomersCtx = document.getElementById('topCustomersChart');
+    if (topCustomersCtx && Object.keys(topCustomersData).length > 0) {
+      new Chart(topCustomersCtx.getContext('2d'), {
         type: 'bar',
         plugins: [ChartDataLabels],
         data: {
-          labels: Object.keys(investorCommissionData),
+          labels: Object.keys(topCustomersData),
           datasets: [{
-            label: 'Commission (Rs.)',
-            data: Object.values(investorCommissionData),
+            label: 'Premium (Rs.)',
+            data: Object.values(topCustomersData),
             backgroundColor: [
-              '#10b981','#059669','#34d399','#047857','#6ee7b7',
-              '#065f46','#a7f3d0','#064e3b','#d1fae5','#022c22'
+              '#3b82f6','#2563eb','#60a5fa','#1d4ed8','#93c5fd',
+              '#1e40af','#bfdbfe','#1e3a8a'
             ],
             borderRadius: 6,
             borderSkipped: false
@@ -2443,37 +2443,38 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          indexAxis: 'y',
           scales: {
-            y: {
+            x: {
               beginAtZero: true,
               grid: { color: '#f1f5f9' },
-              ticks: { callback: (v) => 'Rs. ' + (v/1000).toFixed(0) + 'K' }
+              ticks: { callback: (v) => 'Rs. ' + (v >= 1000 ? (v/1000).toFixed(0) + 'K' : v) }
             },
-            x: { grid: { display: false }, ticks: { maxRotation: 30, font: { size: 10 } } }
+            y: { grid: { display: false }, ticks: { font: { size: 11, weight: 'bold' } } }
           },
           plugins: {
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: (ctx) => 'Commission: Rs. ' + (ctx.raw / 1000).toFixed(1) + 'K'
+                label: (ctx) => 'Premium: Rs. ' + ctx.raw.toLocaleString('en-IN', { maximumFractionDigits: 0 })
               }
             },
             datalabels: {
               color: '#fff', font: { size: 10, weight: 'bold' },
-              formatter: (v) => 'Rs. ' + (v/1000).toFixed(0) + 'K',
-              anchor: 'center', align: 'center'
+              formatter: (v) => 'Rs. ' + (v >= 1000 ? (v/1000).toFixed(0) + 'K' : v),
+              anchor: 'end', align: 'start', offset: 4
             }
           }
         }
       });
-    } else if (invCommCtx) {
-      const ctx2d = invCommCtx.getContext('2d');
+    } else if (topCustomersCtx) {
+      const ctx2d = topCustomersCtx.getContext('2d');
       ctx2d.font = '14px sans-serif';
       ctx2d.fillStyle = '#9ca3af';
       ctx2d.textAlign = 'center';
-      ctx2d.fillText('No commission data available', invCommCtx.width / 2, invCommCtx.height / 2);
+      ctx2d.fillText('No customer data available', topCustomersCtx.width / 2, topCustomersCtx.height / 2);
     }
-  } catch(e) { console.error('Investor commission chart error:', e); }
+  } catch(e) { console.error('Top customers chart error:', e); }
 
   try {
     // Investor Status Distribution (doughnut)
