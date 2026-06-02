@@ -548,19 +548,16 @@ class DashboardController < ApplicationController
   end
 
   def calculate_growth_metrics_for_period(start_date, end_date)
-    # Compare current period with previous period of same duration
-    period_duration = (end_date - start_date).days
-
-    # Handle edge cases for very long periods (like "All Time")
-    # PostgreSQL datetime range is 4713 BC to 294276 AD
-    # We'll limit to reasonable business dates (1900 onwards)
+    # Compare current period with previous period of same duration.
+    # Use .to_i to get integer days; calling .days twice overflows PostgreSQL timestamps.
     min_valid_date = Date.new(1900, 1, 1)
+    days_in_period = (end_date - start_date).to_i
 
-    previous_start = start_date - period_duration.days
-    previous_end = start_date - 1.day
+    previous_end   = start_date - 1.day
+    previous_start = [start_date - days_in_period, min_valid_date].max
 
     # If previous_start is before minimum valid date, adjust the period
-    if previous_start < min_valid_date
+    if previous_start <= min_valid_date
       previous_start = min_valid_date
       # Keep the same duration if possible, otherwise use what's available
       if previous_end < min_valid_date

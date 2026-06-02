@@ -82,28 +82,32 @@ class Admin::AnalyticsController < Admin::ApplicationController
     @last_year = (start_date - 1.year).beginning_of_year
 
     # Core metrics for the filtered period
-    @total_customers = Customer.where(created_at: start_date..end_date).count
-    @total_policies = calculate_total_policies_for_period(start_date, end_date)
-    @total_premium = calculate_total_premium_for_period(start_date, end_date)
-    @total_affiliates = SubAgent.where(created_at: start_date..end_date).count
-    @total_ambassadors = Distributor.where(created_at: start_date..end_date).count
+    # Policies/premium use policy_start_date; people/leads use created_at
+    dt_start = start_date.beginning_of_day
+    dt_end   = end_date.end_of_day
+    @total_customers   = Customer.where(created_at: dt_start..dt_end).count
+    @total_policies    = calculate_total_policies_for_period(start_date, end_date)
+    @total_premium     = calculate_total_premium_for_period(start_date, end_date)
+    @total_affiliates  = SubAgent.where(created_at: dt_start..dt_end).count
+    @total_ambassadors = Distributor.where(created_at: dt_start..dt_end).count
 
     # Growth metrics (compare with previous period of same duration)
-    period_duration = (end_date - start_date).days
-    previous_start = start_date - period_duration.days
-    previous_end = start_date - 1.day
+    # Use .to_i to get integer days; avoid double .days conversion which overflows PostgreSQL
+    days_in_period = (end_date - start_date).to_i
+    previous_end   = start_date - 1.day
+    previous_start = [start_date - days_in_period, Date.new(1900, 1, 1)].max
 
     @customer_growth = calculate_growth_for_period(Customer, start_date, end_date, previous_start, previous_end)
     @policy_growth = calculate_policy_growth_for_period(start_date, end_date, previous_start, previous_end)
     @premium_growth = calculate_premium_growth_for_period(start_date, end_date, previous_start, previous_end)
     @affiliate_growth = calculate_growth_for_period(SubAgent, start_date, end_date, previous_start, previous_end)
 
-    # Policy distribution for the filtered period
+    # Policy distribution for the filtered period (filter by policy_start_date)
     @policy_distribution = {
-      'Life Insurance'   => LifeInsurance.where(DRWISE).where(created_at: start_date..end_date).count,
-      'Health Insurance' => HealthInsurance.where(DRWISE).where(created_at: start_date..end_date).count,
-      'Motor Insurance'  => (MotorInsurance.where(DRWISE).where(created_at: start_date..end_date).count rescue 0),
-      'Other Insurance'  => (OtherInsurance.where(DRWISE).where(created_at: start_date..end_date).count rescue 0)
+      'Life Insurance'   => LifeInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).count,
+      'Health Insurance' => HealthInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).count,
+      'Motor Insurance'  => (MotorInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).count rescue 0),
+      'Other Insurance'  => (OtherInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).count rescue 0)
     }
 
     # Monthly trends within the filtered period (up to 12 months)
@@ -114,7 +118,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
     # Recent activities for the period
     @recent_policies = get_recent_policies_for_period(start_date, end_date)
-    @recent_leads = Lead.where(created_at: start_date..end_date).order(created_at: :desc).limit(10)
+    @recent_leads = Lead.where(created_at: dt_start..dt_end).order(created_at: :desc).limit(10)
 
     # Commission analytics for the period
     @commission_summary = calculate_commission_summary_for_period(start_date, end_date)
@@ -130,9 +134,15 @@ class Admin::AnalyticsController < Admin::ApplicationController
     @customer_location = calculate_customer_location_for_period(start_date, end_date)
 
     # Additional metrics
-    @conversion_rate = calculate_conversion_rate_for_period(start_date, end_date)
+    @conversion_rate = calculate_conversion_rate_for_period(start_date, end_date, dt_start, dt_end)
     @avg_policy_value = @total_policies > 0 ? (@total_premium / @total_policies).round(0) : 0
     @commissions_due = (@commission_summary[:total_commission_due] || 0).to_f
+
+    # Investor analytics (all-time, not filtered by date)
+    @total_investors = Investor.count rescue 0
+    @investor_status_distribution = calculate_investor_status_distribution
+    @top_investors_by_ambassadors = calculate_top_investors_by_ambassadors
+    @top_investors_by_commission = calculate_top_investors_by_commission
 
     # Return the instance variables as a hash for consistency
     {
@@ -146,18 +156,18 @@ class Admin::AnalyticsController < Admin::ApplicationController
   # Helper methods for filtered calculations
   def calculate_total_policies_for_period(start_date, end_date)
     range = start_date..end_date
-    HealthInsurance.where(DRWISE).where(created_at: range).count +
-    LifeInsurance.where(DRWISE).where(created_at: range).count +
-    (MotorInsurance.where(DRWISE).where(created_at: range).count rescue 0) +
-    (OtherInsurance.where(DRWISE).where(created_at: range).count rescue 0)
+    HealthInsurance.where(DRWISE).where(policy_start_date: range).count +
+    LifeInsurance.where(DRWISE).where(policy_start_date: range).count +
+    (MotorInsurance.where(DRWISE).where(policy_start_date: range).count rescue 0) +
+    (OtherInsurance.where(DRWISE).where(policy_start_date: range).count rescue 0)
   end
 
   def calculate_total_premium_for_period(start_date, end_date)
     range = start_date..end_date
-    (HealthInsurance.where(DRWISE).where(created_at: range).sum(:net_premium) || 0) +
-    (LifeInsurance.where(DRWISE).where(created_at: range).sum(:net_premium) || 0) +
-    (MotorInsurance.where(DRWISE).where(created_at: range).sum(:net_premium) || 0 rescue 0) +
-    (OtherInsurance.where(DRWISE).where(created_at: range).sum(:net_premium) || 0 rescue 0)
+    (HealthInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0) +
+    (LifeInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0) +
+    (MotorInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0 rescue 0) +
+    (OtherInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0 rescue 0)
   end
 
   def calculate_growth_for_period(model, current_start, current_end, previous_start, previous_end)
@@ -192,11 +202,12 @@ class Admin::AnalyticsController < Admin::ApplicationController
       month_end = [current_date.end_of_month, end_date].min
       month_name = current_date.strftime('%b %Y')
 
+      # Customers and leads filter by created_at; policies/premium by policy_start_date
       trends[month_name] = {
-        customers: Customer.where(created_at: current_date..month_end).count,
-        policies: calculate_policies_for_month_in_period(current_date, month_end),
-        premium: calculate_premium_for_month_in_period(current_date, month_end),
-        leads: Lead.where(created_at: current_date..month_end).count
+        customers: Customer.where(created_at: current_date.beginning_of_day..month_end.end_of_day).count,
+        policies:  calculate_policies_for_month_in_period(current_date, month_end),
+        premium:   calculate_premium_for_month_in_period(current_date, month_end),
+        leads:     Lead.where(created_at: current_date.beginning_of_day..month_end.end_of_day).count
       }
 
       current_date = current_date.next_month.beginning_of_month
@@ -207,26 +218,26 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
   def calculate_policies_for_month_in_period(month_start, month_end)
     range = month_start..month_end
-    HealthInsurance.where(DRWISE).where(created_at: range).count +
-    LifeInsurance.where(DRWISE).where(created_at: range).count +
-    (MotorInsurance.where(DRWISE).where(created_at: range).count rescue 0) +
-    (OtherInsurance.where(DRWISE).where(created_at: range).count rescue 0)
+    HealthInsurance.where(DRWISE).where(policy_start_date: range).count +
+    LifeInsurance.where(DRWISE).where(policy_start_date: range).count +
+    (MotorInsurance.where(DRWISE).where(policy_start_date: range).count rescue 0) +
+    (OtherInsurance.where(DRWISE).where(policy_start_date: range).count rescue 0)
   end
 
   def calculate_premium_for_month_in_period(month_start, month_end)
     range = month_start..month_end
-    HealthInsurance.where(DRWISE).where(created_at: range).sum(:net_premium) +
-    LifeInsurance.where(DRWISE).where(created_at: range).sum(:net_premium) +
-    (MotorInsurance.where(DRWISE).where(created_at: range).sum(:net_premium) || 0 rescue 0) +
-    (OtherInsurance.where(DRWISE).where(created_at: range).sum(:net_premium) || 0 rescue 0)
+    HealthInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) +
+    LifeInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) +
+    (MotorInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0 rescue 0) +
+    (OtherInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0 rescue 0)
   end
 
   def calculate_top_affiliates_for_period(start_date, end_date)
     # Optimized query to avoid N+1 - calculate all at once using SQL
     affiliate_data = SubAgent.joins(
-      "LEFT JOIN health_insurances hi ON hi.sub_agent_id = sub_agents.id AND hi.created_at BETWEEN '#{start_date}' AND '#{end_date}'" +
-      " LEFT JOIN life_insurances li ON li.sub_agent_id = sub_agents.id AND li.created_at BETWEEN '#{start_date}' AND '#{end_date}'" +
-      " LEFT JOIN motor_insurances mi ON mi.sub_agent_id = sub_agents.id AND mi.created_at BETWEEN '#{start_date}' AND '#{end_date}'"
+      "LEFT JOIN health_insurances hi ON hi.sub_agent_id = sub_agents.id AND hi.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'" +
+      " LEFT JOIN life_insurances li ON li.sub_agent_id = sub_agents.id AND li.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'" +
+      " LEFT JOIN motor_insurances mi ON mi.sub_agent_id = sub_agents.id AND mi.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'"
     )
     .select("sub_agents.id, sub_agents.first_name, sub_agents.last_name, sub_agents.status,
              (COALESCE(COUNT(DISTINCT hi.id), 0) + COALESCE(COUNT(DISTINCT li.id), 0) + COALESCE(COUNT(DISTINCT mi.id), 0)) as policies_count")
@@ -250,45 +261,49 @@ class Admin::AnalyticsController < Admin::ApplicationController
   def get_recent_policies_for_period(start_date, end_date)
     policies = []
 
-    HealthInsurance.includes(:customer).where(created_at: start_date..end_date).order(created_at: :desc).limit(3).each do |policy|
+    HealthInsurance.includes(:customer).where(policy_start_date: start_date..end_date).order(policy_start_date: :desc).limit(3).each do |policy|
       policies << {
         type: 'Health Insurance',
         customer: policy.customer&.display_name&.presence || 'Unknown',
         policy_number: policy.policy_number,
         premium: policy.net_premium.to_f,
-        date: policy.created_at
+        date: policy.policy_start_date
       }
     end
 
-    LifeInsurance.includes(:customer).where(created_at: start_date..end_date).order(created_at: :desc).limit(3).each do |policy|
+    LifeInsurance.includes(:customer).where(policy_start_date: start_date..end_date).order(policy_start_date: :desc).limit(3).each do |policy|
       policies << {
         type: 'Life Insurance',
         customer: policy.customer&.display_name&.presence || 'Unknown',
         policy_number: policy.policy_number,
         premium: policy.net_premium.to_f,
-        date: policy.created_at
+        date: policy.policy_start_date
       }
     end
 
-    MotorInsurance.includes(:customer).where(created_at: start_date..end_date).order(created_at: :desc).limit(2).each do |policy|
-      policies << {
-        type: 'Motor Insurance',
-        customer: policy.customer&.display_name&.presence || 'Unknown',
-        policy_number: policy.policy_number,
-        premium: policy.net_premium.to_f,
-        date: policy.created_at
-      }
-    end
+    begin
+      MotorInsurance.includes(:customer).where(policy_start_date: start_date..end_date).order(policy_start_date: :desc).limit(2).each do |policy|
+        policies << {
+          type: 'Motor Insurance',
+          customer: policy.customer&.display_name&.presence || 'Unknown',
+          policy_number: policy.policy_number,
+          premium: policy.net_premium.to_f,
+          date: policy.policy_start_date
+        }
+      end
+    rescue; end
 
-    policies.sort_by { |p| p[:date] || Time.at(0) }.reverse.first(10)
+    policies.sort_by { |p| p[:date] || Date.new(1900) }.reverse.first(10)
   end
 
   def calculate_commission_summary_for_period(start_date, end_date)
+    dt_start = start_date.beginning_of_day
+    dt_end   = end_date.end_of_day
     {
-      total_commission_due: CommissionPayout.where(status: 'pending', created_at: start_date..end_date).sum(:payout_amount),
-      total_commission_paid: CommissionPayout.where(status: 'paid', created_at: start_date..end_date).sum(:payout_amount),
-      affiliate_commissions: CommissionPayout.where(payout_to: 'sub_agent', status: 'pending', created_at: start_date..end_date).sum(:payout_amount),
-      ambassador_commissions: CommissionPayout.where(payout_to: 'ambassador', status: 'pending', created_at: start_date..end_date).sum(:payout_amount)
+      total_commission_due:    CommissionPayout.where(status: 'pending', created_at: dt_start..dt_end).sum(:payout_amount),
+      total_commission_paid:   CommissionPayout.where(status: 'paid',    created_at: dt_start..dt_end).sum(:payout_amount),
+      affiliate_commissions:   CommissionPayout.where(payout_to: 'sub_agent',  status: 'pending', created_at: dt_start..dt_end).sum(:payout_amount),
+      ambassador_commissions:  CommissionPayout.where(payout_to: 'ambassador', status: 'pending', created_at: dt_start..dt_end).sum(:payout_amount)
     }
   end
 
@@ -304,38 +319,39 @@ class Admin::AnalyticsController < Admin::ApplicationController
     }
   end
 
-  def calculate_expiring_policies_for_period(created_start, created_end, expiry_start, expiry_end)
-    HealthInsurance.where(created_at: created_start..created_end, policy_end_date: expiry_start..expiry_end).count +
-    LifeInsurance.where(created_at: created_start..created_end, policy_end_date: expiry_start..expiry_end).count +
-    MotorInsurance.where(created_at: created_start..created_end, policy_end_date: expiry_start..expiry_end).count +
-    OtherInsurance.where(created_at: created_start..created_end, policy_end_date: expiry_start..expiry_end).count
+  def calculate_expiring_policies_for_period(policy_start, policy_end, expiry_start, expiry_end)
+    HealthInsurance.where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count +
+    LifeInsurance.where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count +
+    (MotorInsurance.where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count rescue 0) +
+    (OtherInsurance.where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count rescue 0)
   end
 
   def calculate_expired_policies_for_period(start_date, end_date)
-    HealthInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', Date.current).count +
-    LifeInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', Date.current).count +
-    MotorInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', Date.current).count +
-    OtherInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', Date.current).count
+    HealthInsurance.where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count +
+    LifeInsurance.where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count +
+    (MotorInsurance.where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count rescue 0) +
+    (OtherInsurance.where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count rescue 0)
   end
 
   def calculate_renewal_rate_for_period(start_date, end_date)
-    # Calculate renewal rate for policies created in the period
-    total_eligible = LifeInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', Date.current).count +
-                     HealthInsurance.where(created_at: start_date..end_date).where('policy_end_date < ?', Date.current).count
-    renewed = LifeInsurance.where(created_at: start_date..end_date, policy_type: 'Renewal').count +
-              HealthInsurance.where(created_at: start_date..end_date, policy_type: 'Renewal').count
+    total_eligible = LifeInsurance.where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count +
+                     HealthInsurance.where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count
+    renewed = LifeInsurance.where(policy_start_date: start_date..end_date, policy_type: 'Renewal').count +
+              HealthInsurance.where(policy_start_date: start_date..end_date, policy_type: 'Renewal').count
 
     return 0 if total_eligible == 0
     ((renewed.to_f / total_eligible.to_f) * 100).round(1)
   end
 
   def calculate_lead_conversion_funnel_for_period(start_date, end_date)
+    dt_start = start_date.beginning_of_day
+    dt_end   = end_date.end_of_day
     {
-      'Lead Generated'           => Lead.where(created_at: start_date..end_date).count,
-      'Consultation Scheduled'   => Lead.where(created_at: start_date..end_date, current_stage: %w[consultation_scheduled one_on_one follow_up follow_up_successful re_follow_up converted]).count,
-      'One on One'               => Lead.where(created_at: start_date..end_date, current_stage: %w[one_on_one follow_up follow_up_successful re_follow_up converted]).count,
-      'Follow Up'                => Lead.where(created_at: start_date..end_date, current_stage: %w[follow_up follow_up_successful re_follow_up converted]).count,
-      'Converted'                => Lead.where(created_at: start_date..end_date, current_stage: 'converted').count
+      'Lead Generated'           => Lead.where(created_at: dt_start..dt_end).count,
+      'Consultation Scheduled'   => Lead.where(created_at: dt_start..dt_end, current_stage: %w[consultation_scheduled one_on_one follow_up follow_up_successful re_follow_up converted]).count,
+      'One on One'               => Lead.where(created_at: dt_start..dt_end, current_stage: %w[one_on_one follow_up follow_up_successful re_follow_up converted]).count,
+      'Follow Up'                => Lead.where(created_at: dt_start..dt_end, current_stage: %w[follow_up follow_up_successful re_follow_up converted]).count,
+      'Converted'                => Lead.where(created_at: dt_start..dt_end, current_stage: 'converted').count
     }
   rescue => e
     Rails.logger.error "Error calculating lead conversion funnel for period: #{e.message}"
@@ -343,16 +359,18 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_lead_stage_distribution_for_period(start_date, end_date)
+    dt_start = start_date.beginning_of_day
+    dt_end   = end_date.end_of_day
     {
-      'Lead Generated'         => Lead.where(created_at: start_date..end_date, current_stage: 'lead_generated').count,
-      'Consultation Scheduled' => Lead.where(created_at: start_date..end_date, current_stage: 'consultation_scheduled').count,
-      'One on One'             => Lead.where(created_at: start_date..end_date, current_stage: 'one_on_one').count,
-      'Follow Up'              => Lead.where(created_at: start_date..end_date, current_stage: %w[follow_up re_follow_up]).count,
-      'Follow Up Successful'   => Lead.where(created_at: start_date..end_date, current_stage: 'follow_up_successful').count,
-      'Follow Up Unsuccessful' => Lead.where(created_at: start_date..end_date, current_stage: 'follow_up_unsuccessful').count,
-      'Not Interested'         => Lead.where(created_at: start_date..end_date, current_stage: 'not_interested').count,
-      'Converted'              => Lead.where(created_at: start_date..end_date, current_stage: 'converted').count,
-      'Lead Closed'            => Lead.where(created_at: start_date..end_date, current_stage: 'lead_closed').count
+      'Lead Generated'         => Lead.where(created_at: dt_start..dt_end, current_stage: 'lead_generated').count,
+      'Consultation Scheduled' => Lead.where(created_at: dt_start..dt_end, current_stage: 'consultation_scheduled').count,
+      'One on One'             => Lead.where(created_at: dt_start..dt_end, current_stage: 'one_on_one').count,
+      'Follow Up'              => Lead.where(created_at: dt_start..dt_end, current_stage: %w[follow_up re_follow_up]).count,
+      'Follow Up Successful'   => Lead.where(created_at: dt_start..dt_end, current_stage: 'follow_up_successful').count,
+      'Follow Up Unsuccessful' => Lead.where(created_at: dt_start..dt_end, current_stage: 'follow_up_unsuccessful').count,
+      'Not Interested'         => Lead.where(created_at: dt_start..dt_end, current_stage: 'not_interested').count,
+      'Converted'              => Lead.where(created_at: dt_start..dt_end, current_stage: 'converted').count,
+      'Lead Closed'            => Lead.where(created_at: dt_start..dt_end, current_stage: 'lead_closed').count
     }
   rescue => e
     Rails.logger.error "Error calculating lead stage distribution for period: #{e.message}"
@@ -362,36 +380,34 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_customer_location_for_period(start_date, end_date)
+    dt_start = start_date.beginning_of_day
+    dt_end   = end_date.end_of_day
     location_data = {}
 
-    # Group customers by city for the period
-    Customer.where(created_at: start_date..end_date).group(:city).count.each do |city, count|
+    Customer.where(created_at: dt_start..dt_end).group(:city).count.each do |city, count|
       next if city.blank?
       location_data[city.to_s.titleize] = count
     end
 
-    # If no city data, try state
     if location_data.empty?
-      Customer.where(created_at: start_date..end_date).group(:state).count.each do |state, count|
+      Customer.where(created_at: dt_start..dt_end).group(:state).count.each do |state, count|
         next if state.blank?
         location_data[state.to_s.titleize] = count
       end
     end
 
-    # If still no data, provide a default
-    if location_data.empty?
-      location_data = { 'Unknown' => Customer.where(created_at: start_date..end_date).count }
-    end
-
+    location_data = { 'Unknown' => Customer.where(created_at: dt_start..dt_end).count } if location_data.empty?
     location_data
   rescue => e
     Rails.logger.error "Error calculating customer location for period: #{e.message}"
-    { 'Unknown' => Customer.where(created_at: start_date..end_date).count }
+    { 'Unknown' => 0 }
   end
 
-  def calculate_conversion_rate_for_period(start_date, end_date)
-    total_leads = Lead.where(created_at: start_date..end_date).count
-    converted = Lead.where(created_at: start_date..end_date, current_stage: 'converted').count
+  def calculate_conversion_rate_for_period(start_date, end_date, dt_start = nil, dt_end = nil)
+    dt_start ||= start_date.beginning_of_day
+    dt_end   ||= end_date.end_of_day
+    total_leads = Lead.where(created_at: dt_start..dt_end).count
+    converted   = Lead.where(created_at: dt_start..dt_end, current_stage: 'converted').count
 
     return 0 if total_leads == 0
     ((converted.to_f / total_leads.to_f) * 100).round(1)
@@ -554,6 +570,12 @@ class Admin::AnalyticsController < Admin::ApplicationController
     @claims_processing = calculate_claims_processing
     @client_requests_count = calculate_client_requests_count
 
+    # Investor analytics
+    @total_investors = Investor.count rescue 0
+    @investor_status_distribution = calculate_investor_status_distribution
+    @top_investors_by_ambassadors = calculate_top_investors_by_ambassadors
+    @top_investors_by_commission = calculate_top_investors_by_commission
+
     # Cache the calculated data
     analytics_data = {
       current_month: @current_month,
@@ -594,7 +616,11 @@ class Admin::AnalyticsController < Admin::ApplicationController
       support_tickets: @support_tickets,
       docs_pending: @docs_pending,
       claims_processing: @claims_processing,
-      client_requests_count: @client_requests_count
+      client_requests_count: @client_requests_count,
+      total_investors: @total_investors,
+      investor_status_distribution: @investor_status_distribution,
+      top_investors_by_ambassadors: @top_investors_by_ambassadors,
+      top_investors_by_commission: @top_investors_by_commission
     }
 
     AnalyticsCache.cache_analytics_data(cache_identifier, analytics_data)
@@ -660,6 +686,10 @@ class Admin::AnalyticsController < Admin::ApplicationController
     @docs_pending = cached_data['docs_pending'] || 0
     @claims_processing = cached_data['claims_processing'] || 0
     @client_requests_count = cached_data['client_requests_count'] || 0
+    @total_investors = cached_data['total_investors'] || 0
+    @investor_status_distribution = cached_data['investor_status_distribution'] || { 'Active' => 0, 'Inactive' => 0 }
+    @top_investors_by_ambassadors = cached_data['top_investors_by_ambassadors'] || {}
+    @top_investors_by_commission = cached_data['top_investors_by_commission'] || {}
   end
 
   def set_cache_info(cache_identifier)
@@ -698,15 +728,15 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_premium_growth
-    current_premium = HealthInsurance.where(product_through_dr: true, created_at: @current_month..).sum(:net_premium) +
-                      LifeInsurance.where(product_through_dr: true, created_at: @current_month..).sum(:net_premium) +
-                      (MotorInsurance.where(created_at: @current_month..).sum(:net_premium) || 0 rescue 0) +
-                      (OtherInsurance.where(created_at: @current_month..).sum(:net_premium) || 0 rescue 0)
+    current_premium = HealthInsurance.where(product_through_dr: true, policy_start_date: @current_month..).sum(:net_premium) +
+                      LifeInsurance.where(product_through_dr: true, policy_start_date: @current_month..).sum(:net_premium) +
+                      (MotorInsurance.where(policy_start_date: @current_month..).sum(:net_premium) || 0 rescue 0) +
+                      (OtherInsurance.where(policy_start_date: @current_month..).sum(:net_premium) || 0 rescue 0)
 
-    previous_premium = HealthInsurance.where(product_through_dr: true, created_at: @last_month..(@current_month - 1.day)).sum(:net_premium) +
-                       LifeInsurance.where(product_through_dr: true, created_at: @last_month..(@current_month - 1.day)).sum(:net_premium) +
-                       (MotorInsurance.where(created_at: @last_month..(@current_month - 1.day)).sum(:net_premium) || 0 rescue 0) +
-                       (OtherInsurance.where(created_at: @last_month..(@current_month - 1.day)).sum(:net_premium) || 0 rescue 0)
+    previous_premium = HealthInsurance.where(product_through_dr: true, policy_start_date: @last_month..(@current_month - 1.day)).sum(:net_premium) +
+                       LifeInsurance.where(product_through_dr: true, policy_start_date: @last_month..(@current_month - 1.day)).sum(:net_premium) +
+                       (MotorInsurance.where(policy_start_date: @last_month..(@current_month - 1.day)).sum(:net_premium) || 0 rescue 0) +
+                       (OtherInsurance.where(policy_start_date: @last_month..(@current_month - 1.day)).sum(:net_premium) || 0 rescue 0)
 
     return 0 if previous_premium == 0
     ((current_premium.to_f - previous_premium.to_f) / previous_premium.to_f * 100).round(1)
@@ -718,11 +748,12 @@ class Admin::AnalyticsController < Admin::ApplicationController
       month_date = (Date.current - i.months).beginning_of_month
       month_name = month_date.strftime('%b %Y')
 
+      dt_range = month_date.beginning_of_day..(month_date.end_of_month.end_of_day)
       trends[month_name] = {
-        customers: Customer.where(created_at: month_date..(month_date.end_of_month)).count,
-        policies: calculate_policies_for_month(month_date),
-        premium: calculate_premium_for_month(month_date),
-        leads: Lead.where(created_at: month_date..(month_date.end_of_month)).count
+        customers: Customer.where(created_at: dt_range).count,
+        policies:  calculate_policies_for_month(month_date),
+        premium:   calculate_premium_for_month(month_date),
+        leads:     Lead.where(created_at: dt_range).count
       }
     end
     trends.to_a.reverse.to_h
@@ -730,18 +761,18 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
   def calculate_policies_for_month(month_date)
     range = month_date..(month_date.end_of_month)
-    HealthInsurance.where(DRWISE).where(created_at: range).count +
-    LifeInsurance.where(DRWISE).where(created_at: range).count +
-    (MotorInsurance.where(DRWISE).where(created_at: range).count rescue 0) +
-    (OtherInsurance.where(DRWISE).where(created_at: range).count rescue 0)
+    HealthInsurance.where(DRWISE).where(policy_start_date: range).count +
+    LifeInsurance.where(DRWISE).where(policy_start_date: range).count +
+    (MotorInsurance.where(DRWISE).where(policy_start_date: range).count rescue 0) +
+    (OtherInsurance.where(DRWISE).where(policy_start_date: range).count rescue 0)
   end
 
   def calculate_premium_for_month(month_date)
     range = month_date..(month_date.end_of_month)
-    HealthInsurance.where(DRWISE).where(created_at: range).sum(:net_premium) +
-    LifeInsurance.where(DRWISE).where(created_at: range).sum(:net_premium) +
-    (MotorInsurance.where(DRWISE).where(created_at: range).sum(:net_premium) || 0 rescue 0) +
-    (OtherInsurance.where(DRWISE).where(created_at: range).sum(:net_premium) || 0 rescue 0)
+    HealthInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) +
+    LifeInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) +
+    (MotorInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0 rescue 0) +
+    (OtherInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0 rescue 0)
   end
 
   def calculate_top_affiliates
@@ -1071,9 +1102,9 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
       # Calculate total premium for the month across all DrWise insurance types
       range = month_date..(month_date.end_of_month)
-      health_premium = HealthInsurance.where(DRWISE).where(created_at: range).sum(:net_premium)
-      life_premium   = LifeInsurance.where(DRWISE).where(created_at: range).sum(:net_premium)
-      motor_premium  = MotorInsurance.where(DRWISE).where(created_at: range).sum(:net_premium)
+      health_premium = HealthInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium)
+      life_premium   = LifeInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium)
+      motor_premium  = (MotorInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) rescue 0)
 
       total_premium = health_premium + life_premium + motor_premium
       trend_data[month_name] = total_premium.round(0)
@@ -1183,5 +1214,51 @@ class Admin::AnalyticsController < Admin::ApplicationController
   rescue => e
     Rails.logger.error "Error calculating client requests: #{e.message}"
     0
+  end
+
+  def calculate_investor_status_distribution
+    # nil status is treated as active (default)
+    active_count = Investor.where(status: [0, nil]).count
+    inactive_count = Investor.where(status: 1).count
+    { 'Active' => active_count, 'Inactive' => inactive_count }
+  rescue => e
+    Rails.logger.error "Error calculating investor status distribution: #{e.message}"
+    { 'Active' => 0, 'Inactive' => 0 }
+  end
+
+  def calculate_top_investors_by_ambassadors
+    return {} unless Distributor.column_names.include?('investor_id')
+
+    result = {}
+    Investor.joins("LEFT JOIN distributors ON distributors.investor_id = investors.id")
+            .group('investors.id, investors.first_name, investors.last_name')
+            .select('investors.id, investors.first_name, investors.last_name, COUNT(distributors.id) as ambassador_count')
+            .order('ambassador_count DESC')
+            .limit(10)
+            .each do |inv|
+      name = "#{inv.first_name} #{inv.last_name}".strip
+      result[name] = inv.ambassador_count.to_i
+    end
+    result
+  rescue => e
+    Rails.logger.error "Error calculating top investors by ambassadors: #{e.message}"
+    {}
+  end
+
+  def calculate_top_investors_by_commission
+    investor_commissions = {}
+    [HealthInsurance, MotorInsurance].each do |model|
+      model.where.not(investor_id: nil)
+           .joins("JOIN investors ON investors.id = #{model.table_name}.investor_id")
+           .group("CONCAT(investors.first_name, ' ', investors.last_name)")
+           .sum(:investor_commission_amount)
+           .each do |name, commission|
+        investor_commissions[name] = (investor_commissions[name] || 0) + commission.to_f
+      end
+    end
+    investor_commissions.sort_by { |_, v| -v }.first(10).to_h
+  rescue => e
+    Rails.logger.error "Error calculating top investors by commission: #{e.message}"
+    {}
   end
 end

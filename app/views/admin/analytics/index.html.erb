@@ -567,6 +567,15 @@
       <div class="kpi-label">Total Premium</div>
     </div>
 
+    <!-- Total Investors -->
+    <div class="kpi-card" style="--card-color: #8b5cf6;">
+      <div class="kpi-icon purple-gradient">
+        <i class="bi bi-graph-up-arrow"></i>
+      </div>
+      <div class="kpi-value"><%= number_with_delimiter(@total_investors || 0) %></div>
+      <div class="kpi-label">Total Investors</div>
+    </div>
+
     <!-- Total Affiliates -->
     <div class="kpi-card" style="--card-color: #ec4899; position: relative;">
       <button class="btn btn-link btn-sm p-0"
@@ -865,6 +874,78 @@
           <% end %>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- Investor Analytics Section -->
+  <div class="charts-grid">
+    <!-- Top Investors by Ambassador Count -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3 class="chart-title">Top Investors by Ambassador Count</h3>
+      </div>
+      <div class="chart-container">
+        <canvas id="investorAmbassadorChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Top Investors by Commission Earned -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3 class="chart-title">Top Investors by Commission Earned</h3>
+      </div>
+      <div class="chart-container">
+        <canvas id="investorCommissionChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Investor Status + Top Investors Table -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3 class="chart-title">Investor Status Distribution</h3>
+      <div class="chart-container">
+        <canvas id="investorStatusChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-title">Top Investors Overview</h3>
+      <div class="table-responsive" style="margin-top: 0.5rem;">
+        <table style="font-size: 0.875rem;">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Investor Name</th>
+              <th>Ambassadors</th>
+              <th>Commission Earned</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%
+              # Merge ambassador and commission data
+              all_investor_names = ((@top_investors_by_ambassadors || {}).keys + (@top_investors_by_commission || {}).keys).uniq.first(8)
+            %>
+            <% all_investor_names.each_with_index do |name, idx| %>
+              <tr>
+                <td style="color: #6b7280; font-weight: 600;"><%= idx + 1 %></td>
+                <td style="font-weight: 600;"><%= name %></td>
+                <td>
+                  <span class="badge bg-purple" style="background: #8b5cf6;">
+                    <%= (@top_investors_by_ambassadors || {})[name] || 0 %>
+                  </span>
+                </td>
+                <td><%= indian_currency(((@top_investors_by_commission || {})[name] || 0).to_f) %></td>
+              </tr>
+            <% end %>
+            <% if all_investor_names.empty? %>
+              <tr>
+                <td colspan="4" class="text-center text-muted">No investor data found</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -2288,6 +2369,148 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
   });
+
+  // ---- Investor Analytics Charts ----
+  const investorAmbassadorData = <%= (@top_investors_by_ambassadors || {}).to_json.html_safe %>;
+  const investorCommissionData = <%= (@top_investors_by_commission || {}).to_json.html_safe %>;
+  const investorStatusData = <%= (@investor_status_distribution || { 'Active' => 0, 'Inactive' => 0 }).to_json.html_safe %>;
+
+  try {
+    // Top Investors by Ambassador Count (horizontal bar)
+    const invAmbCtx = document.getElementById('investorAmbassadorChart');
+    if (invAmbCtx && Object.keys(investorAmbassadorData).length > 0) {
+      new Chart(invAmbCtx.getContext('2d'), {
+        type: 'bar',
+        plugins: [ChartDataLabels],
+        data: {
+          labels: Object.keys(investorAmbassadorData),
+          datasets: [{
+            label: 'Ambassadors',
+            data: Object.values(investorAmbassadorData),
+            backgroundColor: [
+              '#8b5cf6','#7c3aed','#a78bfa','#6d28d9','#ddd6fe',
+              '#4c1d95','#c4b5fd','#5b21b6','#ede9fe','#4338ca'
+            ],
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          scales: {
+            x: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+            y: { grid: { display: false }, ticks: { font: { weight: 'bold' } } }
+          },
+          plugins: {
+            legend: { display: false },
+            datalabels: {
+              color: '#fff', font: { size: 11, weight: 'bold' },
+              formatter: (v) => v,
+              anchor: 'end', align: 'start', offset: 4
+            }
+          }
+        }
+      });
+    } else if (invAmbCtx) {
+      const ctx2d = invAmbCtx.getContext('2d');
+      ctx2d.font = '14px sans-serif';
+      ctx2d.fillStyle = '#9ca3af';
+      ctx2d.textAlign = 'center';
+      ctx2d.fillText('No ambassador data available', invAmbCtx.width / 2, invAmbCtx.height / 2);
+    }
+  } catch(e) { console.error('Investor ambassador chart error:', e); }
+
+  try {
+    // Top Investors by Commission Earned (bar chart)
+    const invCommCtx = document.getElementById('investorCommissionChart');
+    if (invCommCtx && Object.keys(investorCommissionData).length > 0) {
+      new Chart(invCommCtx.getContext('2d'), {
+        type: 'bar',
+        plugins: [ChartDataLabels],
+        data: {
+          labels: Object.keys(investorCommissionData),
+          datasets: [{
+            label: 'Commission (Rs.)',
+            data: Object.values(investorCommissionData),
+            backgroundColor: [
+              '#10b981','#059669','#34d399','#047857','#6ee7b7',
+              '#065f46','#a7f3d0','#064e3b','#d1fae5','#022c22'
+            ],
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' },
+              ticks: { callback: (v) => 'Rs. ' + (v/1000).toFixed(0) + 'K' }
+            },
+            x: { grid: { display: false }, ticks: { maxRotation: 30, font: { size: 10 } } }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => 'Commission: Rs. ' + (ctx.raw / 1000).toFixed(1) + 'K'
+              }
+            },
+            datalabels: {
+              color: '#fff', font: { size: 10, weight: 'bold' },
+              formatter: (v) => 'Rs. ' + (v/1000).toFixed(0) + 'K',
+              anchor: 'center', align: 'center'
+            }
+          }
+        }
+      });
+    } else if (invCommCtx) {
+      const ctx2d = invCommCtx.getContext('2d');
+      ctx2d.font = '14px sans-serif';
+      ctx2d.fillStyle = '#9ca3af';
+      ctx2d.textAlign = 'center';
+      ctx2d.fillText('No commission data available', invCommCtx.width / 2, invCommCtx.height / 2);
+    }
+  } catch(e) { console.error('Investor commission chart error:', e); }
+
+  try {
+    // Investor Status Distribution (doughnut)
+    const invStatusCtx = document.getElementById('investorStatusChart');
+    if (invStatusCtx) {
+      new Chart(invStatusCtx.getContext('2d'), {
+        type: 'doughnut',
+        plugins: [ChartDataLabels],
+        data: {
+          labels: Object.keys(investorStatusData),
+          datasets: [{
+            data: Object.values(investorStatusData),
+            backgroundColor: ['#10b981', '#ef4444'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, font: { size: 12 } } },
+            datalabels: {
+              color: '#fff', font: { size: 14, weight: 'bold' },
+              formatter: (value, context) => {
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                if (total === 0) return '0';
+                return value + '\n(' + ((value / total) * 100).toFixed(0) + '%)';
+              },
+              anchor: 'center', align: 'center'
+            }
+          }
+        }
+      });
+    }
+  } catch(e) { console.error('Investor status chart error:', e); }
 
   // Final initialization summary
   console.log('🎯 ===== ANALYTICS CHARTS INITIALIZATION COMPLETE =====');
