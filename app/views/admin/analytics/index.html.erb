@@ -597,7 +597,7 @@
   <!-- Premium Revenue Trend - New Line Chart -->
   <div class="chart-card" style="margin-bottom: 2rem;">
     <div class="chart-header">
-      <h3 class="chart-title">Premium Revenue Trend (Last 12 Months)</h3>
+      <h3 class="chart-title">Premium Revenue Trend (<%= @filter_start_date&.strftime('%b %Y') %> – <%= @filter_end_date&.strftime('%b %Y') %>)</h3>
       <div class="chart-actions">
         <button class="chart-action-btn" onclick="toggleChartType('premiumRevenueTrendChart', 'line', 'bar')" title="Toggle Chart Type">
           <i class="bi bi-bar-chart"></i>
@@ -2179,8 +2179,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (chartCard) {
       showChartLoading(chartCard.querySelector('canvas').id);
 
-      // Make AJAX request to refresh chart data
-      fetch('/admin/analytics?refresh=true&chart=' + chartName, {
+      // Preserve current filter params so chart refresh uses the same date range
+      const currentParams = new URLSearchParams(window.location.search);
+      currentParams.set('refresh', 'true');
+      currentParams.set('chart', chartName);
+
+      fetch('/admin/analytics?' + currentParams.toString(), {
         headers: {
           'Accept': 'application/json',
           'X-Requested-With': 'XMLHttpRequest'

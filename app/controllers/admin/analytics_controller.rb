@@ -2,25 +2,20 @@ require 'ostruct'
 
 class Admin::AnalyticsController < Admin::ApplicationController
   def index
-    # Handle date filter parameters
     setup_filter_dates
 
-    # Check for refresh parameter
-    if params[:refresh] == 'true'
-      refresh_analytics_cache
-    end
-
-    # Load analytics data (filtered or cached)
     if has_filter_params?
+      # Filtered path always runs fresh queries — no cache involved
       load_filtered_analytics_data
     else
+      # Unfiltered path: clear cache only when explicitly requested
+      refresh_analytics_cache if params[:refresh] == 'true'
       load_analytics_data
     end
 
-    # Handle AJAX requests for chart data
+    # AJAX chart-data requests return JSON from the already-loaded instance vars
     if request.xhr? && params[:chart].present?
-      chart_name = params[:chart]
-      render json: get_chart_data(chart_name)
+      render json: get_chart_data(params[:chart])
       return
     end
   end
@@ -138,13 +133,53 @@ class Admin::AnalyticsController < Admin::ApplicationController
     @avg_policy_value = @total_policies > 0 ? (@total_premium / @total_policies).round(0) : 0
     @commissions_due = (@commission_summary[:total_commission_due] || 0).to_f
 
-    # Investor analytics (all-time, not filtered by date)
+    # Investor analytics (all-time — investors don't have a policy_start_date)
     @total_investors = Investor.count rescue 0
     @investor_status_distribution = calculate_investor_status_distribution
     @top_investors_by_ambassadors = calculate_top_investors_by_ambassadors
     @top_investors_by_commission = calculate_top_investors_by_commission
 
-    # Return the instance variables as a hash for consistency
+    # Premium revenue trend for the filtered period (month-by-month within the range)
+    @premium_revenue_trend = {}
+    cur = start_date.beginning_of_month
+    while cur <= end_date
+      m_start = [cur, start_date].max
+      m_end   = [cur.end_of_month, end_date].min
+      range   = m_start..m_end
+      h = HealthInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium)
+      l = LifeInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium)
+      m = (MotorInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) rescue 0)
+      @premium_revenue_trend[cur.strftime('%b %Y')] = (h + l + m).round(0)
+      cur = cur.next_month
+    end
+
+    # Customer acquisition trend for the filtered period
+    @customer_acquisition_trend = {}
+    cur = start_date.beginning_of_month
+    while cur <= end_date
+      m_start = [cur, start_date].max.beginning_of_day
+      m_end   = [cur.end_of_month, end_date].min.end_of_day
+      @customer_acquisition_trend[cur.strftime('%b %Y')] = Customer.where(created_at: m_start..m_end).count
+      cur = cur.next_month
+    end
+
+    # Agent performance — all-time; filtering by period is a separate enhancement
+    @agent_performance    = calculate_agent_performance
+    @agent_commission     = calculate_agent_commission
+    @agent_customer_data  = calculate_agent_customer_data
+    @customer_retention   = calculate_customer_retention
+
+    # Operational quick-insights for the filtered period
+    @active_customers = Customer.where(created_at: dt_start..dt_end).where(status: true).count rescue Customer.where(created_at: dt_start..dt_end).count
+    @converted_leads  = Lead.where(created_at: dt_start..dt_end, current_stage: %w[policy_created converted]).count rescue 0
+    @new_leads        = Lead.where(created_at: dt_start..dt_end).count rescue 0
+    @support_tickets  = calculate_support_tickets
+    @docs_pending     = 0
+    @claims_processing = 0
+    @client_requests_count = 0
+    @data_is_cached   = false
+
+    # Return only the filter metadata; instance variables are already set above
     {
       filter_start_date: start_date,
       filter_end_date: end_date,
@@ -455,12 +490,12 @@ class Admin::AnalyticsController < Admin::ApplicationController
   def refresh_analytics_cache
     Rails.logger.info "🔄 Refreshing analytics cache..."
     AnalyticsCache.clear_cache('main_analytics')
-    AnalyticsCache.clear_cache('main_analytics_v2')
+    AnalyticsCache.clear_cache('main_analytics_v3')
     load_fresh_analytics_data
   end
 
   def load_analytics_data
-    cache_identifier = 'main_analytics_v2'
+    cache_identifier = 'main_analytics_v3'
 
     # Try to get cached data first
     if AnalyticsCache.cache_fresh?(cache_identifier, 1.hour)
@@ -477,7 +512,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def load_fresh_analytics_data
-    cache_identifier = 'main_analytics_v2'
+    cache_identifier = 'main_analytics_v3'
     start_time = Time.current
 
     Rails.logger.info "🔄 Starting fresh analytics calculation..."
