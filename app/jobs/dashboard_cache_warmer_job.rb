@@ -21,9 +21,10 @@ class DashboardCacheWarmerJob < ApplicationJob
     ]
 
     dashboard_controller = DashboardController.new
+    cache_gen = Rails.cache.read("dashboard_cache_gen") || "0"
 
     filters_to_warm.each do |start_date, end_date|
-      cache_key = "dashboard_data_#{start_date}_#{end_date}_v3"
+      cache_key = "dashboard_data_#{cache_gen}_#{start_date}_#{end_date}_v6"
 
       unless Rails.cache.exist?(cache_key)
         Rails.logger.info "[DashboardCache] Warming cache for #{start_date} to #{end_date}"

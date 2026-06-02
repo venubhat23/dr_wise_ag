@@ -954,7 +954,7 @@
   <div class="charts-grid">
     <!-- Premium Revenue Trend Chart -->
     <div class="chart-card">
-      <h3 class="chart-title">Premium Revenue Trend (Last 6 Months)</h3>
+      <h3 class="chart-title">Premium Revenue Trend (<%= @filter_start_date&.strftime('%b %Y') %> – <%= @filter_end_date&.strftime('%b %Y') %>)</h3>
       <div class="chart-container">
         <canvas id="revenueChart"></canvas>
       </div>

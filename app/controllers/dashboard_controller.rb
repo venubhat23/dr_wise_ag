@@ -133,8 +133,9 @@ class DashboardController < ApplicationController
       load_filter_independent_data()
     end
 
-    # Merge both data sets
-    filtered_data.merge!(filter_independent_data)
+    # Merge: filter_independent data is the base; filtered_data overrides matching keys
+    # so filter-specific values (e.g. premium_revenue_trend) take precedence.
+    filtered_data = filter_independent_data.merge(filtered_data)
 
     # Track performance
     DashboardPerformanceMonitor.track_dashboard_load(
@@ -217,20 +218,26 @@ class DashboardController < ApplicationController
     l_dr = dr_filter(:life_insurances)
     m_dr = dr_filter(:motor_insurances)
 
-    # Insurance tables filter by policy_start_date; non-insurance tables keep created_at
+    # For timestamp (created_at) columns use exclusive upper bound to include full last day.
+    # For date (policy_start_date) columns BETWEEN is fine.
+    next_day = end_date + 1.day
+
+    # All counts filtered by the selected date range
     count_results = ActiveRecord::Base.connection.execute("
       SELECT 'total_customers' as metric, COUNT(*) as count FROM customers
+      WHERE created_at >= '#{start_date}' AND created_at < '#{next_day}'
       UNION ALL
-      SELECT 'active_customers', COUNT(*) FROM customers WHERE status = true
+      SELECT 'active_customers', COUNT(*) FROM customers
+      WHERE status = true AND created_at >= '#{start_date}' AND created_at < '#{next_day}'
       UNION ALL
       SELECT 'total_ambassadors', COUNT(*) FROM distributors
-      WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      WHERE created_at >= '#{start_date}' AND created_at < '#{next_day}'
       UNION ALL
       SELECT 'total_leads', COUNT(*) FROM leads
-      WHERE created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      WHERE created_at >= '#{start_date}' AND created_at < '#{next_day}'
       UNION ALL
       SELECT 'converted_leads', COUNT(*) FROM leads
-      WHERE current_stage = 'converted' AND created_at BETWEEN '#{start_date}' AND '#{end_date}'
+      WHERE current_stage = 'converted' AND created_at >= '#{start_date}' AND created_at < '#{next_day}'
       UNION ALL
       SELECT 'health_count', COUNT(*) FROM health_insurances
       WHERE TRUE #{h_dr} AND policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'
@@ -255,18 +262,11 @@ class DashboardController < ApplicationController
     results[:inactive_customers] = results[:total_customers].to_i - results[:active_customers].to_i
     results[:lead_conversion_percentage] = results[:total_leads].to_i > 0 ? ((results[:converted_leads].to_f / results[:total_leads].to_f) * 100).round(2) : 0
 
-    # All-time totals for the main KPI cards — matches analytics page logic so both pages show the same numbers
-    results[:total_policies] = HealthInsurance.where(product_through_dr: true).count +
-                               LifeInsurance.where(product_through_dr: true).count +
-                               (MotorInsurance.count rescue 0) +
-                               (OtherInsurance.count rescue 0)
+    # Filtered totals for the selected period (policies filtered by policy_start_date)
+    results[:total_policies] = results[:health_count].to_i + results[:life_count].to_i +
+                               results[:motor_count].to_i + results[:other_count].to_i
 
-    results[:total_premium_collected] = (HealthInsurance.where(product_through_dr: true).sum(:net_premium) || 0).to_f +
-                                        (LifeInsurance.where(product_through_dr: true).sum(:net_premium) || 0).to_f +
-                                        (MotorInsurance.sum(:net_premium).to_f rescue 0) +
-                                        (OtherInsurance.sum(:net_premium).to_f rescue 0)
-
-    # Premium data for the filtered period (filtered by policy_start_date)
+    # Premium data for the filtered period (health + life via SQL, motor + other via AR)
     premium_results = ActiveRecord::Base.connection.execute("
       SELECT
         COALESCE(SUM(net_premium), 0) as total_premium,
@@ -280,20 +280,32 @@ class DashboardController < ApplicationController
       ) as combined_insurance
     ").first
 
-    results[:total_sum_insured] = (premium_results['total_sum_insured'] || 0).to_f
+    filtered_premium   = (premium_results['total_premium'] || 0).to_f
+    filtered_sum       = (premium_results['total_sum_insured'] || 0).to_f
+    motor_premium      = 0.0
+    motor_sum          = 0.0
+    other_premium      = 0.0
 
-    # Add motor insurance for the period if table exists
     begin
       motor_data = dr_scope(MotorInsurance).where(policy_start_date: start_date..end_date)
                                 .select('COALESCE(SUM(net_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
-      results[:total_sum_insured] += motor_data.sum.to_f if motor_data
-    rescue
-      # Motor insurance table doesn't exist
-    end
+      if motor_data
+        motor_premium = motor_data.premium.to_f
+        motor_sum     = motor_data.sum.to_f
+      end
+    rescue; end
+
+    begin
+      other_premium = dr_scope(OtherInsurance).where(policy_start_date: start_date..end_date).sum(:net_premium).to_f
+    rescue; end
+
+    results[:total_premium_collected] = filtered_premium + motor_premium + other_premium
+    results[:total_sum_insured]        = filtered_sum + motor_sum
 
     # Pending leads count for the period
     pending_stages = ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one']
-    results[:pending_leads] = Lead.where(current_stage: pending_stages, created_at: start_date..end_date).count
+    results[:pending_leads] = Lead.where(current_stage: pending_stages)
+                                  .where(created_at: start_date.beginning_of_day..end_date.end_of_day).count
 
     # Renewal and expiry data are now loaded in load_filter_independent_data
     # to ensure they always show current real-time status regardless of filter
@@ -318,6 +330,10 @@ class DashboardController < ApplicationController
     # to always show the latest activities regardless of filter
     # results[:recent_policies] = get_recent_policies_for_period(start_date, end_date)
     results[:recent_leads] = get_recent_leads_for_period(start_date, end_date)
+
+    # Build monthly revenue trend for the filtered period so the chart reflects
+    # the selected date range rather than always showing "last 6 months".
+    results[:premium_revenue_trend] = build_period_monthly_trend(start_date, end_date)
 
     # Add missing variables that the dashboard expects
     results[:commissions_due] = results[:pending_payouts] || 0
@@ -555,20 +571,20 @@ class DashboardController < ApplicationController
     end
 
     # Current period data — insurance uses policy_start_date; customers/leads/affiliates use created_at
-    current_customers = Customer.where(created_at: start_date..end_date).count
+    current_customers = Customer.where(created_at: start_date.beginning_of_day..end_date.end_of_day).count
     current_policies = get_policies_count_for_period(start_date, end_date)
     current_premium = get_premium_for_period(start_date, end_date)
-    current_affiliates = SubAgent.where(created_at: start_date..end_date).count
-    current_ambassadors = Distributor.where(created_at: start_date..end_date).count
-    current_leads = Lead.where(created_at: start_date..end_date).count
+    current_affiliates = SubAgent.where(created_at: start_date.beginning_of_day..end_date.end_of_day).count
+    current_ambassadors = Distributor.where(created_at: start_date.beginning_of_day..end_date.end_of_day).count
+    current_leads = Lead.where(created_at: start_date.beginning_of_day..end_date.end_of_day).count
 
     # Previous period data
-    previous_customers = Customer.where(created_at: previous_start..previous_end).count
+    previous_customers = Customer.where(created_at: previous_start.beginning_of_day..previous_end.end_of_day).count
     previous_policies = get_policies_count_for_period(previous_start, previous_end)
     previous_premium = get_premium_for_period(previous_start, previous_end)
-    previous_affiliates = SubAgent.where(created_at: previous_start..previous_end).count
-    previous_ambassadors = Distributor.where(created_at: previous_start..previous_end).count
-    previous_leads = Lead.where(created_at: previous_start..previous_end).count
+    previous_affiliates = SubAgent.where(created_at: previous_start.beginning_of_day..previous_end.end_of_day).count
+    previous_ambassadors = Distributor.where(created_at: previous_start.beginning_of_day..previous_end.end_of_day).count
+    previous_leads = Lead.where(created_at: previous_start.beginning_of_day..previous_end.end_of_day).count
 
     # Calculate growth percentages
     {
@@ -578,7 +594,7 @@ class DashboardController < ApplicationController
       affiliate_growth: calculate_percentage_change(current_affiliates, previous_affiliates),
       ambassador_growth: calculate_percentage_change(current_ambassadors, previous_ambassadors),
       lead_growth: calculate_percentage_change(current_leads, previous_leads),
-      conversion_rate: current_leads > 0 ? ((Lead.where(created_at: start_date..end_date, current_stage: 'converted').count.to_f / current_leads) * 100).round(1) : 0,
+      conversion_rate: current_leads > 0 ? ((Lead.where(current_stage: 'converted').where(created_at: start_date.beginning_of_day..end_date.end_of_day).count.to_f / current_leads) * 100).round(1) : 0,
       avg_policy_value: current_policies > 0 ? (current_premium / current_policies).round(0) : 0,
       monthly_recurring_revenue: (current_premium / 12.0).round(0)
     }
@@ -895,6 +911,26 @@ class DashboardController < ApplicationController
     conn.column_exists?(model.table_name, :product_through_dr) ? model.where(product_through_dr: true) : model.all
   rescue
     model.all
+  end
+
+  def build_period_monthly_trend(start_date, end_date)
+    trend_data = []
+    current_month = start_date.beginning_of_month
+
+    while current_month <= end_date
+      period_start = [current_month, start_date].max
+      period_end   = [current_month.end_of_month, end_date].min
+      trend_data << {
+        month:  current_month.strftime('%b %Y'),
+        amount: get_premium_for_period(period_start, period_end)
+      }
+      current_month = current_month.next_month
+    end
+
+    trend_data
+  rescue => e
+    Rails.logger.error "Error building period monthly trend: #{e.message}"
+    []
   end
 
   def get_policies_count_for_period(start_date, end_date)
