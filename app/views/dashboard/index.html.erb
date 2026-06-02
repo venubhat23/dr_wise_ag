@@ -751,7 +751,7 @@
         <div class="card-body">
           <div class="d-flex justify-content-between">
             <div>
-              <h6 class="text-muted mb-2">Active Policies</h6>
+              <h6 class="text-muted mb-2">Total Policies</h6>
               <h3 class="mb-0 text-success"><%= number_with_delimiter(@total_policies) %></h3>
             </div>
             <div class="bg-success bg-opacity-10 rounded p-3">
@@ -2863,9 +2863,13 @@ function clearAllFilters() {
     console.log('✅ End date cleared');
   }
 
-  // Auto-load dates based on reset values (2026 All Year)
+  // Submit the form to reload data with cleared filters
   setTimeout(() => {
     updateCurrentPeriod();
+    if (yearSelect && yearSelect.form) {
+      yearSelect.form.submit();
+      return;
+    }
 
     // Remove highlighting after auto-load
     setTimeout(() => {
@@ -2917,23 +2921,17 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   if (yearSelect) {
-    console.log('✅ Year dropdown found, adding change listener');
     yearSelect.addEventListener('change', function() {
-      console.log('🔥 Year dropdown changed to:', yearSelect.value);
       updateCurrentPeriod();
+      yearSelect.form.submit();
     });
-  } else {
-    console.log('❌ Year dropdown not found');
   }
 
   if (monthSelect) {
-    console.log('✅ Month dropdown found, adding change listener');
     monthSelect.addEventListener('change', function() {
-      console.log('🔥 Month dropdown changed to:', monthSelect.value);
       updateCurrentPeriod();
+      monthSelect.form.submit();
     });
-  } else {
-    console.log('❌ Month dropdown not found');
   }
 
   if (startDateField) {

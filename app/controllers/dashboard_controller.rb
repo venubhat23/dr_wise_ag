@@ -893,19 +893,27 @@ class DashboardController < ApplicationController
 
   private
 
-  # Returns "AND product_through_dr = true" only when the column actually exists in the given table.
-  # Falls back to "AND TRUE" so queries stay valid even before the migration runs.
+  # Returns DRWISE SQL fragment (same filter as Admin::AnalyticsController::DRWISE)
+  # so that dashboard counts match analytics counts for the same date range.
   def dr_filter(table = :health_insurances)
     conn = ActiveRecord::Base.connection
-    conn.column_exists?(table, :product_through_dr) ? "AND product_through_dr = true" : "AND TRUE"
+    if conn.column_exists?(table, :is_admin_added)
+      "AND is_admin_added = true AND is_customer_added = false AND is_agent_added = false"
+    else
+      "AND TRUE"
+    end
   rescue
     "AND TRUE"
   end
 
-  # Whether product_through_dr exists on a given ActiveRecord model (for .where usage)
+  # ActiveRecord scope equivalent of dr_filter (used in .where chains).
   def dr_scope(model)
     conn = ActiveRecord::Base.connection
-    conn.column_exists?(model.table_name, :product_through_dr) ? model.where(product_through_dr: true) : model.all
+    if conn.column_exists?(model.table_name.to_sym, :is_admin_added)
+      model.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
+    else
+      model.all
+    end
   rescue
     model.all
   end
