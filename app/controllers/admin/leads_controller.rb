@@ -1077,7 +1077,25 @@ class Admin::LeadsController < Admin::ApplicationController
     end
   end
 
-  # Redirect to appropriate insurance creation page based on lead product info
+  # Map lead product_category + product_subcategory to ClientService service_type
+  def client_service_type_for_lead(lead)
+    return nil unless lead.product_subcategory.present?
+
+    case lead.product_category
+    when 'taxation'
+      { 'itr' => 'taxation_itr', 'tax_planning' => 'taxation_tax_planning' }[lead.product_subcategory]
+    when 'loans'
+      { 'personal' => 'loans_personal', 'home' => 'loans_home', 'mortgage' => 'loans_mortgage', 'business' => 'loans_business' }[lead.product_subcategory]
+    when 'travel'
+      { 'domestic' => 'travel_domestic', 'international' => 'travel_international' }[lead.product_subcategory]
+    when 'credit_card'
+      { 'rewards' => 'credit_card_rewards', 'business' => 'credit_card_business', 'travel' => 'credit_card_travel' }[lead.product_subcategory]
+    when 'investments'
+      { 'mutual_fund' => 'investments_mutual_fund', 'fd' => 'investments_fd', 'other' => 'investments_other' }[lead.product_subcategory]
+    end
+  end
+
+  # Redirect to appropriate creation page based on lead product info
   def redirect_to_insurance_creation(lead, customer)
     if lead.product_category == 'insurance' && lead.product_subcategory.present?
       case lead.product_subcategory
@@ -1098,8 +1116,14 @@ class Admin::LeadsController < Admin::ApplicationController
                     notice: "Lead converted successfully. Please select insurance type manually."
       end
     else
-      redirect_to admin_customer_path(customer),
-                  notice: "Lead converted successfully. Customer details available."
+      service_type = client_service_type_for_lead(lead)
+      if service_type.present?
+        redirect_to new_admin_client_service_path(service_type: service_type, customer_id: customer.id, lead_id: lead.id),
+                    notice: "Lead converted successfully. Please fill in the #{ClientService::SERVICE_TYPES[service_type]} details."
+      else
+        redirect_to admin_customer_path(customer),
+                    notice: "Lead converted successfully. Customer details available."
+      end
     end
   end
 

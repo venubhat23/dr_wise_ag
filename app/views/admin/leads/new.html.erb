@@ -311,7 +311,9 @@
               ['Insurance', 'insurance'],
               ['Investments', 'investments'],
               ['Loans', 'loans'],
-              ['Taxation', 'taxation']
+              ['Taxation', 'taxation'],
+              ['Travel', 'travel'],
+              ['Credit Card', 'credit_card']
             ], @lead&.product_category), {}, { class: "form-select searchable-select", required: true, id: "product_category", data: { placeholder: "Search and select category..." } } %>
           </div>
           <div class="col-md-6 mb-3">
@@ -987,24 +989,31 @@ document.addEventListener('DOMContentLoaded', function() {
       ['Motor Insurance', 'motor'],
       ['General Insurance', 'general'],
       ['Travel Insurance', 'travel'],
-      ['General Insurance', 'other']
+      ['Other', 'other']
     ],
     'investments': [
       ['Mutual Fund', 'mutual_fund'],
-      ['Gold', 'gold'],
-      ['NPS', 'nps'],
-      ['Bonds', 'bonds'],
+      ['Fixed Deposit (FD)', 'fd'],
       ['Other', 'other']
     ],
     'loans': [
       ['Personal Loan', 'personal'],
       ['Home Loan', 'home'],
-      ['Business Loan', 'business'],
-      ['Other', 'other']
+      ['Mortgage Loan', 'mortgage'],
+      ['Business Loan', 'business']
     ],
     'taxation': [
       ['ITR', 'itr'],
-      ['Other', 'other']
+      ['Tax Planning', 'tax_planning']
+    ],
+    'travel': [
+      ['Domestic', 'domestic'],
+      ['International', 'international']
+    ],
+    'credit_card': [
+      ['Rewards Card', 'rewards'],
+      ['Business Card', 'business'],
+      ['Travel Card', 'travel']
     ]
   };
 

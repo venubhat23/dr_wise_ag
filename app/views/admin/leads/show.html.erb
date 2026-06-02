@@ -505,10 +505,32 @@
           <h6 class="alert-heading mb-1">Successfully Converted!</h6>
           <p class="mb-2">This lead has been successfully converted to a customer.</p>
           <% if @lead.converted_customer.present? %>
-            <%= link_to admin_customer_path(@lead.converted_customer), class: "btn btn-success btn-sm" do %>
-              <i class="bi bi-person-check-fill me-1"></i>
-              View Customer Profile: <%= @lead.converted_customer.display_name %>
-            <% end %>
+            <div class="d-flex flex-wrap gap-2">
+              <%= link_to admin_customer_path(@lead.converted_customer), class: "btn btn-success btn-sm" do %>
+                <i class="bi bi-person-check-fill me-1"></i>
+                View Customer Profile: <%= @lead.converted_customer.display_name %>
+              <% end %>
+              <% service_type_map = {
+                   'taxation'    => { 'itr' => 'taxation_itr', 'tax_planning' => 'taxation_tax_planning' },
+                   'loans'       => { 'personal' => 'loans_personal', 'home' => 'loans_home', 'mortgage' => 'loans_mortgage', 'business' => 'loans_business' },
+                   'travel'      => { 'domestic' => 'travel_domestic', 'international' => 'travel_international' },
+                   'credit_card' => { 'rewards' => 'credit_card_rewards', 'business' => 'credit_card_business', 'travel' => 'credit_card_travel' },
+                   'investments' => { 'mutual_fund' => 'investments_mutual_fund', 'fd' => 'investments_fd', 'other' => 'investments_other' }
+                 }
+                 service_type = service_type_map.dig(@lead.product_category, @lead.product_subcategory)
+              %>
+              <% if service_type.present? %>
+                <%= link_to new_admin_client_service_path(service_type: service_type, customer_id: @lead.converted_customer_id, lead_id: @lead.id), class: "btn btn-primary btn-sm" do %>
+                  <i class="bi bi-plus-circle me-1"></i>
+                  Create <%= ClientService::SERVICE_TYPES[service_type] %>
+                <% end %>
+              <% elsif @lead.product_category == 'insurance' && @lead.can_create_policy? %>
+                <%= link_to create_policy_admin_lead_path(@lead), method: :patch, class: "btn btn-primary btn-sm", data: { turbo_method: :patch } do %>
+                  <i class="bi bi-file-earmark-plus me-1"></i>
+                  Create Policy
+                <% end %>
+              <% end %>
+            </div>
           <% end %>
         </div>
       </div>

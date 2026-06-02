@@ -1030,18 +1030,20 @@ class Admin::CustomersController < Admin::ApplicationController
 
     # Handle response based on success/failure - single render/redirect point
     if success
-      if user_created && generated_password.present?
-        # Store generated password in flash for display
+      base_notice = if user_created && generated_password.present?
         flash[:generated_password] = generated_password
-        redirect_to product_selection_admin_customer_path(@customer),
-                   notice: "Customer created successfully. Auto-generated password: #{generated_password}"
+        "Customer created successfully. Auto-generated password: #{generated_password}"
       elsif user_created
-        redirect_to product_selection_admin_customer_path(@customer),
-                   notice: 'Customer and login account created successfully.'
+        'Customer and login account created successfully.'
       else
-        redirect_to product_selection_admin_customer_path(@customer),
-                   notice: 'Customer was successfully created.'
+        'Customer was successfully created.'
       end
+
+      lead_for_redirect = @customer.lead_id.present? ? Lead.find_by(lead_id: @customer.lead_id) : nil
+      redirect_path = lead_product_redirect_path(lead_for_redirect, @customer)
+      redirect_path ||= product_selection_admin_customer_path(@customer)
+
+      redirect_to redirect_path, notice: base_notice
     else
       if error_message
         @customer.errors.add(:base, error_message)
@@ -1250,6 +1252,31 @@ class Admin::CustomersController < Admin::ApplicationController
   end
 
   private
+
+  # Determine redirect path after customer creation based on lead product category/subcategory
+  def lead_product_redirect_path(lead, customer)
+    return nil unless lead.present? && lead.product_category.present? && lead.product_subcategory.present?
+
+    case lead.product_category
+    when 'insurance'
+      case lead.product_subcategory
+      when 'health' then new_admin_health_insurance_path(customer_id: customer.id, lead_id: lead.id)
+      when 'life'   then new_admin_life_insurance_path(customer_id: customer.id, lead_id: lead.id)
+      when 'motor'  then new_admin_motor_insurance_path(customer_id: customer.id, lead_id: lead.id)
+      when 'general', 'travel', 'other' then new_admin_other_insurance_path(customer_id: customer.id, lead_id: lead.id)
+      end
+    else
+      service_type = {
+        'taxation'    => { 'itr' => 'taxation_itr', 'tax_planning' => 'taxation_tax_planning' },
+        'loans'       => { 'personal' => 'loans_personal', 'home' => 'loans_home', 'mortgage' => 'loans_mortgage', 'business' => 'loans_business' },
+        'travel'      => { 'domestic' => 'travel_domestic', 'international' => 'travel_international' },
+        'credit_card' => { 'rewards' => 'credit_card_rewards', 'business' => 'credit_card_business', 'travel' => 'credit_card_travel' },
+        'investments' => { 'mutual_fund' => 'investments_mutual_fund', 'fd' => 'investments_fd', 'other' => 'investments_other' }
+      }.dig(lead.product_category, lead.product_subcategory)
+
+      service_type.present? ? new_admin_client_service_path(service_type: service_type, customer_id: customer.id, lead_id: lead.id) : nil
+    end
+  end
 
   # Generate a secure password for auto-creation
   def generate_secure_password

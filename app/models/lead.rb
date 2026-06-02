@@ -14,7 +14,7 @@ class Lead < ApplicationRecord
   # validate :unique_email_for_product_combination, unless: :is_branch_out?
   validates :current_stage, presence: true, inclusion: { in: ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_successful', 'follow_up_unsuccessful', 'not_interested', 'converted', 're_follow_up', 'lead_closed'] }
   validates :lead_source, presence: true, inclusion: { in: ['online', 'offline', 'agent_referral', 'walk_in', 'tele_calling', 'campaign'] }
-  validates :product_category, presence: true, inclusion: { in: ['insurance', 'investments', 'loans', 'taxation'] }
+  validates :product_category, presence: true, inclusion: { in: ['insurance', 'investments', 'loans', 'taxation', 'travel', 'credit_card'] }
   validates :product_subcategory, presence: true
   validates :customer_type, presence: true, inclusion: { in: ['individual', 'corporate'] }
   validates :affiliate_id, presence: true, if: -> { !is_direct }
@@ -78,7 +78,9 @@ class Lead < ApplicationRecord
     insurance: 'insurance',
     investments: 'investments',
     loans: 'loans',
-    taxation: 'taxation'
+    taxation: 'taxation',
+    travel: 'travel',
+    credit_card: 'credit_card'
   }
 
   enum :customer_type, {
@@ -89,9 +91,11 @@ class Lead < ApplicationRecord
   # Define valid subcategories for each category
   PRODUCT_SUBCATEGORIES = {
     'insurance' => ['life', 'health', 'motor', 'general', 'travel', 'other'],
-    'investments' => ['mutual_fund', 'gold', 'nps', 'bonds', 'other'],
-    'loans' => ['personal', 'home', 'business', 'other'],
-    'taxation' => ['itr', 'other']
+    'investments' => ['mutual_fund', 'fd', 'other'],
+    'loans' => ['personal', 'home', 'mortgage', 'business'],
+    'taxation' => ['itr', 'tax_planning'],
+    'travel' => ['domestic', 'international'],
+    'credit_card' => ['rewards', 'business', 'travel']
   }.freeze
 
   scope :by_stage, ->(stage) { where(current_stage: stage) }
@@ -264,6 +268,8 @@ class Lead < ApplicationRecord
     when 'investments' then 'bg-success'
     when 'loans' then 'bg-warning'
     when 'taxation' then 'bg-info'
+    when 'travel' then 'bg-purple'
+    when 'credit_card' then 'bg-danger'
     else 'bg-secondary'
     end
   end
@@ -314,18 +320,22 @@ class Lead < ApplicationRecord
     when 'health' then 'Health Insurance'
     when 'motor' then 'Motor Insurance'
     when 'general' then 'General Insurance'
-    when 'travel' then 'Travel Insurance'
     # Investment subcategories
     when 'mutual_fund' then 'Mutual Fund'
-    when 'gold' then 'Gold Investment'
-    when 'nps' then 'NPS'
-    when 'bonds' then 'Bonds'
+    when 'fd' then 'Fixed Deposit (FD)'
     # Loan subcategories
     when 'personal' then 'Personal Loan'
     when 'home' then 'Home Loan'
+    when 'mortgage' then 'Mortgage Loan'
     when 'business' then 'Business Loan'
     # Taxation subcategories
     when 'itr' then 'ITR Filing'
+    when 'tax_planning' then 'Tax Planning'
+    # Travel subcategories
+    when 'domestic' then 'Domestic Travel'
+    when 'international' then 'International Travel'
+    # Credit Card subcategories
+    when 'rewards' then 'Rewards Card'
     # Default cases
     when 'other' then 'Other'
     else product_subcategory&.humanize || 'N/A'
