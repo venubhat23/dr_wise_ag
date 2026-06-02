@@ -883,26 +883,6 @@
       </div>
     </div>
 
-    <!-- Top Customers by Premium -->
-    <div class="chart-card">
-      <div class="chart-header">
-        <h3 class="chart-title">Top Customers by Premium</h3>
-      </div>
-      <div class="chart-container">
-        <canvas id="topCustomersChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Investor Status + Top Investors Table -->
-  <div class="charts-grid">
-    <div class="chart-card">
-      <h3 class="chart-title">Investor Status Distribution</h3>
-      <div class="chart-container">
-        <canvas id="investorStatusChart"></canvas>
-      </div>
-    </div>
-
     <div class="chart-card">
       <h3 class="chart-title">Top Investors Overview</h3>
       <div class="table-responsive" style="margin-top: 0.5rem;">
@@ -912,29 +892,23 @@
               <th>#</th>
               <th>Investor Name</th>
               <th>Ambassadors</th>
-              <th>Commission Earned</th>
             </tr>
           </thead>
           <tbody>
-            <%
-              # Merge ambassador and commission data
-              all_investor_names = ((@top_investors_by_ambassadors || {}).keys + (@top_investors_by_commission || {}).keys).uniq.first(8)
-            %>
-            <% all_investor_names.each_with_index do |name, idx| %>
+            <% (@top_investors_by_ambassadors || {}).first(8).each_with_index do |(name, count), idx| %>
               <tr>
                 <td style="color: #6b7280; font-weight: 600;"><%= idx + 1 %></td>
                 <td style="font-weight: 600;"><%= name %></td>
                 <td>
                   <span class="badge bg-purple" style="background: #8b5cf6;">
-                    <%= (@top_investors_by_ambassadors || {})[name] || 0 %>
+                    <%= count %>
                   </span>
                 </td>
-                <td><%= indian_currency(((@top_investors_by_commission || {})[name] || 0).to_f) %></td>
               </tr>
             <% end %>
-            <% if all_investor_names.empty? %>
+            <% if (@top_investors_by_ambassadors || {}).empty? %>
               <tr>
-                <td colspan="4" class="text-center text-muted">No investor data found</td>
+                <td colspan="3" class="text-center text-muted">No investor data found</td>
               </tr>
             <% end %>
           </tbody>
@@ -2370,7 +2344,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // ---- Investor Analytics Charts ----
   const investorAmbassadorData = <%= (@top_investors_by_ambassadors || {}).to_json.html_safe %>;
-  const investorStatusData = <%= (@investor_status_distribution || { 'Active' => 0, 'Inactive' => 0 }).to_json.html_safe %>;
 
   try {
     // Top Investors by Ambassador Count (horizontal bar)
@@ -2419,97 +2392,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   } catch(e) { console.error('Investor ambassador chart error:', e); }
 
-  try {
-    // Top Customers by Premium (horizontal bar chart)
-    const topCustomersData = <%= (@top_customers_by_premium || {}).to_json.html_safe %>;
-    const topCustomersCtx = document.getElementById('topCustomersChart');
-    if (topCustomersCtx && Object.keys(topCustomersData).length > 0) {
-      new Chart(topCustomersCtx.getContext('2d'), {
-        type: 'bar',
-        plugins: [ChartDataLabels],
-        data: {
-          labels: Object.keys(topCustomersData),
-          datasets: [{
-            label: 'Premium (Rs.)',
-            data: Object.values(topCustomersData),
-            backgroundColor: [
-              '#3b82f6','#2563eb','#60a5fa','#1d4ed8','#93c5fd',
-              '#1e40af','#bfdbfe','#1e3a8a'
-            ],
-            borderRadius: 6,
-            borderSkipped: false
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          indexAxis: 'y',
-          scales: {
-            x: {
-              beginAtZero: true,
-              grid: { color: '#f1f5f9' },
-              ticks: { callback: (v) => 'Rs. ' + (v >= 1000 ? (v/1000).toFixed(0) + 'K' : v) }
-            },
-            y: { grid: { display: false }, ticks: { font: { size: 11, weight: 'bold' } } }
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (ctx) => 'Premium: Rs. ' + ctx.raw.toLocaleString('en-IN', { maximumFractionDigits: 0 })
-              }
-            },
-            datalabels: {
-              color: '#fff', font: { size: 10, weight: 'bold' },
-              formatter: (v) => 'Rs. ' + (v >= 1000 ? (v/1000).toFixed(0) + 'K' : v),
-              anchor: 'end', align: 'start', offset: 4
-            }
-          }
-        }
-      });
-    } else if (topCustomersCtx) {
-      const ctx2d = topCustomersCtx.getContext('2d');
-      ctx2d.font = '14px sans-serif';
-      ctx2d.fillStyle = '#9ca3af';
-      ctx2d.textAlign = 'center';
-      ctx2d.fillText('No customer data available', topCustomersCtx.width / 2, topCustomersCtx.height / 2);
-    }
-  } catch(e) { console.error('Top customers chart error:', e); }
-
-  try {
-    // Investor Status Distribution (doughnut)
-    const invStatusCtx = document.getElementById('investorStatusChart');
-    if (invStatusCtx) {
-      new Chart(invStatusCtx.getContext('2d'), {
-        type: 'doughnut',
-        plugins: [ChartDataLabels],
-        data: {
-          labels: Object.keys(investorStatusData),
-          datasets: [{
-            data: Object.values(investorStatusData),
-            backgroundColor: ['#10b981', '#ef4444'],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, font: { size: 12 } } },
-            datalabels: {
-              color: '#fff', font: { size: 14, weight: 'bold' },
-              formatter: (value, context) => {
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                if (total === 0) return '0';
-                return value + '\n(' + ((value / total) * 100).toFixed(0) + '%)';
-              },
-              anchor: 'center', align: 'center'
-            }
-          }
-        }
-      });
-    }
-  } catch(e) { console.error('Investor status chart error:', e); }
 
   // Final initialization summary
   console.log('🎯 ===== ANALYTICS CHARTS INITIALIZATION COMPLETE =====');
