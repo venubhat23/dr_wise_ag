@@ -142,17 +142,30 @@
   <div class="col-xl-3 col-md-6 mb-3">
     <div class="card h-100 border-0 shadow-sm">
       <div class="card-body">
-        <div class="d-flex justify-content-between">
-          <div>
-            <h6 class="text-muted mb-2">Total IDV</h6>
-            <h3 class="mb-0 text-info"><%= indian_currency((@drwise_coverage || 0) + (@non_drwise_coverage || 0)) %></h3>
-            <div class="mt-2">
-              <small class="text-muted d-block">DrWise: <%= indian_currency(@drwise_coverage || 0) %></small>
-              <small class="text-muted d-block">Non-DrWise: <%= indian_currency(@non_drwise_coverage || 0) %></small>
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            <h6 class="text-muted mb-2">Vehicle Distribution</h6>
+            <div class="d-flex flex-column gap-1 mt-1">
+              <div class="d-flex justify-content-between align-items-center">
+                <span style="font-size:0.8rem;"><i class="bi bi-bicycle text-primary me-1"></i>Two Wheeler</span>
+                <span class="badge bg-primary"><%= number_with_delimiter(@two_wheeler_count) %></span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center">
+                <span style="font-size:0.8rem;"><i class="bi bi-car-front text-success me-1"></i>Private Car</span>
+                <span class="badge bg-success"><%= number_with_delimiter(@private_car_count) %></span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center">
+                <span style="font-size:0.8rem;"><i class="bi bi-truck text-warning me-1"></i>Goods Vehicle</span>
+                <span class="badge bg-warning text-dark"><%= number_with_delimiter(@goods_vehicle_count) %></span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center">
+                <span style="font-size:0.8rem;"><i class="bi bi-taxi-front text-info me-1"></i>Taxi</span>
+                <span class="badge bg-info"><%= number_with_delimiter(@taxi_count) %></span>
+              </div>
             </div>
           </div>
-          <div class="bg-info bg-opacity-10 rounded p-3">
-            <i class="bi bi-shield-check text-info fs-4"></i>
+          <div class="bg-primary bg-opacity-10 rounded p-3 ms-2">
+            <i class="bi bi-ev-front text-primary fs-4"></i>
           </div>
         </div>
       </div>

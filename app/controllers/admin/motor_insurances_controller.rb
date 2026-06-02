@@ -88,9 +88,14 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     )
 
     @drwise_premium = drwise_policies.sum(:total_premium) || 0
-    @drwise_coverage = drwise_policies.sum(:total_idv) || 0
     @non_drwise_premium = non_drwise_policies.sum(:total_premium) || 0
-    @non_drwise_coverage = non_drwise_policies.sum(:total_idv) || 0
+
+    # Vehicle class distribution (all policies)
+    vehicle_class_counts = MotorInsurance.group(:class_of_vehicle).count
+    @two_wheeler_count    = vehicle_class_counts['Two Wheeler'].to_i
+    @private_car_count    = vehicle_class_counts['Private Car'].to_i
+    @goods_vehicle_count  = vehicle_class_counts['Goods Vehicle'].to_i
+    @taxi_count           = vehicle_class_counts['Taxi'].to_i
 
     @total_policies = @motor_insurances.count
     @total_premium = @motor_insurances.sum(:total_premium)
