@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_05_032336) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_05_042811) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -967,6 +967,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_05_032336) do
     t.text "main_agent_commission_notes"
     t.boolean "product_through_dr", default: true
     t.string "insurance_company_code"
+    t.string "main_policy_document_key"
+    t.string "main_policy_document_filename"
+    t.string "main_policy_document_content_type"
+    t.bigint "main_policy_document_size"
     t.index ["created_at"], name: "index_life_insurances_on_created_at"
     t.index ["customer_id", "created_at"], name: "index_life_insurances_on_customer_id_and_created_at"
     t.index ["customer_id"], name: "index_life_insurances_on_customer_id"
