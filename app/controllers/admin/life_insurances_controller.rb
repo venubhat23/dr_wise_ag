@@ -11,54 +11,64 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
     case @current_tab
     when 'drwise'
-      # DrWise policies: Admin added policies (is_admin_added: true AND others false)
       @life_insurances = @life_insurances.where(
-        is_admin_added: true,
-        is_customer_added: false,
-        is_agent_added: false
+        is_admin_added: true, is_customer_added: false, is_agent_added: false
       )
     when 'non_drwise'
-      # Non-DrWise policies: Customer or Agent added policies
       @life_insurances = @life_insurances.where(
         '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
         true, false, false, true, false, false
       )
     end
 
-    # Search functionality (within current tab)
+    # Basic search
     if params[:search].present?
       @life_insurances = @life_insurances.search_life_policies(params[:search])
     end
 
-    # Filter by payment mode
-    if params[:payment_mode].present?
-      @life_insurances = @life_insurances.where(payment_mode: params[:payment_mode])
-    end
-
-    # Filter by status
+    # Basic status filter
     case params[:status]
-    when 'active'
-      @life_insurances = @life_insurances.active
-    when 'expired'
-      @life_insurances = @life_insurances.expired
-    when 'expiring_soon'
-      @life_insurances = @life_insurances.expiring_soon
+    when 'active'        then @life_insurances = @life_insurances.active
+    when 'expired'       then @life_insurances = @life_insurances.expired
+    when 'expiring_soon' then @life_insurances = @life_insurances.expiring_soon
     end
 
-    # Filter by policy type
+    # ── Advanced filters ──────────────────────────────────────────
+    if params[:company].present?
+      @life_insurances = @life_insurances.where(insurance_company_name: params[:company])
+    end
+
+    if params[:sub_agent_id].present?
+      @life_insurances = @life_insurances.where(sub_agent_id: params[:sub_agent_id])
+    end
+
     if params[:policy_type].present?
       @life_insurances = @life_insurances.where(policy_type: params[:policy_type])
     end
 
-    # Filter by insurance company
-    if params[:company].present?
-      @life_insurances = @life_insurances.where(insurance_company_name: params[:company])
+    if params[:payment_mode].present?
+      @life_insurances = @life_insurances.where(payment_mode: params[:payment_mode])
     end
+
+    if params[:from_date].present?
+      @life_insurances = @life_insurances.where('policy_start_date >= ?', Date.parse(params[:from_date]))
+    end
+
+    if params[:to_date].present?
+      @life_insurances = @life_insurances.where('policy_start_date <= ?', Date.parse(params[:to_date]))
+    end
+    # ─────────────────────────────────────────────────────────────
 
     # Calculate statistics for current tab (before pagination)
     calculate_tab_statistics
 
     @life_insurances = paginate_records(@life_insurances.order(created_at: :desc))
+
+    # Data for advanced filter dropdowns
+    @filter_companies  = LifeInsurance.distinct.order(:insurance_company_name).pluck(:insurance_company_name).compact.reject(&:blank?)
+    @filter_sub_agents = SubAgent.active.order(:first_name, :last_name)
+    @filter_policy_types  = LifeInsurance::POLICY_TYPES
+    @filter_payment_modes = LifeInsurance::PAYMENT_MODES
   end
 
   # GET /admin/insurance/life/1
