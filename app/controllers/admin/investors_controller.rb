@@ -216,6 +216,8 @@ class Admin::InvestorsController < Admin::ApplicationController
             @investor_commission_paid    += inv_payout&.paid?    ? inv_net : 0.0
             @investor_commission_pending += inv_payout&.pending? ? inv_net : 0.0
             @investor_commission_rows << {
+              policy_id:     pol.id,
+              policy_slug:   ptype,
               policy_number: pol.policy_number.presence || '—',
               customer_name: pol.customer&.display_name.presence || 'N/A',
               type:          ptype.capitalize,
@@ -311,6 +313,8 @@ class Admin::InvestorsController < Admin::ApplicationController
               @investor_commission_paid    += inv_payout&.paid?    ? inv_net : 0.0
               @investor_commission_pending += inv_payout&.pending? ? inv_net : 0.0
               @investor_commission_rows << {
+                policy_id:     pol.id,
+                policy_slug:   ptype,
                 policy_number: pol.policy_number.presence || '—',
                 customer_name: pol.customer&.display_name.presence || 'N/A',
                 type:          ptype.capitalize,

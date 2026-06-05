@@ -793,9 +793,11 @@
                   <tr>
                     <td class="text-muted"><%= index + 1 %></td>
                     <td>
-                      <strong>
+                      <%= link_to admin_customer_path(client.id),
+                            target: "_blank",
+                            class: "text-decoration-none fw-bold text-primary" do %>
                         <%= [client.first_name, client.middle_name, client.last_name].compact.join(' ') %>
-                      </strong>
+                      <% end %>
                       <% if client.company_name.present? %>
                         <small class="text-muted d-block"><%= client.company_name %></small>
                       <% end %>

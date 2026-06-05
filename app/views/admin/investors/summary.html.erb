@@ -265,7 +265,7 @@
 
   <!-- ══════════════════ COMMISSION DETAIL MODAL ══════════════════ -->
   <div class="modal fade" id="commissionModal" tabindex="-1" aria-labelledby="commissionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width:min(1400px,96vw);">
       <div class="modal-content">
         <div class="modal-header" style="background:linear-gradient(135deg,#1a2550,#2c3e7a); color:#fff;">
           <h5 class="modal-title" id="commissionModalLabel">
@@ -382,13 +382,22 @@
       table.style.display = '';
       empty.style.display = 'none';
 
+      const policyUrl = (r) => {
+        if (!r.policy_id || !r.policy_slug) return null;
+        return `/admin/insurance/${r.policy_slug}/${r.policy_id}`;
+      };
+
       let html = '';
       let totalNet = 0;
       rows.forEach((r, i) => {
         totalNet += r.inv_net || 0;
+        const url = policyUrl(r);
+        const policyCell = url
+          ? `<a href="${url}" target="_blank" style="font-weight:600;color:#2c3e7a;font-family:monospace;text-decoration:none;" title="Open policy">${r.policy_number} <i class="bi bi-box-arrow-up-right" style="font-size:.7rem;opacity:.6;"></i></a>`
+          : `<span style="font-weight:600;color:#2c3e7a;font-family:monospace;">${r.policy_number}</span>`;
         html += `<tr>
           <td style="color:#6c757d;">${i+1}</td>
-          <td style="font-weight:600;color:#2c3e7a;font-family:monospace;">${r.policy_number}</td>
+          <td>${policyCell}</td>
           <td>${typeBadge(r.type)}</td>
           <td>${r.customer_name}</td>
           <td style="font-size:.78rem;color:#6c757d;">${r.source}</td>
@@ -682,7 +691,7 @@
 
 <!-- ══════════════════ NETWORK COMMISSION MODAL ══════════════════ -->
 <div class="modal fade" id="networkModal" tabindex="-1" aria-labelledby="networkModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width:min(1400px,96vw);">
     <div class="modal-content">
       <div class="modal-header" style="background:linear-gradient(135deg,#1a2550,#2c3e7a); color:#fff;">
         <h5 class="modal-title" id="networkModalLabel">
