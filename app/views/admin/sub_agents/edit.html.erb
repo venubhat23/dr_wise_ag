@@ -60,17 +60,14 @@
           <%= form.label :mobile, class: "form-label" do %>
             Mobile <span class="text-danger">*</span>
           <% end %>
-          <div class="input-group">
-            <span class="input-group-text">+91</span>
-            <%= form.telephone_field :mobile,
-                class: "form-control",
-                placeholder: "10 digit mobile number",
-                pattern: "[0-9]{10}",
-                maxlength: "10",
-                title: "Please enter exactly 10 digits",
-                required: true %>
+          <%= form.telephone_field :mobile,
+              class: "form-control",
+              placeholder: "9876543210 or +919876543210",
+              required: true %>
+          <small class="form-text text-muted">Enter 10-digit number (6-9 as first digit) or +91 format</small>
+          <div class="invalid-feedback">
+            Please enter a valid 10-digit Indian mobile number
           </div>
-          <small class="form-text text-muted">Enter 10 digit mobile number without +91</small>
         </div>
         <div class="col-md-6">
           <%= form.label :email, class: "form-label" do %>
@@ -949,28 +946,15 @@
 <!-- State-City Dependency Script -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Mobile number handling
+  // Mobile number handling - same logic as create form
   const mobileInput = document.querySelector('input[name="sub_agent[mobile]"]');
   if (mobileInput && mobileInput.value) {
-    // Remove +91 and spaces if present
+    // Show the stored value as-is; server-side format_mobile_number will normalize on save
+    // Optionally strip +91 prefix for cleaner display
     let cleanNumber = mobileInput.value.replace(/^\+91\s*/, '').replace(/\s+/g, '');
-    // Keep only the last 10 digits
-    if (cleanNumber.length > 10) {
-      cleanNumber = cleanNumber.slice(-10);
+    if (cleanNumber.length === 10 && /^[6-9]\d{9}$/.test(cleanNumber)) {
+      mobileInput.value = cleanNumber;
     }
-    mobileInput.value = cleanNumber;
-  }
-
-  // Add input validation for mobile number
-  if (mobileInput) {
-    mobileInput.addEventListener('input', function(e) {
-      // Remove non-digit characters and strip country code
-      let _val = this.value.replace(/\D/g, '');
-      if (_val.length === 12 && _val.startsWith('91')) _val = _val.slice(2);
-      else if (_val.length === 11 && _val.startsWith('0')) _val = _val.slice(1);
-      if (_val.length > 10) _val = _val.slice(0, 10);
-      this.value = _val;
-    });
   }
 
   const stateSelect = document.getElementById('sub_agent_state');
