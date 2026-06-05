@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_01_000001) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_05_030204) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -716,8 +716,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_01_000001) do
     t.string "mobile", limit: 255
     t.string "email", limit: 255
     t.integer "role_id"
-    t.integer "state_id"
-    t.integer "city_id"
+    t.string "state"
+    t.string "city"
     t.date "birth_date"
     t.string "gender", limit: 255
     t.string "pan_no", limit: 255
@@ -736,6 +736,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_01_000001) do
     t.string "password_digest"
     t.string "username"
     t.string "original_password"
+    t.decimal "invested_amount"
+    t.decimal "investment_percentage"
+    t.integer "number_of_shares"
+    t.string "main_document_key"
+    t.string "main_document_filename"
+    t.string "main_document_content_type"
+    t.bigint "main_document_size"
   end
 
   create_table "invoice_items", force: :cascade do |t|
@@ -1554,6 +1561,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_01_000001) do
     t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
     t.string "document_type"
     t.bigint "sub_agent_id", null: false
+    t.string "r2_file_key"
+    t.string "r2_filename"
+    t.string "r2_content_type"
+    t.bigint "r2_file_size"
     t.index ["document_type"], name: "index_sub_agent_documents_on_document_type"
     t.index ["sub_agent_id"], name: "index_sub_agent_documents_on_sub_agent_id"
   end
