@@ -654,14 +654,14 @@
     </div>
   </div>
 
-  <!-- Nominee Details Section -->
-  <div class="card border-0 shadow-sm mb-4">
+  <!-- Nominee Details Section (individual only) -->
+  <div id="nominee_section" class="card border-0 shadow-sm mb-4" style="display: none;">
     <div class="card-header bg-transparent border-0">
       <h5 class="mb-0">
         <i class="bi bi-people me-2 text-primary"></i>
         Nominee Details *
       </h5>
-      <p class="text-muted mb-0 mt-1">Nominee information is mandatory for customer registration</p>
+      <p class="text-muted mb-0 mt-1">Nominee information is mandatory for individual customer registration</p>
     </div>
     <div class="card-body">
       <div class="row">
@@ -670,7 +670,7 @@
           <%= form.text_field :nominee_name,
               class: "form-control",
               placeholder: "Enter nominee full name",
-              required: true %>
+              id: "nominee_name_field" %>
           <div class="invalid-feedback">
             Please provide a nominee name.
           </div>
@@ -689,7 +689,7 @@
                 ['Other', 'other']
               ], @customer.nominee_relation),
               { prompt: 'Select Relationship' },
-              { class: "form-control", required: true, id: "nominee_relationship_select" } %>
+              { class: "form-control", id: "nominee_relationship_select" } %>
           <div class="invalid-feedback">
             Please select nominee relationship.
           </div>
@@ -698,7 +698,7 @@
           <%= form.label :nominee_date_of_birth, "Date of Birth *", class: "form-label" %>
           <%= form.date_field :nominee_date_of_birth,
               class: "form-control",
-              required: true,
+              id: "nominee_dob_field",
               min: "1900-01-01",
               max: "2099-12-31" %>
           <div class="invalid-feedback">
@@ -709,7 +709,7 @@
       <div class="alert alert-info d-flex align-items-center">
         <i class="bi bi-info-circle me-2"></i>
         <div>
-          <small><strong>Important:</strong> Nominee details are mandatory for all customers. Please ensure the information is accurate as it will be used for legal purposes.</small>
+          <small><strong>Important:</strong> Nominee details are mandatory for individual customers. Please ensure the information is accurate as it will be used for legal purposes.</small>
         </div>
       </div>
     </div>
@@ -961,6 +961,23 @@ document.addEventListener('DOMContentLoaded', function() {
     if (field) field.removeAttribute('required');
   });
 
+  const nomineeSection = document.getElementById('nominee_section');
+  const nomineeFields = ['nominee_name_field', 'nominee_relationship_select', 'nominee_dob_field'];
+
+  function toggleNomineeSection(isIndividual) {
+    if (!nomineeSection) return;
+    nomineeSection.style.display = isIndividual ? 'block' : 'none';
+    nomineeFields.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (isIndividual) {
+        el.setAttribute('required', 'required');
+      } else {
+        el.removeAttribute('required');
+      }
+    });
+  }
+
   function handleCustomerTypeChange(selectedType) {
     if (selectedType === 'individual') {
       individualSections.style.display = 'block';
@@ -991,6 +1008,8 @@ document.addEventListener('DOMContentLoaded', function() {
       if (individualEmailField) {
         individualEmailField.setAttribute('required', 'required');
       }
+
+      toggleNomineeSection(true);
     } else if (selectedType === 'corporate') {
       individualSections.style.display = 'none';
       corporateSections.style.display = 'block';
@@ -1020,6 +1039,8 @@ document.addEventListener('DOMContentLoaded', function() {
       if (corporateEmailField) {
         corporateEmailField.setAttribute('required', 'required');
       }
+
+      toggleNomineeSection(false);
     } else {
       individualSections.style.display = 'none';
       corporateSections.style.display = 'none';
@@ -1037,6 +1058,8 @@ document.addEventListener('DOMContentLoaded', function() {
       // Remove required from email fields
       const allEmailFields = document.querySelectorAll('input[name="customer[email]"]');
       allEmailFields.forEach(field => field.removeAttribute('required'));
+
+      toggleNomineeSection(false);
     }
   }
 

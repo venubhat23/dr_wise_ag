@@ -55,14 +55,14 @@ class Customer < ApplicationRecord
   validates :gst_no, presence: true, if: :corporate?
   validates :birth_date, presence: true, if: :corporate?
 
-  # Nominee Details (Mandatory for all customers)
-  validates :nominee_name, presence: true
-  validates :nominee_relation, presence: true
-  validates :nominee_date_of_birth, presence: true
+  # Nominee Details (mandatory for individual customers only)
+  validates :nominee_name, presence: true, if: :individual?
+  validates :nominee_relation, presence: true, if: :individual?
+  validates :nominee_date_of_birth, presence: true, if: :individual?
   validates :nominee_relation, inclusion: {
     in: ['father', 'mother', 'spouse', 'son', 'daughter', 'brother', 'sister', 'other'],
     message: "must be a valid relationship"
-  }
+  }, if: :individual?
 
   # Validations
   validates :status, inclusion: { in: [true, false] }

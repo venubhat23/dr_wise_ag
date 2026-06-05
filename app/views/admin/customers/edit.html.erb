@@ -421,20 +421,21 @@
         </div>
       </div>
 
-      <!-- Nominee Details -->
-      <div class="card border-0 shadow-sm mb-4">
+      <!-- Nominee Details (individual only) -->
+      <div id="nominee_section" class="card border-0 shadow-sm mb-4" style="display: <%= @customer.corporate? ? 'none' : 'block' %>;">
         <div class="card-header bg-transparent border-0">
           <h5 class="mb-0">
             <i class="bi bi-people me-2 text-primary"></i>
             Nominee Details *
           </h5>
-          <p class="text-muted mb-0 mt-1">Nominee information is mandatory for all customers</p>
+          <p class="text-muted mb-0 mt-1">Nominee information is mandatory for individual customers</p>
         </div>
         <div class="card-body">
           <div class="row g-3">
             <div class="col-md-4">
               <%= form.label :nominee_name, "Nominee Name *", class: "form-label" %>
-              <%= form.text_field :nominee_name, class: "form-control", placeholder: "Enter nominee full name", required: true %>
+              <%= form.text_field :nominee_name, class: "form-control", placeholder: "Enter nominee full name",
+                  id: "nominee_name_field", required: @customer.individual? %>
               <div class="invalid-feedback">
                 Please provide a nominee name.
               </div>
@@ -453,14 +454,15 @@
                     ['Other', 'other']
                   ], @customer.nominee_relation),
                   { prompt: 'Select Relationship' },
-                  { class: "form-control", required: true } %>
+                  { class: "form-control", id: "nominee_relationship_select", required: @customer.individual? } %>
               <div class="invalid-feedback">
                 Please select nominee relationship.
               </div>
             </div>
             <div class="col-md-4">
               <%= form.label :nominee_date_of_birth, "Date of Birth *", class: "form-label" %>
-              <%= form.date_field :nominee_date_of_birth, class: "form-control", required: true, min: "1900-01-01", max: "2099-12-31" %>
+              <%= form.date_field :nominee_date_of_birth, class: "form-control", id: "nominee_dob_field",
+                  required: @customer.individual?, min: "1900-01-01", max: "2099-12-31" %>
               <div class="invalid-feedback">
                 Please provide nominee date of birth.
               </div>
@@ -469,7 +471,7 @@
           <div class="alert alert-info d-flex align-items-center mt-3">
             <i class="bi bi-info-circle me-2"></i>
             <div>
-              <small><strong>Important:</strong> Nominee details are mandatory for all customers. Please ensure the information is accurate as it will be used for legal purposes.</small>
+              <small><strong>Important:</strong> Nominee details are mandatory for individual customers. Please ensure the information is accurate as it will be used for legal purposes.</small>
             </div>
           </div>
         </div>
@@ -873,6 +875,23 @@ document.addEventListener('DOMContentLoaded', function() {
   const individualFields = document.getElementById('individual_fields');
   const corporateFields = document.getElementById('corporate_fields');
 
+  const nomineeSection = document.getElementById('nominee_section');
+  const nomineeFieldIds = ['nominee_name_field', 'nominee_relationship_select', 'nominee_dob_field'];
+
+  function toggleNomineeSection(isIndividual) {
+    if (!nomineeSection) return;
+    nomineeSection.style.display = isIndividual ? 'block' : 'none';
+    nomineeFieldIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (isIndividual) {
+        el.setAttribute('required', 'required');
+      } else {
+        el.removeAttribute('required');
+      }
+    });
+  }
+
   function toggleCustomerType() {
     const selectedType = customerTypeSelect.value;
 
@@ -883,6 +902,8 @@ document.addEventListener('DOMContentLoaded', function() {
       // Update required attributes
       document.querySelectorAll('#individual_fields [required]').forEach(el => el.required = true);
       document.querySelectorAll('#corporate_fields [required]').forEach(el => el.required = false);
+
+      toggleNomineeSection(true);
     } else if (selectedType === 'corporate') {
       individualFields.style.display = 'none';
       corporateFields.style.display = 'block';
@@ -890,12 +911,16 @@ document.addEventListener('DOMContentLoaded', function() {
       // Update required attributes
       document.querySelectorAll('#individual_fields [required]').forEach(el => el.required = false);
       document.querySelectorAll('#corporate_fields [required]').forEach(el => el.required = true);
+
+      toggleNomineeSection(false);
     } else {
       individualFields.style.display = 'none';
       corporateFields.style.display = 'none';
 
       // Remove required attributes
       document.querySelectorAll('#individual_fields [required], #corporate_fields [required]').forEach(el => el.required = false);
+
+      toggleNomineeSection(false);
     }
   }
 
