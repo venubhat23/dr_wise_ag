@@ -29,11 +29,6 @@
     <h2 class="mb-1">Health Insurance Policies</h2>
   </div>
   <div class="d-flex gap-2">
-    <button type="button" class="btn btn-outline-secondary" id="displayColumnsBtn"
-            data-bs-toggle="modal" data-bs-target="#colConfigModal">
-      <i class="bi bi-gear me-1"></i>Display Columns
-      <span class="badge bg-secondary ms-1 col-count-badge" id="colCountBadge">7</span>
-    </button>
     <%= link_to new_admin_health_insurance_path, class: "btn btn-primary" do %>
       <i class="bi bi-plus-lg me-1"></i>Add New Health Policy
     <% end %>
@@ -152,10 +147,10 @@
 
       <!-- Basic filter row -->
       <div class="row g-2 align-items-end mb-2">
-        <div class="col-md-5">
+        <div class="col-md-4">
           <%= form.text_field :search, placeholder: "Search by policy no., customer, company…", value: params[:search], class: "form-control" %>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
           <%= form.select :status, options_for_select([
             ['All Statuses', ''],
             ['Active', 'active'],
@@ -166,7 +161,7 @@
         <div class="col-md-2">
           <%= form.submit "Search", class: "btn btn-primary w-100" %>
         </div>
-        <div class="col-md-2 text-end">
+        <div class="col-md-2">
           <button type="button" class="btn btn-outline-secondary w-100" id="toggle-hi-adv-filter">
             <i class="bi bi-funnel me-1"></i>Advanced
             <% hi_adv_active = [params[:company], params[:sub_agent_id], params[:policy_type], params[:payment_mode], params[:from_date], params[:to_date], params[:insurance_type]].any?(&:present?) %>
@@ -175,6 +170,13 @@
             <% else %>
               <span class="badge bg-secondary ms-1 d-none" id="hi-adv-dot">●</span>
             <% end %>
+          </button>
+        </div>
+        <div class="col-md-2">
+          <button type="button" class="btn btn-outline-secondary w-100" id="hi-col-config-btn"
+                  title="Configure visible columns">
+            <i class="bi bi-layout-three-columns me-1"></i>Columns
+            <span class="badge bg-secondary ms-1" id="hi-col-count-badge">7</span>
           </button>
         </div>
       </div>
@@ -547,42 +549,39 @@
   </div>
 </div>
 
-<!-- ══════════════ CUSTOMIZE COLUMNS MODAL ══════════════ -->
-<div class="modal fade" id="colConfigModal" tabindex="-1" aria-labelledby="colConfigModalLabel" aria-hidden="true">
+<!-- Health Insurance Customize Columns Modal -->
+<div class="modal fade" id="hiColConfigModal" tabindex="-1" aria-labelledby="hiColConfigModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold" id="colConfigModalLabel">
-          <i class="bi bi-gear me-2 text-primary"></i>Customize Columns
+        <h5 class="modal-title fw-semibold" id="hiColConfigModalLabel">
+          <i class="bi bi-layout-three-columns me-2 text-primary"></i>Customize Columns
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body">
-        <div class="border rounded p-3" style="background:#f8f9ff;">
+      <div class="modal-body pt-3">
+        <div class="border rounded p-3" style="background:#f8fbff;">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <span class="fw-bold text-primary" style="font-size:.9rem;">Select Columns</span>
-            <div class="d-flex align-items-center gap-2">
-              <small class="text-muted" id="colSelectionCount">0 / 9 selected</small>
-              <div class="form-check mb-0 d-flex align-items-center gap-1">
-                <input class="form-check-input" type="checkbox" id="checkAllCols" style="width:16px;height:16px;">
-                <label class="form-check-label fw-semibold" for="checkAllCols" style="font-size:.875rem;">Check All</label>
-              </div>
+            <span class="fw-semibold text-primary">Select Columns</span>
+            <div class="form-check mb-0">
+              <input type="checkbox" class="form-check-input" id="hi-col-check-all">
+              <label class="form-check-label fw-semibold" for="hi-col-check-all">Check All</label>
             </div>
           </div>
-          <div class="row g-1" id="colCheckboxList">
-            <!-- checkboxes rendered by JS -->
+          <div class="row g-2" id="hi-col-checkboxes"></div>
+          <div class="mt-3 text-muted small">
+            <i class="bi bi-info-circle me-1"></i>Maximum <strong>9 columns</strong> can be selected. <strong>Actions</strong> is always visible.
           </div>
-          <div class="mt-2">
-            <small class="text-warning fw-semibold" id="colLimitWarning" style="display:none;">
-              <i class="bi bi-exclamation-triangle me-1"></i>Maximum 9 columns allowed. Deselect a column to add another.
-            </small>
+          <div id="hi-col-validation" class="alert alert-danger mt-2 mb-0 py-2 d-none">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            <span id="hi-col-validation-text">Maximum 9 columns allowed.</span>
           </div>
         </div>
       </div>
-      <div class="modal-footer border-0 pt-0">
+      <div class="modal-footer border-0">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="applyColsBtn">
-          <i class="bi bi-check2 me-1"></i>Apply Changes
+        <button type="button" class="btn btn-primary px-4" id="hi-apply-cols">
+          <i class="bi bi-check-lg me-1"></i>Apply Changes
         </button>
       </div>
     </div>
@@ -590,108 +589,124 @@
 </div>
 
 <script>
-// ── Column Config ──────────────────────────────────────────────────────────
-const COL_STORAGE_KEY = 'hi_visible_cols';
-const MAX_COLS = 9;
+// ── Health Insurance Column Config ─────────────────────────────────────────
+const HI_COL_MAX = 9;
+const HI_COL_KEY = 'health_insurance_columns_v1';
 
-const ALL_COLS = [
-  { key: 'policy',             label: 'Policy',                 default: true  },
-  { key: 'customer',           label: 'Customer',               default: true  },
-  { key: 'company',            label: 'Insurance Company',      default: true  },
-  { key: 'source',             label: 'Source & Type',          default: true  },
-  { key: 'coverage',           label: 'Coverage (Sum Insured)', default: true  },
-  { key: 'premium',            label: 'Total Premium',          default: true  },
-  { key: 'status',             label: 'Status',                 default: true  },
-  { key: 'policy_holder',      label: 'Policy Holder',          default: false },
-  { key: 'insurance_type',     label: 'Insurance Type',         default: false },
-  { key: 'plan_name',          label: 'Plan Name',              default: false },
-  { key: 'net_premium',        label: 'Net Premium',            default: false },
-  { key: 'start_date',         label: 'Policy Start Date',      default: false },
-  { key: 'end_date',           label: 'Policy End Date',        default: false },
-  { key: 'booking_date',       label: 'Booking Date',           default: false },
-  { key: 'payment_mode',       label: 'Payment Mode',           default: false },
-  { key: 'affiliate',          label: 'Affiliate / Sub Agent',  default: false },
-  { key: 'ambassador',         label: 'Ambassador',             default: false },
-  { key: 'main_agent_comm',    label: 'Main Agent Commission',  default: false },
-  { key: 'main_agent_comm_pct',label: 'Main Agent Comm. %',     default: false },
-  { key: 'sub_agent_comm',     label: 'Sub Agent Commission',   default: false },
-  { key: 'sub_agent_comm_pct', label: 'Sub Agent Comm. %',      default: false },
-  { key: 'reference_by',       label: 'Reference By',           default: false },
-  { key: 'broker_name',        label: 'Broker Name',            default: false },
+const HI_COL_CONFIG = [
+  { key: 'policy',              label: 'Policy',                 defaultOn: true  },
+  { key: 'customer',            label: 'Customer',               defaultOn: true  },
+  { key: 'company',             label: 'Insurance Company',      defaultOn: true  },
+  { key: 'source',              label: 'Source & Type',          defaultOn: true  },
+  { key: 'coverage',            label: 'Coverage (Sum Insured)', defaultOn: true  },
+  { key: 'premium',             label: 'Total Premium',          defaultOn: true  },
+  { key: 'status',              label: 'Status',                 defaultOn: true  },
+  { key: 'policy_holder',       label: 'Policy Holder',          defaultOn: false },
+  { key: 'insurance_type',      label: 'Insurance Type',         defaultOn: false },
+  { key: 'plan_name',           label: 'Plan Name',              defaultOn: false },
+  { key: 'net_premium',         label: 'Net Premium',            defaultOn: false },
+  { key: 'start_date',          label: 'Policy Start Date',      defaultOn: false },
+  { key: 'end_date',            label: 'Policy End Date',        defaultOn: false },
+  { key: 'booking_date',        label: 'Booking Date',           defaultOn: false },
+  { key: 'payment_mode',        label: 'Payment Mode',           defaultOn: false },
+  { key: 'affiliate',           label: 'Affiliate / Sub Agent',  defaultOn: false },
+  { key: 'ambassador',          label: 'Ambassador',             defaultOn: false },
+  { key: 'main_agent_comm',     label: 'Main Agent Commission',  defaultOn: false },
+  { key: 'main_agent_comm_pct', label: 'Main Agent Comm. %',     defaultOn: false },
+  { key: 'sub_agent_comm',      label: 'Sub Agent Commission',   defaultOn: false },
+  { key: 'sub_agent_comm_pct',  label: 'Sub Agent Comm. %',      defaultOn: false },
+  { key: 'reference_by',        label: 'Reference By',           defaultOn: false },
+  { key: 'broker_name',         label: 'Broker Name',            defaultOn: false },
 ];
 
-function getVisibleCols() {
-  try {
-    const stored = localStorage.getItem(COL_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch(e) {}
-  return ALL_COLS.filter(c => c.default).map(c => c.key);
+function hiGetCols() {
+  try { var s = localStorage.getItem(HI_COL_KEY); if (s) return JSON.parse(s); } catch(e) {}
+  return HI_COL_CONFIG.filter(function(c) { return c.defaultOn; }).map(function(c) { return c.key; });
 }
-
-function applyVisibility(visibleCols) {
-  const table = document.getElementById('hiTable');
-  if (!table) return;
-
-  // Hide all optional cols first, then show selected
-  ALL_COLS.forEach(col => {
-    const isVisible = visibleCols.includes(col.key);
-    table.querySelectorAll(`[data-col="${col.key}"]`).forEach(el => {
-      el.classList.toggle('col-hidden', !isVisible);
+function hiSaveCols(cols) { localStorage.setItem(HI_COL_KEY, JSON.stringify(cols)); }
+function hiApplyCols(cols) {
+  HI_COL_CONFIG.forEach(function(col) {
+    var show = cols.includes(col.key);
+    document.querySelectorAll('[data-col="' + col.key + '"]').forEach(function(el) {
+      el.style.display = show ? '' : 'none';
     });
   });
-
-  // Update badge
-  const badge = document.getElementById('colCountBadge');
-  if (badge) badge.textContent = visibleCols.length;
+  var badge = document.getElementById('hi-col-count-badge');
+  if (badge) badge.textContent = cols.length;
 }
-
-function buildModal(visibleCols) {
-  const list = document.getElementById('colCheckboxList');
-  if (!list) return;
-
-  list.innerHTML = ALL_COLS.map(col => {
-    const checked = visibleCols.includes(col.key) ? 'checked' : '';
-    return `<div class="col-md-4">
-      <div class="col-check-item">
-        <input type="checkbox" id="cc_${col.key}" value="${col.key}" ${checked}
-               onchange="onColChange()">
-        <label for="cc_${col.key}">${col.label}</label>
-      </div>
-    </div>`;
-  }).join('');
-
-  updateSelectionCount();
-}
-
-function updateSelectionCount() {
-  const checked = document.querySelectorAll('#colCheckboxList input:checked');
-  const count = checked.length;
-  const el = document.getElementById('colSelectionCount');
-  if (el) {
-    el.textContent = `${count} / ${MAX_COLS} selected`;
-    el.className = count > MAX_COLS ? 'text-danger fw-bold' : 'text-muted';
-  }
-
-  // Disable unchecked boxes if at max
-  const allBoxes = document.querySelectorAll('#colCheckboxList input');
-  const atMax = count >= MAX_COLS;
-  const warning = document.getElementById('colLimitWarning');
-  if (warning) warning.style.display = atMax ? '' : 'none';
-
-  allBoxes.forEach(cb => {
-    if (!cb.checked) cb.disabled = atMax;
+function hiBuildCbs(cols) {
+  var c = document.getElementById('hi-col-checkboxes');
+  c.innerHTML = '';
+  HI_COL_CONFIG.forEach(function(col) {
+    var d = document.createElement('div'); d.className = 'col-md-4';
+    d.innerHTML = '<div class="form-check" style="padding:.35rem .5rem .35rem 1.75rem;border-radius:6px;">' +
+      '<input class="form-check-input hi-col-cb" type="checkbox" id="hi-cb-' + col.key + '" value="' + col.key + '"' + (cols.includes(col.key) ? ' checked' : '') + '>' +
+      '<label class="form-check-label" for="hi-cb-' + col.key + '">' + col.label + '</label></div>';
+    c.appendChild(d);
   });
-
-  // Sync Check All
-  const checkAll = document.getElementById('checkAllCols');
-  if (checkAll) checkAll.indeterminate = count > 0 && count < ALL_COLS.length;
 }
-
-window.onColChange = function() {
-  updateSelectionCount();
-};
+function hiSyncCheckAll() {
+  var cbs = document.querySelectorAll('.hi-col-cb');
+  var all = Array.from(cbs).every(function(cb) { return cb.checked; });
+  var any = Array.from(cbs).some(function(cb) { return cb.checked; });
+  var ca = document.getElementById('hi-col-check-all');
+  if (ca) { ca.checked = all; ca.indeterminate = !all && any; }
+}
+function hiHideVal() { document.getElementById('hi-col-validation').classList.add('d-none'); }
+function hiShowVal(msg) { document.getElementById('hi-col-validation-text').textContent = msg; document.getElementById('hi-col-validation').classList.remove('d-none'); }
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Apply saved columns on page load
+  hiApplyCols(hiGetCols());
+
+  // Open column config modal
+  var hiColBtn = document.getElementById('hi-col-config-btn');
+  if (hiColBtn) {
+    hiColBtn.addEventListener('click', function() {
+      hiBuildCbs(hiGetCols()); hiSyncCheckAll(); hiHideVal();
+      new bootstrap.Modal(document.getElementById('hiColConfigModal')).show();
+    });
+  }
+
+  // Check All
+  var hiCheckAll = document.getElementById('hi-col-check-all');
+  if (hiCheckAll) {
+    hiCheckAll.addEventListener('change', function() {
+      var cbs = document.querySelectorAll('.hi-col-cb');
+      if (this.checked && cbs.length > HI_COL_MAX) {
+        hiShowVal('Cannot select all — maximum is ' + HI_COL_MAX + ' columns.'); this.checked = false; return;
+      }
+      hiHideVal();
+      var checked = this.checked;
+      cbs.forEach(function(cb) { cb.checked = checked; });
+      hiSyncCheckAll();
+    });
+  }
+
+  // Individual checkbox
+  var hiCbList = document.getElementById('hi-col-checkboxes');
+  if (hiCbList) {
+    hiCbList.addEventListener('change', function(e) {
+      if (!e.target.classList.contains('hi-col-cb')) return;
+      var count = document.querySelectorAll('.hi-col-cb:checked').length;
+      if (count > HI_COL_MAX) { e.target.checked = false; hiShowVal('Maximum ' + HI_COL_MAX + ' columns allowed.'); }
+      else hiHideVal();
+      hiSyncCheckAll();
+    });
+  }
+
+  // Apply Changes
+  var hiApplyBtn = document.getElementById('hi-apply-cols');
+  if (hiApplyBtn) {
+    hiApplyBtn.addEventListener('click', function() {
+      var sel = Array.from(document.querySelectorAll('.hi-col-cb:checked')).map(function(cb) { return cb.value; });
+      if (!sel.length) { hiShowVal('Please select at least 1 column.'); return; }
+      if (sel.length > HI_COL_MAX) { hiShowVal('Maximum ' + HI_COL_MAX + ' columns allowed.'); return; }
+      hiSaveCols(sel); hiApplyCols(sel);
+      bootstrap.Modal.getInstance(document.getElementById('hiColConfigModal')).hide();
+    });
+  }
+
   // ── Advanced filter toggle ─────────────────────────────────────────────────
   var hiToggleBtn = document.getElementById('toggle-hi-adv-filter');
   var hiPanel     = document.getElementById('hi-adv-panel');
@@ -724,57 +739,6 @@ document.addEventListener('DOMContentLoaded', function() {
         var anyFilled = Array.from(hiAdvFields).some(function(f) { return f.value !== ''; });
         hiDot.classList.toggle('d-none', !anyFilled);
       });
-    });
-  }
-
-  // ── Column config ──────────────────────────────────────────────────────────
-  // Apply saved columns immediately
-  const visibleCols = getVisibleCols();
-  applyVisibility(visibleCols);
-
-  // Build modal when it opens
-  const modal = document.getElementById('colConfigModal');
-  if (modal) {
-    modal.addEventListener('show.bs.modal', function() {
-      buildModal(getVisibleCols());
-    });
-  }
-
-  // Check All
-  const checkAll = document.getElementById('checkAllCols');
-  if (checkAll) {
-    checkAll.addEventListener('change', function() {
-      const currentVisible = getVisibleCols().length;
-      if (this.checked) {
-        // Select up to MAX_COLS only
-        let count = 0;
-        document.querySelectorAll('#colCheckboxList input').forEach(cb => {
-          if (count < MAX_COLS) { cb.checked = true; count++; }
-          else cb.checked = false;
-        });
-      } else {
-        document.querySelectorAll('#colCheckboxList input').forEach(cb => cb.checked = false);
-      }
-      updateSelectionCount();
-    });
-  }
-
-  // Apply Changes
-  const applyBtn = document.getElementById('applyColsBtn');
-  if (applyBtn) {
-    applyBtn.addEventListener('click', function() {
-      const selected = Array.from(document.querySelectorAll('#colCheckboxList input:checked')).map(cb => cb.value);
-      if (selected.length === 0) {
-        alert('Please select at least 1 column.');
-        return;
-      }
-      if (selected.length > MAX_COLS) {
-        alert(`Maximum ${MAX_COLS} columns allowed. You have selected ${selected.length}.`);
-        return;
-      }
-      localStorage.setItem(COL_STORAGE_KEY, JSON.stringify(selected));
-      applyVisibility(selected);
-      bootstrap.Modal.getInstance(document.getElementById('colConfigModal')).hide();
     });
   }
 });

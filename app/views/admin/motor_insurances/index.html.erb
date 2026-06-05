@@ -86,10 +86,6 @@
     <h2 class="mb-1">Motor Insurance Policies</h2>
   </div>
   <div class="d-flex gap-2">
-    <button type="button" class="btn btn-outline-secondary" id="mi-col-config-btn" title="Configure visible columns">
-      <i class="bi bi-layout-three-columns me-1"></i>Columns
-      <span class="badge bg-secondary ms-1" id="mi-col-count-badge">7</span>
-    </button>
     <%= link_to new_admin_motor_insurance_path, class: "btn btn-primary" do %>
       <i class="bi bi-plus-lg me-1"></i>
       Add New Motor Policy
@@ -251,10 +247,7 @@
       <!-- Basic filter row -->
       <div class="row g-2 align-items-end mb-2">
         <div class="col-md-4">
-          <%= form.text_field :search, placeholder: "Search by policy no., customer, company…", value: params[:search], class: "form-control" %>
-        </div>
-        <div class="col-md-2">
-          <%= form.text_field :vehicle_number, placeholder: "Vehicle No.", value: params[:vehicle_number], class: "form-control" %>
+          <%= form.text_field :search, placeholder: "Search by policy no., customer, vehicle…", value: params[:search], class: "form-control" %>
         </div>
         <div class="col-md-2">
           <%= form.select :status, options_for_select([
@@ -267,15 +260,22 @@
         <div class="col-md-2">
           <%= form.submit "Search", class: "btn btn-primary w-100" %>
         </div>
-        <div class="col-md-2 text-end">
+        <div class="col-md-2">
           <button type="button" class="btn btn-outline-secondary w-100" id="toggle-mi-adv-filter">
             <i class="bi bi-funnel me-1"></i>Advanced
-            <% mi_adv_active = [params[:company], params[:sub_agent_id], params[:vehicle_type], params[:payment_mode], params[:policy_type], params[:from_date], params[:to_date]].any?(&:present?) %>
+            <% mi_adv_active = [params[:company], params[:sub_agent_id], params[:vehicle_type], params[:vehicle_number], params[:payment_mode], params[:policy_type], params[:from_date], params[:to_date]].any?(&:present?) %>
             <% if mi_adv_active %>
               <span class="badge bg-primary ms-1" id="mi-adv-dot">●</span>
             <% else %>
               <span class="badge bg-secondary ms-1 d-none" id="mi-adv-dot">●</span>
             <% end %>
+          </button>
+        </div>
+        <div class="col-md-2">
+          <button type="button" class="btn btn-outline-secondary w-100" id="mi-col-config-btn"
+                  title="Configure visible columns">
+            <i class="bi bi-layout-three-columns me-1"></i>Columns
+            <span class="badge bg-secondary ms-1" id="mi-col-count-badge">7</span>
           </button>
         </div>
       </div>
@@ -310,6 +310,10 @@
               <option value="Goods Vehicle" <%= 'selected' if params[:vehicle_type] == 'Goods Vehicle' %>>Goods Vehicle</option>
               <option value="Taxi" <%= 'selected' if params[:vehicle_type] == 'Taxi' %>>Taxi</option>
             </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold small text-muted">Vehicle Number</label>
+            <%= form.text_field :vehicle_number, placeholder: "e.g. MH12AB1234", value: params[:vehicle_number], class: "form-control" %>
           </div>
           <div class="col-md-3">
             <label class="form-label fw-semibold small text-muted">Policy Type</label>
