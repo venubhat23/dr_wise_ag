@@ -42,10 +42,17 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
       when 'expired'
         @other_insurances = @other_insurances.where('policy_end_date < ?', Date.current)
       when 'pending'
-        # For policies without end date or future start date
         @other_insurances = @other_insurances.where('policy_start_date > ?', Date.current)
       end
     end
+
+    # Advanced filters
+    @other_insurances = @other_insurances.where(insurance_type: params[:insurance_type])      if params[:insurance_type].present?
+    @other_insurances = @other_insurances.where(payment_mode: params[:payment_mode])           if params[:payment_mode].present?
+    @other_insurances = @other_insurances.where(insurance_company_name: params[:company])      if params[:company].present?
+    @other_insurances = @other_insurances.where(sub_agent_id: params[:sub_agent_id])           if params[:sub_agent_id].present?
+    @other_insurances = @other_insurances.where("policy_start_date >= ?", params[:from_date])  if params[:from_date].present?
+    @other_insurances = @other_insurances.where("policy_start_date <= ?", params[:to_date])    if params[:to_date].present?
 
     # Tab-based filtering using DrWise/Non-DrWise classification
     if @current_tab == 'drwise'
@@ -71,6 +78,12 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
       '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
       true, false, false, true, false, false
     ).count
+
+    # Filter dropdown data
+    @filter_companies       = OtherInsurance.distinct.pluck(:insurance_company_name).compact.reject(&:blank?).sort
+    @filter_sub_agents      = SubAgent.where(id: OtherInsurance.distinct.select(:sub_agent_id).where.not(sub_agent_id: nil)).order(:first_name, :last_name)
+    @filter_insurance_types = OtherInsurance.distinct.pluck(:insurance_type).compact.reject(&:blank?).sort
+    @filter_payment_modes   = OtherInsurance.distinct.pluck(:payment_mode).compact.reject(&:blank?).sort
 
     @other_insurances = paginate_records(@other_insurances.order(created_at: :desc))
 

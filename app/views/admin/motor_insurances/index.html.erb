@@ -86,6 +86,10 @@
     <h2 class="mb-1">Motor Insurance Policies</h2>
   </div>
   <div class="d-flex gap-2">
+    <button type="button" class="btn btn-outline-secondary" id="mi-col-config-btn" title="Configure visible columns">
+      <i class="bi bi-layout-three-columns me-1"></i>Columns
+      <span class="badge bg-secondary ms-1" id="mi-col-count-badge">7</span>
+    </button>
     <%= link_to new_admin_motor_insurance_path, class: "btn btn-primary" do %>
       <i class="bi bi-plus-lg me-1"></i>
       Add New Motor Policy
@@ -234,36 +238,116 @@
 </div>
 
 <!-- Search and Filters -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet"/>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-body">
-    <%= form_with url: admin_motor_insurances_path, method: :get, local: true, class: "row g-3" do |form| %>
+    <%= form_with url: admin_motor_insurances_path, method: :get, local: true, id: "motor-filter-form" do |form| %>
       <%= form.hidden_field :tab, value: @current_tab %>
-      <div class="col-md-3">
-        <%= form.text_field :search, placeholder: "Search policies...", value: params[:search], class: "form-control" %>
+
+      <!-- Basic filter row -->
+      <div class="row g-2 align-items-end mb-2">
+        <div class="col-md-4">
+          <%= form.text_field :search, placeholder: "Search by policy no., customer, company…", value: params[:search], class: "form-control" %>
+        </div>
+        <div class="col-md-2">
+          <%= form.text_field :vehicle_number, placeholder: "Vehicle No.", value: params[:vehicle_number], class: "form-control" %>
+        </div>
+        <div class="col-md-2">
+          <%= form.select :status, options_for_select([
+            ['All Statuses', ''],
+            ['Active', 'active'],
+            ['Expiring Soon', 'expiring_soon'],
+            ['Expired', 'expired']
+          ], params[:status]), {}, { class: "form-select" } %>
+        </div>
+        <div class="col-md-2">
+          <%= form.submit "Search", class: "btn btn-primary w-100" %>
+        </div>
+        <div class="col-md-2 text-end">
+          <button type="button" class="btn btn-outline-secondary w-100" id="toggle-mi-adv-filter">
+            <i class="bi bi-funnel me-1"></i>Advanced
+            <% mi_adv_active = [params[:company], params[:sub_agent_id], params[:vehicle_type], params[:payment_mode], params[:policy_type], params[:from_date], params[:to_date]].any?(&:present?) %>
+            <% if mi_adv_active %>
+              <span class="badge bg-primary ms-1" id="mi-adv-dot">●</span>
+            <% else %>
+              <span class="badge bg-secondary ms-1 d-none" id="mi-adv-dot">●</span>
+            <% end %>
+          </button>
+        </div>
       </div>
-      <div class="col-md-3">
-        <%= form.text_field :vehicle_number, placeholder: "Vehicle Number (e.g. MH12AB1234)", value: params[:vehicle_number], class: "form-control" %>
-      </div>
-      <div class="col-md-2">
-        <%= form.select :vehicle_type, options_for_select([
-          ['All Vehicle Types', ''],
-          ['Car', 'Car'],
-          ['Bike', 'Bike'],
-          ['Truck', 'Truck'],
-          ['Bus', 'Bus']
-        ], params[:vehicle_type]), {}, { class: "form-select" } %>
-      </div>
-      <div class="col-md-2">
-        <%= form.select :payment_mode, options_for_select([
-          ['All Payment Modes', ''],
-          ['Yearly', 'yearly'],
-          ['Half Yearly', 'half_yearly'],
-          ['Quarterly', 'quarterly'],
-          ['Monthly', 'monthly']
-        ], params[:payment_mode]), {}, { class: "form-select" } %>
-      </div>
-      <div class="col-md-2">
-        <%= form.submit "Filter", class: "btn btn-outline-primary w-100" %>
+
+      <!-- Advanced filter panel -->
+      <div id="mi-adv-panel" class="border rounded p-3 mt-2 bg-light" style="display: <%= mi_adv_active ? 'block' : 'none' %>;">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small text-muted">Company Name</label>
+            <select name="company" class="form-select mi-adv-select2">
+              <option value="">All Companies</option>
+              <% @filter_companies.each do |co| %>
+                <option value="<%= co %>" <%= 'selected' if params[:company] == co %>><%= co %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small text-muted">Affiliate</label>
+            <select name="sub_agent_id" class="form-select mi-adv-select2">
+              <option value="">All Affiliates</option>
+              <% @filter_sub_agents.each do |sa| %>
+                <option value="<%= sa.id %>" <%= 'selected' if params[:sub_agent_id].to_s == sa.id.to_s %>><%= sa.display_name %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small text-muted">Vehicle Type</label>
+            <select name="vehicle_type" class="form-select mi-adv-select2">
+              <option value="">All Vehicle Types</option>
+              <option value="Two Wheeler" <%= 'selected' if params[:vehicle_type] == 'Two Wheeler' %>>Two Wheeler</option>
+              <option value="Private Car" <%= 'selected' if params[:vehicle_type] == 'Private Car' %>>Private Car</option>
+              <option value="Goods Vehicle" <%= 'selected' if params[:vehicle_type] == 'Goods Vehicle' %>>Goods Vehicle</option>
+              <option value="Taxi" <%= 'selected' if params[:vehicle_type] == 'Taxi' %>>Taxi</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold small text-muted">Policy Type</label>
+            <select name="policy_type" class="form-select mi-adv-select2">
+              <option value="">All Types</option>
+              <% @filter_policy_types.each do |pt| %>
+                <option value="<%= pt %>" <%= 'selected' if params[:policy_type] == pt %>><%= pt %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold small text-muted">Start Date — From</label>
+            <div class="input-group">
+              <span class="input-group-text bg-primary text-white border-0"><i class="bi bi-calendar3"></i></span>
+              <%= form.date_field :from_date, value: params[:from_date], class: "form-control" %>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold small text-muted">Start Date — To</label>
+            <div class="input-group">
+              <span class="input-group-text bg-primary text-white border-0"><i class="bi bi-calendar3"></i></span>
+              <%= form.date_field :to_date, value: params[:to_date], class: "form-control" %>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold small text-muted">Payment Mode</label>
+            <select name="payment_mode" class="form-select mi-adv-select2">
+              <option value="">All Modes</option>
+              <% @filter_payment_modes.each do |pm| %>
+                <option value="<%= pm %>" <%= 'selected' if params[:payment_mode] == pm %>><%= pm %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="col-md-12 d-flex justify-content-end gap-2 mt-1">
+            <%= form.submit "Apply Filter", class: "btn btn-primary" %>
+            <%= link_to "Reset", admin_motor_insurances_path(tab: params[:tab]), class: "btn btn-outline-secondary" %>
+          </div>
+        </div>
       </div>
     <% end %>
   </div>
@@ -283,23 +367,33 @@
   <div class="card-body p-0">
     <% if @motor_insurances.any? %>
       <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0" id="mi-table">
           <thead class="bg-light">
             <tr>
-              <th class="border-0">Policy</th>
-              <th class="border-0">Vehicle</th>
-              <th class="border-0">Customer</th>
-              <th class="border-0">Source & Type</th>
-              <th class="border-0">Coverage</th>
-              <th class="border-0">Premium</th>
-              <th class="border-0">Status</th>
+              <th class="border-0" data-col="mi-policy">Policy</th>
+              <th class="border-0" data-col="mi-vehicle">Vehicle</th>
+              <th class="border-0" data-col="mi-customer">Customer</th>
+              <th class="border-0" data-col="mi-source">Source &amp; Type</th>
+              <th class="border-0" data-col="mi-coverage">Coverage</th>
+              <th class="border-0" data-col="mi-premium">Premium</th>
+              <th class="border-0" data-col="mi-status">Status</th>
+              <!-- Optional columns -->
+              <th class="border-0" data-col="mi-company">Company</th>
+              <th class="border-0" data-col="mi-start-date">Start Date</th>
+              <th class="border-0" data-col="mi-end-date">End Date</th>
+              <th class="border-0" data-col="mi-net-premium">Net Premium</th>
+              <th class="border-0" data-col="mi-payment-mode">Payment Mode</th>
+              <th class="border-0" data-col="mi-policy-type">Policy Type</th>
+              <th class="border-0" data-col="mi-agent">Agent</th>
+              <th class="border-0" data-col="mi-booking-date">Booking Date</th>
+              <!-- Actions always visible -->
               <th class="border-0">Actions</th>
             </tr>
           </thead>
           <tbody>
             <% @motor_insurances.each do |policy| %>
               <tr>
-                <td>
+                <td data-col="mi-policy">
                   <div>
                     <h6 class="mb-1"><%= policy.policy_number %></h6>
                     <small class="text-muted"><%= policy.policy_type&.humanize %></small>
@@ -311,64 +405,52 @@
                     </small>
                   </div>
                 </td>
-                <td>
+                <td data-col="mi-vehicle">
                   <div>
                     <h6 class="mb-1"><%= policy.registration_number %></h6>
                     <small class="text-muted"><%= policy.class_of_vehicle %></small>
                   </div>
                 </td>
-                <td>
+                <td data-col="mi-customer">
                   <div>
                     <h6 class="mb-1"><%= policy.customer&.display_name %></h6>
                     <small class="text-muted"><%= policy.customer&.email %></small>
                   </div>
                 </td>
-                <td>
+                <td data-col="mi-source">
                   <div class="d-flex flex-column gap-1">
-                    <!-- Source Badge -->
                     <div>
                       <% if policy.is_customer_added? %>
-                        <span class="badge bg-info-subtle text-info">
-                          <i class="bi bi-person-check me-1"></i>Customer
-                        </span>
+                        <span class="badge bg-info-subtle text-info"><i class="bi bi-person-check me-1"></i>Customer</span>
                       <% elsif policy.is_agent_added? %>
-                        <span class="badge bg-success-subtle text-success">
-                          <i class="bi bi-person-badge me-1"></i>Agent
-                        </span>
+                        <span class="badge bg-success-subtle text-success"><i class="bi bi-person-badge me-1"></i>Agent</span>
                       <% elsif policy.is_admin_added? %>
-                        <span class="badge bg-primary-subtle text-primary">
-                          <i class="bi bi-shield-check me-1"></i>Admin
-                        </span>
+                        <span class="badge bg-primary-subtle text-primary"><i class="bi bi-shield-check me-1"></i>Admin</span>
                       <% else %>
-                        <span class="badge bg-secondary-subtle text-secondary">
-                          <i class="bi bi-question-circle me-1"></i>Unknown
-                        </span>
+                        <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-question-circle me-1"></i>Unknown</span>
                       <% end %>
                     </div>
-                    <!-- Type Badge -->
                     <div>
-                      <span class="badge bg-light text-dark border">
-                        <i class="bi bi-car-front me-1"></i><%= policy.vehicle_type %>
-                      </span>
+                      <span class="badge bg-light text-dark border"><i class="bi bi-car-front me-1"></i><%= policy.vehicle_type %></span>
                     </div>
                   </div>
                 </td>
-                <td>
+                <td data-col="mi-coverage">
                   <div>
-                    <small class="text-muted d-block" style="font-size: 0.75rem;">Total IDV</small>
-                    <div class="fw-bold text-primary" style="font-size: 1rem;"
+                    <small class="text-muted d-block" style="font-size:0.75rem;">Total IDV</small>
+                    <div class="fw-bold text-primary" style="font-size:1rem;"
                          title="<%= policy.total_idv ? indian_currency(policy.total_idv) : '' %>" data-bs-toggle="tooltip">
-                      <%= policy.total_idv ? amount_in_words(policy.total_idv) : '' %>
+                      <%= policy.total_idv ? amount_in_words(policy.total_idv) : '—' %>
                     </div>
                   </div>
                 </td>
-                <td>
+                <td data-col="mi-premium">
                   <div>
-                    <small class="text-muted d-block" style="font-size: 0.75rem;"><%= policy.payment_mode&.humanize || 'Yearly' %></small>
-                    <div class="fw-bold text-success" style="font-size: 1rem;"><%= indian_currency(policy.total_premium) %></div>
+                    <small class="text-muted d-block" style="font-size:0.75rem;"><%= policy.payment_mode&.humanize || 'Yearly' %></small>
+                    <div class="fw-bold text-success" style="font-size:1rem;"><%= indian_currency(policy.total_premium) %></div>
                   </div>
                 </td>
-                <td>
+                <td data-col="mi-status">
                   <% if policy.has_been_renewed? && policy.expired? %>
                     <span class="badge" style="background-color:#6f42c1;">Renewed</span>
                   <% elsif policy.active? %>
@@ -381,6 +463,15 @@
                     <span class="badge bg-info">Active</span>
                   <% end %>
                 </td>
+                <!-- Optional columns -->
+                <td data-col="mi-company"><span class="text-muted"><%= policy.insurance_company_name.presence || '—' %></span></td>
+                <td data-col="mi-start-date"><span class="text-muted"><%= policy.policy_start_date&.strftime('%d %b %Y') || '—' %></span></td>
+                <td data-col="mi-end-date"><span class="text-muted"><%= policy.policy_end_date&.strftime('%d %b %Y') || '—' %></span></td>
+                <td data-col="mi-net-premium"><span class="fw-semibold text-secondary"><%= policy.net_premium.present? ? indian_currency(policy.net_premium) : '—' %></span></td>
+                <td data-col="mi-payment-mode"><span class="text-muted"><%= policy.payment_mode&.humanize || '—' %></span></td>
+                <td data-col="mi-policy-type"><span class="text-muted"><%= policy.policy_type.presence || '—' %></span></td>
+                <td data-col="mi-agent"><span class="text-muted"><%= policy.sub_agent&.display_name || '—' %></span></td>
+                <td data-col="mi-booking-date"><span class="text-muted"><%= policy.policy_booking_date&.strftime('%d %b %Y') || '—' %></span></td>
                 <td>
                   <div class="d-flex gap-1">
                     <% if can_view?('motor_insurances') %>
@@ -498,7 +589,174 @@
   </div>
 </div>
 
+<!-- Motor Insurance Column Config Modal -->
+<div class="modal fade" id="miColConfigModal" tabindex="-1" aria-labelledby="miColConfigModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-semibold" id="miColConfigModalLabel">
+          <i class="bi bi-layout-three-columns me-2 text-primary"></i>Customize Columns
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-3">
+        <div class="border rounded p-3" style="background:#f8fbff;">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="fw-semibold text-primary">Select Columns</span>
+            <div class="form-check mb-0">
+              <input type="checkbox" class="form-check-input" id="mi-col-check-all">
+              <label class="form-check-label fw-semibold" for="mi-col-check-all">Check All</label>
+            </div>
+          </div>
+          <div class="row g-2" id="mi-col-checkboxes"></div>
+          <div class="mt-3 text-muted small">
+            <i class="bi bi-info-circle me-1"></i>Maximum <strong>9 columns</strong> can be selected. <strong>Actions</strong> is always visible.
+          </div>
+          <div id="mi-col-validation" class="alert alert-danger mt-2 mb-0 py-2 d-none">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            <span id="mi-col-validation-text">Maximum 9 columns allowed.</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary px-4" id="mi-apply-cols">
+          <i class="bi bi-check-lg me-1"></i>Apply Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+// ── Motor Insurance Column Config ──────────────────────────────────────────
+const MI_COL_CONFIG = [
+  { key: 'mi-policy',      label: 'Policy',        defaultOn: true  },
+  { key: 'mi-vehicle',     label: 'Vehicle',        defaultOn: true  },
+  { key: 'mi-customer',    label: 'Customer',       defaultOn: true  },
+  { key: 'mi-source',      label: 'Source & Type',  defaultOn: true  },
+  { key: 'mi-coverage',    label: 'Coverage (IDV)', defaultOn: true  },
+  { key: 'mi-premium',     label: 'Premium',        defaultOn: true  },
+  { key: 'mi-status',      label: 'Status',         defaultOn: true  },
+  { key: 'mi-company',     label: 'Company',        defaultOn: false },
+  { key: 'mi-start-date',  label: 'Start Date',     defaultOn: false },
+  { key: 'mi-end-date',    label: 'End Date',       defaultOn: false },
+  { key: 'mi-net-premium', label: 'Net Premium',    defaultOn: false },
+  { key: 'mi-payment-mode',label: 'Payment Mode',   defaultOn: false },
+  { key: 'mi-policy-type', label: 'Policy Type',    defaultOn: false },
+  { key: 'mi-agent',       label: 'Agent/Affiliate',defaultOn: false },
+  { key: 'mi-booking-date',label: 'Booking Date',   defaultOn: false },
+];
+const MI_COL_MAX = 9;
+const MI_COL_KEY = 'motor_insurance_columns_v1';
+
+function miGetCols() {
+  try { var s = localStorage.getItem(MI_COL_KEY); if (s) return JSON.parse(s); } catch(e) {}
+  return MI_COL_CONFIG.filter(function(c) { return c.defaultOn; }).map(function(c) { return c.key; });
+}
+function miSaveCols(cols) { localStorage.setItem(MI_COL_KEY, JSON.stringify(cols)); }
+function miApplyCols(cols) {
+  MI_COL_CONFIG.forEach(function(col) {
+    var show = cols.includes(col.key);
+    document.querySelectorAll('[data-col="' + col.key + '"]').forEach(function(el) { el.style.display = show ? '' : 'none'; });
+  });
+  var badge = document.getElementById('mi-col-count-badge');
+  if (badge) badge.textContent = cols.length;
+}
+function miBuildCbs(cols) {
+  var c = document.getElementById('mi-col-checkboxes');
+  c.innerHTML = '';
+  MI_COL_CONFIG.forEach(function(col) {
+    var d = document.createElement('div'); d.className = 'col-md-4';
+    d.innerHTML = '<div class="form-check" style="padding:.35rem .5rem .35rem 1.75rem;border-radius:6px;">' +
+      '<input class="form-check-input mi-col-cb" type="checkbox" id="mi-cb-' + col.key + '" value="' + col.key + '"' + (cols.includes(col.key) ? ' checked' : '') + '>' +
+      '<label class="form-check-label" for="mi-cb-' + col.key + '">' + col.label + '</label></div>';
+    c.appendChild(d);
+  });
+}
+function miSyncCheckAll() {
+  var cbs = document.querySelectorAll('.mi-col-cb');
+  var all = Array.from(cbs).every(function(cb) { return cb.checked; });
+  var any = Array.from(cbs).some(function(cb) { return cb.checked; });
+  var ca = document.getElementById('mi-col-check-all');
+  ca.checked = all; ca.indeterminate = !all && any;
+}
+function miHideVal() { document.getElementById('mi-col-validation').classList.add('d-none'); }
+function miShowVal(msg) { document.getElementById('mi-col-validation-text').textContent = msg; document.getElementById('mi-col-validation').classList.remove('d-none'); }
+
+document.addEventListener('DOMContentLoaded', function() {
+  miApplyCols(miGetCols());
+
+  // Open modal
+  var btn = document.getElementById('mi-col-config-btn');
+  if (btn) btn.addEventListener('click', function() {
+    miBuildCbs(miGetCols()); miSyncCheckAll(); miHideVal();
+    new bootstrap.Modal(document.getElementById('miColConfigModal')).show();
+  });
+
+  // Check All
+  document.getElementById('mi-col-check-all').addEventListener('change', function() {
+    var cbs = document.querySelectorAll('.mi-col-cb');
+    if (this.checked && cbs.length > MI_COL_MAX) {
+      miShowVal('Cannot select all — maximum is ' + MI_COL_MAX + ' columns.');
+      this.checked = false; return;
+    }
+    miHideVal();
+    cbs.forEach(function(cb) { cb.checked = true; });
+    if (!this.checked) cbs.forEach(function(cb) { cb.checked = false; });
+    miSyncCheckAll();
+  });
+
+  // Individual checkbox
+  document.getElementById('mi-col-checkboxes').addEventListener('change', function(e) {
+    if (!e.target.classList.contains('mi-col-cb')) return;
+    var count = document.querySelectorAll('.mi-col-cb:checked').length;
+    if (count > MI_COL_MAX) { e.target.checked = false; miShowVal('Maximum ' + MI_COL_MAX + ' columns allowed.'); }
+    else miHideVal();
+    miSyncCheckAll();
+  });
+
+  // Apply
+  document.getElementById('mi-apply-cols').addEventListener('click', function() {
+    var sel = Array.from(document.querySelectorAll('.mi-col-cb:checked')).map(function(cb) { return cb.value; });
+    if (!sel.length) { miShowVal('Please select at least 1 column.'); return; }
+    if (sel.length > MI_COL_MAX) { miShowVal('Maximum ' + MI_COL_MAX + ' columns allowed.'); return; }
+    miSaveCols(sel); miApplyCols(sel);
+    bootstrap.Modal.getInstance(document.getElementById('miColConfigModal')).hide();
+  });
+
+  // ── Advanced filter toggle ────────────────────────────────────────────────
+  var miToggle = document.getElementById('toggle-mi-adv-filter');
+  var miPanel  = document.getElementById('mi-adv-panel');
+  var miDot    = document.getElementById('mi-adv-dot');
+  if (miToggle) {
+    miToggle.addEventListener('click', function() {
+      var open = miPanel.style.display !== 'none';
+      miPanel.style.display = open ? 'none' : 'block';
+      miToggle.classList.toggle('btn-outline-secondary', open);
+      miToggle.classList.toggle('btn-secondary', !open);
+      if (!open) initMiSelect2();
+    });
+  }
+  function initMiSelect2() {
+    if (typeof $ === 'undefined') return;
+    $('.mi-adv-select2').each(function() {
+      if ($(this).data('select2')) return;
+      $(this).select2({ theme: 'bootstrap-5', width: '100%', allowClear: true, placeholder: $(this).find('option:first').text() });
+    });
+  }
+  if (miPanel && miPanel.style.display !== 'none') initMiSelect2();
+  if (miPanel) {
+    var miAdvFields = miPanel.querySelectorAll('select, input[type=date]');
+    miAdvFields.forEach(function(el) {
+      el.addEventListener('change', function() {
+        var any = Array.from(miAdvFields).some(function(f) { return f.value !== ''; });
+        miDot.classList.toggle('d-none', !any);
+      });
+    });
+  }
+});
+
 function confirmMotorPolicyDeletion(element, event) {
   // Prevent the default link behavior
   event.preventDefault();

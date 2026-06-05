@@ -1,5 +1,6 @@
 class Admin::InvestorsController < Admin::ApplicationController
   include LocationData
+  include ConfigurablePagination
   before_action :set_investor, only: [:show, :edit, :update, :destroy, :toggle_status, :summary]
   before_action :load_form_data, only: [:new, :edit, :create, :update]
 
@@ -32,8 +33,8 @@ class Admin::InvestorsController < Admin::ApplicationController
     # Get total count before pagination for display purposes
     @total_filtered_count = @investors.count
 
-    # Order and paginate (10 records per page)
-    @investors = @investors.order(created_at: :desc).page(params[:page]).per(10)
+    # Order and paginate
+    @investors = paginate_records(@investors.order(created_at: :desc), @total_filtered_count)
 
     # Calculate statistics using separate scope for stats
     stats_scope = Investor.all

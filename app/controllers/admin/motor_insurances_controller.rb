@@ -51,6 +51,28 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       base_query = base_query.where(insurance_company_name: params[:company])
     end
 
+    # Filter by status
+    if params[:status].present?
+      case params[:status]
+      when 'active'        then base_query = base_query.where('policy_end_date IS NULL OR policy_end_date >= ?', Date.current)
+      when 'expiring_soon' then base_query = base_query.where(policy_end_date: Date.current..30.days.from_now)
+      when 'expired'       then base_query = base_query.where('policy_end_date < ?', Date.current)
+      end
+    end
+
+    # Filter by affiliate
+    if params[:sub_agent_id].present?
+      base_query = base_query.where(sub_agent_id: params[:sub_agent_id])
+    end
+
+    # Filter by policy start date range
+    if params[:from_date].present?
+      base_query = base_query.where("policy_start_date >= ?", params[:from_date])
+    end
+    if params[:to_date].present?
+      base_query = base_query.where("policy_start_date <= ?", params[:to_date])
+    end
+
     # Tab-based filtering using DrWise/Non-DrWise classification
     if @current_tab == 'drwise'
       @motor_insurances = base_query.where(
@@ -99,6 +121,12 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
 
     @total_policies = @motor_insurances.count
     @total_premium = @motor_insurances.sum(:total_premium)
+
+    # Filter dropdown data
+    @filter_companies     = MotorInsurance.distinct.pluck(:insurance_company_name).compact.reject(&:blank?).sort
+    @filter_sub_agents    = SubAgent.joins(:motor_insurances).distinct.order(:first_name, :last_name)
+    @filter_policy_types  = MotorInsurance.distinct.pluck(:policy_type).compact.reject(&:blank?).sort
+    @filter_payment_modes = MotorInsurance.distinct.pluck(:payment_mode).compact.reject(&:blank?).sort
 
     @motor_insurances = paginate_records(@motor_insurances.order(created_at: :desc))
   end

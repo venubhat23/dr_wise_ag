@@ -31,6 +31,30 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       @health_insurances = @health_insurances.search_health_policies(params[:search])
     end
 
+    # Status filter
+    if params[:status].present?
+      case params[:status]
+      when 'active'        then @health_insurances = @health_insurances.where('policy_end_date IS NULL OR policy_end_date >= ?', Date.current)
+      when 'expiring_soon' then @health_insurances = @health_insurances.where(policy_end_date: Date.current..30.days.from_now)
+      when 'expired'       then @health_insurances = @health_insurances.where('policy_end_date < ?', Date.current)
+      end
+    end
+
+    # Advanced filters
+    @health_insurances = @health_insurances.where(insurance_type: params[:insurance_type])   if params[:insurance_type].present?
+    @health_insurances = @health_insurances.where(payment_mode: params[:payment_mode])        if params[:payment_mode].present?
+    @health_insurances = @health_insurances.where(insurance_company_name: params[:company])   if params[:company].present?
+    @health_insurances = @health_insurances.where(sub_agent_id: params[:sub_agent_id])        if params[:sub_agent_id].present?
+    @health_insurances = @health_insurances.where(policy_type: params[:policy_type])          if params[:policy_type].present?
+    @health_insurances = @health_insurances.where("policy_start_date >= ?", params[:from_date]) if params[:from_date].present?
+    @health_insurances = @health_insurances.where("policy_start_date <= ?", params[:to_date])   if params[:to_date].present?
+
+    # Filter dropdown data
+    @filter_companies     = HealthInsurance.distinct.pluck(:insurance_company_name).compact.reject(&:blank?).sort
+    @filter_sub_agents    = SubAgent.joins(:health_insurances).distinct.order(:first_name, :last_name)
+    @filter_policy_types  = ['New', 'Renewal']
+    @filter_payment_modes = HealthInsurance.distinct.pluck(:payment_mode).compact.reject(&:blank?).sort
+
     # Calculate statistics for current tab (before pagination)
     calculate_tab_statistics
 
