@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_05_030204) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_05_032336) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -480,8 +480,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_05_030204) do
     t.string "username"
     t.string "password_digest"
     t.string "original_password"
+    t.integer "investor_id"
     t.index ["created_at"], name: "index_distributors_on_created_at"
     t.index ["email"], name: "index_distributors_on_email", unique: true
+    t.index ["investor_id"], name: "index_distributors_on_investor_id"
     t.index ["mobile"], name: "index_distributors_on_mobile", unique: true
     t.index ["role_id"], name: "index_distributors_on_role_id"
     t.index ["status"], name: "index_distributors_on_status"

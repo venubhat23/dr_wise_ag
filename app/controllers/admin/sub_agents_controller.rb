@@ -172,6 +172,11 @@ class Admin::SubAgentsController < Admin::ApplicationController
     @expired_policies = @all_policies.count { |p| p[:status] == 'Expired' }
     @total_premium_handled = @all_policies.sum { |p| p[:premium] || 0 }
     @unique_clients = Customer.where(sub_agent_id: @sub_agent.id).count
+    @client_details = Customer.where(sub_agent_id: @sub_agent.id)
+                              .select(:id, :first_name, :middle_name, :last_name, :company_name,
+                                      :customer_type, :email, :mobile, :gender, :birth_date,
+                                      :state, :city, :status, :policies_count, :created_at)
+                              .order(:first_name)
 
     # Build commission ledger
     raw_ledger = []

@@ -175,6 +175,7 @@ class Admin::InvestorsController < Admin::ApplicationController
 
     @investor_commission_paid    = 0.0
     @investor_commission_pending = 0.0
+    @investor_commission_rows    = []
 
     @ambassador_rows = ambassadors.map do |amb|
       name = amb.display_name.presence || "#{amb.first_name} #{amb.last_name}".strip.presence || "Ambassador ##{amb.id}"
@@ -214,6 +215,21 @@ class Admin::InvestorsController < Admin::ApplicationController
           if pol_investor_id.nil? || pol_investor_id == @investor.id
             @investor_commission_paid    += inv_payout&.paid?    ? inv_net : 0.0
             @investor_commission_pending += inv_payout&.pending? ? inv_net : 0.0
+            @investor_commission_rows << {
+              policy_number: pol.policy_number.presence || '—',
+              customer_name: pol.customer&.display_name.presence || 'N/A',
+              type:          ptype.capitalize,
+              source:        "Ambassador: #{name}",
+              premium:       premium,
+              inv_comm_pct:  pol.try(:investor_commission_percentage).to_f,
+              inv_gross:     inv_gross,
+              inv_tds_pct:   inv_tds_pct,
+              inv_tds:       inv_tds,
+              inv_after_tds: inv_aft,
+              inv_net:       inv_net,
+              inv_status:    inv_payout&.status || 'no_payout',
+              payout_date:   inv_payout&.payout_date&.strftime('%d %b %Y')
+            }
           end
 
           amb_paid       += p_paid
@@ -294,6 +310,21 @@ class Admin::InvestorsController < Admin::ApplicationController
             if pol_investor_id.nil? || pol_investor_id == @investor.id
               @investor_commission_paid    += inv_payout&.paid?    ? inv_net : 0.0
               @investor_commission_pending += inv_payout&.pending? ? inv_net : 0.0
+              @investor_commission_rows << {
+                policy_number: pol.policy_number.presence || '—',
+                customer_name: pol.customer&.display_name.presence || 'N/A',
+                type:          ptype.capitalize,
+                source:        "#{name} → #{af_name}",
+                premium:       premium,
+                inv_comm_pct:  pol.try(:investor_commission_percentage).to_f,
+                inv_gross:     inv_gross,
+                inv_tds_pct:   inv_tds_pct,
+                inv_tds:       inv_tds,
+                inv_after_tds: inv_aft,
+                inv_net:       inv_net,
+                inv_status:    inv_payout&.status || 'no_payout',
+                payout_date:   inv_payout&.payout_date&.strftime('%d %b %Y')
+              }
             end
 
             af_paid      += p_paid

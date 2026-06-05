@@ -222,36 +222,223 @@
   <div class="policy-section mb-4">
     <div class="sec-title d-flex align-items-center gap-2" style="--c:#2c3e7a">
       <i class="bi bi-cash-coin"></i> Your Commission Breakdown
+      <small style="font-size:.72rem; font-weight:400; opacity:.8;">Click a card for policy details</small>
     </div>
     <div class="sec-body">
       <div class="row g-3">
         <div class="col-md-4">
-          <div class="p-3 rounded" style="background:#eafaf1; border:1px solid #a9dfbf;">
-            <div style="font-size:.75rem; color:#27ae60; text-transform:uppercase; font-weight:600; letter-spacing:.5px;">Commission Paid</div>
+          <div class="p-3 rounded comm-breakdown-card" data-filter="paid"
+               style="background:#eafaf1; border:1px solid #a9dfbf; cursor:pointer; transition:box-shadow .15s;"
+               data-bs-toggle="modal" data-bs-target="#commissionModal">
+            <div style="font-size:.75rem; color:#27ae60; text-transform:uppercase; font-weight:600; letter-spacing:.5px;">
+              <i class="bi bi-check-circle me-1"></i>Commission Paid
+            </div>
             <div style="font-size:1.6rem; font-weight:800; color:#27ae60;"><%= indian_currency(@investor_commission_paid.round(2)) %></div>
+            <div style="font-size:.72rem; color:#27ae60; margin-top:.2rem; opacity:.7;"><i class="bi bi-eye me-1"></i>View policies</div>
           </div>
         </div>
         <div class="col-md-4">
-          <div class="p-3 rounded" style="background:#fef9ec; border:1px solid #f9d8a0;">
-            <div style="font-size:.75rem; color:#e67e22; text-transform:uppercase; font-weight:600; letter-spacing:.5px;">Commission Pending</div>
+          <div class="p-3 rounded comm-breakdown-card" data-filter="pending"
+               style="background:#fef9ec; border:1px solid #f9d8a0; cursor:pointer; transition:box-shadow .15s;"
+               data-bs-toggle="modal" data-bs-target="#commissionModal">
+            <div style="font-size:.75rem; color:#e67e22; text-transform:uppercase; font-weight:600; letter-spacing:.5px;">
+              <i class="bi bi-hourglass-split me-1"></i>Commission Pending
+            </div>
             <div style="font-size:1.6rem; font-weight:800; color:#e67e22;"><%= indian_currency(@investor_commission_pending.round(2)) %></div>
+            <div style="font-size:.72rem; color:#e67e22; margin-top:.2rem; opacity:.7;"><i class="bi bi-eye me-1"></i>View policies</div>
           </div>
         </div>
         <div class="col-md-4">
-          <div class="p-3 rounded" style="background:#eaf4fb; border:1px solid #aed6f1;">
-            <div style="font-size:.75rem; color:#2980b9; text-transform:uppercase; font-weight:600; letter-spacing:.5px;">Total Commission</div>
+          <div class="p-3 rounded comm-breakdown-card" data-filter="all"
+               style="background:#eaf4fb; border:1px solid #aed6f1; cursor:pointer; transition:box-shadow .15s;"
+               data-bs-toggle="modal" data-bs-target="#commissionModal">
+            <div style="font-size:.75rem; color:#2980b9; text-transform:uppercase; font-weight:600; letter-spacing:.5px;">
+              <i class="bi bi-bar-chart-line me-1"></i>Total Commission
+            </div>
             <div style="font-size:1.6rem; font-weight:800; color:#2980b9;"><%= indian_currency((@investor_commission_paid + @investor_commission_pending).round(2)) %></div>
+            <div style="font-size:.72rem; color:#2980b9; margin-top:.2rem; opacity:.7;"><i class="bi bi-eye me-1"></i>View all policies</div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- ══════════════════ COMMISSION DETAIL MODAL ══════════════════ -->
+  <div class="modal fade" id="commissionModal" tabindex="-1" aria-labelledby="commissionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header" style="background:linear-gradient(135deg,#1a2550,#2c3e7a); color:#fff;">
+          <h5 class="modal-title" id="commissionModalLabel">
+            <i class="bi bi-cash-coin me-2"></i><span id="modalTitleText">Your Commission — Policy Breakdown</span>
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <!-- Summary bar -->
+          <div id="modalSummaryBar" class="d-flex gap-3 flex-wrap px-3 py-2" style="background:#f8f9fa; border-bottom:1px solid #e9ecef; font-size:.82rem;">
+          </div>
+          <!-- Table -->
+          <div class="table-responsive">
+            <table class="table data-table mb-0" id="commissionDetailTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Policy No.</th>
+                  <th>Type</th>
+                  <th>Customer</th>
+                  <th>Source (Ambassador → Affiliate)</th>
+                  <th class="text-end">Premium</th>
+                  <th class="text-end">Inv. %</th>
+                  <th class="text-end">Gross Comm.</th>
+                  <th class="text-end">TDS %</th>
+                  <th class="text-end">TDS Amt.</th>
+                  <th class="text-end">After TDS</th>
+                  <th class="text-end">Net Payout</th>
+                  <th class="text-center">Status</th>
+                  <th>Payout Date</th>
+                </tr>
+              </thead>
+              <tbody id="commissionDetailBody">
+              </tbody>
+              <tfoot>
+                <tr style="background:#eaf4fb;">
+                  <td colspan="11" class="fw-bold text-end" style="color:#2980b9;">Total Net Payout</td>
+                  <td class="text-end fw-bold" id="modalTotalNet" style="color:#2980b9; font-size:1rem;"></td>
+                  <td colspan="2"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div id="modalEmpty" class="text-center py-5 text-muted" style="display:none;">
+            <i class="bi bi-inbox" style="font-size:2rem; display:block; margin-bottom:.5rem;"></i>
+            No policies found for this filter.
+          </div>
+        </div>
+        <div class="modal-footer" style="background:#f8f9fa;">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    // Embed all investor commission rows from Rails
+    const allRows = <%= @investor_commission_rows.to_json.html_safe %>;
+
+    const fmt = (n) => {
+      if (n == null || n === 0) return '<span style="color:#adb5bd;">—</span>';
+      const abs = Math.abs(n);
+      const sign = n < 0 ? '-' : '';
+      // Indian number format
+      const s = abs.toFixed(2);
+      const [int, dec] = s.split('.');
+      const lastThree = int.slice(-3);
+      const rest = int.slice(0, -3);
+      const formatted = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + (rest ? ',' : '') + lastThree;
+      return sign + 'Rs. ' + formatted + '.' + dec;
+    };
+
+    const statusBadge = (status) => {
+      if (status === 'paid')
+        return '<span class="badge" style="background:#eafaf1;color:#27ae60;border:1px solid #a9dfbf;">Paid</span>';
+      if (status === 'pending')
+        return '<span class="badge" style="background:#fef9ec;color:#e67e22;border:1px solid #f9d8a0;">Pending</span>';
+      return '<span class="badge" style="background:#f8f9fa;color:#adb5bd;border:1px solid #dee2e6;">No Payout</span>';
+    };
+
+    const typeBadge = (type) => {
+      const map = {
+        Health: ['#eafaf1','#27ae60','#a9dfbf'],
+        Motor:  ['#eaf4fb','#2980b9','#aed6f1'],
+        Life:   ['#f5eef8','#8e44ad','#d7bde2']
+      };
+      const [bg, fg, br] = map[type] || ['#f8f9fa','#6c757d','#dee2e6'];
+      return `<span class="badge" style="background:${bg};color:${fg};border:1px solid ${br};">${type}</span>`;
+    };
+
+    function renderModal(filter) {
+      const rows = filter === 'all' ? allRows : allRows.filter(r => r.inv_status === filter);
+      const tbody = document.getElementById('commissionDetailBody');
+      const empty = document.getElementById('modalEmpty');
+      const table = document.getElementById('commissionDetailTable');
+      const summaryBar = document.getElementById('modalSummaryBar');
+      const titleEl = document.getElementById('modalTitleText');
+      const totalEl = document.getElementById('modalTotalNet');
+
+      // Title
+      const titles = { paid: 'Commission Paid — Policy Breakdown', pending: 'Commission Pending — Policy Breakdown', all: 'Total Commission — All Policies' };
+      titleEl.textContent = titles[filter] || 'Your Commission — Policy Breakdown';
+
+      if (rows.length === 0) {
+        tbody.innerHTML = '';
+        table.style.display = 'none';
+        empty.style.display = '';
+        totalEl.textContent = '—';
+        summaryBar.innerHTML = '';
+        return;
+      }
+
+      table.style.display = '';
+      empty.style.display = 'none';
+
+      let html = '';
+      let totalNet = 0;
+      rows.forEach((r, i) => {
+        totalNet += r.inv_net || 0;
+        html += `<tr>
+          <td style="color:#6c757d;">${i+1}</td>
+          <td style="font-weight:600;color:#2c3e7a;font-family:monospace;">${r.policy_number}</td>
+          <td>${typeBadge(r.type)}</td>
+          <td>${r.customer_name}</td>
+          <td style="font-size:.78rem;color:#6c757d;">${r.source}</td>
+          <td class="text-end" style="color:#16a085;font-weight:600;">${fmt(r.premium)}</td>
+          <td class="text-end">${r.inv_comm_pct > 0 ? r.inv_comm_pct + '%' : '<span style="color:#adb5bd;">—</span>'}</td>
+          <td class="text-end">${fmt(r.inv_gross)}</td>
+          <td class="text-end">${r.inv_tds_pct > 0 ? r.inv_tds_pct + '%' : '<span style="color:#adb5bd;">—</span>'}</td>
+          <td class="text-end" style="color:#e74c3c;">${fmt(r.inv_tds)}</td>
+          <td class="text-end">${fmt(r.inv_after_tds)}</td>
+          <td class="text-end amount-cell ${r.inv_status === 'paid' ? 'paid-amt' : (r.inv_status === 'pending' ? 'pending-amt' : 'zero-amt')}">${fmt(r.inv_net)}</td>
+          <td class="text-center">${statusBadge(r.inv_status)}</td>
+          <td style="font-size:.78rem;color:#6c757d;">${r.payout_date || '—'}</td>
+        </tr>`;
+      });
+      tbody.innerHTML = html;
+      totalEl.innerHTML = fmt(totalNet);
+
+      // Summary bar
+      const paidCount    = rows.filter(r => r.inv_status === 'paid').length;
+      const pendingCount = rows.filter(r => r.inv_status === 'pending').length;
+      const paidTotal    = rows.filter(r => r.inv_status === 'paid').reduce((s,r) => s + r.inv_net, 0);
+      const pendingTotal = rows.filter(r => r.inv_status === 'pending').reduce((s,r) => s + r.inv_net, 0);
+      summaryBar.innerHTML = `
+        <span><strong>${rows.length}</strong> policies</span>
+        <span style="color:#27ae60;"><i class="bi bi-check-circle me-1"></i><strong>${paidCount}</strong> paid &nbsp;(${fmt(paidTotal)})</span>
+        <span style="color:#e67e22;"><i class="bi bi-hourglass-split me-1"></i><strong>${pendingCount}</strong> pending &nbsp;(${fmt(pendingTotal)})</span>
+      `;
+    }
+
+    document.querySelectorAll('.comm-breakdown-card').forEach(card => {
+      card.addEventListener('mouseenter', () => card.style.boxShadow = '0 4px 18px rgba(0,0,0,.13)');
+      card.addEventListener('mouseleave', () => card.style.boxShadow = '');
+      card.addEventListener('click', () => renderModal(card.dataset.filter));
+    });
+  })();
+  </script>
+
   <!-- ══════════════════ AMBASSADOR SECTION ══════════════════ -->
   <% if @ambassador_rows.any? %>
-    <div class="d-flex align-items-center gap-2 mb-3">
-      <h5 class="mb-0 fw-bold" style="color:#2c3e7a;"><i class="bi bi-person-badge me-1"></i>Ambassadors & Their Network</h5>
+    <div class="d-flex align-items-center gap-2 mb-3"
+         style="cursor:pointer; user-select:none;"
+         data-bs-toggle="modal" data-bs-target="#networkModal"
+         onmouseenter="this.style.opacity='.8'" onmouseleave="this.style.opacity='1'">
+      <h5 class="mb-0 fw-bold" style="color:#2c3e7a;">
+        <i class="bi bi-person-badge me-1"></i>Ambassadors & Their Network
+      </h5>
       <span class="badge rounded-pill" style="background:#2c3e7a; font-size:.78rem;"><%= @total_ambassadors %> Total</span>
+      <small style="font-size:.75rem; color:#8e44ad; font-weight:600;">
+        <i class="bi bi-eye me-1"></i>View full commission breakdown
+      </small>
     </div>
 
     <% @ambassador_rows.each_with_index do |row, idx| %>
@@ -492,6 +679,256 @@
   </div>
 
 </div><!-- /container -->
+
+<!-- ══════════════════ NETWORK COMMISSION MODAL ══════════════════ -->
+<div class="modal fade" id="networkModal" tabindex="-1" aria-labelledby="networkModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header" style="background:linear-gradient(135deg,#1a2550,#2c3e7a); color:#fff;">
+        <h5 class="modal-title" id="networkModalLabel">
+          <i class="bi bi-diagram-3 me-2"></i>Full Network Commission Breakdown
+          <small style="font-size:.75rem; font-weight:400; opacity:.8; margin-left:.5rem;">
+            <%= @total_ambassadors %> Ambassador<%= @total_ambassadors == 1 ? '' : 's' %> · <%= @total_affiliates %> Affiliate<%= @total_affiliates == 1 ? '' : 's' %>
+          </small>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <!-- Summary strip -->
+        <div class="d-flex flex-wrap gap-3 px-3 py-2" style="background:#f8f9fa; border-bottom:1px solid #e9ecef; font-size:.82rem;">
+          <% net_total_rows = @ambassador_rows.flat_map { |r| r[:policy_rows] } +
+                              @ambassador_rows.flat_map { |r| r[:affiliates].flat_map { |a| a[:policy_rows] } } %>
+          <span><strong><%= net_total_rows.size %></strong> total policies</span>
+          <span style="color:#27ae60;">
+            <i class="bi bi-check-circle me-1"></i>
+            Investor Paid: <strong><%= indian_currency(@investor_commission_paid.round(2)) %></strong>
+          </span>
+          <span style="color:#e67e22;">
+            <i class="bi bi-hourglass-split me-1"></i>
+            Investor Pending: <strong><%= indian_currency(@investor_commission_pending.round(2)) %></strong>
+          </span>
+          <span style="color:#8e44ad;">
+            Network Commission: <strong><%= indian_currency((@total_ambassador_comm + @total_affiliate_comm).round(2)) %></strong>
+          </span>
+        </div>
+
+        <% row_index = 0 %>
+        <% type_colors = {'Health'=>['#eafaf1','#27ae60','#a9dfbf'],'Motor'=>['#eaf4fb','#2980b9','#aed6f1'],'Life'=>['#f5eef8','#8e44ad','#d7bde2']} %>
+        <% @ambassador_rows.each do |amb_row| %>
+          <!-- Ambassador block header -->
+          <div class="px-3 py-2 d-flex align-items-center gap-2 flex-wrap"
+               style="background:linear-gradient(90deg,#eef1ff,#f5f7ff); border-bottom:1px solid #dde1ff;">
+            <span class="badge rounded-pill" style="background:#2c3e7a; font-size:.78rem;">
+              <i class="bi bi-person-badge me-1"></i>Ambassador
+            </span>
+            <strong style="color:#2c3e7a;"><%= amb_row[:name] %></strong>
+            <span class="text-muted" style="font-size:.78rem;">
+              <%= amb_row[:policies] %> direct polic<%= amb_row[:policies] == 1 ? 'y' : 'ies' %> ·
+              <%= amb_row[:affiliates_count] %> affiliate<%= amb_row[:affiliates_count] == 1 ? '' : 's' %>
+            </span>
+            <span class="ms-auto" style="font-size:.8rem; color:#27ae60; font-weight:600;">
+              Paid: <%= indian_currency(amb_row[:commission_paid].round(2)) %>
+            </span>
+            <span style="font-size:.8rem; color:#e67e22; font-weight:600;">
+              Pending: <%= indian_currency(amb_row[:commission_pending].round(2)) %>
+            </span>
+          </div>
+
+          <% if amb_row[:policy_rows].any? %>
+            <div class="table-responsive">
+              <table class="table data-table mb-0" style="font-size:.8rem;">
+                <thead>
+                  <tr style="background:#f0f2ff;">
+                    <th style="width:2rem;">#</th>
+                    <th>Policy</th>
+                    <th>Type</th>
+                    <th>Customer</th>
+                    <th>Affiliate</th>
+                    <th class="text-end">Premium</th>
+                    <th class="text-end">Amb. Comm.</th>
+                    <th class="text-end" style="color:#8e44ad;">Inv. %</th>
+                    <th class="text-end" style="color:#8e44ad;">Inv. Comm.</th>
+                    <th class="text-end" style="color:#8e44ad;">Inv. After TDS</th>
+                    <th class="text-center">Inv. Status</th>
+                    <th class="text-end" style="color:#16a085;">Total Comm.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% amb_row[:policy_rows].each do |pr| %>
+                    <% row_index += 1 %>
+                    <% total_comm = pr[:net_commission].to_f + pr[:inv_after_tds].to_f %>
+                    <tr>
+                      <td class="text-muted"><%= row_index %></td>
+                      <td style="font-weight:600; color:#2c3e7a; font-family:monospace;"><%= pr[:policy_number] %></td>
+                      <td>
+                        <% bg, fg, br = type_colors[pr[:type]] || ['#f8f9fa','#6c757d','#dee2e6'] %>
+                        <span class="badge" style="background:<%= bg %>;color:<%= fg %>;border:1px solid <%= br %>;"><%= pr[:type] %></span>
+                      </td>
+                      <td><%= pr[:customer_name] %></td>
+                      <td class="text-muted" style="font-size:.75rem;">Direct</td>
+                      <td class="text-end" style="color:#16a085; font-weight:600;"><%= indian_currency(pr[:premium].to_f.round(2)) %></td>
+                      <td class="text-end <%= pr[:net_commission].to_f > 0 ? (pr[:status] == 'paid' ? 'paid-amt' : 'pending-amt') : 'zero-amt' %> fw-bold">
+                        <%= pr[:net_commission].to_f > 0 ? indian_currency(pr[:net_commission].to_f.round(2)) : '—' %>
+                      </td>
+                      <td class="text-end" style="color:#8e44ad;">
+                        <%= pr[:inv_comm_pct].to_f > 0 ? "#{pr[:inv_comm_pct]}%" : '—' %>
+                      </td>
+                      <td class="text-end" style="color:#8e44ad; font-weight:600;">
+                        <%= pr[:inv_gross].to_f > 0 ? indian_currency(pr[:inv_gross].to_f.round(2)) : '—' %>
+                      </td>
+                      <td class="text-end" style="color:#8e44ad; font-weight:600;">
+                        <%= pr[:inv_after_tds].to_f > 0 ? indian_currency(pr[:inv_after_tds].to_f.round(2)) : '—' %>
+                      </td>
+                      <td class="text-center">
+                        <% inv_s = pr[:inv_status] %>
+                        <% if inv_s == 'paid' %>
+                          <span class="badge" style="background:#eafaf1;color:#27ae60;border:1px solid #a9dfbf;">Paid</span>
+                        <% elsif inv_s == 'pending' %>
+                          <span class="badge" style="background:#fef9ec;color:#e67e22;border:1px solid #f9d8a0;">Pending</span>
+                        <% else %>
+                          <span class="badge" style="background:#f8f9fa;color:#adb5bd;border:1px solid #dee2e6;">—</span>
+                        <% end %>
+                      </td>
+                      <td class="text-end fw-bold" style="color:#16a085;">
+                        <%= total_comm > 0 ? indian_currency(total_comm.round(2)) : '—' %>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+                <tfoot>
+                  <tr style="background:#eef1ff; font-size:.8rem;">
+                    <td colspan="5" class="fw-bold" style="color:#2c3e7a;">Ambassador Subtotal</td>
+                    <td class="text-end fw-bold" style="color:#16a085;"><%= indian_currency(amb_row[:policy_rows].sum { |r| r[:premium].to_f }.round(2)) %></td>
+                    <td class="text-end fw-bold" style="color:#27ae60;"><%= indian_currency(amb_row[:policy_rows].sum { |r| r[:net_commission].to_f }.round(2)) %></td>
+                    <td></td>
+                    <td class="text-end fw-bold" style="color:#8e44ad;"><%= indian_currency(amb_row[:policy_rows].sum { |r| r[:inv_gross].to_f }.round(2)) %></td>
+                    <td class="text-end fw-bold" style="color:#8e44ad;"><%= indian_currency(amb_row[:policy_rows].sum { |r| r[:inv_after_tds].to_f }.round(2)) %></td>
+                    <td></td>
+                    <td class="text-end fw-bold" style="color:#16a085;"><%= indian_currency(amb_row[:policy_rows].sum { |r| r[:net_commission].to_f + r[:inv_after_tds].to_f }.round(2)) %></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          <% end %>
+
+          <!-- Affiliates under this ambassador -->
+          <% amb_row[:affiliates].each do |af| %>
+            <% next unless af[:policy_rows].any? %>
+            <div class="px-3 py-2 d-flex align-items-center gap-2 flex-wrap"
+                 style="background:#fffbf3; border-top:1px solid #f9d8a0; border-bottom:1px solid #f9d8a0;">
+              <span class="badge rounded-pill" style="background:#e67e22; font-size:.75rem;">
+                <i class="bi bi-people me-1"></i>Affiliate
+              </span>
+              <strong style="color:#b7650c;"><%= af[:name] %></strong>
+              <span class="text-muted" style="font-size:.78rem;">
+                via <%= amb_row[:name] %> · <%= af[:policies] %> polic<%= af[:policies] == 1 ? 'y' : 'ies' %>
+              </span>
+              <span class="ms-auto" style="font-size:.8rem; color:#27ae60; font-weight:600;">Paid: <%= indian_currency(af[:commission_paid].round(2)) %></span>
+              <span style="font-size:.8rem; color:#e67e22; font-weight:600;">Pending: <%= indian_currency(af[:commission_pending].round(2)) %></span>
+            </div>
+            <div class="table-responsive">
+              <table class="table data-table mb-0" style="font-size:.8rem;">
+                <thead>
+                  <tr style="background:#fffbf3;">
+                    <th style="width:2rem;">#</th>
+                    <th>Policy</th>
+                    <th>Type</th>
+                    <th>Customer</th>
+                    <th>Ambassador</th>
+                    <th class="text-end">Premium</th>
+                    <th class="text-end">Aff. Comm.</th>
+                    <th class="text-end" style="color:#8e44ad;">Inv. %</th>
+                    <th class="text-end" style="color:#8e44ad;">Inv. Comm.</th>
+                    <th class="text-end" style="color:#8e44ad;">Inv. After TDS</th>
+                    <th class="text-center">Inv. Status</th>
+                    <th class="text-end" style="color:#16a085;">Total Comm.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% af[:policy_rows].each do |pr| %>
+                    <% row_index += 1 %>
+                    <% total_comm = pr[:net_commission].to_f + pr[:amb_after_tds].to_f + pr[:inv_after_tds].to_f %>
+                    <tr>
+                      <td class="text-muted"><%= row_index %></td>
+                      <td style="font-weight:600; color:#2c3e7a; font-family:monospace;"><%= pr[:policy_number] %></td>
+                      <td>
+                        <% bg, fg, br = type_colors[pr[:type]] || ['#f8f9fa','#6c757d','#dee2e6'] %>
+                        <span class="badge" style="background:<%= bg %>;color:<%= fg %>;border:1px solid <%= br %>;"><%= pr[:type] %></span>
+                      </td>
+                      <td><%= pr[:customer_name] %></td>
+                      <td style="font-size:.75rem; color:#6c757d;"><%= amb_row[:name] %></td>
+                      <td class="text-end" style="color:#16a085; font-weight:600;"><%= indian_currency(pr[:premium].to_f.round(2)) %></td>
+                      <td class="text-end <%= pr[:net_commission].to_f > 0 ? (pr[:status] == 'paid' ? 'paid-amt' : 'pending-amt') : 'zero-amt' %> fw-bold">
+                        <%= pr[:net_commission].to_f > 0 ? indian_currency(pr[:net_commission].to_f.round(2)) : '—' %>
+                      </td>
+                      <td class="text-end" style="color:#8e44ad;">
+                        <%= pr[:inv_comm_pct].to_f > 0 ? "#{pr[:inv_comm_pct]}%" : '—' %>
+                      </td>
+                      <td class="text-end" style="color:#8e44ad; font-weight:600;">
+                        <%= pr[:inv_gross].to_f > 0 ? indian_currency(pr[:inv_gross].to_f.round(2)) : '—' %>
+                      </td>
+                      <td class="text-end" style="color:#8e44ad; font-weight:600;">
+                        <%= pr[:inv_after_tds].to_f > 0 ? indian_currency(pr[:inv_after_tds].to_f.round(2)) : '—' %>
+                      </td>
+                      <td class="text-center">
+                        <% inv_s = pr[:inv_status] %>
+                        <% if inv_s == 'paid' %>
+                          <span class="badge" style="background:#eafaf1;color:#27ae60;border:1px solid #a9dfbf;">Paid</span>
+                        <% elsif inv_s == 'pending' %>
+                          <span class="badge" style="background:#fef9ec;color:#e67e22;border:1px solid #f9d8a0;">Pending</span>
+                        <% else %>
+                          <span class="badge" style="background:#f8f9fa;color:#adb5bd;border:1px solid #dee2e6;">—</span>
+                        <% end %>
+                      </td>
+                      <td class="text-end fw-bold" style="color:#16a085;">
+                        <%= total_comm > 0 ? indian_currency(total_comm.round(2)) : '—' %>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+                <tfoot>
+                  <tr style="background:#fffbf3; font-size:.8rem;">
+                    <td colspan="5" class="fw-bold" style="color:#b7650c;">Affiliate Subtotal</td>
+                    <td class="text-end fw-bold" style="color:#16a085;"><%= indian_currency(af[:policy_rows].sum { |r| r[:premium].to_f }.round(2)) %></td>
+                    <td class="text-end fw-bold" style="color:#e67e22;"><%= indian_currency(af[:policy_rows].sum { |r| r[:net_commission].to_f }.round(2)) %></td>
+                    <td></td>
+                    <td class="text-end fw-bold" style="color:#8e44ad;"><%= indian_currency(af[:policy_rows].sum { |r| r[:inv_gross].to_f }.round(2)) %></td>
+                    <td class="text-end fw-bold" style="color:#8e44ad;"><%= indian_currency(af[:policy_rows].sum { |r| r[:inv_after_tds].to_f }.round(2)) %></td>
+                    <td></td>
+                    <td class="text-end fw-bold" style="color:#16a085;"><%= indian_currency(af[:policy_rows].sum { |r| r[:net_commission].to_f + r[:amb_after_tds].to_f + r[:inv_after_tds].to_f }.round(2)) %></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          <% end %>
+        <% end %>
+
+        <!-- Grand Total row -->
+        <% all_amb_pols  = @ambassador_rows.flat_map { |r| r[:policy_rows] } %>
+        <% all_aff_pols  = @ambassador_rows.flat_map { |r| r[:affiliates].flat_map { |a| a[:policy_rows] } } %>
+        <% grand_premium = all_amb_pols.sum { |r| r[:premium].to_f } + all_aff_pols.sum { |r| r[:premium].to_f } %>
+        <% grand_net_amb = all_amb_pols.sum { |r| r[:net_commission].to_f } %>
+        <% grand_net_aff = all_aff_pols.sum { |r| r[:net_commission].to_f } %>
+        <% grand_inv     = (all_amb_pols + all_aff_pols).sum { |r| r[:inv_after_tds].to_f } %>
+        <% grand_total   = grand_net_amb + grand_net_aff + grand_inv %>
+        <div class="px-3 py-3 d-flex align-items-center flex-wrap gap-3"
+             style="background:linear-gradient(90deg,#f0f2ff,#f8f9ff); border-top:2px solid #c5ceff; font-size:.85rem;">
+          <strong style="color:#1a2550; font-size:.95rem;">Grand Total</strong>
+          <span class="ms-2" style="color:#16a085;">Premium: <strong><%= indian_currency(grand_premium.round(2)) %></strong></span>
+          <span style="color:#2c3e7a;">Amb. Comm.: <strong><%= indian_currency(grand_net_amb.round(2)) %></strong></span>
+          <span style="color:#e67e22;">Aff. Comm.: <strong><%= indian_currency(grand_net_aff.round(2)) %></strong></span>
+          <span style="color:#8e44ad;">Investor Comm.: <strong><%= indian_currency(grand_inv.round(2)) %></strong></span>
+          <span class="ms-auto" style="color:#16a085; font-size:1rem;">
+            Total All Comm.: <strong><%= indian_currency(grand_total.round(2)) %></strong>
+          </span>
+        </div>
+      </div>
+      <div class="modal-footer" style="background:#f8f9fa;">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <button class="print-btn" onclick="window.print()">
   <i class="bi bi-printer me-1"></i> Print Report
