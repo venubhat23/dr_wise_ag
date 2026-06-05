@@ -53,7 +53,6 @@ class Customer < ApplicationRecord
   validates :mobile, uniqueness: true, allow_blank: true, if: :corporate?
   validates :mobile, format: { with: /\A[6789]\d{9}\z/, message: "must be a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9" }, if: :corporate?
   validates :gst_no, presence: true, if: :corporate?
-  validates :birth_date, presence: true, if: :corporate?
 
   # Nominee Details (mandatory for individual customers only)
   validates :nominee_name, presence: true, if: :individual?
