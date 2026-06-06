@@ -21,9 +21,9 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       base_query = base_query.search_motor_policies(params[:search])
     end
 
-    # Filter by vehicle type
-    if params[:vehicle_type].present?
-      base_query = base_query.where(vehicle_type: params[:vehicle_type])
+    # Filter by class of vehicle (Two Wheeler, Private Car, etc.)
+    if params[:class_of_vehicle].present?
+      base_query = base_query.where(class_of_vehicle: params[:class_of_vehicle])
     end
 
     # Filter by payment mode

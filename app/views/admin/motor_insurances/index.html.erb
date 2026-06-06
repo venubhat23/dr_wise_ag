@@ -212,7 +212,7 @@
   <div class="card-body p-0">
     <ul class="nav nav-tabs border-0" role="tablist">
       <li class="nav-item" role="presentation">
-        <%= link_to admin_motor_insurances_path(tab: 'drwise', search: params[:search], vehicle_number: params[:vehicle_number], vehicle_type: params[:vehicle_type], payment_mode: params[:payment_mode]),
+        <%= link_to admin_motor_insurances_path(tab: 'drwise', search: params[:search], vehicle_number: params[:vehicle_number], class_of_vehicle: params[:class_of_vehicle], payment_mode: params[:payment_mode]),
             class: "nav-link #{'active' if @current_tab == 'drwise'}",
             role: "tab" do %>
           <i class="bi bi-check-circle me-2"></i>
@@ -221,7 +221,7 @@
         <% end %>
       </li>
       <li class="nav-item" role="presentation">
-        <%= link_to admin_motor_insurances_path(tab: 'non_drwise', search: params[:search], vehicle_number: params[:vehicle_number], vehicle_type: params[:vehicle_type], payment_mode: params[:payment_mode]),
+        <%= link_to admin_motor_insurances_path(tab: 'non_drwise', search: params[:search], vehicle_number: params[:vehicle_number], class_of_vehicle: params[:class_of_vehicle], payment_mode: params[:payment_mode]),
             class: "nav-link #{'active' if @current_tab == 'non_drwise'}",
             role: "tab" do %>
           <i class="bi bi-x-circle me-2"></i>
@@ -263,7 +263,7 @@
         <div class="col-md-2">
           <button type="button" class="btn btn-outline-secondary w-100" id="toggle-mi-adv-filter">
             <i class="bi bi-funnel me-1"></i>Advanced
-            <% mi_adv_active = [params[:company], params[:sub_agent_id], params[:vehicle_type], params[:vehicle_number], params[:payment_mode], params[:policy_type], params[:from_date], params[:to_date]].any?(&:present?) %>
+            <% mi_adv_active = [params[:company], params[:sub_agent_id], params[:class_of_vehicle], params[:vehicle_number], params[:payment_mode], params[:policy_type], params[:from_date], params[:to_date]].any?(&:present?) %>
             <% if mi_adv_active %>
               <span class="badge bg-primary ms-1" id="mi-adv-dot">●</span>
             <% else %>
@@ -302,13 +302,14 @@
             </select>
           </div>
           <div class="col-md-4">
-            <label class="form-label fw-semibold small text-muted">Vehicle Type</label>
-            <select name="vehicle_type" class="form-select mi-adv-select2">
-              <option value="">All Vehicle Types</option>
-              <option value="Two Wheeler" <%= 'selected' if params[:vehicle_type] == 'Two Wheeler' %>>Two Wheeler</option>
-              <option value="Private Car" <%= 'selected' if params[:vehicle_type] == 'Private Car' %>>Private Car</option>
-              <option value="Goods Vehicle" <%= 'selected' if params[:vehicle_type] == 'Goods Vehicle' %>>Goods Vehicle</option>
-              <option value="Taxi" <%= 'selected' if params[:vehicle_type] == 'Taxi' %>>Taxi</option>
+            <label class="form-label fw-semibold small text-muted">Class of Vehicle</label>
+            <select name="class_of_vehicle" class="form-select mi-adv-select2">
+              <option value="">All Classes</option>
+              <option value="Two Wheeler" <%= 'selected' if params[:class_of_vehicle] == 'Two Wheeler' %>>Two Wheeler</option>
+              <option value="Private Car" <%= 'selected' if params[:class_of_vehicle] == 'Private Car' %>>Private Car</option>
+              <option value="Goods Vehicle" <%= 'selected' if params[:class_of_vehicle] == 'Goods Vehicle' %>>Goods Vehicle</option>
+              <option value="Taxi" <%= 'selected' if params[:class_of_vehicle] == 'Taxi' %>>Taxi</option>
+              <option value="Bus" <%= 'selected' if params[:class_of_vehicle] == 'Bus' %>>Bus</option>
             </select>
           </div>
           <div class="col-md-3">
@@ -575,7 +576,7 @@
         <i class="bi bi-car-front fs-1 text-muted d-block mb-3"></i>
         <h5 class="text-muted">No motor insurance policies found</h5>
         <p class="text-muted mb-3">
-          <% if params[:search].present? || params[:vehicle_number].present? || params[:vehicle_type].present? || params[:payment_mode].present? %>
+          <% if params[:search].present? || params[:vehicle_number].present? || params[:class_of_vehicle].present? || params[:payment_mode].present? %>
             Try adjusting your search criteria or
             <%= link_to "view all policies", admin_motor_insurances_path, class: "text-decoration-none" %>.
           <% else %>
