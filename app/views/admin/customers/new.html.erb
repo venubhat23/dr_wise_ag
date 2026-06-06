@@ -308,6 +308,144 @@
 
   <!-- 3. Basic Information (Individual Customer) -->
   <div id="individual_sections" style="display: none;">
+
+    <!-- Document Quick Import Card -->
+    <div class="card border-0 shadow-sm mb-4" id="doc_import_card">
+      <div class="card-header bg-transparent border-0 d-flex align-items-center">
+        <i class="bi bi-file-earmark-text me-2 text-success"></i>
+        <h5 class="mb-0">Quick Import from Document</h5>
+        <span class="badge bg-success ms-2">Optional</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">Upload Aadhaar or PAN card to auto-fill customer details</p>
+
+        <!-- Document Type Selection -->
+        <div class="d-flex gap-3 mb-4 flex-wrap">
+          <div class="doc-type-btn text-center" data-type="aadhaar">
+            <i class="bi bi-card-heading fs-4 d-block mb-1 text-primary"></i>
+            <span class="fw-semibold small">Aadhaar Card</span>
+            <div class="text-muted" style="font-size:11px">Front + Back</div>
+          </div>
+          <div class="doc-type-btn text-center" data-type="pan">
+            <i class="bi bi-credit-card fs-4 d-block mb-1 text-primary"></i>
+            <span class="fw-semibold small">PAN Card</span>
+            <div class="text-muted" style="font-size:11px">Single card</div>
+          </div>
+        </div>
+
+        <!-- Aadhaar Upload Zone -->
+        <div id="aadhaar_upload_zone" style="display:none;">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small text-muted text-uppercase">Aadhaar Front</label>
+              <div class="doc-upload-zone" id="aadhaar_front_zone">
+                <input type="file" id="aadhaar_front_input" accept="image/*" style="display:none;">
+                <div class="doc-zone-content text-center p-3">
+                  <i class="bi bi-cloud-upload fs-3 text-primary mb-2 d-block"></i>
+                  <div class="small text-muted">Click to upload or drag &amp; drop</div>
+                  <div class="text-muted" style="font-size:11px">JPG, PNG (max 10MB)</div>
+                </div>
+                <div id="aadhaar_front_preview" style="display:none;" class="text-center p-3 w-100">
+                  <img id="aadhaar_front_img" style="max-width:100%;max-height:160px;border-radius:8px;object-fit:contain;" src="" alt="Aadhaar Front">
+                  <div id="aadhaar_front_name" class="mt-2 small text-muted text-truncate"></div>
+                  <button type="button" class="btn btn-link btn-sm text-danger p-0 mt-1" onclick="resetDocZone('aadhaar_front_input','aadhaar_front_zone','aadhaar_front_preview','aadhaar_front_img')">
+                    <i class="bi bi-x-circle me-1"></i>Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small text-muted text-uppercase">Aadhaar Back <span class="fw-normal text-lowercase">(optional)</span></label>
+              <div class="doc-upload-zone" id="aadhaar_back_zone">
+                <input type="file" id="aadhaar_back_input" accept="image/*" style="display:none;">
+                <div class="doc-zone-content text-center p-3">
+                  <i class="bi bi-cloud-upload fs-3 text-primary mb-2 d-block"></i>
+                  <div class="small text-muted">Click to upload or drag &amp; drop</div>
+                  <div class="text-muted" style="font-size:11px">JPG, PNG (max 10MB)</div>
+                </div>
+                <div id="aadhaar_back_preview" style="display:none;" class="text-center p-3 w-100">
+                  <img id="aadhaar_back_img" style="max-width:100%;max-height:160px;border-radius:8px;object-fit:contain;" src="" alt="Aadhaar Back">
+                  <div id="aadhaar_back_name" class="mt-2 small text-muted text-truncate"></div>
+                  <button type="button" class="btn btn-link btn-sm text-danger p-0 mt-1" onclick="resetDocZone('aadhaar_back_input','aadhaar_back_zone','aadhaar_back_preview','aadhaar_back_img')">
+                    <i class="bi bi-x-circle me-1"></i>Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAN Upload Zone -->
+        <div id="pan_upload_zone" style="display:none;">
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small text-muted text-uppercase">PAN Card</label>
+              <div class="doc-upload-zone" id="pan_zone">
+                <input type="file" id="pan_input" accept="image/*" style="display:none;">
+                <div class="doc-zone-content text-center p-3">
+                  <i class="bi bi-cloud-upload fs-3 text-primary mb-2 d-block"></i>
+                  <div class="small text-muted">Click to upload or drag &amp; drop</div>
+                  <div class="text-muted" style="font-size:11px">JPG, PNG (max 10MB)</div>
+                </div>
+                <div id="pan_preview" style="display:none;" class="text-center p-3 w-100">
+                  <img id="pan_img" style="max-width:100%;max-height:160px;border-radius:8px;object-fit:contain;" src="" alt="PAN Card">
+                  <div id="pan_name" class="mt-2 small text-muted text-truncate"></div>
+                  <button type="button" class="btn btn-link btn-sm text-danger p-0 mt-1" onclick="resetDocZone('pan_input','pan_zone','pan_preview','pan_img')">
+                    <i class="bi bi-x-circle me-1"></i>Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="ocr_progress_container" style="display:none;" class="mt-4">
+          <div class="d-flex justify-content-between mb-1">
+            <span id="ocr_status_text" class="small fw-semibold text-primary">Processing...</span>
+            <span id="ocr_progress_pct" class="small fw-semibold">0%</span>
+          </div>
+          <div class="progress" style="height:10px;border-radius:8px;">
+            <div id="ocr_progress_bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width:0%;border-radius:8px;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+
+        <!-- Extract Button -->
+        <div id="extract_btn_container" style="display:none;" class="mt-4">
+          <button type="button" class="btn btn-primary" id="extract_info_btn">
+            <i class="bi bi-magic me-2"></i>Extract Info
+          </button>
+          <span class="text-muted small ms-3">OCR reads the document and extracts customer details</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Extracted Info Modal -->
+    <div class="modal fade" id="docInfoModal" tabindex="-1" aria-labelledby="docInfoModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-0 pb-0">
+            <div>
+              <h5 class="modal-title mb-0" id="docInfoModalLabel">
+                <i class="bi bi-file-earmark-check me-2 text-success"></i>Extracted Information
+              </h5>
+              <p class="text-muted small mb-0 mt-1">Review and select which fields to import into the form</p>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div id="extracted_info_table"></div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-success" id="import_to_form_btn">
+              <i class="bi bi-download me-2"></i>Import to Form
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0 d-flex align-items-center">
         <i class="bi bi-info-circle me-2 text-primary"></i>
@@ -788,6 +926,42 @@ input[type="radio"]:checked + .customer-type-label {
   border-radius: 6px;
   margin-top: 1rem;
 }
+
+/* Document OCR Quick Import */
+.doc-upload-zone {
+  border: 2px dashed #dee2e6;
+  border-radius: 10px;
+  background: #f8f9fa;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  min-height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  overflow: hidden;
+}
+.doc-upload-zone:hover, .doc-upload-zone.drag-over {
+  border-color: #0d6efd;
+  background: #e8f0fe;
+}
+.doc-upload-zone.has-file {
+  border-color: #198754;
+  background: #f0fff4;
+}
+.doc-type-btn {
+  border: 2px solid #dee2e6;
+  border-radius: 12px;
+  padding: 16px 32px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+  user-select: none;
+  min-width: 150px;
+}
+.doc-type-btn:hover { border-color: #0d6efd; background: #f0f4ff; }
+.doc-type-btn.active { border-color: #0d6efd; background: #e8f0fe; color: #0d6efd; }
+.doc-type-btn.active i { color: #0d6efd !important; }
 </style>
 
 <!-- jQuery (required for Select2) -->
@@ -2435,6 +2609,419 @@ document.addEventListener('DOMContentLoaded', function() {
     errorDiv.textContent = message;
     input.parentNode.appendChild(errorDiv);
   }
+
+  // ===== DOCUMENT OCR QUICK IMPORT =====
+  (function() {
+    var tesseractPromise = null;
+    var extractedData = {};
+    var selectedDocType = null;
+
+    function ensureTesseract() {
+      if (tesseractPromise) return tesseractPromise;
+      tesseractPromise = new Promise(function(resolve, reject) {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+        s.onload = resolve;
+        s.onerror = function() { reject(new Error('Failed to load OCR engine')); };
+        document.head.appendChild(s);
+      });
+      return tesseractPromise;
+    }
+
+    // Doc type button selection
+    document.querySelectorAll('.doc-type-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.doc-type-btn').forEach(function(b) { b.classList.remove('active'); });
+        this.classList.add('active');
+        selectedDocType = this.dataset.type;
+        document.getElementById('aadhaar_upload_zone').style.display = selectedDocType === 'aadhaar' ? 'block' : 'none';
+        document.getElementById('pan_upload_zone').style.display = selectedDocType === 'pan' ? 'block' : 'none';
+        updateExtractBtn();
+        ensureTesseract(); // preload silently
+      });
+    });
+
+    function updateExtractBtn() {
+      var container = document.getElementById('extract_btn_container');
+      if (!container) return;
+      var hasFile = false;
+      if (selectedDocType === 'aadhaar') {
+        var fi = document.getElementById('aadhaar_front_input');
+        hasFile = fi && fi.files.length > 0;
+      } else if (selectedDocType === 'pan') {
+        var pi = document.getElementById('pan_input');
+        hasFile = pi && pi.files.length > 0;
+      }
+      container.style.display = (selectedDocType && hasFile) ? 'block' : 'none';
+    }
+
+    // Expose resetDocZone globally for inline onclick
+    window.resetDocZone = function(inputId, zoneId, previewId, imgId) {
+      var input = document.getElementById(inputId);
+      var zone = document.getElementById(zoneId);
+      var preview = document.getElementById(previewId);
+      var img = document.getElementById(imgId);
+      if (input) input.value = '';
+      if (img) { img.src = ''; img.style.display = 'none'; }
+      if (preview) preview.style.display = 'none';
+      if (zone) {
+        var content = zone.querySelector('.doc-zone-content');
+        if (content) content.style.display = 'block';
+        zone.classList.remove('has-file');
+      }
+      updateExtractBtn();
+    };
+
+    function setupDropZone(inputId, zoneId, previewId, imgId, nameId) {
+      var input = document.getElementById(inputId);
+      var zone = document.getElementById(zoneId);
+      var preview = document.getElementById(previewId);
+      var img = document.getElementById(imgId);
+      var nameEl = document.getElementById(nameId);
+      if (!input || !zone) return;
+
+      zone.addEventListener('click', function(e) {
+        if (e.target.closest('button')) return; // don't trigger on Remove button
+        input.click();
+      });
+
+      input.addEventListener('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        if (nameEl) nameEl.textContent = file.name;
+        if (img && file.type.startsWith('image/')) {
+          img.src = URL.createObjectURL(file);
+          img.style.display = 'block';
+        } else if (img) {
+          img.style.display = 'none';
+        }
+        var content = zone.querySelector('.doc-zone-content');
+        if (content) content.style.display = 'none';
+        if (preview) preview.style.display = 'block';
+        zone.classList.add('has-file');
+        updateExtractBtn();
+      });
+
+      zone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', function() { this.classList.remove('drag-over'); });
+      zone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+        if (e.dataTransfer.files.length) {
+          input.files = e.dataTransfer.files;
+          input.dispatchEvent(new Event('change'));
+        }
+      });
+    }
+
+    setupDropZone('aadhaar_front_input', 'aadhaar_front_zone', 'aadhaar_front_preview', 'aadhaar_front_img', 'aadhaar_front_name');
+    setupDropZone('aadhaar_back_input', 'aadhaar_back_zone', 'aadhaar_back_preview', 'aadhaar_back_img', 'aadhaar_back_name');
+    setupDropZone('pan_input', 'pan_zone', 'pan_preview', 'pan_img', 'pan_name');
+
+    function setProgress(pct, text) {
+      var bar = document.getElementById('ocr_progress_bar');
+      var pctEl = document.getElementById('ocr_progress_pct');
+      var textEl = document.getElementById('ocr_status_text');
+      var p = Math.round(Math.min(100, Math.max(0, pct)));
+      if (bar) { bar.style.width = p + '%'; bar.setAttribute('aria-valuenow', p); }
+      if (pctEl) pctEl.textContent = p + '%';
+      if (textEl && text) textEl.textContent = text;
+    }
+
+    async function runOCR(file, offset, scale) {
+      offset = offset || 0; scale = scale || 1;
+      var worker = await Tesseract.createWorker('eng', 1, {
+        logger: function(m) {
+          if (m.status === 'loading tesseract core') setProgress(offset + 2 * scale, 'Loading OCR engine...');
+          else if (m.status === 'initializing tesseract') setProgress(offset + 10 * scale, 'Initializing...');
+          else if (m.status === 'loading language traineddata') setProgress(offset + 20 * scale, 'Loading language data...');
+          else if (m.status === 'initializing api') setProgress(offset + 30 * scale, 'Starting recognition...');
+          else if (m.status === 'recognizing text') setProgress(offset + (30 + m.progress * 70) * scale, 'Reading text...');
+        }
+      });
+      var result = await worker.recognize(file);
+      await worker.terminate();
+      return result.data.text;
+    }
+
+    var extractBtn = document.getElementById('extract_info_btn');
+    if (extractBtn) {
+      extractBtn.addEventListener('click', function() {
+        var self = this;
+        var progressContainer = document.getElementById('ocr_progress_container');
+        self.disabled = true;
+        self.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+        progressContainer.style.display = 'block';
+        setProgress(0, 'Loading OCR engine...');
+
+        ensureTesseract().then(async function() {
+          try {
+            if (selectedDocType === 'aadhaar') {
+              var frontFile = document.getElementById('aadhaar_front_input').files[0];
+              var backFile = document.getElementById('aadhaar_back_input').files[0];
+              var frontText = '', backText = '';
+              var scale = backFile ? 0.5 : 1;
+              if (frontFile) { setProgress(0, 'Processing Aadhaar front...'); frontText = await runOCR(frontFile, 0, scale); }
+              if (backFile) { setProgress(50, 'Processing Aadhaar back...'); backText = await runOCR(backFile, 50, 0.5); }
+              extractedData = parseAadhaarText(frontText, backText);
+            } else if (selectedDocType === 'pan') {
+              var panFile = document.getElementById('pan_input').files[0];
+              if (panFile) { setProgress(0, 'Processing PAN card...'); var text = await runOCR(panFile, 0, 1); extractedData = parsePanText(text); }
+            }
+            setProgress(100, 'Extraction complete!');
+            setTimeout(function() {
+              showInfoModal(extractedData);
+              self.disabled = false;
+              self.innerHTML = '<i class="bi bi-magic me-2"></i>Extract Info';
+              progressContainer.style.display = 'none';
+            }, 600);
+          } catch(err) {
+            console.error('OCR error:', err);
+            self.disabled = false;
+            self.innerHTML = '<i class="bi bi-magic me-2"></i>Extract Info';
+            progressContainer.style.display = 'none';
+            alert('Could not process document. Please ensure the image is clear and try again.');
+          }
+        }).catch(function(err) {
+          console.error('Tesseract load error:', err);
+          self.disabled = false;
+          self.innerHTML = '<i class="bi bi-magic me-2"></i>Extract Info';
+          progressContainer.style.display = 'none';
+          alert('Failed to load OCR engine. Please check your internet connection.');
+        });
+      });
+    }
+
+    function parseAadhaarText(frontText, backText) {
+      var result = {};
+      var allText = (frontText || '') + '\n' + (backText || '');
+
+      // Aadhaar number (12 digits with spaces)
+      var am = allText.match(/\d{4}\s\d{4}\s\d{4}/);
+      if (am) result.aadhaar_number = am[0];
+
+      // DOB
+      var dobPatterns = [
+        /(?:DOB|Date of Birth)[\s:]+(\d{2}[\/\-]\d{2}[\/\-]\d{4})/i,
+        /(?:Year of Birth|YOB)[\s:]+(\d{4})/i,
+        /(\d{2}[\/\-]\d{2}[\/\-]\d{4})/
+      ];
+      for (var i = 0; i < dobPatterns.length; i++) {
+        var dm = frontText.match(dobPatterns[i]);
+        if (dm) { result.dob = dm[1]; break; }
+      }
+
+      // Gender
+      var gm = frontText.match(/\b(Male|Female|MALE|FEMALE|Transgender)\b/i);
+      if (gm) {
+        var g = gm[1].toLowerCase();
+        result.gender = g === 'male' ? 'male' : g === 'female' ? 'female' : 'other';
+      }
+
+      // Name from front (title case or all-caps line, not a label/number)
+      var frontLines = frontText.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 2; });
+      for (var i = 0; i < frontLines.length; i++) {
+        var line = frontLines[i];
+        if (/\d/.test(line)) continue;
+        if (/aadhaar|govt|india|unique|authority|uid|help|enrol|dob|birth|gender|address/i.test(line)) continue;
+        if (line.length < 4 || line.length > 55) continue;
+        if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]*){0,3}$/.test(line) || /^[A-Z\s]{4,45}$/.test(line)) {
+          result.full_name = line; break;
+        }
+      }
+
+      // From back: pincode, state, address
+      if (backText) {
+        var pm = backText.match(/\b(\d{6})\b/);
+        if (pm) result.pincode = pm[1];
+
+        var STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Jammu and Kashmir','Ladakh','Chandigarh','Puducherry'];
+        for (var i = 0; i < STATES.length; i++) {
+          if (backText.toLowerCase().indexOf(STATES[i].toLowerCase()) !== -1) { result.state = STATES[i]; break; }
+        }
+
+        var backLines = backText.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+        var addrLines = []; var collecting = false;
+        for (var i = 0; i < backLines.length; i++) {
+          var bl = backLines[i];
+          if (/^[SCWD]\/[OA]|^H\.?\s*No|^Flat|^Door|^Plot|^Vill|^Near|^House/i.test(bl)) collecting = true;
+          if (collecting) {
+            if (/^\d{6}$/.test(bl)) break;
+            addrLines.push(bl);
+            if (addrLines.length >= 5) break;
+          }
+        }
+        if (addrLines.length > 0) result.address = addrLines.join(', ');
+      }
+
+      // Split full_name into first/middle/last
+      if (result.full_name) {
+        var parts = result.full_name.trim().split(/\s+/);
+        if (parts.length === 1) { result.first_name = parts[0]; }
+        else if (parts.length === 2) { result.first_name = parts[0]; result.last_name = parts[1]; }
+        else { result.first_name = parts[0]; result.last_name = parts[parts.length - 1]; result.middle_name = parts.slice(1, -1).join(' '); }
+      }
+
+      return result;
+    }
+
+    function parsePanText(text) {
+      var result = {};
+
+      // PAN number: ABCDE1234F
+      var pm = text.match(/[A-Z]{5}[0-9]{4}[A-Z]/);
+      if (pm) result.pan_no = pm[0];
+
+      // DOB
+      var dm = text.match(/(\d{2}\/\d{2}\/\d{4})/);
+      if (dm) result.dob = dm[1];
+
+      var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 2; });
+      var nameLineIdx = -1;
+
+      // Find name (all-caps line after INCOME TAX header)
+      for (var i = 0; i < lines.length; i++) {
+        if (/income tax|INCOME TAX|govt of india|GOVT OF INDIA/i.test(lines[i])) {
+          for (var j = i + 1; j < Math.min(i + 6, lines.length); j++) {
+            var ln = lines[j];
+            if (/^[A-Z][A-Z\s]+$/.test(ln) && ln.length > 3 && !/PERMANENT|ACCOUNT|NUMBER|CARD|TAX|INCOME|GOVT|INDIA|DEPARTMENT/.test(ln)) {
+              result.full_name = ln; nameLineIdx = j; break;
+            }
+          }
+          if (result.full_name) break;
+        }
+      }
+
+      // Fallback: first long all-caps line
+      if (!result.full_name) {
+        for (var i = 0; i < lines.length; i++) {
+          var ln = lines[i];
+          if (/^[A-Z][A-Z\s]+$/.test(ln) && ln.length > 5 && ln.length < 50 &&
+              !/PERMANENT|ACCOUNT|NUMBER|CARD|TAX|INCOME|GOVT|INDIA|DEPARTMENT|SIGNATURE/.test(ln)) {
+            result.full_name = ln; nameLineIdx = i; break;
+          }
+        }
+      }
+
+      // Father's name: next all-caps line after name
+      if (nameLineIdx >= 0) {
+        for (var j = nameLineIdx + 1; j < Math.min(nameLineIdx + 4, lines.length); j++) {
+          var ln = lines[j];
+          if (/^[A-Z][A-Z\s]+$/.test(ln) && ln.length > 3 && !/PERMANENT|ACCOUNT|NUMBER|CARD|DATE|DOB/.test(ln) && !/\d/.test(ln)) {
+            result.father_name = ln; break;
+          }
+        }
+      }
+
+      // Split full_name
+      if (result.full_name) {
+        var parts = result.full_name.trim().split(/\s+/);
+        if (parts.length === 1) { result.first_name = parts[0]; }
+        else if (parts.length === 2) { result.first_name = parts[0]; result.last_name = parts[1]; }
+        else { result.first_name = parts[0]; result.last_name = parts[parts.length - 1]; result.middle_name = parts.slice(1, -1).join(' '); }
+      }
+
+      return result;
+    }
+
+    function showInfoModal(data) {
+      var FIELD_LABELS = {
+        first_name: 'First Name', middle_name: 'Middle Name', last_name: 'Last Name',
+        dob: 'Date of Birth', gender: 'Gender', pan_no: 'PAN Number',
+        aadhaar_number: 'Aadhaar Number', address: 'Address',
+        state: 'State', pincode: 'Pincode', father_name: "Father's Name"
+      };
+      var rows = '';
+      Object.keys(FIELD_LABELS).forEach(function(key) {
+        if (data[key]) {
+          rows += '<tr>' +
+            '<td class="fw-semibold text-muted" style="width:35%">' + FIELD_LABELS[key] + '</td>' +
+            '<td class="fw-semibold">' + data[key] + '</td>' +
+            '<td class="text-center" style="width:60px"><input type="checkbox" class="form-check-input import-field-check" data-field="' + key + '" checked></td>' +
+            '</tr>';
+        }
+      });
+
+      var tableEl = document.getElementById('extracted_info_table');
+      if (rows) {
+        tableEl.innerHTML = '<table class="table table-bordered table-sm align-middle mb-2">' +
+          '<thead class="table-light"><tr><th>Field</th><th>Extracted Value</th><th style="width:60px">Import</th></tr></thead>' +
+          '<tbody>' + rows + '</tbody></table>' +
+          '<p class="text-muted small mb-0">Uncheck any fields you do not want to import.</p>';
+      } else {
+        tableEl.innerHTML = '<div class="alert alert-warning mb-0"><i class="bi bi-exclamation-triangle me-2"></i>' +
+          'Could not extract readable text. Please ensure the image is clear, well-lit, and not blurred, then try again.</div>';
+      }
+
+      new bootstrap.Modal(document.getElementById('docInfoModal')).show();
+    }
+
+    var importBtn = document.getElementById('import_to_form_btn');
+    if (importBtn) {
+      importBtn.addEventListener('click', function() {
+        document.querySelectorAll('.import-field-check:checked').forEach(function(cb) {
+          var field = cb.dataset.field;
+          var value = extractedData[field];
+          if (!value) return;
+
+          switch(field) {
+            case 'first_name':  setDocVal('#individual_first_name', value); break;
+            case 'middle_name': setDocVal('[name="customer[middle_name]"]', value); break;
+            case 'last_name':   setDocVal('#individual_last_name', value); break;
+            case 'pan_no':      setDocVal('[name="customer[pan_no]"]', value); break;
+            case 'address':     setDocVal('[name="customer[address]"]', value); break;
+            case 'pincode':     setDocVal('[name="customer[pincode]"]', value); break;
+            case 'gender':      setDocVal('[name="customer[gender]"]', value); break;
+            case 'dob':
+              var parts = value.split(/[\/\-]/);
+              if (parts.length === 3) {
+                var yr, mo, dy;
+                if (parts[2].length === 4) { dy = parts[0]; mo = parts[1]; yr = parts[2]; }
+                else { yr = parts[0]; mo = parts[1]; dy = parts[2]; }
+                setDocVal('[name="customer[birth_date]"]', yr + '-' + mo.padStart(2,'0') + '-' + dy.padStart(2,'0'));
+              }
+              break;
+            case 'state':
+              var stateEl = document.querySelector('#customer_state_corporate');
+              if (stateEl) {
+                for (var i = 0; i < stateEl.options.length; i++) {
+                  var opt = stateEl.options[i];
+                  if (opt.text.toLowerCase() === value.toLowerCase() || opt.value.toLowerCase() === value.toLowerCase()) {
+                    stateEl.value = opt.value;
+                    if (typeof $ !== 'undefined') $(stateEl).trigger('change');
+                    break;
+                  }
+                }
+              }
+              break;
+          }
+        });
+
+        var bsModal = bootstrap.Modal.getInstance(document.getElementById('docInfoModal'));
+        if (bsModal) bsModal.hide();
+
+        var toast = document.createElement('div');
+        toast.className = 'alert alert-success alert-dismissible fade show position-fixed bottom-0 end-0 m-3 shadow';
+        toast.style.zIndex = '99999';
+        toast.innerHTML = '<i class="bi bi-check2-circle me-2"></i><strong>Imported!</strong> Customer details auto-filled from document.' +
+          '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+        document.body.appendChild(toast);
+        setTimeout(function() { if (toast.parentNode) toast.remove(); }, 4000);
+
+        document.getElementById('individual_sections').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    function setDocVal(selector, value) {
+      var el = document.querySelector(selector);
+      if (el) {
+        el.value = value;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+  })();
+  // ===== END DOCUMENT OCR QUICK IMPORT =====
 
   // Add mobile validation to both individual and corporate mobile fields
   document.addEventListener('DOMContentLoaded', function() {
