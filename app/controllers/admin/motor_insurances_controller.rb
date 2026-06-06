@@ -22,8 +22,10 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     end
 
     # Filter by class of vehicle (Two Wheeler, Private Car, etc.)
-    if params[:class_of_vehicle].present?
-      base_query = base_query.where(class_of_vehicle: params[:class_of_vehicle])
+    # Accept both :class_of_vehicle and :vehicle_type for backwards compat with old links
+    class_of_vehicle_filter = params[:class_of_vehicle].presence || params[:vehicle_type].presence
+    if class_of_vehicle_filter.present?
+      base_query = base_query.where(class_of_vehicle: class_of_vehicle_filter)
     end
 
     # Filter by payment mode
@@ -112,8 +114,16 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @drwise_premium = drwise_policies.sum(:total_premium) || 0
     @non_drwise_premium = non_drwise_policies.sum(:total_premium) || 0
 
-    # Vehicle class distribution (all policies)
-    vehicle_class_counts = MotorInsurance.group(:class_of_vehicle).count
+    # Vehicle class distribution scoped to the current tab (DrWise or Non-DrWise)
+    tab_base = if @current_tab == 'drwise'
+      MotorInsurance.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
+    else
+      MotorInsurance.where(
+        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+        true, false, false, true, false, false
+      )
+    end
+    vehicle_class_counts  = tab_base.group(:class_of_vehicle).count
     @two_wheeler_count    = vehicle_class_counts['Two Wheeler'].to_i
     @private_car_count    = vehicle_class_counts['Private Car'].to_i
     @goods_vehicle_count  = vehicle_class_counts['Goods Vehicle'].to_i
