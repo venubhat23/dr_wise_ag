@@ -2881,7 +2881,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Drop lines that are mostly non-ASCII (Devanagari/Kannada garble)
         var ascii = l.replace(/[^\x20-\x7E]/g, '').length;
         return ascii / l.length > 0.6; // keep line if >60% ASCII
-      });
+      }).map(function(l) {
+        return l
+          .replace(/[^\x20-\x7E]/g, '')  // strip residual non-ASCII chars (Hindi, etc.)
+          .replace(/[|!]+/g, ' ')         // remove pipe/exclamation OCR artifacts
+          .replace(/\s{2,}/g, ' ')
+          .trim();
+      }).filter(function(l) { return l.length > 2; });
       return lines.join(', ')
         .replace(/\s*[-–]\s*\d{6}[\s\S]*$/, '') // "State - 560066" → remove
         .replace(/\d{6}[\s\S]*$/, '')            // bare pincode at end → remove
