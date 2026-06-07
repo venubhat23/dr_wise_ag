@@ -92,6 +92,23 @@
       <!-- Actions -->
       <div class="d-flex gap-2">
         <%= link_to "Clear", admin_distributors_path, class: "btn btn-outline-secondary" %>
+        <div class="dropdown">
+          <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-download me-1"></i> Download
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+              <a class="dropdown-item" href="<%= download_admin_distributors_path(request.query_parameters.merge(format_type: 'csv')) %>">
+                <i class="bi bi-filetype-csv text-success me-2"></i>CSV
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="<%= download_admin_distributors_path(request.query_parameters.merge(format_type: 'excel')) %>">
+                <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel
+              </a>
+            </li>
+          </ul>
+        </div>
       </div>
     <% end %>
   </div>

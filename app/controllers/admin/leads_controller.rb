@@ -954,7 +954,92 @@ class Admin::LeadsController < Admin::ApplicationController
     redirect_to admin_leads_path, alert: "Failed to create lead from customer: #{e.message}"
   end
 
+  # GET /admin/leads/download
+  def download
+    format_type = params[:format_type]
+
+    scope = Lead.all
+    scope = scope.where(current_stage: 'converted') if params[:tab] == 'converted'
+    scope = scope.where.not(current_stage: 'converted') unless params[:tab] == 'converted'
+
+    scope = scope.search_leads(params[:search]) if params[:search].present?
+    scope = scope.by_stage(params[:current_stage]) if params[:current_stage].present?
+    scope = scope.by_source(params[:lead_source]) if params[:lead_source].present?
+    scope = scope.by_product_category(params[:product_category]) if params[:product_category].present?
+
+    case format_type
+    when 'csv_individual'
+      data = scope.where(customer_type: 'individual').order(:created_at)
+      send_data generate_leads_csv(data), filename: "individual_leads_#{Date.current}.csv", type: 'text/csv'
+    when 'csv_corporate'
+      data = scope.where(customer_type: 'corporate').order(:created_at)
+      send_data generate_leads_csv(data), filename: "corporate_leads_#{Date.current}.csv", type: 'text/csv'
+    when 'excel_individual'
+      data = scope.where(customer_type: 'individual').order(:created_at)
+      send_data generate_leads_excel(data),
+                filename: "individual_leads_#{Date.current}.xlsx",
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    when 'excel_corporate'
+      data = scope.where(customer_type: 'corporate').order(:created_at)
+      send_data generate_leads_excel(data),
+                filename: "corporate_leads_#{Date.current}.xlsx",
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    else
+      redirect_to admin_leads_path, alert: 'Invalid download format.'
+    end
+  end
+
   private
+
+  def generate_leads_csv(leads)
+    require 'csv'
+    CSV.generate(headers: true) do |csv|
+      csv << %w[ID LeadID Name ContactNumber Email CustomerType FirstName LastName CompanyName
+                Address City State Gender BirthDate PAN GST AnnualIncome ProductCategory
+                ProductSubcategory LeadSource CurrentStage IsDirectLead Affiliate
+                ReferralAmount CreatedAt]
+      leads.find_each do |l|
+        csv << [l.id, l.lead_id, l.name, l.contact_number, l.email,
+                l.customer_type&.humanize, l.first_name, l.last_name, l.company_name,
+                l.address, l.city, l.state, l.gender&.humanize, l.birth_date,
+                l.pan_no, l.gst_no, l.annual_income,
+                l.product_category&.humanize, l.product_subcategory,
+                l.lead_source&.humanize, l.current_stage&.humanize,
+                l.is_direct ? 'Direct' : 'Affiliate',
+                l.affiliate&.full_name,
+                l.referral_amount,
+                l.created_at.strftime('%Y-%m-%d %H:%M:%S')]
+      end
+    end
+  end
+
+  def generate_leads_excel(leads)
+    require 'caxlsx'
+    package = Axlsx::Package.new
+    wb = package.workbook
+    hdr_style = wb.styles.add_style(bg_color: '1565C0', fg_color: 'FFFFFF', b: true,
+                                     alignment: { horizontal: :center })
+    row_style = wb.styles.add_style(alignment: { horizontal: :left })
+    wb.add_worksheet(name: 'Leads') do |sheet|
+      sheet.add_row %w[ID LeadID Name ContactNumber Email CustomerType FirstName LastName CompanyName
+                       Address City State Gender BirthDate PAN GST AnnualIncome ProductCategory
+                       ProductSubcategory LeadSource CurrentStage IsDirectLead Affiliate
+                       ReferralAmount CreatedAt], style: hdr_style
+      leads.find_each do |l|
+        sheet.add_row [l.id, l.lead_id, l.name, l.contact_number, l.email,
+                       l.customer_type&.humanize, l.first_name, l.last_name, l.company_name,
+                       l.address, l.city, l.state, l.gender&.humanize, l.birth_date&.to_s,
+                       l.pan_no, l.gst_no, l.annual_income&.to_f,
+                       l.product_category&.humanize, l.product_subcategory,
+                       l.lead_source&.humanize, l.current_stage&.humanize,
+                       l.is_direct ? 'Direct' : 'Affiliate',
+                       l.affiliate&.full_name,
+                       l.referral_amount&.to_f,
+                       l.created_at.strftime('%Y-%m-%d %H:%M:%S')], style: row_style
+      end
+    end
+    package.to_stream.read
+  end
 
   # JSON response helper method
   def json_response(object, status = :ok)

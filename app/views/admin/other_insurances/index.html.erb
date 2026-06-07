@@ -45,6 +45,23 @@
     <h2 class="mb-1">General Insurance Policies</h2>
   </div>
   <div class="d-flex gap-2">
+    <div class="dropdown">
+      <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-download me-1"></i> Download
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li>
+          <a class="dropdown-item" href="<%= download_admin_other_insurances_path(request.query_parameters.merge(format_type: 'csv')) %>">
+            <i class="bi bi-filetype-csv text-success me-2"></i>CSV
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" href="<%= download_admin_other_insurances_path(request.query_parameters.merge(format_type: 'excel')) %>">
+            <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel
+          </a>
+        </li>
+      </ul>
+    </div>
     <%= link_to new_admin_other_insurance_path, class: "btn btn-primary" do %>
       <i class="bi bi-plus-lg me-1"></i>
       Add New Policy

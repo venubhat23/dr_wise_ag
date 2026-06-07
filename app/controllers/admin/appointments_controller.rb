@@ -120,7 +120,59 @@ class Admin::AppointmentsController < Admin::ApplicationController
     render json: customers.map { |c| { id: c.id, name: c.display_name, email: c.email, phone: c.mobile } }
   end
 
+  # GET /admin/appointments/download
+  def download
+    format_type = params[:format_type]
+
+    scope = Appointment.all
+    scope = scope.where(appointment_date: Date.parse(params[:date])) if params[:date].present?
+    scope = scope.order(:appointment_date, :time_slot)
+
+    case format_type
+    when 'csv'
+      send_data generate_appointments_csv(scope), filename: "appointments_#{Date.current}.csv", type: 'text/csv'
+    when 'excel'
+      send_data generate_appointments_excel(scope),
+                filename: "appointments_#{Date.current}.xlsx",
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    else
+      redirect_to admin_appointments_path, alert: 'Invalid download format.'
+    end
+  end
+
   private
+
+  def generate_appointments_csv(records)
+    require 'csv'
+    CSV.generate(headers: true) do |csv|
+      csv << %w[ID CustomerName CustomerEmail CustomerPhone AppointmentDate TimeSlot
+                MeetingAgenda Notes Status CreatedAt]
+      records.find_each do |a|
+        csv << [a.id, a.customer_name, a.customer_email, a.customer_phone,
+                a.appointment_date, a.time_slot, a.meeting_agenda, a.notes,
+                a.status&.capitalize, a.created_at.strftime('%Y-%m-%d %H:%M:%S')]
+      end
+    end
+  end
+
+  def generate_appointments_excel(records)
+    require 'caxlsx'
+    package = Axlsx::Package.new
+    wb = package.workbook
+    hdr = wb.styles.add_style(bg_color: '4A148C', fg_color: 'FFFFFF', b: true,
+                               alignment: { horizontal: :center })
+    row = wb.styles.add_style(alignment: { horizontal: :left })
+    wb.add_worksheet(name: 'Appointments') do |sheet|
+      sheet.add_row %w[ID CustomerName CustomerEmail CustomerPhone AppointmentDate TimeSlot
+                       MeetingAgenda Notes Status CreatedAt], style: hdr
+      records.find_each do |a|
+        sheet.add_row [a.id, a.customer_name, a.customer_email, a.customer_phone,
+                       a.appointment_date&.to_s, a.time_slot, a.meeting_agenda, a.notes,
+                       a.status&.capitalize, a.created_at.strftime('%Y-%m-%d %H:%M:%S')], style: row
+      end
+    end
+    package.to_stream.read
+  end
 
   def set_appointment
     @appointment = Appointment.find(params[:id])

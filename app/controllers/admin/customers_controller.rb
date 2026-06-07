@@ -1175,6 +1175,38 @@ class Admin::CustomersController < Admin::ApplicationController
     end
   end
 
+  # GET /admin/customers/download
+  def download
+    format_type = params[:format_type] # csv_individual, csv_corporate, excel_individual, excel_corporate
+
+    scope = build_filtered_scope
+
+    case format_type
+    when 'csv_individual'
+      customers = scope.where(customer_type: 'individual').order(:created_at)
+      send_data generate_customers_csv_full(customers, 'individual'),
+                filename: "individual_customers_#{Date.current}.csv",
+                type: 'text/csv'
+    when 'csv_corporate'
+      customers = scope.where(customer_type: 'corporate').order(:created_at)
+      send_data generate_customers_csv_full(customers, 'corporate'),
+                filename: "corporate_customers_#{Date.current}.csv",
+                type: 'text/csv'
+    when 'excel_individual'
+      customers = scope.where(customer_type: 'individual').order(:created_at)
+      send_data generate_customers_excel(customers, 'individual'),
+                filename: "individual_customers_#{Date.current}.xlsx",
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    when 'excel_corporate'
+      customers = scope.where(customer_type: 'corporate').order(:created_at)
+      send_data generate_customers_excel(customers, 'corporate'),
+                filename: "corporate_customers_#{Date.current}.xlsx",
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    else
+      redirect_to admin_customers_path, alert: 'Invalid download format.'
+    end
+  end
+
   # GET /admin/customers/:id/product_selection
   def product_selection
     # Available products for selection
@@ -1430,6 +1462,102 @@ class Admin::CustomersController < Admin::ApplicationController
       Rails.logger.error "Failed to upload profile image to R2: #{upload_result[:error]}"
       raise "Profile image upload failed: #{upload_result[:error]}"
     end
+  end
+
+  def build_filtered_scope
+    scope = Customer.all
+
+    if params[:search].present? && params[:search].strip.length >= 4
+      scope = scope.search_customers(params[:search].strip)
+    end
+
+    if params[:lead_id_search].present? && params[:lead_id_search].strip.length >= 4
+      term = params[:lead_id_search].strip
+      scope = scope.where("lead_id ILIKE ? OR lead_id ILIKE ?", term, "%#{term}%")
+    end
+
+    if params[:customer_type].present?
+      scope = scope.where(customer_type: params[:customer_type])
+    end
+
+    case params[:status]
+    when 'active'  then scope = scope.where(status: true)
+    when 'inactive' then scope = scope.where(status: false)
+    end
+
+    scope
+  end
+
+  def generate_customers_csv_full(customers, _type)
+    require 'csv'
+    CSV.generate(headers: true) do |csv|
+      csv << %w[
+        ID LeadID CustomerType FirstName MiddleName LastName CompanyName
+        Email Mobile Address State City Pincode BirthDate Age Gender
+        HeightFeet WeightKg Education MaritalStatus Occupation JobName
+        BusinessName BusinessJob TypeOfDuty AnnualIncome PANNumber GSTNumber
+        BirthPlace NomineeName NomineeRelation NomineeDOB SubAgent Status
+        AddedBy CreatedAt
+      ]
+      customers.find_each do |c|
+        csv << [
+          c.id, c.lead_id, c.customer_type&.humanize,
+          c.first_name, c.middle_name, c.last_name, c.company_name,
+          c.email, c.mobile, c.address, c.state, c.city, c.pincode,
+          c.birth_date, c.age, c.gender&.humanize,
+          c.height_feet, c.weight_kg, c.education,
+          c.marital_status&.humanize, c.occupation, c.job_name,
+          c.business_name, c.business_job, c.type_of_duty, c.annual_income,
+          c.pan_number, c.gst_number, c.birth_place,
+          c.nominee_name, c.nominee_relation, c.nominee_date_of_birth,
+          c.sub_agent, c.status? ? 'Active' : 'Inactive',
+          c.added_by&.humanize, c.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        ]
+      end
+    end
+  end
+
+  def generate_customers_excel(customers, type)
+    require 'caxlsx'
+    package = Axlsx::Package.new
+    wb = package.workbook
+
+    header_style = wb.styles.add_style(
+      bg_color: '2E7D32', fg_color: 'FFFFFF',
+      b: true, alignment: { horizontal: :center }
+    )
+    row_style = wb.styles.add_style(alignment: { horizontal: :left })
+
+    sheet_name = type == 'individual' ? 'Individual Customers' : 'Corporate Customers'
+    wb.add_worksheet(name: sheet_name) do |sheet|
+      headers = %w[
+        ID LeadID CustomerType FirstName MiddleName LastName CompanyName
+        Email Mobile Address State City Pincode BirthDate Age Gender
+        HeightFeet WeightKg Education MaritalStatus Occupation JobName
+        BusinessName BusinessJob TypeOfDuty AnnualIncome PANNumber GSTNumber
+        BirthPlace NomineeName NomineeRelation NomineeDOB SubAgent Status
+        AddedBy CreatedAt
+      ]
+      sheet.add_row headers, style: header_style
+
+      customers.find_each do |c|
+        sheet.add_row([
+          c.id, c.lead_id, c.customer_type&.humanize,
+          c.first_name, c.middle_name, c.last_name, c.company_name,
+          c.email, c.mobile, c.address, c.state, c.city, c.pincode,
+          c.birth_date&.to_s, c.age, c.gender&.humanize,
+          c.height_feet, c.weight_kg&.to_f, c.education,
+          c.marital_status&.humanize, c.occupation, c.job_name,
+          c.business_name, c.business_job, c.type_of_duty,
+          c.annual_income&.to_f, c.pan_number, c.gst_number, c.birth_place,
+          c.nominee_name, c.nominee_relation, c.nominee_date_of_birth&.to_s,
+          c.sub_agent, c.status? ? 'Active' : 'Inactive',
+          c.added_by&.humanize, c.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        ], style: row_style)
+      end
+    end
+
+    package.to_stream.read
   end
 
   def generate_customers_csv(customers)

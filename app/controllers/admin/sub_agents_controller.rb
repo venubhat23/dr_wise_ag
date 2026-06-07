@@ -513,7 +513,72 @@ class Admin::SubAgentsController < Admin::ApplicationController
     render json: { distributor_id: nil, distributor_name: nil }, status: :not_found
   end
 
+  # GET /admin/sub_agents/download
+  def download
+    format_type = params[:format_type]
+
+    scope = SubAgent.all
+    scope = scope.search_by_name_mobile_email(params[:search]) if params[:search].present?
+    scope = case params[:status]
+            when 'active'   then scope.active
+            when 'inactive' then scope.inactive
+            else scope
+            end
+    scope = scope.order(:created_at)
+
+    case format_type
+    when 'csv'
+      send_data generate_sub_agents_csv(scope), filename: "affiliates_#{Date.current}.csv", type: 'text/csv'
+    when 'excel'
+      send_data generate_sub_agents_excel(scope),
+                filename: "affiliates_#{Date.current}.xlsx",
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    else
+      redirect_to admin_sub_agents_path, alert: 'Invalid download format.'
+    end
+  end
+
   private
+
+  def generate_sub_agents_csv(records)
+    require 'csv'
+    CSV.generate(headers: true) do |csv|
+      csv << %w[ID FirstName MiddleName LastName Mobile Email CompanyName PAN GST
+                Address City State BirthDate Gender BankName AccountNo IFSC
+                AccountHolderName AccountType UPIID Status CreatedAt]
+      records.find_each do |s|
+        csv << [s.id, s.first_name, s.middle_name, s.last_name, s.mobile, s.email,
+                s.company_name, s.pan_no, s.gst_no, s.address, s.city, s.state,
+                s.birth_date, s.gender&.humanize, s.bank_name, s.account_no, s.ifsc_code,
+                s.account_holder_name, s.account_type, s.upi_id,
+                s.deactivated? ? 'Deactivated' : (s.active? ? 'Active' : 'Inactive'),
+                s.created_at.strftime('%Y-%m-%d %H:%M:%S')]
+      end
+    end
+  end
+
+  def generate_sub_agents_excel(records)
+    require 'caxlsx'
+    package = Axlsx::Package.new
+    wb = package.workbook
+    hdr = wb.styles.add_style(bg_color: '2E7D32', fg_color: 'FFFFFF', b: true,
+                               alignment: { horizontal: :center })
+    row = wb.styles.add_style(alignment: { horizontal: :left })
+    wb.add_worksheet(name: 'Affiliates') do |sheet|
+      sheet.add_row %w[ID FirstName MiddleName LastName Mobile Email CompanyName PAN GST
+                       Address City State BirthDate Gender BankName AccountNo IFSC
+                       AccountHolderName AccountType UPIID Status CreatedAt], style: hdr
+      records.find_each do |s|
+        sheet.add_row [s.id, s.first_name, s.middle_name, s.last_name, s.mobile, s.email,
+                       s.company_name, s.pan_no, s.gst_no, s.address, s.city, s.state,
+                       s.birth_date&.to_s, s.gender&.humanize, s.bank_name, s.account_no,
+                       s.ifsc_code, s.account_holder_name, s.account_type, s.upi_id,
+                       s.deactivated? ? 'Deactivated' : (s.active? ? 'Active' : 'Inactive'),
+                       s.created_at.strftime('%Y-%m-%d %H:%M:%S')], style: row
+      end
+    end
+    package.to_stream.read
+  end
 
   def set_sub_agent
     @sub_agent = SubAgent.includes(:sub_agent_documents).find(params[:id])

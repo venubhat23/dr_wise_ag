@@ -233,6 +233,9 @@ Rails.application.routes.draw do
 
     # Sub Agent management (legacy)
     resources :sub_agents do
+      collection do
+        get :download
+      end
       member do
         patch :toggle_status
         patch :deactivate
@@ -250,6 +253,9 @@ Rails.application.routes.draw do
 
     # Distributor management
     resources :distributors do
+      collection do
+        get :download
+      end
       member do
         patch :toggle_status
         patch :deactivate
@@ -287,6 +293,7 @@ Rails.application.routes.draw do
     resources :customers do
       collection do
         get :export
+        get :download
         get :cities
         get :search_sub_agents
       end
@@ -315,6 +322,7 @@ Rails.application.routes.draw do
     # Life Insurance
     resources :life_insurances, path: 'insurance/life' do
       collection do
+        get :download
         get :policy_holder_options
         get :customer_family_members
         get :brokers_by_company
@@ -342,6 +350,7 @@ Rails.application.routes.draw do
     # Health Insurance
     resources :health_insurances, path: 'insurance/health' do
       collection do
+        get :download
         get :policy_holder_options
         get :brokers_by_company
         get :agency_codes_by_broker
@@ -363,6 +372,7 @@ Rails.application.routes.draw do
     # Motor Insurance
     resources :motor_insurances, path: 'insurance/motor' do
       collection do
+        get :download
         get :customer_family_members
         get :policy_holder_options
         get :customer_affiliate_info
@@ -388,6 +398,7 @@ Rails.application.routes.draw do
     # Other Insurance
     resources :other_insurances, path: 'insurance/other' do
       collection do
+        get :download
         get :all_agency_codes
         get :all_brokers
         get :agency_codes_for_broker_type
@@ -532,6 +543,7 @@ Rails.application.routes.draw do
       end
       collection do
         get :export
+        get :download
         get :statistics
         patch :bulk_update_stage
         get :check_existing_customer
@@ -548,6 +560,7 @@ Rails.application.routes.draw do
       collection do
         get :calendar_data
         get :search_customers
+        get :download
       end
     end
 

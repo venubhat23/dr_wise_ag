@@ -47,6 +47,8 @@ gem "groupdate"
 
 # Excel/CSV handling
 gem "roo"
+gem "caxlsx"
+gem "caxlsx_rails"
 # gem "rubyXL"  # Commented out temporarily due to network issues
 
 # PDF generation

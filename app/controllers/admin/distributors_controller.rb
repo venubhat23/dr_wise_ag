@@ -260,7 +260,73 @@ class Admin::DistributorsController < Admin::ApplicationController
     end
   end
 
+  # GET /admin/distributors/download
+  def download
+    format_type = params[:format_type]
+
+    scope = Distributor.all
+    scope = scope.search_by_name_mobile_email(params[:search]) if params[:search].present?
+    scope = case params[:status]
+            when 'active'   then scope.active
+            when 'inactive' then scope.inactive
+            else scope
+            end
+    scope = scope.order(:created_at)
+
+    case format_type
+    when 'csv'
+      send_data generate_distributors_csv(scope), filename: "ambassadors_#{Date.current}.csv", type: 'text/csv'
+    when 'excel'
+      send_data generate_distributors_excel(scope),
+                filename: "ambassadors_#{Date.current}.xlsx",
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    else
+      redirect_to admin_distributors_path, alert: 'Invalid download format.'
+    end
+  end
+
   private
+
+  def generate_distributors_csv(records)
+    require 'csv'
+    CSV.generate(headers: true) do |csv|
+      csv << %w[ID FirstName MiddleName LastName Mobile Email CompanyName PAN GST
+                Address City State BirthDate Gender BankName AccountNo IFSC
+                AccountHolderName AccountType UPIID AffiliateCount Status CreatedAt]
+      records.find_each do |d|
+        csv << [d.id, d.first_name, d.middle_name, d.last_name, d.mobile, d.email,
+                d.company_name, d.pan_no, d.gst_no, d.address, d.city, d.state,
+                d.birth_date, d.gender&.humanize, d.bank_name, d.account_no, d.ifsc_code,
+                d.account_holder_name, d.account_type, d.upi_id, d.affiliate_count,
+                d.deactivated? ? 'Deactivated' : (d.active? ? 'Active' : 'Inactive'),
+                d.created_at.strftime('%Y-%m-%d %H:%M:%S')]
+      end
+    end
+  end
+
+  def generate_distributors_excel(records)
+    require 'caxlsx'
+    package = Axlsx::Package.new
+    wb = package.workbook
+    hdr = wb.styles.add_style(bg_color: '1565C0', fg_color: 'FFFFFF', b: true,
+                               alignment: { horizontal: :center })
+    row = wb.styles.add_style(alignment: { horizontal: :left })
+    wb.add_worksheet(name: 'Ambassadors') do |sheet|
+      sheet.add_row %w[ID FirstName MiddleName LastName Mobile Email CompanyName PAN GST
+                       Address City State BirthDate Gender BankName AccountNo IFSC
+                       AccountHolderName AccountType UPIID AffiliateCount Status CreatedAt], style: hdr
+      records.find_each do |d|
+        sheet.add_row [d.id, d.first_name, d.middle_name, d.last_name, d.mobile, d.email,
+                       d.company_name, d.pan_no, d.gst_no, d.address, d.city, d.state,
+                       d.birth_date&.to_s, d.gender&.humanize, d.bank_name, d.account_no,
+                       d.ifsc_code, d.account_holder_name, d.account_type, d.upi_id,
+                       d.affiliate_count,
+                       d.deactivated? ? 'Deactivated' : (d.active? ? 'Active' : 'Inactive'),
+                       d.created_at.strftime('%Y-%m-%d %H:%M:%S')], style: row
+      end
+    end
+    package.to_stream.read
+  end
 
   def create_ambassador_user_account(distributor)
     return unless distributor&.email.present?

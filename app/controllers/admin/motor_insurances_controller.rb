@@ -937,7 +937,97 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     end
   end
 
+  # GET /admin/insurance/motor/download
+  def download
+    format_type = params[:format_type]
+    scope = build_motor_filtered_scope.order(created_at: :desc)
+
+    case format_type
+    when 'csv'
+      send_data generate_motor_csv(scope),
+                filename: "motor_insurance_#{Date.current}.csv", type: 'text/csv'
+    when 'excel'
+      send_data generate_motor_excel(scope),
+                filename: "motor_insurance_#{Date.current}.xlsx",
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    else
+      redirect_to admin_motor_insurances_path, alert: 'Invalid download format.'
+    end
+  end
+
   private
+
+  def build_motor_filtered_scope
+    scope = MotorInsurance.includes(:customer, :sub_agent)
+    current_tab = params[:tab] || 'drwise'
+    if current_tab == 'drwise'
+      scope = scope.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
+    else
+      scope = scope.where(
+        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+        true, false, false, true, false, false
+      )
+    end
+    scope = scope.search_motor_policies(params[:search]) if params[:search].present?
+    class_of_vehicle_filter = params[:class_of_vehicle].presence || params[:vehicle_type].presence
+    scope = scope.where(class_of_vehicle: class_of_vehicle_filter) if class_of_vehicle_filter.present?
+    scope = scope.where(payment_mode: params[:payment_mode])    if params[:payment_mode].present?
+    scope = scope.where(policy_type: params[:policy_type])      if params[:policy_type].present?
+    scope = scope.where(insurance_company_name: params[:company]) if params[:company].present?
+    scope = scope.where(sub_agent_id: params[:sub_agent_id])    if params[:sub_agent_id].present?
+    scope = scope.where("registration_number ILIKE ?", "%#{params[:vehicle_number]}%") if params[:vehicle_number].present?
+    if params[:status].present?
+      case params[:status]
+      when 'active'        then scope = scope.where('policy_end_date IS NULL OR policy_end_date >= ?', Date.current)
+      when 'expiring_soon' then scope = scope.where(policy_end_date: Date.current..30.days.from_now)
+      when 'expired'       then scope = scope.where('policy_end_date < ?', Date.current)
+      end
+    end
+    scope = scope.where("policy_start_date >= ?", params[:from_date]) if params[:from_date].present?
+    scope = scope.where("policy_start_date <= ?", params[:to_date])   if params[:to_date].present?
+    scope
+  end
+
+  def generate_motor_csv(records)
+    require 'csv'
+    CSV.generate(headers: true) do |csv|
+      csv << %w[ID PolicyNumber PolicyType VehicleRegistration ClassOfVehicle
+                CustomerName CustomerEmail InsuranceCompany TotalIDV TotalPremium
+                NetPremium PaymentMode PolicyStartDate PolicyEndDate Status Source
+                Affiliate BookingDate CreatedAt]
+      records.find_each do |p|
+        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Customer' else 'Unknown' end
+        csv << [p.id, p.policy_number, p.policy_type, p.registration_number, p.class_of_vehicle,
+                p.customer&.display_name, p.customer&.email, p.insurance_company_name,
+                p.total_idv, p.total_premium, p.net_premium, p.payment_mode,
+                p.policy_start_date, p.policy_end_date, p.status, source,
+                p.sub_agent&.display_name, p.policy_booking_date, p.created_at.strftime('%Y-%m-%d %H:%M:%S')]
+      end
+    end
+  end
+
+  def generate_motor_excel(records)
+    require 'caxlsx'
+    package = Axlsx::Package.new
+    wb = package.workbook
+    hdr = wb.styles.add_style(bg_color: 'BF360C', fg_color: 'FFFFFF', b: true, alignment: { horizontal: :center })
+    row = wb.styles.add_style(alignment: { horizontal: :left })
+    wb.add_worksheet(name: 'Motor Insurance') do |sheet|
+      sheet.add_row %w[ID PolicyNumber PolicyType VehicleRegistration ClassOfVehicle
+                       CustomerName CustomerEmail InsuranceCompany TotalIDV TotalPremium
+                       NetPremium PaymentMode PolicyStartDate PolicyEndDate Status Source
+                       Affiliate BookingDate CreatedAt], style: hdr
+      records.find_each do |p|
+        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Customer' else 'Unknown' end
+        sheet.add_row [p.id, p.policy_number, p.policy_type, p.registration_number, p.class_of_vehicle,
+                       p.customer&.display_name, p.customer&.email, p.insurance_company_name,
+                       p.total_idv.to_f, p.total_premium.to_f, p.net_premium.to_f, p.payment_mode,
+                       p.policy_start_date&.to_s, p.policy_end_date&.to_s, p.status, source,
+                       p.sub_agent&.display_name, p.policy_booking_date&.to_s, p.created_at.strftime('%Y-%m-%d %H:%M:%S')], style: row
+      end
+    end
+    package.to_stream.read
+  end
 
   def process_broker_params(params)
     # Handle agency_code_id when it contains broker_X format (X is BrokerCode.id)
