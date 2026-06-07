@@ -2796,13 +2796,14 @@ document.addEventListener('DOMContentLoaded', function() {
       var result = {};
       var allText = (frontText || '') + '\n' + (backText || '');
 
-      // Aadhaar number (12 digits with spaces)
+      // Aadhaar number — 12 digits with spaces, or 12 consecutive digits
       var am = allText.match(/\d{4}\s\d{4}\s\d{4}/);
+      if (!am) am = allText.match(/\b(\d{12})\b/);
       if (am) result.aadhaar_number = am[0];
 
-      // DOB
+      // DOB — try with label first, then bare date anywhere in front
       var dobPatterns = [
-        /(?:DOB|Date of Birth)[\s:]+(\d{2}[\/\-]\d{2}[\/\-]\d{4})/i,
+        /(?:DOB|Date of Birth|जन्म.{0,10})[\s:\/]+(\d{2}[\/\-]\d{2}[\/\-]\d{4})/i,
         /(?:Year of Birth|YOB)[\s:]+(\d{4})/i,
         /(\d{2}[\/\-]\d{2}[\/\-]\d{4})/
       ];
@@ -2811,50 +2812,85 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dm) { result.dob = dm[1]; break; }
       }
 
-      // Gender
-      var gm = frontText.match(/\b(Male|Female|MALE|FEMALE|Transgender)\b/i);
-      if (gm) {
-        var g = gm[1].toLowerCase();
-        result.gender = g === 'male' ? 'male' : g === 'female' ? 'female' : 'other';
-      }
+      // Gender — scan full front text (handles "महिला / Female" mixed lines)
+      if (/female|महिला/i.test(frontText)) result.gender = 'female';
+      else if (/\bmale\b|पुरुष/i.test(frontText)) result.gender = 'male';
+      else if (/transgender/i.test(frontText)) result.gender = 'other';
 
-      // Name from front (title case or all-caps line, not a label/number)
+      // Name — find multi-word all-ASCII-alpha line that appears before the DOB line
       var frontLines = frontText.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 2; });
+      var dobLineIdx = frontLines.length;
       for (var i = 0; i < frontLines.length; i++) {
+        if (/\d{2}[\/\-]\d{2}[\/\-]\d{4}|\bDOB\b|\bDate of Birth\b/i.test(frontLines[i])) { dobLineIdx = i; break; }
+      }
+      for (var i = 0; i < dobLineIdx; i++) {
         var line = frontLines[i];
         if (/\d/.test(line)) continue;
-        if (/aadhaar|govt|india|unique|authority|uid|help|enrol|dob|birth|gender|address/i.test(line)) continue;
-        if (line.length < 4 || line.length > 55) continue;
-        if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]*){0,3}$/.test(line) || /^[A-Z\s]{4,45}$/.test(line)) {
+        if (/[^A-Za-z\s]/.test(line)) continue; // skip Hindi / special chars
+        if (/aadhaar|govt|india|unique|authority|uid|help|enrol|dob|birth|gender|address|government|election|commission|department/i.test(line)) continue;
+        if (line.length < 4 || line.length > 60) continue;
+        var words = line.trim().split(/\s+/);
+        // Allow mixed-case Indian names e.g. "Sakhi bai kushwah"
+        if (words.length >= 2 && words.every(function(w) { return /^[A-Za-z]{1,}$/.test(w); })) {
           result.full_name = line; break;
         }
       }
+      // Fallback: all-caps multi-word line
+      if (!result.full_name) {
+        for (var i = 0; i < frontLines.length; i++) {
+          var line = frontLines[i];
+          if (/^[A-Z\s]{5,45}$/.test(line) && line.trim().split(/\s+/).length >= 2 &&
+              !/AADHAAR|GOVT|INDIA|UNIQUE|AUTHORITY|UID|GOVERNMENT/.test(line)) {
+            result.full_name = line; break;
+          }
+        }
+      }
 
-      // From back: pincode, state, address
+      // From back — address, pincode, state
       if (backText) {
+        // Primary: "Address: <everything until pincode>"
+        var addrMatch = backText.match(/Address[\s:]+(.+)/si);
+        if (addrMatch) {
+          var addrText = addrMatch[1]
+            .replace(/\d{6}[\s\S]*$/, '') // trim at pincode
+            .replace(/\n+/g, ', ')
+            .replace(/,\s*,/g, ',')
+            .replace(/\s{2,}/g, ' ')
+            .trim();
+          if (addrText.length > 5) result.address = addrText;
+        }
+
+        // Fallback: lines after S/O, C/O, H.No, Flat, etc.
+        if (!result.address) {
+          var backLines = backText.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+          var addrLines = []; var collecting = false;
+          for (var i = 0; i < backLines.length; i++) {
+            var bl = backLines[i];
+            if (/^[SCWD]\/[OA]|^H\.?\s*No|^Flat|^Door|^Plot|^Vill|^Near|^House|^Address/i.test(bl)) {
+              collecting = true;
+              bl = bl.replace(/^Address[\s:]+/i, '');
+            }
+            if (collecting) {
+              if (/^\d{6}$/.test(bl)) break;
+              if (bl.length > 0) addrLines.push(bl);
+              if (addrLines.length >= 6) break;
+            }
+          }
+          if (addrLines.length > 0) result.address = addrLines.join(', ');
+        }
+
+        // Pincode (first 6-digit number)
         var pm = backText.match(/\b(\d{6})\b/);
         if (pm) result.pincode = pm[1];
 
+        // State name
         var STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Jammu and Kashmir','Ladakh','Chandigarh','Puducherry'];
         for (var i = 0; i < STATES.length; i++) {
           if (backText.toLowerCase().indexOf(STATES[i].toLowerCase()) !== -1) { result.state = STATES[i]; break; }
         }
-
-        var backLines = backText.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
-        var addrLines = []; var collecting = false;
-        for (var i = 0; i < backLines.length; i++) {
-          var bl = backLines[i];
-          if (/^[SCWD]\/[OA]|^H\.?\s*No|^Flat|^Door|^Plot|^Vill|^Near|^House/i.test(bl)) collecting = true;
-          if (collecting) {
-            if (/^\d{6}$/.test(bl)) break;
-            addrLines.push(bl);
-            if (addrLines.length >= 5) break;
-          }
-        }
-        if (addrLines.length > 0) result.address = addrLines.join(', ');
       }
 
-      // Split full_name into first/middle/last
+      // Split full_name → first / middle / last
       if (result.full_name) {
         var parts = result.full_name.trim().split(/\s+/);
         if (parts.length === 1) { result.first_name = parts[0]; }
