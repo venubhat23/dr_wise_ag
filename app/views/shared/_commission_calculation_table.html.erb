@@ -240,26 +240,7 @@
               </div>
             </td>
             <td class="py-2 px-2 text-center" style="background: #eef2ff;">
-              <% if _inv_payout&.status == 'paid' %>
-                <%= link_to admin_payout_path(_inv_payout), class: "payout-badge payout-paid" do %>
-                  <i class="bi bi-check-circle-fill me-1"></i>Paid
-                <% end %>
-                <div class="payout-date mt-1"><%= _inv_payout.payout_date&.strftime('%d %b %Y') %></div>
-              <% elsif _inv_payout %>
-                <span class="payout-badge payout-pending">
-                  <i class="bi bi-clock me-1"></i>Pending
-                </span>
-                <%= link_to _ct_url, class: "btn btn-xs-pay btn-pay mt-1" do %>
-                  <i class="bi bi-credit-card me-1"></i>Pay
-                <% end %>
-              <% else %>
-                <span class="payout-badge payout-none">
-                  <i class="bi bi-dash-circle me-1"></i>No Payout
-                </span>
-                <%= link_to _ct_url, class: "btn btn-xs-pay btn-create mt-1" do %>
-                  <i class="bi bi-plus-circle me-1"></i>Pay
-                <% end %>
-              <% end %>
+              <span class="text-muted" style="font-size: 0.78rem;">—</span>
             </td>
           </tr>
 
@@ -292,26 +273,7 @@
               </div>
             </td>
             <td class="py-2 px-2 text-center" style="background: #eef2ff;">
-              <% if _comp_payout&.status == 'paid' %>
-                <%= link_to admin_payout_path(_comp_payout), class: "payout-badge payout-paid" do %>
-                  <i class="bi bi-check-circle-fill me-1"></i>Paid
-                <% end %>
-                <div class="payout-date mt-1"><%= _comp_payout.payout_date&.strftime('%d %b %Y') %></div>
-              <% elsif _comp_payout %>
-                <span class="payout-badge payout-pending">
-                  <i class="bi bi-clock me-1"></i>Pending
-                </span>
-                <%= link_to _ct_url, class: "btn btn-xs-pay btn-pay mt-1" do %>
-                  <i class="bi bi-credit-card me-1"></i>Pay
-                <% end %>
-              <% else %>
-                <span class="payout-badge payout-none">
-                  <i class="bi bi-dash-circle me-1"></i>No Payout
-                </span>
-                <%= link_to _ct_url, class: "btn btn-xs-pay btn-create mt-1" do %>
-                  <i class="bi bi-plus-circle me-1"></i>Pay
-                <% end %>
-              <% end %>
+              <span class="text-muted" style="font-size: 0.78rem;">—</span>
             </td>
           </tr>
 

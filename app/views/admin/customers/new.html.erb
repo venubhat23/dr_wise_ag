@@ -1594,37 +1594,37 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="row">
           <div class="col-md-4">
             <label class="form-label">First Name <span class="text-danger">*</span></label>
-            <input type="text" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][first_name]" class="form-control" required>
+            <input type="text" name="customer[family_members_attributes][${corporateFamilyMemberIndex}][first_name]" class="form-control" required>
           </div>
           <div class="col-md-4">
             <label class="form-label">Middle Name</label>
-            <input type="text" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][middle_name]" class="form-control">
+            <input type="text" name="customer[family_members_attributes][${corporateFamilyMemberIndex}][middle_name]" class="form-control">
           </div>
           <div class="col-md-4">
             <label class="form-label">Last Name <span class="text-danger">*</span></label>
-            <input type="text" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][last_name]" class="form-control" required>
+            <input type="text" name="customer[family_members_attributes][${corporateFamilyMemberIndex}][last_name]" class="form-control" required>
           </div>
         </div>
 
         <div class="row mt-3">
           <div class="col-md-4">
             <label class="form-label">Mobile</label>
-            <input type="tel" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][mobile]" class="form-control">
+            <input type="tel" name="customer[family_members_attributes][${corporateFamilyMemberIndex}][mobile]" class="form-control">
           </div>
           <div class="col-md-4">
             <label class="form-label">Birth Date</label>
-            <input type="date" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][birth_date]" class="form-control" min="1900-01-01" max="2099-12-31">
+            <input type="date" name="customer[family_members_attributes][${corporateFamilyMemberIndex}][birth_date]" class="form-control" min="1900-01-01" max="2099-12-31">
           </div>
           <div class="col-md-4">
             <label class="form-label">Age</label>
-            <input type="text" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][age]" class="form-control" readonly placeholder="Auto calculated from DOB">
+            <input type="text" name="customer[family_members_attributes][${corporateFamilyMemberIndex}][age]" class="form-control" readonly placeholder="Auto calculated from DOB">
           </div>
         </div>
 
         <div class="row mt-3">
           <div class="col-md-4">
             <label class="form-label">Gender</label>
-            <select name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][gender]" class="form-select">
+            <select name="customer[family_members_attributes][${corporateFamilyMemberIndex}][gender]" class="form-select">
               <option value="">Select Gender</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
@@ -1633,7 +1633,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <div class="col-md-4">
             <label class="form-label">Relationship <span class="text-danger">*</span></label>
-            <select name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][relationship]" class="form-select" required>
+            <select name="customer[family_members_attributes][${corporateFamilyMemberIndex}][relationship]" class="form-select" required>
               <option value="">Select Relationship</option>
               <% FamilyMember::RELATIONSHIPS.each do |rel| %>
               <option value="<%= rel %>"><%= rel.humanize.titleize %></option>
@@ -1642,7 +1642,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <div class="col-md-4">
             <label class="form-label">Height</label>
-            <select name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][height_feet]" class="form-select">
+            <select name="customer[family_members_attributes][${corporateFamilyMemberIndex}][height_feet]" class="form-select">
               <option value="">Select Height</option>
               <option value="3.0">3.0 feet</option><option value="3.08">3.1 feet</option><option value="3.17">3.2 feet</option><option value="3.25">3.3 feet</option><option value="3.33">3.4 feet</option><option value="3.42">3.5 feet</option><option value="3.5">3.6 feet</option><option value="3.58">3.7 feet</option><option value="3.67">3.8 feet</option><option value="3.75">3.9 feet</option><option value="3.83">3.10 feet</option><option value="3.92">3.11 feet</option>
               <option value="4.0">4.0 feet</option><option value="4.08">4.1 feet</option><option value="4.17">4.2 feet</option><option value="4.25">4.3 feet</option><option value="4.33">4.4 feet</option><option value="4.42">4.5 feet</option><option value="4.5">4.6 feet</option><option value="4.58">4.7 feet</option><option value="4.67">4.8 feet</option><option value="4.75">4.9 feet</option><option value="4.83">4.10 feet</option><option value="4.92">4.11 feet</option>
@@ -1658,11 +1658,11 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="row mt-3">
           <div class="col-md-6">
             <label class="form-label">Weight (Kg)</label>
-            <input type="number" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][weight_kg]" class="form-control" step="0.1">
+            <input type="number" name="customer[family_members_attributes][${corporateFamilyMemberIndex}][weight_kg]" class="form-control" step="0.1">
           </div>
           <div class="col-md-6">
             <label class="form-label">PAN No</label>
-            <input type="text" name="customer[corporate_family_members_attributes][${corporateFamilyMemberIndex}][pan_no]" class="form-control">
+            <input type="text" name="customer[family_members_attributes][${corporateFamilyMemberIndex}][pan_no]" class="form-control">
           </div>
         </div>
       </div>
@@ -1692,55 +1692,55 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="row">
           <div class="col-md-6">
             <label class="form-label">Company Name <span class="text-danger">*</span></label>
-            <input type="text" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][company_name]" class="form-control" required>
+            <input type="text" name="customer[corporate_members_attributes][${corporateMemberCorpIndex}][company_name]" class="form-control" required>
           </div>
           <div class="col-md-6">
             <label class="form-label">Mobile</label>
-            <input type="tel" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][mobile]" class="form-control">
+            <input type="tel" name="customer[corporate_members_attributes][${corporateMemberCorpIndex}][mobile]" class="form-control">
           </div>
         </div>
 
         <div class="row mt-3">
           <div class="col-md-6">
             <label class="form-label">Email</label>
-            <input type="email" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][email]" class="form-control">
+            <input type="email" name="customer[corporate_members_attributes][${corporateMemberCorpIndex}][email]" class="form-control">
           </div>
           <div class="col-md-3">
             <label class="form-label">State</label>
-            <input type="text" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][state]" class="form-control">
+            <input type="text" name="customer[corporate_members_attributes][${corporateMemberCorpIndex}][state]" class="form-control">
           </div>
           <div class="col-md-3">
             <label class="form-label">City</label>
-            <input type="text" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][city]" class="form-control">
+            <input type="text" name="customer[corporate_members_attributes][${corporateMemberCorpIndex}][city]" class="form-control">
           </div>
         </div>
 
         <div class="row mt-3">
           <div class="col-md-12">
             <label class="form-label">Address</label>
-            <textarea name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][address]" class="form-control" rows="2"></textarea>
+            <textarea name="customer[corporate_members_attributes][${corporateMemberCorpIndex}][address]" class="form-control" rows="2"></textarea>
           </div>
         </div>
 
         <div class="row mt-3">
           <div class="col-md-4">
             <label class="form-label">Annual Income</label>
-            <input type="number" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][annual_income]" class="form-control">
+            <input type="number" name="customer[corporate_members_attributes][${corporateMemberCorpIndex}][annual_income]" class="form-control">
           </div>
           <div class="col-md-4">
             <label class="form-label">PAN No</label>
-            <input type="text" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][pan_no]" class="form-control">
+            <input type="text" name="customer[corporate_members_attributes][${corporateMemberCorpIndex}][pan_no]" class="form-control">
           </div>
           <div class="col-md-4">
             <label class="form-label">GST No</label>
-            <input type="text" name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][gst_no]" class="form-control">
+            <input type="text" name="customer[corporate_members_attributes][${corporateMemberCorpIndex}][gst_no]" class="form-control">
           </div>
         </div>
 
         <div class="row mt-3">
           <div class="col-md-12">
             <label class="form-label">Additional Information</label>
-            <textarea name="customer[corporate_members_corp_attributes][${corporateMemberCorpIndex}][additional_information]" class="form-control" rows="2"></textarea>
+            <textarea name="customer[corporate_members_attributes][${corporateMemberCorpIndex}][additional_information]" class="form-control" rows="2"></textarea>
           </div>
         </div>
       </div>
@@ -2874,16 +2874,43 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
 
-    // Clean up raw OCR address text: remove pincode+trailing, normalise whitespace
+    // Clean up raw OCR address text: strip non-ASCII lines (Hindi garbage), remove pincode, normalise
     function cleanAddress(raw) {
-      return raw
-        .replace(/\s*[-–]\s*\d{6}[\s\S]*$/, '') // "State - 560066 ..." → remove
+      var lines = raw.split('\n').map(function(l) { return l.trim(); }).filter(function(l) {
+        if (!l) return false;
+        // Drop lines that are mostly non-ASCII (Devanagari/Kannada garble)
+        var ascii = l.replace(/[^\x20-\x7E]/g, '').length;
+        return ascii / l.length > 0.6; // keep line if >60% ASCII
+      });
+      return lines.join(', ')
+        .replace(/\s*[-–]\s*\d{6}[\s\S]*$/, '') // "State - 560066" → remove
         .replace(/\d{6}[\s\S]*$/, '')            // bare pincode at end → remove
-        .replace(/\n+/g, ', ')
         .replace(/,\s*,/g, ',')
         .replace(/,\s*$/, '')
         .replace(/\s{2,}/g, ' ')
         .trim();
+    }
+
+    // Among all "Address: ..." blocks in text, pick the one with highest ASCII ratio (cleanest)
+    function bestAddressMatch(text) {
+      var re = /Address[\s:]+(.+?)(?=(?:Address[\s:]|\d{4}\s\d{4}|^\s*$))/gsi;
+      var best = null, bestScore = 0;
+      var m;
+      while ((m = re.exec(text)) !== null) {
+        var raw = m[1];
+        var ascii = raw.replace(/[^\x20-\x7E\n]/g, '').length;
+        var score = raw.length > 10 ? ascii / raw.length : 0;
+        if (score > bestScore) { bestScore = score; best = raw; }
+      }
+      // Also try a simple last-match (regex might miss the last block)
+      var simple = text.match(/Address[\s:]+(.+)$/si);
+      if (simple) {
+        var raw2 = simple[1];
+        var ascii2 = raw2.replace(/[^\x20-\x7E\n]/g, '').length;
+        var score2 = raw2.length > 10 ? ascii2 / raw2.length : 0;
+        if (score2 > bestScore) { best = raw2; }
+      }
+      return best ? cleanAddress(best) : null;
     }
 
     function parseAadhaarText(frontText, backText) {
@@ -2895,15 +2922,23 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!am) am = allText.match(/\b(\d{12})\b/);
       if (am) result.aadhaar_number = am[0];
 
-      // DOB — try with label first, then bare date anywhere in front
+      // DOB — always prefer labeled patterns; bare-date fallback skips Download/Issue/Enrolment dates
       var dobPatterns = [
         /(?:DOB|Date of Birth|जन्म.{0,10})[\s:\/]+(\d{2}[\/\-]\d{2}[\/\-]\d{4})/i,
-        /(?:Year of Birth|YOB)[\s:]+(\d{4})/i,
-        /(\d{2}[\/\-]\d{2}[\/\-]\d{4})/
+        /(?:Year of Birth|YOB)[\s:]+(\d{4})/i
       ];
       for (var i = 0; i < dobPatterns.length; i++) {
         var dm = frontText.match(dobPatterns[i]);
         if (dm) { result.dob = dm[1]; break; }
+      }
+      // Bare date fallback: skip lines that contain Download/Issue/Enrolment/Expiry labels
+      if (!result.dob) {
+        var allLines = frontText.split('\n');
+        for (var i = 0; i < allLines.length; i++) {
+          if (/download|issue|enrol|expiry|valid|from\s*:|to\s*:/i.test(allLines[i])) continue;
+          var bdm = allLines[i].match(/(\d{2}[\/\-]\d{2}[\/\-]\d{4})/);
+          if (bdm) { result.dob = bdm[1]; break; }
+        }
       }
 
       // Gender — scan full front text (handles "महिला / Female" mixed lines)
@@ -2911,52 +2946,47 @@ document.addEventListener('DOMContentLoaded', function() {
       else if (/\bmale\b|पुरुष/i.test(frontText)) result.gender = 'male';
       else if (/transgender/i.test(frontText)) result.gender = 'other';
 
-      // Name — find multi-word all-ASCII-alpha line that appears before the DOB line
+      // Name — shared validator used for both passes
       var frontLines = frontText.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 2; });
-      var dobLineIdx = frontLines.length;
-      for (var i = 0; i < frontLines.length; i++) {
-        if (/\d{2}[\/\-]\d{2}[\/\-]\d{4}|\bDOB\b|\bDate of Birth\b/i.test(frontLines[i])) { dobLineIdx = i; break; }
-      }
-      for (var i = 0; i < dobLineIdx; i++) {
-        var line = frontLines[i];
-        if (/\d/.test(line)) continue;
-        if (/[^A-Za-z\s]/.test(line)) continue; // skip Hindi / special chars
-        if (/aadhaar|govt|india|unique|authority|uid|help|enrol|dob|birth|gender|address|government|election|commission|department|issue|identification/i.test(line)) continue;
-        if (line.length < 4 || line.length > 60) continue;
+
+      function isValidNameLine(line) {
+        if (/\d/.test(line)) return false;
+        if (/[^A-Za-z\s]/.test(line)) return false;
+        if (/aadhaar|govt|india|unique|authority|uid|help|enrol|dob|birth|gender|address|government|election|commission|department|issue|identification|verification|download|information/i.test(line)) return false;
+        if (/s\/o|d\/o|w\/o|c\/o/i.test(line)) return false; // skip father/husband name lines
+        if (line.length < 8 || line.length > 60) return false;
         var words = line.trim().split(/\s+/);
-        // First word MUST be Title Case (Capital + lowercase e.g. "Gopala")
-        // This rejects all-caps OCR garbage like "REE", "EERE" from Kannada/Hindi script
-        // Remaining words can be Title Case OR lowercase ≥3 chars (e.g. "bai", "kushwah")
-        var firstTitleCase = /^[A-Z][a-z]{2,}$/.test(words[0]);
-        var restValid = words.slice(1).every(function(w) {
+        if (words.length < 2) return false;
+        // First word Title Case; rest Title Case or lowercase ≥3 chars
+        var firstOK = /^[A-Z][a-z]{2,}$/.test(words[0]);
+        var restOK = words.slice(1).every(function(w) {
           return /^[A-Z][a-z]{2,}$/.test(w) || /^[a-z]{3,}$/.test(w);
         });
-        if (words.length >= 2 && line.length >= 8 && firstTitleCase && restValid) {
-          result.full_name = line; break;
-        }
+        return firstOK && restOK;
       }
-      // Fallback: all Title Case multi-word line, each word ≥3 chars
+
+      // DOB line index — only stop at explicitly labeled DOB, NOT "Download Date" / "Issue Date"
+      var dobLineIdx = frontLines.length;
+      for (var i = 0; i < frontLines.length; i++) {
+        if (/\bDOB\b|\bDate of Birth\b/i.test(frontLines[i]) &&
+            !/download|issue|enrol/i.test(frontLines[i])) { dobLineIdx = i; break; }
+      }
+
+      // Pass 1: search before DOB line (most reliable — name comes before DOB on card)
+      for (var i = 0; i < dobLineIdx; i++) {
+        if (isValidNameLine(frontLines[i])) { result.full_name = frontLines[i]; break; }
+      }
+      // Pass 2: if not found, search ALL lines (handles screenshots, letter-format, combined images)
       if (!result.full_name) {
         for (var i = 0; i < frontLines.length; i++) {
-          var line = frontLines[i];
-          if (/[^A-Za-z\s]/.test(line)) continue;
-          if (/aadhaar|govt|india|unique|authority|uid|government|issue|date/i.test(line)) continue;
-          var words2 = line.trim().split(/\s+/);
-          if (words2.length >= 2 && line.length >= 8 &&
-              words2.every(function(w) { return /^[A-Z][a-z]{2,}$/.test(w); })) {
-            result.full_name = line; break;
-          }
+          if (isValidNameLine(frontLines[i])) { result.full_name = frontLines[i]; break; }
         }
       }
 
-      // From back — address, pincode, state
+      // From back — address (pick cleanest occurrence), pincode, state
       if (backText) {
-        // Primary: "Address: <everything until pincode>"
-        var addrMatch = backText.match(/Address[\s:]+(.+)/si);
-        if (addrMatch) {
-          var addrText = cleanAddress(addrMatch[1]);
-          if (addrText.length > 5) result.address = addrText;
-        }
+        var addrClean = bestAddressMatch(backText);
+        if (addrClean && addrClean.length > 5) result.address = addrClean;
 
         // Fallback: lines after S/O, C/O, H.No, Flat, etc.
         if (!result.address) {
@@ -2988,13 +3018,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
 
-      // If front was a combined image (both sides) and address not yet found, search frontText too
+      // If front was a combined image (both sides) — also search frontText for cleanest Address block
       if (!result.address) {
-        var addrMatch2 = frontText.match(/Address[\s:]+(.+)/si);
-        if (addrMatch2) {
-          var addrText2 = cleanAddress(addrMatch2[1]);
-          if (addrText2.length > 5) result.address = addrText2;
-        }
+        var addrClean2 = bestAddressMatch(frontText);
+        if (addrClean2 && addrClean2.length > 5) result.address = addrClean2;
       }
       if (!result.address) {
         var soMatch = frontText.match(/S\/O[\s:]+(.+?)(?:\n\d{4}|\n\d{6}|$)/si);

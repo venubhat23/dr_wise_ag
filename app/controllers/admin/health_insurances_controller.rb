@@ -481,6 +481,14 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
 
     # Create new policy with renewal data
     processed_params = process_broker_params(health_insurance_params)
+
+    # Strip nominee IDs — the renew form copies nominees from the original policy,
+    # so their IDs belong to a different HealthInsurance. Passing them to a new
+    # record causes Rails to raise RecordNotFound when looking up the existing nominee.
+    if processed_params[:health_insurance_nominees_attributes].present?
+      processed_params[:health_insurance_nominees_attributes].each_value { |attrs| attrs.delete('id') }
+    end
+
     @renewed_policy = HealthInsurance.new(processed_params)
     @renewed_policy.policy_type = 'Renewal'
     @renewed_policy.original_policy_id = @health_insurance.id

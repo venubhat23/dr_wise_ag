@@ -976,44 +976,55 @@ class Admin::CustomersController < Admin::ApplicationController
                              (@customer.email.present? && password.blank?)
 
           if should_create_user
-            if password.present? && password_confirmation.present?
-              # Use provided password
-              if password == password_confirmation
-                generated_password = password
+            # Skip user creation if a user with this email/mobile already exists (e.g. existing affiliate)
+            existing_user = User.find_by(email: @customer.email) ||
+                            (@customer.mobile.present? && User.find_by(mobile: @customer.mobile))
+
+            if existing_user
+              success = true
+            else
+              user_first_name = @customer.individual? ? @customer.first_name : @customer.company_name
+              user_last_name = @customer.individual? ? (@customer.last_name || @customer.company_name) : @customer.company_name
+
+              if password.present? && password_confirmation.present?
+                # Use provided password
+                if password == password_confirmation
+                  generated_password = password
+                  User.create!(
+                    first_name: user_first_name,
+                    last_name: user_last_name,
+                    email: @customer.email,
+                    mobile: @customer.mobile,
+                    password: generated_password,
+                    password_confirmation: generated_password,
+                    original_password: generated_password,
+                    user_type: 'customer',
+                    status: true
+                  )
+                  user_created = true
+                  success = true
+                else
+                  @customer.destroy
+                  @customer.errors.add(:password_confirmation, "doesn't match Password")
+                  success = false
+                end
+              else
+                # Auto-generate password if no password provided but user account creation requested
+                generated_password = generate_secure_password
                 User.create!(
-                  first_name: @customer.first_name,
-                  last_name: @customer.last_name || @customer.company_name,
+                  first_name: user_first_name,
+                  last_name: user_last_name,
                   email: @customer.email,
                   mobile: @customer.mobile,
                   password: generated_password,
                   password_confirmation: generated_password,
-                  original_password: generated_password, # Store the original password
+                  original_password: generated_password,
                   user_type: 'customer',
                   status: true
                 )
                 user_created = true
                 success = true
-              else
-                @customer.destroy
-                @customer.errors.add(:password_confirmation, "doesn't match Password")
-                success = false
               end
-            else
-              # Auto-generate password if no password provided but user account creation requested
-              generated_password = generate_secure_password
-              User.create!(
-                first_name: @customer.first_name,
-                last_name: @customer.last_name || @customer.company_name,
-                email: @customer.email,
-                mobile: @customer.mobile,
-                password: generated_password,
-                password_confirmation: generated_password,
-                original_password: generated_password, # Store the original password
-                user_type: 'customer',
-                status: true
-              )
-              user_created = true
-              success = true
             end
           else
             success = true
@@ -1283,8 +1294,9 @@ class Admin::CustomersController < Admin::ApplicationController
     # Generate password in format: first 4 letters of name + @ + 4-digit year from DOB
     # Example: PRAMOD with DOB 26/02/1996 becomes PRAM@1996
 
-    # Get first name - use first_name from customer
-    first_name = @customer.first_name.to_s.strip.upcase
+    # Use first_name for individual, company_name for corporate
+    name_source = @customer.individual? ? @customer.first_name : @customer.company_name
+    first_name = name_source.to_s.strip.upcase
 
     # Get first 4 characters of name, pad with 'X' if less than 4 characters
     name_part = first_name[0..3].ljust(4, 'X')
