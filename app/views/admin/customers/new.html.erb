@@ -2921,26 +2921,29 @@ document.addEventListener('DOMContentLoaded', function() {
         var line = frontLines[i];
         if (/\d/.test(line)) continue;
         if (/[^A-Za-z\s]/.test(line)) continue; // skip Hindi / special chars
-        if (/aadhaar|govt|india|unique|authority|uid|help|enrol|dob|birth|gender|address|government|election|commission|department/i.test(line)) continue;
+        if (/aadhaar|govt|india|unique|authority|uid|help|enrol|dob|birth|gender|address|government|election|commission|department|issue|identification/i.test(line)) continue;
         if (line.length < 4 || line.length > 60) continue;
         var words = line.trim().split(/\s+/);
-        // Each word ≥3 chars (rejects OCR garbage like "mm", "oe", "gw")
-        // At least one word starts with uppercase (real proper noun / name)
-        // Total line length ≥ 8 chars
-        if (words.length >= 2 && line.length >= 8 &&
-            words.every(function(w) { return /^[A-Za-z]{3,}$/.test(w); }) &&
-            words.some(function(w) { return /^[A-Z]/.test(w); })) {
+        // First word MUST be Title Case (Capital + lowercase e.g. "Gopala")
+        // This rejects all-caps OCR garbage like "REE", "EERE" from Kannada/Hindi script
+        // Remaining words can be Title Case OR lowercase ≥3 chars (e.g. "bai", "kushwah")
+        var firstTitleCase = /^[A-Z][a-z]{2,}$/.test(words[0]);
+        var restValid = words.slice(1).every(function(w) {
+          return /^[A-Z][a-z]{2,}$/.test(w) || /^[a-z]{3,}$/.test(w);
+        });
+        if (words.length >= 2 && line.length >= 8 && firstTitleCase && restValid) {
           result.full_name = line; break;
         }
       }
-      // Fallback: all-caps multi-word line (each word ≥3 chars)
+      // Fallback: all Title Case multi-word line, each word ≥3 chars
       if (!result.full_name) {
         for (var i = 0; i < frontLines.length; i++) {
           var line = frontLines[i];
+          if (/[^A-Za-z\s]/.test(line)) continue;
+          if (/aadhaar|govt|india|unique|authority|uid|government|issue|date/i.test(line)) continue;
           var words2 = line.trim().split(/\s+/);
-          if (/^[A-Z\s]{8,45}$/.test(line) && words2.length >= 2 &&
-              words2.every(function(w) { return w.length >= 3; }) &&
-              !/AADHAAR|GOVT|INDIA|UNIQUE|AUTHORITY|UID|GOVERNMENT/.test(line)) {
+          if (words2.length >= 2 && line.length >= 8 &&
+              words2.every(function(w) { return /^[A-Z][a-z]{2,}$/.test(w); })) {
             result.full_name = line; break;
           }
         }
