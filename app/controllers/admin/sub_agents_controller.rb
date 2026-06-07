@@ -299,6 +299,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
   def new
     @sub_agent = SubAgent.new
     @sub_agent.sub_agent_documents.build
+    @available_distributors = Distributor.active.order(:first_name, :last_name)
   end
 
   # GET /admin/sub_agents/1/edit
@@ -350,6 +351,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
     if @sub_agent.save
       # Create User account for the sub agent
       create_user_account_for_sub_agent(@sub_agent)
+      handle_distributor_assignment(@sub_agent, params[:assigned_distributor_id])
       Rails.logger.info "Documents after create: #{@sub_agent.sub_agent_documents.count}"
       redirect_to admin_sub_agents_path, notice: 'Sub Agent was successfully created.'
     else
