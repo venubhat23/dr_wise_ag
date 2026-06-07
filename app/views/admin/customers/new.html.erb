@@ -962,6 +962,8 @@ input[type="radio"]:checked + .customer-type-label {
 .doc-type-btn:hover { border-color: #0d6efd; background: #f0f4ff; }
 .doc-type-btn.active { border-color: #0d6efd; background: #e8f0fe; color: #0d6efd; }
 .doc-type-btn.active i { color: #0d6efd !important; }
+.doc-upload-zone.res-low { border-color: #ffc107; background: #fffbf0; }
+.res-warning { border-radius: 8px; }
 </style>
 
 <!-- jQuery (required for Select2) -->
@@ -2689,17 +2691,64 @@ document.addEventListener('DOMContentLoaded', function() {
         var file = this.files[0];
         if (!file) return;
         if (nameEl) nameEl.textContent = file.name;
-        if (img && file.type.startsWith('image/')) {
-          img.src = URL.createObjectURL(file);
-          img.style.display = 'block';
-        } else if (img) {
-          img.style.display = 'none';
+
+        // Remove any previous resolution warning
+        var oldWarn = zone.querySelector('.res-warning');
+        if (oldWarn) oldWarn.remove();
+        zone.classList.remove('res-low');
+
+        var objectUrl = URL.createObjectURL(file);
+
+        if (file.type.startsWith('image/')) {
+          // Check resolution before showing preview
+          var checkImg = new Image();
+          checkImg.onload = function() {
+            var w = checkImg.naturalWidth, h = checkImg.naturalHeight;
+            var MIN_W = 600, MIN_H = 300;
+            var content = zone.querySelector('.doc-zone-content');
+            if (content) content.style.display = 'none';
+            if (preview) preview.style.display = 'block';
+            zone.classList.add('has-file');
+
+            if (w < MIN_W || h < MIN_H) {
+              // Low-res: show warning, block Extract
+              zone.classList.add('res-low');
+              if (img) { img.src = objectUrl; img.style.display = 'block'; }
+              if (nameEl) nameEl.textContent = file.name + ' (' + w + '×' + h + 'px)';
+              var warn = document.createElement('div');
+              warn.className = 'res-warning alert alert-warning py-2 px-3 mt-2 mb-0 small text-center';
+              warn.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>' +
+                '<strong>Image too small (' + w + '×' + h + 'px)</strong><br>' +
+                'Please upload a clearer, higher-resolution photo for accurate results.<br>' +
+                '<span class="text-muted" style="font-size:11px">Minimum recommended: 600×300 px</span>';
+              preview.appendChild(warn);
+              input.value = ''; // clear file so Extract is blocked
+              updateExtractBtn();
+            } else {
+              // Good resolution
+              if (img) { img.src = objectUrl; img.style.display = 'block'; }
+              updateExtractBtn();
+            }
+          };
+          checkImg.onerror = function() {
+            // Can't check — allow anyway
+            if (img) { img.src = objectUrl; img.style.display = 'block'; }
+            var content = zone.querySelector('.doc-zone-content');
+            if (content) content.style.display = 'none';
+            if (preview) preview.style.display = 'block';
+            zone.classList.add('has-file');
+            updateExtractBtn();
+          };
+          checkImg.src = objectUrl;
+        } else {
+          // Non-image file (PDF, etc.)
+          if (img) img.style.display = 'none';
+          var content = zone.querySelector('.doc-zone-content');
+          if (content) content.style.display = 'none';
+          if (preview) preview.style.display = 'block';
+          zone.classList.add('has-file');
+          updateExtractBtn();
         }
-        var content = zone.querySelector('.doc-zone-content');
-        if (content) content.style.display = 'none';
-        if (preview) preview.style.display = 'block';
-        zone.classList.add('has-file');
-        updateExtractBtn();
       });
 
       zone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('drag-over'); });
@@ -2728,18 +2777,51 @@ document.addEventListener('DOMContentLoaded', function() {
       if (textEl && text) textEl.textContent = text;
     }
 
-    async function runOCR(file, offset, scale) {
-      offset = offset || 0; scale = scale || 1;
-      var worker = await Tesseract.createWorker('eng', 1, {
+    // Upscale small images before OCR — Tesseract works poorly below ~1200px wide
+    function preprocessImage(file) {
+      return new Promise(function(resolve) {
+        var img = new Image();
+        var url = URL.createObjectURL(file);
+        img.onload = function() {
+          var minW = 1400;
+          var scale = img.width < minW ? minW / img.width : 1;
+          var canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          var ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          // Boost contrast to help OCR on low-quality scans
+          var id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          var d = id.data;
+          for (var i = 0; i < d.length; i += 4) {
+            d[i]   = Math.min(255, Math.max(0, (d[i]   - 128) * 1.4 + 128));
+            d[i+1] = Math.min(255, Math.max(0, (d[i+1] - 128) * 1.4 + 128));
+            d[i+2] = Math.min(255, Math.max(0, (d[i+2] - 128) * 1.4 + 128));
+          }
+          ctx.putImageData(id, 0, 0);
+          canvas.toBlob(function(blob) { URL.revokeObjectURL(url); resolve(blob); }, 'image/png');
+        };
+        img.onerror = function() { URL.revokeObjectURL(url); resolve(file); };
+        img.src = url;
+      });
+    }
+
+    async function runOCR(file, offset, scale, lang) {
+      offset = offset || 0; scale = scale || 1; lang = lang || 'eng';
+      setProgress(offset + 1 * scale, 'Enhancing image...');
+      var processedFile = await preprocessImage(file);
+      var worker = await Tesseract.createWorker(lang, 1, {
         logger: function(m) {
           if (m.status === 'loading tesseract core') setProgress(offset + 2 * scale, 'Loading OCR engine...');
           else if (m.status === 'initializing tesseract') setProgress(offset + 10 * scale, 'Initializing...');
-          else if (m.status === 'loading language traineddata') setProgress(offset + 20 * scale, 'Loading language data...');
+          else if (m.status === 'loading language traineddata') setProgress(offset + 20 * scale, 'Loading ' + lang + ' language data...');
           else if (m.status === 'initializing api') setProgress(offset + 30 * scale, 'Starting recognition...');
           else if (m.status === 'recognizing text') setProgress(offset + (30 + m.progress * 70) * scale, 'Reading text...');
         }
       });
-      var result = await worker.recognize(file);
+      var result = await worker.recognize(processedFile);
       await worker.terminate();
       return result.data.text;
     }
@@ -2761,8 +2843,8 @@ document.addEventListener('DOMContentLoaded', function() {
               var backFile = document.getElementById('aadhaar_back_input').files[0];
               var frontText = '', backText = '';
               var scale = backFile ? 0.5 : 1;
-              if (frontFile) { setProgress(0, 'Processing Aadhaar front...'); frontText = await runOCR(frontFile, 0, scale); }
-              if (backFile) { setProgress(50, 'Processing Aadhaar back...'); backText = await runOCR(backFile, 50, 0.5); }
+              if (frontFile) { setProgress(0, 'Processing Aadhaar front...'); frontText = await runOCR(frontFile, 0, scale, 'eng+hin'); }
+              if (backFile) { setProgress(50, 'Processing Aadhaar back...'); backText = await runOCR(backFile, 50, 0.5, 'eng+hin'); }
               extractedData = parseAadhaarText(frontText, backText);
             } else if (selectedDocType === 'pan') {
               var panFile = document.getElementById('pan_input').files[0];
@@ -2790,6 +2872,18 @@ document.addEventListener('DOMContentLoaded', function() {
           alert('Failed to load OCR engine. Please check your internet connection.');
         });
       });
+    }
+
+    // Clean up raw OCR address text: remove pincode+trailing, normalise whitespace
+    function cleanAddress(raw) {
+      return raw
+        .replace(/\s*[-–]\s*\d{6}[\s\S]*$/, '') // "State - 560066 ..." → remove
+        .replace(/\d{6}[\s\S]*$/, '')            // bare pincode at end → remove
+        .replace(/\n+/g, ', ')
+        .replace(/,\s*,/g, ',')
+        .replace(/,\s*$/, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
     }
 
     function parseAadhaarText(frontText, backText) {
@@ -2830,16 +2924,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (/aadhaar|govt|india|unique|authority|uid|help|enrol|dob|birth|gender|address|government|election|commission|department/i.test(line)) continue;
         if (line.length < 4 || line.length > 60) continue;
         var words = line.trim().split(/\s+/);
-        // Allow mixed-case Indian names e.g. "Sakhi bai kushwah"
-        if (words.length >= 2 && words.every(function(w) { return /^[A-Za-z]{1,}$/.test(w); })) {
+        // Each word ≥3 chars (rejects OCR garbage like "mm", "oe", "gw")
+        // At least one word starts with uppercase (real proper noun / name)
+        // Total line length ≥ 8 chars
+        if (words.length >= 2 && line.length >= 8 &&
+            words.every(function(w) { return /^[A-Za-z]{3,}$/.test(w); }) &&
+            words.some(function(w) { return /^[A-Z]/.test(w); })) {
           result.full_name = line; break;
         }
       }
-      // Fallback: all-caps multi-word line
+      // Fallback: all-caps multi-word line (each word ≥3 chars)
       if (!result.full_name) {
         for (var i = 0; i < frontLines.length; i++) {
           var line = frontLines[i];
-          if (/^[A-Z\s]{5,45}$/.test(line) && line.trim().split(/\s+/).length >= 2 &&
+          var words2 = line.trim().split(/\s+/);
+          if (/^[A-Z\s]{8,45}$/.test(line) && words2.length >= 2 &&
+              words2.every(function(w) { return w.length >= 3; }) &&
               !/AADHAAR|GOVT|INDIA|UNIQUE|AUTHORITY|UID|GOVERNMENT/.test(line)) {
             result.full_name = line; break;
           }
@@ -2851,12 +2951,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Primary: "Address: <everything until pincode>"
         var addrMatch = backText.match(/Address[\s:]+(.+)/si);
         if (addrMatch) {
-          var addrText = addrMatch[1]
-            .replace(/\d{6}[\s\S]*$/, '') // trim at pincode
-            .replace(/\n+/g, ', ')
-            .replace(/,\s*,/g, ',')
-            .replace(/\s{2,}/g, ' ')
-            .trim();
+          var addrText = cleanAddress(addrMatch[1]);
           if (addrText.length > 5) result.address = addrText;
         }
 
@@ -2876,10 +2971,10 @@ document.addEventListener('DOMContentLoaded', function() {
               if (addrLines.length >= 6) break;
             }
           }
-          if (addrLines.length > 0) result.address = addrLines.join(', ');
+          if (addrLines.length > 0) result.address = cleanAddress(addrLines.join('\n'));
         }
 
-        // Pincode (first 6-digit number)
+        // Pincode (6-digit number)
         var pm = backText.match(/\b(\d{6})\b/);
         if (pm) result.pincode = pm[1];
 
@@ -2887,6 +2982,30 @@ document.addEventListener('DOMContentLoaded', function() {
         var STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Jammu and Kashmir','Ladakh','Chandigarh','Puducherry'];
         for (var i = 0; i < STATES.length; i++) {
           if (backText.toLowerCase().indexOf(STATES[i].toLowerCase()) !== -1) { result.state = STATES[i]; break; }
+        }
+      }
+
+      // If front was a combined image (both sides) and address not yet found, search frontText too
+      if (!result.address) {
+        var addrMatch2 = frontText.match(/Address[\s:]+(.+)/si);
+        if (addrMatch2) {
+          var addrText2 = cleanAddress(addrMatch2[1]);
+          if (addrText2.length > 5) result.address = addrText2;
+        }
+      }
+      if (!result.address) {
+        var soMatch = frontText.match(/S\/O[\s:]+(.+?)(?:\n\d{4}|\n\d{6}|$)/si);
+        if (soMatch) result.address = cleanAddress(soMatch[1]);
+      }
+      // Pincode and state from frontText as fallback
+      if (!result.pincode) {
+        var pfm = frontText.match(/\b(\d{6})\b/);
+        if (pfm) result.pincode = pfm[1];
+      }
+      if (!result.state) {
+        var STATES2 = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Jammu and Kashmir','Ladakh','Chandigarh','Puducherry'];
+        for (var i = 0; i < STATES2.length; i++) {
+          if (frontText.toLowerCase().indexOf(STATES2[i].toLowerCase()) !== -1) { result.state = STATES2[i]; break; }
         }
       }
 
