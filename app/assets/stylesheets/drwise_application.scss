@@ -118,6 +118,12 @@ body {
 
 .table {
   border-radius: var(--insurance-radius) !important;
+  // overflow: hidden removed — it clips absolute-positioned dropdowns inside tables
+}
+
+// Rounded corners on the table wrapper instead
+.table-responsive, .card > .table:first-child {
+  border-radius: var(--insurance-radius) !important;
   overflow: hidden !important;
 }
 

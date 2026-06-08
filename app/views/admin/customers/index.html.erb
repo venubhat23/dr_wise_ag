@@ -83,7 +83,7 @@
 <!-- Filters and Search -->
 <div class="card shadow-sm mb-4">
   <div class="card-body">
-    <%= form_with url: admin_customers_path, method: :get, local: true, class: "d-flex align-items-center gap-3", id: "search_form" do |form| %>
+    <%= form_with url: admin_customers_path, method: :get, local: true, class: "d-flex flex-wrap align-items-center gap-2", id: "search_form" do |form| %>
       <!-- General Search -->
       <div class="flex-grow-1" style="min-width: 250px;">
         <%= form.text_field :search, placeholder: "Search by name, email, mobile, PAN, or Lead ID... (min 4 characters)",
@@ -133,7 +133,7 @@
 
       <!-- Download Dropdown -->
       <div class="dropdown download-dropdown">
-        <button class="btn btn-success dropdown-toggle" type="button" id="downloadDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        <button class="btn btn-success dropdown-toggle" type="button" id="downloadDropdown" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false">
           <i class="bi bi-download me-1"></i> Download
         </button>
         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="downloadDropdown">
