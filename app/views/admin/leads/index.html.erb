@@ -18,6 +18,34 @@
     <%= link_to kanban_admin_leads_path, class: "btn btn-outline-primary" do %>
       <i class="bi bi-kanban me-1"></i>Kanban Board
     <% end %>
+    <div class="dropdown download-dropdown">
+      <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-download me-1"></i> Download
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li>
+          <a class="dropdown-item" data-turbo="false" href="<%= download_admin_leads_path(request.query_parameters.merge(format_type: 'csv_individual')) %>">
+            <i class="bi bi-filetype-csv text-success me-2"></i>CSV Individual
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" data-turbo="false" href="<%= download_admin_leads_path(request.query_parameters.merge(format_type: 'excel_individual')) %>">
+            <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Individual
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <a class="dropdown-item" data-turbo="false" href="<%= download_admin_leads_path(request.query_parameters.merge(format_type: 'csv_corporate')) %>">
+            <i class="bi bi-filetype-csv text-success me-2"></i>CSV Corporate
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" data-turbo="false" href="<%= download_admin_leads_path(request.query_parameters.merge(format_type: 'excel_corporate')) %>">
+            <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Corporate
+          </a>
+        </li>
+      </ul>
+    </div>
     <%= link_to new_admin_lead_path, class: "btn btn-primary" do %>
       <i class="bi bi-plus-lg me-1"></i>
       Add New Lead
@@ -214,38 +242,8 @@
 
     <!-- Active Leads Table -->
     <div class="card border-0 shadow-sm" id="tableView-active">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+      <div class="card-header bg-transparent border-0">
         <h5 class="mb-0">All Leads</h5>
-        <div class="d-flex gap-2">
-          <div class="dropdown download-dropdown">
-            <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="bi bi-download me-1"></i> Download
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li>
-                <a class="dropdown-item" href="<%= download_admin_leads_path(request.query_parameters.merge(format_type: 'csv_individual')) %>">
-                  <i class="bi bi-filetype-csv text-success me-2"></i>CSV Individual
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="<%= download_admin_leads_path(request.query_parameters.merge(format_type: 'excel_individual')) %>">
-                  <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Individual
-                </a>
-              </li>
-              <li><hr class="dropdown-divider"></li>
-              <li>
-                <a class="dropdown-item" href="<%= download_admin_leads_path(request.query_parameters.merge(format_type: 'csv_corporate')) %>">
-                  <i class="bi bi-filetype-csv text-success me-2"></i>CSV Corporate
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="<%= download_admin_leads_path(request.query_parameters.merge(format_type: 'excel_corporate')) %>">
-                  <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Corporate
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
@@ -501,38 +499,8 @@
 
     <!-- Converted Leads Table -->
     <div class="card border-0 shadow-sm" id="tableView-converted">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+      <div class="card-header bg-transparent border-0">
         <h5 class="mb-0">Converted Leads</h5>
-        <div class="d-flex gap-2">
-          <div class="dropdown download-dropdown">
-            <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="bi bi-download me-1"></i> Download
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li>
-                <a class="dropdown-item" href="<%= download_admin_leads_path(request.query_parameters.merge(format_type: 'csv_individual')) %>">
-                  <i class="bi bi-filetype-csv text-success me-2"></i>CSV Individual
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="<%= download_admin_leads_path(request.query_parameters.merge(format_type: 'excel_individual')) %>">
-                  <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Individual
-                </a>
-              </li>
-              <li><hr class="dropdown-divider"></li>
-              <li>
-                <a class="dropdown-item" href="<%= download_admin_leads_path(request.query_parameters.merge(format_type: 'csv_corporate')) %>">
-                  <i class="bi bi-filetype-csv text-success me-2"></i>CSV Corporate
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="<%= download_admin_leads_path(request.query_parameters.merge(format_type: 'excel_corporate')) %>">
-                  <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Corporate
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">

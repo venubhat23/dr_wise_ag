@@ -3,7 +3,35 @@
   <div>
     <h2 class="mb-1">Client Management</h2>
   </div>
-  <div>
+  <div class="d-flex gap-2 align-items-center">
+    <div class="dropdown download-dropdown">
+      <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-download me-1"></i> Download
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li>
+          <a class="dropdown-item" data-turbo="false" href="<%= download_admin_customers_path(request.query_parameters.merge(format_type: 'csv_individual')) %>">
+            <i class="bi bi-filetype-csv text-success me-2"></i>CSV Individual
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" data-turbo="false" href="<%= download_admin_customers_path(request.query_parameters.merge(format_type: 'excel_individual')) %>">
+            <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Individual
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <a class="dropdown-item" data-turbo="false" href="<%= download_admin_customers_path(request.query_parameters.merge(format_type: 'csv_corporate')) %>">
+            <i class="bi bi-filetype-csv text-success me-2"></i>CSV Corporate
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" data-turbo="false" href="<%= download_admin_customers_path(request.query_parameters.merge(format_type: 'excel_corporate')) %>">
+            <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Corporate
+          </a>
+        </li>
+      </ul>
+    </div>
     <% if can_create?('customers') %>
       <%= link_to new_admin_customer_path, class: "btn btn-primary" do %>
         <i class="bi bi-plus-lg me-1"></i>
@@ -129,36 +157,6 @@
       <!-- Clear Button -->
       <div>
         <%= link_to "Clear", admin_customers_path, class: "btn btn-outline-secondary" %>
-      </div>
-
-      <!-- Download Dropdown -->
-      <div class="dropdown download-dropdown">
-        <button class="btn btn-success dropdown-toggle" type="button" id="downloadDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-          <i class="bi bi-download me-1"></i> Download
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="downloadDropdown">
-          <li>
-            <a class="dropdown-item" href="<%= download_admin_customers_path(request.query_parameters.merge(format_type: 'csv_individual')) %>">
-              <i class="bi bi-filetype-csv text-success me-2"></i>CSV Individual
-            </a>
-          </li>
-          <li>
-            <a class="dropdown-item" href="<%= download_admin_customers_path(request.query_parameters.merge(format_type: 'excel_individual')) %>">
-              <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Individual
-            </a>
-          </li>
-          <li><hr class="dropdown-divider"></li>
-          <li>
-            <a class="dropdown-item" href="<%= download_admin_customers_path(request.query_parameters.merge(format_type: 'csv_corporate')) %>">
-              <i class="bi bi-filetype-csv text-success me-2"></i>CSV Corporate
-            </a>
-          </li>
-          <li>
-            <a class="dropdown-item" href="<%= download_admin_customers_path(request.query_parameters.merge(format_type: 'excel_corporate')) %>">
-              <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel Corporate
-            </a>
-          </li>
-        </ul>
       </div>
     <% end %>
   </div>

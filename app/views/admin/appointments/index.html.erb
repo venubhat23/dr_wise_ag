@@ -299,12 +299,12 @@
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
           <li>
-            <a class="dropdown-item" href="<%= download_admin_appointments_path(request.query_parameters.merge(format_type: 'csv')) %>">
+            <a class="dropdown-item" data-turbo="false" href="<%= download_admin_appointments_path(request.query_parameters.merge(format_type: 'csv')) %>">
               <i class="bi bi-filetype-csv text-success me-2"></i>CSV
             </a>
           </li>
           <li>
-            <a class="dropdown-item" href="<%= download_admin_appointments_path(request.query_parameters.merge(format_type: 'excel')) %>">
+            <a class="dropdown-item" data-turbo="false" href="<%= download_admin_appointments_path(request.query_parameters.merge(format_type: 'excel')) %>">
               <i class="bi bi-file-earmark-excel text-success me-2"></i>Excel
             </a>
           </li>

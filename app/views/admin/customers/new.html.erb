@@ -2991,6 +2991,17 @@ document.addEventListener('DOMContentLoaded', function() {
           if (isValidNameLine(frontLines[i])) { result.full_name = frontLines[i]; break; }
         }
       }
+      // Pass 3: mixed Hindi+English lines — extract the English Title Case name portion
+      if (!result.full_name) {
+        var allFrontRaw = frontText.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 2; });
+        for (var i = 0; i < allFrontRaw.length; i++) {
+          var line = allFrontRaw[i];
+          if (/aadhaar|govt|india|unique|authority|uid|help|enrol|dob|birth|gender|address|government|download|identification|election|commission|department|verification/i.test(line)) continue;
+          if (/s\/o|d\/o|w\/o|c\/o/i.test(line)) continue;
+          var engMatch = line.match(/([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})+)/);
+          if (engMatch) { result.full_name = engMatch[1]; break; }
+        }
+      }
 
       // From back — address (pick cleanest occurrence), pincode, state
       if (backText) {
@@ -3169,8 +3180,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
       var rows = '';
       FIELDS.forEach(function(f) {
-        if (!data[f.key]) return;
-        var safeVal = String(data[f.key]).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+        var alwaysShow = (f.key === 'first_name' || f.key === 'last_name');
+        if (!data[f.key] && !alwaysShow) return;
+        var safeVal = data[f.key] ? String(data[f.key]).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;') : '';
         rows += '<tr>' +
           '<td class="fw-semibold text-muted small" style="width:32%">' + f.label + '</td>' +
           '<td>' +
