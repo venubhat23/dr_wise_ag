@@ -592,17 +592,78 @@
 <%= File.read(Rails.root.join('app/assets/javascripts/form_enhancements.js')).html_safe %>
     </script>
 
-    <!-- Fix: Download dropdowns clipped by overflow-x:hidden on .main-content -->
+    <!-- Fix: Download dropdowns clipped by overflow:hidden / transform on ancestor cards -->
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.download-dropdown [data-bs-toggle="dropdown"]').forEach(function(el) {
-          new bootstrap.Dropdown(el, {
-            popperConfig: function(defaultConfig) {
-              return Object.assign({}, defaultConfig, { strategy: 'fixed' });
+      (function() {
+        function initDownloadDropdowns() {
+          document.querySelectorAll('.download-dropdown').forEach(function(wrapper) {
+            if (wrapper.dataset.ddInit) return; // already wired up
+            wrapper.dataset.ddInit = '1';
+
+            var btn  = wrapper.querySelector('[data-bs-toggle="dropdown"]');
+            var menu = wrapper.querySelector('.dropdown-menu');
+            if (!btn || !menu) return;
+
+            // Teleport menu to <body> so it escapes any overflow:hidden or transform ancestors
+            menu.style.position = 'fixed';
+            menu.style.zIndex   = '9999';
+            menu.style.minWidth = '180px';
+            document.body.appendChild(menu);
+
+            function reposition() {
+              var rect    = btn.getBoundingClientRect();
+              var menuW   = menu.offsetWidth || 200;
+              var left    = Math.max(8, rect.right - menuW);
+              menu.style.top  = (rect.bottom + 4) + 'px';
+              menu.style.left = left + 'px';
             }
+
+            // Take over toggle — remove Bootstrap's auto-init attribute
+            btn.removeAttribute('data-bs-toggle');
+            btn.setAttribute('data-download-btn', '1');
+
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              var open = menu.classList.contains('show');
+
+              // Close any other teleported download menus
+              document.querySelectorAll('body > .download-dropdown-menu.show').forEach(function(m) {
+                m.classList.remove('show');
+              });
+
+              if (!open) {
+                menu.classList.add('download-dropdown-menu'); // marker class
+                reposition();
+                menu.classList.add('show');
+                btn.setAttribute('aria-expanded', 'true');
+              } else {
+                menu.classList.remove('show');
+                btn.setAttribute('aria-expanded', 'false');
+              }
+            });
+
+            // Close on outside click
+            document.addEventListener('click', function() {
+              if (menu.classList.contains('show')) {
+                menu.classList.remove('show');
+                btn.setAttribute('aria-expanded', 'false');
+              }
+            });
+
+            // Reposition on scroll / resize
+            window.addEventListener('scroll', function() {
+              if (menu.classList.contains('show')) reposition();
+            }, { passive: true, capture: true });
+
+            window.addEventListener('resize', function() {
+              if (menu.classList.contains('show')) reposition();
+            }, { passive: true });
           });
-        });
-      });
+        }
+
+        document.addEventListener('DOMContentLoaded', initDownloadDropdowns);
+        document.addEventListener('turbo:load', initDownloadDropdowns);
+      }());
     </script>
   </body>
 </html>

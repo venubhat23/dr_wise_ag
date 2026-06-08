@@ -58,7 +58,7 @@
   padding: 2rem !important;
   min-height: calc(100vh - 70px) !important;
   background: #f7fafc !important;
-  overflow-x: hidden !important;
+  /* overflow-x:hidden removed — was clipping dropdowns; scrolling prevented at html/body level */
 }
 
 /* Insurance-themed Navigation Links */
