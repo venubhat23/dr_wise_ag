@@ -2665,11 +2665,14 @@ document.addEventListener('DOMContentLoaded', function() {
       var img = document.getElementById(imgId);
       if (input) input.value = '';
       if (img) { img.src = ''; img.style.display = 'none'; }
-      if (preview) preview.style.display = 'none';
+      if (preview) {
+        preview.querySelectorAll('.res-warning, .res-info').forEach(function(el) { el.remove(); });
+        preview.style.display = 'none';
+      }
       if (zone) {
         var content = zone.querySelector('.doc-zone-content');
         if (content) content.style.display = 'block';
-        zone.classList.remove('has-file');
+        zone.classList.remove('has-file', 'res-low');
       }
       updateExtractBtn();
     };
@@ -2692,15 +2695,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!file) return;
         if (nameEl) nameEl.textContent = file.name;
 
-        // Remove any previous resolution warning
-        var oldWarn = zone.querySelector('.res-warning');
-        if (oldWarn) oldWarn.remove();
+        // Remove any previous resolution badges
+        preview.querySelectorAll('.res-warning, .res-info').forEach(function(el) { el.remove(); });
         zone.classList.remove('res-low');
 
         var objectUrl = URL.createObjectURL(file);
 
         if (file.type.startsWith('image/')) {
-          // Check resolution before showing preview
+          // Check resolution and show info badge — always allow extraction
           var checkImg = new Image();
           checkImg.onload = function() {
             var w = checkImg.naturalWidth, h = checkImg.naturalHeight;
@@ -2710,25 +2712,26 @@ document.addEventListener('DOMContentLoaded', function() {
             if (preview) preview.style.display = 'block';
             zone.classList.add('has-file');
 
+            var sizeKB = Math.round(file.size / 1024);
+            var dimInfo = w + '×' + h + 'px · ' + sizeKB + ' KB';
+            if (img) { img.src = objectUrl; img.style.display = 'block'; }
+            if (nameEl) nameEl.textContent = file.name;
+
             if (w < MIN_W || h < MIN_H) {
-              // Low-res: show warning, block Extract
               zone.classList.add('res-low');
-              if (img) { img.src = objectUrl; img.style.display = 'block'; }
-              if (nameEl) nameEl.textContent = file.name + ' (' + w + '×' + h + 'px)';
               var warn = document.createElement('div');
-              warn.className = 'res-warning alert alert-warning py-2 px-3 mt-2 mb-0 small text-center';
+              warn.className = 'res-warning alert alert-warning py-1 px-2 mt-2 mb-0 small text-center';
               warn.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>' +
-                '<strong>Image too small (' + w + '×' + h + 'px)</strong><br>' +
-                'Please upload a clearer, higher-resolution photo for accurate results.<br>' +
-                '<span class="text-muted" style="font-size:11px">Minimum recommended: 600×300 px</span>';
+                '<strong>' + dimInfo + '</strong> — Low resolution.<br>' +
+                '<span class="text-muted" style="font-size:11px">Results may be inaccurate but extraction is still allowed.</span>';
               preview.appendChild(warn);
-              input.value = ''; // clear file so Extract is blocked
-              updateExtractBtn();
             } else {
-              // Good resolution
-              if (img) { img.src = objectUrl; img.style.display = 'block'; }
-              updateExtractBtn();
+              var info = document.createElement('div');
+              info.className = 'res-info text-muted mt-1 small text-center';
+              info.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>' + dimInfo;
+              preview.appendChild(info);
             }
+            updateExtractBtn();
           };
           checkImg.onerror = function() {
             // Can't check — allow anyway
@@ -3045,6 +3048,38 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
 
+      // Phone — labeled pattern only (avoids confusing Aadhaar/pincode digits)
+      var phoneSearchText = allText;
+      var phonePats = [
+        /(?:Mob(?:ile)?|Phone|Contact|Tel(?:\.)?|Mo\.)[\s.:]+(?:\+?91[\s\-]?)?([6-9]\d{9})/i,
+        /\bVID[\s:]+\d+[\s\S]{0,200}?([6-9]\d{9})/i
+      ];
+      for (var i = 0; i < phonePats.length; i++) {
+        var phm = phoneSearchText.match(phonePats[i]);
+        if (phm) { result.phone = phm[1]; break; }
+      }
+
+      // City / District — look for labeled district/taluk/city, or infer from address
+      var citySearchText = (backText || '') + '\n' + (frontText || '');
+      var cityPats = [
+        /(?:Dist(?:rict)?|District|Taluk|Tehsil|Taluq|City|Town)[\s.:]+([A-Za-z][A-Za-z\s]{2,25}?)(?:\n|\r|,|$)/i
+      ];
+      for (var i = 0; i < cityPats.length; i++) {
+        var cm = citySearchText.match(cityPats[i]);
+        if (cm) { result.city = cm[1].trim().replace(/\s{2,}/g,' '); break; }
+      }
+      // Fallback: if address parsed, second-to-last comma-segment before state is usually city
+      if (!result.city && result.address && result.state) {
+        var addrParts = result.address.split(',').map(function(p) { return p.trim(); }).filter(function(p) { return p.length > 2; });
+        for (var i = addrParts.length - 1; i >= 0; i--) {
+          var part = addrParts[i];
+          if (part.toLowerCase() === result.state.toLowerCase()) continue;
+          if (/^\d{6}$/.test(part)) continue;
+          if (/^\d+$/.test(part)) continue;
+          result.city = part; break;
+        }
+      }
+
       // Split full_name → first / middle / last
       if (result.full_name) {
         var parts = result.full_name.trim().split(/\s+/);
@@ -3116,29 +3151,79 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showInfoModal(data) {
-      var FIELD_LABELS = {
-        first_name: 'First Name', middle_name: 'Middle Name', last_name: 'Last Name',
-        dob: 'Date of Birth', gender: 'Gender', pan_no: 'PAN Number',
-        aadhaar_number: 'Aadhaar Number', address: 'Address',
-        state: 'State', pincode: 'Pincode', father_name: "Father's Name"
-      };
+      var FIELDS = [
+        { key: 'first_name',    label: 'First Name' },
+        { key: 'middle_name',   label: 'Middle Name' },
+        { key: 'last_name',     label: 'Last Name' },
+        { key: 'aadhaar_number',label: 'Aadhaar Number' },
+        { key: 'phone',         label: 'Phone' },
+        { key: 'address',       label: 'Address' },
+        { key: 'state',         label: 'State' },
+        { key: 'city',          label: 'City' },
+        { key: 'dob',           label: 'Date of Birth' },
+        { key: 'gender',        label: 'Gender' },
+        { key: 'pan_no',        label: 'PAN Number' },
+        { key: 'pincode',       label: 'Pincode' },
+        { key: 'father_name',   label: "Father's Name" }
+      ];
+
       var rows = '';
-      Object.keys(FIELD_LABELS).forEach(function(key) {
-        if (data[key]) {
-          rows += '<tr>' +
-            '<td class="fw-semibold text-muted" style="width:35%">' + FIELD_LABELS[key] + '</td>' +
-            '<td class="fw-semibold">' + data[key] + '</td>' +
-            '<td class="text-center" style="width:60px"><input type="checkbox" class="form-check-input import-field-check" data-field="' + key + '" checked></td>' +
-            '</tr>';
-        }
+      FIELDS.forEach(function(f) {
+        if (!data[f.key]) return;
+        var safeVal = String(data[f.key]).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+        rows += '<tr>' +
+          '<td class="fw-semibold text-muted small" style="width:32%">' + f.label + '</td>' +
+          '<td>' +
+            '<span class="extracted-val-display small">' + safeVal + '</span>' +
+            '<input type="text" class="form-control form-control-sm extracted-val-input" style="display:none" value="' + safeVal + '">' +
+          '</td>' +
+          '<td class="text-center" style="width:36px">' +
+            '<button type="button" class="btn btn-sm btn-link p-0 text-secondary edit-extracted-btn" title="Edit value">' +
+              '<i class="bi bi-pencil" style="font-size:13px"></i>' +
+            '</button>' +
+          '</td>' +
+          '<td class="text-center" style="width:52px">' +
+            '<input type="checkbox" class="form-check-input import-field-check" data-field="' + f.key + '" checked>' +
+          '</td>' +
+          '</tr>';
       });
 
       var tableEl = document.getElementById('extracted_info_table');
       if (rows) {
-        tableEl.innerHTML = '<table class="table table-bordered table-sm align-middle mb-2">' +
-          '<thead class="table-light"><tr><th>Field</th><th>Extracted Value</th><th style="width:60px">Import</th></tr></thead>' +
-          '<tbody>' + rows + '</tbody></table>' +
-          '<p class="text-muted small mb-0">Uncheck any fields you do not want to import.</p>';
+        tableEl.innerHTML =
+          '<table class="table table-bordered table-sm align-middle mb-2">' +
+            '<thead class="table-light"><tr>' +
+              '<th>Field</th>' +
+              '<th>Extracted Value</th>' +
+              '<th style="width:36px"></th>' +
+              '<th class="text-center" style="width:52px">Import</th>' +
+            '</tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+          '</table>' +
+          '<p class="text-muted small mb-0">Click <i class="bi bi-pencil"></i> to edit a value before importing. Uncheck fields you do not want.</p>';
+
+        // Wire up edit-toggle buttons
+        tableEl.querySelectorAll('.edit-extracted-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var row = this.closest('tr');
+            var display = row.querySelector('.extracted-val-display');
+            var input   = row.querySelector('.extracted-val-input');
+            if (input.style.display === 'none') {
+              input.value = display.textContent.trim();
+              display.style.display = 'none';
+              input.style.display = '';
+              input.focus();
+              this.querySelector('i').className = 'bi bi-check-lg';
+              this.title = 'Confirm edit';
+            } else {
+              display.textContent = input.value.trim();
+              input.style.display = 'none';
+              display.style.display = '';
+              this.querySelector('i').className = 'bi bi-pencil';
+              this.title = 'Edit value';
+            }
+          });
+        });
       } else {
         tableEl.innerHTML = '<div class="alert alert-warning mb-0"><i class="bi bi-exclamation-triangle me-2"></i>' +
           'Could not extract readable text. Please ensure the image is clear, well-lit, and not blurred, then try again.</div>';
@@ -3152,17 +3237,22 @@ document.addEventListener('DOMContentLoaded', function() {
       importBtn.addEventListener('click', function() {
         document.querySelectorAll('.import-field-check:checked').forEach(function(cb) {
           var field = cb.dataset.field;
-          var value = extractedData[field];
+          var row = cb.closest('tr');
+          var valInput = row ? row.querySelector('.extracted-val-input') : null;
+          var valDisplay = row ? row.querySelector('.extracted-val-display') : null;
+          var value = valInput ? valInput.value.trim() : (valDisplay ? valDisplay.textContent.trim() : extractedData[field]);
           if (!value) return;
 
           switch(field) {
-            case 'first_name':  setDocVal('#individual_first_name', value); break;
-            case 'middle_name': setDocVal('[name="customer[middle_name]"]', value); break;
-            case 'last_name':   setDocVal('#individual_last_name', value); break;
-            case 'pan_no':      setDocVal('[name="customer[pan_no]"]', value); break;
-            case 'address':     setDocVal('[name="customer[address]"]', value); break;
-            case 'pincode':     setDocVal('[name="customer[pincode]"]', value); break;
-            case 'gender':      setDocVal('[name="customer[gender]"]', value); break;
+            case 'first_name':     setDocVal('#individual_first_name', value); break;
+            case 'middle_name':    setDocVal('[name="customer[middle_name]"]', value); break;
+            case 'last_name':      setDocVal('#individual_last_name', value); break;
+            case 'pan_no':         setDocVal('[name="customer[pan_no]"]', value); break;
+            case 'aadhaar_number': setDocVal('[name="customer[aadhaar_no]"]', value); break;
+            case 'phone':          setDocVal('#individual_mobile', value); break;
+            case 'address':        setDocVal('[name="customer[address]"]', value); break;
+            case 'pincode':        setDocVal('[name="customer[pincode]"]', value); break;
+            case 'gender':         setDocVal('[name="customer[gender]"]', value); break;
             case 'dob':
               var parts = value.split(/[\/\-]/);
               if (parts.length === 3) {
@@ -3173,17 +3263,47 @@ document.addEventListener('DOMContentLoaded', function() {
               }
               break;
             case 'state':
-              var stateEl = document.querySelector('#customer_state_corporate');
-              if (stateEl) {
+              // Find city value from modal (may have been edited)
+              var pendingCity = null;
+              var cityRow = document.querySelector('.import-field-check[data-field="city"]');
+              if (cityRow && cityRow.checked) {
+                var cityRowTr = cityRow.closest('tr');
+                var cityValIn = cityRowTr ? cityRowTr.querySelector('.extracted-val-input') : null;
+                var cityValDi = cityRowTr ? cityRowTr.querySelector('.extracted-val-display') : null;
+                pendingCity = cityValIn ? cityValIn.value.trim() : (cityValDi ? cityValDi.textContent.trim() : null);
+              }
+              ['#customer_state_individual', '#customer_state_corporate'].forEach(function(sel) {
+                var stateEl = document.querySelector(sel);
+                if (!stateEl) return;
                 for (var i = 0; i < stateEl.options.length; i++) {
                   var opt = stateEl.options[i];
                   if (opt.text.toLowerCase() === value.toLowerCase() || opt.value.toLowerCase() === value.toLowerCase()) {
                     stateEl.value = opt.value;
                     if (typeof $ !== 'undefined') $(stateEl).trigger('change');
+                    // Load cities and pre-select city if available
+                    var citySelId = sel.indexOf('individual') !== -1 ? '#customer_city_individual' : '#customer_city_corporate';
+                    var cityEl = document.querySelector(citySelId);
+                    if (typeof loadCitiesForState !== 'undefined' && cityEl) {
+                      loadCitiesForState(opt.value, cityEl, pendingCity);
+                    }
                     break;
                   }
                 }
-              }
+              });
+              break;
+            case 'city':
+              // Best-effort direct set; usually handled via loadCitiesForState in state case
+              ['#customer_city_individual', '#customer_city_corporate'].forEach(function(sel) {
+                var cityEl = document.querySelector(sel);
+                if (!cityEl) return;
+                for (var i = 0; i < cityEl.options.length; i++) {
+                  if (cityEl.options[i].text.toLowerCase() === value.toLowerCase()) {
+                    cityEl.value = cityEl.options[i].value;
+                    if (typeof $ !== 'undefined') $(cityEl).trigger('change');
+                    break;
+                  }
+                }
+              });
               break;
           }
         });
