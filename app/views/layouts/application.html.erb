@@ -591,5 +591,18 @@
     <script>
 <%= File.read(Rails.root.join('app/assets/javascripts/form_enhancements.js')).html_safe %>
     </script>
+
+    <!-- Fix: Download dropdowns clipped by overflow-x:hidden on .main-content -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.download-dropdown [data-bs-toggle="dropdown"]').forEach(function(el) {
+          new bootstrap.Dropdown(el, {
+            popperConfig: function(defaultConfig) {
+              return Object.assign({}, defaultConfig, { strategy: 'fixed' });
+            }
+          });
+        });
+      });
+    </script>
   </body>
 </html>
