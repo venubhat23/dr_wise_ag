@@ -581,6 +581,8 @@
                 end
 
                 total_amount = _corrected.sum { |p| p[:payout_amount] }
+                main_agent_rec = _corrected.find { |p| p[:payout_to] == 'main_agent' }
+                main_agent_amount = main_agent_rec ? main_agent_rec[:payout_amount] : 0
               %>
               <tr>
                 <td>
@@ -608,12 +610,12 @@
                   </button>
                   <br>
                   <small class="text-muted mt-1">
-                    Total Amount: <%= indian_currency(total_amount) %>
+                    Main Agent: <%= indian_currency(main_agent_amount) %>
                   </small>
                 </td>
                 <td>
                   <div class="fw-bold text-success fs-6">
-                    <%= indian_currency(total_amount) %>
+                    <%= indian_currency(main_agent_amount) %>
                   </div>
                   <small class="text-muted">
                     <%= payouts.count %> payments
@@ -1942,7 +1944,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   <h4 class="text-primary mb-0" id="totalBreakdownCount">0</h4>
                 </div>
                 <div class="col-md-4">
-                  <h6 class="text-muted">Total Commission</h6>
+                  <h6 class="text-muted">Main Agent Commission</h6>
                   <h4 class="text-success mb-0" id="totalCommissionSum">Rs. 0</h4>
                 </div>
                 <div class="col-md-4">
@@ -2255,13 +2257,12 @@ function showCommissionBreakdown(policyNumber, policyType, payoutsJson) {
 
     // Calculate totals
     const totalBreakdownCount = payouts.length;
-    const totalCommissionSum = payouts.reduce((sum, payout) => {
-      return sum + parseFloat(payout.payout_amount || 0);
-    }, 0);
+    const mainAgentPayout = payouts.find(p => p.payout_to === 'main_agent');
+    const mainAgentAmount = mainAgentPayout ? parseFloat(mainAgentPayout.payout_amount || 0) : 0;
 
     // Update summary statistics
     document.getElementById('totalBreakdownCount').textContent = totalBreakdownCount;
-    document.getElementById('totalCommissionSum').textContent = 'Rs. ' + totalCommissionSum.toLocaleString();
+    document.getElementById('totalCommissionSum').textContent = 'Rs. ' + mainAgentAmount.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
 
     // Check if all payouts are paid
     const allPaid = payouts.every(payout => payout.status === 'paid');

@@ -3168,48 +3168,66 @@ document.addEventListener('DOMContentLoaded', function() {
       var pm = text.match(/[A-Z]{5}[0-9]{4}[A-Z]/);
       if (pm) result.pan_no = pm[0];
 
-      // DOB
+      // DOB — first DD/MM/YYYY date in the text
       var dm = text.match(/(\d{2}\/\d{2}\/\d{4})/);
       if (dm) result.dob = dm[1];
 
       var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 2; });
       var nameLineIdx = -1;
 
-      // Find name (all-caps line after INCOME TAX header)
+      // PAN cards are two-column: name on the left, a serial/photo number on the right.
+      // OCR row-reads produce lines like "JAGADISH S 1323" or "SHIVANNA 14".
+      // Strip trailing standalone integers (right-column artefacts) before any name check.
+      function stripRightCol(ln) {
+        // Remove one or more trailing groups of digits separated by spaces
+        return ln.replace(/(\s+\d+)+\s*$/, '').trim();
+      }
+
+      function isValidPanName(ln) {
+        var c = stripRightCol(ln);
+        return /^[A-Z][A-Z\s]+$/.test(c) &&
+               c.replace(/\s/g, '').length > 2 &&   // at least 3 real letters
+               c.length < 55 &&
+               !/PERMANENT|ACCOUNT|NUMBER|CARD|TAX|INCOME|GOVT|INDIA|DEPARTMENT|SIGNATURE/.test(c);
+      }
+
+      // Pass 1: first all-caps name line after "INCOME TAX" / "GOVT OF INDIA" header
       for (var i = 0; i < lines.length; i++) {
-        if (/income tax|INCOME TAX|govt of india|GOVT OF INDIA/i.test(lines[i])) {
-          for (var j = i + 1; j < Math.min(i + 6, lines.length); j++) {
-            var ln = lines[j];
-            if (/^[A-Z][A-Z\s]+$/.test(ln) && ln.length > 3 && !/PERMANENT|ACCOUNT|NUMBER|CARD|TAX|INCOME|GOVT|INDIA|DEPARTMENT/.test(ln)) {
-              result.full_name = ln; nameLineIdx = j; break;
+        if (/income tax|govt of india/i.test(lines[i])) {
+          for (var j = i + 1; j < Math.min(i + 8, lines.length); j++) {
+            if (isValidPanName(lines[j])) {
+              result.full_name = stripRightCol(lines[j]);
+              nameLineIdx = j;
+              break;
             }
           }
           if (result.full_name) break;
         }
       }
 
-      // Fallback: first long all-caps line
+      // Pass 2: first qualifying all-caps line anywhere (handles cards where header isn't on its own line)
       if (!result.full_name) {
         for (var i = 0; i < lines.length; i++) {
-          var ln = lines[i];
-          if (/^[A-Z][A-Z\s]+$/.test(ln) && ln.length > 5 && ln.length < 50 &&
-              !/PERMANENT|ACCOUNT|NUMBER|CARD|TAX|INCOME|GOVT|INDIA|DEPARTMENT|SIGNATURE/.test(ln)) {
-            result.full_name = ln; nameLineIdx = i; break;
+          var c = stripRightCol(lines[i]);
+          if (/^[A-Z][A-Z\s]+$/.test(c) && c.replace(/\s/g,'').length > 3 && c.length < 55 &&
+              !/PERMANENT|ACCOUNT|NUMBER|CARD|TAX|INCOME|GOVT|INDIA|DEPARTMENT|SIGNATURE/.test(c)) {
+            result.full_name = c; nameLineIdx = i; break;
           }
         }
       }
 
-      // Father's name: next all-caps line after name
+      // Father's name: next qualifying all-caps line after the name line
       if (nameLineIdx >= 0) {
-        for (var j = nameLineIdx + 1; j < Math.min(nameLineIdx + 4, lines.length); j++) {
-          var ln = lines[j];
-          if (/^[A-Z][A-Z\s]+$/.test(ln) && ln.length > 3 && !/PERMANENT|ACCOUNT|NUMBER|CARD|DATE|DOB/.test(ln) && !/\d/.test(ln)) {
-            result.father_name = ln; break;
+        for (var j = nameLineIdx + 1; j < Math.min(nameLineIdx + 5, lines.length); j++) {
+          var c = stripRightCol(lines[j]);
+          if (/^[A-Z][A-Z\s]+$/.test(c) && c.replace(/\s/g,'').length > 2 && c.length < 55 &&
+              !/PERMANENT|ACCOUNT|NUMBER|CARD|DATE|DOB|SIGNATURE/.test(c)) {
+            result.father_name = c; break;
           }
         }
       }
 
-      // Split full_name
+      // Split full_name → first / middle / last
       if (result.full_name) {
         var parts = result.full_name.trim().split(/\s+/);
         if (parts.length === 1) { result.first_name = parts[0]; }
@@ -3222,71 +3240,105 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function parseChequeText(text) {
       var result = {};
-      var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 2; });
+      var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 1; });
 
-      // IFSC code: 11-char alphanumeric, 4 letters + 0 + 6 alphanumeric
-      var ifscM = text.match(/\b([A-Z]{4}0[A-Z0-9]{6})\b/);
-      if (ifscM) result.ifsc_code = ifscM[1];
+      // ── IFSC code ──────────────────────────────────────────────────────────
+      // Label-first: "IFS Code", "IFSC Code", "IFSC:" then bare 11-char code
+      var ifscM = text.match(/(?:IFSC|IFS\s*Code)[\s:]+([A-Z]{4}0[A-Z0-9]{6})/i);
+      if (!ifscM) ifscM = text.match(/\b([A-Z]{4}0[A-Z0-9]{6})\b/);
+      if (ifscM) result.ifsc_code = (ifscM[2] || ifscM[1]).toUpperCase();
 
-      // Account number — labeled pattern first, then 9–18 digit standalone
-      var acctM = text.match(/(?:A(?:\/)?C|Account\s*(?:No|Number|#))[.\s:]+([0-9]{9,18})/i);
-      if (!acctM) acctM = text.match(/\b([0-9]{9,18})\b/);
-      if (acctM) result.account_no = acctM[1];
-
-      // MICR code — 9 digits at bottom of cheque (routing part), skip if same as account_no
-      var micrM = text.match(/\b(\d{9})\b/);
-      if (micrM && micrM[1] !== result.account_no) result.micr = micrM[1];
-
-      // Bank name — look for known bank keywords on a line
-      var BANKS = ['State Bank of India','SBI','HDFC Bank','ICICI Bank','Axis Bank','Punjab National Bank','PNB',
-        'Bank of Baroda','Canara Bank','Union Bank','Kotak Mahindra Bank','Yes Bank','IndusInd Bank',
-        'Federal Bank','IDBI Bank','Bank of India','Central Bank','UCO Bank','Indian Bank','Syndicate Bank',
-        'Vijaya Bank','Dena Bank','Corporation Bank','Allahabad Bank','Oriental Bank','Andhra Bank',
-        'Nainital Bank','Karnataka Bank','South Indian Bank','City Union Bank','Karur Vysya Bank',
-        'Lakshmi Vilas Bank','Bandhan Bank','AU Small Finance','Jana Small Finance','Equitas',
-        'RBL Bank','Saraswat Bank','IDFC First Bank'];
-      for (var i = 0; i < lines.length; i++) {
-        for (var b = 0; b < BANKS.length; b++) {
-          if (lines[i].toLowerCase().indexOf(BANKS[b].toLowerCase()) !== -1) {
-            result.bank_name = BANKS[b]; break;
-          }
-        }
-        if (result.bank_name) break;
+      // ── Account number ─────────────────────────────────────────────────────
+      // Try labeled patterns in priority order
+      var acctPatterns = [
+        /(?:A[\/\s]?[Cc]\.?\s*[Nn]o\.?|Account\s*(?:No|Number|#))[\s.:]+([0-9]{6,20})/i,
+        /PREFIX\s*[:\n\s]+([0-9]{6,20})/i,
+        /(?:SB\s*ACCOUNT|CURRENT\s*ACCOUNT)\b[\s\S]{0,60}?([0-9]{9,18})/i
+      ];
+      for (var i = 0; i < acctPatterns.length; i++) {
+        var am = text.match(acctPatterns[i]);
+        if (am) { result.account_no = am[1]; break; }
       }
-      // Fallback: line containing "bank" word
+      // Fallback: first 10–18 digit number (avoids 9-digit MICR routing & 6-digit cheque number)
+      if (!result.account_no) {
+        var longNums = text.match(/\b([0-9]{10,18})\b/g);
+        if (longNums && longNums.length > 0) result.account_no = longNums[0];
+      }
+
+      // ── Bank name ──────────────────────────────────────────────────────────
+      // Longer/more-specific names first so "State Bank of India" beats "Bank of India"
+      var BANKS = [
+        'State Bank of India','Punjab National Bank','Bank of Baroda','Canara Bank',
+        'Union Bank of India','Indian Bank','Central Bank of India','UCO Bank',
+        'Bank of Maharashtra','Bank of India','Indian Overseas Bank','Corporation Bank',
+        'Allahabad Bank','Oriental Bank','Andhra Bank','Vijaya Bank','Dena Bank',
+        'Syndicate Bank','HDFC Bank','ICICI Bank','Axis Bank','Kotak Mahindra Bank',
+        'Yes Bank','IndusInd Bank','Federal Bank','IDBI Bank','IDFC First Bank',
+        'Nainital Bank','Karnataka Bank','South Indian Bank','City Union Bank',
+        'Karur Vysya Bank','Lakshmi Vilas Bank','Bandhan Bank','RBL Bank',
+        'Saraswat Bank','AU Small Finance Bank','Jana Small Finance Bank',
+        'Equitas Small Finance Bank','ESAF Small Finance Bank','SBI'
+      ];
+      var fullText = text.toLowerCase();
+      for (var b = 0; b < BANKS.length; b++) {
+        if (fullText.indexOf(BANKS[b].toLowerCase()) !== -1) {
+          result.bank_name = BANKS[b]; break;
+        }
+      }
+      // Fallback: extract the first line that contains "bank" but isn't an address/IFSC line
       if (!result.bank_name) {
         for (var i = 0; i < lines.length; i++) {
-          if (/\bbank\b/i.test(lines[i]) && lines[i].length < 60 && !/branch|ifsc|swift/i.test(lines[i])) {
-            result.bank_name = lines[i].replace(/[^A-Za-z0-9 &.(),-]/g, '').trim();
-            break;
+          if (/\bbank\b/i.test(lines[i]) && lines[i].length < 70 &&
+              !/branch|ifsc|swift|address|road|nagar|colony|district/i.test(lines[i])) {
+            result.bank_name = lines[i].replace(/[^A-Za-z0-9 &.(),-]/g, '').trim(); break;
           }
         }
       }
 
-      // Branch name — labeled pattern
-      var branchM = text.match(/Branch[\s:]+([A-Za-z][A-Za-z0-9 ,.-]{3,50}?)(?:\n|IFSC|$)/i);
+      // ── Branch ─────────────────────────────────────────────────────────────
+      var branchM = text.match(/Branch[\s:]+([A-Za-z][A-Za-z0-9 ,.()\-]{3,60}?)(?:\n|IFSC|$)/i);
       if (branchM) result.branch = branchM[1].trim();
 
-      // Account holder name — look for "Pay to" or pre-printed name block
-      // Cheques often have the account holder printed near top
-      var payM = text.match(/(?:Pay(?:able)?\s+to|A\/C\s+Name|Account\s+Name|Name)[\s:]+([A-Z][A-Za-z\s]{3,50}?)(?:\n|$)/i);
-      if (payM) {
-        result.full_name = payM[1].trim();
+      // ── Account holder name ────────────────────────────────────────────────
+      // Priority 1: salutation "Mr. / Mrs. / Ms." near signature area (all-caps names on cheques)
+      var salutM = text.match(/(?:Mr\.|Mrs\.|Ms\.|Dr\.)\s+([A-Z][A-Z\s]{3,40}?)(?:\n|$)/);
+      if (salutM) result.full_name = salutM[1].trim().replace(/\s{2,}/g, ' ');
+
+      // Priority 2: PAY <NAME> OR ORDER  (payee line)
+      if (!result.full_name) {
+        var payM = text.match(/^PAY\s+([A-Za-z][A-Za-z\s]{3,50}?)(?:\s+OR\s+ORDER|\n|$)/im);
+        if (payM) result.full_name = payM[1].trim();
       }
-      // Fallback: Title-case name line that doesn't look like bank/branch text
+
+      // Priority 3: A/C Name or Account Name label
+      if (!result.full_name) {
+        var acNameM = text.match(/(?:A\/C\s*Name|Account\s*Name|A\/C\s*Holder)[\s:]+([A-Za-z][A-Za-z\s.]{3,50}?)(?:\n|$)/i);
+        if (acNameM) result.full_name = acNameM[1].trim();
+      }
+
+      // Priority 4: standalone all-caps name (2+ words, no digits, not bank keywords)
       if (!result.full_name) {
         for (var i = 0; i < lines.length; i++) {
           var ln = lines[i];
-          if (/bank|branch|ifsc|micr|account|cheque|date|rupees|amount|pay|sign|nominee|address|swift|code/i.test(ln)) continue;
+          if (/bank|branch|ifsc|micr|account|cheque|cheque|date|rupees|amount|pay|sign|nominee|address|swift|code|valid|multi|city|prefix|order|only|lacs|state/i.test(ln)) continue;
           if (/\d/.test(ln)) continue;
-          if (/^[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})+$/.test(ln) && ln.length >= 6 && ln.length <= 50) {
+          // ALL-CAPS two-word+ name (common on Indian cheques)
+          if (/^[A-Z]{2,}(?:\s+[A-Z]{2,})+$/.test(ln) && ln.length >= 5 && ln.length <= 50) {
+            result.full_name = ln; break;
+          }
+          // Title-case two-word+ name
+          if (/^[A-Z][a-z]{1,}(?:\s+[A-Z][a-z]{1,})+$/.test(ln) && ln.length >= 5 && ln.length <= 50) {
             result.full_name = ln; break;
           }
         }
       }
 
       if (result.full_name) {
-        var parts = result.full_name.trim().split(/\s+/);
+        // Normalise: convert ALL CAPS to Title Case
+        var nameStr = result.full_name.replace(/\b[A-Z]{2,}\b/g, function(w) {
+          return w.charAt(0) + w.slice(1).toLowerCase();
+        });
+        var parts = nameStr.trim().split(/\s+/);
         if (parts.length === 1) { result.first_name = parts[0]; }
         else if (parts.length === 2) { result.first_name = parts[0]; result.last_name = parts[1]; }
         else { result.first_name = parts[0]; result.last_name = parts[parts.length - 1]; result.middle_name = parts.slice(1, -1).join(' '); }
