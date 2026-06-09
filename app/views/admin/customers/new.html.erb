@@ -317,7 +317,7 @@
         <span class="badge bg-success ms-2">Optional</span>
       </div>
       <div class="card-body">
-        <p class="text-muted small mb-3">Upload Aadhaar or PAN card to auto-fill customer details</p>
+        <p class="text-muted small mb-3">Upload Aadhaar, PAN card, or Cheque to auto-fill customer details</p>
 
         <!-- Document Type Selection -->
         <div class="d-flex gap-3 mb-4 flex-wrap">
@@ -330,6 +330,11 @@
             <i class="bi bi-card-heading fs-4 d-block mb-1 text-primary"></i>
             <span class="fw-semibold small">Aadhaar Card</span>
             <div class="text-muted" style="font-size:11px">Front + Back</div>
+          </div>
+          <div class="doc-type-btn text-center" data-type="cheque">
+            <i class="bi bi-bank fs-4 d-block mb-1 text-primary"></i>
+            <span class="fw-semibold small">Cheque</span>
+            <div class="text-muted" style="font-size:11px">Bank details</div>
           </div>
         </div>
 
@@ -394,6 +399,37 @@
                     <i class="bi bi-x-circle me-1"></i>Remove
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cheque Upload Zone -->
+        <div id="cheque_upload_zone" style="display:none;">
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small text-muted text-uppercase">Cheque (Front)</label>
+              <div class="doc-upload-zone" id="cheque_zone">
+                <input type="file" id="cheque_input" accept="image/*" style="display:none;">
+                <div class="doc-zone-content text-center p-3">
+                  <i class="bi bi-cloud-upload fs-3 text-primary mb-2 d-block"></i>
+                  <div class="small text-muted">Click to upload or drag &amp; drop</div>
+                  <div class="text-muted" style="font-size:11px">JPG, PNG (max 10MB)</div>
+                </div>
+                <div id="cheque_preview" style="display:none;" class="text-center p-3 w-100">
+                  <img id="cheque_img" style="max-width:100%;max-height:160px;border-radius:8px;object-fit:contain;" src="" alt="Cheque">
+                  <div id="cheque_name" class="mt-2 small text-muted text-truncate"></div>
+                  <button type="button" class="btn btn-link btn-sm text-danger p-0 mt-1" onclick="resetDocZone('cheque_input','cheque_zone','cheque_preview','cheque_img')">
+                    <i class="bi bi-x-circle me-1"></i>Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 d-flex align-items-center">
+              <div class="text-muted small p-3 bg-light rounded">
+                <i class="bi bi-info-circle me-1 text-info"></i>
+                <strong>Cheque extraction reads:</strong><br>
+                Account holder name, Bank name, Account number, IFSC code, Branch name.
               </div>
             </div>
           </div>
@@ -714,6 +750,21 @@
           <div class="col-md-6">
             <%= form.label :additional_information, "Additional Information", class: "form-label" %>
             <%= form.text_area :additional_information, class: "form-control", rows: 1, placeholder: "Enter additional notes" %>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <%= form.label :bank_name, "Bank Name", class: "form-label" %>
+            <%= form.text_field :bank_name, class: "form-control", placeholder: "Enter bank name", id: "customer_bank_name_individual" %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :account_no, "Account Number", class: "form-label" %>
+            <%= form.text_field :account_no, class: "form-control", placeholder: "Enter account number", id: "customer_account_no_individual" %>
+          </div>
+          <div class="col-md-4">
+            <%= form.label :ifsc_code, "IFSC Code", class: "form-label" %>
+            <%= form.text_field :ifsc_code, class: "form-control", placeholder: "e.g. HDFC0001234", id: "customer_ifsc_code_individual" %>
           </div>
         </div>
       </div>
@@ -2638,6 +2689,7 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedDocType = this.dataset.type;
         document.getElementById('aadhaar_upload_zone').style.display = selectedDocType === 'aadhaar' ? 'block' : 'none';
         document.getElementById('pan_upload_zone').style.display = selectedDocType === 'pan' ? 'block' : 'none';
+        document.getElementById('cheque_upload_zone').style.display = selectedDocType === 'cheque' ? 'block' : 'none';
         updateExtractBtn();
         ensureTesseract(); // preload silently
       });
@@ -2653,6 +2705,9 @@ document.addEventListener('DOMContentLoaded', function() {
       } else if (selectedDocType === 'pan') {
         var pi = document.getElementById('pan_input');
         hasFile = pi && pi.files.length > 0;
+      } else if (selectedDocType === 'cheque') {
+        var ci = document.getElementById('cheque_input');
+        hasFile = ci && ci.files.length > 0;
       }
       container.style.display = (selectedDocType && hasFile) ? 'block' : 'none';
     }
@@ -2769,6 +2824,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupDropZone('aadhaar_front_input', 'aadhaar_front_zone', 'aadhaar_front_preview', 'aadhaar_front_img', 'aadhaar_front_name');
     setupDropZone('aadhaar_back_input', 'aadhaar_back_zone', 'aadhaar_back_preview', 'aadhaar_back_img', 'aadhaar_back_name');
     setupDropZone('pan_input', 'pan_zone', 'pan_preview', 'pan_img', 'pan_name');
+    setupDropZone('cheque_input', 'cheque_zone', 'cheque_preview', 'cheque_img', 'cheque_name');
 
     function setProgress(pct, text) {
       var bar = document.getElementById('ocr_progress_bar');
@@ -2852,6 +2908,9 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (selectedDocType === 'pan') {
               var panFile = document.getElementById('pan_input').files[0];
               if (panFile) { setProgress(0, 'Processing PAN card...'); var text = await runOCR(panFile, 0, 1); extractedData = parsePanText(text); }
+            } else if (selectedDocType === 'cheque') {
+              var chequeFile = document.getElementById('cheque_input').files[0];
+              if (chequeFile) { setProgress(0, 'Processing cheque...'); var text = await runOCR(chequeFile, 0, 1); extractedData = parseChequeText(text); }
             }
             setProgress(100, 'Extraction complete!');
             setTimeout(function() {
@@ -3161,6 +3220,81 @@ document.addEventListener('DOMContentLoaded', function() {
       return result;
     }
 
+    function parseChequeText(text) {
+      var result = {};
+      var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 2; });
+
+      // IFSC code: 11-char alphanumeric, 4 letters + 0 + 6 alphanumeric
+      var ifscM = text.match(/\b([A-Z]{4}0[A-Z0-9]{6})\b/);
+      if (ifscM) result.ifsc_code = ifscM[1];
+
+      // Account number — labeled pattern first, then 9–18 digit standalone
+      var acctM = text.match(/(?:A(?:\/)?C|Account\s*(?:No|Number|#))[.\s:]+([0-9]{9,18})/i);
+      if (!acctM) acctM = text.match(/\b([0-9]{9,18})\b/);
+      if (acctM) result.account_no = acctM[1];
+
+      // MICR code — 9 digits at bottom of cheque (routing part), skip if same as account_no
+      var micrM = text.match(/\b(\d{9})\b/);
+      if (micrM && micrM[1] !== result.account_no) result.micr = micrM[1];
+
+      // Bank name — look for known bank keywords on a line
+      var BANKS = ['State Bank of India','SBI','HDFC Bank','ICICI Bank','Axis Bank','Punjab National Bank','PNB',
+        'Bank of Baroda','Canara Bank','Union Bank','Kotak Mahindra Bank','Yes Bank','IndusInd Bank',
+        'Federal Bank','IDBI Bank','Bank of India','Central Bank','UCO Bank','Indian Bank','Syndicate Bank',
+        'Vijaya Bank','Dena Bank','Corporation Bank','Allahabad Bank','Oriental Bank','Andhra Bank',
+        'Nainital Bank','Karnataka Bank','South Indian Bank','City Union Bank','Karur Vysya Bank',
+        'Lakshmi Vilas Bank','Bandhan Bank','AU Small Finance','Jana Small Finance','Equitas',
+        'RBL Bank','Saraswat Bank','IDFC First Bank'];
+      for (var i = 0; i < lines.length; i++) {
+        for (var b = 0; b < BANKS.length; b++) {
+          if (lines[i].toLowerCase().indexOf(BANKS[b].toLowerCase()) !== -1) {
+            result.bank_name = BANKS[b]; break;
+          }
+        }
+        if (result.bank_name) break;
+      }
+      // Fallback: line containing "bank" word
+      if (!result.bank_name) {
+        for (var i = 0; i < lines.length; i++) {
+          if (/\bbank\b/i.test(lines[i]) && lines[i].length < 60 && !/branch|ifsc|swift/i.test(lines[i])) {
+            result.bank_name = lines[i].replace(/[^A-Za-z0-9 &.(),-]/g, '').trim();
+            break;
+          }
+        }
+      }
+
+      // Branch name — labeled pattern
+      var branchM = text.match(/Branch[\s:]+([A-Za-z][A-Za-z0-9 ,.-]{3,50}?)(?:\n|IFSC|$)/i);
+      if (branchM) result.branch = branchM[1].trim();
+
+      // Account holder name — look for "Pay to" or pre-printed name block
+      // Cheques often have the account holder printed near top
+      var payM = text.match(/(?:Pay(?:able)?\s+to|A\/C\s+Name|Account\s+Name|Name)[\s:]+([A-Z][A-Za-z\s]{3,50}?)(?:\n|$)/i);
+      if (payM) {
+        result.full_name = payM[1].trim();
+      }
+      // Fallback: Title-case name line that doesn't look like bank/branch text
+      if (!result.full_name) {
+        for (var i = 0; i < lines.length; i++) {
+          var ln = lines[i];
+          if (/bank|branch|ifsc|micr|account|cheque|date|rupees|amount|pay|sign|nominee|address|swift|code/i.test(ln)) continue;
+          if (/\d/.test(ln)) continue;
+          if (/^[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})+$/.test(ln) && ln.length >= 6 && ln.length <= 50) {
+            result.full_name = ln; break;
+          }
+        }
+      }
+
+      if (result.full_name) {
+        var parts = result.full_name.trim().split(/\s+/);
+        if (parts.length === 1) { result.first_name = parts[0]; }
+        else if (parts.length === 2) { result.first_name = parts[0]; result.last_name = parts[1]; }
+        else { result.first_name = parts[0]; result.last_name = parts[parts.length - 1]; result.middle_name = parts.slice(1, -1).join(' '); }
+      }
+
+      return result;
+    }
+
     function showInfoModal(data) {
       var FIELDS = [
         { key: 'first_name',    label: 'First Name' },
@@ -3175,7 +3309,11 @@ document.addEventListener('DOMContentLoaded', function() {
         { key: 'gender',        label: 'Gender' },
         { key: 'pan_no',        label: 'PAN Number' },
         { key: 'pincode',       label: 'Pincode' },
-        { key: 'father_name',   label: "Father's Name" }
+        { key: 'father_name',   label: "Father's Name" },
+        { key: 'bank_name',     label: 'Bank Name' },
+        { key: 'account_no',    label: 'Account Number' },
+        { key: 'ifsc_code',     label: 'IFSC Code' },
+        { key: 'branch',        label: 'Branch' }
       ];
 
       var rows = '';
@@ -3317,6 +3455,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
               });
               break;
+            case 'bank_name':   setDocVal('#customer_bank_name_individual', value); break;
+            case 'account_no':  setDocVal('#customer_account_no_individual', value); break;
+            case 'ifsc_code':   setDocVal('#customer_ifsc_code_individual', value); break;
           }
         });
 

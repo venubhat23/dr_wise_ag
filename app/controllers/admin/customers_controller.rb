@@ -1400,6 +1400,7 @@ class Admin::CustomersController < Admin::ApplicationController
       :gender, :occupation, :job_name, :annual_income, :nominee_name, :nominee_relation,
       :nominee_date_of_birth, :status, :birth_place, :height_feet, :weight_kg, :education,
       :marital_status, :business_job, :business_name, :type_of_duty, :additional_information, :additional_info,
+      :bank_name, :account_no, :ifsc_code,
       :added_by, :sub_agent_id, :age, :lead_id,
       profile_images: [],
       documents: [],
