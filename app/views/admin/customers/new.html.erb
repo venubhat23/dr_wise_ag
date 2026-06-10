@@ -3164,9 +3164,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function parsePanText(text) {
       var result = {};
 
-      // PAN number: ABCDE1234F
-      var pm = text.match(/[A-Z]{5}[0-9]{4}[A-Z]/);
-      if (pm) result.pan_no = pm[0];
+      console.log('[PAN OCR raw]', JSON.stringify(text));
+
+      // PAN number: ABCDE1234F (case-insensitive, normalise to upper)
+      var pm = text.match(/[A-Z]{5}[0-9]{4}[A-Z]/i);
+      if (pm) result.pan_no = pm[0].toUpperCase();
 
       // DOB — first DD/MM/YYYY date in the text
       var dm = text.match(/(\d{2}\/\d{2}\/\d{4})/);
@@ -3174,67 +3176,62 @@ document.addEventListener('DOMContentLoaded', function() {
 
       var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 1; });
 
-      // Clean a raw OCR line for name checking:
-      //  1. Strip non-ASCII characters (Hindi/Devanagari that OCR dumps on English lines)
-      //  2. Strip trailing standalone numbers (right-column serial numbers on PAN cards: "JAGADISH S 1323")
-      //  3. Collapse whitespace
       function cleanForName(ln) {
         return ln
           .replace(/[^\x20-\x7E]/g, ' ')   // kill non-ASCII (Hindi chars)
-          .replace(/(\s+\d+)+\s*$/, '')     // strip trailing numbers
+          .replace(/(\s+\d+)+\s*$/, '')     // strip trailing right-column numbers
           .replace(/\s{2,}/g, ' ')
           .trim();
       }
 
       function isNameLine(c) {
-        // Must be all-caps letters (and spaces), at least 3 real letters, not a known header word
-        return /^[A-Z][A-Z\s]+$/.test(c) &&
-               c.replace(/\s/g, '').length >= 3 &&
-               c.length < 55 &&
-               !/^(PERMANENT|ACCOUNT|NUMBER|CARD|TAX|INCOME|GOVT|INDIA|DEPARTMENT|SIGNATURE|DATE|DOB|VALID|FROM|TO)$/.test(c.trim()) &&
-               !/PERMANENT ACCOUNT|INCOME TAX|GOVT OF INDIA/.test(c);
+        // Accept ALL-CAPS or Title Case — Tesseract produces either on faded blue PAN cards
+        if (!/^[A-Za-z][A-Za-z\s]+$/.test(c)) return false;
+        if (c.replace(/\s/g, '').length < 3) return false;
+        if (c.length >= 55) return false;
+        var cu = c.toUpperCase();
+        if (/^(PERMANENT|ACCOUNT|NUMBER|CARD|TAX|INCOME|GOVT|INDIA|DEPARTMENT|SIGNATURE|SIGN|DATE|DOB|VALID|FROM|TO)$/.test(cu.trim())) return false;
+        if (/PERMANENT ACCOUNT|INCOME TAX|GOVT OF INDIA/i.test(c)) return false;
+        return true;
       }
 
-      var nameLine1 = null;  // cardholder's printed name line
-      var nameLine2 = null;  // father's/husband's name line
-      var nameLineIdx = -1;
+      var nameLine1 = null, nameLine2 = null, nameLineIdx = -1;
 
-      // Pass 1 — look for name after "INCOME TAX" or "GOVT OF INDIA" header
+      // Pass 1 — name after "INCOME TAX" or "GOVT OF INDIA" header
       for (var i = 0; i < lines.length; i++) {
         var cl = cleanForName(lines[i]);
         if (/income tax|govt of india/i.test(cl)) {
           for (var j = i + 1; j < Math.min(i + 10, lines.length); j++) {
             var c = cleanForName(lines[j]);
-            if (isNameLine(c)) { nameLine1 = c; nameLineIdx = j; break; }
+            if (isNameLine(c)) { nameLine1 = c.toUpperCase(); nameLineIdx = j; break; }
           }
           if (nameLine1) break;
         }
       }
 
-      // Pass 2 — fallback: scan ALL lines for first qualifying all-caps name
+      // Pass 2 — fallback: first qualifying name line anywhere
       if (!nameLine1) {
         for (var i = 0; i < lines.length; i++) {
           var c = cleanForName(lines[i]);
-          if (isNameLine(c)) { nameLine1 = c; nameLineIdx = i; break; }
+          if (isNameLine(c)) { nameLine1 = c.toUpperCase(); nameLineIdx = i; break; }
         }
       }
 
-      // Second name line (father's name) — next qualifying all-caps line after nameLine1
+      // Father's name = next qualifying name line after nameLine1
       if (nameLineIdx >= 0) {
         for (var j = nameLineIdx + 1; j < Math.min(nameLineIdx + 6, lines.length); j++) {
           var c = cleanForName(lines[j]);
-          if (isNameLine(c)) { nameLine2 = c; break; }
+          if (isNameLine(c)) { nameLine2 = c.toUpperCase(); break; }
         }
       }
 
+      console.log('[PAN OCR] nameLine1:', nameLine1, '| nameLine2:', nameLine2);
+
       if (nameLine1) {
         var parts = nameLine1.trim().split(/\s+/);
-
-        // South-Indian patronymic pattern: "JAGADISH S" — last token is a single initial.
-        // In this case the second name line (father's full name) is more useful as last_name.
         var lastPart = parts[parts.length - 1];
         if (lastPart.length === 1 && nameLine2) {
-          // e.g. "JAGADISH S" + "SHIVANNA" → first=JAGADISH, last=SHIVANNA
+          // Patronymic: "JAGADISH S" + "SHIVANNA" → first=JAGADISH, last=SHIVANNA
           result.first_name = parts.slice(0, -1).join(' ') || parts[0];
           result.last_name  = nameLine2;
         } else if (parts.length === 1) {
@@ -3249,7 +3246,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
 
-      // Always store father_name if found
       if (nameLine2) result.father_name = nameLine2;
 
       return result;
