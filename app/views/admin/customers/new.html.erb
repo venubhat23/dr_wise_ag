@@ -2907,7 +2907,7 @@ document.addEventListener('DOMContentLoaded', function() {
               extractedData = parseAadhaarText(frontText, backText);
             } else if (selectedDocType === 'pan') {
               var panFile = document.getElementById('pan_input').files[0];
-              if (panFile) { setProgress(0, 'Processing PAN card...'); var text = await runOCR(panFile, 0, 1); extractedData = parsePanText(text); }
+              if (panFile) { setProgress(0, 'Processing PAN card...'); var text = await runOCR(panFile, 0, 1, 'eng+hin'); extractedData = parsePanText(text); }
             } else if (selectedDocType === 'cheque') {
               var chequeFile = document.getElementById('cheque_input').files[0];
               if (chequeFile) { setProgress(0, 'Processing cheque...'); var text = await runOCR(chequeFile, 0, 1); extractedData = parseChequeText(text); }
@@ -3172,68 +3172,85 @@ document.addEventListener('DOMContentLoaded', function() {
       var dm = text.match(/(\d{2}\/\d{2}\/\d{4})/);
       if (dm) result.dob = dm[1];
 
-      var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 2; });
+      var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 1; });
+
+      // Clean a raw OCR line for name checking:
+      //  1. Strip non-ASCII characters (Hindi/Devanagari that OCR dumps on English lines)
+      //  2. Strip trailing standalone numbers (right-column serial numbers on PAN cards: "JAGADISH S 1323")
+      //  3. Collapse whitespace
+      function cleanForName(ln) {
+        return ln
+          .replace(/[^\x20-\x7E]/g, ' ')   // kill non-ASCII (Hindi chars)
+          .replace(/(\s+\d+)+\s*$/, '')     // strip trailing numbers
+          .replace(/\s{2,}/g, ' ')
+          .trim();
+      }
+
+      function isNameLine(c) {
+        // Must be all-caps letters (and spaces), at least 3 real letters, not a known header word
+        return /^[A-Z][A-Z\s]+$/.test(c) &&
+               c.replace(/\s/g, '').length >= 3 &&
+               c.length < 55 &&
+               !/^(PERMANENT|ACCOUNT|NUMBER|CARD|TAX|INCOME|GOVT|INDIA|DEPARTMENT|SIGNATURE|DATE|DOB|VALID|FROM|TO)$/.test(c.trim()) &&
+               !/PERMANENT ACCOUNT|INCOME TAX|GOVT OF INDIA/.test(c);
+      }
+
+      var nameLine1 = null;  // cardholder's printed name line
+      var nameLine2 = null;  // father's/husband's name line
       var nameLineIdx = -1;
 
-      // PAN cards are two-column: name on the left, a serial/photo number on the right.
-      // OCR row-reads produce lines like "JAGADISH S 1323" or "SHIVANNA 14".
-      // Strip trailing standalone integers (right-column artefacts) before any name check.
-      function stripRightCol(ln) {
-        // Remove one or more trailing groups of digits separated by spaces
-        return ln.replace(/(\s+\d+)+\s*$/, '').trim();
-      }
-
-      function isValidPanName(ln) {
-        var c = stripRightCol(ln);
-        return /^[A-Z][A-Z\s]+$/.test(c) &&
-               c.replace(/\s/g, '').length > 2 &&   // at least 3 real letters
-               c.length < 55 &&
-               !/PERMANENT|ACCOUNT|NUMBER|CARD|TAX|INCOME|GOVT|INDIA|DEPARTMENT|SIGNATURE/.test(c);
-      }
-
-      // Pass 1: first all-caps name line after "INCOME TAX" / "GOVT OF INDIA" header
+      // Pass 1 — look for name after "INCOME TAX" or "GOVT OF INDIA" header
       for (var i = 0; i < lines.length; i++) {
-        if (/income tax|govt of india/i.test(lines[i])) {
-          for (var j = i + 1; j < Math.min(i + 8, lines.length); j++) {
-            if (isValidPanName(lines[j])) {
-              result.full_name = stripRightCol(lines[j]);
-              nameLineIdx = j;
-              break;
-            }
+        var cl = cleanForName(lines[i]);
+        if (/income tax|govt of india/i.test(cl)) {
+          for (var j = i + 1; j < Math.min(i + 10, lines.length); j++) {
+            var c = cleanForName(lines[j]);
+            if (isNameLine(c)) { nameLine1 = c; nameLineIdx = j; break; }
           }
-          if (result.full_name) break;
+          if (nameLine1) break;
         }
       }
 
-      // Pass 2: first qualifying all-caps line anywhere (handles cards where header isn't on its own line)
-      if (!result.full_name) {
+      // Pass 2 — fallback: scan ALL lines for first qualifying all-caps name
+      if (!nameLine1) {
         for (var i = 0; i < lines.length; i++) {
-          var c = stripRightCol(lines[i]);
-          if (/^[A-Z][A-Z\s]+$/.test(c) && c.replace(/\s/g,'').length > 3 && c.length < 55 &&
-              !/PERMANENT|ACCOUNT|NUMBER|CARD|TAX|INCOME|GOVT|INDIA|DEPARTMENT|SIGNATURE/.test(c)) {
-            result.full_name = c; nameLineIdx = i; break;
-          }
+          var c = cleanForName(lines[i]);
+          if (isNameLine(c)) { nameLine1 = c; nameLineIdx = i; break; }
         }
       }
 
-      // Father's name: next qualifying all-caps line after the name line
+      // Second name line (father's name) — next qualifying all-caps line after nameLine1
       if (nameLineIdx >= 0) {
-        for (var j = nameLineIdx + 1; j < Math.min(nameLineIdx + 5, lines.length); j++) {
-          var c = stripRightCol(lines[j]);
-          if (/^[A-Z][A-Z\s]+$/.test(c) && c.replace(/\s/g,'').length > 2 && c.length < 55 &&
-              !/PERMANENT|ACCOUNT|NUMBER|CARD|DATE|DOB|SIGNATURE/.test(c)) {
-            result.father_name = c; break;
-          }
+        for (var j = nameLineIdx + 1; j < Math.min(nameLineIdx + 6, lines.length); j++) {
+          var c = cleanForName(lines[j]);
+          if (isNameLine(c)) { nameLine2 = c; break; }
         }
       }
 
-      // Split full_name → first / middle / last
-      if (result.full_name) {
-        var parts = result.full_name.trim().split(/\s+/);
-        if (parts.length === 1) { result.first_name = parts[0]; }
-        else if (parts.length === 2) { result.first_name = parts[0]; result.last_name = parts[1]; }
-        else { result.first_name = parts[0]; result.last_name = parts[parts.length - 1]; result.middle_name = parts.slice(1, -1).join(' '); }
+      if (nameLine1) {
+        var parts = nameLine1.trim().split(/\s+/);
+
+        // South-Indian patronymic pattern: "JAGADISH S" — last token is a single initial.
+        // In this case the second name line (father's full name) is more useful as last_name.
+        var lastPart = parts[parts.length - 1];
+        if (lastPart.length === 1 && nameLine2) {
+          // e.g. "JAGADISH S" + "SHIVANNA" → first=JAGADISH, last=SHIVANNA
+          result.first_name = parts.slice(0, -1).join(' ') || parts[0];
+          result.last_name  = nameLine2;
+        } else if (parts.length === 1) {
+          result.first_name = parts[0];
+        } else if (parts.length === 2) {
+          result.first_name = parts[0];
+          result.last_name  = parts[1];
+        } else {
+          result.first_name  = parts[0];
+          result.middle_name = parts.slice(1, -1).join(' ');
+          result.last_name   = parts[parts.length - 1];
+        }
       }
+
+      // Always store father_name if found
+      if (nameLine2) result.father_name = nameLine2;
 
       return result;
     }
@@ -3243,23 +3260,39 @@ document.addEventListener('DOMContentLoaded', function() {
       var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 1; });
 
       // ── IFSC code ──────────────────────────────────────────────────────────
-      // Label-first: "IFS Code", "IFSC Code", "IFSC:" then bare 11-char code
-      var ifscM = text.match(/(?:IFSC|IFS\s*Code)[\s:]+([A-Z]{4}0[A-Z0-9]{6})/i);
-      if (!ifscM) ifscM = text.match(/\b([A-Z]{4}0[A-Z0-9]{6})\b/);
-      if (ifscM) result.ifsc_code = (ifscM[2] || ifscM[1]).toUpperCase();
+      // OCR commonly confuses digit-0 with letter-O in IFSC (e.g. SBIN0003067 → SBINO003067).
+      // Pattern: 4 letters + [0 or O] + 6 alphanumeric chars (11 chars total).
+      // Try labeled keywords first, then bare scan.
+      function extractIfsc(t) {
+        // Label patterns: "IFS Code", "IFSC Code", "IFSC:", "IFS:", etc.
+        var lm = t.match(/(?:IFSC?\s*(?:Code)?)[\s.:]+([A-Z]{4}[0O][A-Z0-9]{6})/i);
+        if (lm) return lm[1];
+        // Bare scan — find any 11-char sequence matching IFSC format
+        var bm = t.match(/\b([A-Z]{4}[0O][A-Z0-9]{6})\b/);
+        if (bm) return bm[1];
+        return null;
+      }
+      var rawIfsc = extractIfsc(text);
+      if (rawIfsc) {
+        // Normalise: 5th char must be digit 0 (not letter O)
+        rawIfsc = rawIfsc.toUpperCase();
+        result.ifsc_code = rawIfsc.slice(0, 4) + '0' + rawIfsc.slice(5);
+      }
 
       // ── Account number ─────────────────────────────────────────────────────
-      // Try labeled patterns in priority order
+      // "PREFIX" on SBI cheques holds the account number, possibly on the next line.
+      // "A/c No." label — the field may be blacked out in scanned cheques; try anyway.
+      // Use [\s\S]{0,10} to bridge a newline between label and value.
       var acctPatterns = [
-        /(?:A[\/\s]?[Cc]\.?\s*[Nn]o\.?|Account\s*(?:No|Number|#))[\s.:]+([0-9]{6,20})/i,
-        /PREFIX\s*[:\n\s]+([0-9]{6,20})/i,
-        /(?:SB\s*ACCOUNT|CURRENT\s*ACCOUNT)\b[\s\S]{0,60}?([0-9]{9,18})/i
+        /(?:A[\/\s]?[Cc]\.?\s*[Nn]o\.?|Account\s*(?:No|Number|#))[\s\S]{0,10}?([0-9]{8,20})/i,
+        /PREFIX[\s\S]{0,10}?([0-9]{8,20})/i,
+        /(?:SB\s*ACCOUNT|CURRENT\s*ACCOUNT|SAVINGS\s*ACCOUNT)\b[\s\S]{0,80}?([0-9]{9,20})/i
       ];
       for (var i = 0; i < acctPatterns.length; i++) {
         var am = text.match(acctPatterns[i]);
         if (am) { result.account_no = am[1]; break; }
       }
-      // Fallback: first 10–18 digit number (avoids 9-digit MICR routing & 6-digit cheque number)
+      // Fallback: first 10–18 digit standalone number (skips 9-digit MICR & 6-digit cheque number)
       if (!result.account_no) {
         var longNums = text.match(/\b([0-9]{10,18})\b/g);
         if (longNums && longNums.length > 0) result.account_no = longNums[0];
