@@ -20,6 +20,15 @@ class Admin::AnalyticsController < Admin::ApplicationController
     redirect_to admin_analytics_path, notice: 'Analytics data has been refreshed!'
   end
 
+  def card_detail
+    setup_filter_dates
+    metric  = params[:metric].to_s
+    records = fetch_analytics_card_records(metric)
+    render json: { records: records, metric: metric, count: records.size }
+  rescue => e
+    render json: { error: e.message }, status: 422
+  end
+
   private
 
   # Same filter used by the dashboard dr_scope/dr_filter helpers.
@@ -1319,5 +1328,74 @@ class Admin::AnalyticsController < Admin::ApplicationController
   rescue => e
     Rails.logger.error "Error calculating top investors by commission: #{e.message}"
     {}
+  end
+
+  def fetch_analytics_card_records(metric)
+    start_date = @filter_start_date
+    end_date   = @filter_end_date
+    dt_start   = start_date.beginning_of_day
+    dt_end     = end_date.end_of_day
+    range      = start_date..end_date
+
+    case metric
+    when 'customers'
+      Customer.where(created_at: dt_start..dt_end).order(created_at: :desc).map do |c|
+        { type: 'Customer', name: c.display_name, created_at: c.created_at.strftime('%d/%m/%Y'),
+          city: c.city.to_s, phone: c.phone.to_s }
+      end
+    when 'policies', 'premium'
+      analytics_collect_policies(range)
+    when 'leads'
+      Lead.where(created_at: dt_start..dt_end).order(created_at: :desc).map do |l|
+        { type: 'Lead', name: l.name.to_s, stage: l.current_stage.to_s.humanize,
+          created_at: l.created_at.strftime('%d/%m/%Y') }
+      end
+    when 'investors'
+      Investor.order(created_at: :desc).map do |i|
+        { type: 'Investor', name: i.display_name.to_s, created_at: i.created_at.strftime('%d/%m/%Y') }
+      end
+    when 'affiliates'
+      SubAgent.order(created_at: :desc).map do |a|
+        { type: 'Affiliate', name: "#{a.first_name} #{a.last_name}".strip,
+          created_at: a.created_at.strftime('%d/%m/%Y'), status: a.status.to_s }
+      end
+    else
+      []
+    end
+  rescue => e
+    Rails.logger.error "analytics card_detail error: #{e.message}"
+    []
+  end
+
+  def analytics_collect_policies(range)
+    policies = []
+    HealthInsurance.where(DRWISE).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+      policies << analytics_format_policy(p, 'Health')
+    end
+    LifeInsurance.where(DRWISE).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+      policies << analytics_format_policy(p, 'Life')
+    end
+    begin
+      MotorInsurance.where(DRWISE).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+        policies << analytics_format_policy(p, 'Motor')
+      end
+    rescue; end
+    begin
+      OtherInsurance.where(DRWISE).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+        policies << analytics_format_policy(p, 'Other')
+      end
+    rescue; end
+    policies.sort_by { |p| p[:policy_start_date_raw] || '' }.reverse
+  end
+
+  def analytics_format_policy(p, type)
+    { type: type, policy_number: p.policy_number.to_s,
+      customer: p.customer&.display_name || 'Unknown',
+      policy_start_date: p.policy_start_date&.strftime('%d/%m/%Y'),
+      policy_start_date_raw: p.policy_start_date.to_s,
+      policy_end_date: p.policy_end_date&.strftime('%d/%m/%Y'),
+      created_at: p.created_at.strftime('%d/%m/%Y'),
+      net_premium: p.net_premium.to_f.round(2),
+      total_premium: p.total_premium.to_f.round(2) }
   end
 end

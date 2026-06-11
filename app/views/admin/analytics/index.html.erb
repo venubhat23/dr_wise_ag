@@ -535,7 +535,7 @@
   <!-- KPI Cards -->
   <div class="kpi-grid">
     <!-- Total Customers -->
-    <div class="kpi-card" style="--card-color: #3b82f6;">
+    <div class="kpi-card" style="--card-color: #3b82f6; cursor: pointer;" data-metric="customers" data-label="Total Customers" onclick="openKpiDetailModal(this)">
       <div class="kpi-icon blue-gradient">
         <i class="bi bi-people-fill"></i>
       </div>
@@ -544,7 +544,7 @@
     </div>
 
     <!-- Total Policies -->
-    <div class="kpi-card" style="--card-color: #10b981;">
+    <div class="kpi-card" style="--card-color: #10b981; cursor: pointer;" data-metric="policies" data-label="Total Policies" onclick="openKpiDetailModal(this)">
       <div class="kpi-icon green-gradient">
         <i class="bi bi-file-earmark-text-fill"></i>
       </div>
@@ -553,7 +553,7 @@
     </div>
 
     <!-- Total Premium -->
-    <div class="kpi-card" style="--card-color: #f59e0b;">
+    <div class="kpi-card" style="--card-color: #f59e0b; cursor: pointer;" data-metric="premium" data-label="Total Premium" onclick="openKpiDetailModal(this)">
       <div class="kpi-icon orange-gradient">
         <i class="bi bi-currency-rupee"></i>
       </div>
@@ -562,7 +562,7 @@
     </div>
 
     <!-- Total Investors -->
-    <div class="kpi-card" style="--card-color: #8b5cf6;">
+    <div class="kpi-card" style="--card-color: #8b5cf6; cursor: pointer;" data-metric="investors" data-label="Total Investors" onclick="openKpiDetailModal(this)">
       <div class="kpi-icon purple-gradient">
         <i class="bi bi-graph-up-arrow"></i>
       </div>
@@ -571,9 +571,9 @@
     </div>
 
     <!-- Total Affiliates -->
-    <div class="kpi-card" style="--card-color: #ec4899; position: relative;">
+    <div class="kpi-card" style="--card-color: #ec4899; position: relative; cursor: pointer;" data-metric="affiliates" data-label="Total Affiliates" onclick="openKpiDetailModal(this)">
       <button class="btn btn-link btn-sm p-0"
-              onclick="refreshAffiliatesData()"
+              onclick="event.stopPropagation(); refreshAffiliatesData();"
               title="Refresh Affiliates Data"
               style="position: absolute; top: 0.75rem; right: 0.75rem; width: 24px; height: 24px; border-radius: 4px; border: 1px solid #e2e8f0; background: white; color: #6b7280; opacity: 0; transition: all 0.2s ease; z-index: 10;"
               onmouseover="this.style.opacity='1'; this.style.backgroundColor='#f3f4f6'; this.style.color='#374151';"
@@ -587,6 +587,169 @@
       <div class="kpi-label">Total Affiliates</div>
     </div>
   </div>
+
+  <!-- KPI Detail Modal -->
+  <div class="modal fade" id="kpiDetailModal" tabindex="-1" aria-labelledby="kpiDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+          <h5 class="modal-title" id="kpiDetailModalLabel">Details</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <div id="kpiModalLoading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Loading data…</p>
+          </div>
+          <div id="kpiModalContent" style="display:none;">
+            <div id="kpiModalSummary" class="px-4 pt-3 pb-1"></div>
+            <div class="table-responsive px-2 pb-3">
+              <table class="table table-hover table-sm align-middle mb-0" id="kpiModalTable">
+                <thead class="table-dark" id="kpiModalHead"></thead>
+                <tbody id="kpiModalBody"></tbody>
+                <tfoot id="kpiModalFoot"></tfoot>
+              </table>
+            </div>
+          </div>
+          <div id="kpiModalError" style="display:none;" class="alert alert-danger m-3"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const KPI_CARD_DETAIL_URL = '<%= admin_analytics_card_detail_path %>';
+  const KPI_FILTER_START = '<%= @filter_start_date %>';
+  const KPI_FILTER_END   = '<%= @filter_end_date %>';
+
+  function openKpiDetailModal(card) {
+    const metric = card.dataset.metric;
+    const label  = card.dataset.label;
+    document.getElementById('kpiDetailModalLabel').textContent = label + ' — ' + KPI_FILTER_START + ' to ' + KPI_FILTER_END;
+    document.getElementById('kpiModalLoading').style.display = 'block';
+    document.getElementById('kpiModalContent').style.display = 'none';
+    document.getElementById('kpiModalError').style.display   = 'none';
+    const modal = new bootstrap.Modal(document.getElementById('kpiDetailModal'));
+    modal.show();
+
+    const url = KPI_CARD_DETAIL_URL + '?metric=' + encodeURIComponent(metric) +
+                '&start_date=' + encodeURIComponent(KPI_FILTER_START) +
+                '&end_date='   + encodeURIComponent(KPI_FILTER_END);
+
+    fetch(url, { headers: { 'Accept': 'application/json',
+                             'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content') } })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        renderKpiModalData(metric, label, data);
+        document.getElementById('kpiModalLoading').style.display = 'none';
+        document.getElementById('kpiModalContent').style.display = 'block';
+      })
+      .catch(err => {
+        document.getElementById('kpiModalLoading').style.display = 'none';
+        document.getElementById('kpiModalError').style.display = 'block';
+        document.getElementById('kpiModalError').textContent = 'Error loading data: ' + err.message;
+      });
+  }
+
+  function fmtINR(v) {
+    return 'Rs. ' + Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function renderKpiModalData(metric, label, data) {
+    const records = data.records || [];
+    const head = document.getElementById('kpiModalHead');
+    const body = document.getElementById('kpiModalBody');
+    const foot = document.getElementById('kpiModalFoot');
+    const summary = document.getElementById('kpiModalSummary');
+
+    head.innerHTML = '';
+    body.innerHTML = '';
+    foot.innerHTML = '';
+    summary.innerHTML = '';
+
+    if (records.length === 0) {
+      body.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">No records found for this period.</td></tr>';
+      return;
+    }
+
+    if (metric === 'policies' || metric === 'premium') {
+      head.innerHTML = `<tr>
+        <th>#</th><th>Type</th><th>Policy No.</th><th>Customer</th>
+        <th>Start Date</th><th>End Date</th><th>Created</th>
+        <th class="text-end">Net Premium</th><th class="text-end">Total Premium</th>
+      </tr>`;
+
+      let totalNet = 0, totalGross = 0;
+      records.forEach((r, i) => {
+        totalNet   += r.net_premium   || 0;
+        totalGross += r.total_premium || 0;
+        body.innerHTML += `<tr>
+          <td class="text-muted">${i+1}</td>
+          <td><span class="badge bg-secondary">${r.type}</span></td>
+          <td class="font-monospace small">${r.policy_number}</td>
+          <td>${r.customer}</td>
+          <td>${r.policy_start_date || '—'}</td>
+          <td>${r.policy_end_date   || '—'}</td>
+          <td>${r.created_at}</td>
+          <td class="text-end">${fmtINR(r.net_premium)}</td>
+          <td class="text-end fw-bold">${fmtINR(r.total_premium)}</td>
+        </tr>`;
+      });
+      foot.innerHTML = `<tr class="table-warning fw-bold">
+        <td colspan="7">Total (${records.length} policies)</td>
+        <td class="text-end">${fmtINR(totalNet)}</td>
+        <td class="text-end">${fmtINR(totalGross)}</td>
+      </tr>`;
+      summary.innerHTML = `<div class="d-flex gap-3 flex-wrap">
+        <span class="badge bg-primary fs-6">${records.length} Policies</span>
+        <span class="badge bg-warning text-dark fs-6">Net: ${fmtINR(totalNet)}</span>
+        <span class="badge bg-success fs-6">Total: ${fmtINR(totalGross)}</span>
+      </div>`;
+
+    } else if (metric === 'customers') {
+      head.innerHTML = `<tr><th>#</th><th>Name</th><th>City</th><th>Phone</th><th>Joined</th></tr>`;
+      records.forEach((r, i) => {
+        body.innerHTML += `<tr>
+          <td class="text-muted">${i+1}</td>
+          <td>${r.name}</td><td>${r.city || '—'}</td>
+          <td>${r.phone || '—'}</td><td>${r.created_at}</td>
+        </tr>`;
+      });
+      summary.innerHTML = `<span class="badge bg-primary fs-6">${records.length} Customers</span>`;
+
+    } else if (metric === 'leads') {
+      head.innerHTML = `<tr><th>#</th><th>Name</th><th>Stage</th><th>Created</th></tr>`;
+      records.forEach((r, i) => {
+        body.innerHTML += `<tr>
+          <td class="text-muted">${i+1}</td>
+          <td>${r.name}</td><td>${r.stage}</td><td>${r.created_at}</td>
+        </tr>`;
+      });
+      summary.innerHTML = `<span class="badge bg-info fs-6">${records.length} Leads</span>`;
+
+    } else if (metric === 'investors') {
+      head.innerHTML = `<tr><th>#</th><th>Name</th><th>Joined</th></tr>`;
+      records.forEach((r, i) => {
+        body.innerHTML += `<tr>
+          <td class="text-muted">${i+1}</td>
+          <td>${r.name}</td><td>${r.created_at}</td>
+        </tr>`;
+      });
+      summary.innerHTML = `<span class="badge bg-purple fs-6" style="background:#8b5cf6;">${records.length} Investors</span>`;
+
+    } else if (metric === 'affiliates') {
+      head.innerHTML = `<tr><th>#</th><th>Name</th><th>Status</th><th>Joined</th></tr>`;
+      records.forEach((r, i) => {
+        body.innerHTML += `<tr>
+          <td class="text-muted">${i+1}</td>
+          <td>${r.name}</td><td>${r.status}</td><td>${r.created_at}</td>
+        </tr>`;
+      });
+      summary.innerHTML = `<span class="badge bg-pink fs-6" style="background:#ec4899;">${records.length} Affiliates</span>`;
+    }
+  }
+  </script>
 
   <!-- Premium Revenue Trend - New Line Chart -->
   <div class="chart-card" style="margin-bottom: 2rem;">

@@ -728,26 +728,24 @@
   <div class="row mb-4">
     <!-- Total Customers -->
     <div class="col-xl-3 col-md-6 mb-3">
-      <%= link_to admin_customers_path, class: "text-decoration-none" do %>
-        <div class="card h-100 border-0 shadow-sm card-hover">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <h6 class="text-muted mb-2">Total Customers</h6>
-                <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_customers) %></h3>
-              </div>
-              <div class="bg-primary bg-opacity-10 rounded p-3">
-                <i class="bi bi-people text-primary fs-4"></i>
-              </div>
+      <div class="card h-100 border-0 shadow-sm card-hover" style="cursor:pointer;" data-card-metric="customers" data-card-label="Total Customers" onclick="openDashboardCardModal(this)">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="text-muted mb-2">Total Customers</h6>
+              <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_customers) %></h3>
+            </div>
+            <div class="bg-primary bg-opacity-10 rounded p-3">
+              <i class="bi bi-people text-primary fs-4"></i>
             </div>
           </div>
         </div>
-      <% end %>
+      </div>
     </div>
 
     <!-- Total Policies -->
     <div class="col-xl-3 col-md-6 mb-3">
-      <div class="card h-100 border-0 shadow-sm">
+      <div class="card h-100 border-0 shadow-sm card-hover" style="cursor:pointer;" data-card-metric="policies" data-card-label="Total Policies" onclick="openDashboardCardModal(this)">
         <div class="card-body">
           <div class="d-flex justify-content-between">
             <div>
@@ -764,7 +762,7 @@
 
     <!-- Total Premium -->
     <div class="col-xl-3 col-md-6 mb-3">
-      <div class="card h-100 border-0 shadow-sm">
+      <div class="card h-100 border-0 shadow-sm card-hover" style="cursor:pointer;" data-card-metric="premium" data-card-label="Total Premium" onclick="openDashboardCardModal(this)">
         <div class="card-body">
           <div class="d-flex justify-content-between">
             <div>
@@ -781,21 +779,19 @@
 
     <!-- Active Leads -->
     <div class="col-xl-3 col-md-6 mb-3">
-      <%= link_to admin_leads_path, class: "text-decoration-none" do %>
-        <div class="card h-100 border-0 shadow-sm card-hover">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <h6 class="text-muted mb-2">Active Leads</h6>
-                <h3 class="mb-0 text-info"><%= number_with_delimiter(@pending_leads) %></h3>
-              </div>
-              <div class="bg-info bg-opacity-10 rounded p-3">
-                <i class="bi bi-funnel text-info fs-4"></i>
-              </div>
+      <div class="card h-100 border-0 shadow-sm card-hover" style="cursor:pointer;" data-card-metric="leads" data-card-label="Active Leads" onclick="openDashboardCardModal(this)">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h6 class="text-muted mb-2">Active Leads</h6>
+              <h3 class="mb-0 text-info"><%= number_with_delimiter(@pending_leads) %></h3>
+            </div>
+            <div class="bg-info bg-opacity-10 rounded p-3">
+              <i class="bi bi-funnel text-info fs-4"></i>
             </div>
           </div>
         </div>
-      <% end %>
+      </div>
     </div>
   </div>
 
@@ -3034,3 +3030,165 @@ document.addEventListener('DOMContentLoaded', function() {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 </style>
+
+<!-- KPI Detail Modal (Dashboard) -->
+<div class="modal fade" id="dashboardKpiModal" tabindex="-1" aria-labelledby="dashboardKpiModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+        <h5 class="modal-title" id="dashboardKpiModalLabel">Details</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div id="dashboardKpiLoading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-2 text-muted">Loading data…</p>
+        </div>
+        <div id="dashboardKpiContent" style="display:none;">
+          <div id="dashboardKpiSummary" class="px-4 pt-3 pb-1"></div>
+          <div class="table-responsive px-2 pb-3">
+            <table class="table table-hover table-sm align-middle mb-0" id="dashboardKpiTable">
+              <thead class="table-dark" id="dashboardKpiHead"></thead>
+              <tbody id="dashboardKpiBody"></tbody>
+              <tfoot id="dashboardKpiFoot"></tfoot>
+            </table>
+          </div>
+        </div>
+        <div id="dashboardKpiError" style="display:none;" class="alert alert-danger m-3"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DASH_CARD_DETAIL_URL = '<%= dashboard_card_detail_path %>';
+const DASH_FILTER_START    = '<%= @filter_start_date %>';
+const DASH_FILTER_END      = '<%= @filter_end_date %>';
+
+function openDashboardCardModal(card) {
+  const metric = card.dataset.cardMetric;
+  const label  = card.dataset.cardLabel;
+  document.getElementById('dashboardKpiModalLabel').textContent = label + ' — ' + DASH_FILTER_START + ' to ' + DASH_FILTER_END;
+  document.getElementById('dashboardKpiLoading').style.display = 'block';
+  document.getElementById('dashboardKpiContent').style.display = 'none';
+  document.getElementById('dashboardKpiError').style.display   = 'none';
+  const modal = new bootstrap.Modal(document.getElementById('dashboardKpiModal'));
+  modal.show();
+
+  const url = DASH_CARD_DETAIL_URL + '?metric=' + encodeURIComponent(metric) +
+              '&start_date=' + encodeURIComponent(DASH_FILTER_START) +
+              '&end_date='   + encodeURIComponent(DASH_FILTER_END);
+
+  fetch(url, { headers: { 'Accept': 'application/json',
+                           'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content') } })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) throw new Error(data.error);
+      renderDashboardKpiData(metric, label, data);
+      document.getElementById('dashboardKpiLoading').style.display = 'none';
+      document.getElementById('dashboardKpiContent').style.display = 'block';
+    })
+    .catch(err => {
+      document.getElementById('dashboardKpiLoading').style.display = 'none';
+      document.getElementById('dashboardKpiError').style.display = 'block';
+      document.getElementById('dashboardKpiError').textContent = 'Error loading data: ' + err.message;
+    });
+}
+
+function dashFmtINR(v) {
+  return 'Rs. ' + Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderDashboardKpiData(metric, label, data) {
+  const records = data.records || [];
+  const head = document.getElementById('dashboardKpiHead');
+  const body = document.getElementById('dashboardKpiBody');
+  const foot = document.getElementById('dashboardKpiFoot');
+  const summary = document.getElementById('dashboardKpiSummary');
+
+  head.innerHTML = '';
+  body.innerHTML = '';
+  foot.innerHTML = '';
+  summary.innerHTML = '';
+
+  if (records.length === 0) {
+    body.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">No records found for this period.</td></tr>';
+    return;
+  }
+
+  if (metric === 'policies' || metric === 'premium') {
+    head.innerHTML = `<tr>
+      <th>#</th><th>Type</th><th>Policy No.</th><th>Customer</th>
+      <th>Start Date</th><th>End Date</th><th>Created</th>
+      <th class="text-end">Net Premium</th><th class="text-end">Total Premium</th>
+    </tr>`;
+    let totalNet = 0, totalGross = 0;
+    records.forEach((r, i) => {
+      totalNet   += r.net_premium   || 0;
+      totalGross += r.total_premium || 0;
+      body.innerHTML += `<tr>
+        <td class="text-muted">${i+1}</td>
+        <td><span class="badge bg-secondary">${r.type}</span></td>
+        <td class="font-monospace small">${r.policy_number}</td>
+        <td>${r.customer}</td>
+        <td>${r.policy_start_date || '—'}</td>
+        <td>${r.policy_end_date   || '—'}</td>
+        <td>${r.created_at}</td>
+        <td class="text-end">${dashFmtINR(r.net_premium)}</td>
+        <td class="text-end fw-bold">${dashFmtINR(r.total_premium)}</td>
+      </tr>`;
+    });
+    foot.innerHTML = `<tr class="table-warning fw-bold">
+      <td colspan="7">Total (${records.length} policies)</td>
+      <td class="text-end">${dashFmtINR(totalNet)}</td>
+      <td class="text-end">${dashFmtINR(totalGross)}</td>
+    </tr>`;
+    summary.innerHTML = `<div class="d-flex gap-3 flex-wrap mb-2">
+      <span class="badge bg-primary fs-6">${records.length} Policies</span>
+      <span class="badge bg-warning text-dark fs-6">Net: ${dashFmtINR(totalNet)}</span>
+      <span class="badge bg-success fs-6">Total: ${dashFmtINR(totalGross)}</span>
+    </div>`;
+
+  } else if (metric === 'customers') {
+    head.innerHTML = `<tr><th>#</th><th>Name</th><th>City</th><th>Phone</th><th>Joined</th></tr>`;
+    records.forEach((r, i) => {
+      body.innerHTML += `<tr>
+        <td class="text-muted">${i+1}</td>
+        <td>${r.name}</td><td>${r.city || '—'}</td>
+        <td>${r.phone || '—'}</td><td>${r.created_at}</td>
+      </tr>`;
+    });
+    summary.innerHTML = `<span class="badge bg-primary fs-6 mb-2">${records.length} Customers</span>`;
+
+  } else if (metric === 'leads') {
+    head.innerHTML = `<tr><th>#</th><th>Name</th><th>Stage</th><th>Created</th></tr>`;
+    records.forEach((r, i) => {
+      body.innerHTML += `<tr>
+        <td class="text-muted">${i+1}</td>
+        <td>${r.name}</td><td>${r.stage}</td><td>${r.created_at}</td>
+      </tr>`;
+    });
+    summary.innerHTML = `<span class="badge bg-info fs-6 mb-2">${records.length} Leads</span>`;
+
+  } else if (metric === 'investors') {
+    head.innerHTML = `<tr><th>#</th><th>Name</th><th>Joined</th></tr>`;
+    records.forEach((r, i) => {
+      body.innerHTML += `<tr>
+        <td class="text-muted">${i+1}</td>
+        <td>${r.name}</td><td>${r.created_at}</td>
+      </tr>`;
+    });
+    summary.innerHTML = `<span class="badge fs-6 mb-2" style="background:#8b5cf6;">${records.length} Investors</span>`;
+
+  } else if (metric === 'affiliates') {
+    head.innerHTML = `<tr><th>#</th><th>Name</th><th>Status</th><th>Joined</th></tr>`;
+    records.forEach((r, i) => {
+      body.innerHTML += `<tr>
+        <td class="text-muted">${i+1}</td>
+        <td>${r.name}</td><td>${r.status}</td><td>${r.created_at}</td>
+      </tr>`;
+    });
+    summary.innerHTML = `<span class="badge fs-6 mb-2" style="background:#ec4899;">${records.length} Affiliates</span>`;
+  }
+}
+</script>

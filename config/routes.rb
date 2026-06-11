@@ -24,6 +24,7 @@ Rails.application.routes.draw do
   get 'dashboard/beautiful', to: 'dashboard#beautiful'
   get 'dashboard/ultra', to: 'dashboard#ultra'
   get 'dashboard/stats', to: 'dashboard#stats'
+  get 'dashboard/card_detail', to: 'dashboard#card_detail'
 
   # Ambassador Dashboard
   get 'ambassador/dashboard', to: 'ambassador#dashboard'
@@ -82,6 +83,7 @@ Rails.application.routes.draw do
     # Analytics
     get 'analytics', to: 'analytics#index'
     post 'analytics/refresh', to: 'analytics#refresh'
+    get 'analytics/card_detail', to: 'analytics#card_detail'
 
     # Document management
     resources :documents do
@@ -852,6 +854,20 @@ Rails.application.routes.draw do
         get 'agent/commission/summary', to: 'commission#summary'
         get 'agent/commission/history', to: 'commission#history'
         get 'agent/commission/stats', to: 'commission#stats'
+
+        # Client Services APIs (Investments, Taxation, Loans, Travel, Credit Card)
+        get  'client_services/form_data',   to: 'client_services#form_data'
+        get  'client_services/summary',     to: 'client_services#summary'
+        get  'client_services/investments', to: 'client_services#investments'
+        get  'client_services/taxation',    to: 'client_services#taxation'
+        get  'client_services/loans',       to: 'client_services#loans'
+        get  'client_services/travel',      to: 'client_services#travel'
+        get  'client_services/credit_card', to: 'client_services#credit_card'
+        resources :client_services, only: [:index, :show, :create, :update, :destroy]
+
+        # General Insurance (Other Insurance) APIs
+        post 'agent/policies/general', to: 'agent#add_general_policy'
+        get  'agent/policies/general',  to: 'agent#general_policies'
       end
 
       # Sub Agent APIs

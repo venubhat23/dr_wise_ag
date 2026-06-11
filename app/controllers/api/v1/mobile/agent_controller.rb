@@ -3094,6 +3094,128 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     }
   end
 
+  # GET /api/v1/mobile/agent/policies/general
+  def general_policies
+    page     = (params[:page]     || 1).to_i
+    per_page = (params[:per_page] || 20).to_i
+    agent    = current_user
+
+    policies = if is_admin?(agent)
+                 OtherInsurance.all
+               elsif agent.is_a?(SubAgent)
+                 OtherInsurance.where(sub_agent_id: agent.id)
+               else
+                 sub_agent = SubAgent.find_by(email: agent.email)
+                 sub_agent ? OtherInsurance.where(sub_agent_id: sub_agent.id) : OtherInsurance.none
+               end
+
+    policies = policies.includes(:customer).order(created_at: :desc)
+
+    total = policies.count
+    paged = policies.page(page).per(per_page)
+
+    render json: {
+      success: true,
+      data: {
+        policies: paged.map { |p| format_general_policy(p) },
+        pagination: {
+          current_page: page,
+          per_page: per_page,
+          total_policies: total,
+          total_pages: (total.to_f / per_page).ceil
+        }
+      }
+    }
+  end
+
+  # POST /api/v1/mobile/agent/policies/general
+  def add_general_policy
+    policy_params = params.permit(
+      :customer_id, :policy_holder, :plan_name, :policy_number,
+      :insurance_company_name, :insurance_type, :policy_type,
+      :policy_start_date, :policy_end_date, :policy_booking_date,
+      :sum_insured, :net_premium, :gst_percentage, :total_premium,
+      :payment_mode, :coverage_type, :description
+    )
+
+    return render json: { success: false, message: 'customer_id is required' }, status: :unprocessable_entity if policy_params[:customer_id].blank?
+    return render json: { success: false, message: 'policy_number is required' }, status: :unprocessable_entity if policy_params[:policy_number].blank?
+    return render json: { success: false, message: 'insurance_type is required' }, status: :unprocessable_entity if policy_params[:insurance_type].blank?
+
+    customer = Customer.find_by(id: policy_params[:customer_id])
+    return render json: { success: false, message: 'Customer not found' }, status: :not_found unless customer
+
+    if OtherInsurance.exists?(policy_number: policy_params[:policy_number])
+      return render json: { success: false, message: 'Policy number already exists' }, status: :unprocessable_entity
+    end
+
+    sub_agent_id = current_user.is_a?(SubAgent) ? current_user.id : SubAgent.find_by(email: current_user.email)&.id
+
+    calculated_total = if policy_params[:total_premium].present?
+                         policy_params[:total_premium].to_f
+                       else
+                         net = policy_params[:net_premium].to_f
+                         gst = policy_params[:gst_percentage]&.to_f || 18.0
+                         net + (net * gst / 100.0)
+                       end
+
+    policy = OtherInsurance.new(
+      customer_id: policy_params[:customer_id],
+      sub_agent_id: sub_agent_id,
+      policy_holder: policy_params[:policy_holder],
+      plan_name: policy_params[:plan_name],
+      insurance_company_name: policy_params[:insurance_company_name],
+      insurance_type: policy_params[:insurance_type],
+      policy_type: policy_params[:policy_type] == 'renewal' ? 'Renewal' : 'New',
+      policy_number: policy_params[:policy_number],
+      policy_booking_date: parse_date(policy_params[:policy_booking_date]) || Date.current,
+      policy_start_date: parse_date(policy_params[:policy_start_date]),
+      policy_end_date: parse_date(policy_params[:policy_end_date]),
+      sum_insured: policy_params[:sum_insured],
+      net_premium: policy_params[:net_premium],
+      gst_percentage: policy_params[:gst_percentage] || 18.0,
+      total_premium: calculated_total,
+      payment_mode: policy_params[:payment_mode] || 'Annual',
+      is_agent_added: true,
+      is_admin_added: false
+    )
+
+    if policy.save
+      render json: {
+        success: true,
+        message: 'General insurance policy created successfully',
+        data: format_general_policy(policy)
+      }, status: :created
+    else
+      render json: {
+        success: false,
+        message: 'Failed to create policy',
+        errors: policy.errors.full_messages
+      }, status: :unprocessable_entity
+    end
+  end
+
+  def format_general_policy(policy)
+    {
+      id: policy.id,
+      insurance_type: policy.insurance_type,
+      policy_number: policy.policy_number,
+      plan_name: policy.plan_name,
+      policy_holder: policy.policy_holder,
+      insurance_company: policy.insurance_company_name,
+      policy_type: policy.policy_type,
+      start_date: policy.policy_start_date&.strftime('%Y-%m-%d'),
+      end_date: policy.policy_end_date&.strftime('%Y-%m-%d'),
+      net_premium: format_indian_amount(policy.net_premium),
+      total_premium: format_indian_amount(policy.total_premium),
+      sum_insured: format_indian_amount(policy.sum_insured),
+      payment_mode: policy.payment_mode,
+      status: policy.active? ? 'Active' : 'Expired',
+      customer_name: policy.customer&.display_name,
+      created_at: policy.created_at&.strftime('%Y-%m-%d %H:%M:%S')
+    }
+  end
+
   def get_optimized_agent_stats(agent)
     # Get agent policies using existing method but optimize queries
     agent_health_policies, agent_life_policies, agent_motor_policies, agent_customer_ids = get_agent_policies(agent)

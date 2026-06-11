@@ -19,6 +19,18 @@ class DashboardController < ApplicationController
     render 'ultra_attractive_dashboard', layout: false
   end
 
+  def card_detail
+    authorize! :read, :dashboard
+    start_date = params[:start_date].present? ? (Date.parse(params[:start_date]) rescue Date.new(Date.current.year, 1, 1)) : Date.new(Date.current.year, 1, 1)
+    end_date   = params[:end_date].present?   ? (Date.parse(params[:end_date])   rescue Date.new(Date.current.year, 12, 31)) : Date.new(Date.current.year, 12, 31)
+    metric     = params[:metric].to_s
+
+    records = fetch_card_detail_records(metric, start_date, end_date)
+    render json: { records: records, metric: metric, count: records.size }
+  rescue => e
+    render json: { error: e.message }, status: 422
+  end
+
   def stats
     authorize! :read, :dashboard
 
@@ -266,41 +278,10 @@ class DashboardController < ApplicationController
     results[:total_policies] = results[:health_count].to_i + results[:life_count].to_i +
                                results[:motor_count].to_i + results[:other_count].to_i
 
-    # Premium data for the filtered period (health + life via SQL, motor + other via AR)
-    premium_results = ActiveRecord::Base.connection.execute("
-      SELECT
-        COALESCE(SUM(net_premium), 0) as total_premium,
-        COALESCE(SUM(sum_insured), 0) as total_sum_insured
-      FROM (
-        SELECT net_premium, sum_insured FROM health_insurances
-        WHERE TRUE #{h_dr} AND policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'
-        UNION ALL
-        SELECT net_premium, sum_insured FROM life_insurances
-        WHERE TRUE #{l_dr} AND policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'
-      ) as combined_insurance
-    ").first
-
-    filtered_premium   = (premium_results['total_premium'] || 0).to_f
-    filtered_sum       = (premium_results['total_sum_insured'] || 0).to_f
-    motor_premium      = 0.0
-    motor_sum          = 0.0
-    other_premium      = 0.0
-
-    begin
-      motor_data = dr_scope(MotorInsurance).where(policy_start_date: start_date..end_date)
-                                .select('COALESCE(SUM(net_premium), 0) as premium, COALESCE(SUM(sum_insured), 0) as sum').first
-      if motor_data
-        motor_premium = motor_data.premium.to_f
-        motor_sum     = motor_data.sum.to_f
-      end
-    rescue; end
-
-    begin
-      other_premium = dr_scope(OtherInsurance).where(policy_start_date: start_date..end_date).sum(:net_premium).to_f
-    rescue; end
-
-    results[:total_premium_collected] = filtered_premium + motor_premium + other_premium
-    results[:total_sum_insured]        = filtered_sum + motor_sum
+    # Premium data for the filtered period — use AR to stay consistent with analytics
+    results[:total_premium_collected] = get_premium_for_period(start_date, end_date)
+    results[:total_premium]           = results[:total_premium_collected]
+    results[:total_sum_insured]       = get_sum_insured_for_period(start_date, end_date)
 
     # Pending leads count for the period
     pending_stages = ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one']
@@ -939,10 +920,12 @@ class DashboardController < ApplicationController
   end
 
   def get_premium_for_period(start_date, end_date)
-    health = dr_scope(HealthInsurance).where(policy_start_date: start_date..end_date).sum(:net_premium) || 0
-    life   = dr_scope(LifeInsurance).where(policy_start_date: start_date..end_date).sum(:net_premium) || 0
-    motor  = (dr_scope(MotorInsurance).where(policy_start_date: start_date..end_date).sum(:net_premium) rescue 0)
-    health + life + motor
+    range  = start_date..end_date
+    health = (dr_scope(HealthInsurance).where(policy_start_date: range).sum(:net_premium) || 0).to_f
+    life   = (dr_scope(LifeInsurance).where(policy_start_date: range).sum(:net_premium) || 0).to_f
+    motor  = (dr_scope(MotorInsurance).where(policy_start_date: range).sum(:net_premium).to_f rescue 0.0)
+    other  = (dr_scope(OtherInsurance).where(policy_start_date: range).sum(:net_premium).to_f rescue 0.0)
+    health + life + motor + other
   end
 
   def get_renewals_count_for_period(start_date, end_date)
@@ -1218,6 +1201,73 @@ class DashboardController < ApplicationController
   rescue => e
     Rails.logger.error "Error getting renewal opportunities count: #{e.message}"
     0
+  end
+
+  def fetch_card_detail_records(metric, start_date, end_date)
+    dt_start = start_date.beginning_of_day
+    dt_end   = end_date.end_of_day
+    range    = start_date..end_date
+
+    case metric
+    when 'customers'
+      Customer.where(created_at: dt_start..dt_end).order(created_at: :desc).map do |c|
+        { type: 'Customer', name: c.display_name, created_at: c.created_at.strftime('%d/%m/%Y'),
+          city: c.city.to_s, phone: c.phone.to_s }
+      end
+    when 'policies', 'premium'
+      collect_policies_for_detail(range)
+    when 'leads'
+      Lead.where(created_at: dt_start..dt_end).order(created_at: :desc).map do |l|
+        { type: 'Lead', name: l.name.to_s, stage: l.current_stage.to_s.humanize,
+          created_at: l.created_at.strftime('%d/%m/%Y') }
+      end
+    when 'investors'
+      Investor.order(created_at: :desc).map do |i|
+        { type: 'Investor', name: i.display_name.to_s, created_at: i.created_at.strftime('%d/%m/%Y') }
+      end
+    when 'affiliates'
+      SubAgent.order(created_at: :desc).map do |a|
+        { type: 'Affiliate', name: "#{a.first_name} #{a.last_name}".strip,
+          created_at: a.created_at.strftime('%d/%m/%Y'), status: a.status.to_s }
+      end
+    else
+      []
+    end
+  rescue => e
+    Rails.logger.error "card_detail fetch error: #{e.message}"
+    []
+  end
+
+  def collect_policies_for_detail(range)
+    policies = []
+    dr_scope(HealthInsurance).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+      policies << format_policy_detail(p, 'Health')
+    end
+    dr_scope(LifeInsurance).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+      policies << format_policy_detail(p, 'Life')
+    end
+    begin
+      dr_scope(MotorInsurance).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+        policies << format_policy_detail(p, 'Motor')
+      end
+    rescue; end
+    begin
+      dr_scope(OtherInsurance).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+        policies << format_policy_detail(p, 'Other')
+      end
+    rescue; end
+    policies.sort_by { |p| p[:policy_start_date_raw] || '' }.reverse
+  end
+
+  def format_policy_detail(p, type)
+    { type: type, policy_number: p.policy_number.to_s,
+      customer: p.customer&.display_name || 'Unknown',
+      policy_start_date: p.policy_start_date&.strftime('%d/%m/%Y'),
+      policy_start_date_raw: p.policy_start_date.to_s,
+      policy_end_date: p.policy_end_date&.strftime('%d/%m/%Y'),
+      created_at: p.created_at.strftime('%d/%m/%Y'),
+      net_premium: p.net_premium.to_f.round(2),
+      total_premium: p.total_premium.to_f.round(2) }
   end
 
 end
