@@ -26,13 +26,19 @@ class Admin::SubAgentsController < Admin::ApplicationController
     # Order and paginate using configurable pagination
     @sub_agents = paginate_records(@sub_agents.order(created_at: :desc))
 
-    # Statistics
-    @total_sub_agents = SubAgent.count
-    @active_sub_agents = SubAgent.active.count
-    @inactive_sub_agents = SubAgent.inactive.count
-
-    # Calculate unassigned count efficiently using the already loaded sub_agents
-    @unassigned_sub_agents = @sub_agents.select { |s| s.assigned_distributor.blank? }.count
+    # All four stats in one query instead of 3 count queries + Ruby iteration
+    stats = ActiveRecord::Base.connection.execute(<<~SQL).first
+      SELECT
+        COUNT(*)                                                                                 AS total,
+        COUNT(*) FILTER (WHERE status = 0)                                                       AS active_count,
+        COUNT(*) FILTER (WHERE status = 1)                                                       AS inactive_count,
+        COUNT(*) FILTER (WHERE id NOT IN (SELECT sub_agent_id FROM distributor_assignments WHERE sub_agent_id IS NOT NULL)) AS unassigned_count
+      FROM sub_agents
+    SQL
+    @total_sub_agents      = stats['total'].to_i
+    @active_sub_agents     = stats['active_count'].to_i
+    @inactive_sub_agents   = stats['inactive_count'].to_i
+    @unassigned_sub_agents = stats['unassigned_count'].to_i
 
     # Preload policy counts for all sub_agents to avoid N+1 queries
     sub_agent_ids = @sub_agents.map(&:id)

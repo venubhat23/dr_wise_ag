@@ -64,9 +64,11 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
     @life_insurances = paginate_records(@life_insurances.order(created_at: :desc))
 
-    # Data for advanced filter dropdowns
-    @filter_companies  = LifeInsurance.distinct.order(:insurance_company_name).pluck(:insurance_company_name).compact.reject(&:blank?)
-    @filter_sub_agents = SubAgent.active.order(:first_name, :last_name)
+    # Filter dropdowns — 1 pluck instead of 2 queries + avoid loading all sub_agents
+    life_dropdown_data = LifeInsurance.pluck(:insurance_company_name, :sub_agent_id)
+    @filter_companies     = life_dropdown_data.map { |r| r[0] }.compact.uniq.reject(&:blank?).sort
+    life_sub_agent_ids    = life_dropdown_data.map { |r| r[1] }.compact.uniq
+    @filter_sub_agents    = SubAgent.where(id: life_sub_agent_ids).order(:first_name, :last_name)
     @filter_policy_types  = LifeInsurance::POLICY_TYPES
     @filter_payment_modes = LifeInsurance::PAYMENT_MODES
   end
@@ -996,38 +998,38 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
   end
 
   def calculate_tab_statistics
-    # Calculate statistics for all DrWise policies
-    drwise_policies = LifeInsurance.where(
-      is_admin_added: true,
-      is_customer_added: false,
-      is_agent_added: false
-    )
+    # Single query replaces 6 separate count/sum queries
+    row = ActiveRecord::Base.connection.execute(<<~SQL).first
+      SELECT
+        COUNT(*) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added)                                                              AS drwise_count,
+        COUNT(*) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AS non_drwise_count,
+        COALESCE(SUM(total_premium) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_premium,
+        COALESCE(SUM(sum_insured)   FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_coverage,
+        COALESCE(SUM(total_premium) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_premium,
+        COALESCE(SUM(sum_insured)   FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_coverage
+      FROM life_insurances
+    SQL
+    @drwise_count        = row['drwise_count'].to_i
+    @non_drwise_count    = row['non_drwise_count'].to_i
+    @drwise_premium      = row['drwise_premium'].to_f
+    @drwise_coverage     = row['drwise_coverage'].to_f
+    @non_drwise_premium  = row['non_drwise_premium'].to_f
+    @non_drwise_coverage = row['non_drwise_coverage'].to_f
 
-    @drwise_count = drwise_policies.count
-    @drwise_premium = drwise_policies.sum(:total_premium) || 0
-    @drwise_coverage = drwise_policies.sum(:sum_insured) || 0
-
-    # Calculate statistics for all Non-DrWise policies
-    non_drwise_policies = LifeInsurance.where(
-      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-      true, false, false, true, false, false
-    )
-
-    @non_drwise_count = non_drwise_policies.count
-    @non_drwise_premium = non_drwise_policies.sum(:total_premium) || 0
-    @non_drwise_coverage = non_drwise_policies.sum(:sum_insured) || 0
-
-    # Set current tab statistics
     if @current_tab == 'drwise'
-      @total_policies_count = @drwise_count
-      @total_premium_amount = @drwise_premium
+      @total_policies_count  = @drwise_count
+      @total_premium_amount  = @drwise_premium
       @total_coverage_amount = @drwise_coverage
-      @covered_lives_count = drwise_policies.joins(:customer).distinct.count('customers.id')
+      @covered_lives_count   = LifeInsurance.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
+                                            .distinct.count(:customer_id)
     else
-      @total_policies_count = @non_drwise_count
-      @total_premium_amount = @non_drwise_premium
+      @total_policies_count  = @non_drwise_count
+      @total_premium_amount  = @non_drwise_premium
       @total_coverage_amount = @non_drwise_coverage
-      @covered_lives_count = non_drwise_policies.joins(:customer).distinct.count('customers.id')
+      @covered_lives_count   = LifeInsurance.where(
+        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+        true, false, false, true, false, false
+      ).distinct.count(:customer_id)
     end
   end
 

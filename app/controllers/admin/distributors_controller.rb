@@ -4,31 +4,38 @@ class Admin::DistributorsController < Admin::ApplicationController
 
   # GET /admin/distributors
   def index
-    @distributors = Distributor.all
+    @distributors = Distributor.includes(:distributor_assignments, :distributor_documents,
+                                         profile_image_attachment: :blob)
 
-    # Search functionality
     if params[:search].present?
       @distributors = @distributors.search_by_name_mobile_email(params[:search])
     end
 
-    # Filter by status
     case params[:status]
-    when 'active'
-      @distributors = @distributors.active
-    when 'inactive'
-      @distributors = @distributors.inactive
+    when 'active'   then @distributors = @distributors.active
+    when 'inactive' then @distributors = @distributors.inactive
     end
 
-    # Get total count before pagination for display purposes
     @total_filtered_count = @distributors.count
 
-    # Order and paginate using configurable pagination
     @distributors = paginate_records(@distributors.order(created_at: :desc))
 
-    # Statistics
-    @total_distributors = Distributor.count
-    @active_distributors = Distributor.active.count
-    @inactive_distributors = Distributor.inactive.count
+    # All three stats in one query instead of three separate count queries
+    stats = ActiveRecord::Base.connection.execute(<<~SQL).first
+      SELECT COUNT(*) AS total,
+             COUNT(*) FILTER (WHERE status = 0) AS active_count,
+             COUNT(*) FILTER (WHERE status = 1) AS inactive_count
+      FROM distributors
+    SQL
+    @total_distributors    = stats['total'].to_i
+    @active_distributors   = stats['active_count'].to_i
+    @inactive_distributors = stats['inactive_count'].to_i
+
+    # Precompute sub-agent counts to avoid N+1 in view
+    distributor_ids    = @distributors.map(&:id)
+    @sub_agent_counts  = DistributorAssignment.where(distributor_id: distributor_ids)
+                                              .group(:distributor_id)
+                                              .count
   end
 
   # GET /admin/distributors/1
@@ -40,11 +47,8 @@ class Admin::DistributorsController < Admin::ApplicationController
       :distributor_assignment
     ).order('sub_agents.created_at DESC')
 
-    # Calculate statistics for each affiliate
-    @affiliate_stats = {}
-    @assigned_affiliates.each do |affiliate|
-      @affiliate_stats[affiliate.id] = calculate_affiliate_stats(affiliate)
-    end
+    # Batch-calculate stats for all affiliates in ~6 queries instead of N*15
+    @affiliate_stats = batch_calculate_affiliate_stats(@assigned_affiliates.to_a)
 
     # Get actual distributor payout data
     @distributor_payout_data = calculate_single_distributor_payouts(@distributor.id)
@@ -431,78 +435,69 @@ class Admin::DistributorsController < Admin::ApplicationController
     Rails.logger.info "Final assignment count for distributor #{distributor.id}: #{distributor.distributor_assignments.count}"
   end
 
-  def calculate_affiliate_stats(affiliate)
-    health_policies = HealthInsurance.where(sub_agent_id: affiliate.id)
-    life_policies = LifeInsurance.where(sub_agent_id: affiliate.id)
-    motor_policies = MotorInsurance.where(sub_agent_id: affiliate.id)
+  def batch_calculate_affiliate_stats(affiliates)
+    return {} if affiliates.empty?
 
-    # Safely try to get other policies if the association exists
-    other_policies_count = 0
-    other_policies_premium = 0.0
-    other_policies_commission = 0.0
+    affiliate_ids = affiliates.map(&:id)
 
-    begin
-      # Try to get other insurance through customers
-      affiliate_customers = Customer.where(sub_agent_id: affiliate.id)
-      if defined?(OtherInsurance) && OtherInsurance.respond_to?(:joins)
-        other_policies = OtherInsurance.joins(:policy).where(policies: { customer_id: affiliate_customers.pluck(:id) })
-        other_policies_count = other_policies.count
-        other_policies_premium = other_policies.sum(:total_premium).to_f rescue 0.0
-        other_policies_commission = other_policies.sum(:commission_amount).to_f rescue 0.0
-      end
-    rescue => e
-      Rails.logger.debug "Could not load other insurance data: #{e.message}"
-      other_policies_count = 0
-      other_policies_premium = 0.0
-      other_policies_commission = 0.0
+    # 3 group queries (one per type) instead of N*3 individual queries
+    health_rows = HealthInsurance.where(sub_agent_id: affiliate_ids)
+      .group(:sub_agent_id)
+      .pluck(:sub_agent_id, Arel.sql('COUNT(*)'), Arel.sql('COALESCE(SUM(total_premium),0)'), Arel.sql('ARRAY_AGG(id)'), Arel.sql('ARRAY_AGG(customer_id)'))
+    life_rows = LifeInsurance.where(sub_agent_id: affiliate_ids)
+      .group(:sub_agent_id)
+      .pluck(:sub_agent_id, Arel.sql('COUNT(*)'), Arel.sql('COALESCE(SUM(total_premium),0)'), Arel.sql('ARRAY_AGG(id)'), Arel.sql('ARRAY_AGG(customer_id)'))
+    motor_rows = MotorInsurance.where(sub_agent_id: affiliate_ids)
+      .group(:sub_agent_id)
+      .pluck(:sub_agent_id, Arel.sql('COUNT(*)'), Arel.sql('COALESCE(SUM(total_premium),0)'), Arel.sql('ARRAY_AGG(id)'), Arel.sql('ARRAY_AGG(customer_id)'))
+
+    health_by = health_rows.index_by { |r| r[0] }
+    life_by   = life_rows.index_by   { |r| r[0] }
+    motor_by  = motor_rows.index_by  { |r| r[0] }
+
+    # Collect all policy IDs for batch commission lookup (3 queries instead of N*3)
+    all_health_ids = health_rows.flat_map { |r| r[3] }.compact
+    all_life_ids   = life_rows.flat_map   { |r| r[3] }.compact
+    all_motor_ids  = motor_rows.flat_map  { |r| r[3] }.compact
+
+    h_comm = CommissionPayout.where(policy_type: 'health', policy_id: all_health_ids, payout_to: 'ambassador')
+                             .group(:policy_id).sum(:payout_amount)
+    l_comm = CommissionPayout.where(policy_type: 'life',   policy_id: all_life_ids,   payout_to: 'ambassador')
+                             .group(:policy_id).sum(:payout_amount)
+    m_comm = CommissionPayout.where(policy_type: 'motor',  policy_id: all_motor_ids,  payout_to: 'ambassador')
+                             .group(:policy_id).sum(:payout_amount)
+
+    affiliate_ids.index_with do |aid|
+      h = health_by[aid]; l = life_by[aid]; m = motor_by[aid]
+
+      h_count = h ? h[1].to_i : 0; h_premium = h ? h[2].to_f : 0.0
+      l_count = l ? l[1].to_i : 0; l_premium = l ? l[2].to_f : 0.0
+      m_count = m ? m[1].to_i : 0; m_premium = m ? m[2].to_f : 0.0
+
+      h_ids = h ? h[3].compact : []; l_ids = l ? l[3].compact : []; m_ids = m ? m[3].compact : []
+      total_commission = h_ids.sum { |id| h_comm[id].to_f } +
+                         l_ids.sum { |id| l_comm[id].to_f } +
+                         m_ids.sum { |id| m_comm[id].to_f }
+
+      cust_ids = ((h ? h[4].compact : []) + (l ? l[4].compact : []) + (m ? m[4].compact : [])).uniq
+
+      {
+        total_policies: h_count + l_count + m_count,
+        total_premium: h_premium + l_premium + m_premium,
+        total_commission: total_commission.to_f,
+        health_policies: h_count,
+        life_policies: l_count,
+        motor_policies: m_count,
+        other_policies: 0,
+        recent_policies: [],
+        customers_count: cust_ids.count,
+        joined_date: affiliates.find { |a| a.id == aid }&.created_at
+      }
     end
+  end
 
-    total_policies = health_policies.count + life_policies.count + motor_policies.count + other_policies_count
-    total_premium = (health_policies.sum(:total_premium) +
-                    life_policies.sum(:total_premium) +
-                    motor_policies.sum(:total_premium) +
-                    other_policies_premium).to_f
-
-    # Calculate distributor commission from commission_payouts table
-    health_commission = CommissionPayout.where(
-      policy_type: 'health',
-      policy_id: health_policies.pluck(:id),
-      payout_to: 'ambassador'
-    ).sum(:payout_amount).to_f
-
-    life_commission = CommissionPayout.where(
-      policy_type: 'life',
-      policy_id: life_policies.pluck(:id),
-      payout_to: 'ambassador'
-    ).sum(:payout_amount).to_f
-
-    motor_commission = CommissionPayout.where(
-      policy_type: 'motor',
-      policy_id: motor_policies.pluck(:id),
-      payout_to: 'ambassador'
-    ).sum(:payout_amount).to_f
-
-    total_commission = (health_commission + life_commission + motor_commission + other_policies_commission).to_f
-
-    # Get unique customers from all policies created by this affiliate
-    customer_ids = []
-    customer_ids += health_policies.pluck(:customer_id).compact
-    customer_ids += life_policies.pluck(:customer_id).compact
-    customer_ids += motor_policies.pluck(:customer_id).compact
-    unique_customers_count = customer_ids.uniq.count
-
-    {
-      total_policies: total_policies,
-      total_premium: total_premium,
-      total_commission: total_commission,
-      health_policies: health_policies.count,
-      life_policies: life_policies.count,
-      motor_policies: motor_policies.count,
-      other_policies: other_policies_count,
-      recent_policies: get_recent_policies_for_affiliate(affiliate),
-      customers_count: unique_customers_count,
-      joined_date: affiliate.created_at
-    }
+  def calculate_affiliate_stats(affiliate)
+    batch_calculate_affiliate_stats([affiliate])[affiliate.id] || {}
   end
 
   def calculate_distributor_stats
@@ -586,71 +581,50 @@ class Admin::DistributorsController < Admin::ApplicationController
   end
 
   def calculate_single_distributor_payouts(distributor_id)
-    # Get all commission payouts for this specific distributor
-    ambassador_commission_payouts = CommissionPayout.where(payout_to: 'ambassador').includes(:payout)
+    payouts = CommissionPayout.where(payout_to: 'ambassador').to_a
+    return { leads: [], total_amount: 0.0, paid_amount: 0.0, pending_amount: 0.0, lead_count: 0 } if payouts.empty?
 
-    leads = []
-    total_amount = 0.0
-    paid_amount = 0.0
-    pending_amount = 0.0
+    # Preload all policies grouped by type (avoids 1 query per payout)
+    ids_by_type = payouts.group_by(&:policy_type).transform_values { |ps| ps.map(&:policy_id).compact.uniq }
+    policy_map = {}
+    { 'health' => HealthInsurance, 'life' => LifeInsurance, 'motor' => MotorInsurance }.each do |pt, klass|
+      next if ids_by_type[pt].blank?
+      policy_map[pt] = klass.where(id: ids_by_type[pt]).index_by(&:id)
+    end
+    begin
+      if ids_by_type['other'].present? && defined?(OtherInsurance)
+        policy_map['other'] = OtherInsurance.where(id: ids_by_type['other']).index_by(&:id)
+      end
+    rescue; end
 
-    ambassador_commission_payouts.each do |commission_payout|
-      # Get policy from commission payout
-      policy = get_policy_from_commission_payout(commission_payout)
+    # Preload all leads by lead_id in one query
+    all_lead_ids = payouts.map(&:lead_id).compact.uniq
+    leads_by_lead_id = all_lead_ids.any? ? Lead.where(lead_id: all_lead_ids).index_by(&:lead_id) : {}
+
+    leads = []; total_amount = 0.0; paid_amount = 0.0; pending_amount = 0.0
+
+    payouts.each do |payout|
+      policy = policy_map.dig(payout.policy_type, payout.policy_id)
       next unless policy
-
-      # Skip if main agent commission not received
       next unless policy.respond_to?(:main_agent_commission_received) && policy.main_agent_commission_received
+      next unless policy.respond_to?(:distributor_id) && policy.distributor_id == distributor_id
 
-      # Check if this payout belongs to our distributor
-      policy_distributor_id = policy.distributor_id if policy.respond_to?(:distributor_id)
-      next unless policy_distributor_id == distributor_id
+      lead = payout.lead_id.present? ? leads_by_lead_id[payout.lead_id] : nil
+      lead ||= (policy.respond_to?(:lead_id) && policy.lead_id.present?) ? leads_by_lead_id[policy.lead_id] : nil
+      lead ||= OpenStruct.new(
+        id: "virtual_#{policy.id}",
+        lead_id: policy.try(:lead_id) || "POLICY-#{policy.id}",
+        created_at: policy.created_at
+      )
 
-      # Get or create lead
-      lead = nil
-      if commission_payout.lead_id.present?
-        lead = Lead.find_by(lead_id: commission_payout.lead_id)
-      end
-
-      # Fallback: try to find lead by policy lead_id
-      if lead.nil? && policy.respond_to?(:lead_id) && policy.lead_id.present?
-        lead = Lead.find_by(lead_id: policy.lead_id)
-      end
-
-      # If no lead found, create a virtual lead object
-      if lead.nil?
-        lead = OpenStruct.new(
-          id: "virtual_#{policy.id}",
-          lead_id: policy.try(:lead_id) || "POLICY-#{policy.id}",
-          created_at: policy.created_at
-        )
-      end
-
-      distributor_commission = commission_payout.payout_amount.to_f
-      already_paid = commission_payout.status == 'paid'
-
-      total_amount += distributor_commission
-
-      if already_paid
-        paid_amount += distributor_commission
-      else
-        pending_amount += distributor_commission
-      end
-
-      leads << {
-        lead: lead,
-        commission: distributor_commission,
-        paid: already_paid
-      }
+      amount = payout.payout_amount.to_f
+      paid = payout.status == 'paid'
+      total_amount += amount
+      paid ? paid_amount += amount : pending_amount += amount
+      leads << { lead: lead, commission: amount, paid: paid }
     end
 
-    {
-      leads: leads,
-      total_amount: total_amount,
-      paid_amount: paid_amount,
-      pending_amount: pending_amount,
-      lead_count: leads.count
-    }
+    { leads: leads, total_amount: total_amount, paid_amount: paid_amount, pending_amount: pending_amount, lead_count: leads.count }
   end
 
   def calculate_distributor_stats_basic

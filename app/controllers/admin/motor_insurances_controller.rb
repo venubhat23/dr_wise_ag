@@ -89,54 +89,42 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       )
     end
 
-    # Add counters for tabs based on DrWise/Non-DrWise classification
-    @drwise_count = MotorInsurance.where(
-      is_admin_added: true,
-      is_customer_added: false,
-      is_agent_added: false
-    ).count
-    @non_drwise_count = MotorInsurance.where(
-      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-      true, false, false, true, false, false
-    ).count
+    # Single query replaces 7+ separate count/sum queries
+    row = ActiveRecord::Base.connection.execute(<<~SQL).first
+      SELECT
+        COUNT(*) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added)                                                              AS drwise_count,
+        COUNT(*) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AS non_drwise_count,
+        COALESCE(SUM(total_premium) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_premium,
+        COALESCE(SUM(total_premium) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_premium
+      FROM motor_insurances
+    SQL
+    @drwise_count      = row['drwise_count'].to_i
+    @non_drwise_count  = row['non_drwise_count'].to_i
+    @drwise_premium    = row['drwise_premium'].to_f
+    @non_drwise_premium = row['non_drwise_premium'].to_f
 
-    # Calculate statistics for tabs
-    drwise_policies = MotorInsurance.where(
-      is_admin_added: true,
-      is_customer_added: false,
-      is_agent_added: false
-    )
-    non_drwise_policies = MotorInsurance.where(
-      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-      true, false, false, true, false, false
-    )
-
-    @drwise_premium = drwise_policies.sum(:total_premium) || 0
-    @non_drwise_premium = non_drwise_policies.sum(:total_premium) || 0
-
-    # Vehicle class distribution scoped to the current tab (DrWise or Non-DrWise)
-    tab_base = if @current_tab == 'drwise'
-      MotorInsurance.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
+    # Vehicle class counts for current tab — single grouped query
+    tab_where = if @current_tab == 'drwise'
+      'is_admin_added = true AND is_customer_added = false AND is_agent_added = false'
     else
-      MotorInsurance.where(
-        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-        true, false, false, true, false, false
-      )
+      '(is_customer_added = true AND is_admin_added = false AND is_agent_added = false) OR (is_agent_added = true AND is_customer_added = false AND is_admin_added = false)'
     end
-    vehicle_class_counts  = tab_base.group(:class_of_vehicle).count
-    @two_wheeler_count    = vehicle_class_counts['Two Wheeler'].to_i
-    @private_car_count    = vehicle_class_counts['Private Car'].to_i
-    @goods_vehicle_count  = vehicle_class_counts['Goods Vehicle'].to_i
-    @taxi_count           = vehicle_class_counts['Taxi'].to_i
+    vehicle_class_counts = MotorInsurance.where(tab_where).group(:class_of_vehicle).count
+    @two_wheeler_count   = vehicle_class_counts['Two Wheeler'].to_i
+    @private_car_count   = vehicle_class_counts['Private Car'].to_i
+    @goods_vehicle_count = vehicle_class_counts['Goods Vehicle'].to_i
+    @taxi_count          = vehicle_class_counts['Taxi'].to_i
 
     @total_policies = @motor_insurances.count
-    @total_premium = @motor_insurances.sum(:total_premium)
+    @total_premium  = @current_tab == 'drwise' ? @drwise_premium : @non_drwise_premium
 
-    # Filter dropdown data
-    @filter_companies     = MotorInsurance.distinct.pluck(:insurance_company_name).compact.reject(&:blank?).sort
-    @filter_sub_agents    = SubAgent.joins(:motor_insurances).distinct.order(:first_name, :last_name)
-    @filter_policy_types  = MotorInsurance.distinct.pluck(:policy_type).compact.reject(&:blank?).sort
-    @filter_payment_modes = MotorInsurance.distinct.pluck(:payment_mode).compact.reject(&:blank?).sort
+    # Filter dropdowns — 1 pluck replaces 3 distinct queries
+    motor_dropdown_data   = MotorInsurance.pluck(:insurance_company_name, :policy_type, :payment_mode, :sub_agent_id)
+    @filter_companies     = motor_dropdown_data.map { |r| r[0] }.compact.uniq.reject(&:blank?).sort
+    @filter_policy_types  = motor_dropdown_data.map { |r| r[1] }.compact.uniq.reject(&:blank?).sort
+    @filter_payment_modes = motor_dropdown_data.map { |r| r[2] }.compact.uniq.reject(&:blank?).sort
+    motor_sub_agent_ids   = motor_dropdown_data.map { |r| r[3] }.compact.uniq
+    @filter_sub_agents    = SubAgent.where(id: motor_sub_agent_ids).order(:first_name, :last_name)
 
     @motor_insurances = paginate_records(@motor_insurances.order(created_at: :desc))
   end

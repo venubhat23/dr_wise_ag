@@ -49,11 +49,13 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     @health_insurances = @health_insurances.where("policy_start_date >= ?", params[:from_date]) if params[:from_date].present?
     @health_insurances = @health_insurances.where("policy_start_date <= ?", params[:to_date])   if params[:to_date].present?
 
-    # Filter dropdown data
-    @filter_companies     = HealthInsurance.distinct.pluck(:insurance_company_name).compact.reject(&:blank?).sort
-    @filter_sub_agents    = SubAgent.joins(:health_insurances).distinct.order(:first_name, :last_name)
+    # Filter dropdowns — 1 pluck replaces 2 distinct queries; sub_agents via id lookup
+    hi_dropdown_data      = HealthInsurance.pluck(:insurance_company_name, :payment_mode, :sub_agent_id)
+    @filter_companies     = hi_dropdown_data.map { |r| r[0] }.compact.uniq.reject(&:blank?).sort
+    @filter_payment_modes = hi_dropdown_data.map { |r| r[1] }.compact.uniq.reject(&:blank?).sort
+    hi_sub_agent_ids      = hi_dropdown_data.map { |r| r[2] }.compact.uniq
+    @filter_sub_agents    = SubAgent.where(id: hi_sub_agent_ids).order(:first_name, :last_name)
     @filter_policy_types  = ['New', 'Renewal']
-    @filter_payment_modes = HealthInsurance.distinct.pluck(:payment_mode).compact.reject(&:blank?).sort
 
     # Calculate statistics for current tab (before pagination)
     calculate_tab_statistics
@@ -719,46 +721,39 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   end
 
   def calculate_tab_statistics
-    # Get counts for both tabs for display purposes
-    @drwise_count = HealthInsurance.where(
-      is_admin_added: true,
-      is_customer_added: false,
-      is_agent_added: false
-    ).count
+    # Single query replaces 6 separate count/sum queries
+    row = ActiveRecord::Base.connection.execute(<<~SQL).first
+      SELECT
+        COUNT(*) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added)                                                              AS drwise_count,
+        COUNT(*) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AS non_drwise_count,
+        COALESCE(SUM(total_premium) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_premium,
+        COALESCE(SUM(sum_insured)   FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_coverage,
+        COALESCE(SUM(total_premium) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_premium,
+        COALESCE(SUM(sum_insured)   FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_coverage
+      FROM health_insurances
+    SQL
+    @drwise_count        = row['drwise_count'].to_i
+    @non_drwise_count    = row['non_drwise_count'].to_i
+    @drwise_premium      = row['drwise_premium'].to_f
+    @drwise_coverage     = row['drwise_coverage'].to_f
+    @non_drwise_premium  = row['non_drwise_premium'].to_f
+    @non_drwise_coverage = row['non_drwise_coverage'].to_f
 
-    @non_drwise_count = HealthInsurance.where(
-      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-      true, false, false, true, false, false
-    ).count
+    # Active + expiring counts in one query instead of two
+    scope_stats = @health_insurances.select(
+      "COUNT(*) FILTER (WHERE policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)                                        AS active_count,
+       COUNT(*) FILTER (WHERE policy_end_date BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL '30 days')) AS expiring_count"
+    ).first
+    @active_policies = scope_stats&.active_count.to_i
+    @expiring_soon   = scope_stats&.expiring_count.to_i
 
-    # Calculate statistics for tabs
-    drwise_policies = HealthInsurance.where(
-      is_admin_added: true,
-      is_customer_added: false,
-      is_agent_added: false
-    )
-    non_drwise_policies = HealthInsurance.where(
-      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-      true, false, false, true, false, false
-    )
-
-    @drwise_premium = drwise_policies.sum(:total_premium) || 0
-    @drwise_coverage = drwise_policies.sum(:sum_insured) || 0
-    @non_drwise_premium = non_drwise_policies.sum(:total_premium) || 0
-    @non_drwise_coverage = non_drwise_policies.sum(:sum_insured) || 0
-
-    # Statistics for current tab
     if @current_tab == 'drwise'
       @total_policies = @drwise_count
-      @active_policies = @health_insurances.where('policy_end_date >= ?', Date.current).count
-      @expiring_soon = @health_insurances.where('policy_end_date BETWEEN ? AND ?', Date.current, 30.days.from_now).count
-      @total_premium = @drwise_premium
+      @total_premium  = @drwise_premium
       @total_coverage = @drwise_coverage
     else
       @total_policies = @non_drwise_count
-      @active_policies = @health_insurances.where('policy_end_date >= ?', Date.current).count
-      @expiring_soon = @health_insurances.where('policy_end_date BETWEEN ? AND ?', Date.current, 30.days.from_now).count
-      @total_premium = @non_drwise_premium
+      @total_premium  = @non_drwise_premium
       @total_coverage = @non_drwise_coverage
     end
   end

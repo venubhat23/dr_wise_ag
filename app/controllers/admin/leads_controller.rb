@@ -65,15 +65,25 @@ class Admin::LeadsController < Admin::ApplicationController
       @leads = paginate_records(@leads.order(created_at: :desc).includes(:converted_customer, :created_policy, :affiliate, :ambassador))
     end
 
-    # Statistics for dashboard - updated to reflect active leads only (those without converted stage)
-    active_leads_scope = Lead.where.not(current_stage: 'converted')
-    @total_leads = active_leads_scope.count
-    @lead_generated_leads = active_leads_scope.where(current_stage: 'lead_generated').count
-    @consultation_leads = active_leads_scope.where(current_stage: 'consultation_scheduled').count
-    @one_on_one_leads = active_leads_scope.where(current_stage: 'one_on_one').count
-    @follow_up_leads = active_leads_scope.where(current_stage: 'follow_up').count
-    @converted_leads = Lead.where(current_stage: 'converted').count
-    @lead_closed_leads = active_leads_scope.where(current_stage: 'lead_closed').count
+    # Statistics — all stage counts in one query instead of 7 separate count queries
+    stats = ActiveRecord::Base.connection.execute(<<~SQL).first
+      SELECT
+        COUNT(*) FILTER (WHERE current_stage != 'converted')                    AS total_active,
+        COUNT(*) FILTER (WHERE current_stage = 'lead_generated')                AS lead_generated,
+        COUNT(*) FILTER (WHERE current_stage = 'consultation_scheduled')        AS consultation,
+        COUNT(*) FILTER (WHERE current_stage = 'one_on_one')                    AS one_on_one,
+        COUNT(*) FILTER (WHERE current_stage = 'follow_up')                     AS follow_up,
+        COUNT(*) FILTER (WHERE current_stage = 'converted')                     AS converted,
+        COUNT(*) FILTER (WHERE current_stage = 'lead_closed')                   AS lead_closed
+      FROM leads
+    SQL
+    @total_leads          = stats['total_active'].to_i
+    @lead_generated_leads = stats['lead_generated'].to_i
+    @consultation_leads   = stats['consultation'].to_i
+    @one_on_one_leads     = stats['one_on_one'].to_i
+    @follow_up_leads      = stats['follow_up'].to_i
+    @converted_leads      = stats['converted'].to_i
+    @lead_closed_leads    = stats['lead_closed'].to_i
 
     # Conversion rate calculation
     total_converted = @converted_leads

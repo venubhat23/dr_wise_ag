@@ -197,7 +197,7 @@
                   </div>
                 </td>
                 <td>
-                  <%= distributor.assigned_sub_agents.count %>
+                  <%= @sub_agent_counts[distributor.id].to_i %>
                 </td>
                 <td>
                   <small class="text-muted">

@@ -68,49 +68,41 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
       )
     end
 
-    # Add counters for tabs based on DrWise/Non-DrWise classification
-    @drwise_count = OtherInsurance.where(
-      is_admin_added: true,
-      is_customer_added: false,
-      is_agent_added: false
-    ).count
-    @non_drwise_count = OtherInsurance.where(
-      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-      true, false, false, true, false, false
-    ).count
+    # Single query replaces 8 separate count/sum queries
+    row = ActiveRecord::Base.connection.execute(<<~SQL).first
+      SELECT
+        COUNT(*) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added)                                                              AS drwise_count,
+        COUNT(*) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AS non_drwise_count,
+        COALESCE(SUM(total_premium) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_premium,
+        COALESCE(SUM(sum_insured)   FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_coverage,
+        COALESCE(SUM(total_premium) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_premium,
+        COALESCE(SUM(sum_insured)   FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_coverage
+      FROM other_insurances
+    SQL
+    @drwise_count        = row['drwise_count'].to_i
+    @non_drwise_count    = row['non_drwise_count'].to_i
+    @drwise_premium      = row['drwise_premium'].to_f
+    @drwise_coverage     = row['drwise_coverage'].to_f
+    @non_drwise_premium  = row['non_drwise_premium'].to_f
+    @non_drwise_coverage = row['non_drwise_coverage'].to_f
 
-    # Filter dropdown data
-    @filter_companies       = OtherInsurance.distinct.pluck(:insurance_company_name).compact.reject(&:blank?).sort
-    @filter_sub_agents      = SubAgent.where(id: OtherInsurance.distinct.select(:sub_agent_id).where.not(sub_agent_id: nil)).order(:first_name, :last_name)
-    @filter_insurance_types = OtherInsurance.distinct.pluck(:insurance_type).compact.reject(&:blank?).sort
-    @filter_payment_modes   = OtherInsurance.distinct.pluck(:payment_mode).compact.reject(&:blank?).sort
+    # Combine 4 separate pluck queries into 1 by fetching all needed columns at once
+    dropdown_data = OtherInsurance.pluck(:insurance_company_name, :insurance_type, :payment_mode, :sub_agent_id)
+    @filter_companies       = dropdown_data.map { |r| r[0] }.compact.uniq.reject(&:blank?).sort
+    @filter_insurance_types = dropdown_data.map { |r| r[1] }.compact.uniq.reject(&:blank?).sort
+    @filter_payment_modes   = dropdown_data.map { |r| r[2] }.compact.uniq.reject(&:blank?).sort
+    sub_agent_ids           = dropdown_data.map { |r| r[3] }.compact.uniq
+    @filter_sub_agents      = SubAgent.where(id: sub_agent_ids).order(:first_name, :last_name)
 
     @other_insurances = paginate_records(@other_insurances.order(created_at: :desc))
 
-    # Calculate statistics for tabs
-    drwise_policies = OtherInsurance.where(
-      is_admin_added: true,
-      is_customer_added: false,
-      is_agent_added: false
-    )
-    non_drwise_policies = OtherInsurance.where(
-      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-      true, false, false, true, false, false
-    )
-
-    @drwise_premium = drwise_policies.sum(:total_premium) || 0
-    @drwise_coverage = drwise_policies.sum(:sum_insured) || 0
-    @non_drwise_premium = non_drwise_policies.sum(:total_premium) || 0
-    @non_drwise_coverage = non_drwise_policies.sum(:sum_insured) || 0
-
-    # Set current tab statistics
     if @current_tab == 'drwise'
       @total_policies = @drwise_count
-      @total_premium = @drwise_premium
+      @total_premium  = @drwise_premium
       @total_coverage = @drwise_coverage
     else
       @total_policies = @non_drwise_count
-      @total_premium = @non_drwise_premium
+      @total_premium  = @non_drwise_premium
       @total_coverage = @non_drwise_coverage
     end
   end
