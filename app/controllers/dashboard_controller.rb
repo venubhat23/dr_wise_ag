@@ -1240,27 +1240,30 @@ class DashboardController < ApplicationController
 
   def collect_policies_for_detail(range)
     policies = []
-    dr_scope(HealthInsurance).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
-      policies << format_policy_detail(p, 'Health')
+    HealthInsurance.where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+      policies << format_policy_detail(p, 'Health', 'health')
     end
-    dr_scope(LifeInsurance).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
-      policies << format_policy_detail(p, 'Life')
+    LifeInsurance.where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+      policies << format_policy_detail(p, 'Life', 'life')
     end
     begin
-      dr_scope(MotorInsurance).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
-        policies << format_policy_detail(p, 'Motor')
+      MotorInsurance.where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+        policies << format_policy_detail(p, 'Motor', 'motor')
       end
     rescue; end
     begin
-      dr_scope(OtherInsurance).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
-        policies << format_policy_detail(p, 'Other')
+      OtherInsurance.where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+        policies << format_policy_detail(p, 'Other', 'other')
       end
     rescue; end
     policies.sort_by { |p| p[:policy_start_date_raw] || '' }.reverse
   end
 
-  def format_policy_detail(p, type)
-    { type: type, policy_number: p.policy_number.to_s,
+  def format_policy_detail(p, type, route_key)
+    { type: type,
+      policy_number: p.policy_number.to_s,
+      policy_link: "/admin/insurance/#{route_key}/#{p.id}",
+      drwise: p.respond_to?(:product_through_dr) ? p.product_through_dr == true : p.is_admin_added == true,
       customer: p.customer&.display_name || 'Unknown',
       policy_start_date: p.policy_start_date&.strftime('%d/%m/%Y'),
       policy_start_date_raw: p.policy_start_date.to_s,

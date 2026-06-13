@@ -3121,27 +3121,35 @@ function renderDashboardKpiData(metric, label, data) {
       <th>#</th><th>Type</th><th>Policy No.</th><th>Customer</th>
       <th>Start Date</th><th>End Date</th><th>Created</th>
       <th class="text-end">Net Premium</th><th class="text-end">Total Premium</th>
+      <th class="text-center">Source</th>
     </tr>`;
     let totalNet = 0, totalGross = 0;
     records.forEach((r, i) => {
       totalNet   += r.net_premium   || 0;
       totalGross += r.total_premium || 0;
+      const policyCell = r.policy_link
+        ? `<a href="${r.policy_link}" target="_blank" class="font-monospace small text-decoration-none">${r.policy_number}</a>`
+        : `<span class="font-monospace small">${r.policy_number}</span>`;
+      const sourceBadge = r.drwise
+        ? `<span class="badge bg-success">DrWise</span>`
+        : `<span class="badge bg-warning text-dark">Non-DrWise</span>`;
       body.innerHTML += `<tr>
         <td class="text-muted">${i+1}</td>
         <td><span class="badge bg-secondary">${r.type}</span></td>
-        <td class="font-monospace small">${r.policy_number}</td>
+        <td>${policyCell}</td>
         <td>${r.customer}</td>
         <td>${r.policy_start_date || '—'}</td>
         <td>${r.policy_end_date   || '—'}</td>
         <td>${r.created_at}</td>
         <td class="text-end">${dashFmtINR(r.net_premium)}</td>
         <td class="text-end fw-bold">${dashFmtINR(r.total_premium)}</td>
+        <td class="text-center">${sourceBadge}</td>
       </tr>`;
     });
     foot.innerHTML = `<tr class="table-warning fw-bold">
-      <td colspan="7">Total (${records.length} policies)</td>
-      <td class="text-end">${dashFmtINR(totalNet)}</td>
+      <td colspan="8">Total (${records.length} policies)</td>
       <td class="text-end">${dashFmtINR(totalGross)}</td>
+      <td></td>
     </tr>`;
     summary.innerHTML = `<div class="d-flex gap-3 flex-wrap mb-2">
       <span class="badge bg-primary fs-6">${records.length} Policies</span>
