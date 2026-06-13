@@ -69,11 +69,13 @@ class Api::V1::Mobile::InvestmentsController < Api::V1::Mobile::BaseController
   end
 
   # POST /api/v1/mobile/investments/mutual_funds
-  # Customer-submitted → always is_customer_added: true, is_admin_added: false
-  # Same pattern as insurance add_policy — no commission, no drwise param
+  # drwise: true  → is_admin_added: true  (appears in DrWise tab in admin)
+  # drwise: false → is_customer_added: true (appears in Non-DrWise tab)
   def create_mutual_fund
     return render_missing('investment_type') if params[:investment_type].blank?
     return render_missing('amount')          if params[:amount].blank?
+
+    drwise = params[:drwise].to_s == 'true'
 
     mf = MutualFund.new(
       customer_id:       current_customer.id,
@@ -85,8 +87,8 @@ class Api::V1::Mobile::InvestmentsController < Api::V1::Mobile::BaseController
       start_date:        parse_date(params[:start_date]),
       maturity_date:     parse_date(params[:maturity_date]),
       active:            true,
-      is_customer_added: true,
-      is_admin_added:    false,
+      is_admin_added:    drwise,
+      is_customer_added: !drwise,
       is_agent_added:    false
     )
 
@@ -156,9 +158,10 @@ class Api::V1::Mobile::InvestmentsController < Api::V1::Mobile::BaseController
   end
 
   # POST /api/v1/mobile/investments/fd
-  # Customer-submitted → no commission tracking (same as insurance non-drwise flow)
   def create_fd
     return render_missing('amount') if params[:amount].blank?
+
+    drwise = params[:drwise].to_s == 'true'
 
     service = ClientService.new(
       customer_id:      current_customer.id,
@@ -167,7 +170,10 @@ class Api::V1::Mobile::InvestmentsController < Api::V1::Mobile::BaseController
       status:           params[:status].presence || 'pending',
       reference_number: params[:reference_number],
       start_date:       parse_date(params[:start_date]),
-      notes:            params[:notes]
+      notes:            params[:notes],
+      is_admin_added:    drwise,
+      is_customer_added: !drwise,
+      is_agent_added:    false
     )
 
     if service.save
@@ -213,9 +219,10 @@ class Api::V1::Mobile::InvestmentsController < Api::V1::Mobile::BaseController
   end
 
   # POST /api/v1/mobile/investments/other
-  # Customer-submitted → no commission tracking (same as insurance non-drwise flow)
   def create_other
     return render_missing('amount') if params[:amount].blank?
+
+    drwise = params[:drwise].to_s == 'true'
 
     service = ClientService.new(
       customer_id:      current_customer.id,
@@ -224,7 +231,10 @@ class Api::V1::Mobile::InvestmentsController < Api::V1::Mobile::BaseController
       status:           params[:status].presence || 'pending',
       reference_number: params[:reference_number],
       start_date:       parse_date(params[:start_date]),
-      notes:            params[:notes]
+      notes:            params[:notes],
+      is_admin_added:    drwise,
+      is_customer_added: !drwise,
+      is_agent_added:    false
     )
 
     if service.save

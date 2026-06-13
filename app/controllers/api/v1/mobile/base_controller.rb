@@ -37,7 +37,7 @@ class Api::V1::Mobile::BaseController < ApplicationController
       role = decoded_token['role']
 
       case role
-      when 'customer'
+      when 'customer', 'client'
         # For customers, user_id is the User record ID, need to find associated Customer
         user_record = User.find(user_id)
         @current_user = Customer.find_by(email: user_record.email)

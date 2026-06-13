@@ -5,6 +5,7 @@ class Admin::ClientServicesController < Admin::ApplicationController
   def index
     @service_type     = params[:service_type]
     @service_category = params[:service_category]
+    @current_tab      = params[:tab].presence || 'drwise'
 
     @client_services = ClientService.includes(:customer, :sub_agent)
 
@@ -18,6 +19,14 @@ class Admin::ClientServicesController < Admin::ApplicationController
       @page_title = ClientService::CATEGORY_LABELS[@service_category] || @service_category.humanize
     else
       @page_title = 'All Services'
+    end
+
+    # DrWise / Non-DrWise tab filter
+    case @current_tab
+    when 'drwise'
+      @client_services = @client_services.where(is_admin_added: true)
+    when 'non_drwise'
+      @client_services = @client_services.where(is_admin_added: false)
     end
 
     if params[:search].present?
@@ -126,16 +135,21 @@ class Admin::ClientServicesController < Admin::ApplicationController
   def calculate_statistics
     scope = @service_type.present? ? ClientService.by_type(@service_type) :
             (@service_category.present? ? ClientService.by_category(@service_category) : ClientService)
-    @total_count     = scope.count
-    @pending_count   = scope.where(status: 'pending').count
-    @completed_count = scope.where(status: 'completed').count
-    @total_amount    = scope.sum(:amount)
+    @drwise_count     = scope.where(is_admin_added: true).count
+    @non_drwise_count = scope.where(is_admin_added: false).count
+    @total_count      = @drwise_count + @non_drwise_count
+    @pending_count    = scope.where(status: 'pending').count
+    @completed_count  = scope.where(status: 'completed').count
+    @drwise_amount    = scope.where(is_admin_added: true).sum(:amount)
+    @non_drwise_amount = scope.where(is_admin_added: false).sum(:amount)
+    @total_amount     = @drwise_amount + @non_drwise_amount
   end
 
   def client_service_params
     params.require(:client_service).permit(
       :service_type, :service_category, :customer_id, :sub_agent_id, :distributor_id,
       :amount, :status, :reference_number, :start_date, :notes,
+      :is_admin_added, :is_customer_added, :is_agent_added,
       :main_agent_commission_percentage, :commission_amount, :tds_percentage, :tds_amount, :after_tds_value,
       :sub_agent_commission_percentage, :sub_agent_commission_amount, :sub_agent_tds_percentage, :sub_agent_tds_amount, :sub_agent_after_tds_value,
       :distributor_commission_percentage, :distributor_commission_amount, :distributor_tds_percentage, :distributor_tds_amount, :distributor_after_tds_value,

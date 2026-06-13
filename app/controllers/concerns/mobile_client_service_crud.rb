@@ -18,18 +18,24 @@ module MobileClientServiceCrud
     }
   end
 
-  # Create a new record — customer-submitted, no commission (same as insurance non-drwise pattern)
+  # Create a new record.
+  # Pass drwise: true in the request body to mark this as a DrWise-managed record.
   def create_service(service_type)
     return render_missing('amount') if params[:amount].blank?
 
+    drwise = params[:drwise].to_s == 'true'
+
     service = ClientService.new(
-      customer_id:      current_customer.id,
-      service_type:     service_type,
-      amount:           params[:amount],
-      status:           params[:status].presence || 'pending',
-      reference_number: params[:reference_number],
-      start_date:       parse_date(params[:start_date]),
-      notes:            params[:notes]
+      customer_id:       current_customer.id,
+      service_type:      service_type,
+      amount:            params[:amount],
+      status:            params[:status].presence || 'pending',
+      reference_number:  params[:reference_number],
+      start_date:        parse_date(params[:start_date]),
+      notes:             params[:notes],
+      is_admin_added:    drwise,
+      is_customer_added: !drwise,
+      is_agent_added:    false
     )
 
     if service.save
@@ -108,6 +114,8 @@ module MobileClientServiceCrud
       reference_number: service.reference_number,
       start_date:       service.start_date&.strftime('%Y-%m-%d'),
       notes:            service.notes,
+      drwise:           service.is_admin_added == true,
+      dr_wise:          service.is_admin_added == true,
       created_at:       service.created_at&.strftime('%Y-%m-%d %H:%M:%S'),
       updated_at:       service.updated_at&.strftime('%Y-%m-%d %H:%M:%S')
     }

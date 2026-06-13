@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_05_042811) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_13_012250) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -261,6 +261,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_05_042811) do
     t.decimal "profit_amount", precision: 15, scale: 2, default: "0.0"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "is_admin_added", default: false, null: false
+    t.boolean "is_customer_added", default: true, null: false
+    t.boolean "is_agent_added", default: false, null: false
     t.index ["customer_id"], name: "index_client_services_on_customer_id"
     t.index ["service_category"], name: "index_client_services_on_service_category"
     t.index ["service_type"], name: "index_client_services_on_service_type"
@@ -1389,6 +1392,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_05_042811) do
     t.index ["policy_end_date"], name: "index_policies_on_policy_end_date"
     t.index ["policy_start_date"], name: "index_policies_on_policy_start_date"
     t.index ["status"], name: "index_policies_on_status"
+  end
+
+  create_table "policy_documents", force: :cascade do |t|
+    t.string "policy_type", null: false
+    t.integer "policy_id", null: false
+    t.string "document_type", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.string "uploaded_by"
+    t.string "r2_file_key"
+    t.string "r2_filename"
+    t.string "r2_content_type"
+    t.bigint "r2_file_size"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_policy_documents_on_created_at"
+    t.index ["document_type"], name: "index_policy_documents_on_document_type"
+    t.index ["policy_type", "policy_id"], name: "index_policy_documents_on_policy_type_and_policy_id"
   end
 
   create_table "reports", force: :cascade do |t|

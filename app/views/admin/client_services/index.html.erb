@@ -41,6 +41,10 @@
           <div>
             <h6 class="text-muted mb-2">Total Records</h6>
             <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_count || 0) %></h3>
+            <div class="d-flex gap-2 mt-2">
+              <small class="text-success"><i class="bi bi-check-circle me-1"></i>DrWise: <%= @drwise_count || 0 %></small>
+              <small class="text-warning"><i class="bi bi-x-circle me-1"></i>Non-DrWise: <%= @non_drwise_count || 0 %></small>
+            </div>
           </div>
           <div class="bg-primary bg-opacity-10 rounded p-3">
             <i class="bi <%= service_icon %> text-primary fs-4"></i>
@@ -57,6 +61,10 @@
           <div>
             <h6 class="text-muted mb-2">Total Amount</h6>
             <h3 class="mb-0 text-success"><%= indian_currency(@total_amount || 0) %></h3>
+            <div class="mt-2">
+              <small class="text-muted d-block">DrWise: <%= indian_currency(@drwise_amount || 0) %></small>
+              <small class="text-muted d-block">Non-DrWise: <%= indian_currency(@non_drwise_amount || 0) %></small>
+            </div>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
             <i class="bi bi-currency-rupee text-success fs-4"></i>
@@ -99,12 +107,39 @@
   </div>
 </div>
 
+<!-- DrWise / Non-DrWise Tabs -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body p-0">
+    <ul class="nav nav-tabs border-0" role="tablist">
+      <li class="nav-item" role="presentation">
+        <%= link_to admin_client_services_path(params.permit!.to_h.merge(tab: 'drwise')),
+            class: "nav-link #{'active' if @current_tab == 'drwise'}",
+            role: "tab" do %>
+          <i class="bi bi-check-circle me-2"></i>
+          DrWise Records
+          <span class="badge bg-success ms-2"><%= @drwise_count || 0 %></span>
+        <% end %>
+      </li>
+      <li class="nav-item" role="presentation">
+        <%= link_to admin_client_services_path(params.permit!.to_h.merge(tab: 'non_drwise')),
+            class: "nav-link #{'active' if @current_tab == 'non_drwise'}",
+            role: "tab" do %>
+          <i class="bi bi-x-circle me-2"></i>
+          Non-DrWise Records
+          <span class="badge bg-warning ms-2"><%= @non_drwise_count || 0 %></span>
+        <% end %>
+      </li>
+    </ul>
+  </div>
+</div>
+
 <!-- Table Card -->
 <div class="card border-0 shadow-sm">
   <!-- Filters -->
   <div class="card-body border-bottom bg-light py-3">
     <%= form_with url: admin_client_services_path, method: :get, local: true, class: "row g-2 align-items-end" do |f| %>
       <%= f.hidden_field :service_type, value: @service_type %>
+      <%= f.hidden_field :tab, value: @current_tab %>
 
       <div class="col-md-5">
         <div class="input-group">
@@ -142,6 +177,7 @@
               <th class="py-3 px-4">#</th>
               <th class="py-3">Client Name</th>
               <th class="py-3">Service</th>
+              <th class="py-3">Source</th>
               <th class="py-3">Affiliate</th>
               <th class="py-3">Amount</th>
               <th class="py-3">Status</th>
@@ -159,6 +195,13 @@
                 </td>
                 <td class="py-3">
                   <span class="badge bg-primary bg-opacity-10 text-primary"><%= cs.service_type_label %></span>
+                </td>
+                <td class="py-3">
+                  <% if cs.is_admin_added? %>
+                    <span class="badge bg-success">DrWise</span>
+                  <% else %>
+                    <span class="badge bg-warning text-dark">Non-DrWise</span>
+                  <% end %>
                 </td>
                 <td class="py-3">
                   <% if cs.sub_agent.present? %>
