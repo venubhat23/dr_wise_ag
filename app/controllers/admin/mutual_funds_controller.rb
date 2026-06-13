@@ -62,8 +62,7 @@ class Admin::MutualFundsController < Admin::ApplicationController
   end
 
   def create
-    params_without_docs = mutual_fund_params.except(:main_policy_document, :documents)
-    @mutual_fund = MutualFund.new(params_without_docs)
+    @mutual_fund = MutualFund.new(mutual_fund_params)
 
     @mutual_fund.is_admin_added = true
     @mutual_fund.is_customer_added = false
@@ -72,8 +71,6 @@ class Admin::MutualFundsController < Admin::ApplicationController
     set_distributor_from_affiliate(@mutual_fund)
 
     if @mutual_fund.save
-      handle_main_policy_r2_upload(@mutual_fund) if params[:mutual_fund][:main_policy_document].present?
-      handle_additional_documents_r2_upload(@mutual_fund)
       redirect_to admin_mutual_funds_path, notice: 'Mutual fund was successfully created.'
     else
       set_form_data
@@ -83,55 +80,16 @@ class Admin::MutualFundsController < Admin::ApplicationController
   end
 
   def update
-    if params[:delete_main_policy_document] == 'true'
-      @mutual_fund.delete_main_policy_from_r2 if @mutual_fund.has_main_policy_r2_document?
-      redirect_to edit_admin_mutual_fund_path(@mutual_fund), notice: 'Main document deleted.'
-      return
-    end
-
-    params_without_docs = mutual_fund_params.except(:main_policy_document, :documents)
-    @mutual_fund.assign_attributes(params_without_docs)
+    @mutual_fund.assign_attributes(mutual_fund_params)
     set_distributor_from_affiliate(@mutual_fund)
 
     if @mutual_fund.save
-      handle_main_policy_r2_upload(@mutual_fund) if params[:mutual_fund][:main_policy_document].present?
-      handle_additional_documents_r2_upload(@mutual_fund)
       redirect_to admin_mutual_funds_path, notice: 'Mutual fund was successfully updated.'
     else
       set_form_data
       @auto_select_affiliate = @mutual_fund.sub_agent_id.present? ? @mutual_fund.sub_agent_id : 'self'
       render :edit, status: :unprocessable_entity
     end
-  end
-
-  def load_customer_nominees
-    customer_id = params[:customer_id]
-    return render json: { success: false, message: 'Customer ID required', nominees: [] } unless customer_id.present?
-
-    customer = Customer.find(customer_id)
-    nominee_options = []
-
-    customer.family_members.each do |member|
-      next unless member.name.present? && member.name.strip.length > 0 && !member.name.strip.match?(/^\d+$/)
-      nominee_options << {
-        nominee_name: member.name,
-        relationship: member.relationship&.downcase || 'other',
-        age: member.age || 0
-      }
-    end
-
-    if nominee_options.empty? && customer.nominee_name.present?
-      age = customer.nominee_date_of_birth.present? ? (Date.current.year - customer.nominee_date_of_birth.year) : 0
-      nominee_options << {
-        nominee_name: customer.nominee_name,
-        relationship: customer.nominee_relation&.downcase || 'other',
-        age: age
-      }
-    end
-
-    render json: { success: true, nominees: nominee_options, customer_name: customer.display_name }
-  rescue ActiveRecord::RecordNotFound
-    render json: { success: false, message: 'Customer not found', nominees: [] }
   end
 
   def destroy
@@ -154,8 +112,6 @@ class Admin::MutualFundsController < Admin::ApplicationController
     @sub_agents = SubAgent.active.order(:first_name, :last_name)
     @distributors = Distributor.active.order(:first_name, :last_name)
     @investment_types = MutualFund::INVESTMENT_TYPES
-    @account_types = MutualFund::ACCOUNT_TYPES
-    @relationships = MutualFund::RELATIONSHIPS
   end
 
   def set_distributor_from_affiliate(record)
@@ -189,65 +145,18 @@ class Admin::MutualFundsController < Admin::ApplicationController
     @total_clients_count = MutualFund.joins(:customer).distinct.count('customers.id')
   end
 
-  def handle_main_policy_r2_upload(mutual_fund)
-    file = params[:mutual_fund][:main_policy_document]
-    return unless file.present?
-
-    mutual_fund.delete_main_policy_from_r2 if mutual_fund.has_main_policy_r2_document?
-    result = mutual_fund.upload_main_policy_to_r2(file)
-
-    if result.is_a?(Hash) && !result[:error]
-      flash[:notice] = (flash[:notice] || '') + ' Main document uploaded successfully.'
-    elsif result.is_a?(Hash) && result[:error]
-      flash[:alert] = (flash[:alert] || '') + " Document upload failed: #{result[:error]}"
-    end
-  end
-
-  def handle_additional_documents_r2_upload(mutual_fund)
-    return unless params[:mutual_fund][:documents].present?
-
-    uploaded_count = 0
-    params[:mutual_fund][:documents].each do |file|
-      next if file.blank?
-
-      result = R2Service.upload(file, folder: "mutual_fund/#{mutual_fund.id}/documents")
-      next if result[:error]
-
-      PolicyDocument.create!(
-        policy_type: 'mutual_fund',
-        policy_id: mutual_fund.id,
-        document_type: 'Additional Document',
-        title: result[:filename],
-        description: "Document uploaded on #{Date.current}",
-        uploaded_by: current_user.email,
-        r2_file_key: result[:key],
-        r2_filename: result[:filename],
-        r2_content_type: result[:content_type],
-        r2_file_size: result[:size]
-      )
-      uploaded_count += 1
-    end
-
-    flash[:notice] = (flash[:notice] || '') + " #{uploaded_count} document(s) uploaded." if uploaded_count > 0
-  end
-
   def mutual_fund_params
     params.require(:mutual_fund).permit(
       :customer_id, :sub_agent_id, :distributor_id,
       :investment_type, :amount, :fund_name, :folio_number, :plan_name,
       :start_date, :maturity_date,
-      :bank_name, :account_type, :account_number, :ifsc_code, :account_holder_name,
-      :reference_by_name, :broker_name, :bonus, :fund, :extra_note,
       :main_agent_commission_percentage, :commission_amount, :tds_percentage, :tds_amount, :after_tds_value,
       :sub_agent_commission_percentage, :sub_agent_commission_amount, :sub_agent_tds_percentage, :sub_agent_tds_amount, :sub_agent_after_tds_value,
       :distributor_commission_percentage, :distributor_commission_amount, :distributor_tds_percentage, :distributor_tds_amount, :distributor_after_tds_value,
       :investor_commission_percentage, :investor_commission_amount,
       :company_expenses_percentage, :company_expenses_amount,
       :total_distribution_percentage, :profit_percentage, :profit_amount,
-      :installment_autopay_start_date, :installment_autopay_end_date,
-      :active,
-      :main_policy_document, documents: [],
-      mutual_fund_nominees_attributes: [:id, :nominee_name, :relationship, :age, :share_percentage, :_destroy]
+      :active
     )
   end
 end

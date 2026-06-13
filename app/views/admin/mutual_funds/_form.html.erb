@@ -132,133 +132,6 @@
     </div>
   </div>
 
-  <!-- Nominee Details -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="mb-0">
-        <i class="bi bi-people me-2 text-primary"></i>
-        Nominee Details *
-      </h5>
-    </div>
-    <div class="card-body">
-      <p class="text-muted small mb-3">Add nominee details for this mutual fund.</p>
-      <div id="mf-nominees-container">
-        <div id="mf_no_nominees_message" class="text-muted text-center py-3"
-             style="<%= @mutual_fund.mutual_fund_nominees.any? ? 'display: none;' : '' %>">
-          <i class="bi bi-info-circle me-1"></i>No nominees added yet. Click "Add Nominee" to add nominee details.
-        </div>
-
-        <%= form.fields_for :mutual_fund_nominees do |nf| %>
-          <div class="nominee-row border rounded p-3 mb-3 bg-light">
-            <%= nf.hidden_field :id %>
-            <div class="row">
-              <div class="col-md-4 mb-3">
-                <label class="form-label">Nominee Name <span class="text-danger">*</span></label>
-                <%= nf.text_field :nominee_name, class: "form-control", placeholder: "Enter nominee name", required: true %>
-              </div>
-              <div class="col-md-3 mb-3">
-                <label class="form-label">Relationship</label>
-                <%= nf.select :relationship,
-                    options_for_select([['Select', '']] + MutualFund::RELATIONSHIPS.map { |r| [r, r.downcase] }, nf.object.relationship),
-                    {},
-                    { class: "form-control" } %>
-              </div>
-              <div class="col-md-2 mb-3">
-                <label class="form-label">Age</label>
-                <%= nf.number_field :age, class: "form-control", placeholder: "Age", min: 0, max: 120 %>
-              </div>
-              <div class="col-md-2 mb-3">
-                <label class="form-label">Share (%)</label>
-                <%= nf.number_field :share_percentage, class: "form-control", placeholder: "100", min: 0, max: 100, step: 0.01 %>
-              </div>
-              <div class="col-md-1 mb-3 d-flex align-items-end">
-                <button type="button" class="btn btn-danger btn-sm" onclick="removeMfNominee(this)" title="Remove">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            </div>
-            <%= nf.hidden_field :_destroy, value: false, class: 'destroy-flag' %>
-          </div>
-        <% end %>
-      </div>
-
-      <button type="button" class="btn btn-outline-primary btn-sm" onclick="addMfNominee()">
-        <i class="bi bi-plus-circle me-1"></i>Add Nominee
-      </button>
-    </div>
-  </div>
-
-  <!-- Bank Details -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="mb-0">
-        <i class="bi bi-bank me-2 text-primary"></i>
-        Bank Details
-      </h5>
-    </div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <%= form.label :bank_name, "Bank Name", class: "form-label" %>
-          <%= form.text_field :bank_name, class: "form-control", placeholder: "Bank Name" %>
-        </div>
-        <div class="col-md-4 mb-3">
-          <%= form.label :account_type, "Account Type", class: "form-label" %>
-          <%= form.select :account_type,
-              options_for_select([['Account Type', '']] + MutualFund::ACCOUNT_TYPES.map { |t| [t, t] }, @mutual_fund.account_type),
-              {},
-              { class: "form-control" } %>
-        </div>
-        <div class="col-md-4 mb-3">
-          <%= form.label :account_number, "Account Number", class: "form-label" %>
-          <%= form.text_field :account_number, class: "form-control", placeholder: "Account Number" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :ifsc_code, "IFSC CODE", class: "form-label" %>
-          <%= form.text_field :ifsc_code, class: "form-control", placeholder: "IFSC CODE" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :account_holder_name, "Account Holder Name", class: "form-label" %>
-          <%= form.text_field :account_holder_name, class: "form-control", placeholder: "Holder Name" %>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Other Details -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="mb-0">
-        <i class="bi bi-info-circle me-2 text-primary"></i>
-        Other Details
-      </h5>
-    </div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <%= form.label :reference_by_name, "Reference By Name", class: "form-label" %>
-          <%= form.text_field :reference_by_name, class: "form-control", placeholder: "Enter reference name" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :broker_name, "Broker Name", class: "form-label" %>
-          <%= form.text_field :broker_name, class: "form-control", placeholder: "Broker Name" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :bonus, "Bonus", class: "form-label" %>
-          <%= form.number_field :bonus, class: "form-control", value: @mutual_fund.bonus || 0, step: 0.01 %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :fund, "Fund", class: "form-label" %>
-          <%= form.number_field :fund, class: "form-control", value: @mutual_fund.fund || 0, step: 0.01 %>
-        </div>
-        <div class="col-12 mb-3">
-          <%= form.label :extra_note, "Extra Note", class: "form-label" %>
-          <%= form.text_area :extra_note, class: "form-control", rows: 4, placeholder: "Enter additional notes or comments..." %>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Commission Calculation -->
   <div class="card mb-4 shadow-sm commission-table">
     <div class="card-header" style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
@@ -435,106 +308,6 @@
     </div>
   </div>
 
-  <!-- Policy Documents Manager (R2 Storage) -->
-  <div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">
-        <i class="bi bi-folder2-open me-2 text-primary"></i>Policy Documents Manager
-      </h5>
-      <small class="text-muted">Upload, organize and manage all fund-related documents with secure storage</small>
-    </div>
-    <div class="card-body">
-      <!-- Main Policy Document -->
-      <div class="mb-4 p-3 border rounded bg-light">
-        <label class="form-label fw-bold">
-          <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
-          Main Policy Document (R2 Storage)
-        </label>
-        <% if @mutual_fund.has_main_policy_r2_document? %>
-          <div class="alert alert-success py-2 mb-2">
-            <i class="bi bi-check-circle me-1"></i>
-            Current: <strong><%= @mutual_fund.main_policy_document_filename %></strong>
-            <a href="<%= @mutual_fund.main_policy_r2_url %>" target="_blank" class="btn btn-sm btn-outline-success ms-2">
-              <i class="bi bi-eye me-1"></i>View
-            </a>
-            <%= link_to edit_admin_mutual_fund_path(@mutual_fund, delete_main_policy_document: 'true'),
-                method: :patch,
-                data: { confirm: "Delete this document?" },
-                class: "btn btn-sm btn-outline-danger ms-1" do %>
-              <i class="bi bi-trash me-1"></i>Delete
-            <% end %>
-          </div>
-        <% end %>
-        <input type="file" name="mutual_fund[main_policy_document]" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-        <small class="text-muted">
-          <i class="bi bi-shield-check text-success me-1"></i>
-          Secure R2 Storage: Supports PDF, JPEG, PNG, Word files (Max: 10MB) - files stored securely in Cloudflare R2
-        </small>
-      </div>
-
-      <!-- Additional Documents -->
-      <div class="p-3 border rounded">
-        <label class="form-label fw-bold">
-          <i class="bi bi-paperclip me-2 text-secondary"></i>
-          Additional Documents <span class="text-muted fw-normal">(Optional)</span>
-        </label>
-        <input type="file" name="mutual_fund[documents][]" class="form-control mb-2" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple>
-        <small class="text-muted">Supports PDF, Images, Word files - Identity proofs, statements, etc.</small>
-
-        <!-- Existing additional documents -->
-        <% if @mutual_fund.persisted? && @mutual_fund.policy_documents_records.any? %>
-          <div class="mt-3">
-            <p class="fw-semibold text-muted small">Existing Documents:</p>
-            <% @mutual_fund.policy_documents_records.each do |doc| %>
-              <div class="d-flex align-items-center justify-content-between p-2 border rounded mb-2 bg-white">
-                <div>
-                  <i class="bi bi-file-earmark me-2 text-primary"></i>
-                  <span class="fw-semibold"><%= doc.title %></span>
-                  <span class="badge bg-light text-dark ms-2"><%= doc.document_type %></span>
-                </div>
-                <div class="d-flex gap-2">
-                  <% if doc.has_r2_document? %>
-                    <a href="<%= doc.document_url %>" target="_blank" class="btn btn-sm btn-outline-primary">
-                      <i class="bi bi-eye"></i>
-                    </a>
-                  <% end %>
-                </div>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Autopay Installment -->
-  <div class="card mb-4">
-    <div class="card-header">
-      <h5 class="mb-0">
-        <i class="bi bi-calendar-check me-2 text-primary"></i>
-        Autopay Installment
-      </h5>
-    </div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <%= form.label :installment_autopay_start_date, "Installment Autopay Start Date", class: "form-label" %>
-          <%= form.date_field :installment_autopay_start_date,
-              class: "form-control",
-              value: @mutual_fund.installment_autopay_start_date || Date.current,
-              min: "1900-01-01", max: "2099-12-31" %>
-        </div>
-        <div class="col-md-6 mb-3">
-          <%= form.label :installment_autopay_end_date, "Installment Autopay End Date", class: "form-label" %>
-          <%= form.date_field :installment_autopay_end_date,
-              class: "form-control",
-              value: @mutual_fund.installment_autopay_end_date || Date.current,
-              min: "1900-01-01", max: "2099-12-31" %>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Submit -->
   <div class="d-flex gap-2 justify-content-end mb-4">
     <%= link_to admin_mutual_funds_path, class: "btn btn-outline-secondary" do %>
@@ -550,76 +323,7 @@
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-<!-- Nominee template for JS cloning -->
-<template id="mf-nominee-template">
-  <div class="nominee-row border rounded p-3 mb-3 bg-light">
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">Nominee Name <span class="text-danger">*</span></label>
-        <input type="text" name="mutual_fund[mutual_fund_nominees_attributes][NEW_INDEX][nominee_name]"
-               class="form-control" placeholder="Enter nominee name" required>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Relationship</label>
-        <select name="mutual_fund[mutual_fund_nominees_attributes][NEW_INDEX][relationship]" class="form-control">
-          <option value="">Select</option>
-          <option value="spouse">Spouse</option>
-          <option value="father">Father</option>
-          <option value="mother">Mother</option>
-          <option value="son">Son</option>
-          <option value="daughter">Daughter</option>
-          <option value="brother">Brother</option>
-          <option value="sister">Sister</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-      <div class="col-md-2 mb-3">
-        <label class="form-label">Age</label>
-        <input type="number" name="mutual_fund[mutual_fund_nominees_attributes][NEW_INDEX][age]"
-               class="form-control" placeholder="Age" min="0" max="120">
-      </div>
-      <div class="col-md-2 mb-3">
-        <label class="form-label">Share (%)</label>
-        <input type="number" name="mutual_fund[mutual_fund_nominees_attributes][NEW_INDEX][share_percentage]"
-               class="form-control" placeholder="100" min="0" max="100" step="0.01">
-      </div>
-      <div class="col-md-1 mb-3 d-flex align-items-end">
-        <button type="button" class="btn btn-danger btn-sm" onclick="removeMfNominee(this)" title="Remove">
-          <i class="bi bi-trash"></i>
-        </button>
-      </div>
-    </div>
-    <input type="hidden" name="mutual_fund[mutual_fund_nominees_attributes][NEW_INDEX][_destroy]" value="false" class="destroy-flag">
-  </div>
-</template>
-
 <script>
-let mfNomineeIndex = <%= @mutual_fund.mutual_fund_nominees.size %>;
-
-function addMfNominee() {
-  const template = document.getElementById('mf-nominee-template');
-  const clone = template.content.cloneNode(true);
-  const html = clone.querySelector('.nominee-row').outerHTML.replace(/NEW_INDEX/g, Date.now() + mfNomineeIndex++);
-  document.getElementById('mf-nominees-container').insertAdjacentHTML('beforeend', html);
-  document.getElementById('mf_no_nominees_message').style.display = 'none';
-}
-
-function removeMfNominee(btn) {
-  const row = btn.closest('.nominee-row');
-  const destroyFlag = row.querySelector('.destroy-flag');
-  if (destroyFlag && destroyFlag.name) {
-    destroyFlag.value = 'true';
-    row.style.display = 'none';
-  } else {
-    row.remove();
-  }
-  const container = document.getElementById('mf-nominees-container');
-  const visibleRows = container.querySelectorAll('.nominee-row:not([style*="display: none"])');
-  if (visibleRows.length === 0) {
-    document.getElementById('mf_no_nominees_message').style.display = '';
-  }
-}
-
 // Commission calculation
 (function() {
   function getVal(id) { return parseFloat(document.getElementById(id)?.value) || 0; }
@@ -697,7 +401,7 @@ function removeMfNominee(btn) {
   });
 })();
 
-// Select2 + affiliate & nominee auto-load
+// Select2 + affiliate auto-load
 document.addEventListener('DOMContentLoaded', function() {
   if (typeof $ === 'undefined') return;
 
@@ -717,120 +421,28 @@ document.addEventListener('DOMContentLoaded', function() {
     dropdownParent: $('body')
   });
 
-  // ── On customer select: load affiliate + nominees automatically ──────────
   $('#mf_customer_select').on('select2:select', function(e) {
     var customerId = e.params.data.id;
     if (!customerId) return;
-
     autoLoadAffiliate(customerId);
-    autoLoadNominees(customerId);
   });
 
-  // ── On customer clear: reset affiliate + nominees ────────────────────────
   $('#mf_customer_select').on('select2:clear', function() {
     $('#mf_affiliate_select').val(null).trigger('change');
-    clearMfNominees();
   });
 
-  // ── Affiliate auto-load ──────────────────────────────────────────────────
   function autoLoadAffiliate(customerId) {
     $.ajax({
       url: '/admin/customers/' + customerId + '/affiliate_info',
       type: 'GET',
       success: function(data) {
         var affiliateId = data.affiliate_id;
-        // Set to affiliate ID if found, otherwise '' (Self)
         $('#mf_affiliate_select').val(affiliateId || '').trigger('change');
       },
       error: function() {
         $('#mf_affiliate_select').val('').trigger('change');
       }
     });
-  }
-
-  // ── Nominee auto-load ────────────────────────────────────────────────────
-  function autoLoadNominees(customerId) {
-    $.ajax({
-      url: '<%= load_customer_nominees_admin_mutual_funds_path %>',
-      type: 'GET',
-      data: { customer_id: customerId },
-      success: function(response) {
-        if (response.success && response.nominees && response.nominees.length > 0) {
-          clearMfNominees();
-          response.nominees.forEach(function(nominee) {
-            appendMfNomineeRow(nominee);
-          });
-          document.getElementById('mf_no_nominees_message').style.display = 'none';
-        }
-      },
-      error: function() {
-        console.error('Failed to load nominees');
-      }
-    });
-  }
-
-  // ── Clear all nominee rows ───────────────────────────────────────────────
-  function clearMfNominees() {
-    document.querySelectorAll('#mf-nominees-container .nominee-row').forEach(function(row) {
-      var destroyFlag = row.querySelector('.destroy-flag');
-      if (destroyFlag && destroyFlag.name) {
-        destroyFlag.value = 'true';
-        row.style.display = 'none';
-      } else {
-        row.remove();
-      }
-    });
-    var visible = document.querySelectorAll('#mf-nominees-container .nominee-row:not([style*="display: none"])');
-    if (visible.length === 0) {
-      document.getElementById('mf_no_nominees_message').style.display = '';
-    }
-  }
-
-  // ── Append a pre-filled nominee row ─────────────────────────────────────
-  function appendMfNomineeRow(nominee) {
-    var idx = Date.now() + mfNomineeIndex++;
-    var rel = (nominee.relationship || '').toLowerCase();
-    var relationships = ['spouse','father','mother','son','daughter','brother','sister','other'];
-
-    var options = relationships.map(function(r) {
-      return '<option value="' + r + '"' + (rel === r ? ' selected' : '') + '>' +
-        r.charAt(0).toUpperCase() + r.slice(1) + '</option>';
-    }).join('');
-
-    var html = '<div class="nominee-row border rounded p-3 mb-3 bg-light">' +
-      '<input type="hidden" name="mutual_fund[mutual_fund_nominees_attributes][' + idx + '][id]">' +
-      '<div class="row">' +
-        '<div class="col-md-4 mb-3">' +
-          '<label class="form-label">Nominee Name <span class="text-danger">*</span></label>' +
-          '<input type="text" name="mutual_fund[mutual_fund_nominees_attributes][' + idx + '][nominee_name]"' +
-          ' class="form-control" value="' + (nominee.nominee_name || '') + '" placeholder="Enter nominee name" required>' +
-        '</div>' +
-        '<div class="col-md-3 mb-3">' +
-          '<label class="form-label">Relationship</label>' +
-          '<select name="mutual_fund[mutual_fund_nominees_attributes][' + idx + '][relationship]" class="form-control">' +
-            '<option value="">Select</option>' + options +
-          '</select>' +
-        '</div>' +
-        '<div class="col-md-2 mb-3">' +
-          '<label class="form-label">Age</label>' +
-          '<input type="number" name="mutual_fund[mutual_fund_nominees_attributes][' + idx + '][age]"' +
-          ' class="form-control" value="' + (nominee.age || '') + '" min="0" max="120">' +
-        '</div>' +
-        '<div class="col-md-2 mb-3">' +
-          '<label class="form-label">Share (%)</label>' +
-          '<input type="number" name="mutual_fund[mutual_fund_nominees_attributes][' + idx + '][share_percentage]"' +
-          ' class="form-control" value="100" min="0" max="100" step="0.01">' +
-        '</div>' +
-        '<div class="col-md-1 mb-3 d-flex align-items-end">' +
-          '<button type="button" class="btn btn-danger btn-sm" onclick="removeMfNominee(this)" title="Remove">' +
-            '<i class="bi bi-trash"></i>' +
-          '</button>' +
-        '</div>' +
-      '</div>' +
-      '<input type="hidden" name="mutual_fund[mutual_fund_nominees_attributes][' + idx + '][_destroy]" value="false" class="destroy-flag">' +
-    '</div>';
-
-    document.getElementById('mf-nominees-container').insertAdjacentHTML('beforeend', html);
   }
 });
 </script>

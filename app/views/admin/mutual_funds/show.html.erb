@@ -34,268 +34,128 @@
   </span>
 </div>
 
-<div class="row">
-  <!-- Left Column -->
-  <div class="col-md-8">
-    <!-- Investment Details -->
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">
-        <h5 class="mb-0"><i class="bi bi-graph-up me-2 text-success"></i>Investment Details</h5>
+<!-- Investment Details -->
+<div class="card mb-4 shadow-sm">
+  <div class="card-header">
+    <h5 class="mb-0"><i class="bi bi-graph-up me-2 text-success"></i>Investment Details</h5>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="text-muted small fw-bold">CLIENT NAME</label>
+        <div class="fw-semibold"><%= @mutual_fund.customer&.display_name %></div>
       </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="text-muted small fw-bold">CLIENT NAME</label>
-            <div class="fw-semibold"><%= @mutual_fund.customer&.display_name %></div>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="text-muted small fw-bold">AFFILIATE</label>
-            <div class="fw-semibold"><%= @mutual_fund.sub_agent&.display_name || 'Self' %></div>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="text-muted small fw-bold">INVESTMENT TYPE</label>
-            <div class="fw-semibold"><%= @mutual_fund.investment_type %></div>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="text-muted small fw-bold">AMOUNT</label>
-            <div class="fw-semibold text-success fs-5"><%= indian_currency(@mutual_fund.amount) %></div>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="text-muted small fw-bold">FUND NAME / AMC</label>
-            <div class="fw-semibold"><%= @mutual_fund.fund_name.presence || '—' %></div>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="text-muted small fw-bold">FOLIO NUMBER</label>
-            <div><% if @mutual_fund.folio_number.present? %><code><%= @mutual_fund.folio_number %></code><% else %>—<% end %></div>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="text-muted small fw-bold">PLAN NAME</label>
-            <div><%= @mutual_fund.plan_name.presence || '—' %></div>
-          </div>
-          <div class="col-md-3 mb-3">
-            <label class="text-muted small fw-bold">START DATE</label>
-            <div><%= @mutual_fund.start_date&.strftime("%d %b %Y") || '—' %></div>
-          </div>
-          <div class="col-md-3 mb-3">
-            <label class="text-muted small fw-bold">MATURITY DATE</label>
-            <div><%= @mutual_fund.maturity_date&.strftime("%d %b %Y") || '—' %></div>
-          </div>
-        </div>
+      <div class="col-md-6 mb-3">
+        <label class="text-muted small fw-bold">AFFILIATE</label>
+        <div class="fw-semibold"><%= @mutual_fund.sub_agent&.display_name || 'Self' %></div>
       </div>
-    </div>
-
-    <!-- Nominees -->
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">
-        <h5 class="mb-0"><i class="bi bi-people me-2 text-primary"></i>Nominees</h5>
+      <div class="col-md-6 mb-3">
+        <label class="text-muted small fw-bold">INVESTMENT TYPE</label>
+        <div class="fw-semibold"><%= @mutual_fund.investment_type %></div>
       </div>
-      <div class="card-body">
-        <% if @mutual_fund.mutual_fund_nominees.any? %>
-          <div class="table-responsive">
-            <table class="table table-sm">
-              <thead class="table-light">
-                <tr><th>Name</th><th>Relationship</th><th>Age</th><th>Share %</th></tr>
-              </thead>
-              <tbody>
-                <% @mutual_fund.mutual_fund_nominees.each do |nominee| %>
-                  <tr>
-                    <td><%= nominee.nominee_name %></td>
-                    <td><%= nominee.relationship&.humanize %></td>
-                    <td><%= nominee.age || '—' %></td>
-                    <td><%= nominee.share_percentage.present? ? "#{nominee.share_percentage}%" : '—' %></td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-        <% else %>
-          <p class="text-muted mb-0">No nominees added.</p>
-        <% end %>
+      <div class="col-md-6 mb-3">
+        <label class="text-muted small fw-bold">AMOUNT</label>
+        <div class="fw-semibold text-success fs-5"><%= indian_currency(@mutual_fund.amount) %></div>
       </div>
-    </div>
-
-    <!-- Commission -->
-    <% mf = @mutual_fund %>
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header" style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
-        <div class="d-flex justify-content-between align-items-center">
-          <h5 class="mb-0 fw-bold"><i class="bi bi-calculator me-2 text-primary"></i>Commission Calculation</h5>
-          <div class="badge bg-light text-dark border">
-            Main Agent Commission - Total Distribution - Company Expenses
-          </div>
-        </div>
+      <div class="col-md-6 mb-3">
+        <label class="text-muted small fw-bold">FUND NAME / AMC</label>
+        <div class="fw-semibold"><%= @mutual_fund.fund_name.presence || '—' %></div>
       </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table mb-0" style="font-size: 0.9rem;">
-            <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-              <tr>
-                <th class="py-3 px-4 border-0">COMMISSION DETAILS</th>
-                <th class="py-3 px-3 border-0 text-center">(%)</th>
-                <th class="py-3 px-3 border-0 text-center">COMMISSION</th>
-                <th class="py-3 px-3 border-0 text-center">TDS (%)</th>
-                <th class="py-3 px-3 border-0 text-center">TDS AMOUNT</th>
-                <th class="py-3 px-3 border-0 text-center">ACTUAL AMOUNT</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="border-bottom">
-                <td class="py-3 px-4 fw-bold bg-light">Main Agent</td>
-                <td class="text-center py-2"><%= mf.main_agent_commission_percentage %>%</td>
-                <td class="text-center py-2"><%= indian_currency(mf.commission_amount || 0) %></td>
-                <td class="text-center py-2"><%= mf.tds_percentage %>%</td>
-                <td class="text-center py-2"><%= indian_currency(mf.tds_amount || 0) %></td>
-                <td class="text-center py-2 fw-bold"><%= indian_currency(mf.after_tds_value || 0) %></td>
-              </tr>
-              <tr class="border-bottom">
-                <td class="py-3 px-4 fw-bold">Affiliate</td>
-                <td class="text-center py-2"><%= mf.sub_agent_commission_percentage %>%</td>
-                <td class="text-center py-2"><%= indian_currency(mf.sub_agent_commission_amount || 0) %></td>
-                <td class="text-center py-2"><%= mf.sub_agent_tds_percentage %>%</td>
-                <td class="text-center py-2"><%= indian_currency(mf.sub_agent_tds_amount || 0) %></td>
-                <td class="text-center py-2 fw-bold"><%= indian_currency(mf.sub_agent_after_tds_value || 0) %></td>
-              </tr>
-              <tr class="border-bottom">
-                <td class="py-3 px-4 fw-bold">Ambassador</td>
-                <td class="text-center py-2"><%= mf.distributor_commission_percentage %>%</td>
-                <td class="text-center py-2"><%= indian_currency(mf.distributor_commission_amount || 0) %></td>
-                <td class="text-center py-2"><%= mf.distributor_tds_percentage %>%</td>
-                <td class="text-center py-2"><%= indian_currency(mf.distributor_tds_amount || 0) %></td>
-                <td class="text-center py-2 fw-bold"><%= indian_currency(mf.distributor_after_tds_value || 0) %></td>
-              </tr>
-              <tr class="border-bottom">
-                <td class="py-3 px-4 fw-bold">Investor</td>
-                <td class="text-center py-2"><%= mf.investor_commission_percentage %>%</td>
-                <td class="text-center py-2"><%= indian_currency(mf.investor_commission_amount || 0) %></td>
-                <td class="text-center py-2">—</td>
-                <td class="text-center py-2">—</td>
-                <td class="text-center py-2 fw-bold"><%= indian_currency(mf.investor_commission_amount || 0) %></td>
-              </tr>
-              <tr class="border-bottom">
-                <td class="py-3 px-4 fw-bold">Company</td>
-                <td class="text-center py-2"><%= mf.company_expenses_percentage %>%</td>
-                <td class="text-center py-2"><%= indian_currency(mf.company_expenses_amount || 0) %></td>
-                <td class="text-center py-2">—</td>
-                <td class="text-center py-2">—</td>
-                <td class="text-center py-2 fw-bold"><%= indian_currency(mf.company_expenses_amount || 0) %></td>
-              </tr>
-              <tr style="background: #f0fff4;">
-                <td class="py-3 px-4 fw-bold text-success">Profit</td>
-                <td class="text-center py-2 fw-bold text-success"><%= mf.profit_percentage %>%</td>
-                <td class="text-center py-2 fw-bold text-success"><%= indian_currency(mf.profit_amount || 0) %></td>
-                <td class="text-center py-2">—</td>
-                <td class="text-center py-2">—</td>
-                <td class="text-center py-2 fw-bold text-success"><%= indian_currency(mf.profit_amount || 0) %></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="col-md-6 mb-3">
+        <label class="text-muted small fw-bold">FOLIO NUMBER</label>
+        <div><% if @mutual_fund.folio_number.present? %><code><%= @mutual_fund.folio_number %></code><% else %>—<% end %></div>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="text-muted small fw-bold">PLAN NAME</label>
+        <div><%= @mutual_fund.plan_name.presence || '—' %></div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="text-muted small fw-bold">START DATE</label>
+        <div><%= @mutual_fund.start_date&.strftime("%d %b %Y") || '—' %></div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="text-muted small fw-bold">MATURITY DATE</label>
+        <div><%= @mutual_fund.maturity_date&.strftime("%d %b %Y") || '—' %></div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Right Column -->
-  <div class="col-md-4">
-    <!-- Bank Details -->
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">
-        <h5 class="mb-0"><i class="bi bi-bank me-2 text-primary"></i>Bank Details</h5>
-      </div>
-      <div class="card-body">
-        <dl class="row mb-0">
-          <dt class="col-sm-5 text-muted small">Bank</dt>
-          <dd class="col-sm-7"><%= @mutual_fund.bank_name.presence || '—' %></dd>
-          <dt class="col-sm-5 text-muted small">Account Type</dt>
-          <dd class="col-sm-7"><%= @mutual_fund.account_type.presence || '—' %></dd>
-          <dt class="col-sm-5 text-muted small">Account No.</dt>
-          <dd class="col-sm-7"><%= @mutual_fund.account_number.presence || '—' %></dd>
-          <dt class="col-sm-5 text-muted small">IFSC</dt>
-          <dd class="col-sm-7"><%= @mutual_fund.ifsc_code.presence || '—' %></dd>
-          <dt class="col-sm-5 text-muted small">Holder</dt>
-          <dd class="col-sm-7"><%= @mutual_fund.account_holder_name.presence || '—' %></dd>
-        </dl>
+<!-- Commission Calculation -->
+<% mf = @mutual_fund %>
+<div class="card mb-4 shadow-sm">
+  <div class="card-header" style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5 class="mb-0 fw-bold"><i class="bi bi-calculator me-2 text-primary"></i>Commission Calculation</h5>
+      <div class="badge bg-light text-dark border">
+        Main Agent Commission - Total Distribution - Company Expenses
       </div>
     </div>
-
-    <!-- Other Details -->
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">
-        <h5 class="mb-0"><i class="bi bi-info-circle me-2 text-primary"></i>Other Details</h5>
-      </div>
-      <div class="card-body">
-        <dl class="row mb-0">
-          <dt class="col-sm-5 text-muted small">Reference</dt>
-          <dd class="col-sm-7"><%= @mutual_fund.reference_by_name.presence || '—' %></dd>
-          <dt class="col-sm-5 text-muted small">Broker</dt>
-          <dd class="col-sm-7"><%= @mutual_fund.broker_name.presence || '—' %></dd>
-          <dt class="col-sm-5 text-muted small">Bonus</dt>
-          <dd class="col-sm-7"><%= @mutual_fund.bonus.to_f %></dd>
-          <dt class="col-sm-5 text-muted small">Fund</dt>
-          <dd class="col-sm-7"><%= @mutual_fund.fund.to_f %></dd>
-        </dl>
-        <% if @mutual_fund.extra_note.present? %>
-          <hr>
-          <p class="text-muted small mb-1 fw-bold">NOTE</p>
-          <p class="mb-0"><%= @mutual_fund.extra_note %></p>
-        <% end %>
-      </div>
-    </div>
-
-    <!-- Autopay -->
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">
-        <h5 class="mb-0"><i class="bi bi-calendar-check me-2 text-primary"></i>Autopay</h5>
-      </div>
-      <div class="card-body">
-        <dl class="row mb-0">
-          <dt class="col-sm-5 text-muted small">Start</dt>
-          <dd class="col-sm-7"><%= @mutual_fund.installment_autopay_start_date&.strftime("%d %b %Y") || '—' %></dd>
-          <dt class="col-sm-5 text-muted small">End</dt>
-          <dd class="col-sm-7"><%= @mutual_fund.installment_autopay_end_date&.strftime("%d %b %Y") || '—' %></dd>
-        </dl>
-      </div>
-    </div>
-
-    <!-- Documents -->
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-folder2-open me-2 text-primary"></i>Documents</h5>
-      </div>
-      <div class="card-body">
-        <!-- Main Document -->
-        <% if @mutual_fund.has_main_policy_r2_document? %>
-          <div class="mb-3">
-            <p class="fw-bold small text-muted mb-2">MAIN DOCUMENT</p>
-            <div class="d-flex align-items-center gap-2 p-2 border rounded">
-              <i class="bi bi-file-earmark-pdf text-danger fs-5"></i>
-              <div class="flex-grow-1 text-truncate small"><%= @mutual_fund.main_policy_document_filename %></div>
-              <a href="<%= @mutual_fund.main_policy_r2_url %>" target="_blank" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-eye"></i>
-              </a>
-            </div>
-          </div>
-        <% end %>
-
-        <!-- Additional Docs -->
-        <% if @mutual_fund.policy_documents_records.any? %>
-          <p class="fw-bold small text-muted mb-2">ADDITIONAL DOCUMENTS</p>
-          <% @mutual_fund.policy_documents_records.each do |doc| %>
-            <div class="d-flex align-items-center gap-2 p-2 border rounded mb-2">
-              <i class="bi bi-file-earmark text-primary"></i>
-              <div class="flex-grow-1 text-truncate small"><%= doc.title %></div>
-              <% if doc.has_r2_document? %>
-                <a href="<%= doc.document_url %>" target="_blank" class="btn btn-sm btn-outline-primary">
-                  <i class="bi bi-eye"></i>
-                </a>
-              <% end %>
-            </div>
-          <% end %>
-        <% end %>
-
-        <% unless @mutual_fund.has_main_policy_r2_document? || @mutual_fund.policy_documents_records.any? %>
-          <p class="text-muted small mb-0">No documents uploaded.</p>
-        <% end %>
-      </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0" style="font-size: 0.9rem;">
+        <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+          <tr>
+            <th class="py-3 px-4 border-0">COMMISSION DETAILS</th>
+            <th class="py-3 px-3 border-0 text-center">(%)</th>
+            <th class="py-3 px-3 border-0 text-center">COMMISSION</th>
+            <th class="py-3 px-3 border-0 text-center">TDS (%)</th>
+            <th class="py-3 px-3 border-0 text-center">TDS AMOUNT</th>
+            <th class="py-3 px-3 border-0 text-center">ACTUAL AMOUNT</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-bottom">
+            <td class="py-3 px-4 fw-bold bg-light">Main Agent</td>
+            <td class="text-center py-2"><%= mf.main_agent_commission_percentage %>%</td>
+            <td class="text-center py-2"><%= indian_currency(mf.commission_amount || 0) %></td>
+            <td class="text-center py-2"><%= mf.tds_percentage %>%</td>
+            <td class="text-center py-2"><%= indian_currency(mf.tds_amount || 0) %></td>
+            <td class="text-center py-2 fw-bold"><%= indian_currency(mf.after_tds_value || 0) %></td>
+          </tr>
+          <tr class="border-bottom">
+            <td class="py-3 px-4 fw-bold">Affiliate</td>
+            <td class="text-center py-2"><%= mf.sub_agent_commission_percentage %>%</td>
+            <td class="text-center py-2"><%= indian_currency(mf.sub_agent_commission_amount || 0) %></td>
+            <td class="text-center py-2"><%= mf.sub_agent_tds_percentage %>%</td>
+            <td class="text-center py-2"><%= indian_currency(mf.sub_agent_tds_amount || 0) %></td>
+            <td class="text-center py-2 fw-bold"><%= indian_currency(mf.sub_agent_after_tds_value || 0) %></td>
+          </tr>
+          <tr class="border-bottom">
+            <td class="py-3 px-4 fw-bold">Ambassador</td>
+            <td class="text-center py-2"><%= mf.distributor_commission_percentage %>%</td>
+            <td class="text-center py-2"><%= indian_currency(mf.distributor_commission_amount || 0) %></td>
+            <td class="text-center py-2"><%= mf.distributor_tds_percentage %>%</td>
+            <td class="text-center py-2"><%= indian_currency(mf.distributor_tds_amount || 0) %></td>
+            <td class="text-center py-2 fw-bold"><%= indian_currency(mf.distributor_after_tds_value || 0) %></td>
+          </tr>
+          <tr class="border-bottom">
+            <td class="py-3 px-4 fw-bold">Investor</td>
+            <td class="text-center py-2"><%= mf.investor_commission_percentage %>%</td>
+            <td class="text-center py-2"><%= indian_currency(mf.investor_commission_amount || 0) %></td>
+            <td class="text-center py-2">—</td>
+            <td class="text-center py-2">—</td>
+            <td class="text-center py-2 fw-bold"><%= indian_currency(mf.investor_commission_amount || 0) %></td>
+          </tr>
+          <tr class="border-bottom">
+            <td class="py-3 px-4 fw-bold">Company</td>
+            <td class="text-center py-2"><%= mf.company_expenses_percentage %>%</td>
+            <td class="text-center py-2"><%= indian_currency(mf.company_expenses_amount || 0) %></td>
+            <td class="text-center py-2">—</td>
+            <td class="text-center py-2">—</td>
+            <td class="text-center py-2 fw-bold"><%= indian_currency(mf.company_expenses_amount || 0) %></td>
+          </tr>
+          <tr style="background: #f0fff4;">
+            <td class="py-3 px-4 fw-bold text-success">Profit</td>
+            <td class="text-center py-2 fw-bold text-success"><%= mf.profit_percentage %>%</td>
+            <td class="text-center py-2 fw-bold text-success"><%= indian_currency(mf.profit_amount || 0) %></td>
+            <td class="text-center py-2">—</td>
+            <td class="text-center py-2">—</td>
+            <td class="text-center py-2 fw-bold text-success"><%= indian_currency(mf.profit_amount || 0) %></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

@@ -419,11 +419,7 @@ Rails.application.routes.draw do
     resources :client_services
 
     # Mutual Funds
-    resources :mutual_funds, path: 'investments/mutual-funds' do
-      collection do
-        get :load_customer_nominees
-      end
-    end
+    resources :mutual_funds, path: 'investments/mutual-funds'
 
     # Other Insurance - Alternative routes for backward compatibility
     scope :other_insurances, controller: :other_insurances do
@@ -854,6 +850,94 @@ Rails.application.routes.draw do
         get 'agent/commission/summary', to: 'commission#summary'
         get 'agent/commission/history', to: 'commission#history'
         get 'agent/commission/stats', to: 'commission#stats'
+
+        # ── Investment Module APIs (Customer-facing) ─────────────────────────
+        get    'investments/summary',             to: 'investments#summary'
+        # Mutual Funds
+        get    'investments/mutual_funds',         to: 'investments#mutual_funds'
+        post   'investments/mutual_funds',         to: 'investments#create_mutual_fund'
+        get    'investments/mutual_funds/:id',     to: 'investments#show_mutual_fund'
+        patch  'investments/mutual_funds/:id',     to: 'investments#update_mutual_fund'
+        delete 'investments/mutual_funds/:id',     to: 'investments#destroy_mutual_fund'
+        # Fixed Deposits
+        get    'investments/fd',                   to: 'investments#fd_list'
+        post   'investments/fd',                   to: 'investments#create_fd'
+        get    'investments/fd/:id',               to: 'investments#show_fd'
+        patch  'investments/fd/:id',               to: 'investments#update_fd'
+        delete 'investments/fd/:id',               to: 'investments#destroy_fd'
+        # Other Investments
+        get    'investments/other',                to: 'investments#other_list'
+        post   'investments/other',                to: 'investments#create_other'
+        get    'investments/other/:id',            to: 'investments#show_other'
+        patch  'investments/other/:id',            to: 'investments#update_other'
+        delete 'investments/other/:id',            to: 'investments#destroy_other'
+
+        # ── Taxation APIs (Customer) ─────────────────────────────────────────
+        get    'taxation/summary',                  to: 'taxation#summary'
+        get    'taxation/itr',                      to: 'taxation#itr_list'
+        post   'taxation/itr',                      to: 'taxation#create_itr'
+        get    'taxation/itr/:id',                  to: 'taxation#show_itr'
+        patch  'taxation/itr/:id',                  to: 'taxation#update_itr'
+        delete 'taxation/itr/:id',                  to: 'taxation#destroy_itr'
+        get    'taxation/tax_planning',             to: 'taxation#tax_planning_list'
+        post   'taxation/tax_planning',             to: 'taxation#create_tax_planning'
+        get    'taxation/tax_planning/:id',         to: 'taxation#show_tax_planning'
+        patch  'taxation/tax_planning/:id',         to: 'taxation#update_tax_planning'
+        delete 'taxation/tax_planning/:id',         to: 'taxation#destroy_tax_planning'
+
+        # ── Loans APIs (Customer) ────────────────────────────────────────────
+        get    'loans/summary',                     to: 'loans#summary'
+        get    'loans/personal',                    to: 'loans#personal_list'
+        post   'loans/personal',                    to: 'loans#create_personal'
+        get    'loans/personal/:id',                to: 'loans#show_personal'
+        patch  'loans/personal/:id',                to: 'loans#update_personal'
+        delete 'loans/personal/:id',                to: 'loans#destroy_personal'
+        get    'loans/home',                        to: 'loans#home_list'
+        post   'loans/home',                        to: 'loans#create_home'
+        get    'loans/home/:id',                    to: 'loans#show_home'
+        patch  'loans/home/:id',                    to: 'loans#update_home'
+        delete 'loans/home/:id',                    to: 'loans#destroy_home'
+        get    'loans/mortgage',                    to: 'loans#mortgage_list'
+        post   'loans/mortgage',                    to: 'loans#create_mortgage'
+        get    'loans/mortgage/:id',                to: 'loans#show_mortgage'
+        patch  'loans/mortgage/:id',                to: 'loans#update_mortgage'
+        delete 'loans/mortgage/:id',                to: 'loans#destroy_mortgage'
+        get    'loans/business',                    to: 'loans#business_list'
+        post   'loans/business',                    to: 'loans#create_business'
+        get    'loans/business/:id',                to: 'loans#show_business'
+        patch  'loans/business/:id',                to: 'loans#update_business'
+        delete 'loans/business/:id',                to: 'loans#destroy_business'
+
+        # ── Travel APIs (Customer) ───────────────────────────────────────────
+        get    'travel/summary',                    to: 'travel#summary'
+        get    'travel/domestic',                   to: 'travel#domestic_list'
+        post   'travel/domestic',                   to: 'travel#create_domestic'
+        get    'travel/domestic/:id',               to: 'travel#show_domestic'
+        patch  'travel/domestic/:id',               to: 'travel#update_domestic'
+        delete 'travel/domestic/:id',               to: 'travel#destroy_domestic'
+        get    'travel/international',              to: 'travel#international_list'
+        post   'travel/international',              to: 'travel#create_international'
+        get    'travel/international/:id',          to: 'travel#show_international'
+        patch  'travel/international/:id',          to: 'travel#update_international'
+        delete 'travel/international/:id',          to: 'travel#destroy_international'
+
+        # ── Credit Card APIs (Customer) ──────────────────────────────────────
+        get    'credit_cards/summary',              to: 'credit_cards#summary'
+        get    'credit_cards/rewards',              to: 'credit_cards#rewards_list'
+        post   'credit_cards/rewards',              to: 'credit_cards#create_rewards'
+        get    'credit_cards/rewards/:id',          to: 'credit_cards#show_rewards'
+        patch  'credit_cards/rewards/:id',          to: 'credit_cards#update_rewards'
+        delete 'credit_cards/rewards/:id',          to: 'credit_cards#destroy_rewards'
+        get    'credit_cards/business',             to: 'credit_cards#business_list'
+        post   'credit_cards/business',             to: 'credit_cards#create_business'
+        get    'credit_cards/business/:id',         to: 'credit_cards#show_business'
+        patch  'credit_cards/business/:id',         to: 'credit_cards#update_business'
+        delete 'credit_cards/business/:id',         to: 'credit_cards#destroy_business'
+        get    'credit_cards/travel',               to: 'credit_cards#travel_list'
+        post   'credit_cards/travel',               to: 'credit_cards#create_travel'
+        get    'credit_cards/travel/:id',           to: 'credit_cards#show_travel'
+        patch  'credit_cards/travel/:id',           to: 'credit_cards#update_travel'
+        delete 'credit_cards/travel/:id',           to: 'credit_cards#destroy_travel'
 
         # Client Services APIs (Investments, Taxation, Loans, Travel, Credit Card)
         get  'client_services/form_data',   to: 'client_services#form_data'
