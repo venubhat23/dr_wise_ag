@@ -126,7 +126,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     motor_sub_agent_ids   = motor_dropdown_data.map { |r| r[3] }.compact.uniq
     @filter_sub_agents    = SubAgent.where(id: motor_sub_agent_ids).order(:first_name, :last_name)
 
-    @motor_insurances = paginate_records(@motor_insurances.order(created_at: :desc))
+    @motor_insurances = paginate_records(@motor_insurances.order(policy_start_date: :desc))
   end
 
   def show

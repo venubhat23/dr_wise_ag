@@ -94,7 +94,7 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     sub_agent_ids           = dropdown_data.map { |r| r[3] }.compact.uniq
     @filter_sub_agents      = SubAgent.where(id: sub_agent_ids).order(:first_name, :last_name)
 
-    @other_insurances = paginate_records(@other_insurances.order(created_at: :desc))
+    @other_insurances = paginate_records(@other_insurances.order(policy_start_date: :desc))
 
     if @current_tab == 'drwise'
       @total_policies = @drwise_count

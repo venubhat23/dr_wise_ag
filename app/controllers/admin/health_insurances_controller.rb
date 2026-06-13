@@ -60,7 +60,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     # Calculate statistics for current tab (before pagination)
     calculate_tab_statistics
 
-    @health_insurances = paginate_records(@health_insurances.order(created_at: :desc))
+    @health_insurances = paginate_records(@health_insurances.order(policy_start_date: :desc))
   end
 
   def show
@@ -740,8 +740,8 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     @non_drwise_coverage = row['non_drwise_coverage'].to_f
 
     # Active + expiring counts in one query instead of two
-    scope_stats = @health_insurances.select(
-      "COUNT(*) FILTER (WHERE policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)                                        AS active_count,
+    scope_stats = @health_insurances.unscope(:order, :select).select(
+      "COUNT(*) FILTER (WHERE policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE) AS active_count,
        COUNT(*) FILTER (WHERE policy_end_date BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL '30 days')) AS expiring_count"
     ).first
     @active_policies = scope_stats&.active_count.to_i

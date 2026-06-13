@@ -1240,19 +1240,19 @@ class DashboardController < ApplicationController
 
   def collect_policies_for_detail(range)
     policies = []
-    HealthInsurance.where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+    dr_scope(HealthInsurance).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
       policies << format_policy_detail(p, 'Health', 'health')
     end
-    LifeInsurance.where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+    dr_scope(LifeInsurance).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
       policies << format_policy_detail(p, 'Life', 'life')
     end
     begin
-      MotorInsurance.where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+      dr_scope(MotorInsurance).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
         policies << format_policy_detail(p, 'Motor', 'motor')
       end
     rescue; end
     begin
-      OtherInsurance.where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+      dr_scope(OtherInsurance).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
         policies << format_policy_detail(p, 'Other', 'other')
       end
     rescue; end

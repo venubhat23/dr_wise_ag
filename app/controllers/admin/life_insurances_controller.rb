@@ -62,7 +62,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     # Calculate statistics for current tab (before pagination)
     calculate_tab_statistics
 
-    @life_insurances = paginate_records(@life_insurances.order(created_at: :desc))
+    @life_insurances = paginate_records(@life_insurances.order(policy_start_date: :desc))
 
     # Filter dropdowns — 1 pluck instead of 2 queries + avoid loading all sub_agents
     life_dropdown_data = LifeInsurance.pluck(:insurance_company_name, :sub_agent_id)

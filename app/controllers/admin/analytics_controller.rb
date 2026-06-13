@@ -1369,19 +1369,19 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
   def analytics_collect_policies(range)
     policies = []
-    HealthInsurance.where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+    HealthInsurance.where(DRWISE).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
       policies << analytics_format_policy(p, 'Health', 'health')
     end
-    LifeInsurance.where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+    LifeInsurance.where(DRWISE).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
       policies << analytics_format_policy(p, 'Life', 'life')
     end
     begin
-      MotorInsurance.where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+      MotorInsurance.where(DRWISE).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
         policies << analytics_format_policy(p, 'Motor', 'motor')
       end
     rescue; end
     begin
-      OtherInsurance.where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
+      OtherInsurance.where(DRWISE).where(policy_start_date: range).includes(:customer).order(policy_start_date: :desc).each do |p|
         policies << analytics_format_policy(p, 'Other', 'other')
       end
     rescue; end
