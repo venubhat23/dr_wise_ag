@@ -739,13 +739,9 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     @non_drwise_premium  = row['non_drwise_premium'].to_f
     @non_drwise_coverage = row['non_drwise_coverage'].to_f
 
-    # Active + expiring counts in one query instead of two
-    scope_stats = @health_insurances.unscope(:includes, :order, :select).select(
-      "COUNT(*) FILTER (WHERE policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE) AS active_count,
-       COUNT(*) FILTER (WHERE policy_end_date BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL '30 days')) AS expiring_count"
-    ).first
-    @active_policies = scope_stats&.active_count.to_i
-    @expiring_soon   = scope_stats&.expiring_count.to_i
+    base = @health_insurances.unscope(:includes, :order, :select)
+    @active_policies = base.where('policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE').count
+    @expiring_soon   = base.where('policy_end_date BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL \'30 days\')').count
 
     if @current_tab == 'drwise'
       @total_policies = @drwise_count
