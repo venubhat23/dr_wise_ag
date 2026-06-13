@@ -34,7 +34,7 @@ class Admin::InvestorsController < Admin::ApplicationController
     @total_filtered_count = @investors.count
 
     # Order and paginate
-    @investors = paginate_records(@investors.order(created_at: :desc), @total_filtered_count)
+    @investors = paginate_records(@investors.order(first_name: :asc, last_name: :asc), @total_filtered_count)
 
     # Calculate statistics using separate scope for stats
     stats_scope = Investor.all
