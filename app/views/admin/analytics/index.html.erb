@@ -759,184 +759,18 @@
   }
   </script>
 
-  <!-- Premium Revenue Trend - New Line Chart -->
-  <div class="chart-card" style="margin-bottom: 2rem;">
-    <div class="chart-header">
-      <h3 class="chart-title">Premium Revenue Trend (<%= @filter_start_date&.strftime('%b %Y') %> – <%= @filter_end_date&.strftime('%b %Y') %>)</h3>
-      <div class="chart-actions">
-        <button class="chart-action-btn" onclick="toggleChartType('premiumRevenueTrendChart', 'line', 'bar')" title="Toggle Chart Type">
-          <i class="bi bi-bar-chart"></i>
-        </button>
-        <button class="chart-action-btn" onclick="refreshChart('premiumRevenue')" title="Refresh Data">
-          <i class="bi bi-arrow-clockwise"></i>
-        </button>
-      </div>
-    </div>
-    <div class="chart-container">
-      <canvas id="premiumRevenueTrendChart"></canvas>
-      <div class="chart-loading">
-        <div class="loading-spinner"></div>
-      </div>
-    </div>
-    <div class="chart-stats">
-      <div class="stat-item">
-        <span class="stat-label">Current Month:</span>
-        <span class="stat-value">Rs. <%= ((@premium_revenue_trend&.values&.last || 0) / 1000.0).round(0) %>K</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Average:</span>
-        <span class="stat-value">Rs. <%= ((@premium_revenue_trend&.values&.sum.to_f / (@premium_revenue_trend&.values&.count.to_f.nonzero? || 1)) / 1000.0).round(0) %>K</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Peak Month:</span>
-        <span class="stat-value">Rs. <%= ((@premium_revenue_trend&.values&.max || 0) / 1000.0).round(0) %>K</span>
-      </div>
+  <!-- ================================================ -->
+  <!-- SECTION 1: LEAD ANALYTICS                      -->
+  <!-- ================================================ -->
+  <div class="d-flex align-items-center gap-3 py-2 px-4 rounded-3 mb-3 mt-2" style="background: linear-gradient(135deg, #dbeafe, #eff6ff); border-left: 4px solid #3b82f6;">
+    <i class="bi bi-funnel-fill fs-4 text-primary"></i>
+    <div>
+      <h5 class="mb-0 fw-bold text-primary">Lead Analytics</h5>
+      <small class="text-muted">Lead conversion funnel, pipeline stages, and recent lead activities</small>
     </div>
   </div>
 
-  <!-- Charts Section -->
-  <div class="charts-grid">
-    <!-- Policy Distribution Chart -->
-    <div class="chart-card" data-chart="policyDistribution">
-      <div class="chart-header">
-        <h3 class="chart-title">Policy Distribution</h3>
-        <div class="chart-actions">
-          <button class="chart-action-btn" onclick="toggleChartType('policyDistributionChart', 'doughnut', 'pie')">
-            <i class="bi bi-pie-chart"></i>
-          </button>
-          <button class="chart-action-btn" onclick="refreshChart('policyDistribution')">
-            <i class="bi bi-arrow-clockwise"></i>
-          </button>
-        </div>
-      </div>
-      <div class="chart-container">
-        <canvas id="policyDistributionChart"></canvas>
-        <div class="chart-loading">
-          <div class="loading-spinner"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Monthly Trends Chart -->
-    <div class="chart-card" data-chart="monthlyTrends">
-      <div class="chart-header">
-        <h3 class="chart-title">Monthly Trends</h3>
-        <div class="chart-actions">
-          <button class="chart-action-btn" onclick="toggleChartType('monthlyTrendsChart', 'line', 'bar')">
-            <i class="bi bi-bar-chart"></i>
-          </button>
-          <button class="chart-action-btn" onclick="refreshChart('monthlyTrends')">
-            <i class="bi bi-arrow-clockwise"></i>
-          </button>
-        </div>
-      </div>
-      <div class="chart-container">
-        <canvas id="monthlyTrendsChart"></canvas>
-        <div class="chart-loading">
-          <div class="loading-spinner"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="charts-grid">
-    <!-- Commission Summary Chart -->
-    <div class="chart-card">
-      <h3 class="chart-title">Commission Summary</h3>
-      <div class="chart-container">
-        <canvas id="commissionChart"></canvas>
-      </div>
-    </div>
-
-    <!-- Renewal Analytics Chart -->
-    <div class="chart-card">
-      <h3 class="chart-title">Renewal Analytics</h3>
-      <div class="chart-container">
-        <canvas id="renewalChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tables Section -->
-  <div class="row">
-    <div class="col-lg-6">
-      <!-- Top Affiliates Table -->
-      <div class="analytics-table">
-        <div class="table-header">
-          <h3 class="table-title">Top Performing Affiliates</h3>
-        </div>
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Policies</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% @top_affiliates.each do |affiliate| %>
-                <tr>
-                  <td><%= "#{affiliate.first_name} #{affiliate.last_name}".strip %></td>
-                  <td><%= affiliate.respond_to?(:policies_count) ? affiliate.policies_count : 0 %></td>
-                  <td>
-                    <span class="badge <%= affiliate.status == 'active' ? 'bg-success' : 'bg-secondary' %>">
-                      <%= affiliate.status&.capitalize || 'Active' %>
-                    </span>
-                  </td>
-                </tr>
-              <% end %>
-              <% if @top_affiliates.empty? %>
-                <tr>
-                  <td colspan="3" class="text-center text-muted">No affiliates found</td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-6">
-      <!-- Recent Policies Table -->
-      <div class="analytics-table">
-        <div class="table-header">
-          <h3 class="table-title">Recent Policies</h3>
-        </div>
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Customer</th>
-                <th>Premium</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% @recent_policies.each do |policy| %>
-                <tr>
-                  <td>
-                    <span class="badge bg-primary"><%= policy[:type] %></span>
-                  </td>
-                  <td><%= policy[:customer] %></td>
-                  <td><%= indian_currency(policy[:premium] || 0) %></td>
-                  <td><%= policy[:date]&.strftime('%d %b %Y') || 'N/A' %></td>
-                </tr>
-              <% end %>
-              <% if @recent_policies.empty? %>
-                <tr>
-                  <td colspan="4" class="text-center text-muted">No recent policies found</td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Lead Analytics Section -->
+  <!-- Lead Conversion Funnel + Lead Stage Distribution -->
   <div class="charts-grid">
     <!-- Lead Conversion Funnel -->
     <div class="chart-card" data-chart="leadConversion">
@@ -1003,168 +837,6 @@
           <span class="stat-label">New This Week:</span>
           <span class="stat-value"><%= @new_leads || 0 %></span>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Top Affiliate Performance -->
-  <div class="analytics-table">
-    <div class="table-header">
-      <h3 class="table-title">Top Affiliate Performance</h3>
-    </div>
-    <div class="table-responsive">
-      <table>
-        <thead>
-          <tr>
-            <th>Affiliate Name</th>
-            <th>Customers Acquired</th>
-            <th>Premium Generated</th>
-            <th>Commission</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% (@agent_performance&.first(5) || {}).each do |affiliate_name, premium| %>
-            <tr>
-              <td style="font-weight: 600;"><%= affiliate_name %></td>
-              <td>
-                <%= (@agent_customer_data&.dig(affiliate_name) || 0) %>
-              </td>
-              <td><%= indian_currency(premium.to_f) %></td>
-              <td>
-                <span class="badge bg-success">
-                  <%= indian_currency((@agent_commission&.dig(affiliate_name) || 0).to_f) %>
-                </span>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Investor Analytics Section -->
-  <div class="charts-grid">
-    <!-- Top Investors by Ambassador Count -->
-    <div class="chart-card">
-      <div class="chart-header">
-        <h3 class="chart-title">Top Investors by Ambassador Count</h3>
-      </div>
-      <div class="chart-container">
-        <canvas id="investorAmbassadorChart"></canvas>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <h3 class="chart-title">Top Investors Overview</h3>
-      <div class="table-responsive" style="margin-top: 0.5rem;">
-        <table style="font-size: 0.875rem;">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Investor Name</th>
-              <th>Ambassadors</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% (@top_investors_by_ambassadors || {}).first(8).each_with_index do |(name, count), idx| %>
-              <tr>
-                <td style="color: #6b7280; font-weight: 600;"><%= idx + 1 %></td>
-                <td style="font-weight: 600;"><%= name %></td>
-                <td>
-                  <span class="badge bg-purple" style="background: #8b5cf6;">
-                    <%= count %>
-                  </span>
-                </td>
-              </tr>
-            <% end %>
-            <% if (@top_investors_by_ambassadors || {}).empty? %>
-              <tr>
-                <td colspan="3" class="text-center text-muted">No investor data found</td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- Commission Analytics -->
-  <div class="charts-grid">
-    <div class="chart-card">
-      <h3 class="chart-title">Commission Analytics</h3>
-      <div style="margin-top: 1rem;">
-        <%
-          commissions_due_safe  = (@commissions_due.to_f rescue 0)
-          commissions_paid_safe = ((@commission_summary.is_a?(Hash) ? (@commission_summary['total_commission_paid'] || @commission_summary[:total_commission_paid]) : 0).to_f rescue 0)
-          total_policies_safe   = (@total_policies.to_i rescue 0)
-          total_commission      = commissions_due_safe + commissions_paid_safe
-          commission_paid_rate  = total_commission > 0 ? ((commissions_paid_safe / total_commission) * 100).round(1) : 0
-
-          commission_stats = {
-            'Total Commission Due'    => { value: commissions_due_safe, format: 'currency', color: '#ef4444' },
-            'Total Commission Paid'   => { value: commissions_paid_safe, format: 'currency', color: '#10b981' },
-            'Avg Commission per Policy' => { value: total_policies_safe > 0 ? (commissions_due_safe / total_policies_safe.to_f).round(0) : 0, format: 'currency', color: '#3b82f6' },
-            'Commission Paid Rate'    => { value: commission_paid_rate, format: 'percentage', color: '#8b5cf6' }
-          }
-        %>
-        <% commission_stats.each do |label, data| %>
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9;">
-            <span style="font-weight: 500; color: #1a202c; font-size: 0.875rem;"><%= label %></span>
-            <span style="color: <%= data[:color] %>; font-size: 0.875rem; font-weight: 600;">
-              <% if data[:format] == 'currency' %>
-                <%= indian_currency(data[:value] || 0) %>
-              <% elsif data[:format] == 'percentage' %>
-                <%= data[:value] %>%
-              <% else %>
-                <%= data[:value] %>
-              <% end %>
-            </span>
-          </div>
-        <% end %>
-      </div>
-    </div>
-
-    <!-- Policy Performance Metrics -->
-    <div class="chart-card">
-      <h3 class="chart-title">Policy Performance Metrics</h3>
-      <div class="chart-container">
-        <canvas id="policyPerformanceChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Customer Geographic Distribution -->
-  <div class="charts-grid">
-    <div class="chart-card">
-      <h3 class="chart-title">Customer Geographic Distribution</h3>
-      <div class="chart-container">
-        <canvas id="locationChart"></canvas>
-      </div>
-    </div>
-
-    <!-- Operations Overview -->
-    <div class="chart-card">
-      <h3 class="chart-title">Operations Overview</h3>
-      <div class="chart-container">
-        <canvas id="operationsChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Customer Acquisition Trend & Quick Insights -->
-  <div class="charts-grid">
-    <div class="chart-card">
-      <h3 class="chart-title">Customer Acquisition Trend</h3>
-      <div class="chart-container">
-        <canvas id="customerAcquisitionChart"></canvas>
-      </div>
-    </div>
-
-    <!-- Quick Insights -->
-    <div class="chart-card">
-      <h3 class="chart-title">Quick Insights</h3>
-      <div class="chart-container">
-        <canvas id="quickInsightsChart"></canvas>
       </div>
     </div>
   </div>
@@ -1244,8 +916,379 @@
     </div>
   </div>
 
+  <!-- ================================================ -->
+  <!-- SECTION 2: CUSTOMER ANALYTICS                  -->
+  <!-- ================================================ -->
+  <div class="d-flex align-items-center gap-3 py-2 px-4 rounded-3 mb-3 mt-4" style="background: linear-gradient(135deg, #d1fae5, #ecfdf5); border-left: 4px solid #10b981;">
+    <i class="bi bi-people-fill fs-4 text-success"></i>
+    <div>
+      <h5 class="mb-0 fw-bold text-success">Customer Analytics</h5>
+      <small class="text-muted">Customer acquisition trends, retention, and geographic distribution</small>
+    </div>
+  </div>
+
+  <!-- Customer Acquisition + Monthly Trends -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3 class="chart-title">Customer Acquisition Trend</h3>
+      <div class="chart-container">
+        <canvas id="customerAcquisitionChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card" data-chart="monthlyTrends">
+      <div class="chart-header">
+        <h3 class="chart-title">Monthly Trends</h3>
+        <div class="chart-actions">
+          <button class="chart-action-btn" onclick="toggleChartType('monthlyTrendsChart', 'line', 'bar')">
+            <i class="bi bi-bar-chart"></i>
+          </button>
+          <button class="chart-action-btn" onclick="refreshChart('monthlyTrends')">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="monthlyTrendsChart"></canvas>
+        <div class="chart-loading">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Geographic Distribution + Quick Insights -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3 class="chart-title">Customer Geographic Distribution</h3>
+      <div class="chart-container">
+        <canvas id="locationChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-title">Quick Insights</h3>
+      <div class="chart-container">
+        <canvas id="quickInsightsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================ -->
+  <!-- SECTION 3: POLICY ANALYTICS                    -->
+  <!-- ================================================ -->
+  <div class="d-flex align-items-center gap-3 py-2 px-4 rounded-3 mb-3 mt-4" style="background: linear-gradient(135deg, #fef9c3, #fffbeb); border-left: 4px solid #f59e0b;">
+    <i class="bi bi-file-earmark-text-fill fs-4 text-warning"></i>
+    <div>
+      <h5 class="mb-0 fw-bold" style="color: #b45309;">Policy Analytics</h5>
+      <small class="text-muted">Policy distribution, revenue trends, performance metrics, and renewal analytics</small>
+    </div>
+  </div>
+
+  <!-- Premium Revenue Trend - Full Width -->
+  <div class="chart-card" style="margin-bottom: 1.5rem;">
+    <div class="chart-header">
+      <h3 class="chart-title">Premium Revenue Trend (<%= @filter_start_date&.strftime('%b %Y') %> – <%= @filter_end_date&.strftime('%b %Y') %>)</h3>
+      <div class="chart-actions">
+        <button class="chart-action-btn" onclick="toggleChartType('premiumRevenueTrendChart', 'line', 'bar')" title="Toggle Chart Type">
+          <i class="bi bi-bar-chart"></i>
+        </button>
+        <button class="chart-action-btn" onclick="refreshChart('premiumRevenue')" title="Refresh Data">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="premiumRevenueTrendChart"></canvas>
+      <div class="chart-loading">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+    <div class="chart-stats">
+      <div class="stat-item">
+        <span class="stat-label">Current Month:</span>
+        <span class="stat-value">Rs. <%= ((@premium_revenue_trend&.values&.last || 0) / 1000.0).round(0) %>K</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Average:</span>
+        <span class="stat-value">Rs. <%= ((@premium_revenue_trend&.values&.sum.to_f / (@premium_revenue_trend&.values&.count.to_f.nonzero? || 1)) / 1000.0).round(0) %>K</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Peak Month:</span>
+        <span class="stat-value">Rs. <%= ((@premium_revenue_trend&.values&.max || 0) / 1000.0).round(0) %>K</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Policy Distribution + Policy Performance -->
+  <div class="charts-grid">
+    <div class="chart-card" data-chart="policyDistribution">
+      <div class="chart-header">
+        <h3 class="chart-title">Policy Distribution</h3>
+        <div class="chart-actions">
+          <button class="chart-action-btn" onclick="toggleChartType('policyDistributionChart', 'doughnut', 'pie')">
+            <i class="bi bi-pie-chart"></i>
+          </button>
+          <button class="chart-action-btn" onclick="refreshChart('policyDistribution')">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="policyDistributionChart"></canvas>
+        <div class="chart-loading">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-title">Policy Performance Metrics</h3>
+      <div class="chart-container">
+        <canvas id="policyPerformanceChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Renewal Analytics + Operations Overview -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3 class="chart-title">Renewal Analytics</h3>
+      <div class="chart-container">
+        <canvas id="renewalChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-title">Operations Overview</h3>
+      <div class="chart-container">
+        <canvas id="operationsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Policies Table -->
+  <div class="analytics-table" style="margin-bottom: 1.5rem;">
+    <div class="table-header">
+      <h3 class="table-title">Recent Policies</h3>
+    </div>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Customer</th>
+            <th>Premium</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @recent_policies.each do |policy| %>
+            <tr>
+              <td>
+                <span class="badge bg-primary"><%= policy[:type] %></span>
+              </td>
+              <td><%= policy[:customer] %></td>
+              <td><%= indian_currency(policy[:premium] || 0) %></td>
+              <td><%= policy[:date]&.strftime('%d %b %Y') || 'N/A' %></td>
+            </tr>
+          <% end %>
+          <% if @recent_policies.empty? %>
+            <tr>
+              <td colspan="4" class="text-center text-muted">No recent policies found</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================================================ -->
+  <!-- SECTION 4: COMMISSION & AFFILIATE ANALYTICS    -->
+  <!-- ================================================ -->
+  <div class="d-flex align-items-center gap-3 py-2 px-4 rounded-3 mb-3 mt-4" style="background: linear-gradient(135deg, #fce7f3, #fdf2f8); border-left: 4px solid #ec4899;">
+    <i class="bi bi-percent fs-4" style="color: #ec4899;"></i>
+    <div>
+      <h5 class="mb-0 fw-bold" style="color: #9d174d;">Commission & Affiliate Analytics</h5>
+      <small class="text-muted">Commission breakdown, affiliate performance, and earnings overview</small>
+    </div>
+  </div>
+
+  <!-- Commission Summary + Commission Analytics -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3 class="chart-title">Commission Summary</h3>
+      <div class="chart-container">
+        <canvas id="commissionChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-title">Commission Analytics</h3>
+      <div style="margin-top: 1rem;">
+        <%
+          commissions_due_safe  = (@commissions_due.to_f rescue 0)
+          commissions_paid_safe = ((@commission_summary.is_a?(Hash) ? (@commission_summary['total_commission_paid'] || @commission_summary[:total_commission_paid]) : 0).to_f rescue 0)
+          total_policies_safe   = (@total_policies.to_i rescue 0)
+          total_commission      = commissions_due_safe + commissions_paid_safe
+          commission_paid_rate  = total_commission > 0 ? ((commissions_paid_safe / total_commission) * 100).round(1) : 0
+
+          commission_stats = {
+            'Total Commission Due'      => { value: commissions_due_safe, format: 'currency', color: '#ef4444' },
+            'Total Commission Paid'     => { value: commissions_paid_safe, format: 'currency', color: '#10b981' },
+            'Avg Commission per Policy' => { value: total_policies_safe > 0 ? (commissions_due_safe / total_policies_safe.to_f).round(0) : 0, format: 'currency', color: '#3b82f6' },
+            'Commission Paid Rate'      => { value: commission_paid_rate, format: 'percentage', color: '#8b5cf6' }
+          }
+        %>
+        <% commission_stats.each do |label, data| %>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9;">
+            <span style="font-weight: 500; color: #1a202c; font-size: 0.875rem;"><%= label %></span>
+            <span style="color: <%= data[:color] %>; font-size: 0.875rem; font-weight: 600;">
+              <% if data[:format] == 'currency' %>
+                <%= indian_currency(data[:value] || 0) %>
+              <% elsif data[:format] == 'percentage' %>
+                <%= data[:value] %>%
+              <% else %>
+                <%= data[:value] %>
+              <% end %>
+            </span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Affiliates + Top Affiliate Performance -->
+  <div class="row">
+    <div class="col-lg-6">
+      <div class="analytics-table">
+        <div class="table-header">
+          <h3 class="table-title">Top Performing Affiliates</h3>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Policies</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @top_affiliates.each do |affiliate| %>
+                <tr>
+                  <td><%= "#{affiliate.first_name} #{affiliate.last_name}".strip %></td>
+                  <td><%= affiliate.respond_to?(:policies_count) ? affiliate.policies_count : 0 %></td>
+                  <td>
+                    <span class="badge <%= affiliate.status == 'active' ? 'bg-success' : 'bg-secondary' %>">
+                      <%= affiliate.status&.capitalize || 'Active' %>
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+              <% if @top_affiliates.empty? %>
+                <tr>
+                  <td colspan="3" class="text-center text-muted">No affiliates found</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="analytics-table">
+        <div class="table-header">
+          <h3 class="table-title">Top Affiliate Performance</h3>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Affiliate Name</th>
+                <th>Customers Acquired</th>
+                <th>Premium Generated</th>
+                <th>Commission</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% (@agent_performance&.first(5) || {}).each do |affiliate_name, premium| %>
+                <tr>
+                  <td style="font-weight: 600;"><%= affiliate_name %></td>
+                  <td><%= (@agent_customer_data&.dig(affiliate_name) || 0) %></td>
+                  <td><%= indian_currency(premium.to_f) %></td>
+                  <td>
+                    <span class="badge bg-success">
+                      <%= indian_currency((@agent_commission&.dig(affiliate_name) || 0).to_f) %>
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================ -->
+  <!-- SECTION 5: INVESTOR ANALYTICS                  -->
+  <!-- ================================================ -->
+  <div class="d-flex align-items-center gap-3 py-2 px-4 rounded-3 mb-3 mt-4" style="background: linear-gradient(135deg, #ede9fe, #f5f3ff); border-left: 4px solid #8b5cf6;">
+    <i class="bi bi-graph-up-arrow fs-4" style="color: #8b5cf6;"></i>
+    <div>
+      <h5 class="mb-0 fw-bold" style="color: #5b21b6;">Investor Analytics</h5>
+      <small class="text-muted">Investor overview, ambassador counts, and portfolio breakdown</small>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3 class="chart-title">Top Investors by Ambassador Count</h3>
+      </div>
+      <div class="chart-container">
+        <canvas id="investorAmbassadorChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-title">Top Investors Overview</h3>
+      <div class="table-responsive" style="margin-top: 0.5rem;">
+        <table style="font-size: 0.875rem;">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Investor Name</th>
+              <th>Ambassadors</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% (@top_investors_by_ambassadors || {}).first(8).each_with_index do |(name, count), idx| %>
+              <tr>
+                <td style="color: #6b7280; font-weight: 600;"><%= idx + 1 %></td>
+                <td style="font-weight: 600;"><%= name %></td>
+                <td>
+                  <span class="badge bg-purple" style="background: #8b5cf6;">
+                    <%= count %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+            <% if (@top_investors_by_ambassadors || {}).empty? %>
+              <tr>
+                <td colspan="3" class="text-center text-muted">No investor data found</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- Bottom Performance KPIs -->
-  <div class="kpi-grid">
+  <div class="kpi-grid" style="margin-top: 1.5rem;">
     <div class="kpi-card" style="--card-color: #667eea;">
       <div class="kpi-icon blue-gradient">
         <i class="bi bi-percent"></i>
