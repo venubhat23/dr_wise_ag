@@ -31,8 +31,8 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
   private
 
-  # Same filter used by the dashboard dr_scope/dr_filter helpers.
-  DRWISE = { product_through_dr: true }.freeze
+  # DR-wise filter: admin-added policies only (source of truth matches list pages).
+  DRWISE = { is_admin_added: true, is_customer_added: false, is_agent_added: false }.freeze
 
   def setup_filter_dates
     # Get date filter parameters (default to current year)
@@ -275,11 +275,10 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_top_affiliates_for_period(start_date, end_date)
-    # Optimized query to avoid N+1 - calculate all at once using SQL
     affiliate_data = SubAgent.joins(
-      "LEFT JOIN health_insurances hi ON hi.sub_agent_id = sub_agents.id AND hi.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'" +
-      " LEFT JOIN life_insurances li ON li.sub_agent_id = sub_agents.id AND li.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'" +
-      " LEFT JOIN motor_insurances mi ON mi.sub_agent_id = sub_agents.id AND mi.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'"
+      "LEFT JOIN health_insurances hi ON hi.sub_agent_id = sub_agents.id AND hi.is_admin_added = true AND hi.is_customer_added = false AND hi.is_agent_added = false AND hi.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'" +
+      " LEFT JOIN life_insurances li ON li.sub_agent_id = sub_agents.id AND li.is_admin_added = true AND li.is_customer_added = false AND li.is_agent_added = false AND li.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'" +
+      " LEFT JOIN motor_insurances mi ON mi.sub_agent_id = sub_agents.id AND mi.is_admin_added = true AND mi.is_customer_added = false AND mi.is_agent_added = false AND mi.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'"
     )
     .select("sub_agents.id, sub_agents.first_name, sub_agents.last_name, sub_agents.status,
              (COALESCE(COUNT(DISTINCT hi.id), 0) + COALESCE(COUNT(DISTINCT li.id), 0) + COALESCE(COUNT(DISTINCT mi.id), 0)) as policies_count")
@@ -303,7 +302,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
   def get_recent_policies_for_period(start_date, end_date)
     policies = []
 
-    HealthInsurance.includes(:customer).where(policy_start_date: start_date..end_date).order(policy_start_date: :desc).limit(3).each do |policy|
+    HealthInsurance.where(DRWISE).includes(:customer).where(policy_start_date: start_date..end_date).order(policy_start_date: :desc).limit(3).each do |policy|
       policies << {
         type: 'Health Insurance',
         customer: policy.customer&.display_name&.presence || 'Unknown',
@@ -313,7 +312,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
       }
     end
 
-    LifeInsurance.includes(:customer).where(policy_start_date: start_date..end_date).order(policy_start_date: :desc).limit(3).each do |policy|
+    LifeInsurance.where(DRWISE).includes(:customer).where(policy_start_date: start_date..end_date).order(policy_start_date: :desc).limit(3).each do |policy|
       policies << {
         type: 'Life Insurance',
         customer: policy.customer&.display_name&.presence || 'Unknown',
@@ -324,7 +323,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     end
 
     begin
-      MotorInsurance.includes(:customer).where(policy_start_date: start_date..end_date).order(policy_start_date: :desc).limit(2).each do |policy|
+      MotorInsurance.where(DRWISE).includes(:customer).where(policy_start_date: start_date..end_date).order(policy_start_date: :desc).limit(2).each do |policy|
         policies << {
           type: 'Motor Insurance',
           customer: policy.customer&.display_name&.presence || 'Unknown',
@@ -388,24 +387,24 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_expiring_policies_for_period(policy_start, policy_end, expiry_start, expiry_end)
-    HealthInsurance.where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count +
-    LifeInsurance.where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count +
-    (MotorInsurance.where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count rescue 0) +
-    (OtherInsurance.where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count rescue 0)
+    HealthInsurance.where(DRWISE).where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count +
+    LifeInsurance.where(DRWISE).where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count +
+    (MotorInsurance.where(DRWISE).where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count rescue 0) +
+    (OtherInsurance.where(DRWISE).where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count rescue 0)
   end
 
   def calculate_expired_policies_for_period(start_date, end_date)
-    HealthInsurance.where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count +
-    LifeInsurance.where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count +
-    (MotorInsurance.where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count rescue 0) +
-    (OtherInsurance.where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count rescue 0)
+    HealthInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count +
+    LifeInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count +
+    (MotorInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count rescue 0) +
+    (OtherInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count rescue 0)
   end
 
   def calculate_renewal_rate_for_period(start_date, end_date)
-    total_eligible = LifeInsurance.where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count +
-                     HealthInsurance.where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count
-    renewed = LifeInsurance.where(policy_start_date: start_date..end_date, policy_type: 'Renewal').count +
-              HealthInsurance.where(policy_start_date: start_date..end_date, policy_type: 'Renewal').count
+    total_eligible = LifeInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count +
+                     HealthInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count
+    renewed = LifeInsurance.where(DRWISE).where(policy_start_date: start_date..end_date, policy_type: 'Renewal').count +
+              HealthInsurance.where(DRWISE).where(policy_start_date: start_date..end_date, policy_type: 'Renewal').count
 
     return 0 if total_eligible == 0
     ((renewed.to_f / total_eligible.to_f) * 100).round(1)
@@ -796,15 +795,15 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_premium_growth
-    current_premium = HealthInsurance.where(product_through_dr: true, policy_start_date: @current_month..).sum(:net_premium) +
-                      LifeInsurance.where(product_through_dr: true, policy_start_date: @current_month..).sum(:net_premium) +
-                      (MotorInsurance.where(policy_start_date: @current_month..).sum(:net_premium) || 0 rescue 0) +
-                      (OtherInsurance.where(policy_start_date: @current_month..).sum(:net_premium) || 0 rescue 0)
+    current_premium = HealthInsurance.where(DRWISE).where(policy_start_date: @current_month..).sum(:net_premium) +
+                      LifeInsurance.where(DRWISE).where(policy_start_date: @current_month..).sum(:net_premium) +
+                      (MotorInsurance.where(DRWISE).where(policy_start_date: @current_month..).sum(:net_premium) || 0 rescue 0) +
+                      (OtherInsurance.where(DRWISE).where(policy_start_date: @current_month..).sum(:net_premium) || 0 rescue 0)
 
-    previous_premium = HealthInsurance.where(product_through_dr: true, policy_start_date: @last_month..(@current_month - 1.day)).sum(:net_premium) +
-                       LifeInsurance.where(product_through_dr: true, policy_start_date: @last_month..(@current_month - 1.day)).sum(:net_premium) +
-                       (MotorInsurance.where(policy_start_date: @last_month..(@current_month - 1.day)).sum(:net_premium) || 0 rescue 0) +
-                       (OtherInsurance.where(policy_start_date: @last_month..(@current_month - 1.day)).sum(:net_premium) || 0 rescue 0)
+    previous_premium = HealthInsurance.where(DRWISE).where(policy_start_date: @last_month..(@current_month - 1.day)).sum(:net_premium) +
+                       LifeInsurance.where(DRWISE).where(policy_start_date: @last_month..(@current_month - 1.day)).sum(:net_premium) +
+                       (MotorInsurance.where(DRWISE).where(policy_start_date: @last_month..(@current_month - 1.day)).sum(:net_premium) || 0 rescue 0) +
+                       (OtherInsurance.where(DRWISE).where(policy_start_date: @last_month..(@current_month - 1.day)).sum(:net_premium) || 0 rescue 0)
 
     return 0 if previous_premium == 0
     ((current_premium.to_f - previous_premium.to_f) / previous_premium.to_f * 100).round(1)
@@ -879,8 +878,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
   def get_recent_policies
     policies = []
 
-    # Get recent health insurance policies
-    HealthInsurance.includes(:customer).order(created_at: :desc).limit(3).each do |policy|
+    HealthInsurance.where(DRWISE).includes(:customer).order(created_at: :desc).limit(3).each do |policy|
       policies << {
         type: 'Health Insurance',
         customer: policy.customer&.display_name&.presence || 'Unknown',
@@ -890,8 +888,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
       }
     end
 
-    # Get recent life insurance policies
-    LifeInsurance.includes(:customer).order(created_at: :desc).limit(3).each do |policy|
+    LifeInsurance.where(DRWISE).includes(:customer).order(created_at: :desc).limit(3).each do |policy|
       policies << {
         type: 'Life Insurance',
         customer: policy.customer&.display_name&.presence || 'Unknown',
@@ -901,16 +898,17 @@ class Admin::AnalyticsController < Admin::ApplicationController
       }
     end
 
-    # Get recent motor insurance policies
-    MotorInsurance.includes(:customer).order(created_at: :desc).limit(2).each do |policy|
-      policies << {
-        type: 'Motor Insurance',
-        customer: policy.customer&.display_name&.presence || 'Unknown',
-        policy_number: policy.policy_number,
-        premium: policy.net_premium.to_f,
-        date: policy.created_at
-      }
-    end
+    begin
+      MotorInsurance.where(DRWISE).includes(:customer).order(created_at: :desc).limit(2).each do |policy|
+        policies << {
+          type: 'Motor Insurance',
+          customer: policy.customer&.display_name&.presence || 'Unknown',
+          policy_number: policy.policy_number,
+          premium: policy.net_premium.to_f,
+          date: policy.created_at
+        }
+      end
+    rescue; end
 
     policies.sort_by { |p| p[:date] || Time.at(0) }.reverse.first(10)
   end
@@ -937,25 +935,24 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_expiring_policies(start_date, end_date)
-    HealthInsurance.where(policy_end_date: start_date..end_date).count +
-    LifeInsurance.where(policy_end_date: start_date..end_date).count +
-    MotorInsurance.where(policy_end_date: start_date..end_date).count +
-    OtherInsurance.where(policy_end_date: start_date..end_date).count
+    HealthInsurance.where(DRWISE).where(policy_end_date: start_date..end_date).count +
+    LifeInsurance.where(DRWISE).where(policy_end_date: start_date..end_date).count +
+    (MotorInsurance.where(DRWISE).where(policy_end_date: start_date..end_date).count rescue 0) +
+    (OtherInsurance.where(DRWISE).where(policy_end_date: start_date..end_date).count rescue 0)
   end
 
   def calculate_expired_policies
-    HealthInsurance.where('policy_end_date < ?', Date.current).count +
-    LifeInsurance.where('policy_end_date < ?', Date.current).count +
-    MotorInsurance.where('policy_end_date < ?', Date.current).count +
-    OtherInsurance.where('policy_end_date < ?', Date.current).count
+    HealthInsurance.where(DRWISE).where('policy_end_date < ?', Date.current).count +
+    LifeInsurance.where(DRWISE).where('policy_end_date < ?', Date.current).count +
+    (MotorInsurance.where(DRWISE).where('policy_end_date < ?', Date.current).count rescue 0) +
+    (OtherInsurance.where(DRWISE).where('policy_end_date < ?', Date.current).count rescue 0)
   end
 
   def calculate_renewal_rate
-    # Calculate renewal rate based on renewed vs total eligible policies
-    total_eligible = LifeInsurance.where('policy_end_date < ?', Date.current).count +
-                     HealthInsurance.where('policy_end_date < ?', Date.current).count
-    renewed = LifeInsurance.where(policy_type: 'Renewal').count +
-              HealthInsurance.where(policy_type: 'Renewal').count
+    total_eligible = LifeInsurance.where(DRWISE).where('policy_end_date < ?', Date.current).count +
+                     HealthInsurance.where(DRWISE).where('policy_end_date < ?', Date.current).count
+    renewed = LifeInsurance.where(DRWISE).where(policy_type: 'Renewal').count +
+              HealthInsurance.where(DRWISE).where(policy_type: 'Renewal').count
 
     return 0 if total_eligible == 0
     ((renewed.to_f / total_eligible.to_f) * 100).round(1)
@@ -1392,7 +1389,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     { type: type,
       policy_number: p.policy_number.to_s,
       policy_link: "/admin/insurance/#{route_key}/#{p.id}",
-      drwise: p.respond_to?(:product_through_dr) ? p.product_through_dr == true : p.is_admin_added == true,
+      drwise: p.is_admin_added == true && p.is_customer_added == false && p.is_agent_added == false,
       customer: p.customer&.display_name || 'Unknown',
       policy_start_date: p.policy_start_date&.strftime('%d/%m/%Y'),
       policy_start_date_raw: p.policy_start_date.to_s,

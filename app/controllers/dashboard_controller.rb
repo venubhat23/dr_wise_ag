@@ -710,30 +710,29 @@ class DashboardController < ApplicationController
   end
 
   def get_renewal_due_count(forty_five_days_from_now)
-    # Use single UNION query for better performance with string interpolation
     current_date = Date.current
+    dr = dr_filter
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE policy_end_date BETWEEN '#{current_date}' AND '#{forty_five_days_from_now}'
+        SELECT id FROM health_insurances WHERE TRUE #{dr} AND policy_end_date BETWEEN '#{current_date}' AND '#{forty_five_days_from_now}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE policy_end_date BETWEEN '#{current_date}' AND '#{forty_five_days_from_now}'
+        SELECT id FROM life_insurances WHERE TRUE #{dr} AND policy_end_date BETWEEN '#{current_date}' AND '#{forty_five_days_from_now}'
       ) as renewals
     "
 
     result = ActiveRecord::Base.connection.execute(sql)
     count = result.first['count'].to_i
 
-    # Add motor and other insurances if they exist
     begin
       if ActiveRecord::Base.connection.table_exists?('motor_insurances')
-        count += MotorInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, forty_five_days_from_now).count
+        count += dr_scope(MotorInsurance).where('policy_end_date BETWEEN ? AND ?', Date.current, forty_five_days_from_now).count
       end
     rescue
     end
 
     begin
       if ActiveRecord::Base.connection.table_exists?('other_insurances')
-        count += OtherInsurance.where('policy_end_date BETWEEN ? AND ?', Date.current, forty_five_days_from_now).count
+        count += dr_scope(OtherInsurance).where('policy_end_date BETWEEN ? AND ?', Date.current, forty_five_days_from_now).count
       end
     rescue
     end
@@ -742,30 +741,29 @@ class DashboardController < ApplicationController
   end
 
   def get_expired_policies_count
-    # Use single UNION query for better performance with string interpolation
     current_date = Date.current
+    dr = dr_filter
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE policy_end_date < '#{current_date}'
+        SELECT id FROM health_insurances WHERE TRUE #{dr} AND policy_end_date < '#{current_date}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE policy_end_date < '#{current_date}'
+        SELECT id FROM life_insurances WHERE TRUE #{dr} AND policy_end_date < '#{current_date}'
       ) as expired
     "
 
     result = ActiveRecord::Base.connection.execute(sql)
     count = result.first['count'].to_i
 
-    # Add motor and other insurances if they exist
     begin
       if ActiveRecord::Base.connection.table_exists?('motor_insurances')
-        count += MotorInsurance.where('policy_end_date < ?', Date.current).count
+        count += dr_scope(MotorInsurance).where('policy_end_date < ?', Date.current).count
       end
     rescue
     end
 
     begin
       if ActiveRecord::Base.connection.table_exists?('other_insurances')
-        count += OtherInsurance.where('policy_end_date < ?', Date.current).count
+        count += dr_scope(OtherInsurance).where('policy_end_date < ?', Date.current).count
       end
     rescue
     end
@@ -874,19 +872,14 @@ class DashboardController < ApplicationController
 
   private
 
-  # Returns "AND product_through_dr = true" when the column exists on the given table.
-  # Falls back to "AND TRUE" so queries stay valid if the column is absent.
-  def dr_filter(table = :health_insurances)
-    conn = ActiveRecord::Base.connection
-    conn.column_exists?(table, :product_through_dr) ? "AND product_through_dr = true" : "AND TRUE"
-  rescue
-    "AND TRUE"
+  # DR-wise SQL fragment: only admin-added policies (source of truth matches list pages).
+  def dr_filter(_table = nil)
+    "AND is_admin_added = true AND is_customer_added = false AND is_agent_added = false"
   end
 
-  # ActiveRecord scope equivalent of dr_filter (for .where chains).
+  # ActiveRecord scope equivalent of dr_filter.
   def dr_scope(model)
-    conn = ActiveRecord::Base.connection
-    conn.column_exists?(model.table_name, :product_through_dr) ? model.where(product_through_dr: true) : model.all
+    model.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
   rescue
     model.all
   end
@@ -968,19 +961,16 @@ class DashboardController < ApplicationController
   end
 
   def get_renewal_status_counts
-    # Get renewal counts for current month
     current_month_start = Date.current.beginning_of_month
-
-    # Count renewed policies this month (policies with policy_type = 'Renewal')
     renewed_count = 0
 
     begin
-      renewed_count += HealthInsurance.where('created_at >= ?', current_month_start)
-                                     .where(policy_type: 'Renewal').count
-      renewed_count += LifeInsurance.where('created_at >= ?', current_month_start)
-                                   .where(policy_type: 'Renewal').count
-      renewed_count += (MotorInsurance.where('created_at >= ?', current_month_start)
-                                     .where(policy_type: 'Renewal').count rescue 0)
+      renewed_count += dr_scope(HealthInsurance).where('created_at >= ?', current_month_start)
+                                               .where(policy_type: 'Renewal').count
+      renewed_count += dr_scope(LifeInsurance).where('created_at >= ?', current_month_start)
+                                             .where(policy_type: 'Renewal').count
+      renewed_count += (dr_scope(MotorInsurance).where('created_at >= ?', current_month_start)
+                                               .where(policy_type: 'Renewal').count rescue 0)
     rescue => e
       Rails.logger.error "Error calculating renewal status: #{e.message}"
       renewed_count = 0
@@ -994,8 +984,7 @@ class DashboardController < ApplicationController
   end
 
   def get_recent_policies
-    # Use single query with UNION to get all recent policies at once
-    # This avoids N+1 queries and multiple database round trips
+    dr = dr_filter
     sql = "
       SELECT * FROM (
         SELECT
@@ -1006,6 +995,7 @@ class DashboardController < ApplicationController
           CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
         FROM health_insurances h
         LEFT JOIN customers c ON h.customer_id = c.id
+        WHERE TRUE #{dr}
         ORDER BY h.created_at DESC
         LIMIT 5
       ) AS health
@@ -1019,12 +1009,12 @@ class DashboardController < ApplicationController
           CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
         FROM life_insurances l
         LEFT JOIN customers c ON l.customer_id = c.id
+        WHERE TRUE #{dr}
         ORDER BY l.created_at DESC
         LIMIT 5
       ) AS life
     "
 
-    # Add motor insurance if it exists
     begin
       if ActiveRecord::Base.connection.table_exists?('motor_insurances')
         sql += "
@@ -1038,13 +1028,13 @@ class DashboardController < ApplicationController
               CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, '')) as customer_name
             FROM motor_insurances m
             LEFT JOIN customers c ON m.customer_id = c.id
+            WHERE TRUE #{dr}
             ORDER BY m.created_at DESC
             LIMIT 5
           ) AS motor
         "
       end
     rescue
-      # Motor insurance table doesn't exist
     end
 
     sql += " ORDER BY created_at DESC LIMIT 10"
@@ -1108,15 +1098,15 @@ class DashboardController < ApplicationController
   end
 
   def get_recently_expired_count
-    # Get policies that expired in the last 45 days
     current_date = Date.current
     forty_five_days_ago = current_date - 45.days
+    dr = dr_filter
 
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE policy_end_date >= '#{forty_five_days_ago}' AND policy_end_date < '#{current_date}'
+        SELECT id FROM health_insurances WHERE TRUE #{dr} AND policy_end_date >= '#{forty_five_days_ago}' AND policy_end_date < '#{current_date}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE policy_end_date >= '#{forty_five_days_ago}' AND policy_end_date < '#{current_date}'
+        SELECT id FROM life_insurances WHERE TRUE #{dr} AND policy_end_date >= '#{forty_five_days_ago}' AND policy_end_date < '#{current_date}'
       ) as recently_expired
     "
 
@@ -1125,14 +1115,14 @@ class DashboardController < ApplicationController
 
     begin
       if ActiveRecord::Base.connection.table_exists?('motor_insurances')
-        count += MotorInsurance.where(policy_end_date: forty_five_days_ago...current_date).count
+        count += dr_scope(MotorInsurance).where(policy_end_date: forty_five_days_ago...current_date).count
       end
     rescue
     end
 
     begin
       if ActiveRecord::Base.connection.table_exists?('other_insurances')
-        count += OtherInsurance.where(policy_end_date: forty_five_days_ago...current_date).count
+        count += dr_scope(OtherInsurance).where(policy_end_date: forty_five_days_ago...current_date).count
       end
     rescue
     end
@@ -1144,25 +1134,24 @@ class DashboardController < ApplicationController
   end
 
   def get_expired_this_month_count
-    # Get policies that expired this month
     current_date = Date.current
     month_start = current_date.beginning_of_month
+    dr = dr_filter
 
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE policy_end_date BETWEEN '#{month_start}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
+        SELECT id FROM health_insurances WHERE TRUE #{dr} AND policy_end_date BETWEEN '#{month_start}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
         UNION ALL
-        SELECT id FROM life_insurances WHERE policy_end_date BETWEEN '#{month_start}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
+        SELECT id FROM life_insurances WHERE TRUE #{dr} AND policy_end_date BETWEEN '#{month_start}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
       ) as expired_this_month
     "
 
     result = ActiveRecord::Base.connection.execute(sql)
     count = result.first['count'].to_i
 
-    # Add motor insurance if it exists
     begin
       if ActiveRecord::Base.connection.table_exists?('motor_insurances')
-        count += MotorInsurance.where(policy_end_date: month_start..current_date).where('policy_end_date < ?', current_date).count
+        count += dr_scope(MotorInsurance).where(policy_end_date: month_start..current_date).where('policy_end_date < ?', current_date).count
       end
     rescue
     end
@@ -1174,25 +1163,24 @@ class DashboardController < ApplicationController
   end
 
   def get_renewal_opportunities_count
-    # Count policies expiring in next 60 days that haven't been renewed yet
     current_date = Date.current
     sixty_days_from_now = current_date + 60.days
+    dr = dr_filter
 
     sql = "
       SELECT COUNT(*) as count FROM (
-        SELECT id FROM health_insurances WHERE policy_end_date BETWEEN '#{current_date}' AND '#{sixty_days_from_now}' AND policy_type != 'Renewal'
+        SELECT id FROM health_insurances WHERE TRUE #{dr} AND policy_end_date BETWEEN '#{current_date}' AND '#{sixty_days_from_now}' AND policy_type != 'Renewal'
         UNION ALL
-        SELECT id FROM life_insurances WHERE policy_end_date BETWEEN '#{current_date}' AND '#{sixty_days_from_now}' AND policy_type != 'Renewal'
+        SELECT id FROM life_insurances WHERE TRUE #{dr} AND policy_end_date BETWEEN '#{current_date}' AND '#{sixty_days_from_now}' AND policy_type != 'Renewal'
       ) as opportunities
     "
 
     result = ActiveRecord::Base.connection.execute(sql)
     count = result.first['count'].to_i
 
-    # Add motor insurance if it exists
     begin
       if ActiveRecord::Base.connection.table_exists?('motor_insurances')
-        count += MotorInsurance.where(policy_end_date: current_date..sixty_days_from_now).where.not(policy_type: 'Renewal').count
+        count += dr_scope(MotorInsurance).where(policy_end_date: current_date..sixty_days_from_now).where.not(policy_type: 'Renewal').count
       end
     rescue
     end
@@ -1263,7 +1251,7 @@ class DashboardController < ApplicationController
     { type: type,
       policy_number: p.policy_number.to_s,
       policy_link: "/admin/insurance/#{route_key}/#{p.id}",
-      drwise: p.respond_to?(:product_through_dr) ? p.product_through_dr == true : p.is_admin_added == true,
+      drwise: p.is_admin_added == true && p.is_customer_added == false && p.is_agent_added == false,
       customer: p.customer&.display_name || 'Unknown',
       policy_start_date: p.policy_start_date&.strftime('%d/%m/%Y'),
       policy_start_date_raw: p.policy_start_date.to_s,
