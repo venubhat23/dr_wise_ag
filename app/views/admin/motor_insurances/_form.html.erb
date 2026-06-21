@@ -1505,7 +1505,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       if (customerId) {
         // Fetch policy holder options
-        fetch(`/admin/motor_insurances/policy_holder_options?customer_id=${customerId}`)
+        fetch(`/admin/insurance/motor/policy_holder_options?customer_id=${customerId}`)
           .then(response => response.json())
           .then(data => {
             data.options.forEach(option => {
@@ -1520,7 +1520,7 @@ document.addEventListener('DOMContentLoaded', function() {
           .catch(error => console.error('Error fetching policy holder options:', error));
 
         // Fetch and auto-select affiliate based on customer's branch/lead
-        fetch(`/admin/motor_insurances/customer_affiliate_info?customer_id=${customerId}`)
+        fetch(`/admin/insurance/motor/customer_affiliate_info?customer_id=${customerId}`)
           .then(response => response.json())
           .then(data => {
             if (data.affiliate_id) {

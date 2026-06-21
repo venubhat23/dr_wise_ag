@@ -94,6 +94,15 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Cucumber BDD testing
+  gem "cucumber-rails", require: false
+  gem "database_cleaner-active_record"
+  gem "factory_bot_rails"
+  gem "faker"
+  gem "capybara"
+  gem "selenium-webdriver", "~> 4.11"
+  gem "rspec-expectations"
 end
 
 group :development do

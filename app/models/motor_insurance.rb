@@ -28,7 +28,7 @@ class MotorInsurance < ApplicationRecord
   accepts_nested_attributes_for :motor_insurance_documents, allow_destroy: true, reject_if: :all_blank
 
   # Virtual attribute for file upload handling (not stored in database)
-  attr_accessor :main_policy_document
+  attr_accessor :main_policy_document, :company_expenses_amount
 
   # Validations
   validates :policy_holder, presence: true
@@ -341,8 +341,8 @@ class MotorInsurance < ApplicationRecord
       self.main_agent_commission_amount = (net_premium * (main_agent_commission_percentage / 100.0)).round(2)
     end
 
-    if main_agent_commission_amount.present? && main_agent_tds_percent.present?
-      self.main_agent_tds_amount = (main_agent_commission_amount * (main_agent_tds_percent / 100.0)).round(2)
+    if main_agent_commission_amount.present? && main_agent_tds_percentage.present?
+      self.main_agent_tds_amount = (main_agent_commission_amount * (main_agent_tds_percentage / 100.0)).round(2)
       self.after_tds_value = (main_agent_commission_amount - main_agent_tds_amount).round(2)
     end
 
