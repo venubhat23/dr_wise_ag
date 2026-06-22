@@ -2432,49 +2432,25 @@ function loadLeadConversionData(content, loading) {
             <div class="col-md-6">
               <h5 style="font-weight: bold; color: #333;">Lead Stage Breakdown</h5>
               <div class="table-responsive">
-                <table class="table table-sm table-hover" style="background: white; border-radius: 8px; overflow: hidden;">
-                  <thead style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                <table class="table table-sm table-hover">
+                  <thead>
                     <tr>
-                      <th style="color: white; font-weight: bold; border: none;">Stage</th>
-                      <th style="color: white; font-weight: bold; border: none;">Count</th>
-                      <th style="color: white; font-weight: bold; border: none;">Percentage</th>
+                      <th>Stage</th>
+                      <th>Count</th>
+                      <th>Percentage</th>
                     </tr>
                   </thead>
                   <tbody>
                     ${data.stage_breakdown ? Object.entries(data.stage_breakdown).map(([stage, count]) => {
                       const percentage = data.summary.total_leads > 0 ? ((count / data.summary.total_leads) * 100).toFixed(1) : 0;
-                      const stageColor = stage === 'converted' ? '#11998e' :
-                                        stage === 'lead_generated' ? '#667eea' :
-                                        stage === 'follow_up' ? '#f093fb' :
-                                        stage === 'consultation_scheduled' ? '#4facfe' :
-                                        stage === 'not_interested' ? '#f5576c' :
-                                        stage === 'lead_closed' ? '#ff6b6b' : '#6c757d';
-                      const stageBg = stage === 'converted' ? 'bg-success' :
-                                     stage === 'lead_generated' ? 'bg-primary' :
-                                     stage === 'follow_up' ? 'bg-info' :
-                                     stage === 'consultation_scheduled' ? 'bg-warning' :
-                                     stage === 'not_interested' ? 'bg-danger' :
-                                     stage === 'lead_closed' ? 'bg-dark' : 'bg-secondary';
                       return `
-                        <tr style="background: rgba(17, 153, 142, 0.05);">
-                          <td>
-                            <span class="badge ${stageBg}" style="font-weight: bold; font-size: 0.9rem; padding: 0.5rem 0.8rem;">
-                              ${stage.replace(/_/g, ' ').toUpperCase()}
-                            </span>
-                          </td>
-                          <td style="font-weight: bold; color: ${stageColor}; font-size: 1.1rem;"><strong>${count}</strong></td>
-                          <td>
-                            <div class="progress" style="height: 25px; background: rgba(0,0,0,0.1); border-radius: 10px;">
-                              <div class="progress-bar" role="progressbar"
-                                   style="width: ${percentage}%; background: linear-gradient(90deg, ${stageColor}, ${stageColor}dd); font-weight: bold; font-size: 0.9rem;"
-                                   aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100">
-                                <strong>${percentage}%</strong>
-                              </div>
-                            </div>
-                          </td>
+                        <tr>
+                          <td>${stage.replace(/_/g, ' ').toUpperCase()}</td>
+                          <td>${count}</td>
+                          <td>${percentage}%</td>
                         </tr>
                       `;
-                    }).join('') : '<tr><td colspan="3" style="font-weight: 600;">No data available</td></tr>'}
+                    }).join('') : '<tr><td colspan="3">No data available</td></tr>'}
                   </tbody>
                 </table>
               </div>
