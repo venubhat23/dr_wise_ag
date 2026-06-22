@@ -375,10 +375,12 @@
     if (rows[3]) {
       const inputs = rows[3].querySelectorAll('input[type="number"]');
       if (inputs[1]) inputs[1].value = invAmt.toFixed(2);
+      if (inputs[2]) inputs[2].value = invAmt.toFixed(2);
     }
     if (rows[4]) {
       const inputs = rows[4].querySelectorAll('input[type="number"]');
       if (inputs[1]) inputs[1].value = expAmt.toFixed(2);
+      if (inputs[2]) inputs[2].value = expAmt.toFixed(2);
     }
 
     // Profit
