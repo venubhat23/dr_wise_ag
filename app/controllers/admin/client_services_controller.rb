@@ -78,6 +78,7 @@ class Admin::ClientServicesController < Admin::ApplicationController
 
   def create
     @client_service = ClientService.new(client_service_params)
+    @client_service.is_admin_added = true
     set_distributor_from_affiliate(@client_service)
 
     if @client_service.save
