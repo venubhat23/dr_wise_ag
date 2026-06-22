@@ -163,8 +163,9 @@
                     %>">
                       <%= user.user_type&.humanize || 'User' %>
                     </span>
-                    <% if user.role.present? %>
-                      <div><small class="text-muted"><%= user.role.humanize %></small></div>
+                    <% role_label = user.role&.name || user.read_attribute(:role) %>
+                    <% if role_label.present? %>
+                      <div><small class="text-muted"><%= role_label.humanize %></small></div>
                     <% end %>
                   </div>
                 </td>

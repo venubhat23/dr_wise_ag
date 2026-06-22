@@ -49,6 +49,7 @@ class Admin::UsersController < Admin::ApplicationController
   # POST /admin/users
   def create
     @user = User.new(user_params)
+    @user.write_attribute(:role, params.dig(:user, :role).presence)
 
     if @user.save
       redirect_to admin_user_path(@user), notice: 'User was successfully created.'
@@ -59,7 +60,10 @@ class Admin::UsersController < Admin::ApplicationController
 
   # PATCH/PUT /admin/users/1
   def update
-    if @user.update(user_params)
+    @user.assign_attributes(user_params)
+    @user.write_attribute(:role, params.dig(:user, :role).presence)
+
+    if @user.save
       redirect_to admin_user_path(@user), notice: 'User was successfully updated.'
     else
       render :edit, status: :unprocessable_entity
@@ -84,7 +88,7 @@ class Admin::UsersController < Admin::ApplicationController
 
   def user_params
     params.require(:user).permit(
-      :first_name, :middle_name, :last_name, :email, :mobile, :user_type, :role, :status,
+      :first_name, :middle_name, :last_name, :email, :mobile, :user_type, :status,
       :address, :state, :city, :pan_number, :gst_number, :date_of_birth, :gender,
       :occupation, :annual_income, :password, :password_confirmation, :company_name,
       :bank_name, :account_number, :ifsc_code, :account_holder_name, :account_type, :upi_id,
