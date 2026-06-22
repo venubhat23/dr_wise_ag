@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_13_012250) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_22_072036) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -397,6 +397,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_13_012250) do
     t.integer "sub_agent_id"
     t.string "lead_id"
     t.boolean "deactivated", default: false
+    t.string "bank_name"
+    t.string "account_no"
+    t.string "ifsc_code"
     t.index ["created_at"], name: "index_customers_on_created_at"
     t.index ["customer_type", "created_at"], name: "index_customers_on_customer_type_and_created_at"
     t.index ["customer_type", "status"], name: "index_customers_on_customer_type_and_status"

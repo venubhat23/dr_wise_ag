@@ -483,18 +483,6 @@
         <h5 class="mb-1"><%= @investor.full_name %></h5>
         <p class="text-muted mb-3"><%= @investor.email %></p>
 
-        <div class="d-grid gap-2">
-          <% if @investor.email.present? %>
-            <%= link_to "mailto:#{@investor.email}", class: "btn btn-outline-primary" do %>
-              <i class="bi bi-envelope me-1"></i>
-            <% end %>
-          <% end %>
-          <% if @investor.mobile.present? %>
-            <%= link_to "tel:#{@investor.mobile}", class: "btn btn-outline-success" do %>
-              <i class="bi bi-telephone me-1"></i>
-            <% end %>
-          <% end %>
-        </div>
       </div>
     </div>
 
