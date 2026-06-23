@@ -2,21 +2,36 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
   include ActionView::Helpers::NumberHelper
 
   def index
-    # Normal index page rendering (removed session-based download handling)
-    # Get saved reports for the listing
+    # Default date range to last 1 month when no filter params are provided
+    @filter_start_date = params[:start_date].presence || 1.month.ago.to_date.to_s
+    @filter_end_date   = params[:end_date].presence   || Date.current.to_s
+    @filter_stage      = params[:current_stage].to_s
+    @filter_category   = params[:product_category].to_s
+
+    filters = {
+      start_date:       @filter_start_date,
+      end_date:         @filter_end_date,
+      current_stage:    @filter_stage,
+      product_category: @filter_category
+    }.reject { |_, v| v.blank? }
+
+    @leads = build_lead_query(filters)
+
+    # Saved reports listing
     @saved_reports = Report.where(report_type: 'leads')
                            .includes(:created_by)
                            .order(created_at: :desc)
                            .page(params[:page])
                            .per(10)
 
-    # Calculate statistics
-    @total_reports = Report.where(report_type: 'leads').count
-    @this_month_reports = Report.where(report_type: 'leads')
-                                .where(created_at: Date.current.beginning_of_month..Date.current.end_of_month)
-                                .count
-
+    @total_reports         = Report.where(report_type: 'leads').count
+    @this_month_reports    = Report.where(report_type: 'leads')
+                                   .where(created_at: Date.current.beginning_of_month..Date.current.end_of_month)
+                                   .count
+    @last_generated        = Report.where(report_type: 'leads').maximum(:created_at)
     @total_leads_from_reports = calculate_total_leads_from_reports
+
+    load_form_data
   end
 
   def new

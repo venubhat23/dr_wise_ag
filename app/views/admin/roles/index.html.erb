@@ -163,14 +163,14 @@
                     <%= link_to edit_admin_role_path(role), class: "btn btn-sm btn-outline-warning", title: "Edit Role" do %>
                       <i class="bi bi-pencil"></i>
                     <% end %>
-                    <%= link_to toggle_status_admin_role_path(role),
+                    <%= button_to toggle_status_admin_role_path(role),
                         method: :patch,
                         class: "btn btn-sm btn-outline-#{role.status? ? 'secondary' : 'success'}",
                         title: role.status? ? 'Deactivate' : 'Activate',
                         data: {
-                          confirm: "Are you sure you want to #{role.status? ? 'deactivate' : 'activate'} this role?",
-                          turbo_method: :patch
-                        } do %>
+                          confirm: "Are you sure you want to #{role.status? ? 'deactivate' : 'activate'} this role?"
+                        },
+                        form: { style: "display: inline;" } do %>
                       <i class="bi bi-#{role.status? ? 'pause-circle' : 'play-circle'}"></i>
                     <% end %>
                     <% unless role.users.any? || role.name == 'super_admin' %>

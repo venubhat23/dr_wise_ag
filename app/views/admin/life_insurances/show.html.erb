@@ -2,7 +2,7 @@
 <% content_for :page_subtitle, "Policy ##{@life_insurance.policy_number}" %>
 
 <!-- Action Buttons -->
-<div class="d-flex justify-content-between align-items-center mb-4" style="width: 100vw; margin-left: -15px; margin-right: -15px; padding-left: 15px; padding-right: 15px;">
+<div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <%= link_to admin_life_insurances_path, class: "btn btn-outline-secondary" do %>
       <i class="bi bi-arrow-left me-2"></i>
@@ -11,6 +11,12 @@
   </div>
 
   <div class="d-flex gap-2">
+    <% if @life_insurance.can_be_renewed? %>
+      <%= link_to renew_admin_life_insurance_path(@life_insurance), class: "btn btn-success" do %>
+        <i class="bi bi-arrow-repeat me-2"></i>
+        Renew
+      <% end %>
+    <% end %>
     <%= link_to edit_admin_life_insurance_path(@life_insurance), class: "btn btn-primary" do %>
       <i class="bi bi-pencil me-2"></i>
       Edit Policy
@@ -63,7 +69,7 @@
 
 <!-- Policy Details Section -->
 <div class="info-section-card">
-  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#policyDetailsCollapse" aria-expanded="false">
+  <div class="section-header" data-bs-toggle="collapse" data-bs-target="#policyDetailsCollapse" aria-expanded="true">
     <div class="d-flex align-items-center">
       <div class="section-icon">
         <i class="bi bi-file-text"></i>
@@ -72,7 +78,7 @@
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
-  <div id="policyDetailsCollapse" class="collapse">
+  <div id="policyDetailsCollapse" class="collapse show">
     <div class="section-body">
       <div class="row g-4">
         <div class="col-md-6 col-lg-4">

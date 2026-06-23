@@ -18,7 +18,7 @@
 
 <%= form_with model: [:admin, @sub_agent], local: true, multipart: true, class: "needs-validation", novalidate: true, data: { turbo: false } do |form| %>
   <% if @sub_agent.errors.any? %>
-    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+    <div class="alert alert-danger alert-dismissible show mb-4" role="alert">
       <h6>Please correct the following errors:</h6>
       <ul class="mb-0">
         <% @sub_agent.errors.full_messages.each do |message| %>

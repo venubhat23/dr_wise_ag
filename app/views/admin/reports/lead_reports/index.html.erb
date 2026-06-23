@@ -29,10 +29,127 @@
     <h2 class="mb-1">Lead Reports</h2>
     <p class="text-muted mb-0">Generate a report of leads based on stage and creation date.</p>
   </div>
-  <div>
+  <div class="d-flex gap-2">
     <button type="button" class="btn btn-success" id="exportBtn">
       <i class="bi bi-download me-2"></i>Export
     </button>
+    <%= link_to new_admin_reports_lead_report_path, class: "btn btn-primary" do %>
+      <i class="bi bi-plus-circle me-1"></i>Save Report
+    <% end %>
+  </div>
+</div>
+
+<!-- Filter Panel -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 pb-0">
+    <h6 class="mb-0"><i class="bi bi-funnel me-2 text-primary"></i>Filters</h6>
+  </div>
+  <div class="card-body">
+    <%= form_with url: admin_reports_lead_reports_path, method: :get, local: true, id: "filter_form" do |f| %>
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <%= f.label :start_date, "From", class: "form-label mb-1 small fw-semibold" %>
+          <%= f.date_field :start_date, value: @filter_start_date, class: "form-control form-control-sm" %>
+        </div>
+        <div class="col-md-3">
+          <%= f.label :end_date, "To", class: "form-label mb-1 small fw-semibold" %>
+          <%= f.date_field :end_date, value: @filter_end_date, class: "form-control form-control-sm" %>
+        </div>
+        <div class="col-md-2">
+          <%= f.label :current_stage, "Stage", class: "form-label mb-1 small fw-semibold" %>
+          <%= f.select :current_stage,
+                options_for_select(@lead_stages, @filter_stage),
+                {},
+                { class: "form-select form-select-sm" } %>
+        </div>
+        <div class="col-md-2">
+          <%= f.label :product_category, "Category", class: "form-label mb-1 small fw-semibold" %>
+          <%= f.select :product_category,
+                options_for_select(@product_categories, @filter_category),
+                {},
+                { class: "form-select form-select-sm" } %>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm flex-fill">
+            <i class="bi bi-search me-1"></i>Apply
+          </button>
+          <%= link_to admin_reports_lead_reports_path, class: "btn btn-outline-secondary btn-sm" do %>
+            <i class="bi bi-x-circle"></i>
+          <% end %>
+        </div>
+      </div>
+      <!-- Quick range shortcuts -->
+      <div class="mt-2 d-flex gap-2 flex-wrap">
+        <small class="text-muted me-1 align-self-center">Quick:</small>
+        <% [
+          ['Today',       Date.current,                   Date.current],
+          ['This Week',   Date.current.beginning_of_week, Date.current],
+          ['This Month',  Date.current.beginning_of_month, Date.current],
+          ['Last Month',  1.month.ago.to_date.beginning_of_month, 1.month.ago.to_date.end_of_month],
+          ['Last 3 Months', 3.months.ago.to_date, Date.current],
+        ].each do |label, from, to| %>
+          <%= link_to admin_reports_lead_reports_path(start_date: from, end_date: to, current_stage: @filter_stage, product_category: @filter_category),
+                class: "badge text-bg-light border text-decoration-none" do %>
+            <%= label %>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Leads Data Table -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">
+      Leads from <%= Date.parse(@filter_start_date).strftime('%d %b %Y') %> to <%= Date.parse(@filter_end_date).strftime('%d %b %Y') %>
+      <span class="badge bg-primary ms-2"><%= @leads.count %></span>
+    </h6>
+  </div>
+  <div class="card-body p-0">
+    <% if @leads.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 small">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0">Lead ID</th>
+              <th class="border-0">Name</th>
+              <th class="border-0">Contact</th>
+              <th class="border-0">Affiliate</th>
+              <th class="border-0">Product</th>
+              <th class="border-0">Stage</th>
+              <th class="border-0">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @leads.each do |lead| %>
+              <tr>
+                <td class="text-muted"><%= lead.lead_id %></td>
+                <td><%= lead.display_name %></td>
+                <td>
+                  <%= lead.contact_number %><br>
+                  <small class="text-muted"><%= lead.email %></small>
+                </td>
+                <td><%= lead.affiliate_name %></td>
+                <td><%= lead.product_display_name %></td>
+                <td>
+                  <span class="badge bg-secondary bg-opacity-75">
+                    <%= lead.current_stage&.humanize || 'N/A' %>
+                  </span>
+                </td>
+                <td class="text-muted"><%= lead.created_date&.strftime('%d %b %Y') %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="text-center py-5">
+        <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+        <h6 class="text-muted">No leads found for the selected period</h6>
+        <p class="text-muted small mb-0">Try adjusting the filters above</p>
+      </div>
+    <% end %>
   </div>
 </div>
 

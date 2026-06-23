@@ -118,16 +118,9 @@ class Admin::DistributorPayoutsController < ApplicationController
       if errors.any?
         redirect_to admin_distributor_payouts_path, alert: "Some payouts failed: #{errors.join(', ')}"
       else
-        # Generate invoices after successful payouts
+        # Generate ambassador invoices after successful payouts.
+        # All payouts in this flow are ambassador commissions — no distributor invoice is generated.
         invoice_errors = []
-
-        begin
-          generate_distributor_invoices(distributor_id, lead_ids, payout_type)
-        rescue => e
-          Rails.logger.error "Distributor invoice generation failed: #{e.message}"
-          Rails.logger.error e.backtrace.first(5).join("\n")
-          invoice_errors << "Distributor invoice generation failed: #{e.message}"
-        end
 
         begin
           generate_ambassador_invoices(distributor_id, lead_ids, payout_type)
