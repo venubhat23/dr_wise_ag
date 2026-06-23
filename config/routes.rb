@@ -635,15 +635,15 @@ Rails.application.routes.draw do
         end
       end
 
-      # Session Reports
-      resources :sessions, only: [:index] do
-        collection do
-          get :export
-          post :filter
-          get :realtime_data
-          get :active_users_details
-        end
-      end
+      # Session Reports (commented out - NPE)
+      # resources :sessions, only: [:index] do
+      #   collection do
+      #     get :export
+      #     post :filter
+      #     get :realtime_data
+      #     get :active_users_details
+      #   end
+      # end
 
       resources :expired_insurance_reports, only: [:index] do
         collection do
@@ -690,11 +690,11 @@ Rails.application.routes.draw do
           get :export
         end
       end
-      resources :session_reports, only: [:index] do
-        collection do
-          get :export
-        end
-      end
+      # resources :session_reports, only: [:index] do
+      #   collection do
+      #     get :export
+      #   end
+      # end
     end
 
     # AI Reports

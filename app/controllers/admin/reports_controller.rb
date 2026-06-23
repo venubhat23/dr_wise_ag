@@ -161,57 +161,54 @@ class Admin::ReportsController < Admin::ApplicationController
     @leads_by_stage = {}
   end
 
-  # GET /admin/reports/sessions
-  def sessions
-    @date_range = params[:date_range] || 'today'
-
-    # Calculate date range
-    case @date_range
-    when 'today'
-      start_date = Date.current.beginning_of_day
-      end_date = Date.current.end_of_day
-    when '7_days'
-      start_date = 7.days.ago.beginning_of_day
-      end_date = Date.current.end_of_day
-    when '30_days'
-      start_date = 30.days.ago.beginning_of_day
-      end_date = Date.current.end_of_day
-    when '3_months'
-      start_date = 3.months.ago.beginning_of_day
-      end_date = Date.current.end_of_day
-    else
-      start_date = Date.current.beginning_of_day
-      end_date = Date.current.end_of_day
-    end
-
-    # Session analytics
-    @active_users = User.where(status: true).count
-    @total_sessions = User.where(created_at: start_date..end_date).count
-    @avg_session_time = "24m" # Placeholder for actual session tracking
-    @failed_logins = 0 # Placeholder for failed login tracking
-
-    # Sample recent sessions data
-    @recent_sessions = User.where(status: true)
-                          .limit(20)
-                          .order(created_at: :desc)
-                          .map.with_index do |user, index|
-      {
-        id: user.id,
-        user_id: user.id,
-        user_name: "#{user.first_name} #{user.last_name}".strip,
-        email: user.email,
-        user_type: user.user_type || 'user',
-        login_time: user.created_at + rand(0..72).hours,
-        last_activity: case rand(5)
-                      when 0 then "Just now"
-                      when 1 then "#{rand(1..10)} minutes ago"
-                      when 2 then "#{rand(1..2)} hours ago"
-                      else "#{rand(1..5)} hours ago"
-                      end,
-        duration: "#{rand(5..120)}m",
-        ip_address: "192.168.1.#{rand(100..200)}",
-        status: rand(10) < 7 ? 'active' : 'inactive'
-      }
-    end
-  end
+  # GET /admin/reports/sessions - commented out (NPE)
+  # def sessions
+  #   @date_range = params[:date_range] || 'today'
+  #
+  #   case @date_range
+  #   when 'today'
+  #     start_date = Date.current.beginning_of_day
+  #     end_date = Date.current.end_of_day
+  #   when '7_days'
+  #     start_date = 7.days.ago.beginning_of_day
+  #     end_date = Date.current.end_of_day
+  #   when '30_days'
+  #     start_date = 30.days.ago.beginning_of_day
+  #     end_date = Date.current.end_of_day
+  #   when '3_months'
+  #     start_date = 3.months.ago.beginning_of_day
+  #     end_date = Date.current.end_of_day
+  #   else
+  #     start_date = Date.current.beginning_of_day
+  #     end_date = Date.current.end_of_day
+  #   end
+  #
+  #   @active_users = User.where(status: true).count
+  #   @total_sessions = User.where(created_at: start_date..end_date).count
+  #   @avg_session_time = "24m"
+  #   @failed_logins = 0
+  #
+  #   @recent_sessions = User.where(status: true)
+  #                         .limit(20)
+  #                         .order(created_at: :desc)
+  #                         .map.with_index do |user, index|
+  #     {
+  #       id: user.id,
+  #       user_id: user.id,
+  #       user_name: "#{user.first_name} #{user.last_name}".strip,
+  #       email: user.email,
+  #       user_type: user.user_type || 'user',
+  #       login_time: user.created_at + rand(0..72).hours,
+  #       last_activity: case rand(5)
+  #                     when 0 then "Just now"
+  #                     when 1 then "#{rand(1..10)} minutes ago"
+  #                     when 2 then "#{rand(1..2)} hours ago"
+  #                     else "#{rand(1..5)} hours ago"
+  #                     end,
+  #       duration: "#{rand(5..120)}m",
+  #       ip_address: "192.168.1.#{rand(100..200)}",
+  #       status: rand(10) < 7 ? 'active' : 'inactive'
+  #     }
+  #   end
+  # end
 end

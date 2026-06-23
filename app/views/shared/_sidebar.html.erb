@@ -326,18 +326,16 @@
             <% end %>
           </li>
 
-          <!-- Session Report -->
-          <li class="nav-item">
-            <%= link_to admin_reports_sessions_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/sessions')}" do %>
-              <div class="nav-icon-modern">
-                <div class="icon-bg gradient-cyan">
-                  <i class="bi bi-activity"></i>
-                </div>
-              </div>
-              <span class="nav-text">Session Report</span>
-              <div class="nav-indicator"></div>
-            <% end %>
-          </li>
+          <%# Session Report - commented out (NPE) %>
+          <%#= link_to admin_reports_sessions_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/sessions')}" do %>
+          <%#   <div class="nav-icon-modern"> %>
+          <%#     <div class="icon-bg gradient-cyan"> %>
+          <%#       <i class="bi bi-activity"></i> %>
+          <%#     </div> %>
+          <%#   </div> %>
+          <%#   <span class="nav-text">Session Report</span> %>
+          <%#   <div class="nav-indicator"></div> %>
+          <%# end %>
         </ul>
       </div>
     <% end %>

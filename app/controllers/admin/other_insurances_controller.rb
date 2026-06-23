@@ -9,7 +9,7 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     @current_tab = params[:tab] || 'drwise'
 
     # Base query
-    @other_insurances = OtherInsurance.includes(:customer, :renewal_policy)
+    @other_insurances = OtherInsurance.includes(:customer, :renewal_policy, :sub_agent)
 
     # Search functionality
     if params[:search].present?

@@ -1282,20 +1282,20 @@ body.sidebar-collapsed .main-content {
         </li>
         <% end %>
 
-        <!-- Session Reports -->
-        <% if show_sidebar_item?('reports') %>
-        <li class="nav-item">
-          <%= link_to admin_reports_sessions_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/sessions')}" do %>
-            <div class="nav-icon-modern">
-              <div class="icon-bg gradient-green">
-                <i class="bi bi-activity"></i>
-              </div>
-            </div>
-            <span class="nav-text">Session Reports</span>
-            <div class="nav-indicator"></div>
-          <% end %>
-        </li>
-        <% end %>
+        <%# Session Reports - commented out (NPE) %>
+        <%# <% if show_sidebar_item?('reports') %> %>
+        <%# <li class="nav-item"> %>
+        <%#   <%= link_to admin_reports_sessions_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/sessions')}" do %> %>
+        <%#     <div class="nav-icon-modern"> %>
+        <%#       <div class="icon-bg gradient-green"> %>
+        <%#         <i class="bi bi-activity"></i> %>
+        <%#       </div> %>
+        <%#     </div> %>
+        <%#     <span class="nav-text">Session Reports</span> %>
+        <%#     <div class="nav-indicator"></div> %>
+        <%#   <% end %> %>
+        <%# </li> %>
+        <%# <% end %> %>
         </ul>
       </div>
     <% end %>

@@ -325,15 +325,8 @@
           <% grouped_payouts.each do |policy_id, policy_payouts| %>
             <% policy = policy_payouts.first %>
             <%
-              # Get the actual policy object to show detailed commission breakdown
-              actual_policy = case policy.policy_type
-                             when 'health'
-                               HealthInsurance.find_by(id: policy_id)
-                             when 'life'
-                               LifeInsurance.find_by(id: policy_id)
-                             else
-                               nil
-                             end
+              # Use preloaded policy objects to avoid N+1 queries
+              actual_policy = @preloaded_policies&.dig(policy.policy_type, policy_id)
             %>
             <tr class="layer-row" onclick="showPolicyFlow(<%= policy_id %>, '<%= policy.policy_type %>')">
               <td>

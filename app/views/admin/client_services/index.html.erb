@@ -230,9 +230,12 @@
                     <%= link_to edit_admin_client_service_path(cs), class: "btn btn-outline-secondary", title: "Edit" do %>
                       <i class="bi bi-pencil"></i>
                     <% end %>
-                    <%= link_to admin_client_service_path(cs),
-                        data: { turbo_method: :delete, turbo_confirm: "Delete this record?" },
-                        class: "btn btn-outline-danger", title: "Delete" do %>
+                    <%= button_to admin_client_service_path(cs),
+                        method: :delete,
+                        data: { confirm: "Delete this record?" },
+                        class: "btn btn-outline-danger",
+                        title: "Delete",
+                        form: { style: "display: inline;" } do %>
                       <i class="bi bi-trash"></i>
                     <% end %>
                   </div>

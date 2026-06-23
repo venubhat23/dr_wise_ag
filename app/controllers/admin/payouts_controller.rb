@@ -41,6 +41,20 @@ class Admin::PayoutsController < Admin::ApplicationController
                        .page(params[:page])
                        .per(20)
 
+    # Preload actual policy objects to avoid N+1 queries in the view
+    payout_list = @payouts.to_a
+    health_ids = payout_list.select { |p| p.policy_type == 'health' }.map(&:policy_id).uniq.compact
+    life_ids   = payout_list.select { |p| p.policy_type == 'life'   }.map(&:policy_id).uniq.compact
+    motor_ids  = payout_list.select { |p| p.policy_type == 'motor'  }.map(&:policy_id).uniq.compact
+    other_ids  = payout_list.select { |p| p.policy_type == 'other'  }.map(&:policy_id).uniq.compact
+
+    health_map = HealthInsurance.includes(:customer).where(id: health_ids).index_by(&:id)
+    life_map   = LifeInsurance.includes(:customer).where(id: life_ids).index_by(&:id)
+    motor_map  = MotorInsurance.includes(:customer).where(id: motor_ids).index_by(&:id)
+    other_map  = OtherInsurance.includes(:customer).where(id: other_ids).index_by(&:id)
+
+    @preloaded_policies = { 'health' => health_map, 'life' => life_map, 'motor' => motor_map, 'other' => other_map }
+
     # Summary statistics
     @summary = {
       total_payouts: CommissionPayout.count,
