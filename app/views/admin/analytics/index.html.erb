@@ -1405,8 +1405,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       if (premiumLabels.length === 0) {
         console.warn('No premium revenue data available');
-        return;
-      }
+      } else {
 
       // Create gradient for the line
       const gradientPremium = premiumTrendCtx.getContext('2d').createLinearGradient(0, 0, 0, 300);
@@ -1518,6 +1517,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
       console.log('✅ Premium Revenue Trend Chart initialized successfully');
+      } // end else (premiumLabels.length > 0)
     }
   } catch (error) {
     console.error('❌ Error initializing Premium Revenue Trend Chart:', error);
@@ -1529,7 +1529,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const policyCtx = document.getElementById('policyDistributionChart');
     if (!policyCtx) {
       console.error('❌ policyDistributionChart canvas not found!');
-      return;
+      throw new Error('policyDistributionChart canvas not found');
     }
 
     const policyLabels = Object.keys(policyDistributionData);
@@ -1537,7 +1537,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (policyLabels.length === 0) {
       console.warn('No policy distribution data available');
-      return;
+      throw new Error('no policy distribution data');
     }
 
     const policyChart = new Chart(policyCtx.getContext('2d'), {
@@ -1598,7 +1598,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const trendsCtx = document.getElementById('monthlyTrendsChart');
     if (!trendsCtx) {
       console.error('❌ monthlyTrendsChart canvas not found!');
-      return;
+      throw new Error('monthlyTrendsChart canvas not found');
     }
     const monthlyLabels = Object.keys(monthlyTrendsData);
     const monthlyValues = Object.values(monthlyTrendsData);
@@ -1607,7 +1607,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (monthlyLabels.length === 0) {
       console.warn('No monthly trends data available');
-      return;
+      throw new Error('no monthly trends data');
     }
 
     console.log('Monthly Labels:', monthlyLabels);
@@ -1689,7 +1689,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const commissionCtx = document.getElementById('commissionChart');
     if (!commissionCtx) {
       console.error('❌ commissionChart canvas not found!');
-      return;
+      throw new Error('commissionChart canvas not found');
     }
     const commissionChart = new Chart(commissionCtx.getContext('2d'), {
     type: 'bar',
@@ -1754,7 +1754,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const renewalCtx = document.getElementById('renewalChart');
     if (!renewalCtx) {
       console.error('❌ renewalChart canvas not found!');
-      return;
+      throw new Error('renewalChart canvas not found');
     }
     const renewalChart = new Chart(renewalCtx.getContext('2d'), {
     type: 'bar',
@@ -1820,7 +1820,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const leadFunnelCtx = document.getElementById('leadFunnelChart');
     if (!leadFunnelCtx) {
       console.error('❌ leadFunnelChart canvas not found!');
-      return;
+      throw new Error('leadFunnelChart canvas not found');
     }
 
     // Create gradient colors for funnel effect
@@ -2006,7 +2006,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const acquisitionCtx = document.getElementById('customerAcquisitionChart');
     if (!acquisitionCtx) {
       console.error('❌ customerAcquisitionChart canvas not found!');
-      return;
+      throw new Error('customerAcquisitionChart canvas not found');
     }
     const acquisitionChart = new Chart(acquisitionCtx.getContext('2d'), {
     type: 'line',
@@ -2057,7 +2057,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const leadStageCtx = document.getElementById('leadStageChart');
     if (!leadStageCtx) {
       console.error('❌ leadStageChart canvas not found!');
-      return;
+      throw new Error('leadStageChart canvas not found');
     }
     const leadStageLabels = Object.keys(leadStageData);
     const leadStageValues = Object.values(leadStageData);
@@ -2065,7 +2065,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (leadStageLabels.length === 0) {
       console.warn('No lead stage data available');
-      return;
+      leadStageLabels.push('No Data');
+      leadStageValues.push(1);
     }
 
     const leadStageChart = new Chart(leadStageCtx.getContext('2d'), {
