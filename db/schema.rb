@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_22_072036) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_22_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -526,6 +526,20 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_22_072036) do
     t.decimal "weight_kg", precision: 5, scale: 2
     t.text "additional_information"
     t.index ["customer_id"], name: "index_family_members_on_customer_id"
+  end
+
+  create_table "health_insurance_documents", force: :cascade do |t|
+    t.bigint "health_insurance_id", null: false
+    t.string "document_type"
+    t.string "title"
+    t.text "description"
+    t.string "r2_file_key"
+    t.string "r2_filename"
+    t.string "r2_content_type"
+    t.bigint "r2_file_size"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["health_insurance_id"], name: "index_health_insurance_documents_on_health_insurance_id"
   end
 
   create_table "health_insurance_members", force: :cascade do |t|
@@ -1227,6 +1241,20 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_22_072036) do
     t.index ["sub_agent_id"], name: "index_mutual_funds_on_sub_agent_id"
   end
 
+  create_table "other_insurance_documents", force: :cascade do |t|
+    t.bigint "other_insurance_id", null: false
+    t.string "document_type"
+    t.string "title"
+    t.text "description"
+    t.string "r2_file_key"
+    t.string "r2_filename"
+    t.string "r2_content_type"
+    t.bigint "r2_file_size"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["other_insurance_id"], name: "index_other_insurance_documents_on_other_insurance_id"
+  end
+
   create_table "other_insurance_nominees", force: :cascade do |t|
     t.bigint "other_insurance_id", null: false
     t.string "nominee_name"
@@ -1794,6 +1822,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_22_072036) do
 
   add_foreign_key "appointments", "customers"
   add_foreign_key "appointments", "users", column: "created_by_id"
+  add_foreign_key "health_insurance_documents", "health_insurances"
   add_foreign_key "health_insurance_nominees", "health_insurances"
   add_foreign_key "health_insurances", "health_insurances", column: "original_policy_id", name: "health_insurances_original_policy_id_fkey"
   add_foreign_key "helpdesk_tickets", "customers"
@@ -1810,6 +1839,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_22_072036) do
   add_foreign_key "mutual_funds", "customers"
   add_foreign_key "mutual_funds", "distributors"
   add_foreign_key "mutual_funds", "sub_agents"
+  add_foreign_key "other_insurance_documents", "other_insurances", name: "other_insurance_documents_other_insurance_id_fkey"
   add_foreign_key "other_insurance_nominees", "other_insurances"
   add_foreign_key "other_insurances", "policies"
   add_foreign_key "session_activities", "users"

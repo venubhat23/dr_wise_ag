@@ -91,7 +91,7 @@ class Admin::UsersController < Admin::ApplicationController
       :first_name, :middle_name, :last_name, :email, :mobile, :user_type, :status,
       :address, :state, :city, :pan_number, :gst_number, :date_of_birth, :gender,
       :occupation, :annual_income, :password, :password_confirmation, :company_name,
-      :bank_name, :account_number, :ifsc_code, :account_holder_name, :account_type, :upi_id,
+      :bank_name, :account_no, :ifsc_code, :account_holder_name, :account_type, :upi_id,
       profile_images: [], documents: []
     )
   end
