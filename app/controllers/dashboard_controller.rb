@@ -184,6 +184,10 @@ class DashboardController < ApplicationController
     results[:expired_this_month] = get_expired_this_month_count
     results[:renewal_opportunities] = get_renewal_opportunities_count
 
+    # Birthdays & Anniversaries - always based on current date
+    results[:upcoming_birthdays] = get_upcoming_birthdays
+    results[:upcoming_anniversaries] = get_upcoming_anniversaries
+
     # Recent Activity - always shows latest activities
     results[:recent_policies] = get_recent_policies
 
@@ -197,6 +201,44 @@ class DashboardController < ApplicationController
   rescue => e
     Rails.logger.error "Error loading filter-independent data: #{e.message}"
     {}
+  end
+
+  def get_upcoming_birthdays
+    today = Date.current
+    # Fetch customers with a birth_date; compare month/day to the next 30 days
+    Customer.where(status: true)
+            .where.not(birth_date: nil)
+            .select(:id, :first_name, :last_name, :company_name, :customer_type, :mobile, :birth_date)
+            .order("EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)")
+            .select do |c|
+              bday = c.birth_date
+              # Birthday this year or next (wrap around year boundary)
+              this_year = Date.new(today.year, bday.month, bday.day) rescue nil
+              next_year = Date.new(today.year + 1, bday.month, bday.day) rescue nil
+              upcoming = (this_year && this_year >= today) ? this_year : next_year
+              upcoming && (upcoming - today).to_i <= 30
+            end
+  rescue => e
+    Rails.logger.error "Error fetching upcoming birthdays: #{e.message}"
+    []
+  end
+
+  def get_upcoming_anniversaries
+    today = Date.current
+    Customer.where(status: true)
+            .where.not(anniversary_date: nil)
+            .select(:id, :first_name, :last_name, :company_name, :customer_type, :mobile, :anniversary_date)
+            .order("EXTRACT(MONTH FROM anniversary_date), EXTRACT(DAY FROM anniversary_date)")
+            .select do |c|
+              ann = c.anniversary_date
+              this_year = Date.new(today.year, ann.month, ann.day) rescue nil
+              next_year = Date.new(today.year + 1, ann.month, ann.day) rescue nil
+              upcoming = (this_year && this_year >= today) ? this_year : next_year
+              upcoming && (upcoming - today).to_i <= 30
+            end
+  rescue => e
+    Rails.logger.error "Error fetching upcoming anniversaries: #{e.message}"
+    []
   end
 
   def get_premium_revenue_trend_data

@@ -12,7 +12,7 @@
   </div>
 </div>
 
-<%= form_with model: [:admin, @user], local: true, multipart: true, class: "row" do |form| %>
+<%= form_with model: [:admin, @user], local: true, multipart: true, class: "row", data: { turbo: false } do |form| %>
   <!-- Personal Details Section -->
   <div class="col-lg-8">
     <div class="card border-0 shadow-sm mb-4">

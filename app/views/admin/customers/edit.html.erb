@@ -124,6 +124,10 @@
               <div class="invalid-feedback">Please select a gender.</div>
             </div>
             <div class="col-md-6">
+              <%= form.label :anniversary_date, "Anniversary Date", class: "form-label" %>
+              <%= form.date_field :anniversary_date, class: "form-control", min: "1900-01-01", max: "2099-12-31" %>
+            </div>
+            <div class="col-md-6">
               <%= form.label :birth_place, class: "form-label" %>
               <%= form.text_field :birth_place, class: "form-control", placeholder: "Enter birth place" %>
             </div>

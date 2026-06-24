@@ -995,6 +995,142 @@
     </div>
   </div>
 
+  <!-- Birthdays & Anniversaries -->
+  <div class="row mb-4">
+    <!-- Birthdays -->
+    <div class="col-lg-6 mb-3 mb-lg-0">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0 d-flex align-items-center">
+              <i class="bi bi-cake2 text-danger me-2"></i>Upcoming Birthdays
+              <span class="badge bg-danger ms-2"><%= @upcoming_birthdays&.size || 0 %></span>
+            </h5>
+            <%= link_to admin_customers_path, class: "btn btn-sm btn-outline-danger" do %>
+              View All
+            <% end %>
+          </div>
+          <% if @upcoming_birthdays&.any? %>
+            <div style="max-height: 250px; overflow-y: auto;">
+              <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Name</th>
+                    <th>Birthday</th>
+                    <th>Days Left</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% @upcoming_birthdays.first(10).each do |customer| %>
+                    <% bday = customer.birth_date
+                       today = Date.current
+                       this_year = Date.new(today.year, bday.month, bday.day) rescue nil
+                       next_bday = (this_year && this_year >= today) ? this_year : Date.new(today.year + 1, bday.month, bday.day)
+                       days_left = (next_bday - today).to_i %>
+                    <tr>
+                      <td>
+                        <div class="fw-semibold"><%= customer.first_name %> <%= customer.last_name %></div>
+                        <small class="text-muted"><%= customer.mobile %></small>
+                      </td>
+                      <td><span class="badge bg-danger bg-opacity-10 text-danger"><%= bday.strftime("%d %b") %></span></td>
+                      <td>
+                        <% if days_left == 0 %>
+                          <span class="badge bg-success">Today!</span>
+                        <% elsif days_left == 1 %>
+                          <span class="badge bg-warning text-dark">Tomorrow</span>
+                        <% else %>
+                          <span class="text-muted"><%= days_left %> days</span>
+                        <% end %>
+                      </td>
+                      <td>
+                        <a href="https://wa.me/<%= customer.mobile&.gsub(/\D/, '') %>?text=Happy+Birthday+<%= CGI.escape(customer.first_name.to_s) %>!" target="_blank" class="btn btn-sm btn-success" title="WhatsApp">
+                          <i class="bi bi-whatsapp"></i>
+                        </a>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <div class="text-center text-muted py-4">
+              <i class="bi bi-cake2 fs-3 d-block mb-2"></i>
+              <p class="mb-0">No birthdays in the next 30 days</p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Anniversaries -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0 d-flex align-items-center">
+              <i class="bi bi-heart-fill text-pink me-2" style="color:#e91e8c;"></i>Upcoming Anniversaries
+              <span class="badge ms-2" style="background:#e91e8c;"><%= @upcoming_anniversaries&.size || 0 %></span>
+            </h5>
+            <%= link_to admin_customers_path, class: "btn btn-sm btn-outline-secondary" do %>
+              View All
+            <% end %>
+          </div>
+          <% if @upcoming_anniversaries&.any? %>
+            <div style="max-height: 250px; overflow-y: auto;">
+              <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Name</th>
+                    <th>Anniversary</th>
+                    <th>Days Left</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% @upcoming_anniversaries.first(10).each do |customer| %>
+                    <% ann = customer.anniversary_date
+                       today = Date.current
+                       this_year = Date.new(today.year, ann.month, ann.day) rescue nil
+                       next_ann = (this_year && this_year >= today) ? this_year : Date.new(today.year + 1, ann.month, ann.day)
+                       days_left = (next_ann - today).to_i %>
+                    <tr>
+                      <td>
+                        <div class="fw-semibold"><%= customer.first_name %> <%= customer.last_name %></div>
+                        <small class="text-muted"><%= customer.mobile %></small>
+                      </td>
+                      <td><span class="badge bg-opacity-10 text-dark" style="background:#fce4ec;"><%= ann.strftime("%d %b") %></span></td>
+                      <td>
+                        <% if days_left == 0 %>
+                          <span class="badge bg-success">Today!</span>
+                        <% elsif days_left == 1 %>
+                          <span class="badge bg-warning text-dark">Tomorrow</span>
+                        <% else %>
+                          <span class="text-muted"><%= days_left %> days</span>
+                        <% end %>
+                      </td>
+                      <td>
+                        <a href="https://wa.me/<%= customer.mobile&.gsub(/\D/, '') %>?text=Happy+Anniversary+<%= CGI.escape(customer.first_name.to_s) %>!" target="_blank" class="btn btn-sm btn-success" title="WhatsApp">
+                          <i class="bi bi-whatsapp"></i>
+                        </a>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <div class="text-center text-muted py-4">
+              <i class="bi bi-heart fs-3 d-block mb-2"></i>
+              <p class="mb-0">No anniversaries in the next 30 days</p>
+              <small class="text-muted">Add anniversary dates in customer profiles</small>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- System Status -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-body py-2 px-3">

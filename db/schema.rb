@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_22_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_24_010809) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -400,6 +400,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_22_120000) do
     t.string "bank_name"
     t.string "account_no"
     t.string "ifsc_code"
+    t.date "anniversary_date"
     t.index ["created_at"], name: "index_customers_on_created_at"
     t.index ["customer_type", "created_at"], name: "index_customers_on_customer_type_and_created_at"
     t.index ["customer_type", "status"], name: "index_customers_on_customer_type_and_status"
