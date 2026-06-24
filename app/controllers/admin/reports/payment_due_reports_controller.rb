@@ -39,19 +39,16 @@ class Admin::Reports::PaymentDueReportsController < Admin::Reports::BaseControll
 
   def get_health_payment_due
     HealthInsurance.includes(:customer, :sub_agent)
-                  .where('payment_status != ? OR payment_status IS NULL', 'paid')
                   .map { |policy| format_payment_due_data(policy, 'Health') }
   end
 
   def get_motor_payment_due
     MotorInsurance.includes(:customer, :sub_agent)
-                 .where('payment_status != ? OR payment_status IS NULL', 'paid')
                  .map { |policy| format_payment_due_data(policy, 'Motor') }
   end
 
   def get_life_payment_due
     LifeInsurance.includes(:customer, :sub_agent)
-                .where('payment_status != ? OR payment_status IS NULL', 'paid')
                 .map { |policy| format_payment_due_data(policy, 'Life') }
   end
 

@@ -219,6 +219,7 @@ When('I click edit on client {string}') do |name|
   visit '/admin/customers'
   row = find('tr', text: name, wait: 10)
   within(row) { find('a[title="Edit"]', wait: 5).click }
+  expect(page).to have_current_path(%r{/admin/customers/\d+/edit}, wait: 10)
 end
 
 When('I update the client first name to {string}') do |name|

@@ -41,25 +41,19 @@ class Admin::Reports::UpcomingPaymentReportsController < Admin::Reports::BaseCon
 
   def get_upcoming_health_payments(end_date)
     HealthInsurance.includes(:customer, :sub_agent)
-                  .where('payment_due_date BETWEEN ? AND ? OR (payment_due_date IS NULL AND policy_start_date BETWEEN ? AND ?)',
-                         Date.current, end_date, Date.current, end_date)
-                  .where('payment_status != ? OR payment_status IS NULL', 'paid')
+                  .where('policy_start_date BETWEEN ? AND ?', Date.current, end_date)
                   .map { |policy| format_upcoming_payment_data(policy, 'Health') }
   end
 
   def get_upcoming_motor_payments(end_date)
     MotorInsurance.includes(:customer, :sub_agent)
-                 .where('payment_due_date BETWEEN ? AND ? OR (payment_due_date IS NULL AND policy_start_date BETWEEN ? AND ?)',
-                        Date.current, end_date, Date.current, end_date)
-                 .where('payment_status != ? OR payment_status IS NULL', 'paid')
+                 .where('policy_start_date BETWEEN ? AND ?', Date.current, end_date)
                  .map { |policy| format_upcoming_payment_data(policy, 'Motor') }
   end
 
   def get_upcoming_life_payments(end_date)
     LifeInsurance.includes(:customer, :sub_agent)
-                .where('payment_due_date BETWEEN ? AND ? OR (payment_due_date IS NULL AND policy_start_date BETWEEN ? AND ?)',
-                       Date.current, end_date, Date.current, end_date)
-                .where('payment_status != ? OR payment_status IS NULL', 'paid')
+                .where('policy_start_date BETWEEN ? AND ?', Date.current, end_date)
                 .map { |policy| format_upcoming_payment_data(policy, 'Life') }
   end
 

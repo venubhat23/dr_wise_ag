@@ -13,6 +13,15 @@ def cs_js_set(selector, value)
   JS
 end
 
+def cs_ensure_authenticated
+  return unless page.current_path =~ %r{/users/sign_in}
+  fill_in 'user[login]', with: 'testadmin@drwise.com'
+  fill_in 'user[password]', with: 'password123'
+  click_button 'Sign In'
+  expect(page).to have_current_path(%r{/admin|/dashboard}, wait: 15)
+end
+
+
 def create_client_service_record(service_type)
   customer = @cs_customer || Customer.find_or_create_by!(mobile: '9911001100') do |c|
     c.first_name            = 'Service'
@@ -67,10 +76,17 @@ Given('a lead exists with a converted customer') do
   end
   @cs_lead = Lead.find_or_create_by!(contact_number: '9911001101') do |l|
     l.name                  = 'Lead Customer'
+    l.first_name            = 'Lead'
+    l.last_name             = 'Customer'
     l.email                 = 'lead.customer@test.com'
     l.converted_customer_id = @cs_customer.id
     l.current_stage         = 'converted'
     l.created_date          = Date.today
+    l.lead_source           = 'online'
+    l.product_category      = 'investments'
+    l.product_subcategory   = 'mutual_fund'
+    l.customer_type         = 'individual'
+    l.is_direct             = true
   end
 end
 
@@ -82,6 +98,7 @@ end
 
 When('I visit the client services list for {string}') do |service_type|
   visit "/admin/client_services?service_type=#{service_type}"
+  cs_ensure_authenticated
   expect(page).to have_current_path(%r{/admin/client_services}, wait: 10)
 end
 
@@ -89,6 +106,8 @@ When('I visit the new client service page for {string}') do |service_type|
   url = "/admin/client_services/new?service_type=#{service_type}"
   url += "&customer_id=#{@cs_customer.id}" if @cs_customer
   visit url
+  cs_ensure_authenticated
+  visit url if page.current_path !~ %r{/admin/client_services/new}
   expect(page).to have_current_path(%r{/admin/client_services/new}, wait: 10)
 end
 
@@ -97,6 +116,8 @@ When('I visit the new client service page with lead and customer params for {str
   url += "&customer_id=#{@cs_customer.id}" if @cs_customer
   url += "&lead_id=#{@cs_lead.id}" if @cs_lead
   visit url
+  cs_ensure_authenticated
+  visit url if page.current_path !~ %r{/admin/client_services/new}
   expect(page).to have_current_path(%r{/admin/client_services/new}, wait: 10)
 end
 
@@ -119,13 +140,9 @@ end
 
 When('I delete the first client service record') do
   row = find('.commission-table tbody tr, table tbody tr', wait: 10, match: :first)
-  within(row) { find('a[title="Delete"]', wait: 5).click }
-  begin
-    page.driver.browser.switch_to.alert.accept
-  rescue
-    find('#confirmDeleteBtn', wait: 3).click rescue nil
-  end
-  sleep 0.5
+  page.execute_script("window.confirm = function() { return true; }")
+  within(row) { find('[title="Delete"]', wait: 5).click }
+  expect(page).to have_current_path(%r{/admin/client_services}, wait: 10)
 end
 
 # ─── Form Fill & Submit ───────────────────────────────────────────────────────
@@ -139,15 +156,7 @@ When('I fill in the minimum client service fields') do
 end
 
 When('I submit the client service form') do
-  begin
-    click_button 'Create Record', wait: 5
-  rescue Capybara::ElementNotFound
-    begin
-      click_button 'Update Record', wait: 5
-    rescue Capybara::ElementNotFound
-      find('form input[type=submit], form button[type=submit]', wait: 5).click
-    end
-  end
+  native_form_submit('#cs-form')
 end
 
 # ─── Commission Input Steps ───────────────────────────────────────────────────

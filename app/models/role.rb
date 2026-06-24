@@ -41,7 +41,7 @@ class Role < ApplicationRecord
   end
 
   def display_name
-    name.humanize
+    name.titleize
   end
 
   def user_count
@@ -82,19 +82,6 @@ class Role < ApplicationRecord
   private
 
   def normalize_name
-    return unless name.present?
-
-    normalized = name.strip.downcase.gsub(/\s+/, '_')
-
-    # If this is a new record and the normalized name already exists, append a counter
-    if new_record? && Role.where(name: normalized).exists?
-      counter = 1
-      while Role.where(name: "#{normalized}_#{counter}").exists?
-        counter += 1
-      end
-      normalized = "#{normalized}_#{counter}"
-    end
-
-    self.name = normalized
+    self.name = name.strip if name.present?
   end
 end
