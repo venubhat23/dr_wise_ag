@@ -209,7 +209,7 @@ class DashboardController < ApplicationController
     Customer.where(status: true)
             .where.not(birth_date: nil)
             .select(:id, :first_name, :last_name, :company_name, :customer_type, :mobile, :birth_date)
-            .order("EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)")
+            .order(Arel.sql("EXTRACT(MONTH FROM birth_date), EXTRACT(DAY FROM birth_date)"))
             .select do |c|
               bday = c.birth_date
               # Birthday this year or next (wrap around year boundary)
@@ -228,7 +228,7 @@ class DashboardController < ApplicationController
     Customer.where(status: true)
             .where.not(anniversary_date: nil)
             .select(:id, :first_name, :last_name, :company_name, :customer_type, :mobile, :anniversary_date)
-            .order("EXTRACT(MONTH FROM anniversary_date), EXTRACT(DAY FROM anniversary_date)")
+            .order(Arel.sql("EXTRACT(MONTH FROM anniversary_date), EXTRACT(DAY FROM anniversary_date)"))
             .select do |c|
               ann = c.anniversary_date
               this_year = Date.new(today.year, ann.month, ann.day) rescue nil
