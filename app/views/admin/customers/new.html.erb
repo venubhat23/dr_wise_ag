@@ -664,6 +664,13 @@
             <small class="form-text text-muted">Format: X years, Y days</small>
           </div>
         </div>
+        <div class="row mt-3">
+          <div class="col-md-4">
+            <%= form.label :anniversary_date, "Anniversary Date", class: "form-label" %>
+            <%= form.date_field :anniversary_date, class: "form-control", min: "1900-01-01", max: "2099-12-31" %>
+            <small class="form-text text-muted">Optional</small>
+          </div>
+        </div>
 
         <div class="row mt-3">
           <div class="col-md-4">
