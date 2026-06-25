@@ -517,6 +517,9 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     @renewed_policy.policy_type = 'Renewal'
     @renewed_policy.original_policy_id = @other_insurance.id
 
+    # Preserve company name from original policy if the select didn't submit one
+    @renewed_policy.insurance_company_name ||= @other_insurance.insurance_company_name
+
     # Set admin added flags for renewal (same as original)
     @renewed_policy.is_admin_added = @other_insurance.is_admin_added
     @renewed_policy.is_customer_added = @other_insurance.is_customer_added
@@ -854,6 +857,13 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     @brokers = Broker.active.order(:name) if defined?(Broker)
     @insurance_companies = ['New India Assurance', 'Oriental Insurance', 'National Insurance', 'United India Insurance',
                            'ICICI Lombard', 'Bajaj Allianz', 'Reliance General', 'Tata AIG', 'SBI General']
+
+    # Ensure the current policy's company is always available (in case it's not in the default list)
+    if @other_insurance&.insurance_company_name.present?
+      unless @insurance_companies.include?(@other_insurance.insurance_company_name)
+        @insurance_companies = (@insurance_companies + [@other_insurance.insurance_company_name]).sort
+      end
+    end
 
     # Load customer family members if customer is selected
     if @other_insurance&.customer_id.present?

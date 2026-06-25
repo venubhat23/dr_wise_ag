@@ -64,13 +64,9 @@ class Admin::UsersController < Admin::ApplicationController
     @user.write_attribute(:role, params.dig(:user, :role).presence)
 
     @user.clean_up_passwords if @user.password.blank? && @user.password_confirmation.blank?
-    Rails.logger.info "USER_UPDATE_PARAMS: first_name=#{params.dig(:user, :first_name).inspect} last_name=#{params.dig(:user, :last_name).inspect}"
-    Rails.logger.info "USER_UPDATE_OBJECT: first_name=#{@user.first_name.inspect} changed=#{@user.changed.inspect}"
     if @user.save
-      Rails.logger.info "USER_UPDATE_SUCCESS: first_name=#{@user.first_name.inspect}"
       redirect_to admin_user_path(@user), notice: 'User was successfully updated.'
     else
-      Rails.logger.info "USER_UPDATE_FAILED: #{@user.errors.full_messages.inspect}"
       render :edit, status: :unprocessable_entity
     end
   end

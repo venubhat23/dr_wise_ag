@@ -541,7 +541,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       # Update commission calculations (if needed for other fields)
       set_distributor_from_affiliate(@renewed_policy)
       redirect_to admin_life_insurance_path(@renewed_policy),
-                  notice: "Life insurance policy renewed successfully! New Policy ID: #{@renewed_policy.policy_number}"
+                  notice: 'Life insurance policy was successfully created.'
     else
       @original_policy = @life_insurance
       set_form_data

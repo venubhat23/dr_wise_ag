@@ -417,6 +417,32 @@
       </div>
     </div>
 
+    <!-- Skipped Row Errors (shown only when there are errors) -->
+    <div id="importErrors" style="display: none;" class="mb-4">
+      <div class="alert alert-warning border-0 bg-warning bg-opacity-10">
+        <div class="d-flex align-items-center">
+          <div class="bg-warning bg-opacity-20 rounded p-2 me-3">
+            <i class="bi bi-exclamation-triangle text-warning"></i>
+          </div>
+          <div>
+            <h6 class="text-warning fw-bold mb-1">Some records were skipped</h6>
+            <p class="mb-0 small text-muted">The following rows could not be imported. Fix the errors in your file and re-import those rows.</p>
+          </div>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+          <thead class="table-danger">
+            <tr>
+              <th style="width: 80px;">Row #</th>
+              <th>Validation Error</th>
+            </tr>
+          </thead>
+          <tbody id="errorTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Next Steps -->
     <div class="row g-3">
       <div class="col-md-6">
@@ -1053,13 +1079,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Function to show import success
   function showImportSuccess(data) {
-    // Update success message
     const successDetails = document.getElementById('successDetails');
     if (successDetails) {
       successDetails.textContent = data.message;
     }
 
-    // Update statistics
     const importedCount = document.getElementById('importedCount');
     const skippedCount = document.getElementById('skippedCount');
     const totalProcessed = document.getElementById('totalProcessed');
@@ -1067,6 +1091,24 @@ document.addEventListener('DOMContentLoaded', function() {
     if (importedCount) importedCount.textContent = data.imported_count || 0;
     if (skippedCount) skippedCount.textContent = data.skipped_count || 0;
     if (totalProcessed) totalProcessed.textContent = data.total_count || 0;
+
+    // Show per-row error details for skipped records
+    const errors = data.errors || [];
+    const importErrors = document.getElementById('importErrors');
+    const errorTableBody = document.getElementById('errorTableBody');
+
+    if (errors.length > 0 && importErrors && errorTableBody) {
+      importErrors.style.display = 'block';
+      errorTableBody.innerHTML = '';
+      errors.forEach(function(error) {
+        const match = error.match(/^Row (\d+): (.+)$/);
+        const rowNum = match ? match[1] : '—';
+        const errorMsg = match ? match[2] : error;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td><strong>Row ${rowNum}</strong></td><td class="text-danger">${errorMsg}</td>`;
+        errorTableBody.appendChild(tr);
+      });
+    }
   }
 
   // Handle "Import More Health Insurance" button

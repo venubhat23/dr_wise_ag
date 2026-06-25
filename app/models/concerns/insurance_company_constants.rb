@@ -41,6 +41,7 @@ module InsuranceCompanyConstants
     # Life Insurance Companies
     { name: "SBI Life Insurance Co Ltd", type: "LIFE" },
     { name: "LIC India", type: "LIFE" },
+    { name: "LIC of India", type: "LIFE" },
     { name: "HDFC Standard Life Insurance Co Ltd", type: "LIFE" },
     { name: "Max Life Insurance Co Ltd", type: "LIFE" },
     { name: "Bajaj Allianz Life Insurance Co Ltd", type: "LIFE" },

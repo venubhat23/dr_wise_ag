@@ -72,7 +72,6 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
     if @policy_type == 'all' || @policy_type == 'health'
       health_policies = HealthInsurance.includes(:customer, :sub_agent)
                                       .where(policy_start_date: @start_date..@end_date)
-                                      .where.not(profit_amount: [nil, 0])
       health_policies = apply_health_filters(health_policies) if @insurance_company.present?
       policies += health_policies.map { |p| transform_health_policy_profit(p) }
     end
@@ -80,7 +79,6 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
     if @policy_type == 'all' || @policy_type == 'motor'
       motor_policies = MotorInsurance.includes(:customer, :sub_agent)
                                     .where(policy_start_date: @start_date..@end_date)
-                                    .where.not(profit_amount: [nil, 0])
       motor_policies = apply_motor_filters(motor_policies) if @insurance_company.present?
       policies += motor_policies.map { |p| transform_motor_policy_profit(p) }
     end
@@ -89,7 +87,6 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
       if defined?(LifeInsurance)
         life_policies = LifeInsurance.includes(:customer, :sub_agent)
                                     .where(policy_start_date: @start_date..@end_date)
-                                    .where.not(profit_amount: [nil, 0])
         life_policies = apply_life_filters(life_policies) if @insurance_company.present?
         policies += life_policies.map { |p| transform_life_policy_profit(p) }
       end
@@ -99,7 +96,6 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
       if defined?(OtherInsurance)
         other_policies = OtherInsurance.includes(:customer, :sub_agent)
                                       .where(policy_start_date: @start_date..@end_date)
-                                      .where.not(profit_amount: [nil, 0])
         other_policies = apply_other_filters(other_policies) if @insurance_company.present?
         policies += other_policies.map { |p| transform_other_policy_profit(p) }
       end
@@ -356,8 +352,8 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
   end
 
   def set_filter_params
-    @start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : 30.days.ago.to_date
-    @end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : Date.current
+    @start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : Date.current.beginning_of_year
+    @end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : Date.current.end_of_year
     @policy_type = params[:policy_type] || 'all'
     @insurance_company = params[:insurance_company]
   end

@@ -495,6 +495,9 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     @renewed_policy.policy_type = 'Renewal'
     @renewed_policy.original_policy_id = @health_insurance.id
 
+    # Preserve company name from original policy if the select didn't submit one
+    @renewed_policy.insurance_company_name ||= @health_insurance.insurance_company_name
+
     # Set admin added flags for renewal (same as original)
     @renewed_policy.is_admin_added = @health_insurance.is_admin_added
     @renewed_policy.is_customer_added = @health_insurance.is_customer_added
@@ -780,6 +783,13 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     @brokers = Broker.active.order(:name)
     # Load only health insurance companies - sorted alphabetically
     @insurance_companies = InsuranceCompany.where(insurance_type: 'health').order('LOWER(name) ASC').pluck(:name)
+
+    # Ensure the current policy's company is always available (in case it's not health-typed in the DB)
+    if @health_insurance&.insurance_company_name.present?
+      unless @insurance_companies.include?(@health_insurance.insurance_company_name)
+        @insurance_companies = (@insurance_companies + [@health_insurance.insurance_company_name]).sort
+      end
+    end
   end
 
   def health_insurance_params

@@ -575,6 +575,9 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @renewed_policy.is_agent_added = false
     @renewed_policy.policy_type = 'Renewal'
 
+    # Preserve company name from original policy if the (disabled) select didn't submit one
+    @renewed_policy.insurance_company_name ||= @motor_insurance.insurance_company_name
+
     # Set default commission percentages if empty
     set_default_commissions(@renewed_policy)
 
@@ -1046,6 +1049,14 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
                                           .order(:name)
                                           .pluck(:name)
                                           .uniq
+
+    # Ensure the current policy's company is always available (in case it's not general/motor-typed in the DB)
+    if @motor_insurance&.insurance_company_name.present?
+      unless @insurance_companies.include?(@motor_insurance.insurance_company_name)
+        @insurance_companies = (@insurance_companies + [@motor_insurance.insurance_company_name]).sort
+      end
+    end
+
     @vehicle_types = MotorInsurance::VEHICLE_TYPES
     @class_of_vehicles = MotorInsurance::CLASS_OF_VEHICLES
     @insurance_types = MotorInsurance::INSURANCE_TYPES
