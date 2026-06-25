@@ -724,7 +724,7 @@ body.sidebar-collapsed .main-content {
   <!-- Navigation Menu -->
   <nav class="sidebar-nav">
     <!-- Main Menu Section -->
-    <% if show_sidebar_section?(['dashboard', 'analytics', 'customers', 'sub_agents', 'distributors', 'leads']) %>
+    <% if show_sidebar_section?(['dashboard', 'analytics', 'customers', 'sub_agents', 'distributors', 'leads', 'appointments']) %>
     <div class="nav-section">
       <div class="nav-section-title">Main Menu</div>
       <ul class="nav-menu">
@@ -774,6 +774,7 @@ body.sidebar-collapsed .main-content {
         <% end %>
 
         <!-- Appointments -->
+        <% if show_sidebar_item?('appointments') %>
         <li class="nav-item">
           <%= link_to admin_appointments_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/appointments')}", data: { tooltip: "Appointments" } do %>
             <div class="nav-icon-modern">
@@ -785,6 +786,7 @@ body.sidebar-collapsed .main-content {
             <div class="nav-indicator"></div>
           <% end %>
         </li>
+        <% end %>
 
         <!-- Clients (renamed from Customers) -->
         <% if show_sidebar_item?('customers') %>

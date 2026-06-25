@@ -111,6 +111,7 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
         { key: 'dashboard', name: 'Dashboard' },
         { key: 'analytics', name: 'Analytics' },
         { key: 'leads', name: 'Leads' },
+        { key: 'appointments', name: 'Appointments' },
         { key: 'customers', name: 'Clients' },
         { key: 'sub_agents', name: 'Affiliates' },
         { key: 'distributors', name: 'Ambassadors' }
