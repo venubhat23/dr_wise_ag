@@ -123,9 +123,24 @@
         <h5 class="mb-0">Sidebar Permissions</h5>
       </div>
       <div class="card-body">
-        <% user_permissions = @user.sidebar_permissions.is_a?(String) ? JSON.parse(@user.sidebar_permissions || '[]') : (@user.sidebar_permissions || []) %>
+        <%
+          raw_sp = @user.sidebar_permissions
+          user_permissions = begin
+            raw_sp.present? ? JSON.parse(raw_sp) : []
+          rescue JSON::ParserError
+            []
+          end
 
-        <% if user_permissions.any? %>
+          # Normalize: for hash format filter to only entries with view:true
+          # (same logic as has_sidebar_permission? and the sidebar itself)
+          effective_permissions = if user_permissions.is_a?(Hash)
+            user_permissions.select { |_k, v| v.is_a?(Hash) ? v['view'] == true : v.present? }
+          else
+            user_permissions # old array format: every element means view:true
+          end
+        %>
+
+        <% if effective_permissions.any? %>
           <% sidebar_options = {
             'Main Menu' => [
               { key: 'dashboard', name: 'Dashboard' },
@@ -175,7 +190,13 @@
 
           <div class="row">
             <% sidebar_options.each do |section_name, options| %>
-              <% section_permissions = options.select { |opt| user_permissions.include?(opt[:key]) } %>
+              <% section_permissions = options.select { |opt|
+                   if effective_permissions.is_a?(Hash)
+                     effective_permissions.key?(opt[:key])
+                   else
+                     effective_permissions.include?(opt[:key])
+                   end
+                 } %>
               <% if section_permissions.any? %>
                 <div class="col-lg-6 mb-4">
                   <div class="card h-100 border-success">
@@ -209,6 +230,7 @@
             <% end %>
           </div>
         <% end %>
+        <%# effective_permissions is available below for Permission Summary %>
       </div>
     </div>
   </div>
@@ -277,13 +299,12 @@
       </div>
       <div class="card-body">
         <%
-          raw_perms = @user.sidebar_permissions
-          parsed_summary = begin
-            raw_perms.present? ? JSON.parse(raw_perms) : []
-          rescue JSON::ParserError
-            []
+          # Reuse effective_permissions computed above for consistency
+          permission_keys = if effective_permissions.is_a?(Hash)
+            effective_permissions.keys
+          else
+            effective_permissions
           end
-          permission_keys = parsed_summary.is_a?(Hash) ? parsed_summary.keys : parsed_summary
         %>
         <div class="text-center">
           <h3 class="text-primary mb-1"><%= permission_keys.count %></h3>
