@@ -397,11 +397,13 @@ class Admin::ImportsController < Admin::ApplicationController
         validation_errors = []
 
         # Check required fields
-        validation_errors << "Customer name is required" if normalized_row['customer_name'].to_s.strip.empty?
-        validation_errors << "Policy holder is required" if normalized_row['policy_holder'].to_s.strip.empty?
+        validation_errors << "Customer email is required" if normalized_row['customer_email'].to_s.strip.empty?
+        customer_email_val = normalized_row['customer_email'].to_s.strip
+        if customer_email_val.present? && !customer_email_val.match?(URI::MailTo::EMAIL_REGEXP)
+          validation_errors << "Customer email format is invalid"
+        end
+        validation_errors << "Policy number is required" if normalized_row['policy_number'].to_s.strip.empty?
         validation_errors << "Insurance company name is required" if normalized_row['insurance_company_name'].to_s.strip.empty?
-        validation_errors << "Policy type is required" if normalized_row['policy_type'].to_s.strip.empty?
-        validation_errors << "Insurance type is required" if normalized_row['insurance_type'].to_s.strip.empty?
 
         # Validate policy type
         policy_type = normalized_row['policy_type'].to_s.strip.downcase
@@ -530,12 +532,13 @@ class Admin::ImportsController < Admin::ApplicationController
         validation_errors = []
 
         # Check required fields
-        validation_errors << "Customer name is required" if normalized_row['customer_name'].to_s.strip.empty?
-        validation_errors << "Policy holder is required" if normalized_row['policy_holder'].to_s.strip.empty?
+        validation_errors << "Customer email is required" if normalized_row['customer_email'].to_s.strip.empty?
+        customer_email_val = normalized_row['customer_email'].to_s.strip
+        if customer_email_val.present? && !customer_email_val.match?(URI::MailTo::EMAIL_REGEXP)
+          validation_errors << "Customer email format is invalid"
+        end
+        validation_errors << "Policy number is required" if normalized_row['policy_number'].to_s.strip.empty?
         validation_errors << "Insurance company name is required" if normalized_row['insurance_company_name'].to_s.strip.empty?
-        validation_errors << "Policy type is required" if normalized_row['policy_type'].to_s.strip.empty?
-        validation_errors << "Policy term is required" if normalized_row['policy_term'].to_s.strip.empty?
-        validation_errors << "Distributor name is required" if normalized_row['distributor_name'].to_s.strip.empty?
 
         # Validate policy type
         policy_type = normalized_row['policy_type'].to_s.strip.downcase
@@ -667,8 +670,12 @@ class Admin::ImportsController < Admin::ApplicationController
         validation_errors = []
 
         # Check required fields
-        validation_errors << "Customer name is required" if normalized_row['customer_name'].to_s.strip.empty?
-        validation_errors << "Policy holder is required" if normalized_row['policy_holder'].to_s.strip.empty?
+        validation_errors << "Customer email is required" if normalized_row['customer_email'].to_s.strip.empty?
+        customer_email_val = normalized_row['customer_email'].to_s.strip
+        if customer_email_val.present? && !customer_email_val.match?(URI::MailTo::EMAIL_REGEXP)
+          validation_errors << "Customer email format is invalid"
+        end
+        validation_errors << "Policy number is required" if normalized_row['policy_number'].to_s.strip.empty?
         validation_errors << "Insurance company name is required" if normalized_row['insurance_company_name'].to_s.strip.empty?
         validation_errors << "Vehicle type is required" if normalized_row['vehicle_type'].to_s.strip.empty?
         validation_errors << "Registration number is required" if normalized_row['registration_number'].to_s.strip.empty?
