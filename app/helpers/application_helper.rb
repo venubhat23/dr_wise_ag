@@ -40,24 +40,26 @@ module ApplicationHelper
 
   def show_sidebar_item?(module_name, action = 'read')
     return false unless current_user
-
-    # Only admin@drwise.com gets full access, all other users are restricted to their sidebar permissions
-    return true if current_user.email == 'admin@drwise.com'
-
-    # For all other users (including user_type admin), check specific sidebar permissions
+    return true if sidebar_full_access?
     current_user.has_sidebar_permission?(module_name)
   end
 
   # Helper method to check if any items in a section are visible
   def show_sidebar_section?(section_items)
     return false unless current_user
-
-    # Only admin@drwise.com gets full access, all other users are restricted to their sidebar permissions
-    return true if current_user.email == 'admin@drwise.com'
-
-    # For all other users (including user_type admin), check if they have any permission for items in this section
+    return true if sidebar_full_access?
     section_items.any? { |item| current_user.has_sidebar_permission?(item) }
   end
+
+  private
+
+  def sidebar_full_access?
+    return true if current_user.email == 'admin@drwise.com'
+    # Admin users with no specific role assigned get full sidebar access
+    current_user.user_type == 'admin' && current_user.role_name.blank?
+  end
+
+  public
 
   def sidebar_item_class(current_path, module_paths = [])
     paths_to_check = [current_path] + module_paths
