@@ -182,8 +182,8 @@ module ImportService
         # Create new customer
         customer_attrs = {
           email: email,
-          first_name: insurance_data[:customer_first_name] || email.split('@').first.capitalize,
-          last_name: insurance_data[:customer_last_name],
+          first_name: insurance_data[:customer_first_name].presence || email.split('@').first.capitalize,
+          last_name: insurance_data[:customer_last_name].presence || '-',
           mobile: insurance_data[:customer_mobile].present? ? insurance_data[:customer_mobile] : generate_unique_mobile,
           address: insurance_data[:customer_address],
           city: insurance_data[:customer_city],
@@ -224,8 +224,8 @@ module ImportService
         # Create new sub agent
         sub_agent_attrs = {
           email: email,
-          first_name: insurance_data[:sub_agent_first_name] || email.split('@').first.capitalize,
-          last_name: insurance_data[:sub_agent_last_name],
+          first_name: insurance_data[:sub_agent_first_name].presence || email.split('@').first.capitalize,
+          last_name: insurance_data[:sub_agent_last_name].presence || '-',
           mobile: insurance_data[:sub_agent_mobile].present? ? insurance_data[:sub_agent_mobile] : generate_unique_mobile,
           original_password: SecureRandom.hex(8),
           role_id: 1  # sub_agent role

@@ -90,7 +90,8 @@
                               <i class="bi bi-person-check-fill me-2"></i>Required Fields
                             </h6>
                             <ul class="list-unstyled mb-0">
-                              <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i><strong>customer_name</strong> - Full customer name</li>
+                              <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i><strong>customer_email</strong> - Customer email (used to match or create customer)</li>
+                              <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i><strong>customer_first_name</strong> - Customer first name</li>
                               <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i><strong>policy_holder</strong> - Policy holder name</li>
                               <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i><strong>insurance_company_name</strong> - Insurance company</li>
                               <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i><strong>vehicle_type</strong> - New/Used Vehicle</li>
@@ -841,7 +842,7 @@ document.addEventListener('DOMContentLoaded', function() {
               '<span class="badge bg-danger">Invalid</span>'
             }
           </td>
-          <td>${row.data.customer_name || '-'}</td>
+          <td>${(row.data.customer_first_name || '') + (row.data.customer_last_name ? ' ' + row.data.customer_last_name : '') || row.data.customer_name || '-'}</td>
           <td>${row.data.policy_holder || '-'}</td>
           <td>${row.data.vehicle_type || '-'}</td>
           <td>${row.data.registration_number || '-'}</td>
