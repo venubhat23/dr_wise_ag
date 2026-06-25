@@ -109,6 +109,7 @@ When('I visit the new client service page for {string}') do |service_type|
   cs_ensure_authenticated
   visit url if page.current_path !~ %r{/admin/client_services/new}
   expect(page).to have_current_path(%r{/admin/client_services/new}, wait: 10)
+  cs_js_set('.cs-sub-pct', '0')
 end
 
 When('I visit the new client service page with lead and customer params for {string}') do |service_type|
