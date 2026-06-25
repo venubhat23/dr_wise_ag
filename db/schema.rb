@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_24_010809) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_25_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -874,6 +874,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_24_010809) do
   create_table "life_insurance_bank_details", id: :serial, force: :cascade do |t|
     t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
     t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.integer "life_insurance_id"
+    t.string "bank_name"
+    t.string "account_type"
+    t.string "account_number"
+    t.string "ifsc_code"
+    t.string "account_holder_name"
+    t.index ["life_insurance_id"], name: "index_life_insurance_bank_details_on_life_insurance_id"
   end
 
   create_table "life_insurance_documents", id: :serial, force: :cascade do |t|
