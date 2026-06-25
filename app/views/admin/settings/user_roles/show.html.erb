@@ -136,45 +136,40 @@
               { key: 'sub_agents', name: 'Affiliates' },
               { key: 'distributors', name: 'Ambassadors' }
             ],
-            'Payouts & Commission' => [
-              { key: 'affiliate_payouts', name: 'Affiliate Payouts' },
-              { key: 'distributor_payouts', name: 'Ambassador Payouts' },
-              { key: 'payouts', name: 'Payout' }
-            ],
-            'Business Partners' => [
-              { key: 'brokers', name: 'Brokers' },
-              { key: 'agency_codes', name: 'Agency Code' },
-              { key: 'leads', name: 'Leads' }
-            ],
-            'Insurance Products' => [
+            'Services' => [
               { key: 'life_insurance', name: 'Life Insurance' },
               { key: 'health_insurance', name: 'Health Insurance' },
               { key: 'motor_insurance', name: 'Motor Insurance' },
               { key: 'other_insurance', name: 'General Insurance' }
             ],
-            'Reports & Analytics' => [
-              { key: 'commission_report', name: 'Commission Report' },
-              { key: 'expired_insurance', name: 'Expired Insurance' },
-              { key: 'payment_due', name: 'Payment Due' },
-              { key: 'upcoming_renewal', name: 'Upcoming Renewal' },
-              { key: 'upcoming_payment', name: 'Upcoming Payment' },
-              { key: 'leads_report', name: 'Leads Report' },
-              { key: 'session_report', name: 'Session Report' }
+            'Vendor' => [
+              { key: 'brokers', name: 'Broker' },
+              { key: 'agency_codes', name: 'Agency Code' }
             ],
-            'Management' => [
-              { key: 'client_requests', name: 'Client Requests' },
-              { key: 'insurance_companies', name: 'Companies' },
-              { key: 'agency_brokers', name: 'Agency/Broker' },
-              { key: 'banners', name: 'Banner Management' },
-              { key: 'imports', name: 'Imports' },
-              { key: 'roles_permissions', name: 'Roles & Permissions' }
+            'Payouts' => [
+              { key: 'payouts', name: 'Commissions' },
+              { key: 'affiliate_payouts', name: 'Affiliate Payout' },
+              { key: 'distributor_payouts', name: 'Ambassador Payout' }
             ],
-            'Invoice' => [
+            'Transactions' => [
               { key: 'invoices', name: 'Invoices' }
             ],
+            'Reports & Analytics' => [
+              { key: 'reports', name: 'Commission Reports' },
+              { key: 'all_policy_reports', name: 'All Policy Reports' },
+              { key: 'expired_insurance_reports', name: 'Expired Insurance' },
+              { key: 'upcoming_renewal_reports', name: 'Upcoming Renewal' },
+              { key: 'lead_reports', name: 'Lead Reports' }
+            ],
+            'Management' => [
+              { key: 'investors', name: 'Investors' },
+              { key: 'client_requests', name: 'Client Request' },
+              { key: 'banners', name: 'Banner Management' },
+              { key: 'insurance_companies', name: 'Companies' },
+              { key: 'management', name: 'Import Data' }
+            ],
             'Settings' => [
-              { key: 'user_roles', name: 'User Roles' },
-              { key: 'system_settings', name: 'System Settings' }
+              { key: 'settings', name: 'System Settings' }
             ]
           } %>
 
@@ -281,18 +276,26 @@
         <h6 class="mb-0">Permission Summary</h6>
       </div>
       <div class="card-body">
-        <% user_permissions = @user.sidebar_permissions.is_a?(String) ? JSON.parse(@user.sidebar_permissions || '[]') : (@user.sidebar_permissions || []) %>
+        <%
+          raw_perms = @user.sidebar_permissions
+          parsed_summary = begin
+            raw_perms.present? ? JSON.parse(raw_perms) : []
+          rescue JSON::ParserError
+            []
+          end
+          permission_keys = parsed_summary.is_a?(Hash) ? parsed_summary.keys : parsed_summary
+        %>
         <div class="text-center">
-          <h3 class="text-primary mb-1"><%= user_permissions.count %></h3>
+          <h3 class="text-primary mb-1"><%= permission_keys.count %></h3>
           <p class="text-muted mb-0">Total Permissions</p>
         </div>
 
-        <% if user_permissions.count > 0 %>
+        <% if permission_keys.any? %>
           <hr>
           <div class="small text-muted">
             <strong>Permission Keys:</strong><br>
-            <% user_permissions.each_with_index do |permission, index| %>
-              <span class="badge bg-light text-dark me-1 mb-1"><%= permission %></span>
+            <% permission_keys.each do |key| %>
+              <span class="badge bg-light text-dark me-1 mb-1"><%= key %></span>
             <% end %>
           </div>
         <% end %>
