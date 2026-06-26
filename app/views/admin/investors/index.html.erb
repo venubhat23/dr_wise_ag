@@ -361,53 +361,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 500); // 500ms delay after typing stops
   });
 
-  // Debug delete button functionality
-  console.log('🔧 Debugging delete buttons...');
-
-  // Check if Turbo is available
-  if (typeof Turbo !== 'undefined') {
-    console.log('✅ Turbo is loaded');
-  } else {
-    console.log('❌ Turbo is not loaded');
-  }
-
-  // Add click event listeners to debug delete buttons
-  const deleteForms = document.querySelectorAll('form[data-turbo-confirm]');
-  console.log(`Found ${deleteForms.length} delete forms`);
-
-  deleteForms.forEach((form, index) => {
-    form.addEventListener('submit', function(e) {
-      console.log(`Delete form ${index + 1} submitted`);
-      const confirmMessage = this.dataset.turboConfirm;
-      console.log('Confirm message:', confirmMessage);
-
-      // Ensure the confirmation shows
-      if (confirmMessage) {
-        const confirmed = confirm(confirmMessage);
-        if (!confirmed) {
-          console.log('User cancelled deletion');
-          e.preventDefault();
-          return false;
-        }
-        console.log('User confirmed deletion');
-      }
-    });
-
-    const submitButton = form.querySelector('input[type="submit"]');
-    if (submitButton) {
-      submitButton.addEventListener('click', function(e) {
-        console.log(`Delete button ${index + 1} clicked`);
-      });
-    }
-  });
-});
-
-// Debug Turbo events
-document.addEventListener('turbo:before-visit', function(event) {
-  console.log('🚀 Turbo navigation starting to:', event.detail.url);
-});
-
-document.addEventListener('turbo:visit', function(event) {
-  console.log('🔄 Turbo visit to:', event.detail.url);
 });
 </script>

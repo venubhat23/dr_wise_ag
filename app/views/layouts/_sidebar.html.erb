@@ -838,7 +838,7 @@ body.sidebar-collapsed .main-content {
     <% end %>
 
     <!-- Services Section -->
-    <% if show_sidebar_section?(['services', 'life_insurance', 'health_insurance', 'motor_insurance', 'other_insurance']) %>
+    <% if show_sidebar_section?(['services', 'life_insurance', 'health_insurance', 'motor_insurance', 'other_insurance', 'investments', 'taxation', 'loans', 'travel', 'credit_card']) %>
     <div class="nav-section">
       <div class="nav-section-title">Services</div>
       <ul class="nav-menu">
@@ -900,6 +900,7 @@ body.sidebar-collapsed .main-content {
         </li>
 
         <!-- Investments Submenu -->
+        <% if show_sidebar_item?('investments') %>
         <li class="nav-item dropdown-menu-item">
           <div class="nav-link-modern dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#investments-menu" aria-expanded="false" style="cursor: pointer;">
             <div class="nav-icon-modern">
@@ -933,8 +934,10 @@ body.sidebar-collapsed .main-content {
             </ul>
           </div>
         </li>
+        <% end %>
 
         <!-- Taxation Submenu -->
+        <% if show_sidebar_item?('taxation') %>
         <li class="nav-item dropdown-menu-item">
           <div class="nav-link-modern dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#taxation-menu" aria-expanded="false" style="cursor: pointer;">
             <div class="nav-icon-modern">
@@ -962,8 +965,10 @@ body.sidebar-collapsed .main-content {
             </ul>
           </div>
         </li>
+        <% end %>
 
         <!-- Loans Submenu -->
+        <% if show_sidebar_item?('loans') %>
         <li class="nav-item dropdown-menu-item">
           <div class="nav-link-modern dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#loans-menu" aria-expanded="false" style="cursor: pointer;">
             <div class="nav-icon-modern">
@@ -1003,8 +1008,10 @@ body.sidebar-collapsed .main-content {
             </ul>
           </div>
         </li>
+        <% end %>
 
         <!-- Travel Submenu -->
+        <% if show_sidebar_item?('travel') %>
         <li class="nav-item dropdown-menu-item">
           <div class="nav-link-modern dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#travel-menu" aria-expanded="false" style="cursor: pointer;">
             <div class="nav-icon-modern">
@@ -1032,8 +1039,10 @@ body.sidebar-collapsed .main-content {
             </ul>
           </div>
         </li>
+        <% end %>
 
         <!-- Credit Card Submenu -->
+        <% if show_sidebar_item?('credit_card') %>
         <li class="nav-item dropdown-menu-item">
           <div class="nav-link-modern dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#credit-card-menu" aria-expanded="false" style="cursor: pointer;">
             <div class="nav-icon-modern">
@@ -1067,6 +1076,7 @@ body.sidebar-collapsed .main-content {
             </ul>
           </div>
         </li>
+        <% end %>
 
       </ul>
     </div>
@@ -1190,7 +1200,7 @@ body.sidebar-collapsed .main-content {
 
 
     <!-- Reports & Analytics Section -->
-    <% if show_sidebar_section?(['reports']) %>
+    <% if show_sidebar_section?(['reports', 'profit_reports']) %>
       <div class="nav-section">
         <div class="nav-section-title">Reports & Analytics</div>
         <ul class="nav-menu">
@@ -1225,7 +1235,7 @@ body.sidebar-collapsed .main-content {
         <% end %>
 
         <!-- Profit Reports -->
-        <% if show_sidebar_item?('reports') %>
+        <% if show_sidebar_item?('profit_reports') %>
         <li class="nav-item">
           <%= link_to admin_reports_profit_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/profit_reports')}" do %>
             <div class="nav-icon-modern">
@@ -1290,7 +1300,7 @@ body.sidebar-collapsed .main-content {
     <% end %>
 
     <!-- Management Section -->
-    <% if show_sidebar_section?(['management', 'investors']) %>
+    <% if show_sidebar_section?(['management', 'investors', 'user_roles']) %>
       <div class="nav-section">
         <div class="nav-section-title">Management</div>
       <ul class="nav-menu">
@@ -1325,6 +1335,7 @@ body.sidebar-collapsed .main-content {
         </li>
 
         <!-- Users -->
+        <% if show_sidebar_item?('user_roles') %>
         <li class="nav-item">
           <%= link_to admin_settings_user_roles_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/settings/user_roles')}" do %>
             <div class="nav-icon-modern">
@@ -1336,6 +1347,7 @@ body.sidebar-collapsed .main-content {
             <div class="nav-indicator"></div>
           <% end %>
         </li>
+        <% end %>
 
         <!-- Banner Management -->
         <li class="nav-item">

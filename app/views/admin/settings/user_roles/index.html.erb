@@ -188,20 +188,56 @@
                     <%= user.user_type.humanize %>
                   </span>
                 </td>
-                <td>
+                <td style="max-width: 220px;">
                   <% if user.email == 'admin@drwise.com' %>
                     <span class="badge bg-success-subtle text-success">
-                      <i class="bi bi-infinity me-1"></i>
-                      Full Access
+                      <i class="bi bi-infinity me-1"></i>Full Access
                     </span>
                   <% else %>
-                    <% permissions_count = user.sidebar_permissions_array.count %>
-                    <span class="badge bg-primary-subtle text-primary"
-                          data-bs-toggle="tooltip"
-                          title="<%= user.sidebar_permissions_array.join(', ') %>">
-                      <i class="bi bi-list-check me-1"></i>
-                      <%= permissions_count %> <%= permissions_count == 1 ? 'section' : 'sections' %>
-                    </span>
+                    <%
+                      perms_hash = user.sidebar_permissions_hash
+                      granted = perms_hash.select { |_k, v| v.is_a?(Hash) && (v['view'] || v['create'] || v['edit'] || v['delete']) }
+                      module_name_map = {
+                        'dashboard' => 'Dashboard', 'analytics' => 'Analytics', 'leads' => 'Leads',
+                        'appointments' => 'Appointments', 'customers' => 'Clients',
+                        'sub_agents' => 'Affiliates', 'distributors' => 'Ambassadors',
+                        'life_insurance' => 'Life Ins.', 'health_insurance' => 'Health Ins.',
+                        'motor_insurance' => 'Motor Ins.', 'other_insurance' => 'General Ins.',
+                        'investments' => 'Investments', 'taxation' => 'Taxation',
+                        'loans' => 'Loans', 'travel' => 'Travel', 'credit_card' => 'Credit Card',
+                        'brokers' => 'Broker', 'agency_codes' => 'Agency Code',
+                        'payouts' => 'Commissions', 'affiliate_payouts' => 'Affiliate Payout',
+                        'distributor_payouts' => 'Amb. Payout', 'invoices' => 'Invoices',
+                        'reports' => 'Commission Rpt', 'all_policy_reports' => 'All Policy',
+                        'profit_reports' => 'Profit Rpt', 'expired_insurance_reports' => 'Expired Ins.',
+                        'upcoming_renewal_reports' => 'Renewals', 'lead_reports' => 'Lead Rpt',
+                        'investors' => 'Investors', 'client_requests' => 'Client Req.',
+                        'user_roles' => 'Users', 'banners' => 'Banners',
+                        'insurance_companies' => 'Companies', 'management' => 'Import Data',
+                        'settings' => 'Settings'
+                      }
+                    %>
+                    <% if granted.empty? %>
+                      <span class="badge bg-secondary-subtle text-secondary">
+                        <i class="bi bi-slash-circle me-1"></i>No Access
+                      </span>
+                    <% else %>
+                      <div class="d-flex flex-wrap gap-1">
+                        <% granted.each do |key, v| %>
+                          <%
+                            is_full = v['view'] && v['create'] && v['edit'] && v['delete']
+                            is_view = v['view'] && !v['create'] && !v['edit'] && !v['delete']
+                            badge_class = is_full ? 'bg-success-subtle text-success' : (is_view ? 'bg-info-subtle text-info' : 'bg-warning-subtle text-warning')
+                            icon = is_full ? 'bi-unlock' : (is_view ? 'bi-eye' : 'bi-sliders')
+                            label = module_name_map[key] || key.humanize
+                          %>
+                          <span class="badge <%= badge_class %>" style="font-size: 0.7rem;"
+                                title="<%= label %>: <%= is_full ? 'Full Access' : (is_view ? 'View Only' : 'Custom') %>">
+                            <i class="bi <%= icon %> me-1"></i><%= label %>
+                          </span>
+                        <% end %>
+                      </div>
+                    <% end %>
                   <% end %>
                 </td>
                 <td>

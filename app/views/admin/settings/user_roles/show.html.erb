@@ -117,121 +117,151 @@
       </div>
     </div>
 
-    <!-- Sidebar Permissions -->
+    <!-- Module Permissions -->
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-transparent border-0">
-        <h5 class="mb-0">Sidebar Permissions</h5>
+        <h5 class="mb-0">Module Permissions</h5>
       </div>
-      <div class="card-body">
-        <%
-          raw_sp = @user.sidebar_permissions
-          user_permissions = begin
-            raw_sp.present? ? JSON.parse(raw_sp) : []
-          rescue JSON::ParserError
-            []
-          end
+      <%
+        raw_sp = @user.sidebar_permissions
+        user_permissions = begin
+          raw_sp.present? ? JSON.parse(raw_sp) : {}
+        rescue JSON::ParserError
+          {}
+        end
+        user_permissions = {} unless user_permissions.is_a?(Hash)
 
-          # Normalize: for hash format filter to only entries with view:true
-          # (same logic as has_sidebar_permission? and the sidebar itself)
-          effective_permissions = if user_permissions.is_a?(Hash)
-            user_permissions.select { |_k, v| v.is_a?(Hash) ? v['view'] == true : v.present? }
-          else
-            user_permissions # old array format: every element means view:true
-          end
-        %>
+        # Convert old array format to view-only hash
+        if user_permissions.is_a?(Array)
+          user_permissions = user_permissions.each_with_object({}) { |k, h| h[k] = { 'view' => true, 'create' => false, 'edit' => false, 'delete' => false } }
+        end
 
-        <% if effective_permissions.any? %>
-          <% sidebar_options = {
-            'Main Menu' => [
-              { key: 'dashboard', name: 'Dashboard' },
-              { key: 'analytics', name: 'Analytics' },
-              { key: 'leads', name: 'Leads' },
-              { key: 'appointments', name: 'Appointments' },
-              { key: 'customers', name: 'Clients' },
-              { key: 'sub_agents', name: 'Affiliates' },
-              { key: 'distributors', name: 'Ambassadors' }
-            ],
-            'Services' => [
-              { key: 'life_insurance', name: 'Life Insurance' },
-              { key: 'health_insurance', name: 'Health Insurance' },
-              { key: 'motor_insurance', name: 'Motor Insurance' },
-              { key: 'other_insurance', name: 'General Insurance' }
-            ],
-            'Vendor' => [
-              { key: 'brokers', name: 'Broker' },
-              { key: 'agency_codes', name: 'Agency Code' }
-            ],
-            'Payouts' => [
-              { key: 'payouts', name: 'Commissions' },
-              { key: 'affiliate_payouts', name: 'Affiliate Payout' },
-              { key: 'distributor_payouts', name: 'Ambassador Payout' }
-            ],
-            'Transactions' => [
-              { key: 'invoices', name: 'Invoices' }
-            ],
-            'Reports & Analytics' => [
-              { key: 'reports', name: 'Commission Reports' },
-              { key: 'all_policy_reports', name: 'All Policy Reports' },
-              { key: 'expired_insurance_reports', name: 'Expired Insurance' },
-              { key: 'upcoming_renewal_reports', name: 'Upcoming Renewal' },
-              { key: 'lead_reports', name: 'Lead Reports' }
-            ],
-            'Management' => [
-              { key: 'investors', name: 'Investors' },
-              { key: 'client_requests', name: 'Client Request' },
-              { key: 'banners', name: 'Banner Management' },
-              { key: 'insurance_companies', name: 'Companies' },
-              { key: 'management', name: 'Import Data' }
-            ],
-            'Settings' => [
-              { key: 'settings', name: 'System Settings' }
-            ]
-          } %>
+        effective_permissions = user_permissions.select { |_k, v| v.is_a?(Hash) && (v['view'] || v['create'] || v['edit'] || v['delete']) }
 
-          <div class="row">
-            <% sidebar_options.each do |section_name, options| %>
-              <% section_permissions = options.select { |opt|
-                   if effective_permissions.is_a?(Hash)
-                     effective_permissions.key?(opt[:key])
-                   else
-                     effective_permissions.include?(opt[:key])
-                   end
-                 } %>
-              <% if section_permissions.any? %>
-                <div class="col-lg-6 mb-4">
-                  <div class="card h-100 border-success">
-                    <div class="card-header bg-success bg-opacity-10">
-                      <h6 class="mb-0 text-success">
-                        <i class="bi bi-check-circle me-2"></i>
-                        <%= section_name %>
-                      </h6>
-                    </div>
-                    <div class="card-body">
-                      <% section_permissions.each do |permission| %>
-                        <div class="d-flex align-items-center mb-2">
-                          <i class="bi bi-check text-success me-2"></i>
-                          <span><%= permission[:name] %></span>
-                        </div>
+        all_sidebar_options = {
+          'Main Menu' => [
+            { key: 'dashboard', name: 'Dashboard' },
+            { key: 'analytics', name: 'Analytics' },
+            { key: 'leads', name: 'Leads' },
+            { key: 'appointments', name: 'Appointments' },
+            { key: 'customers', name: 'Clients' },
+            { key: 'sub_agents', name: 'Affiliates' },
+            { key: 'distributors', name: 'Ambassadors' }
+          ],
+          'Services' => [
+            { key: 'life_insurance', name: 'Life Insurance' },
+            { key: 'health_insurance', name: 'Health Insurance' },
+            { key: 'motor_insurance', name: 'Motor Insurance' },
+            { key: 'other_insurance', name: 'General Insurance' },
+            { key: 'investments', name: 'Investments' },
+            { key: 'taxation', name: 'Taxation' },
+            { key: 'loans', name: 'Loans' },
+            { key: 'travel', name: 'Travel' },
+            { key: 'credit_card', name: 'Credit Card' }
+          ],
+          'Vendor' => [
+            { key: 'brokers', name: 'Broker' },
+            { key: 'agency_codes', name: 'Agency Code' }
+          ],
+          'Payouts' => [
+            { key: 'payouts', name: 'Commissions' },
+            { key: 'affiliate_payouts', name: 'Affiliate Payout' },
+            { key: 'distributor_payouts', name: 'Ambassador Payout' }
+          ],
+          'Transactions' => [
+            { key: 'invoices', name: 'Invoices' }
+          ],
+          'Reports & Analytics' => [
+            { key: 'reports', name: 'Commission Report' },
+            { key: 'all_policy_reports', name: 'All Policy Reports' },
+            { key: 'profit_reports', name: 'Profit Reports' },
+            { key: 'expired_insurance_reports', name: 'Expired Insurance' },
+            { key: 'upcoming_renewal_reports', name: 'Upcoming Renewal' },
+            { key: 'lead_reports', name: 'Lead Reports' }
+          ],
+          'Management' => [
+            { key: 'investors', name: 'Investors' },
+            { key: 'client_requests', name: 'Client Request' },
+            { key: 'user_roles', name: 'Users' },
+            { key: 'banners', name: 'Banner Management' },
+            { key: 'insurance_companies', name: 'Companies' },
+            { key: 'management', name: 'Import Data' }
+          ],
+          'Settings' => [
+            { key: 'settings', name: 'System Settings' }
+          ]
+        }
+      %>
+
+      <% if effective_permissions.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0" style="font-size: 0.9rem;">
+            <thead class="bg-light">
+              <tr>
+                <th class="border-0 ps-3">Module</th>
+                <th class="border-0 text-center">View</th>
+                <th class="border-0 text-center">Create</th>
+                <th class="border-0 text-center">Edit</th>
+                <th class="border-0 text-center">Delete</th>
+                <th class="border-0 text-center">Access Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% all_sidebar_options.each do |section_name, mods| %>
+                <% section_mods = mods.select { |m| effective_permissions.key?(m[:key]) } %>
+                <% next if section_mods.empty? %>
+                <tr style="background: #f8fafc;">
+                  <td colspan="6" class="py-2 ps-3 fw-bold text-primary small border-0">
+                    <i class="bi bi-folder-fill me-1"></i><%= section_name %>
+                  </td>
+                </tr>
+                <% section_mods.each do |mod| %>
+                  <% p = effective_permissions[mod[:key]] %>
+                  <% v = p['view'] == true %>
+                  <% c = p['create'] == true %>
+                  <% e = p['edit'] == true %>
+                  <% d = p['delete'] == true %>
+                  <% is_full = v && c && e && d %>
+                  <% is_view_only = v && !c && !e && !d %>
+                  <tr>
+                    <td class="ps-4 border-0 fw-medium"><%= mod[:name] %></td>
+                    <td class="text-center border-0">
+                      <% if v %><i class="bi bi-check-circle-fill text-success"></i><% else %><i class="bi bi-dash-circle text-muted opacity-25"></i><% end %>
+                    </td>
+                    <td class="text-center border-0">
+                      <% if c %><i class="bi bi-check-circle-fill text-success"></i><% else %><i class="bi bi-dash-circle text-muted opacity-25"></i><% end %>
+                    </td>
+                    <td class="text-center border-0">
+                      <% if e %><i class="bi bi-check-circle-fill text-success"></i><% else %><i class="bi bi-dash-circle text-muted opacity-25"></i><% end %>
+                    </td>
+                    <td class="text-center border-0">
+                      <% if d %><i class="bi bi-check-circle-fill text-success"></i><% else %><i class="bi bi-dash-circle text-muted opacity-25"></i><% end %>
+                    </td>
+                    <td class="text-center border-0">
+                      <% if is_full %>
+                        <span class="badge bg-success-subtle text-success px-2"><i class="bi bi-unlock me-1"></i>Full Access</span>
+                      <% elsif is_view_only %>
+                        <span class="badge bg-info-subtle text-info px-2"><i class="bi bi-eye me-1"></i>View Only</span>
+                      <% else %>
+                        <span class="badge bg-warning-subtle text-warning px-2"><i class="bi bi-sliders me-1"></i>Custom</span>
                       <% end %>
-                    </div>
-                  </div>
-                </div>
+                    </td>
+                  </tr>
+                <% end %>
               <% end %>
-            <% end %>
-          </div>
-        <% else %>
-          <div class="text-center py-4">
-            <i class="bi bi-shield-x fs-1 text-muted d-block mb-3"></i>
-            <h6 class="text-muted">No Permissions Assigned</h6>
-            <p class="text-muted mb-3">This user has no sidebar permissions configured.</p>
-            <%= link_to edit_admin_settings_user_role_path(@user), class: "btn btn-primary btn-sm" do %>
-              <i class="bi bi-pencil me-1"></i>
-              Assign Permissions
-            <% end %>
-          </div>
-        <% end %>
-        <%# effective_permissions is available below for Permission Summary %>
-      </div>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="card-body text-center py-4">
+          <i class="bi bi-shield-x fs-1 text-muted d-block mb-3"></i>
+          <h6 class="text-muted">No Permissions Assigned</h6>
+          <p class="text-muted mb-3">This user has no module permissions configured.</p>
+          <%= link_to edit_admin_settings_user_role_path(@user), class: "btn btn-primary btn-sm" do %>
+            <i class="bi bi-pencil me-1"></i>Assign Permissions
+          <% end %>
+        </div>
+      <% end %>
     </div>
   </div>
 
@@ -299,27 +329,31 @@
       </div>
       <div class="card-body">
         <%
-          # Reuse effective_permissions computed above for consistency
-          permission_keys = if effective_permissions.is_a?(Hash)
-            effective_permissions.keys
-          else
-            effective_permissions
-          end
+          full_access_count = effective_permissions.count { |_k, v| v['view'] && v['create'] && v['edit'] && v['delete'] }
+          view_only_count   = effective_permissions.count { |_k, v| v['view'] && !v['create'] && !v['edit'] && !v['delete'] }
+          custom_count      = effective_permissions.count - full_access_count - view_only_count
         %>
-        <div class="text-center">
-          <h3 class="text-primary mb-1"><%= permission_keys.count %></h3>
-          <p class="text-muted mb-0">Total Permissions</p>
+        <div class="text-center mb-3">
+          <h3 class="text-primary mb-1"><%= effective_permissions.count %></h3>
+          <p class="text-muted mb-0">Modules Assigned</p>
         </div>
-
-        <% if permission_keys.any? %>
-          <hr>
-          <div class="small text-muted">
-            <strong>Permission Keys:</strong><br>
-            <% permission_keys.each do |key| %>
-              <span class="badge bg-light text-dark me-1 mb-1"><%= key %></span>
-            <% end %>
+        <hr>
+        <div class="d-flex flex-column gap-2 small">
+          <div class="d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-unlock text-success me-1"></i>Full Access</span>
+            <span class="badge bg-success-subtle text-success"><%= full_access_count %></span>
           </div>
-        <% end %>
+          <div class="d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-eye text-info me-1"></i>View Only</span>
+            <span class="badge bg-info-subtle text-info"><%= view_only_count %></span>
+          </div>
+          <% if custom_count > 0 %>
+          <div class="d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-sliders text-warning me-1"></i>Custom</span>
+            <span class="badge bg-warning-subtle text-warning"><%= custom_count %></span>
+          </div>
+          <% end %>
+        </div>
       </div>
     </div>
   </div>

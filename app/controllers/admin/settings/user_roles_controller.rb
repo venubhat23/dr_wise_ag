@@ -111,7 +111,12 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
         { key: 'life_insurance', name: 'Life Insurance' },
         { key: 'health_insurance', name: 'Health Insurance' },
         { key: 'motor_insurance', name: 'Motor Insurance' },
-        { key: 'other_insurance', name: 'General Insurance' }
+        { key: 'other_insurance', name: 'General Insurance' },
+        { key: 'investments', name: 'Investments' },
+        { key: 'taxation', name: 'Taxation' },
+        { key: 'loans', name: 'Loans' },
+        { key: 'travel', name: 'Travel' },
+        { key: 'credit_card', name: 'Credit Card' }
       ],
       'Vendor' => [
         { key: 'brokers', name: 'Broker' },
@@ -128,6 +133,7 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
       'Reports & Analytics' => [
         { key: 'reports', name: 'Commission Report' },
         { key: 'all_policy_reports', name: 'All Policy Reports' },
+        { key: 'profit_reports', name: 'Profit Reports' },
         { key: 'expired_insurance_reports', name: 'Expired Insurance' },
         { key: 'upcoming_renewal_reports', name: 'Upcoming Renewal' },
         { key: 'lead_reports', name: 'Lead Reports' }
@@ -135,6 +141,7 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
       'Management' => [
         { key: 'investors', name: 'Investors' },
         { key: 'client_requests', name: 'Client Request' },
+        { key: 'user_roles', name: 'Users' },
         { key: 'banners', name: 'Banner Management' },
         { key: 'insurance_companies', name: 'Companies' },
         { key: 'management', name: 'Import Data' }

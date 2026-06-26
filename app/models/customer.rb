@@ -74,7 +74,7 @@ class Customer < ApplicationRecord
   before_create :generate_lead_id_if_missing
 
   def set_defaults
-    self.status = true if status.nil?
+    self.status = true if has_attribute?(:status) && status.nil?
   end
 
   # Email validations - different rules for individual vs corporate
