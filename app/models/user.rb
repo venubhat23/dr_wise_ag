@@ -224,17 +224,18 @@ class User < ApplicationRecord
   end
 
   def has_sidebar_permission?(permission_key)
-    # Only admin@drwise.com gets full access, all other users are restricted to their sidebar permissions
     return true if email == 'admin@drwise.com'
 
-    # Check CRUD permissions - user needs 'view' permission for sidebar access
     permissions = sidebar_permissions_hash
     permission_data = permissions[permission_key.to_s]
 
     return false if permission_data.nil?
 
-    # Check if user has view permission for this module
-    permission_data['view'] == true
+    # Show in sidebar if user has ANY permission for this module
+    permission_data['view'] == true ||
+      permission_data['create'] == true ||
+      permission_data['edit'] == true ||
+      permission_data['delete'] == true
   end
 
   def update_sidebar_permissions(permissions)

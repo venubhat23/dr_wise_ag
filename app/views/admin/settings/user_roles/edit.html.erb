@@ -576,10 +576,17 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.permission-view, .permission-create, .permission-edit, .permission-delete').forEach(function(checkbox) {
     checkbox.addEventListener('change', function() {
       const module = this.dataset.module;
-      console.log(`Checkbox changed: ${this.id} for module: ${module}`);
       animateCheckbox(this);
 
-      // Only update All checkbox for CRUD modules
+      // Auto-check view when create/edit/delete is enabled
+      if (this.checked && !this.classList.contains('permission-view')) {
+        const viewCheckbox = document.getElementById(module + '_view');
+        if (viewCheckbox && !viewCheckbox.checked) {
+          viewCheckbox.checked = true;
+          animateCheckbox(viewCheckbox);
+        }
+      }
+
       const crudModules = ['customers', 'sub_agents', 'distributors'];
       if (crudModules.includes(module)) {
         updateAllCheckbox(module);
