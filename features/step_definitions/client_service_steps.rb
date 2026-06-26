@@ -15,8 +15,8 @@ end
 
 def cs_ensure_authenticated
   return unless page.current_path =~ %r{/users/sign_in}
-  fill_in 'user[login]', with: 'testadmin@drwise.com'
-  fill_in 'user[password]', with: 'password123'
+  find('#user_login').set('testadmin@drwise.com')
+  find('#user_password').set('password123')
   click_button 'Sign In'
   expect(page).to have_current_path(%r{/admin|/dashboard}, wait: 15)
 end

@@ -173,7 +173,7 @@ When('I update the ambassador last name to {string}') do |name|
 end
 
 When('I update the ambassador email to {string}') do |email|
-  fill_in 'distributor[email]', with: email
+  find('#distributor_email').set(email)
 end
 
 When('I update the ambassador mobile to {string}') do |mobile|
