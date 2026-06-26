@@ -1121,7 +1121,7 @@ body.sidebar-collapsed .main-content {
     <% end %>
 
     <!-- Payouts Section -->
-    <% if show_sidebar_section?(['payouts']) %>
+    <% if show_sidebar_section?(['payouts', 'affiliate_payouts', 'distributor_payouts']) %>
     <div class="nav-section">
       <div class="nav-section-title">Payouts</div>
       <ul class="nav-menu">
@@ -1142,7 +1142,7 @@ body.sidebar-collapsed .main-content {
         <% end %>
 
         <!-- Affiliate Payout -->
-        <% if show_sidebar_item?('payouts') %>
+        <% if show_sidebar_item?('affiliate_payouts') %>
           <li class="nav-item">
             <%= link_to admin_affiliate_payouts_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/affiliate_payouts')}" do %>
               <div class="nav-icon-modern">
@@ -1157,7 +1157,7 @@ body.sidebar-collapsed .main-content {
         <% end %>
 
         <!-- Ambassador Payout -->
-        <% if show_sidebar_item?('payouts') %>
+        <% if show_sidebar_item?('distributor_payouts') %>
           <li class="nav-item">
             <%= link_to admin_distributor_payouts_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/distributor_payouts')}" do %>
               <div class="nav-icon-modern">
@@ -1200,11 +1200,11 @@ body.sidebar-collapsed .main-content {
 
 
     <!-- Reports & Analytics Section -->
-    <% if show_sidebar_section?(['reports', 'profit_reports']) %>
+    <% if show_sidebar_section?(['reports', 'all_policy_reports', 'profit_reports', 'expired_insurance_reports', 'upcoming_renewal_reports', 'lead_reports']) %>
       <div class="nav-section">
         <div class="nav-section-title">Reports & Analytics</div>
         <ul class="nav-menu">
-        <!-- Commission Report 2 -->
+        <!-- Commission Report -->
         <% if show_sidebar_item?('reports') %>
         <li class="nav-item">
           <%= link_to admin_reports_commission_reports_advanced_index_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/commission_reports_advanced')}" do %>
@@ -1220,7 +1220,7 @@ body.sidebar-collapsed .main-content {
         <% end %>
 
         <!-- All Policy Reports -->
-        <% if show_sidebar_item?('reports') %>
+        <% if show_sidebar_item?('all_policy_reports') %>
         <li class="nav-item">
           <%= link_to admin_reports_all_policy_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/all_policy_reports')}" do %>
             <div class="nav-icon-modern">
@@ -1250,7 +1250,7 @@ body.sidebar-collapsed .main-content {
         <% end %>
 
         <!-- Expired Insurance -->
-        <% if show_sidebar_item?('reports') %>
+        <% if show_sidebar_item?('expired_insurance_reports') %>
         <li class="nav-item">
           <%= link_to admin_reports_expired_insurance_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/expired_insurance_reports')}" do %>
             <div class="nav-icon-modern">
@@ -1265,7 +1265,7 @@ body.sidebar-collapsed .main-content {
         <% end %>
 
         <!-- Upcoming Renewal -->
-        <% if show_sidebar_item?('reports') %>
+        <% if show_sidebar_item?('upcoming_renewal_reports') %>
         <li class="nav-item">
           <%= link_to admin_reports_upcoming_renewal_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/upcoming_renewal_reports')}" do %>
             <div class="nav-icon-modern">
@@ -1280,7 +1280,7 @@ body.sidebar-collapsed .main-content {
         <% end %>
 
         <!-- Lead Reports -->
-        <% if show_sidebar_item?('reports') %>
+        <% if show_sidebar_item?('lead_reports') %>
         <li class="nav-item">
           <%= link_to admin_reports_lead_reports_path, class: "nav-link-modern #{'active' if request.path.include?('/reports/lead_reports')}" do %>
             <div class="nav-icon-modern">
@@ -1294,19 +1294,17 @@ body.sidebar-collapsed .main-content {
         </li>
         <% end %>
 
-        <%# Session Reports - commented out (NPE) %>
         </ul>
       </div>
     <% end %>
 
     <!-- Management Section -->
-    <% if show_sidebar_section?(['management', 'investors', 'user_roles']) %>
+    <% if show_sidebar_section?(['investors', 'client_requests', 'user_roles', 'banners', 'insurance_companies', 'management']) %>
       <div class="nav-section">
         <div class="nav-section-title">Management</div>
       <ul class="nav-menu">
-        <% if show_sidebar_item?('management') %>
 
-        <!-- Investors (moved from Main Menu) -->
+        <!-- Investors -->
         <% if show_sidebar_item?('investors') %>
           <li class="nav-item">
             <%= link_to admin_investors_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/investors')}" do %>
@@ -1322,6 +1320,7 @@ body.sidebar-collapsed .main-content {
         <% end %>
 
         <!-- Client Request -->
+        <% if show_sidebar_item?('client_requests') %>
         <li class="nav-item">
           <%= link_to admin_client_requests_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/client_requests')}" do %>
             <div class="nav-icon-modern">
@@ -1333,6 +1332,7 @@ body.sidebar-collapsed .main-content {
             <div class="nav-indicator"></div>
           <% end %>
         </li>
+        <% end %>
 
         <!-- Users -->
         <% if show_sidebar_item?('user_roles') %>
@@ -1350,6 +1350,7 @@ body.sidebar-collapsed .main-content {
         <% end %>
 
         <!-- Banner Management -->
+        <% if show_sidebar_item?('banners') %>
         <li class="nav-item">
           <%= link_to admin_banners_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/banners')}" do %>
             <div class="nav-icon-modern">
@@ -1361,8 +1362,10 @@ body.sidebar-collapsed .main-content {
             <div class="nav-indicator"></div>
           <% end %>
         </li>
+        <% end %>
 
         <!-- Companies -->
+        <% if show_sidebar_item?('insurance_companies') %>
         <li class="nav-item">
           <%= link_to admin_insurance_companies_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/insurance_companies')}" do %>
             <div class="nav-icon-modern">
@@ -1374,9 +1377,10 @@ body.sidebar-collapsed .main-content {
             <div class="nav-indicator"></div>
           <% end %>
         </li>
+        <% end %>
 
         <!-- Import Data (with dropdown submenu) -->
-        <% if show_sidebar_item?('management') || current_user&.user_type == 'admin' %>
+        <% if show_sidebar_item?('management') %>
           <li class="nav-item dropdown-menu-item">
             <div class="nav-link-modern dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#import-menu" aria-expanded="false" style="cursor: pointer;">
               <div class="nav-icon-modern">
@@ -1453,7 +1457,6 @@ body.sidebar-collapsed .main-content {
           </li>
         <% end %>
 
-        <% end %>
         </ul>
       </div>
     <% end %>
