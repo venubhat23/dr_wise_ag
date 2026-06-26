@@ -679,6 +679,7 @@ class Admin::ImportsController < Admin::ApplicationController
         validation_errors << "Insurance company name is required" if normalized_row['insurance_company_name'].to_s.strip.empty?
         validation_errors << "Vehicle type is required" if normalized_row['vehicle_type'].to_s.strip.empty?
         validation_errors << "Registration number is required" if normalized_row['registration_number'].to_s.strip.empty?
+        validation_errors << "Vehicle IDV is required" if normalized_row['vehicle_idv'].to_s.strip.empty?
 
         # Validate vehicle type
         vehicle_type = normalized_row['vehicle_type'].to_s.strip
@@ -698,15 +699,8 @@ class Admin::ImportsController < Admin::ApplicationController
           validation_errors << "Insurance type must be 'Comprehensive', 'Third Party', or 'Own Damage'"
         end
 
-        # Vehicle IDV required unless Third Party
-        unless insurance_type_val == 'Third Party'
-          validation_errors << "Vehicle IDV is required" if normalized_row['vehicle_idv'].to_s.strip.empty?
-        end
-
         # Validate numeric fields
-        numeric_fields = ['net_premium', 'gst_percentage', 'total_premium']
-        numeric_fields << 'vehicle_idv' unless insurance_type_val == 'Third Party'
-        numeric_fields.each do |field|
+        ['vehicle_idv', 'net_premium', 'gst_percentage', 'total_premium'].each do |field|
           value = normalized_row[field].to_s.strip
           if value.present? && !value.match?(/^\d+(\.\d+)?$/)
             validation_errors << "#{field.humanize} must be a valid number"
