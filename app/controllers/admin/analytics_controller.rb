@@ -414,10 +414,10 @@ class Admin::AnalyticsController < Admin::ApplicationController
     dt_start = start_date.beginning_of_day
     dt_end   = end_date.end_of_day
     {
-      'Lead Generated'           => Lead.where(created_at: dt_start..dt_end).count,
-      'Consultation Scheduled'   => Lead.where(created_at: dt_start..dt_end, current_stage: %w[consultation_scheduled one_on_one follow_up follow_up_successful re_follow_up converted]).count,
-      'One on One'               => Lead.where(created_at: dt_start..dt_end, current_stage: %w[one_on_one follow_up follow_up_successful re_follow_up converted]).count,
-      'Follow Up'                => Lead.where(created_at: dt_start..dt_end, current_stage: %w[follow_up follow_up_successful re_follow_up converted]).count,
+      'Lead Generated'           => Lead.where(created_at: dt_start..dt_end, current_stage: 'lead_generated').count,
+      'Consultation Scheduled'   => Lead.where(created_at: dt_start..dt_end, current_stage: 'consultation_scheduled').count,
+      'One on One'               => Lead.where(created_at: dt_start..dt_end, current_stage: 'one_on_one').count,
+      'Follow Up'                => Lead.where(created_at: dt_start..dt_end, current_stage: %w[follow_up re_follow_up]).count,
       'Converted'                => Lead.where(created_at: dt_start..dt_end, current_stage: 'converted').count
     }
   rescue => e
@@ -1077,10 +1077,10 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
   def calculate_lead_conversion_funnel
     {
-      'Lead Generated'           => Lead.count,
-      'Consultation Scheduled'   => Lead.where(current_stage: %w[consultation_scheduled one_on_one follow_up follow_up_successful re_follow_up converted]).count,
-      'One on One'               => Lead.where(current_stage: %w[one_on_one follow_up follow_up_successful re_follow_up converted]).count,
-      'Follow Up'                => Lead.where(current_stage: %w[follow_up follow_up_successful re_follow_up converted]).count,
+      'Lead Generated'           => Lead.where(current_stage: 'lead_generated').count,
+      'Consultation Scheduled'   => Lead.where(current_stage: 'consultation_scheduled').count,
+      'One on One'               => Lead.where(current_stage: 'one_on_one').count,
+      'Follow Up'                => Lead.where(current_stage: %w[follow_up re_follow_up]).count,
       'Converted'                => Lead.where(current_stage: 'converted').count
     }
   rescue => e
