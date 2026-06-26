@@ -906,14 +906,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  function setSectionDisabled(section, disabled) {
+    section.querySelectorAll('input, select, textarea').forEach(function(el) {
+      el.disabled = disabled;
+    });
+  }
+
   function toggleCustomerType() {
     const selectedType = customerTypeSelect.value;
 
     if (selectedType === 'individual') {
       individualFields.style.display = 'block';
       corporateFields.style.display = 'none';
+      setSectionDisabled(individualFields, false);
+      setSectionDisabled(corporateFields, true);
 
-      // Update required attributes
       document.querySelectorAll('#individual_fields [required]').forEach(el => el.required = true);
       document.querySelectorAll('#corporate_fields [required]').forEach(el => el.required = false);
 
@@ -921,8 +928,9 @@ document.addEventListener('DOMContentLoaded', function() {
     } else if (selectedType === 'corporate') {
       individualFields.style.display = 'none';
       corporateFields.style.display = 'block';
+      setSectionDisabled(individualFields, true);
+      setSectionDisabled(corporateFields, false);
 
-      // Update required attributes
       document.querySelectorAll('#individual_fields [required]').forEach(el => el.required = false);
       document.querySelectorAll('#corporate_fields [required]').forEach(el => el.required = true);
 
@@ -930,8 +938,9 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       individualFields.style.display = 'none';
       corporateFields.style.display = 'none';
+      setSectionDisabled(individualFields, true);
+      setSectionDisabled(corporateFields, true);
 
-      // Remove required attributes
       document.querySelectorAll('#individual_fields [required], #corporate_fields [required]').forEach(el => el.required = false);
 
       toggleNomineeSection(false);
