@@ -240,15 +240,14 @@ class Admin::SubAgentsController < Admin::ApplicationController
     ]
 
     policy_types.each do |klass, ptype|
-      policies = klass.where(sub_agent_id: @sub_agent.id)
-      policies.each do |policy|
-        already_exists = CommissionPayout.where(
-          policy_type: ptype,
-          policy_id:   policy.id,
-          payout_to:   ['affiliate', 'sub_agent']
-        ).exists?
+      policies    = klass.where(sub_agent_id: @sub_agent.id)
+      policy_ids  = policies.pluck(:id)
+      existing_ids = CommissionPayout
+        .where(policy_type: ptype, policy_id: policy_ids, payout_to: ['affiliate', 'sub_agent'])
+        .pluck(:policy_id).to_set
 
-        if already_exists
+      policies.each do |policy|
+        if existing_ids.include?(policy.id)
           skipped += 1
           next
         end

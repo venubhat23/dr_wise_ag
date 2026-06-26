@@ -413,14 +413,16 @@ class Admin::PayoutsController < Admin::ApplicationController
   end
 
   def monthly_payout_data
+    start_date = 11.months.ago.beginning_of_month.to_date
+    sums = CommissionPayout
+      .where(payout_date: start_date..Date.current)
+      .group("DATE_TRUNC('month', payout_date)")
+      .sum(:payout_amount)
+    sums_by_month = sums.transform_keys { |k| k.to_date.strftime('%Y-%m') }
+
     12.times.map do |i|
-      month = i.months.ago.beginning_of_month
-      {
-        month: month.strftime('%b %Y'),
-        amount: CommissionPayout.where(
-          payout_date: month..month.end_of_month
-        ).sum(:payout_amount)
-      }
+      month = (Date.current - i.months).beginning_of_month
+      { month: month.strftime('%b %Y'), amount: sums_by_month[month.strftime('%Y-%m')] || 0 }
     end.reverse
   end
 
@@ -492,17 +494,23 @@ class Admin::PayoutsController < Admin::ApplicationController
   end
 
   def monthly_payout_trend
+    start_date = 5.months.ago.beginning_of_month.to_date
+    to_key     = ->(ts) { ts.to_date.strftime('%Y-%m') }
+
+    paid_sums = CommissionPayout.paid
+      .where(payout_date: start_date..Date.current)
+      .group("DATE_TRUNC('month', payout_date)").sum(:payout_amount)
+      .transform_keys { |k| to_key.(k) }
+
+    pending_sums = CommissionPayout.pending
+      .where(created_at: start_date.beginning_of_day..Time.current)
+      .group("DATE_TRUNC('month', created_at)").sum(:payout_amount)
+      .transform_keys { |k| to_key.(k) }
+
     6.times.map do |i|
-      month = i.months.ago
-      {
-        month: month.strftime('%b %Y'),
-        paid: CommissionPayout.paid.where(
-          payout_date: month.beginning_of_month..month.end_of_month
-        ).sum(:payout_amount),
-        pending: CommissionPayout.pending.where(
-          created_at: month.beginning_of_month..month.end_of_month
-        ).sum(:payout_amount)
-      }
+      month = (Date.current - i.months).beginning_of_month
+      key   = month.strftime('%Y-%m')
+      { month: month.strftime('%b %Y'), paid: paid_sums[key] || 0, pending: pending_sums[key] || 0 }
     end.reverse
   end
 
@@ -714,13 +722,23 @@ class Admin::PayoutsController < Admin::ApplicationController
     )
 
     # Get all ambassador commission payouts for this distributor in current month
-    ambassador_payouts = CommissionPayout.where(
+    raw_payouts = CommissionPayout.where(
       payout_to: 'ambassador',
       status: 'paid',
       payout_date: current_month_start..current_month_end
-    ).select do |p|
-      policy = p.policy
-      policy&.respond_to?(:distributor_id) && policy.distributor_id == distributor_id
+    ).to_a
+
+    # Batch-load policies grouped by type to avoid N+1
+    policy_map = raw_payouts.group_by(&:policy_type).each_with_object({}) do |(ptype, ps), map|
+      klass = ptype.to_s.classify.safe_constantize rescue nil
+      next unless klass
+      ids = ps.map(&:policy_id).uniq
+      klass.where(id: ids).each { |pol| map[[ptype, pol.id]] = pol }
+    end
+
+    ambassador_payouts = raw_payouts.select do |p|
+      pol = policy_map[[p.policy_type, p.policy_id]]
+      pol&.respond_to?(:distributor_id) && pol.distributor_id == distributor_id
     end
 
     return false if ambassador_payouts.empty?

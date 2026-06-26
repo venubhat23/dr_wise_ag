@@ -23,7 +23,7 @@ class Admin::CommissionTrackingController < ApplicationController
       @filter_customer_name = customer&.display_name
     end
 
-    @customers_for_filter = Customer.order(:first_name, :last_name).all
+    @customers_for_filter = Customer.order(:first_name, :last_name).limit(500).select(:id, :first_name, :last_name)
 
     @page     = [params[:page].to_i, 1].max
     @per_page = [[params[:per_page].to_i, 5].max, 100].min

@@ -5,16 +5,13 @@ class Admin::Reports::AllPolicyReportsController < Admin::Reports::BaseControlle
   before_action :set_filter_params
 
   def index
-    # Get policy data with latest records on top
-    @policy_data = fetch_policy_data
+    # Fetch once unpaginated, compute all aggregates, then paginate the array
+    all_policies = fetch_policy_data(paginated: false)
+    @total_policies   = all_policies.size
+    @total_premium    = all_policies.sum { |p| p[:premium_amount] || 0 }
+    @total_sum_insured = all_policies.sum { |p| p[:sum_insured] || 0 }
 
-    # Pagination
-    @policy_data = @policy_data.page(params[:page]).per(50)
-
-    # Summary calculations
-    @total_policies = calculate_total_policies
-    @total_premium = calculate_total_premium
-    @total_sum_insured = calculate_total_sum_insured
+    @policy_data  = Kaminari.paginate_array(all_policies).page(params[:page]).per(50)
     @policy_count = @policy_data.total_count
 
     # Filter options for dropdowns

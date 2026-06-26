@@ -800,7 +800,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
   end
 
   def set_life_insurance
-    @life_insurance = LifeInsurance.find(params[:id])
+    @life_insurance = LifeInsurance.includes(:customer, :sub_agent, :agency_code, :broker, :life_insurance_nominees).find(params[:id])
   end
 
   def set_form_data

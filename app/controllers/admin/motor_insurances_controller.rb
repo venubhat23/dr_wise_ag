@@ -1034,7 +1034,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   end
 
   def set_motor_insurance
-    @motor_insurance = MotorInsurance.find(params[:id])
+    @motor_insurance = MotorInsurance.includes(:customer, :sub_agent, :agency_code, :broker).find(params[:id])
   end
 
   def load_form_data

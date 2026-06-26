@@ -396,43 +396,25 @@ class Admin::DistributorsController < Admin::ApplicationController
   end
 
   def handle_affiliate_assignments(distributor, assigned_affiliate_ids)
-    Rails.logger.info "=== AFFILIATE ASSIGNMENT DEBUG ==="
-    Rails.logger.info "assigned_affiliate_ids: #{assigned_affiliate_ids.inspect}"
-    Rails.logger.info "assigned_affiliate_ids class: #{assigned_affiliate_ids.class}"
-
-    # Always remove existing assignments first
-    Rails.logger.info "Removing existing assignments for distributor #{distributor.id}"
     distributor.distributor_assignments.destroy_all
 
-    # Handle the case where no affiliates are selected (unassign all)
-    if assigned_affiliate_ids.nil? || assigned_affiliate_ids.empty?
-      Rails.logger.info "No affiliates selected - all assignments removed"
-      return
-    end
+    return if assigned_affiliate_ids.nil? || assigned_affiliate_ids.empty?
 
-    # Ensure we have an array
-    assigned_affiliate_ids = Array(assigned_affiliate_ids) unless assigned_affiliate_ids.is_a?(Array)
+    ids = Array(assigned_affiliate_ids).reject(&:blank?).map(&:to_i)
+    return if ids.empty?
 
-    # Create new assignments
-    assigned_affiliate_ids.reject(&:blank?).each do |sub_agent_id|
-      sub_agent = SubAgent.find_by(id: sub_agent_id)
+    # Batch: load all sub_agents in one query, remove stale cross-distributor assignments in one query
+    sub_agents = SubAgent.where(id: ids).index_by(&:id)
+    DistributorAssignment.where(sub_agent_id: ids).destroy_all
+
+    ids.each do |sub_agent_id|
+      sub_agent = sub_agents[sub_agent_id]
       if sub_agent
-        Rails.logger.info "Assigning affiliate #{sub_agent.display_name} (ID: #{sub_agent.id}) to distributor #{distributor.id}"
-
-        # Remove any existing assignment for this sub_agent to other distributors
-        DistributorAssignment.where(sub_agent: sub_agent).destroy_all
-
-        # Create new assignment
-        distributor.distributor_assignments.create!(
-          sub_agent: sub_agent,
-          assigned_at: Time.current
-        )
+        distributor.distributor_assignments.create!(sub_agent: sub_agent, assigned_at: Time.current)
       else
         Rails.logger.warn "SubAgent with ID #{sub_agent_id} not found"
       end
     end
-
-    Rails.logger.info "Final assignment count for distributor #{distributor.id}: #{distributor.distributor_assignments.count}"
   end
 
   def batch_calculate_affiliate_stats(affiliates)

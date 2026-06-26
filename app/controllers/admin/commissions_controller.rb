@@ -91,23 +91,22 @@ class Admin::CommissionsController < ApplicationController
   end
 
   def monthly_commission_chart_data
-    (0..11).map do |i|
-      month_start = i.months.ago.beginning_of_month
-      month_end = i.months.ago.end_of_month
+    unless current_user.user_type == 'distributor'
+      return 12.times.map { |i|
+        { month: (Date.current - i.months).beginning_of_month.strftime('%b %Y'), amount: 0 }
+      }.reverse
+    end
 
-      amount = case current_user.user_type
-               when 'distributor'
-                 DistributorPayout.where(distributor_id: current_user.id)
-                                 .where(created_at: month_start..month_end)
-                                 .sum(:payout_amount)
-               else
-                 0
-               end
+    start_date = 11.months.ago.beginning_of_month
+    sums = DistributorPayout
+      .where(distributor_id: current_user.id, created_at: start_date.beginning_of_day..Time.current)
+      .group("DATE_TRUNC('month', created_at)")
+      .sum(:payout_amount)
+      .transform_keys { |k| k.to_date.strftime('%Y-%m') }
 
-      {
-        month: month_start.strftime('%b %Y'),
-        amount: amount
-      }
+    12.times.map do |i|
+      month = (Date.current - i.months).beginning_of_month
+      { month: month.strftime('%b %Y'), amount: sums[month.strftime('%Y-%m')] || 0 }
     end.reverse
   end
 

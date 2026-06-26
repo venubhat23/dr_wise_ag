@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_25_000001) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_26_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -297,10 +297,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_25_000001) do
     t.index ["payout_date"], name: "index_commission_payouts_on_payout_date"
     t.index ["payout_id"], name: "index_commission_payouts_on_payout_id"
     t.index ["payout_to", "status"], name: "idx_commission_payouts_payout_to_status"
-    t.index ["payout_to", "status"], name: "index_commission_payouts_on_payout_to_and_status"
     t.index ["policy_type", "policy_id", "status"], name: "idx_commission_payouts_policy_status"
     t.index ["policy_type", "policy_id"], name: "idx_commission_payouts_policy"
-    t.index ["policy_type", "policy_id"], name: "index_commission_payouts_on_policy_type_and_policy_id"
     t.index ["status", "created_at"], name: "index_commission_payouts_on_status_and_created_at"
     t.index ["status"], name: "idx_commission_payouts_status"
   end
@@ -655,11 +653,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_25_000001) do
     t.index ["distributor_id"], name: "index_health_insurances_on_distributor_id"
     t.index ["insurance_company_code"], name: "index_health_insurances_on_insurance_company_code"
     t.index ["investor_id"], name: "index_health_insurances_on_investor_id"
+    t.index ["is_admin_added", "is_customer_added", "is_agent_added"], name: "idx_health_insurances_drwise"
     t.index ["lead_id"], name: "index_health_insurances_on_lead_id", unique: true
     t.index ["policy_end_date", "created_at"], name: "index_health_insurances_on_policy_end_date_and_created_at"
     t.index ["policy_end_date"], name: "index_health_insurances_on_policy_end_date"
     t.index ["policy_id"], name: "index_health_insurances_on_policy_id"
     t.index ["policy_type"], name: "index_health_insurances_on_policy_type"
+    t.index ["status"], name: "index_health_insurances_on_status"
     t.index ["sub_agent_id"], name: "index_health_insurances_on_sub_agent_id"
   end
 
@@ -866,6 +866,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_25_000001) do
     t.index ["lead_id"], name: "index_leads_on_lead_id"
     t.index ["lead_source"], name: "index_leads_on_lead_source"
     t.index ["parent_lead_id"], name: "index_leads_on_parent_lead_id"
+    t.index ["policy_created_id"], name: "index_leads_on_policy_created_id"
     t.index ["product_category", "product_subcategory"], name: "index_leads_on_product_category_and_product_subcategory"
     t.index ["product_category"], name: "index_leads_on_product_category"
     t.index ["product_subcategory"], name: "index_leads_on_product_subcategory"
@@ -1004,9 +1005,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_25_000001) do
     t.index ["customer_id"], name: "index_life_insurances_on_customer_id"
     t.index ["distributor_id"], name: "index_life_insurances_on_distributor_id"
     t.index ["insurance_company_code"], name: "index_life_insurances_on_insurance_company_code"
+    t.index ["is_admin_added", "is_customer_added", "is_agent_added"], name: "idx_life_insurances_drwise"
     t.index ["policy_end_date", "created_at"], name: "index_life_insurances_on_policy_end_date_and_created_at"
     t.index ["policy_end_date"], name: "index_life_insurances_on_policy_end_date"
     t.index ["policy_type"], name: "index_life_insurances_on_policy_type"
+    t.index ["sub_agent_id"], name: "index_life_insurances_on_sub_agent_id"
     t.unique_constraint ["policy_number"], name: "life_insurances_policy_number_key"
   end
 
@@ -1166,15 +1169,20 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_25_000001) do
     t.string "main_policy_document_content_type"
     t.bigint "main_policy_document_size"
     t.boolean "product_through_dr", default: true
+    t.index ["agency_code_id"], name: "index_motor_insurances_on_agency_code_id"
     t.index ["broker_id"], name: "index_motor_insurances_on_broker_id"
     t.index ["created_at"], name: "index_motor_insurances_on_created_at"
     t.index ["customer_id", "created_at"], name: "index_motor_insurances_on_customer_id_and_created_at"
     t.index ["customer_id"], name: "index_motor_insurances_on_customer_id"
+    t.index ["distributor_id"], name: "index_motor_insurances_on_distributor_id"
     t.index ["insurance_company_code"], name: "index_motor_insurances_on_insurance_company_code"
+    t.index ["investor_id"], name: "index_motor_insurances_on_investor_id"
+    t.index ["is_admin_added", "is_customer_added", "is_agent_added"], name: "idx_motor_insurances_drwise"
     t.index ["lead_id"], name: "index_motor_insurances_on_lead_id", unique: true
     t.index ["policy_end_date", "created_at"], name: "index_motor_insurances_on_policy_end_date_and_created_at"
     t.index ["policy_end_date"], name: "index_motor_insurances_on_policy_end_date"
     t.index ["policy_type"], name: "index_motor_insurances_on_policy_type"
+    t.index ["sub_agent_id"], name: "index_motor_insurances_on_sub_agent_id"
     t.unique_constraint ["policy_number"], name: "motor_insurances_policy_number_key"
   end
 
@@ -1342,11 +1350,15 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_25_000001) do
     t.boolean "product_through_dr", default: true
     t.index ["created_at"], name: "index_other_insurances_on_created_at"
     t.index ["customer_id", "created_at"], name: "index_other_insurances_on_customer_id_and_created_at"
+    t.index ["customer_id"], name: "index_other_insurances_on_customer_id"
+    t.index ["distributor_id"], name: "index_other_insurances_on_distributor_id"
     t.index ["insurance_company_code"], name: "index_other_insurances_on_insurance_company_code"
+    t.index ["is_admin_added", "is_customer_added", "is_agent_added"], name: "idx_other_insurances_drwise"
     t.index ["lead_id"], name: "index_other_insurances_on_lead_id"
     t.index ["policy_end_date", "created_at"], name: "index_other_insurances_on_policy_end_date_and_created_at"
     t.index ["policy_end_date"], name: "index_other_insurances_on_policy_end_date"
     t.index ["policy_id"], name: "index_other_insurances_on_policy_id"
+    t.index ["sub_agent_id"], name: "index_other_insurances_on_sub_agent_id"
   end
 
   create_table "payout_audit_logs", force: :cascade do |t|
@@ -1393,6 +1405,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_25_000001) do
     t.date "main_agent_commission_paid_date"
     t.text "main_agent_commission_notes"
     t.index ["created_at"], name: "index_payouts_on_created_at"
+    t.index ["customer_id"], name: "index_payouts_on_customer_id"
     t.index ["policy_type", "policy_id"], name: "index_payouts_on_policy_type_and_id"
     t.index ["status"], name: "index_payouts_on_status"
   end

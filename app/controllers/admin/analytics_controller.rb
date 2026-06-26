@@ -810,17 +810,35 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_monthly_trends
+    start_date = 11.months.ago.beginning_of_month
+    range_date = start_date.to_date..Date.current
+    range_ts   = start_date.beginning_of_day..Time.current.end_of_day
+
+    to_key = ->(ts) { ts.to_date.strftime('%Y-%m') }
+    idx    = ->(h)  { h.transform_keys { |k| to_key.(k) } }
+
+    c_counts  = idx.(Customer.where(created_at: range_ts).group("DATE_TRUNC('month', created_at)").count)
+    ld_counts = idx.(Lead.where(created_at: range_ts).group("DATE_TRUNC('month', created_at)").count)
+
+    hc = idx.(HealthInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").count)
+    lc = idx.(LifeInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").count)
+    mc = idx.((MotorInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").count rescue {}))
+    oc = idx.((OtherInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").count rescue {}))
+
+    hp = idx.(HealthInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").sum(:net_premium))
+    lp = idx.(LifeInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").sum(:net_premium))
+    mp = idx.((MotorInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").sum(:net_premium) rescue {}))
+    op = idx.((OtherInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").sum(:net_premium) rescue {}))
+
     trends = {}
     12.times do |i|
       month_date = (Date.current - i.months).beginning_of_month
-      month_name = month_date.strftime('%b %Y')
-
-      dt_range = month_date.beginning_of_day..(month_date.end_of_month.end_of_day)
-      trends[month_name] = {
-        customers: Customer.where(created_at: dt_range).count,
-        policies:  calculate_policies_for_month(month_date),
-        premium:   calculate_premium_for_month(month_date),
-        leads:     Lead.where(created_at: dt_range).count
+      k = month_date.strftime('%Y-%m')
+      trends[month_date.strftime('%b %Y')] = {
+        customers: c_counts[k]  || 0,
+        policies:  (hc[k] || 0) + (lc[k] || 0) + (mc[k] || 0) + (oc[k] || 0),
+        premium:   (hp[k] || 0) + (lp[k] || 0) + (mp[k] || 0) + (op[k] || 0),
+        leads:     ld_counts[k] || 0
       }
     end
     trends.to_a.reverse.to_h
@@ -843,34 +861,27 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_top_affiliates
-    # Simplified approach to get top affiliates by policy count
-    affiliate_data = []
+    health_counts = HealthInsurance.group(:sub_agent_id).count
+    life_counts   = LifeInsurance.group(:sub_agent_id).count
+    motor_counts  = MotorInsurance.group(:sub_agent_id).count
 
-    # Get all sub agents and calculate their policies manually
-    SubAgent.limit(50).each do |agent|
-      health_count = HealthInsurance.where(sub_agent_id: agent.id).count
-      life_count = LifeInsurance.where(sub_agent_id: agent.id).count
-      motor_count = MotorInsurance.where(sub_agent_id: agent.id).count
-      total_policies = health_count + life_count + motor_count
+    all_ids = (health_counts.keys + life_counts.keys + motor_counts.keys).uniq.compact
+    totals  = all_ids.map do |id|
+      [(health_counts[id] || 0) + (life_counts[id] || 0) + (motor_counts[id] || 0), id]
+    end.select { |cnt, _| cnt > 0 }.sort_by { |cnt, _| -cnt }.first(10)
 
-      if total_policies > 0
-        affiliate_data << {
-          id: agent.id,
-          first_name: agent.first_name,
-          last_name: agent.last_name,
-          status: agent.status || 'active',
-          policies_count: total_policies
-        }
-      end
+    top_ids = totals.map(&:last)
+    agents  = SubAgent.where(id: top_ids).index_by(&:id)
+
+    totals.filter_map do |cnt, id|
+      agent = agents[id]
+      next unless agent
+      OpenStruct.new(
+        id: agent.id, first_name: agent.first_name, last_name: agent.last_name,
+        status: agent.status || 'active', policies_count: cnt
+      )
     end
-
-    # Sort by policies count and take top 10
-    top_affiliates_data = affiliate_data.sort_by { |a| -a[:policies_count] }.first(10)
-
-    # Convert to OpenStruct objects for compatibility
-    top_affiliates_data.map { |data| OpenStruct.new(data) }
   rescue => e
-    # Return empty array if there's an error
     Rails.logger.error "Error calculating top affiliates: #{e.message}"
     []
   end
@@ -1126,18 +1137,21 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_customer_acquisition_trend
-    # Calculate customer acquisition trend for last 12 months
-    trend_data = {}
+    start_date = 11.months.ago.beginning_of_month
+    raw_counts = Customer
+      .where(created_at: start_date.beginning_of_day..Time.current.end_of_day)
+      .group("DATE_TRUNC('month', created_at)")
+      .count
 
-    12.times do |i|
-      month_date = (Date.current - i.months).beginning_of_month
-      month_name = month_date.strftime('%b %Y')
-
-      customer_count = Customer.where(created_at: month_date..(month_date.end_of_month)).count
-      trend_data[month_name] = customer_count
+    counts_by_month = raw_counts.each_with_object({}) do |(ts, cnt), h|
+      h[ts.to_date.strftime('%Y-%m')] = cnt
     end
 
-    # Return in chronological order (oldest to newest)
+    trend_data = {}
+    12.times do |i|
+      month_date = (Date.current - i.months).beginning_of_month
+      trend_data[month_date.strftime('%b %Y')] = counts_by_month[month_date.strftime('%Y-%m')] || 0
+    end
     trend_data.to_a.reverse.to_h
   rescue => e
     Rails.logger.error "Error calculating customer acquisition trend: #{e.message}"
@@ -1158,24 +1172,27 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_premium_revenue_trend
-    # Calculate premium revenue trend for last 12 months
-    trend_data = {}
+    start_date = 11.months.ago.beginning_of_month.to_date
+    range_date = start_date..Date.current
+    to_key     = ->(ts) { ts.to_date.strftime('%Y-%m') }
 
+    h_sums = HealthInsurance.where(DRWISE).where(policy_start_date: range_date)
+                            .group("DATE_TRUNC('month', policy_start_date)").sum(:net_premium)
+                            .transform_keys { |k| to_key.(k) }
+    l_sums = LifeInsurance.where(DRWISE).where(policy_start_date: range_date)
+                          .group("DATE_TRUNC('month', policy_start_date)").sum(:net_premium)
+                          .transform_keys { |k| to_key.(k) }
+    m_sums = (MotorInsurance.where(DRWISE).where(policy_start_date: range_date)
+                            .group("DATE_TRUNC('month', policy_start_date)").sum(:net_premium)
+                            .transform_keys { |k| to_key.(k) } rescue {})
+
+    trend_data = {}
     12.times do |i|
       month_date = (Date.current - i.months).beginning_of_month
-      month_name = month_date.strftime('%b %Y')
-
-      # Calculate total premium for the month across all DrWise insurance types
-      range = month_date..(month_date.end_of_month)
-      health_premium = HealthInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium)
-      life_premium   = LifeInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium)
-      motor_premium  = (MotorInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) rescue 0)
-
-      total_premium = health_premium + life_premium + motor_premium
-      trend_data[month_name] = total_premium.round(0)
+      k = month_date.strftime('%Y-%m')
+      total = (h_sums[k] || 0) + (l_sums[k] || 0) + (m_sums[k] || 0)
+      trend_data[month_date.strftime('%b %Y')] = total.round(0)
     end
-
-    # Return in chronological order (oldest to newest)
     trend_data.to_a.reverse.to_h
   rescue => e
     Rails.logger.error "Error calculating premium revenue trend: #{e.message}"

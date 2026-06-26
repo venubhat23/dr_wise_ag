@@ -845,7 +845,7 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
   end
 
   def set_other_insurance
-    @other_insurance = OtherInsurance.find(params[:id])
+    @other_insurance = OtherInsurance.includes(:customer, :sub_agent, :agency_code, :broker).find(params[:id])
   end
 
   def load_form_data
