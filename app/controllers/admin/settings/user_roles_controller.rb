@@ -76,7 +76,7 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
       crud_raw = params[:user][:crud_permissions].to_unsafe_h
       crud_data = {}
       crud_raw.each do |module_key, permissions|
-        if permissions['all_access'] == '1'
+        if ['1', 'on'].include?(permissions['all_access'])
           crud_data[module_key] = { 'view' => true, 'create' => true, 'edit' => true, 'delete' => true }
         else
           crud_data[module_key] = {
