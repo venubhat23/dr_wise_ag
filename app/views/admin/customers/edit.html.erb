@@ -1447,9 +1447,10 @@ document.addEventListener('DOMContentLoaded', function() {
       // Strip +91/91/0 prefix from mobile fields before checkValidity runs
       form.querySelectorAll('input[name*="[mobile]"]').forEach(function(field) {
         let v = field.value.replace(/\D/g, '');
-        if (v.length === 12 && v.startsWith('91')) v = v.slice(2);
-        else if (v.length === 11 && v.startsWith('0')) v = v.slice(1);
-        else if (v.length === 13 && v.startsWith('91')) v = v.slice(2);
+        if (v.length === 13 && v.startsWith('91')) v = v.slice(2);
+        else if (v.length === 12 && v.startsWith('91')) v = v.slice(2);
+        else if (v.length === 11 && v.startsWith('0'))  v = v.slice(1);
+        else if (v.length === 11)                        v = v.slice(1);
         field.value = v;
       });
 
@@ -1467,10 +1468,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let rawValue = input.value.trim();
     let digits = rawValue.replace(/\D/g, '');
 
-    // Strip country code prefix if present
+    // Strip country code / extra leading digit (mirrors Ruby format_mobile_number)
     if (digits.length === 13 && digits.startsWith('91')) digits = digits.slice(2);
     else if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
-    else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+    else if (digits.length === 11 && digits.startsWith('0'))  digits = digits.slice(1);
+    else if (digits.length === 11)                             digits = digits.slice(1);
 
     // Clear previous validation state (do NOT change input.value to preserve user's formatted input)
     input.classList.remove('is-valid', 'is-invalid');
@@ -1482,7 +1484,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (digits.length !== 10) {
-      showMobileError(input, 'Mobile number must be exactly 10 digits');
+      showMobileError(input, 'Mobile number must be exactly 10 digits (you entered ' + digits.length + ')');
     } else if (!mobilePattern.test(digits)) {
       showMobileError(input, 'Mobile number must start with 6, 7, 8, or 9');
     } else {
