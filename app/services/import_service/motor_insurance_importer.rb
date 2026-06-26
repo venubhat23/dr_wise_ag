@@ -144,7 +144,7 @@ module ImportService
         class_of_vehicle: row['class_of_vehicle']&.to_s&.strip || 'Private Car',
         seating_capacity: parse_number(row['seating_capacity'])&.to_i,
         total_idv: parse_number(row['total_idv']),
-        vehicle_idv: parse_number(row['total_idv']),
+        vehicle_idv: parse_number(row['vehicle_idv']) || parse_number(row['total_idv']),
         net_premium: parse_number(row['net_premium']),
         gst_percentage: parse_number(row['gst_percentage']),
         total_premium: parse_number(row['total_premium']),
