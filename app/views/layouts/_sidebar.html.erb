@@ -284,6 +284,53 @@
   box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3) !important;
 }
 
+/* Sidebar Brand */
+.sidebar-brand {
+  display: flex !important;
+  align-items: center !important;
+  padding: 18px 20px 14px 20px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  gap: 10px !important;
+  flex-shrink: 0 !important;
+}
+
+.sidebar-brand-icon {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #ffffff !important;
+  font-size: 18px !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+}
+
+.sidebar-brand-text {
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.3px !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  white-space: nowrap !important;
+  transition: opacity 0.2s ease, width 0.2s ease !important;
+}
+
+/* Hide brand text when sidebar is collapsed */
+.modern-sidebar.collapsed .sidebar-brand {
+  justify-content: center !important;
+  padding: 12px 0 10px 0 !important;
+}
+
+.modern-sidebar.collapsed .sidebar-brand-text {
+  display: none !important;
+}
+
 .sidebar-footer {
   margin-top: auto !important;
   padding: 1rem !important;
@@ -719,7 +766,13 @@ body.sidebar-collapsed .main-content {
     <i class="bi bi-list"></i>
   </button>
 
-
+  <!-- Dr WISE Brand -->
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-icon">
+      <i class="bi bi-shield-fill-check"></i>
+    </div>
+    <span class="sidebar-brand-text">Dr WISE</span>
+  </div>
 
   <!-- Navigation Menu -->
   <nav class="sidebar-nav">

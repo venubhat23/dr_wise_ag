@@ -946,55 +946,6 @@
     </div>
   </div>
 
-  <!-- Analytics Charts Section -->
-  <div class="charts-grid">
-    <!-- Premium Revenue Trend Chart -->
-    <div class="chart-card">
-      <h3 class="chart-title">Premium Revenue Trend (<%= @filter_start_date&.strftime('%b %Y') %> – <%= @filter_end_date&.strftime('%b %Y') %>)</h3>
-      <div class="chart-container">
-        <canvas id="revenueChart"></canvas>
-      </div>
-      <div class="chart-stats">
-        <div class="stat-item">
-          <span class="stat-label">Current Month:</span>
-          <span class="stat-value">Rs. <%= ((@total_premium_collected || 0) / 1000.0).round(0) %>K</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Growth:</span>
-          <span class="stat-value <%= (@premium_growth || 0) >= 0 ? 'text-success' : 'text-danger' %>">
-            <%= (@premium_growth || 0) >= 0 ? '+' : '' %><%= (@premium_growth || 0) %>%
-          </span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Target:</span>
-          <span class="stat-value">Rs. <%= (((@total_premium_collected || 0) * 1.2) / 1000.0).round(0) %>K</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Policy Distribution Chart -->
-    <div class="chart-card">
-      <h3 class="chart-title">Policy Distribution by Type</h3>
-      <div class="chart-container">
-        <canvas id="policyChart"></canvas>
-      </div>
-      <div class="chart-stats">
-        <div class="stat-item">
-          <span class="stat-label">Health:</span>
-          <span class="stat-value"><%= @health_count || 0 %></span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Life:</span>
-          <span class="stat-value"><%= @life_count || 0 %></span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Motor:</span>
-          <span class="stat-value"><%= @motor_count || 0 %></span>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Birthdays & Anniversaries -->
   <div class="row mb-4">
     <!-- Birthdays -->
@@ -1253,223 +1204,7 @@ document.addEventListener('DOMContentLoaded', function() {
     align: 'center'
   };
 
-  try {
-    // Premium Revenue Trend Chart
-    console.log('💰 Initializing Revenue Chart...');
-    const revenueCtx = document.getElementById('revenueChart');
-    if (revenueCtx) {
-      // Use actual revenue trend data from controller
-      <% if @premium_revenue_trend.present? && @premium_revenue_trend.any? %>
-      const revenueData = {
-        labels: <%= @premium_revenue_trend.map { |item| item[:month] }.to_json.html_safe %>,
-        values: <%= @premium_revenue_trend.map { |item| item[:amount] }.to_json.html_safe %>
-      };
-      <% else %>
-      // Fallback data if no trend data available
-      const revenueData = {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-        values: [0, 0, 0, 0, 0, 0]
-      };
-      <% end %>
-
-      // Create gradient for the line
-      const gradientRevenue = revenueCtx.getContext('2d').createLinearGradient(0, 0, 0, 300);
-      gradientRevenue.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
-      gradientRevenue.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
-
-      const revenueChart = new Chart(revenueCtx.getContext('2d'), {
-        type: 'line',
-        plugins: [ChartDataLabels],
-        data: {
-          labels: revenueData.labels,
-          datasets: [{
-            label: 'Premium Revenue (Rs.)',
-            data: revenueData.values,
-            borderColor: '#10b981',
-            backgroundColor: gradientRevenue,
-            borderWidth: 3,
-            tension: 0.4,
-            fill: true,
-            pointRadius: 5,
-            pointBackgroundColor: '#10b981',
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
-            pointHoverRadius: 7,
-            pointHoverBackgroundColor: '#10b981',
-            pointHoverBorderColor: '#ffffff',
-            pointHoverBorderWidth: 3
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: {
-            intersect: false,
-            mode: 'index'
-          },
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              titleColor: '#ffffff',
-              bodyColor: '#ffffff',
-              borderColor: '#10b981',
-              borderWidth: 1,
-              cornerRadius: 6,
-              padding: 12,
-              displayColors: false,
-              callbacks: {
-                label: function(context) {
-                  const value = context.raw;
-                  return 'Revenue: Rs. ' + (value / 1000).toFixed(1) + 'K';
-                }
-              }
-            },
-            datalabels: {
-              backgroundColor: '#10b981',
-              borderColor: 'white',
-              borderRadius: 4,
-              borderWidth: 2,
-              color: 'white',
-              font: {
-                size: 10,
-                weight: 'bold'
-              },
-              formatter: (value) => 'Rs. ' + (value / 1000).toFixed(0) + 'K',
-              padding: 4,
-              anchor: 'end',
-              align: 'top',
-              display: 'auto'
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              grid: {
-                color: '#f1f5f9',
-                drawBorder: false
-              },
-              ticks: {
-                color: '#6b7280',
-                font: {
-                  size: 11
-                },
-                callback: function(value) {
-                  return 'Rs. ' + (value / 1000) + 'K';
-                }
-              }
-            },
-            x: {
-              grid: {
-                display: false
-              },
-              ticks: {
-                color: '#6b7280',
-                font: {
-                  size: 11
-                }
-              }
-            }
-          },
-          animation: {
-            duration: 1500,
-            easing: 'easeInOutQuart'
-          }
-        }
-      });
-      console.log('✅ Revenue Chart initialized successfully');
-    }
-  } catch (error) {
-    console.error('❌ Error initializing Revenue Chart:', error);
-  }
-
-  try {
-    // Policy Distribution Chart
-    console.log('📊 Initializing Policy Chart...');
-    const policyCtx = document.getElementById('policyChart');
-    if (policyCtx) {
-      // Sample data - in production this would come from the controller
-      const policyData = {
-        labels: ['Health Insurance', 'Life Insurance', 'Motor Insurance'],
-        values: [
-          <%= @health_count || 0 %>,
-          <%= @life_count || 0 %>,
-          <%= @motor_count || 0 %>
-        ]
-      };
-
-      const policyChart = new Chart(policyCtx.getContext('2d'), {
-        type: 'doughnut',
-        plugins: [ChartDataLabels],
-        data: {
-          labels: policyData.labels,
-          datasets: [{
-            data: policyData.values,
-            backgroundColor: [
-              '#3b82f6',  // Blue for Health
-              '#10b981',  // Green for Life
-              '#f59e0b'   // Orange for Motor
-            ],
-            borderWidth: 0,
-            cutout: '60%'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                padding: 20,
-                usePointStyle: true,
-                font: { size: 12 }
-              }
-            },
-            tooltip: {
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              titleColor: '#ffffff',
-              bodyColor: '#ffffff',
-              borderColor: '#374151',
-              borderWidth: 1,
-              cornerRadius: 6,
-              displayColors: true,
-              callbacks: {
-                label: function(context) {
-                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                  const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
-                  return context.label + ': ' + context.raw + ' (' + percentage + '%)';
-                }
-              }
-            },
-            datalabels: {
-              color: '#fff',
-              font: {
-                size: 14,
-                weight: 'bold'
-              },
-              formatter: (value, context) => {
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                if (percentage < 10) return value; // Just show number if too small
-                return value + '\n(' + percentage + '%)';
-              },
-              anchor: 'center',
-              align: 'center',
-              clip: false
-            }
-          }
-        }
-      });
-      console.log('✅ Policy Chart initialized successfully');
-    }
-  } catch (error) {
-    console.error('❌ Error initializing Policy Chart:', error);
-  }
-
-  console.log('🎉 Enhanced Dashboard with Analytics Charts Loaded!');
+  console.log('🎉 Dashboard Loaded!');
 
   // Load real-time lead conversion rate on page load
   loadRealTimeLeadConversion();
@@ -2083,9 +1818,8 @@ function loadActiveAffiliatesData(content, loading) {
             <table class="table table-hover">
               <thead class="table-dark">
                 <tr>
+                  <th>Sl No</th>
                   <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
                   <th>Joined Date</th>
                   <th>Policies</th>
                   <th>Premium Generated</th>
@@ -2095,11 +1829,10 @@ function loadActiveAffiliatesData(content, loading) {
                 </tr>
               </thead>
               <tbody>
-                ${data.affiliates.map(affiliate => `
+                ${data.affiliates.map((affiliate, index) => `
                   <tr>
+                    <td>${index + 1}</td>
                     <td><strong>${affiliate.name}</strong></td>
-                    <td>${affiliate.email || 'N/A'}</td>
-                    <td>${affiliate.phone || 'N/A'}</td>
                     <td>${affiliate.joined_date}</td>
                     <td><span class="badge bg-primary">${affiliate.total_policies}</span></td>
                     <td class="fw-bold text-success">${fmtINR(affiliate.total_premium)}</td>

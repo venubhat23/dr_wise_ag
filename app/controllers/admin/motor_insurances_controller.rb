@@ -1085,7 +1085,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
 
       # Commission Details
       :payout_od, :payout_tp, :payout_net, :main_agent_commission_percent,
-      :main_agent_commission_amount, :main_agent_tds_percent, :main_agent_tds_amount,
+      :main_agent_commission_amount, :main_agent_tds_percentage, :main_agent_tds_amount,
       :after_tds_value,
 
       # Enhanced Commission Structure
