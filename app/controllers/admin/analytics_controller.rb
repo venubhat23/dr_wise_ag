@@ -1355,7 +1355,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     when 'customers'
       Customer.where(created_at: dt_start..dt_end).order(created_at: :desc).map do |c|
         { type: 'Customer', name: c.display_name, created_at: c.created_at.strftime('%d/%m/%Y'),
-          city: c.city.to_s, phone: c.phone.to_s }
+          city: c.city.to_s, phone: c.mobile.to_s }
       end
     when 'policies', 'premium'
       analytics_collect_policies(range)
@@ -1365,7 +1365,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
           created_at: l.created_at.strftime('%d/%m/%Y') }
       end
     when 'investors'
-      Investor.order(created_at: :desc).map do |i|
+      Investor.order(first_name: :asc, last_name: :asc).map do |i|
         { type: 'Investor', name: i.display_name.to_s, created_at: i.created_at.strftime('%d/%m/%Y') }
       end
     when 'affiliates'
@@ -1399,7 +1399,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
         policies << analytics_format_policy(p, 'Other', 'other')
       end
     rescue; end
-    policies.sort_by { |p| p[:policy_start_date_raw] || '' }.reverse
+    policies.sort_by { |p| [p[:policy_start_date_raw] || '0000-00-00', p[:created_at_raw] || '0000-00-00'] }.reverse
   end
 
   def analytics_format_policy(p, type, route_key)
@@ -1412,6 +1412,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
       policy_start_date_raw: p.policy_start_date.to_s,
       policy_end_date: p.policy_end_date&.strftime('%d/%m/%Y'),
       created_at: p.created_at.strftime('%d/%m/%Y'),
+      created_at_raw: p.created_at.strftime('%Y-%m-%d'),
       net_premium: p.net_premium.to_f.round(2),
       total_premium: p.total_premium.to_f.round(2) }
   end

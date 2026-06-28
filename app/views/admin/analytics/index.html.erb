@@ -691,9 +691,11 @@
         const drwiseBadge = r.drwise
           ? `<span class="badge bg-success">DrWise</span>`
           : `<span class="badge bg-warning text-dark">Non-DrWise</span>`;
+        const typeColors = { Health: 'bg-info', Life: 'bg-danger', Motor: 'bg-warning text-dark', Other: 'bg-success' };
+        const typeBadgeClass = typeColors[r.type] || 'bg-secondary';
         body.innerHTML += `<tr>
           <td class="text-muted">${i+1}</td>
-          <td><span class="badge bg-secondary">${r.type}</span></td>
+          <td><span class="badge ${typeBadgeClass}">${r.type}</span></td>
           <td>${policyLink}</td>
           <td>${r.customer}</td>
           <td>${r.policy_start_date || '—'}</td>
