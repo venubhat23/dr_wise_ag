@@ -25,6 +25,7 @@ Rails.application.routes.draw do
   get 'dashboard/ultra', to: 'dashboard#ultra'
   get 'dashboard/stats', to: 'dashboard#stats'
   get 'dashboard/card_detail', to: 'dashboard#card_detail'
+  get 'dashboard/net_profit', to: 'dashboard#net_profit'
 
   # Ambassador Dashboard
   get 'ambassador/dashboard', to: 'ambassador#dashboard'

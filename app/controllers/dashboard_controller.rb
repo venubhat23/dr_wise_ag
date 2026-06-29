@@ -19,6 +19,12 @@ class DashboardController < ApplicationController
     render 'ultra_attractive_dashboard', layout: false
   end
 
+  def net_profit
+    authorize! :read, :dashboard
+    @start_date = params[:start_date].presence || Date.new(Date.current.year, 1, 1).strftime('%Y-%m-%d')
+    @end_date   = params[:end_date].presence   || Date.current.strftime('%Y-%m-%d')
+  end
+
   def card_detail
     authorize! :read, :dashboard
     start_date = params[:start_date].present? ? (Date.parse(params[:start_date]) rescue Date.new(Date.current.year, 1, 1)) : Date.new(Date.current.year, 1, 1)
@@ -337,9 +343,10 @@ class DashboardController < ApplicationController
     results[:total_premium]           = results[:total_premium_collected]
     results[:total_sum_insured]       = get_sum_insured_for_period(start_date, end_date)
 
-    # Pending leads count for the period
-    pending_stages = ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one']
-    results[:pending_leads] = Lead.where(current_stage: pending_stages)
+    # Pending leads count for the period — all stages except terminal ones
+    active_lead_stages = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up',
+                          'follow_up_successful', 'follow_up_unsuccessful', 're_follow_up']
+    results[:pending_leads] = Lead.where(current_stage: active_lead_stages)
                                   .where(created_at: start_date.beginning_of_day..end_date.end_of_day).count
 
     # Renewal and expiry data are now loaded in load_filter_independent_data
@@ -699,9 +706,10 @@ class DashboardController < ApplicationController
       # Motor insurance table doesn't exist
     end
 
-    # Pending leads count (single query with OR conditions)
-    pending_stages = ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one']
-    results[:pending_leads] = Lead.where(current_stage: pending_stages).count
+    # Pending leads count — all stages except terminal ones
+    active_lead_stages = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up',
+                          'follow_up_successful', 'follow_up_unsuccessful', 're_follow_up']
+    results[:pending_leads] = Lead.where(current_stage: active_lead_stages).count
 
     # Renewals and expired policies (date-based queries)
     forty_five_days_from_now = Date.current + 30.days
@@ -1253,13 +1261,15 @@ class DashboardController < ApplicationController
     when 'customers'
       Customer.where("created_at >= ? AND created_at < ?", start_date, next_day)
               .order(created_at: :desc).map do |c|
-        { type: 'Customer', name: c.display_name, created_at: c.created_at.strftime('%d/%m/%Y'),
-          city: c.city.to_s, phone: c.phone.to_s }
+        { type: 'Customer', name: c.display_name, created_at: c.created_at.strftime('%d-%m-%Y'),
+          city: c.city.to_s, mobile: c.mobile.to_s,
+          customer_link: "/admin/customers/#{c.id}" }
       end
     when 'policies', 'premium'
       collect_policies_for_detail(range)
     when 'leads'
-      active_stages = ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one']
+      active_stages = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up',
+                       'follow_up_successful', 'follow_up_unsuccessful', 're_follow_up']
       Lead.where("created_at >= ? AND created_at < ?", start_date, next_day)
           .where(current_stage: active_stages)
           .order(created_at: :desc).map do |l|

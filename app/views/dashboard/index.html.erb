@@ -665,10 +665,10 @@
           <%= form.select :financial_year,
                          options_for_select([
                            ['Financial Year', ''],
-                           ['FY 2026 (Apr 25 - Mar 26)', '2026'],
-                           ['FY 2025 (Apr 24 - Mar 25)', '2025'],
-                           ['FY 2024 (Apr 23 - Mar 24)', '2024'],
-                           ['FY 2023 (Apr 22 - Mar 23)', '2023']
+                           ['2025-26 - Financial Year', '2026'],
+                           ['2024-25 - Financial Year', '2025'],
+                           ['2023-24 - Financial Year', '2024'],
+                           ['2022-23 - Financial Year', '2023']
                          ], @filter_financial_year.to_s),
                          { include_blank: false },
                          { class: "form-select", id: "financial_year_filter" } %>
@@ -826,7 +826,7 @@
               <div class="fw-semibold text-dark" style="font-size:13px;">Expiring in 30 days</div>
               <div class="text-muted" style="font-size:11px;">Next 30 days</div>
             </div>
-            <span class="fw-bold text-warning" style="font-size:1.6rem; line-height:1;">
+            <span id="badge-renewal-expiring" class="fw-bold text-warning" style="font-size:1.6rem; line-height:1;">
               <%= renewal_counts[:expiring] %>
             </span>
           </div>
@@ -837,7 +837,7 @@
               <div class="fw-semibold text-dark" style="font-size:13px;">Recently expired</div>
               <div class="text-muted" style="font-size:11px;">Last 45 days</div>
             </div>
-            <span class="fw-bold text-danger" style="font-size:1.6rem; line-height:1;">
+            <span id="badge-renewal-expired" class="fw-bold text-danger" style="font-size:1.6rem; line-height:1;">
               <%= renewal_counts[:expired] %>
             </span>
           </div>
@@ -848,7 +848,7 @@
               <div class="fw-semibold text-dark" style="font-size:13px;">Processed this month</div>
               <div class="text-muted" style="font-size:11px;">Renewals done</div>
             </div>
-            <span class="fw-bold text-success" style="font-size:1.6rem; line-height:1;">
+            <span id="badge-renewal-processed" class="fw-bold text-success" style="font-size:1.6rem; line-height:1;">
               <%= renewal_counts[:processed] %>
             </span>
           </div>
@@ -871,7 +871,7 @@
               <div class="fw-semibold text-dark" style="font-size:13px;">Expiring Soon</div>
               <div class="text-muted" style="font-size:11px;">Next 30 days</div>
             </div>
-            <span class="fw-bold text-warning" style="font-size:1.6rem; line-height:1;">
+            <span id="badge-policy-expiring" class="fw-bold text-warning" style="font-size:1.6rem; line-height:1;">
               <%= health_alerts[:expiring_soon] %>
             </span>
           </div>
@@ -882,7 +882,7 @@
               <div class="fw-semibold text-dark" style="font-size:13px;">Expired</div>
               <div class="text-muted" style="font-size:11px;">This month</div>
             </div>
-            <span class="fw-bold text-danger" style="font-size:1.6rem; line-height:1;">
+            <span id="badge-policy-expired" class="fw-bold text-danger" style="font-size:1.6rem; line-height:1;">
               <%= health_alerts[:expired_this_month] %>
             </span>
           </div>
@@ -893,7 +893,7 @@
               <div class="fw-semibold text-dark" style="font-size:13px;">Renewal Opportunities</div>
               <div class="text-muted" style="font-size:11px;">Ready to renew</div>
             </div>
-            <span class="fw-bold text-success" style="font-size:1.6rem; line-height:1;">
+            <span id="badge-policy-opportunities" class="fw-bold text-success" style="font-size:1.6rem; line-height:1;">
               <%= health_alerts[:renewal_opportunities] %>
             </span>
           </div>
@@ -1126,35 +1126,35 @@
           </div>
         </div>
         <!-- Commissions Due -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="showSystemStatusModal('commissions_due')">
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="window.location='/admin/commission_tracking'">
           <div class="px-3 py-2 d-flex align-items-center gap-2 h-100">
             <i class="bi bi-wallet2 fs-4 <%= (@commissions_due || 0) > 0 ? 'text-danger' : 'text-success' %> flex-shrink-0"></i>
             <div class="overflow-hidden">
               <div class="fw-bold text-dark text-truncate" style="font-size:1rem;line-height:1.2;"><%= indian_currency(@commissions_due || 0) %></div>
               <div class="text-muted text-truncate" style="font-size:11px;">Commissions Due</div>
-              <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
+              <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-arrow-right-circle"></i> View commission</div>
             </div>
           </div>
         </div>
         <!-- Total Leads -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="showSystemStatusModal('lead_conversion')">
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="window.location='/admin/leads'">
           <div class="px-3 py-2 d-flex align-items-center gap-2 h-100">
             <i class="bi bi-person-lines-fill fs-4 text-info flex-shrink-0"></i>
             <div class="overflow-hidden">
               <div class="fw-bold text-dark text-truncate" style="font-size:1rem;line-height:1.2;"><%= number_with_delimiter(@total_leads || 0) %></div>
               <div class="text-muted text-truncate" style="font-size:11px;">Total Leads</div>
-              <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
+              <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-arrow-right-circle"></i> View leads</div>
             </div>
           </div>
         </div>
         <!-- Net Profit -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;border-top:3px solid #27ae60;" onclick="showSystemStatusModal('profit')">
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;border-top:3px solid #27ae60;" onclick="window.location='/dashboard/net_profit'">
           <div class="px-3 py-2 d-flex align-items-center gap-2 h-100">
             <i class="bi bi-graph-up-arrow fs-4 text-success flex-shrink-0"></i>
             <div class="overflow-hidden">
               <div class="fw-bold text-success text-truncate" style="font-size:1rem;line-height:1.2;"><%= indian_currency(@total_profit || 0) %></div>
               <div class="text-muted text-truncate" style="font-size:11px;">Net Profit</div>
-              <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
+              <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-arrow-right-circle"></i> View details</div>
             </div>
           </div>
         </div>
@@ -1446,8 +1446,10 @@ function loadExpiringPolicies(tableBody) {
   fetch('/admin/api/policies/expiring?days=30')
     .then(response => response.json())
     .then(data => {
+      const count = data.policies ? data.policies.length : 0;
       renderPolicyTable(tableBody, data.policies || [], 'expiring');
-      document.getElementById('renewalCount').textContent = data.policies ? data.policies.length : 0;
+      document.getElementById('renewalCount').textContent = count;
+      document.getElementById('badge-renewal-expiring').textContent = count;
     })
     .catch(error => {
       console.error('Error loading expiring policies:', error);
@@ -1461,8 +1463,10 @@ function loadExpiredPolicies(tableBody) {
   fetch('/admin/api/policies/expired')
     .then(response => response.json())
     .then(data => {
+      const count = data.policies ? data.policies.length : 0;
       renderPolicyTable(tableBody, data.policies || [], 'expired');
-      document.getElementById('renewalCount').textContent = data.policies ? data.policies.length : 0;
+      document.getElementById('renewalCount').textContent = count;
+      document.getElementById('badge-renewal-expired').textContent = count;
     })
     .catch(error => {
       console.error('Error loading expired policies:', error);
@@ -1476,8 +1480,10 @@ function loadProcessedPolicies(tableBody) {
   fetch('/admin/api/policies/processed')
     .then(response => response.json())
     .then(data => {
+      const count = data.policies ? data.policies.length : 0;
       renderPolicyTable(tableBody, data.policies || [], 'processed');
-      document.getElementById('renewalCount').textContent = data.policies ? data.policies.length : 0;
+      document.getElementById('renewalCount').textContent = count;
+      document.getElementById('badge-renewal-processed').textContent = count;
     })
     .catch(error => {
       console.error('Error loading processed policies:', error);
@@ -1491,8 +1497,10 @@ function loadPoliciesExpiringSoon(tableBody) {
   fetch('/admin/api/policies/health/expiring')
     .then(response => response.json())
     .then(data => {
+      const count = data.policies ? data.policies.length : 0;
       renderHealthPolicyTable(tableBody, data.policies || [], 'expiring');
-      document.getElementById('policyCount').textContent = data.policies ? data.policies.length : 0;
+      document.getElementById('policyCount').textContent = count;
+      document.getElementById('badge-policy-expiring').textContent = count;
     })
     .catch(error => {
       console.error('Error loading policies:', error);
@@ -1506,8 +1514,10 @@ function loadPoliciesExpiredThisMonth(tableBody) {
   fetch('/admin/api/policies/health/expired_month')
     .then(response => response.json())
     .then(data => {
+      const count = data.policies ? data.policies.length : 0;
       renderHealthPolicyTable(tableBody, data.policies || [], 'expired');
-      document.getElementById('policyCount').textContent = data.policies ? data.policies.length : 0;
+      document.getElementById('policyCount').textContent = count;
+      document.getElementById('badge-policy-expired').textContent = count;
     })
     .catch(error => {
       console.error('Error loading policies:', error);
@@ -1521,8 +1531,10 @@ function loadRenewalOpportunities(tableBody) {
   fetch('/admin/api/policies/health/opportunities')
     .then(response => response.json())
     .then(data => {
+      const count = data.policies ? data.policies.length : 0;
       renderHealthPolicyTable(tableBody, data.policies || [], 'opportunity');
-      document.getElementById('policyCount').textContent = data.policies ? data.policies.length : 0;
+      document.getElementById('policyCount').textContent = count;
+      document.getElementById('badge-policy-opportunities').textContent = count;
     })
     .catch(error => {
       console.error('Error loading policies:', error);
@@ -2952,6 +2964,10 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <div id="dashboardKpiError" style="display:none;" class="alert alert-danger m-3"></div>
       </div>
+      <div class="modal-footer bg-light py-2 d-flex justify-content-between align-items-center" id="dashboardKpiFooter" style="display:none !important;">
+        <div id="dashboardKpiFooterContent" class="d-flex gap-4 fw-bold fs-6"></div>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3007,6 +3023,10 @@ function renderDashboardKpiData(metric, label, data) {
   foot.innerHTML = '';
   summary.innerHTML = '';
 
+  const kpiFooter = document.getElementById('dashboardKpiFooter');
+  const kpiFooterContent = document.getElementById('dashboardKpiFooterContent');
+  if (kpiFooter) kpiFooter.style.display = 'none';
+
   if (records.length === 0) {
     body.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">No records found for this period.</td></tr>';
     return;
@@ -3053,14 +3073,24 @@ function renderDashboardKpiData(metric, label, data) {
       <span class="badge bg-warning text-dark fs-6">Net: ${dashFmtINR(totalNet)}</span>
       <span class="badge bg-success fs-6">Total: ${dashFmtINR(totalGross)}</span>
     </div>`;
+    if (kpiFooter && kpiFooterContent) {
+      kpiFooterContent.innerHTML = `
+        <span>Policies: <strong>${records.length}</strong></span>
+        <span class="text-warning">Total Net Premium: <strong>${dashFmtINR(totalNet)}</strong></span>
+        <span class="text-success">Total Gross Premium: <strong>${dashFmtINR(totalGross)}</strong></span>`;
+      kpiFooter.style.display = 'flex';
+    }
 
   } else if (metric === 'customers') {
-    head.innerHTML = `<tr><th>#</th><th>Name</th><th>City</th><th>Phone</th><th>Joined</th></tr>`;
+    head.innerHTML = `<tr><th>#</th><th>Name</th><th>City</th><th>Mobile</th><th>Joined</th></tr>`;
     records.forEach((r, i) => {
+      const nameCell = r.customer_link
+        ? `<a href="${r.customer_link}" class="fw-semibold text-decoration-none">${r.name}</a>`
+        : r.name;
       body.innerHTML += `<tr>
         <td class="text-muted">${i+1}</td>
-        <td>${r.name}</td><td>${r.city || '—'}</td>
-        <td>${r.phone || '—'}</td><td>${r.created_at}</td>
+        <td>${nameCell}</td><td>${r.city || '—'}</td>
+        <td>${r.mobile || '—'}</td><td>${r.created_at}</td>
       </tr>`;
     });
     summary.innerHTML = `<span class="badge bg-primary fs-6 mb-2">${records.length} Customers</span>`;
