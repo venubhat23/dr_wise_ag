@@ -56,7 +56,6 @@
     <!-- Enhanced Stylesheets -->
     <%= stylesheet_link_tag "sidebar_fallback", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "layout_fix", "data-turbo-track": "reload" %>
-    <%= stylesheet_link_tag "dark_mode", "data-turbo-track": "reload" %>
 
     <% if Rails.env.development? %>
       <link rel="stylesheet" href="/application.css" data-turbo-track="reload">
@@ -150,6 +149,41 @@
           font-size: 1.5rem !important;
         }
       }
+
+      /* Dark/Light mode toggle button */
+      .theme-toggle-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.1);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        margin-right: 0.75rem;
+        backdrop-filter: blur(10px);
+        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+      .theme-toggle-btn:hover {
+        background: rgba(255,255,255,0.2);
+        border-color: rgba(255,255,255,0.4);
+        transform: scale(1.1);
+      }
+      .theme-toggle-btn .sun-icon,
+      .theme-toggle-btn .moon-icon {
+        position: absolute;
+        transition: all 0.35s cubic-bezier(0.25,0.8,0.25,1);
+      }
+      .theme-toggle-btn .sun-icon  { opacity:1; transform:rotate(0deg) scale(1); }
+      .theme-toggle-btn .moon-icon { opacity:0; transform:rotate(90deg) scale(0.5); }
+      [data-theme="dark"] .theme-toggle-btn .sun-icon  { opacity:0; transform:rotate(-90deg) scale(0.5); }
+      [data-theme="dark"] .theme-toggle-btn .moon-icon { opacity:1; transform:rotate(0deg) scale(1); }
 
       /* Animation on page load */
       @keyframes drwiseSlideIn {
