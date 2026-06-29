@@ -660,6 +660,20 @@
   <div class="card shadow-sm mb-4" style="margin-top: 0 !important;">
     <div class="card-body">
       <%= form_with url: dashboard_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end" do |form| %>
+        <!-- Financial Year Filter -->
+        <div>
+          <%= form.select :financial_year,
+                         options_for_select([
+                           ['Financial Year', ''],
+                           ['FY 2026 (Apr 25 - Mar 26)', '2026'],
+                           ['FY 2025 (Apr 24 - Mar 25)', '2025'],
+                           ['FY 2024 (Apr 23 - Mar 24)', '2024'],
+                           ['FY 2023 (Apr 22 - Mar 23)', '2023']
+                         ], @filter_financial_year.to_s),
+                         { include_blank: false },
+                         { class: "form-select", id: "financial_year_filter" } %>
+        </div>
+
         <!-- Year Filter -->
         <div>
           <%= form.select :year,
@@ -1313,6 +1327,37 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
+// Financial Year filter handler — Indian FY: Apr 1 (year-1) to Mar 31 (year)
+document.addEventListener('DOMContentLoaded', function() {
+  const fySelect = document.getElementById('financial_year_filter');
+  const yearSelect = document.getElementById('year_filter');
+  const monthSelect = document.getElementById('month_filter');
+  const startDateField = document.getElementById('start_date_field');
+  const endDateField = document.getElementById('end_date_field');
+
+  if (fySelect) {
+    fySelect.addEventListener('change', function() {
+      const fy = parseInt(this.value);
+      if (!fy) return;
+      startDateField.value = (fy - 1) + '-04-01';
+      endDateField.value = fy + '-03-31';
+      // Clear year/month so they don't override FY dates
+      if (yearSelect) yearSelect.value = '';
+      if (monthSelect) monthSelect.value = '';
+      this.form.submit();
+    });
+  }
+
+  // Selecting year/month/custom dates clears FY selection
+  [yearSelect, monthSelect, startDateField, endDateField].forEach(function(el) {
+    if (el) {
+      el.addEventListener('change', function() {
+        if (fySelect) fySelect.value = '';
+      });
+    }
+  });
+});
+
 // Function to load real-time lead conversion rate
 function loadRealTimeLeadConversion() {
   fetch('/admin/api/system_status/lead_conversion')
@@ -2674,8 +2719,14 @@ function clearAllFilters() {
   const monthSelect = document.getElementById('month_filter');
   const startDateField = document.getElementById('start_date_field');
   const endDateField = document.getElementById('end_date_field');
+  const fySelect = document.getElementById('financial_year_filter');
 
   console.log('🧹 Clearing all filters...');
+
+  // Reset financial year dropdown
+  if (fySelect) {
+    fySelect.value = '';
+  }
 
   // Reset to default values (current year)
   const currentYear = new Date().getFullYear().toString();
@@ -2992,7 +3043,8 @@ function renderDashboardKpiData(metric, label, data) {
       </tr>`;
     });
     foot.innerHTML = `<tr class="table-warning fw-bold">
-      <td colspan="8">Total (${records.length} policies)</td>
+      <td colspan="7">Total (${records.length} policies)</td>
+      <td class="text-end">${dashFmtINR(totalNet)}</td>
       <td class="text-end">${dashFmtINR(totalGross)}</td>
       <td></td>
     </tr>`;
