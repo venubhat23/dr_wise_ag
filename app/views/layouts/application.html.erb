@@ -10,6 +10,14 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
+    <!-- Apply theme immediately to prevent flash -->
+    <script>
+      (function() {
+        var t = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
+
     <%= javascript_importmap_tags %>
 
     <%= yield :head %>
@@ -48,6 +56,7 @@
     <!-- Enhanced Stylesheets -->
     <%= stylesheet_link_tag "sidebar_fallback", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "layout_fix", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "dark_mode", "data-turbo-track": "reload" %>
 
     <% if Rails.env.development? %>
       <link rel="stylesheet" href="/application.css" data-turbo-track="reload">
@@ -200,6 +209,12 @@
 
             <!-- Right side: Header Actions -->
             <div class="d-flex align-items-center">
+              <!-- Dark/Light Mode Toggle -->
+              <button class="theme-toggle-btn" id="themeToggleBtn" type="button" title="Toggle dark/light mode" onclick="toggleTheme()">
+                <i class="fas fa-sun sun-icon"></i>
+                <i class="fas fa-moon moon-icon"></i>
+              </button>
+
               <div class="dropdown">
                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
                   <i class="fas fa-user-circle me-2"></i>
@@ -547,6 +562,26 @@
 
       // Initialize on DOM load
       initDesktopSidebarToggle();
+
+      // ── Dark / Light Mode ──────────────────────────────────────────
+      (function() {
+        var savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      })();
+
+      function toggleTheme() {
+        var html = document.documentElement;
+        var current = html.getAttribute('data-theme') || 'light';
+        var next = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+      }
+
+      // Re-apply theme after Turbo navigation so the attribute persists
+      document.addEventListener('turbo:load', function() {
+        var saved = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', saved);
+      });
 
       // Toast notification functions
       function initToastNotifications() {
