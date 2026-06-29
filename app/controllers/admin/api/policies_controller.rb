@@ -6,39 +6,40 @@ module Admin
 
       def expiring
         days = params[:days].to_i || 30
+        end_date = days.days.from_now
+        admin_filter = { is_admin_added: true, is_customer_added: false, is_agent_added: false }
 
         policies = []
 
-        # Collect from all insurance types
-        # Health Insurance
-        HealthInsurance.includes(:customer)
-                      .where(policy_end_date: Date.current..days.days.from_now)
-                      .each do |policy|
-          policies << format_policy(policy, 'health')
-        end
+        begin
+          HealthInsurance.includes(:customer)
+                        .where(policy_end_date: Date.current..end_date)
+                        .where(admin_filter)
+                        .each { |p| policies << format_policy(p, 'health') }
+        rescue; end
 
-        # Life Insurance
-        LifeInsurance.includes(:customer)
-                    .where(policy_end_date: Date.current..days.days.from_now)
-                    .each do |policy|
-          policies << format_policy(policy, 'life')
-        end
+        begin
+          LifeInsurance.includes(:customer)
+                      .where(policy_end_date: Date.current..end_date)
+                      .where(admin_filter)
+                      .each { |p| policies << format_policy(p, 'life') }
+        rescue; end
 
-        # Motor Insurance
-        MotorInsurance.includes(:customer)
-                      .where(policy_end_date: Date.current..days.days.from_now)
-                      .each do |policy|
-          policies << format_policy(policy, 'motor')
-        end
+        begin
+          MotorInsurance.includes(:customer)
+                        .where(policy_end_date: Date.current..end_date)
+                        .where(admin_filter)
+                        .each { |p| policies << format_policy(p, 'motor') }
+        rescue; end
 
-        # Other Insurance
-        if defined?(OtherInsurance)
-          OtherInsurance.includes(:customer)
-                        .where(policy_end_date: Date.current..days.days.from_now)
-                        .each do |policy|
-            policies << format_policy(policy, 'other')
+        begin
+          if defined?(OtherInsurance)
+            OtherInsurance.includes(:customer)
+                          .where(policy_end_date: Date.current..end_date)
+                          .where(admin_filter)
+                          .each { |p| policies << format_policy(p, 'other') }
           end
-        end
+        rescue; end
 
         render json: {
           success: true,
@@ -213,9 +214,9 @@ module Admin
           customer_email: policy.customer&.email,
           insurance_type: type.capitalize,
           premium: policy.try(:total_premium) || policy.try(:premium_amount) || 0,
-          end_date: policy.policy_end_date&.strftime('%d %b %Y'),
-          booking_date: policy.policy_booking_date&.strftime('%d %b %Y'),
-          created_date: policy.created_at&.strftime('%d %b %Y'),
+          end_date: policy.policy_end_date&.strftime('%d-%m-%Y'),
+          booking_date: policy.policy_booking_date&.strftime('%d-%m-%Y'),
+          created_date: policy.created_at&.strftime('%d-%m-%Y'),
           days_left: policy.policy_end_date ? (policy.policy_end_date - Date.current).to_i : 0,
           type_slug: "#{type}_insurances"
         }
@@ -231,7 +232,7 @@ module Admin
           type_slug: "#{type}_insurances",
           sum_insured: policy.try(:sum_insured) || 0,
           premium: policy.try(:total_premium) || policy.try(:net_premium) || 0,
-          end_date: policy.policy_end_date&.strftime('%d %b %Y'),
+          end_date: policy.policy_end_date&.strftime('%d-%m-%Y'),
           days_left: policy.policy_end_date ? (policy.policy_end_date - Date.current).to_i : 0
         }
       end
