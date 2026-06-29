@@ -1259,7 +1259,9 @@ class DashboardController < ApplicationController
     when 'policies', 'premium'
       collect_policies_for_detail(range)
     when 'leads'
+      active_stages = ['lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one']
       Lead.where("created_at >= ? AND created_at < ?", start_date, next_day)
+          .where(current_stage: active_stages)
           .order(created_at: :desc).map do |l|
         { type: 'Lead', name: l.name.to_s, stage: l.current_stage.to_s.humanize,
           created_at: l.created_at.strftime('%d/%m/%Y') }
