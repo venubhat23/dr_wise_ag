@@ -40,12 +40,89 @@
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5) !important;
 }
 
-/* ── Sidebar (beats sidebar_fallback .sidebar specificity) ── */
+/* ── Sidebar — uses #sidebar ID (specificity [1,1,0]) to beat the inline <style> block in _sidebar.html.erb ── */
+[data-theme="dark"] #sidebar,
 [data-theme="dark"] .sidebar,
 [data-theme="dark"] .modern-sidebar {
   background: linear-gradient(180deg, #1a1d2e 0%, #161827 100%) !important;
   border-right: 1px solid var(--border-light) !important;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] #sidebar .nav-link-modern {
+  background: rgba(30, 33, 48, 0.5) !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] #sidebar .nav-link-modern:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(139, 92, 246, 0.18) 100%) !important;
+  color: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+[data-theme="dark"] #sidebar .nav-link-modern.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.55) 0%, rgba(139, 92, 246, 0.55) 100%) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25) !important;
+}
+
+[data-theme="dark"] #sidebar .nav-text {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+[data-theme="dark"] #sidebar .nav-link-modern:hover .nav-text,
+[data-theme="dark"] #sidebar .nav-link-modern.active .nav-text {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] #sidebar .nav-section-title {
+  color: rgba(149, 171, 255, 0.75) !important;
+}
+
+[data-theme="dark"] #sidebar .nav-section-title::after {
+  background: linear-gradient(to right, #818cf8, #a78bfa) !important;
+}
+
+[data-theme="dark"] #sidebar .sidebar-brand {
+  border-bottom: 1px solid var(--border-light) !important;
+}
+
+[data-theme="dark"] #sidebar .sidebar-footer {
+  background: rgba(22, 24, 39, 0.85) !important;
+  border-top: 1px solid var(--border-light) !important;
+}
+
+[data-theme="dark"] #sidebar .submenu {
+  border-left-color: var(--border-medium) !important;
+}
+
+[data-theme="dark"] #sidebar .submenu-link {
+  color: rgba(255, 255, 255, 0.68) !important;
+}
+
+[data-theme="dark"] #sidebar .submenu-link:hover {
+  background: rgba(99, 102, 241, 0.12) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] #sidebar .submenu-link.active {
+  background: rgba(99, 102, 241, 0.2) !important;
+  color: #a5b4fc !important;
+}
+
+[data-theme="dark"] #sidebar .dropdown-arrow {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+[data-theme="dark"] #sidebar .desktop-sidebar-toggle {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+[data-theme="dark"] #sidebar .desktop-sidebar-toggle:hover {
+  background: rgba(99, 102, 241, 0.15) !important;
+  color: #a5b4fc !important;
 }
 
 /* ── Main content area (beats .main-content in sidebar_fallback/layout_fix) ── */
@@ -489,7 +566,7 @@
   background: var(--bg-secondary) !important;
 }
 
-/* ── Sidebar nav text — hardcoded color:#64748b in _sidebar.html.erb ── */
+/* ── Sidebar nav text fallback (for cases outside #sidebar scope) ── */
 [data-theme="dark"] .nav-text {
   color: rgba(255, 255, 255, 0.82) !important;
 }
@@ -497,20 +574,6 @@
 [data-theme="dark"] .nav-link-modern:hover .nav-text,
 [data-theme="dark"] .nav-link-modern.active .nav-text {
   color: #ffffff !important;
-}
-
-[data-theme="dark"] .nav-section-title {
-  color: rgba(149, 171, 255, 0.75) !important;
-}
-
-[data-theme="dark"] .nav-section-title::after {
-  background: linear-gradient(to right, #818cf8, #a78bfa) !important;
-}
-
-/* ── Sidebar footer ── */
-[data-theme="dark"] .sidebar-footer {
-  background: rgba(22, 24, 39, 0.8) !important;
-  border-top: 1px solid var(--border-light) !important;
 }
 
 /* ── Analytics page — overrides the page-scoped <style> block ── */
