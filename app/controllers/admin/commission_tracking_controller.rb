@@ -38,8 +38,8 @@ class Admin::CommissionTrackingController < ApplicationController
 
       @policies_with_commission = fetch_policies_with_commission_filtered
 
-      date_from = @filter_date_from.present? ? Date.parse(@filter_date_from) rescue nil : nil
-      date_to   = @filter_date_to.present?   ? Date.parse(@filter_date_to)   rescue nil : nil
+      date_from = @filter_date_from.present? ? (Date.parse(@filter_date_from) rescue nil) : nil
+      date_to   = @filter_date_to.present?   ? (Date.parse(@filter_date_to)   rescue nil) : nil
 
       @total_commission_generated = calculate_total_commission_generated(date_from, date_to)
       @total_transferred = calculate_total_transferred(date_from, date_to)
