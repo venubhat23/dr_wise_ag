@@ -425,20 +425,35 @@
     </div>
     <div class="card-body">
       <%= form_with url: admin_analytics_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end" do |form| %>
-        <!-- Year Filter -->
+        <!-- Unified Period Filter -->
         <div>
-          <label for="year_filter" class="form-label small fw-bold">Year</label>
-          <%= form.select :year,
-                         options_for_select([
-                           ['2024', '2024'],
-                           ['2025', '2025'],
-                           ['2026', '2026'],
-                           ["#{Date.current.year} (Current)", Date.current.year.to_s],
-                           ['2027', '2027'],
-                           ['2028', '2028']
-                         ], (@filter_year || Date.current.year).to_s),
-                         {},
-                         { class: "form-select", id: "year_filter" } %>
+          <label class="form-label small fw-bold">Period</label>
+          <%
+            current_year = Date.current.year
+            if @filter_financial_year.present?
+              selected_period = "fy_#{@filter_financial_year}"
+            else
+              selected_period = "cal_#{@filter_year || current_year}"
+            end
+          %>
+          <select id="period_select" class="form-select" style="min-width:210px">
+            <optgroup label="Calendar Year">
+              <% (current_year).downto(current_year - 4) do |y| %>
+                <option value="cal_<%= y %>" <%= 'selected' if selected_period == "cal_#{y}" %>>
+                  <%= y %><%= " (Current)" if y == current_year %>
+                </option>
+              <% end %>
+            </optgroup>
+            <optgroup label="Financial Year">
+              <% (current_year).downto(current_year - 4) do |fy| %>
+                <option value="fy_<%= fy %>" <%= 'selected' if selected_period == "fy_#{fy}" %>>
+                  <%= fy - 1 %>-<%= fy.to_s[-2..] %> Financial Year
+                </option>
+              <% end %>
+            </optgroup>
+          </select>
+          <%= form.hidden_field :year,           id: "year_hidden" %>
+          <%= form.hidden_field :financial_year, id: "fy_hidden" %>
         </div>
 
         <!-- Month Filter -->
@@ -707,7 +722,8 @@
         </tr>`;
       });
       foot.innerHTML = `<tr class="table-warning fw-bold">
-        <td colspan="8">Total (${records.length} policies)</td>
+        <td colspan="7">Total (${records.length} policies)</td>
+        <td class="text-end">${fmtINR(totalNet)}</td>
         <td class="text-end">${fmtINR(totalGross)}</td>
         <td></td>
       </tr>`;
@@ -832,12 +848,12 @@
       </div>
       <div class="chart-stats">
         <div class="stat-item">
-          <span class="stat-label">Active Stages:</span>
-          <span class="stat-value"><%= (@lead_stage_distribution || {}).count { |k, v| v > 0 } %></span>
+          <span class="stat-label">Active Leads:</span>
+          <span class="stat-value"><%= (@lead_stage_distribution || {}).reject { |k, _| ['Converted', 'Lead Closed', 'Not Interested', 'Follow Up Unsuccessful'].include?(k) }.values.sum %></span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">New This Week:</span>
-          <span class="stat-value"><%= @new_leads || 0 %></span>
+          <span class="stat-label">Converted Leads:</span>
+          <span class="stat-value"><%= @converted_leads || 0 %></span>
         </div>
       </div>
     </div>
@@ -2626,60 +2642,47 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('   2. Canvas elements exist in HTML');
   console.log('   3. Chart.js library loaded correctly');
 
-  // Filter Auto-Update Functionality
-  function updateFilterDateRange() {
-    const yearSelect = document.getElementById('year_filter');
+  // Unified period dropdown handler
+  function applyPeriod(val) {
+    const yearHidden  = document.getElementById('year_hidden');
+    const fyHidden    = document.getElementById('fy_hidden');
+    const startField  = document.getElementById('start_date_field');
+    const endField    = document.getElementById('end_date_field');
     const monthSelect = document.getElementById('month_filter');
-    const startDateField = document.getElementById('start_date_field');
-    const endDateField = document.getElementById('end_date_field');
 
-    if (!yearSelect || !monthSelect) return;
-
-    const year = parseInt(yearSelect.value);
-    const month = monthSelect.value;
-
-    let startDate, endDate;
-
-    if (month && month !== '') {
-      // Specific month selected
-      const monthNum = parseInt(month);
-      startDate = new Date(year, monthNum - 1, 1);
-      endDate = new Date(year, monthNum, 0); // Last day of the month
-      console.log(`Analytics Filter: Month selected: ${monthNum} (${year})`);
-    } else {
-      // Full year selected
-      startDate = new Date(year, 0, 1); // January 1st
-      endDate = new Date(year, 11, 31); // December 31st
-      console.log(`Analytics Filter: Full year selected: ${year}`);
+    if (!val) return;
+    if (val.startsWith('cal_')) {
+      const yr = parseInt(val.replace('cal_', ''));
+      if (yearHidden) yearHidden.value = yr;
+      if (fyHidden)   fyHidden.value   = '';
+      if (startField) startField.value = yr + '-01-01';
+      if (endField)   endField.value   = yr + '-12-31';
+      if (monthSelect) monthSelect.value = '';
+    } else if (val.startsWith('fy_')) {
+      const fy = parseInt(val.replace('fy_', ''));
+      if (fyHidden)   fyHidden.value   = fy;
+      if (yearHidden) yearHidden.value = '';
+      if (startField) startField.value = (fy - 1) + '-04-01';
+      if (endField)   endField.value   = fy       + '-03-31';
+      if (monthSelect) monthSelect.value = '';
     }
+  }
 
-    // Update Custom Date Range fields immediately
-    if (startDateField && endDateField) {
-      const formatDate = (date) => {
-        const yyyy = date.getFullYear();
-        const mm = String(date.getMonth() + 1).padStart(2, '0');
-        const dd = String(date.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
-      };
+  const periodSelect = document.getElementById('period_select');
+  if (periodSelect) {
+    periodSelect.addEventListener('change', function() {
+      applyPeriod(this.value);
+      const form = this.closest('form');
+      if (form) form.submit();
+    });
+  }
 
-      // Update the date field values
-      startDateField.value = formatDate(startDate);
-      endDateField.value = formatDate(endDate);
-
-      // Add visual feedback
-      startDateField.style.backgroundColor = '#e7f3ff';
-      endDateField.style.backgroundColor = '#e7f3ff';
-      startDateField.style.border = '2px solid #007bff';
-      endDateField.style.border = '2px solid #007bff';
-
-      // Remove the highlight after 2 seconds
-      setTimeout(() => {
-        startDateField.style.backgroundColor = '';
-        endDateField.style.backgroundColor = '';
-        startDateField.style.border = '';
-        endDateField.style.border = '';
-      }, 2000);
-    }
+  const monthSelectEl = document.getElementById('month_filter');
+  if (monthSelectEl) {
+    monthSelectEl.addEventListener('change', function() {
+      const form = this.closest('form');
+      if (form) form.submit();
+    });
   }
 
   function refreshAnalytics() {
@@ -2687,30 +2690,6 @@ document.addEventListener('DOMContentLoaded', function() {
     currentUrl.searchParams.set('refresh', 'true');
     window.location.href = currentUrl.toString();
   }
-
-  // Auto-submit form when year/month filters change
-  function enableAutoSubmit() {
-    const yearSelect = document.getElementById('year_filter');
-    const monthSelect = document.getElementById('month_filter');
-
-    if (yearSelect) {
-      yearSelect.addEventListener('change', function() {
-        updateFilterDateRange();
-        this.form.submit();
-      });
-    }
-
-    if (monthSelect) {
-      monthSelect.addEventListener('change', function() {
-        updateFilterDateRange();
-        this.form.submit();
-      });
-    }
-  }
-
-  // Initialize filter functionality
-  updateFilterDateRange();
-  enableAutoSubmit();
 
   // Add keyboard shortcut for refresh (Ctrl+R or Cmd+R)
   document.addEventListener('keydown', function(e) {

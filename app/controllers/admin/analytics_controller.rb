@@ -35,27 +35,36 @@ class Admin::AnalyticsController < Admin::ApplicationController
   DRWISE = { is_admin_added: true, is_customer_added: false, is_agent_added: false }.freeze
 
   def setup_filter_dates
-    # Get date filter parameters (default to current year)
     current_year = Date.current.year
-    @filter_year = params[:year].present? ? params[:year].to_i.clamp(2000, 2100) : current_year
-    @filter_month = params[:month].present? ? params[:month].to_i.clamp(1, 12) : nil
-    @filter_start_date = if params[:start_date].present?
-      date = Date.parse(params[:start_date]) rescue nil
-      (date && date.year >= 2000 && date.year <= 2100) ? date : Date.new(@filter_year, 1, 1)
-    else
-      Date.new(@filter_year, 1, 1)
-    end
-    @filter_end_date = if params[:end_date].present?
-      date = Date.parse(params[:end_date]) rescue nil
-      (date && date.year >= 2000 && date.year <= 2100) ? date : Date.new(@filter_year, 12, 31)
-    else
-      Date.new(@filter_year, 12, 31)
-    end
 
-    # If month is specified, filter by that month
-    if @filter_month.present?
-      @filter_start_date = Date.new(@filter_year, @filter_month, 1)
-      @filter_end_date = @filter_start_date.end_of_month
+    if params[:financial_year].present?
+      fy = params[:financial_year].to_i.clamp(2000, 2100)
+      @filter_financial_year = fy
+      @filter_year  = fy
+      @filter_month = nil
+      @filter_start_date = Date.new(fy - 1, 4, 1)
+      @filter_end_date   = Date.new(fy,     3, 31)
+    else
+      @filter_financial_year = nil
+      @filter_year  = params[:year].present? ? params[:year].to_i.clamp(2000, 2100) : current_year
+      @filter_month = params[:month].present? ? params[:month].to_i.clamp(1, 12) : nil
+      @filter_start_date = if params[:start_date].present?
+        date = Date.parse(params[:start_date]) rescue nil
+        (date && date.year >= 2000 && date.year <= 2100) ? date : Date.new(@filter_year, 1, 1)
+      else
+        Date.new(@filter_year, 1, 1)
+      end
+      @filter_end_date = if params[:end_date].present?
+        date = Date.parse(params[:end_date]) rescue nil
+        (date && date.year >= 2000 && date.year <= 2100) ? date : Date.new(@filter_year, 12, 31)
+      else
+        Date.new(@filter_year, 12, 31)
+      end
+
+      if @filter_month.present?
+        @filter_start_date = Date.new(@filter_year, @filter_month, 1)
+        @filter_end_date   = @filter_start_date.end_of_month
+      end
     end
   end
 
@@ -1354,7 +1363,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     case metric
     when 'customers'
       Customer.where(created_at: dt_start..dt_end).order(created_at: :desc).map do |c|
-        { type: 'Customer', name: c.display_name, created_at: c.created_at.strftime('%d/%m/%Y'),
+        { type: 'Customer', name: c.display_name, created_at: c.created_at.strftime('%d-%m-%Y'),
           city: c.city.to_s, phone: c.mobile.to_s }
       end
     when 'policies', 'premium'
@@ -1362,16 +1371,16 @@ class Admin::AnalyticsController < Admin::ApplicationController
     when 'leads'
       Lead.where(created_at: dt_start..dt_end).order(created_at: :desc).map do |l|
         { type: 'Lead', name: l.name.to_s, stage: l.current_stage.to_s.humanize,
-          created_at: l.created_at.strftime('%d/%m/%Y') }
+          created_at: l.created_at.strftime('%d-%m-%Y') }
       end
     when 'investors'
       Investor.order(first_name: :asc, last_name: :asc).map do |i|
-        { type: 'Investor', name: i.display_name.to_s, created_at: i.created_at.strftime('%d/%m/%Y') }
+        { type: 'Investor', name: i.display_name.to_s, created_at: i.created_at.strftime('%d-%m-%Y') }
       end
     when 'affiliates'
       SubAgent.order(created_at: :desc).map do |a|
         { type: 'Affiliate', name: "#{a.first_name} #{a.last_name}".strip,
-          created_at: a.created_at.strftime('%d/%m/%Y'), status: a.status.to_s }
+          created_at: a.created_at.strftime('%d-%m-%Y'), status: a.status.to_s }
       end
     else
       []
@@ -1408,10 +1417,10 @@ class Admin::AnalyticsController < Admin::ApplicationController
       policy_link: "/admin/insurance/#{route_key}/#{p.id}",
       drwise: p.is_admin_added == true && p.is_customer_added == false && p.is_agent_added == false,
       customer: p.customer&.display_name || 'Unknown',
-      policy_start_date: p.policy_start_date&.strftime('%d/%m/%Y'),
+      policy_start_date: p.policy_start_date&.strftime('%d-%m-%Y'),
       policy_start_date_raw: p.policy_start_date.to_s,
-      policy_end_date: p.policy_end_date&.strftime('%d/%m/%Y'),
-      created_at: p.created_at.strftime('%d/%m/%Y'),
+      policy_end_date: p.policy_end_date&.strftime('%d-%m-%Y'),
+      created_at: p.created_at.strftime('%d-%m-%Y'),
       created_at_raw: p.created_at.strftime('%Y-%m-%d'),
       net_premium: p.net_premium.to_f.round(2),
       total_premium: p.total_premium.to_f.round(2) }
