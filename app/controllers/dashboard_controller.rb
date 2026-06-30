@@ -149,7 +149,7 @@ class DashboardController < ApplicationController
 
     # Create cache key based on filter parameters; gen is bumped on any record change
     cache_gen = Rails.cache.read("dashboard_cache_gen") || "0"
-    cache_key = "dashboard_data_#{cache_gen}_#{@filter_start_date}_#{@filter_end_date}_v6"
+    cache_key = "dashboard_data_#{cache_gen}_#{@filter_start_date}_#{@filter_end_date}_v7"
 
     # Try to get cached data first (5 minutes cache)
     filtered_data = Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
@@ -381,59 +381,8 @@ class DashboardController < ApplicationController
     results[:commissions_due] = results[:pending_payouts] || 0
     results[:avg_policy_value] = results[:total_policies] > 0 ? (results[:total_premium_collected] / results[:total_policies]).round(0) : 0
 
-    # Total profit: recalculate live (main_agent - affiliate - ambassador - investor - company_expense)
-    # filtered by policy_booking_date to match the Net Profit detail page
-    begin
-      profit_result = ActiveRecord::Base.connection.execute("
-        SELECT COALESCE(SUM(live_profit), 0) as total_profit FROM (
-          SELECT (
-            COALESCE(NULLIF(main_agent_commission_amount, 0),
-              CASE WHEN main_agent_commission_percentage > 0 THEN net_premium * main_agent_commission_percentage / 100.0 ELSE 0 END)
-            - COALESCE(NULLIF(sub_agent_commission_amount, 0),
-              CASE WHEN sub_agent_commission_percentage > 0 THEN net_premium * sub_agent_commission_percentage / 100.0 ELSE 0 END)
-            - COALESCE(NULLIF(ambassador_commission_amount, 0),
-              CASE WHEN ambassador_commission_percentage > 0 THEN net_premium * ambassador_commission_percentage / 100.0 ELSE 0 END)
-            - COALESCE(NULLIF(investor_commission_amount, 0),
-              CASE WHEN investor_commission_percentage > 0 THEN net_premium * investor_commission_percentage / 100.0 ELSE 0 END)
-            - CASE WHEN company_expenses_percentage > 0 THEN net_premium * company_expenses_percentage / 100.0 ELSE 0 END
-          ) AS live_profit
-          FROM health_insurances
-          WHERE product_through_dr = true AND policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}'
-          UNION ALL
-          SELECT (
-            COALESCE(NULLIF(main_agent_commission_amount, 0),
-              CASE WHEN main_agent_commission_percentage > 0 THEN net_premium * main_agent_commission_percentage / 100.0 ELSE 0 END)
-            - COALESCE(NULLIF(sub_agent_commission_amount, 0),
-              CASE WHEN sub_agent_commission_percentage > 0 THEN net_premium * sub_agent_commission_percentage / 100.0 ELSE 0 END)
-            - COALESCE(NULLIF(ambassador_commission_amount, 0),
-              CASE WHEN ambassador_commission_percentage > 0 THEN net_premium * ambassador_commission_percentage / 100.0 ELSE 0 END)
-            - COALESCE(NULLIF(investor_commission_amount, 0),
-              CASE WHEN investor_commission_percentage > 0 THEN net_premium * investor_commission_percentage / 100.0 ELSE 0 END)
-            - CASE WHEN company_expenses_percentage > 0 THEN net_premium * company_expenses_percentage / 100.0 ELSE 0 END
-          ) AS live_profit
-          FROM life_insurances
-          WHERE product_through_dr = true AND policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}'
-          UNION ALL
-          SELECT (
-            COALESCE(NULLIF(main_agent_commission_amount, 0),
-              CASE WHEN main_agent_commission_percentage > 0 THEN net_premium * main_agent_commission_percentage / 100.0 ELSE 0 END)
-            - COALESCE(NULLIF(sub_agent_commission_amount, 0),
-              CASE WHEN sub_agent_commission_percentage > 0 THEN net_premium * sub_agent_commission_percentage / 100.0 ELSE 0 END)
-            - COALESCE(NULLIF(ambassador_commission_amount, 0),
-              CASE WHEN ambassador_commission_percentage > 0 THEN net_premium * ambassador_commission_percentage / 100.0 ELSE 0 END)
-            - COALESCE(NULLIF(investor_commission_amount, 0),
-              CASE WHEN investor_commission_percentage > 0 THEN net_premium * investor_commission_percentage / 100.0 ELSE 0 END)
-            - CASE WHEN company_expenses_percentage > 0 THEN net_premium * company_expenses_percentage / 100.0 ELSE 0 END
-          ) AS live_profit
-          FROM motor_insurances
-          WHERE product_through_dr = true AND policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}'
-        ) AS p
-      ").first
-      results[:total_profit] = (profit_result['total_profit'] || 0).to_f
-    rescue => e
-      Rails.logger.error "Profit calculation failed: #{e.message}"
-      results[:total_profit] = 0
-    end
+    # Total profit: recalculate per-table to handle schema differences across insurance types
+    results[:total_profit] = calculate_total_profit_for_period(start_date, end_date)
 
     # Add filter information
     results[:filter_start_date] = start_date
@@ -1006,6 +955,43 @@ class DashboardController < ApplicationController
     motor  = (dr_scope(MotorInsurance).where(policy_start_date: start_date..end_date).count rescue 0)
     other  = (dr_scope(OtherInsurance).where(policy_start_date: start_date..end_date).count rescue 0)
     health + life + motor + other
+  end
+
+  def calculate_total_profit_for_period(start_date, end_date)
+    date_range = start_date..end_date
+    total = 0.0
+
+    [[HealthInsurance, 'Health'], [LifeInsurance, 'Life'], [MotorInsurance, 'Motor']].each do |klass, label|
+      begin
+        klass.where(product_through_dr: true)
+             .where(policy_booking_date: date_range)
+             .each do |p|
+          net      = p.net_premium.to_f
+          main_pct = p.try(:main_agent_commission_percentage).to_f
+          main_amt = p.try(:main_agent_commission_amount).to_f
+          main_amt = (net * main_pct / 100.0).round(2) if main_amt.zero? && main_pct > 0 && net > 0
+          aff_pct  = p.try(:sub_agent_commission_percentage).to_f
+          aff_amt  = p.try(:sub_agent_commission_amount).to_f
+          aff_amt  = (net * aff_pct / 100.0).round(2) if aff_amt.zero? && aff_pct > 0 && net > 0
+          amb_pct  = p.try(:ambassador_commission_percentage).to_f
+          amb_amt  = p.try(:ambassador_commission_amount).to_f
+          amb_amt  = (net * amb_pct / 100.0).round(2) if amb_amt.zero? && amb_pct > 0 && net > 0
+          inv_pct  = p.try(:investor_commission_percentage).to_f
+          inv_amt  = p.try(:investor_commission_amount).to_f
+          inv_amt  = (net * inv_pct / 100.0).round(2) if inv_amt.zero? && inv_pct > 0 && net > 0
+          co_pct   = p.try(:company_expenses_percentage).to_f
+          co_amt   = (net > 0 && co_pct > 0) ? (net * co_pct / 100.0).round(2) : 0.0
+          total   += (main_amt - aff_amt - amb_amt - inv_amt - co_amt)
+        end
+      rescue => e
+        Rails.logger.error "Profit calc error (#{label}): #{e.message}"
+      end
+    end
+
+    total.round(2)
+  rescue => e
+    Rails.logger.error "calculate_total_profit_for_period failed: #{e.message}"
+    0.0
   end
 
   def get_premium_for_period(start_date, end_date)
