@@ -405,9 +405,10 @@ module Admin
           [MotorInsurance,  'Motor']
         ].each do |klass, label|
           begin
-            klass.where(product_through_dr: true, created_at: date_range)
+            klass.where(product_through_dr: true)
+                 .where(policy_booking_date: date_range)
                  .includes(:customer)
-                 .order(created_at: :desc)
+                 .order(policy_booking_date: :desc)
                  .limit(200)
                  .each do |p|
               net       = p.net_premium.to_f

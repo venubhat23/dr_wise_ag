@@ -381,18 +381,52 @@ class DashboardController < ApplicationController
     results[:commissions_due] = results[:pending_payouts] || 0
     results[:avg_policy_value] = results[:total_policies] > 0 ? (results[:total_premium_collected] / results[:total_policies]).round(0) : 0
 
-    # Total profit across all policy types for the period (filtered by policy_start_date)
+    # Total profit: recalculate live (main_agent - affiliate - ambassador - investor - company_expense)
+    # filtered by policy_booking_date to match the Net Profit detail page
     begin
       profit_result = ActiveRecord::Base.connection.execute("
-        SELECT COALESCE(SUM(profit_amount), 0) as total_profit FROM (
-          SELECT profit_amount FROM health_insurances
-            WHERE TRUE #{h_dr} AND policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'
+        SELECT COALESCE(SUM(live_profit), 0) as total_profit FROM (
+          SELECT (
+            COALESCE(NULLIF(main_agent_commission_amount, 0),
+              CASE WHEN main_agent_commission_percentage > 0 THEN net_premium * main_agent_commission_percentage / 100.0 ELSE 0 END)
+            - COALESCE(NULLIF(sub_agent_commission_amount, 0),
+              CASE WHEN sub_agent_commission_percentage > 0 THEN net_premium * sub_agent_commission_percentage / 100.0 ELSE 0 END)
+            - COALESCE(NULLIF(ambassador_commission_amount, 0),
+              CASE WHEN ambassador_commission_percentage > 0 THEN net_premium * ambassador_commission_percentage / 100.0 ELSE 0 END)
+            - COALESCE(NULLIF(investor_commission_amount, 0),
+              CASE WHEN investor_commission_percentage > 0 THEN net_premium * investor_commission_percentage / 100.0 ELSE 0 END)
+            - CASE WHEN company_expenses_percentage > 0 THEN net_premium * company_expenses_percentage / 100.0 ELSE 0 END
+          ) AS live_profit
+          FROM health_insurances
+          WHERE product_through_dr = true AND policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}'
           UNION ALL
-          SELECT profit_amount FROM life_insurances
-            WHERE TRUE #{l_dr} AND policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'
+          SELECT (
+            COALESCE(NULLIF(main_agent_commission_amount, 0),
+              CASE WHEN main_agent_commission_percentage > 0 THEN net_premium * main_agent_commission_percentage / 100.0 ELSE 0 END)
+            - COALESCE(NULLIF(sub_agent_commission_amount, 0),
+              CASE WHEN sub_agent_commission_percentage > 0 THEN net_premium * sub_agent_commission_percentage / 100.0 ELSE 0 END)
+            - COALESCE(NULLIF(ambassador_commission_amount, 0),
+              CASE WHEN ambassador_commission_percentage > 0 THEN net_premium * ambassador_commission_percentage / 100.0 ELSE 0 END)
+            - COALESCE(NULLIF(investor_commission_amount, 0),
+              CASE WHEN investor_commission_percentage > 0 THEN net_premium * investor_commission_percentage / 100.0 ELSE 0 END)
+            - CASE WHEN company_expenses_percentage > 0 THEN net_premium * company_expenses_percentage / 100.0 ELSE 0 END
+          ) AS live_profit
+          FROM life_insurances
+          WHERE product_through_dr = true AND policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}'
           UNION ALL
-          SELECT profit_amount FROM motor_insurances
-            WHERE TRUE #{m_dr} AND policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'
+          SELECT (
+            COALESCE(NULLIF(main_agent_commission_amount, 0),
+              CASE WHEN main_agent_commission_percentage > 0 THEN net_premium * main_agent_commission_percentage / 100.0 ELSE 0 END)
+            - COALESCE(NULLIF(sub_agent_commission_amount, 0),
+              CASE WHEN sub_agent_commission_percentage > 0 THEN net_premium * sub_agent_commission_percentage / 100.0 ELSE 0 END)
+            - COALESCE(NULLIF(ambassador_commission_amount, 0),
+              CASE WHEN ambassador_commission_percentage > 0 THEN net_premium * ambassador_commission_percentage / 100.0 ELSE 0 END)
+            - COALESCE(NULLIF(investor_commission_amount, 0),
+              CASE WHEN investor_commission_percentage > 0 THEN net_premium * investor_commission_percentage / 100.0 ELSE 0 END)
+            - CASE WHEN company_expenses_percentage > 0 THEN net_premium * company_expenses_percentage / 100.0 ELSE 0 END
+          ) AS live_profit
+          FROM motor_insurances
+          WHERE product_through_dr = true AND policy_booking_date BETWEEN '#{start_date}' AND '#{end_date}'
         ) AS p
       ").first
       results[:total_profit] = (profit_result['total_profit'] || 0).to_f

@@ -244,7 +244,7 @@ module Admin
           booking_date: policy.policy_booking_date&.strftime('%d-%m-%Y'),
           created_date: policy.created_at&.strftime('%d-%m-%Y'),
           days_left: policy.policy_end_date ? (policy.policy_end_date - Date.current).to_i : 0,
-          type_slug: "#{type}_insurances"
+          type_slug: "insurance/#{type}"
         }
       end
 
@@ -255,7 +255,7 @@ module Admin
           customer_name: policy.customer&.display_name,
           customer_email: policy.customer&.email,
           insurance_type: type.capitalize,
-          type_slug: "#{type}_insurances",
+          type_slug: "insurance/#{type}",
           sum_insured: policy.try(:sum_insured) || 0,
           premium: policy.try(:total_premium) || policy.try(:net_premium) || 0,
           end_date: policy.policy_end_date&.strftime('%d-%m-%Y'),
