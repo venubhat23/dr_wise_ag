@@ -349,108 +349,43 @@
 
     <!-- Global Modal Fix Script & Toast Notifications -->
     <script>
-      // Enhanced Sidebar Scroll Position Management
+      // Sidebar Scroll Position Management
       (function() {
-        let sidebarScrollPos = 0;
-        let isRestoring = false;
+        const STORAGE_KEY = 'sidebarNavScrollPos';
 
-        // Save sidebar scroll position
-        function saveSidebarScrollPosition() {
-          const sidebar = document.querySelector('.modern-sidebar, .sidebar, #sidebar');
-          if (sidebar && !isRestoring) {
-            sidebarScrollPos = sidebar.scrollTop;
-            sessionStorage.setItem('sidebarScrollPosition', sidebarScrollPos.toString());
-            // Also save to a data attribute as backup
-            sidebar.setAttribute('data-last-scroll', sidebarScrollPos.toString());
-            console.log('💾 Sidebar scroll saved:', sidebarScrollPos);
-          }
+        function getSidebarNav() {
+          return document.querySelector('.sidebar-nav');
         }
 
-        // Restore sidebar scroll position
-        function restoreSidebarScrollPosition() {
-          const sidebar = document.querySelector('.modern-sidebar, .sidebar, #sidebar');
-          if (!sidebar) return;
-
-          isRestoring = true;
-
-          // Try to get saved position from sessionStorage or data attribute
-          const savedPos = sessionStorage.getItem('sidebarScrollPosition') ||
-                          sidebar.getAttribute('data-last-scroll');
-
-          if (savedPos) {
-            const scrollPos = parseInt(savedPos, 10);
-
-            // Force layout reflow before setting scroll
-            void sidebar.offsetHeight;
-
-            // Use requestAnimationFrame for smooth restoration
-            requestAnimationFrame(() => {
-              sidebar.scrollTop = scrollPos;
-
-              // Double-check with mutation observer
-              const observer = new MutationObserver(() => {
-                if (sidebar.scrollTop !== scrollPos) {
-                  sidebar.scrollTop = scrollPos;
-                }
-              });
-
-              observer.observe(sidebar, {
-                childList: true,
-                subtree: true,
-                attributes: true,
-                attributeFilter: ['class', 'style']
-              });
-
-              // Stop observing after a short time
-              setTimeout(() => {
-                observer.disconnect();
-                isRestoring = false;
-                console.log('✅ Sidebar scroll restored to:', sidebar.scrollTop);
-              }, 1000);
-            });
-          } else {
-            isRestoring = false;
-          }
+        function savePos() {
+          const nav = getSidebarNav();
+          if (!nav) return;
+          sessionStorage.setItem(STORAGE_KEY, nav.scrollTop.toString());
         }
 
-        // Setup scroll tracking with better event handling
-        function setupSidebarScrollTracking() {
-          const sidebar = document.querySelector('.modern-sidebar, .sidebar, #sidebar');
-          if (!sidebar) return;
+        function restorePos() {
+          const nav = getSidebarNav();
+          if (!nav) return;
+          const saved = sessionStorage.getItem(STORAGE_KEY);
+          if (!saved) return;
+          const pos = parseInt(saved, 10);
+          // Set immediately, then again after a frame to beat any layout reflows
+          nav.scrollTop = pos;
+          requestAnimationFrame(() => { nav.scrollTop = pos; });
+        }
 
-          // Remove any existing listeners
-          sidebar.removeEventListener('scroll', handleScroll);
-
-          let scrollTimeout;
-          function handleScroll() {
-            if (!isRestoring) {
-              clearTimeout(scrollTimeout);
-              scrollTimeout = setTimeout(saveSidebarScrollPosition, 100);
-            }
-          }
-
-          sidebar.addEventListener('scroll', handleScroll, { passive: true });
-
-          // Save position before any navigation
-          document.addEventListener('click', function(e) {
-            const link = e.target.closest('a');
-            if (link && link.href && !link.href.startsWith('#')) {
-              saveSidebarScrollPosition();
-            }
-          }, true);
-
-          // Save on form submissions
-          document.addEventListener('submit', function() {
-            saveSidebarScrollPosition();
-          }, true);
-
-          console.log('✅ Enhanced sidebar tracking initialized');
+        function setup() {
+          const nav = getSidebarNav();
+          if (!nav) return;
+          nav.addEventListener('scroll', function() {
+            sessionStorage.setItem(STORAGE_KEY, nav.scrollTop.toString());
+          }, { passive: true });
         }
 
         // Export functions to window scope
-        window.saveSidebarScrollPosition = saveSidebarScrollPosition;
-        window.restoreSidebarScrollPosition = restoreSidebarScrollPosition;
-        window.setupSidebarScrollTracking = setupSidebarScrollTracking;
+        window.saveSidebarScrollPosition    = savePos;
+        window.restoreSidebarScrollPosition = restorePos;
+        window.setupSidebarScrollTracking   = setup;
       })();
 
       // Global modal fix to ensure all modals work properly
@@ -509,26 +444,17 @@
         // Initialize toast notifications
         initToastNotifications();
 
-        // Enhanced sidebar scroll restoration with priority
-        // Wait for DOM to be fully ready
-        requestAnimationFrame(() => {
-          setupSidebarScrollTracking();
-          restoreSidebarScrollPosition();
-        });
+        // Restore sidebar scroll position after page load
+        setupSidebarScrollTracking();
+        restoreSidebarScrollPosition();
 
         // Re-initialize desktop sidebar toggle after Turbo navigation
         initDesktopSidebarToggle();
       });
 
-      // Save sidebar position before navigation and page unload
-      document.addEventListener('turbo:before-visit', function() {
-        console.log('🚀 Turbo navigation starting, saving sidebar position');
-        saveSidebarScrollPosition();
-      });
-
-      document.addEventListener('turbo:before-fetch-request', function() {
-        saveSidebarScrollPosition();
-      });
+      // Save sidebar position before navigation
+      document.addEventListener('turbo:before-visit', saveSidebarScrollPosition);
+      document.addEventListener('turbo:before-fetch-request', saveSidebarScrollPosition);
 
       document.addEventListener('turbo:before-render', function() {
         saveSidebarScrollPosition();

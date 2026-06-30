@@ -378,7 +378,8 @@ class DashboardController < ApplicationController
     results[:premium_revenue_trend] = build_period_monthly_trend(start_date, end_date)
 
     # Add missing variables that the dashboard expects
-    results[:commissions_due] = results[:pending_payouts] || 0
+    # commissions_due = main-agent pending only, to match commission tracking page "Pending Transfers"
+    results[:commissions_due] = CommissionPayout.where(payout_to: 'main_agent', status: 'pending').sum(:payout_amount).to_f
     results[:avg_policy_value] = results[:total_policies] > 0 ? (results[:total_premium_collected] / results[:total_policies]).round(0) : 0
 
     # Total profit: recalculate per-table to handle schema differences across insurance types
@@ -895,7 +896,7 @@ class DashboardController < ApplicationController
     avg_policy_value = results[:total_policies] > 0 ? (results[:total_premium_collected] / results[:total_policies]).round(0) : 0
     customer_retention = calculate_customer_retention_rate
     monthly_recurring_revenue = (results[:total_premium_collected] / 12.0).round(0)
-    commissions_due = results[:pending_payouts] || 0
+    commissions_due = CommissionPayout.where(payout_to: 'main_agent', status: 'pending').sum(:payout_amount).to_f
 
     {
       customer_growth: customer_growth,
@@ -1294,16 +1295,16 @@ class DashboardController < ApplicationController
           .where(current_stage: active_stages)
           .order(created_at: :desc).map do |l|
         { type: 'Lead', name: l.name.to_s, stage: l.current_stage.to_s.humanize,
-          created_at: l.created_at.strftime('%d/%m/%Y') }
+          created_at: l.created_at.strftime('%d-%m-%Y') }
       end
     when 'investors'
       Investor.order(created_at: :desc).map do |i|
-        { type: 'Investor', name: i.display_name.to_s, created_at: i.created_at.strftime('%d/%m/%Y') }
+        { type: 'Investor', name: i.display_name.to_s, created_at: i.created_at.strftime('%d-%m-%Y') }
       end
     when 'affiliates'
       SubAgent.order(created_at: :desc).map do |a|
         { type: 'Affiliate', name: "#{a.first_name} #{a.last_name}".strip,
-          created_at: a.created_at.strftime('%d/%m/%Y'), status: a.status.to_s }
+          created_at: a.created_at.strftime('%d-%m-%Y'), status: a.status.to_s }
       end
     else
       []

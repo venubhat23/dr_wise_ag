@@ -38,10 +38,13 @@ class Admin::CommissionTrackingController < ApplicationController
 
       @policies_with_commission = fetch_policies_with_commission_filtered
 
-      @total_commission_generated = calculate_total_commission_generated
-      @total_transferred = calculate_total_transferred
+      date_from = @filter_date_from.present? ? Date.parse(@filter_date_from) rescue nil : nil
+      date_to   = @filter_date_to.present?   ? Date.parse(@filter_date_to)   rescue nil : nil
+
+      @total_commission_generated = calculate_total_commission_generated(date_from, date_to)
+      @total_transferred = calculate_total_transferred(date_from, date_to)
       @pending_transfers = calculate_pending_transfers
-      @company_expenses = calculate_company_expenses
+      @company_expenses = calculate_company_expenses(date_from, date_to)
     rescue => e
       Rails.logger.error "Commission tracking failed: #{e.message}"
 
@@ -50,10 +53,12 @@ class Admin::CommissionTrackingController < ApplicationController
       @pending_count        = 0
       @total_policies_count = 0
       @paginated_payouts    = nil
-      @total_commission_generated = calculate_total_commission_generated
-      @total_transferred = calculate_total_transferred
+      date_from = @filter_date_from.present? ? (Date.parse(@filter_date_from) rescue nil) : nil
+      date_to   = @filter_date_to.present?   ? (Date.parse(@filter_date_to)   rescue nil) : nil
+      @total_commission_generated = calculate_total_commission_generated(date_from, date_to)
+      @total_transferred = calculate_total_transferred(date_from, date_to)
       @pending_transfers = calculate_pending_transfers
-      @company_expenses = calculate_company_expenses
+      @company_expenses = calculate_company_expenses(date_from, date_to)
       @policies_with_commission = create_sample_policies
     end
   end
@@ -737,24 +742,30 @@ class Admin::CommissionTrackingController < ApplicationController
     }
   end
 
-  def calculate_total_commission_generated
-    # Sum of main_agent_commission_amount from all payouts
-    Payout.sum(:main_agent_commission_amount) || 0
+  def calculate_total_commission_generated(date_from = nil, date_to = nil)
+    scope = Payout.all
+    scope = scope.where('created_at >= ?', date_from.beginning_of_day) if date_from
+    scope = scope.where('created_at <= ?', date_to.end_of_day)         if date_to
+    scope.sum(:main_agent_commission_amount) || 0
   end
 
-  def calculate_total_transferred
-    # Sum of non-pending main_agent_commission_amount from commission_payouts for main agent
-    CommissionPayout.where(payout_to: 'main_agent').where.not(status: 'pending').sum(:payout_amount) || 0
+  def calculate_total_transferred(date_from = nil, date_to = nil)
+    scope = CommissionPayout.where(payout_to: 'main_agent').where.not(status: 'pending')
+    scope = scope.where('created_at >= ?', date_from.beginning_of_day) if date_from
+    scope = scope.where('created_at <= ?', date_to.end_of_day)         if date_to
+    scope.sum(:payout_amount) || 0
   end
 
   def calculate_pending_transfers
-    # Sum of pending main_agent_commission_amount from commission_payouts for main agent
+    # Pending = currently owed, not historical — no date filter
     CommissionPayout.where(payout_to: 'main_agent', status: 'pending').sum(:payout_amount) || 0
   end
 
-  def calculate_company_expenses
-    # Sum of non-pending payout_amount from commission_payouts where payout_to = "company_expense"
-    CommissionPayout.where(payout_to: 'company_expense').where.not(status: 'pending').sum(:payout_amount) || 0
+  def calculate_company_expenses(date_from = nil, date_to = nil)
+    scope = CommissionPayout.where(payout_to: 'company_expense').where.not(status: 'pending')
+    scope = scope.where('created_at >= ?', date_from.beginning_of_day) if date_from
+    scope = scope.where('created_at <= ?', date_to.end_of_day)         if date_to
+    scope.sum(:payout_amount) || 0
   end
 
   def fetch_recent_policies_with_commission

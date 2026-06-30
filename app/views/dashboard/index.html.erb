@@ -1277,7 +1277,7 @@
           </div>
         </div>
         <!-- Commissions Due -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="window.location='/admin/commission_tracking'">
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="window.location='/admin/commission_tracking?date_from=<%= @filter_start_date&.strftime('%Y-%m-%d') %>&date_to=<%= @filter_end_date&.strftime('%Y-%m-%d') %>'">
           <div class="px-3 py-2 d-flex align-items-center gap-2 h-100">
             <i class="bi bi-wallet2 fs-4 <%= (@commissions_due || 0) > 0 ? 'text-danger' : 'text-success' %> flex-shrink-0"></i>
             <div class="overflow-hidden">
@@ -1941,10 +1941,6 @@ function showSystemStatusModal(type) {
   // Show loading
   if (content) content.style.display = 'none';
   if (loading) loading.style.display = 'block';
-
-  // Ensure modal is properly displayed
-  modalElement.style.display = 'flex';
-  modalElement.style.zIndex = '9999';
 
   // Update modal title and load data based on type
   switch(type) {
@@ -3113,10 +3109,17 @@ const DASH_CARD_DETAIL_URL = '<%= dashboard_card_detail_path %>';
 const DASH_FILTER_START    = '<%= @filter_start_date %>';
 const DASH_FILTER_END      = '<%= @filter_end_date %>';
 
+function dashFmtDateDMY(iso) {
+  if (!iso) return iso;
+  const p = iso.split('-');
+  if (p.length !== 3) return iso;
+  return p[2] + '-' + p[1] + '-' + p[0];
+}
+
 function openDashboardCardModal(card) {
   const metric = card.dataset.cardMetric;
   const label  = card.dataset.cardLabel;
-  document.getElementById('dashboardKpiModalLabel').textContent = label + ' — ' + DASH_FILTER_START + ' to ' + DASH_FILTER_END;
+  document.getElementById('dashboardKpiModalLabel').textContent = label + ' — ' + dashFmtDateDMY(DASH_FILTER_START) + ' to ' + dashFmtDateDMY(DASH_FILTER_END);
   document.getElementById('dashboardKpiLoading').style.display = 'block';
   document.getElementById('dashboardKpiContent').style.display = 'none';
   document.getElementById('dashboardKpiError').style.display   = 'none';

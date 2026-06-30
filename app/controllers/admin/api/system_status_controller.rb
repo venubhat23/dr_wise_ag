@@ -5,8 +5,24 @@ module Admin
 
       def active_affiliates
         begin
-          # Get all sub agents
-          affiliates = SubAgent.all.order(:id)
+          # Match dashboard card: only SubAgents that have at least one policy (any insurance type)
+          active_ids = []
+          begin
+            ids = ActiveRecord::Base.connection.select_values("
+              SELECT DISTINCT sub_agent_id FROM (
+                SELECT sub_agent_id FROM health_insurances WHERE sub_agent_id IS NOT NULL
+                UNION
+                SELECT sub_agent_id FROM life_insurances WHERE sub_agent_id IS NOT NULL
+                UNION
+                SELECT sub_agent_id FROM motor_insurances WHERE sub_agent_id IS NOT NULL
+              ) AS t
+            ")
+            active_ids = ids.map(&:to_i)
+          rescue => e
+            Rails.logger.error "Error fetching active affiliate ids: #{e.message}"
+          end
+
+          affiliates = SubAgent.where(id: active_ids).order(:id)
 
           affiliate_data = []
 
@@ -145,21 +161,22 @@ module Admin
 
       def avg_policy_value
         begin
-          # Calculate average policy value across all insurance types
+          # Match the dashboard card: admin-added policies only (dr_filter)
+          admin_scope = { is_admin_added: true, is_customer_added: false, is_agent_added: false }
           policy_data = []
 
         # Health Insurance
         begin
-          health_policies = HealthInsurance.all
+          health_policies = HealthInsurance.where(admin_scope)
           if health_policies.any?
-            health_avg = health_policies.average(:total_premium) || 0
+            health_avg = health_policies.average(:net_premium) || 0
             policy_data << {
               type: 'Health Insurance',
               count: health_policies.count,
-              total_premium: health_policies.sum(:total_premium) || 0,
+              total_premium: health_policies.sum(:net_premium) || 0,
               average: health_avg.to_f.round(2),
-              min_premium: health_policies.minimum(:total_premium) || 0,
-              max_premium: health_policies.maximum(:total_premium) || 0
+              min_premium: health_policies.minimum(:net_premium) || 0,
+              max_premium: health_policies.maximum(:net_premium) || 0
             }
           end
         rescue => e
@@ -168,16 +185,16 @@ module Admin
 
         # Life Insurance
         begin
-          life_policies = LifeInsurance.all
+          life_policies = LifeInsurance.where(admin_scope)
           if life_policies.any?
-            life_avg = life_policies.average(:total_premium) || 0
+            life_avg = life_policies.average(:net_premium) || 0
             policy_data << {
               type: 'Life Insurance',
               count: life_policies.count,
-              total_premium: life_policies.sum(:total_premium) || 0,
+              total_premium: life_policies.sum(:net_premium) || 0,
               average: life_avg.to_f.round(2),
-              min_premium: life_policies.minimum(:total_premium) || 0,
-              max_premium: life_policies.maximum(:total_premium) || 0
+              min_premium: life_policies.minimum(:net_premium) || 0,
+              max_premium: life_policies.maximum(:net_premium) || 0
             }
           end
         rescue => e
@@ -186,16 +203,16 @@ module Admin
 
         # Motor Insurance
         begin
-          motor_policies = MotorInsurance.all
+          motor_policies = MotorInsurance.where(admin_scope)
           if motor_policies.any?
-            motor_avg = motor_policies.average(:total_premium) || 0
+            motor_avg = motor_policies.average(:net_premium) || 0
             policy_data << {
               type: 'Motor Insurance',
               count: motor_policies.count,
-              total_premium: motor_policies.sum(:total_premium) || 0,
+              total_premium: motor_policies.sum(:net_premium) || 0,
               average: motor_avg.to_f.round(2),
-              min_premium: motor_policies.minimum(:total_premium) || 0,
-              max_premium: motor_policies.maximum(:total_premium) || 0
+              min_premium: motor_policies.minimum(:net_premium) || 0,
+              max_premium: motor_policies.maximum(:net_premium) || 0
             }
           end
         rescue => e
@@ -204,23 +221,23 @@ module Admin
 
         # Other Insurance
         begin
-          other_policies = OtherInsurance.all
+          other_policies = OtherInsurance.where(admin_scope)
           if other_policies.any?
-            other_avg = other_policies.average(:total_premium) || 0
+            other_avg = other_policies.average(:net_premium) || 0
             policy_data << {
               type: 'Other Insurance',
               count: other_policies.count,
-              total_premium: other_policies.sum(:total_premium) || 0,
+              total_premium: other_policies.sum(:net_premium) || 0,
               average: other_avg.to_f.round(2),
-              min_premium: other_policies.minimum(:total_premium) || 0,
-              max_premium: other_policies.maximum(:total_premium) || 0
+              min_premium: other_policies.minimum(:net_premium) || 0,
+              max_premium: other_policies.maximum(:net_premium) || 0
             }
           end
         rescue => e
           Rails.logger.error "Error processing Other Insurance: #{e.message}"
         end
 
-        # Overall calculations
+        # Overall calculations — same formula as dashboard card: total_premium / total_policies
         total_policies = policy_data.sum { |p| p[:count] }
         total_premium = policy_data.sum { |p| p[:total_premium] }
         overall_avg = total_policies > 0 ? (total_premium.to_f / total_policies).round(2) : 0
@@ -236,17 +253,16 @@ module Admin
 
         range_data = premium_ranges.map do |range|
           count = 0
-          # Count across all policy types
           if range[:max] == Float::INFINITY
-            count += HealthInsurance.where('total_premium >= ?', range[:min]).count rescue 0
-            count += LifeInsurance.where('total_premium >= ?', range[:min]).count rescue 0
-            count += MotorInsurance.where('total_premium >= ?', range[:min]).count rescue 0
-            count += OtherInsurance.where('total_premium >= ?', range[:min]).count rescue 0
+            count += HealthInsurance.where(admin_scope).where('net_premium >= ?', range[:min]).count rescue 0
+            count += LifeInsurance.where(admin_scope).where('net_premium >= ?', range[:min]).count rescue 0
+            count += MotorInsurance.where(admin_scope).where('net_premium >= ?', range[:min]).count rescue 0
+            count += OtherInsurance.where(admin_scope).where('net_premium >= ?', range[:min]).count rescue 0
           else
-            count += HealthInsurance.where(total_premium: range[:min]...range[:max]).count rescue 0
-            count += LifeInsurance.where(total_premium: range[:min]...range[:max]).count rescue 0
-            count += MotorInsurance.where(total_premium: range[:min]...range[:max]).count rescue 0
-            count += OtherInsurance.where(total_premium: range[:min]...range[:max]).count rescue 0
+            count += HealthInsurance.where(admin_scope).where(net_premium: range[:min]...range[:max]).count rescue 0
+            count += LifeInsurance.where(admin_scope).where(net_premium: range[:min]...range[:max]).count rescue 0
+            count += MotorInsurance.where(admin_scope).where(net_premium: range[:min]...range[:max]).count rescue 0
+            count += OtherInsurance.where(admin_scope).where(net_premium: range[:min]...range[:max]).count rescue 0
           end
 
           {
