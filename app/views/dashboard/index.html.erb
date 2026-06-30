@@ -1266,13 +1266,13 @@
           </div>
         </div>
         <!-- Avg Policy Value -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="showSystemStatusModal('avg_policy_value')">
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="window.location='/dashboard/avg_policy_value'">
           <div class="px-3 py-2 d-flex align-items-center gap-2 h-100">
             <i class="bi bi-cash-stack fs-4 text-warning flex-shrink-0"></i>
             <div class="overflow-hidden">
               <div class="fw-bold text-dark text-truncate" style="font-size:1rem;line-height:1.2;"><%= indian_currency(@avg_policy_value || 0) %></div>
               <div class="text-muted text-truncate" style="font-size:11px;">Avg Policy Value</div>
-              <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-info-circle"></i> Click for details</div>
+              <div style="font-size:10px;color:#0dcaf0;"><i class="bi bi-arrow-right-circle"></i> View details</div>
             </div>
           </div>
         </div>

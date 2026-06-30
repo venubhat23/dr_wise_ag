@@ -25,6 +25,10 @@ class DashboardController < ApplicationController
     @end_date   = params[:end_date].presence   || Date.current.strftime('%Y-%m-%d')
   end
 
+  def avg_policy_value
+    authorize! :read, :dashboard
+  end
+
   def card_detail
     authorize! :read, :dashboard
     start_date = params[:start_date].present? ? (Date.parse(params[:start_date]) rescue Date.new(Date.current.year, 1, 1)) : Date.new(Date.current.year, 1, 1)
