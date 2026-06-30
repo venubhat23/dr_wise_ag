@@ -1192,8 +1192,12 @@ class DashboardController < ApplicationController
     sql = "
       SELECT COUNT(*) as count FROM (
         SELECT id FROM health_insurances WHERE TRUE #{dr} AND policy_end_date >= '#{forty_five_days_ago}' AND policy_end_date < '#{current_date}'
+          AND (is_renewed IS NULL OR is_renewed = false)
+          AND id NOT IN (SELECT original_policy_id FROM health_insurances WHERE original_policy_id IS NOT NULL)
         UNION ALL
         SELECT id FROM life_insurances WHERE TRUE #{dr} AND policy_end_date >= '#{forty_five_days_ago}' AND policy_end_date < '#{current_date}'
+          AND (is_renewed IS NULL OR is_renewed = false)
+          AND id NOT IN (SELECT original_policy_id FROM life_insurances WHERE original_policy_id IS NOT NULL)
       ) as recently_expired
     "
 
@@ -1202,14 +1206,24 @@ class DashboardController < ApplicationController
 
     begin
       if ActiveRecord::Base.connection.table_exists?('motor_insurances')
-        count += dr_scope(MotorInsurance).where(policy_end_date: forty_five_days_ago...current_date).count
+        count += dr_scope(MotorInsurance).where(policy_end_date: forty_five_days_ago...current_date)
+                  .where("NOT EXISTS (
+                    SELECT 1 FROM motor_insurances m2
+                    WHERE m2.customer_id = motor_insurances.customer_id
+                    AND m2.registration_number = motor_insurances.registration_number
+                    AND m2.policy_type = 'Renewal'
+                    AND m2.policy_start_date > motor_insurances.policy_end_date
+                  )").count
       end
     rescue
     end
 
     begin
       if ActiveRecord::Base.connection.table_exists?('other_insurances')
-        count += dr_scope(OtherInsurance).where(policy_end_date: forty_five_days_ago...current_date).count
+        count += dr_scope(OtherInsurance).where(policy_end_date: forty_five_days_ago...current_date)
+                  .where(is_renewed: [nil, false])
+                  .where("id NOT IN (SELECT original_policy_id FROM other_insurances WHERE original_policy_id IS NOT NULL)")
+                  .count
       end
     rescue
     end
@@ -1228,8 +1242,12 @@ class DashboardController < ApplicationController
     sql = "
       SELECT COUNT(*) as count FROM (
         SELECT id FROM health_insurances WHERE TRUE #{dr} AND policy_end_date BETWEEN '#{month_start}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
+          AND (is_renewed IS NULL OR is_renewed = false)
+          AND id NOT IN (SELECT original_policy_id FROM health_insurances WHERE original_policy_id IS NOT NULL)
         UNION ALL
         SELECT id FROM life_insurances WHERE TRUE #{dr} AND policy_end_date BETWEEN '#{month_start}' AND '#{current_date}' AND policy_end_date < '#{current_date}'
+          AND (is_renewed IS NULL OR is_renewed = false)
+          AND id NOT IN (SELECT original_policy_id FROM life_insurances WHERE original_policy_id IS NOT NULL)
       ) as expired_this_month
     "
 
@@ -1238,7 +1256,14 @@ class DashboardController < ApplicationController
 
     begin
       if ActiveRecord::Base.connection.table_exists?('motor_insurances')
-        count += dr_scope(MotorInsurance).where(policy_end_date: month_start..current_date).where('policy_end_date < ?', current_date).count
+        count += dr_scope(MotorInsurance).where(policy_end_date: month_start...current_date)
+                  .where("NOT EXISTS (
+                    SELECT 1 FROM motor_insurances m2
+                    WHERE m2.customer_id = motor_insurances.customer_id
+                    AND m2.registration_number = motor_insurances.registration_number
+                    AND m2.policy_type = 'Renewal'
+                    AND m2.policy_start_date > motor_insurances.policy_end_date
+                  )").count
       end
     rescue
     end

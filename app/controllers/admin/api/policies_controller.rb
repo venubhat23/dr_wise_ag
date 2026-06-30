@@ -54,38 +54,42 @@ module Admin
         # Recently expired policies — last 45 days only, matching the dashboard badge count
         forty_five_days_ago = Date.current - 45.days
 
-        # Health Insurance
-        HealthInsurance.includes(:customer)
+        # Health Insurance — exclude already-renewed policies
+        HealthInsurance.includes(:customer, :renewal_policy)
                       .where(policy_end_date: forty_five_days_ago...Date.current)
                       .where(admin_filter)
+                      .reject(&:has_been_renewed?)
                       .each do |policy|
           policies << format_policy(policy, 'health')
         end
 
-        # Life Insurance
-        LifeInsurance.includes(:customer)
+        # Life Insurance — exclude already-renewed policies
+        LifeInsurance.includes(:customer, :renewal_policy)
                     .where(policy_end_date: forty_five_days_ago...Date.current)
                     .where(admin_filter)
+                    .reject(&:has_been_renewed?)
                     .each do |policy|
           policies << format_policy(policy, 'life')
         end
 
-        # Motor Insurance
+        # Motor Insurance — exclude already-renewed policies
         begin
           MotorInsurance.includes(:customer)
                         .where(policy_end_date: forty_five_days_ago...Date.current)
                         .where(admin_filter)
+                        .reject(&:has_been_renewed?)
                         .each do |policy|
             policies << format_policy(policy, 'motor')
           end
         rescue; end
 
-        # Other Insurance
+        # Other Insurance — exclude already-renewed policies
         begin
           if defined?(OtherInsurance)
-            OtherInsurance.includes(:customer)
+            OtherInsurance.includes(:customer, :renewal_policy)
                           .where(policy_end_date: forty_five_days_ago...Date.current)
                           .where(admin_filter)
+                          .reject(&:has_been_renewed?)
                           .each do |policy|
               policies << format_policy(policy, 'other')
             end
@@ -179,20 +183,20 @@ module Admin
         date_range   = month_start...current_date
         policies     = []
 
-        HealthInsurance.includes(:customer).where(policy_end_date: date_range).where(admin_filter).each do |p|
+        HealthInsurance.includes(:customer, :renewal_policy).where(policy_end_date: date_range).where(admin_filter).reject(&:has_been_renewed?).each do |p|
           policies << format_all_policy(p, 'health')
         end
-        LifeInsurance.includes(:customer).where(policy_end_date: date_range).where(admin_filter).each do |p|
+        LifeInsurance.includes(:customer, :renewal_policy).where(policy_end_date: date_range).where(admin_filter).reject(&:has_been_renewed?).each do |p|
           policies << format_all_policy(p, 'life')
         end
         begin
-          MotorInsurance.includes(:customer).where(policy_end_date: date_range).where(admin_filter).each do |p|
+          MotorInsurance.includes(:customer).where(policy_end_date: date_range).where(admin_filter).reject(&:has_been_renewed?).each do |p|
             policies << format_all_policy(p, 'motor')
           end
         rescue; end
         begin
           if defined?(OtherInsurance)
-            OtherInsurance.includes(:customer).where(policy_end_date: date_range).where(admin_filter).each do |p|
+            OtherInsurance.includes(:customer, :renewal_policy).where(policy_end_date: date_range).where(admin_filter).reject(&:has_been_renewed?).each do |p|
               policies << format_all_policy(p, 'other')
             end
           end

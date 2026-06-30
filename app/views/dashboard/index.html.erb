@@ -664,6 +664,7 @@
         <div>
           <%
             current_year = Date.current.year
+            current_fy_end = Date.current.month >= 4 ? current_year + 1 : current_year
             if @filter_financial_year.present?
               selected_period = "fy_#{@filter_financial_year}"
             else
@@ -679,9 +680,9 @@
               <% end %>
             </optgroup>
             <optgroup label="Financial Year">
-              <% (current_year).downto(current_year - 4) do |fy| %>
+              <% (current_fy_end).downto(current_fy_end - 4) do |fy| %>
                 <option value="fy_<%= fy %>" <%= 'selected' if selected_period == "fy_#{fy}" %>>
-                  <%= fy - 1 %>-<%= fy.to_s[-2..] %> Financial Year
+                  <%= fy - 1 %>-<%= fy.to_s[-2..] %> Financial Year<%= " (Current)" if fy == current_fy_end %>
                 </option>
               <% end %>
             </optgroup>
