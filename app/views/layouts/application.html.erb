@@ -137,16 +137,40 @@
         margin-left: auto;
       }
 
+      /* Header logo */
+      .header-logo {
+        height: 36px;
+        width: 36px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 2px solid rgba(102, 126, 234, 0.35);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+        flex-shrink: 0;
+        transition: box-shadow 0.3s ease, transform 0.3s ease;
+      }
+      .header-logo:hover {
+        box-shadow: 0 4px 14px rgba(102, 126, 234, 0.45);
+        transform: scale(1.08);
+      }
+
       /* Responsive adjustments */
       @media (max-width: 768px) {
         .drwise-header-text {
           font-size: 1.8rem !important;
+        }
+        .header-logo {
+          height: 30px;
+          width: 30px;
         }
       }
 
       @media (max-width: 576px) {
         .drwise-header-text {
           font-size: 1.5rem !important;
+        }
+        .header-logo {
+          height: 26px;
+          width: 26px;
         }
       }
 
@@ -243,8 +267,9 @@
                 <i class="fas fa-bars"></i>
               </button>
 
-              <!-- DrWise Admin Title -->
-              <div class="drwise-header-title ms-3">
+              <!-- DrWise Logo + Title -->
+              <img src="/logo.jpeg" alt="DrWise" class="header-logo ms-3" />
+              <div class="drwise-header-title ms-2">
                 <span class="drwise-header-text">Dr WISE</span>
               </div>
             </div>
