@@ -758,6 +758,99 @@ body.sidebar-collapsed .main-content {
   animation-duration: 0.8s;
   background: linear-gradient(45deg, #ffffff, #f0f0f0);
 }
+
+/* =========================================================
+   Dark Mode — defined here (same <style> block) so they
+   always win over the light-theme rules above via
+   higher specificity ([0,2,0] vs [0,1,0]).
+   ========================================================= */
+[data-theme="dark"] .modern-sidebar {
+  background: linear-gradient(180deg, #1a1d2e 0%, #161827 100%) !important;
+  border-right: 2px solid #2d3154 !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="dark"] .nav-link-modern {
+  background: rgba(30, 33, 48, 0.45) !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .nav-link-modern:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(139, 92, 246, 0.18) 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15) !important;
+}
+
+[data-theme="dark"] .nav-link-modern.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35) !important;
+}
+
+[data-theme="dark"] .nav-text {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+[data-theme="dark"] .nav-link-modern:hover .nav-text,
+[data-theme="dark"] .nav-link-modern.active .nav-text {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .nav-section-title {
+  color: rgba(149, 171, 255, 0.75) !important;
+}
+
+[data-theme="dark"] .nav-section-title::after {
+  background: linear-gradient(to right, #818cf8, #a78bfa) !important;
+}
+
+[data-theme="dark"] .sidebar-brand {
+  border-bottom: 1px solid #2d3154 !important;
+}
+
+[data-theme="dark"] .sidebar-footer {
+  background: rgba(22, 24, 39, 0.9) !important;
+  border-top: 1px solid #2d3154 !important;
+}
+
+[data-theme="dark"] .submenu {
+  border-left: 2px solid #3a3f6b !important;
+}
+
+[data-theme="dark"] .submenu-link {
+  color: rgba(255, 255, 255, 0.68) !important;
+  background: transparent !important;
+}
+
+[data-theme="dark"] .submenu-link:hover {
+  background: rgba(99, 102, 241, 0.12) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .submenu-link.active {
+  background: rgba(99, 102, 241, 0.2) !important;
+  color: #a5b4fc !important;
+}
+
+[data-theme="dark"] .submenu-bullet {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+[data-theme="dark"] .dropdown-arrow {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+[data-theme="dark"] .desktop-sidebar-toggle {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+[data-theme="dark"] .desktop-sidebar-toggle:hover {
+  background: rgba(99, 102, 241, 0.15) !important;
+  color: #a5b4fc !important;
+}
 </style>
 
 <div class="modern-sidebar" id="sidebar" data-controller="sidebar">
