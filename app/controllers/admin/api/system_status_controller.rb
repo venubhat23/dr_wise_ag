@@ -421,7 +421,7 @@ module Admin
           [MotorInsurance,  'Motor']
         ].each do |klass, label|
           begin
-            klass.where(product_through_dr: true)
+            klass.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
                  .where(policy_booking_date: date_range)
                  .includes(:customer)
                  .order(policy_booking_date: :desc)
