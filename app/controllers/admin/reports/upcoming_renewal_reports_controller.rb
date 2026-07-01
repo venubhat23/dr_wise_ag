@@ -180,8 +180,8 @@ class Admin::Reports::UpcomingRenewalReportsController < Admin::Reports::BaseCon
   end
 
   def build_policy_query(filters)
-    start_date = filters[:start_date] || Date.current
-    end_date = filters[:end_date] || 45.days.from_now.to_date
+    start_date = filters[:start_date].present? ? filters[:start_date].to_date : Date.current
+    end_date = filters[:end_date].present? ? filters[:end_date].to_date : 45.days.from_now.to_date
 
     if filters[:policy_type].present?
       case filters[:policy_type]

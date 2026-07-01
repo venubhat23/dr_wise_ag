@@ -154,7 +154,7 @@ class Admin::Reports::AllPolicyReportsController < Admin::Reports::BaseControlle
       start_date: policy.policy_start_date,
       end_date: policy.policy_end_date,
       premium_amount: policy.total_premium || 0,
-      sum_insured: policy.sum_insured || 0,
+      sum_insured: policy.total_idv || policy.sum_insured || 0,
       payment_mode: policy.payment_mode || 'N/A',
       status: calculate_status(policy.policy_end_date),
       sub_agent_name: policy.sub_agent&.full_name || 'N/A',
