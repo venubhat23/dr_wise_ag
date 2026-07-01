@@ -113,6 +113,16 @@ class Customer < ApplicationRecord
       tsearch: { prefix: true, any_word: true }
     }
 
+  scope :partial_search, ->(term) {
+    pattern = "%#{term}%"
+    where(
+      "first_name ILIKE :p OR last_name ILIKE :p OR company_name ILIKE :p " \
+      "OR email ILIKE :p OR mobile ILIKE :p OR pan_number ILIKE :p " \
+      "OR lead_id ILIKE :p OR CONCAT(first_name, ' ', last_name) ILIKE :p",
+      p: pattern
+    )
+  }
+
   # Instance methods
   def full_name
     if individual?

@@ -19,23 +19,15 @@ class Admin::CustomersController < Admin::ApplicationController
     index_columns << 'policies_count' if has_counter_cache
 
     # Start with base query - don't use select when search is present to avoid PostgreSQL count issues
-    if params[:search].present? && params[:search].strip.length >= 4
-      # For search queries, don't use select to avoid PostgreSQL count issues with pg_search
+    if params[:search].present? && params[:search].strip.length >= 2
       @customers = Customer.with_attached_profile_image
       search_term = params[:search].strip
-      @customers = @customers.search_customers(search_term)
+      @customers = @customers.partial_search(search_term)
+    elsif params[:search].present? && params[:search].strip.length == 1
+      @customers = Customer.select(index_columns.join(', ')).with_attached_profile_image.none
     else
       # Use optimized select for faster loading when not searching
       @customers = Customer.select(index_columns.join(', ')).with_attached_profile_image
-
-      # Handle short search terms
-      if params[:search].present?
-        search_term = params[:search].strip
-        if search_term.length > 0
-          # Return empty result if search term is too short
-          @customers = @customers.none
-        end
-      end
     end
 
     # Lead ID search functionality - search by full lead ID or last 4 digits
@@ -70,9 +62,9 @@ class Admin::CustomersController < Admin::ApplicationController
     # Apply same filters as main query for accurate count
     if params[:search].present?
       search_term = params[:search].strip
-      if search_term.length >= 4
-        count_scope = count_scope.search_customers(search_term)
-      elsif search_term.length > 0
+      if search_term.length >= 2
+        count_scope = count_scope.partial_search(search_term)
+      elsif search_term.length == 1
         count_scope = count_scope.none
       end
     end
@@ -108,14 +100,9 @@ class Admin::CustomersController < Admin::ApplicationController
     # Create a separate scope for statistics to avoid pg_search GROUP BY issues
     stats_scope = Customer.all
 
-    # Apply filters but handle search differently for stats
-    if params[:search].present? && params[:search].strip.length >= 4
-      # For statistics, use a simple where clause instead of pg_search to avoid GROUP BY issues
-      search_term = params[:search].strip
-      stats_scope = stats_scope.where(
-        "first_name ILIKE ? OR last_name ILIKE ? OR company_name ILIKE ? OR email ILIKE ? OR mobile ILIKE ? OR pan_number ILIKE ?",
-        "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%"
-      )
+    # Apply filters for stats
+    if params[:search].present? && params[:search].strip.length >= 2
+      stats_scope = stats_scope.partial_search(params[:search].strip)
     end
 
     # Apply lead ID search to stats scope
