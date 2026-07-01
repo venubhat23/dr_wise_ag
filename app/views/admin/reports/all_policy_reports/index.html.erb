@@ -152,13 +152,10 @@
             <table class="table table-hover mb-0" id="policyTable">
               <thead class="table-light">
                 <tr>
-                  <th scope="col">Policy Number</th>
-                  <th scope="col">Policy Type</th>
+                  <th scope="col">Policy Number / Type</th>
                   <th scope="col">Customer Name</th>
                   <th scope="col">Insurance Company</th>
-                  <th scope="col">Policy Holder</th>
-                  <th scope="col">Start Date</th>
-                  <th scope="col">End Date</th>
+                  <th scope="col">Policy Period</th>
                   <th scope="col">Premium</th>
                   <th scope="col">Sum Insured</th>
                   <th scope="col">Status</th>
@@ -170,10 +167,8 @@
                   <% @policy_data.each do |policy| %>
                     <tr>
                       <td>
-                        <code><%= policy[:policy_number] %></code>
-                      </td>
-                      <td>
-                        <span class="badge bg-<%= policy[:policy_type] == 'Health' ? 'success' : (policy[:policy_type] == 'Motor' ? 'warning' : (policy[:policy_type] == 'Life' ? 'info' : 'secondary')) %>">
+                        <code><%= policy[:policy_number] %></code><br>
+                        <span class="badge bg-<%= policy[:policy_type] == 'Health' ? 'success' : (policy[:policy_type] == 'Motor' ? 'warning' : (policy[:policy_type] == 'Life' ? 'info' : 'secondary')) %> mt-1">
                           <%= policy[:policy_type] %>
                         </span>
                       </td>
@@ -184,13 +179,8 @@
                         <%= policy[:insurance_company] %>
                       </td>
                       <td>
-                        <%= policy[:policy_holder] %>
-                      </td>
-                      <td>
-                        <small><%= policy[:start_date]&.strftime('%d/%m/%Y') || '-' %></small>
-                      </td>
-                      <td>
-                        <small><%= policy[:end_date]&.strftime('%d/%m/%Y') || '-' %></small>
+                        <small><%= policy[:start_date]&.strftime('%d/%m/%Y') || '-' %></small><br>
+                        <small class="text-muted">to <%= policy[:end_date]&.strftime('%d/%m/%Y') || '-' %></small>
                       </td>
                       <td class="text-end">
                         <strong class="text-success"><%= indian_currency((policy[:premium_amount] || 0).round(0)) %></strong>
@@ -217,7 +207,7 @@
                   <% end %>
                 <% else %>
                   <tr>
-                    <td colspan="11" class="text-center py-4">
+                    <td colspan="8" class="text-center py-4">
                       <div class="text-muted">
                         <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                         No policy data found for the selected criteria.

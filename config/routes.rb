@@ -108,6 +108,9 @@ Rails.application.routes.draw do
 
 
     resources :customers do
+      member do
+        get :associations_summary
+      end
       resources :documents, controller: 'customer_documents', except: [:edit, :update] do
         member do
           get :download

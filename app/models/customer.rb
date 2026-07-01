@@ -27,6 +27,9 @@ class Customer < ApplicationRecord
   # New product associations
   has_many :investments, dependent: :destroy
   has_many :loans, dependent: :destroy
+  has_many :mutual_funds, dependent: :destroy
+  has_many :appointments, dependent: :destroy
+  has_many :helpdesk_tickets, dependent: :destroy
   # has_many :tax_services, dependent: :destroy # Temporarily commented out due to incomplete table structure
   # has_many :travel_packages, dependent: :destroy # Temporarily commented out due to incomplete table structure
 

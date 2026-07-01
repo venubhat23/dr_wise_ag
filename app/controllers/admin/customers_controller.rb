@@ -1,7 +1,7 @@
 class Admin::CustomersController < Admin::ApplicationController
   include LocationData
   include ConfigurablePagination
-  before_action :set_customer, only: [:show, :edit, :update, :destroy, :policy_chart, :trace_commission, :product_selection, :deactivate, :activate, :get_policies, :family_members, :affiliate_info]
+  before_action :set_customer, only: [:show, :edit, :update, :destroy, :associations_summary, :policy_chart, :trace_commission, :product_selection, :deactivate, :activate, :get_policies, :family_members, :affiliate_info]
   skip_before_action :ensure_admin, only: [:search_sub_agents]
   skip_before_action :authenticate_user!, only: [:search_sub_agents]
   skip_load_and_authorize_resource only: [:search_sub_agents]
@@ -1108,13 +1108,32 @@ class Admin::CustomersController < Admin::ApplicationController
     end
   end
 
+  # GET /admin/customers/1/associations_summary
+  def associations_summary
+    counts = {
+      'Health Policies'    => @customer.health_insurances.count,
+      'Life Policies'      => @customer.life_insurances.count,
+      'Motor Policies'     => @customer.motor_insurances.count,
+      'Other Policies'     => @customer.other_insurances.count,
+      'Mutual Funds'       => @customer.mutual_funds.count,
+      'Appointments'       => @customer.appointments.count,
+      'Helpdesk Tickets'   => @customer.helpdesk_tickets.count,
+      'Loans'              => @customer.loans.count,
+      'Investments'        => @customer.investments.count,
+      'Family Members'     => @customer.family_members.count,
+      'Documents'          => @customer.documents.count,
+    }.reject { |_, v| v == 0 }
+
+    render json: { associations: counts, total: counts.values.sum }
+  end
+
   # DELETE /admin/customers/1
   def destroy
-    if @customer.policies.exists?
-      redirect_to admin_customers_path, alert: 'Cannot delete customer with existing policies.'
-    else
+    if params[:force] == 'true'
       @customer.destroy
-      redirect_to admin_customers_path, notice: 'Customer was successfully deleted.'
+      redirect_to admin_customers_path, notice: "Customer \"#{@customer.display_name}\" and all associated records were permanently deleted."
+    else
+      redirect_to admin_customer_path(@customer), alert: 'Use the delete confirmation to remove this customer.'
     end
   end
 
