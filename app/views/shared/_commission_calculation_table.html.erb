@@ -20,6 +20,8 @@
   _amb_payout  = _payouts['ambassador']
   _inv_payout  = _payouts['investor']
   _comp_payout = _payouts['company_expense']
+
+  _main_agent_paid = _main_payout&.status == 'paid'
 %>
 <!-- Commission Calculation Table for View Pages -->
 <div class="card mb-4 shadow-sm commission-table">
@@ -157,7 +159,8 @@
                         data-payout-type="affiliate" data-payout-label="Affiliate"
                         data-payout-url="<%= transfer_to_affiliate_admin_commission_tracking_path(policy.id) %>"
                         data-policy-type="<%= _policy_type %>"
-                        data-amount="<%= (policy.try(:sub_agent_after_tds_value) || 0).to_f %>">
+                        data-amount="<%= (policy.try(:sub_agent_after_tds_value) || 0).to_f %>"
+                        <%= 'disabled title="Main Agent commission must be paid first"' unless _main_agent_paid %>>
                   <i class="bi bi-credit-card me-1"></i>Pay
                 </button>
               <% else %>
@@ -168,7 +171,8 @@
                         data-payout-type="affiliate" data-payout-label="Affiliate"
                         data-payout-url="<%= transfer_to_affiliate_admin_commission_tracking_path(policy.id) %>"
                         data-policy-type="<%= _policy_type %>"
-                        data-amount="<%= (policy.try(:sub_agent_after_tds_value) || 0).to_f %>">
+                        data-amount="<%= (policy.try(:sub_agent_after_tds_value) || 0).to_f %>"
+                        <%= 'disabled title="Main Agent commission must be paid first"' unless _main_agent_paid %>>
                   <i class="bi bi-plus-circle me-1"></i>Pay
                 </button>
               <% end %>
@@ -217,7 +221,8 @@
                         data-payout-type="ambassador" data-payout-label="Ambassador"
                         data-payout-url="<%= transfer_to_ambassador_admin_commission_tracking_path(policy.id) %>"
                         data-policy-type="<%= _policy_type %>"
-                        data-amount="<%= (policy.try(:ambassador_after_tds_value) || policy.try(:ambassador_commission_amount) || 0).to_f %>">
+                        data-amount="<%= (policy.try(:ambassador_after_tds_value) || policy.try(:ambassador_commission_amount) || 0).to_f %>"
+                        <%= 'disabled title="Main Agent commission must be paid first"' unless _main_agent_paid %>>
                   <i class="bi bi-credit-card me-1"></i>Pay
                 </button>
               <% else %>
@@ -228,7 +233,8 @@
                         data-payout-type="ambassador" data-payout-label="Ambassador"
                         data-payout-url="<%= transfer_to_ambassador_admin_commission_tracking_path(policy.id) %>"
                         data-policy-type="<%= _policy_type %>"
-                        data-amount="<%= (policy.try(:ambassador_after_tds_value) || policy.try(:ambassador_commission_amount) || 0).to_f %>">
+                        data-amount="<%= (policy.try(:ambassador_after_tds_value) || policy.try(:ambassador_commission_amount) || 0).to_f %>"
+                        <%= 'disabled title="Main Agent commission must be paid first"' unless _main_agent_paid %>>
                   <i class="bi bi-plus-circle me-1"></i>Pay
                 </button>
               <% end %>
@@ -473,6 +479,13 @@
     background: #6c757d;
     color: #fff;
     text-decoration: none;
+  }
+  .btn-xs-pay:disabled {
+    background: #e9ecef !important;
+    color: #adb5bd !important;
+    border-color: #ced4da !important;
+    cursor: not-allowed;
+    opacity: 0.65;
   }
 
   /* Payout modal */
