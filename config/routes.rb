@@ -144,6 +144,7 @@ Rails.application.routes.draw do
         patch :transfer_to_investor
         patch :transfer_company_expense
         patch :mark_main_agent_commission_received
+        patch :settle_distribution_payouts
         get :policy_breakdown
       end
       collection do

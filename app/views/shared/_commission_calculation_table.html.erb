@@ -22,6 +22,12 @@
   _comp_payout = _payouts['company_expense']
 
   _main_agent_paid = _main_payout&.status == 'paid'
+
+  _aff_amount  = (policy.try(:sub_agent_after_tds_value) || 0).to_f
+  _amb_amount  = (policy.try(:ambassador_after_tds_value) || policy.try(:ambassador_commission_amount) || 0).to_f
+  _inv_amount  = (policy.try(:investor_after_tds_value) || policy.try(:investor_commission_amount) || 0).to_f
+  _comp_amount = (policy.try(:company_expenses_amount) || 0).to_f
+  _distribution_total = _aff_amount + _amb_amount + _inv_amount + _comp_amount
 %>
 <!-- Commission Calculation Table for View Pages -->
 <div class="card mb-4 shadow-sm commission-table">
@@ -155,11 +161,12 @@
                 <span class="payout-badge payout-pending">
                   <i class="bi bi-clock me-1"></i>Pending
                 </span>
-                <button type="button" class="btn btn-xs-pay btn-pay mt-1" data-bs-toggle="modal" data-bs-target="#commissionPayoutModal"
-                        data-payout-type="affiliate" data-payout-label="Affiliate"
-                        data-payout-url="<%= transfer_to_affiliate_admin_commission_tracking_path(policy.id) %>"
+                <button type="button" class="btn btn-xs-pay btn-pay mt-1" data-bs-toggle="modal" data-bs-target="#distributionSettleModal"
+                        data-settle-url="<%= settle_distribution_payouts_admin_commission_tracking_path(policy.id) %>"
                         data-policy-type="<%= _policy_type %>"
-                        data-amount="<%= (policy.try(:sub_agent_after_tds_value) || 0).to_f %>"
+                        data-aff-amount="<%= _aff_amount %>" data-amb-amount="<%= _amb_amount %>"
+                        data-inv-amount="<%= _inv_amount %>" data-comp-amount="<%= _comp_amount %>"
+                        data-total-amount="<%= _distribution_total %>"
                         <%= 'disabled title="Main Agent commission must be paid first"' unless _main_agent_paid %>>
                   <i class="bi bi-credit-card me-1"></i>Pay
                 </button>
@@ -167,11 +174,12 @@
                 <span class="payout-badge payout-none">
                   <i class="bi bi-dash-circle me-1"></i>No Payout
                 </span>
-                <button type="button" class="btn btn-xs-pay btn-create mt-1" data-bs-toggle="modal" data-bs-target="#commissionPayoutModal"
-                        data-payout-type="affiliate" data-payout-label="Affiliate"
-                        data-payout-url="<%= transfer_to_affiliate_admin_commission_tracking_path(policy.id) %>"
+                <button type="button" class="btn btn-xs-pay btn-create mt-1" data-bs-toggle="modal" data-bs-target="#distributionSettleModal"
+                        data-settle-url="<%= settle_distribution_payouts_admin_commission_tracking_path(policy.id) %>"
                         data-policy-type="<%= _policy_type %>"
-                        data-amount="<%= (policy.try(:sub_agent_after_tds_value) || 0).to_f %>"
+                        data-aff-amount="<%= _aff_amount %>" data-amb-amount="<%= _amb_amount %>"
+                        data-inv-amount="<%= _inv_amount %>" data-comp-amount="<%= _comp_amount %>"
+                        data-total-amount="<%= _distribution_total %>"
                         <%= 'disabled title="Main Agent commission must be paid first"' unless _main_agent_paid %>>
                   <i class="bi bi-plus-circle me-1"></i>Pay
                 </button>
@@ -524,6 +532,124 @@
   .payout-submit-btn:disabled {
     opacity: 0.7;
   }
+
+  /* Distribution Settle Modal */
+  .settle-modal-header {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: #fff;
+    border-bottom: none;
+    padding: 1.25rem 1.5rem;
+  }
+  .settle-modal-header .modal-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+  .settle-intro {
+    font-size: 0.92rem;
+    color: #495057;
+  }
+  .settle-item-list {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e9ecef;
+  }
+  .settle-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.65rem 1rem;
+    background: #fff;
+    border-bottom: 1px solid #f1f3f5;
+  }
+  .settle-item-row:last-child {
+    border-bottom: none;
+  }
+  .settle-item-row .label {
+    font-weight: 600;
+    color: #343a40;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .settle-item-row .amount {
+    font-weight: 700;
+    color: #11998e;
+  }
+  .settle-item-row.total-row {
+    background: #eafaf6;
+  }
+  .settle-item-row.total-row .label,
+  .settle-item-row.total-row .amount {
+    color: #0b7a6d;
+    font-size: 1.02rem;
+  }
+  .settle-icon-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e8f9f4;
+    color: #11998e;
+    font-size: 0.85rem;
+  }
+  .settle-confirm-btn {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    border: none;
+    font-weight: 600;
+    padding: 0.5rem 1.25rem;
+    color: #fff;
+  }
+  .settle-confirm-btn:hover { opacity: 0.92; color: #fff; }
+
+  .settle-progress-wrap {
+    text-align: center;
+    padding: 1rem 0 0.5rem;
+  }
+  .settle-progress-circle {
+    width: 110px;
+    height: 110px;
+    margin: 0 auto 1rem;
+    position: relative;
+  }
+  .settle-progress-circle svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+  .settle-progress-circle circle {
+    fill: none;
+    stroke-width: 8;
+  }
+  .settle-progress-circle .bg-ring { stroke: #e9ecef; }
+  .settle-progress-circle .fg-ring {
+    stroke: url(#settleGradient);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.35s ease;
+  }
+  .settle-progress-pct {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #11998e;
+  }
+  .settle-progress-status {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.95rem;
+    min-height: 1.4em;
+  }
+  .settle-success-check {
+    font-size: 3rem;
+    color: #11998e;
+    animation: settlePop 0.4s ease;
+  }
+  @keyframes settlePop {
+    0% { transform: scale(0.5); opacity: 0; }
+    70% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); }
+  }
 </style>
 
 <!-- Commission Payout Modal (shared across Main Agent / Affiliate / Ambassador pay actions) -->
@@ -662,6 +788,231 @@
         alertBox.classList.remove('d-none');
         submitBtn.disabled = false;
         submitBtn.innerHTML = defaultBtnHtml;
+      });
+  });
+})();
+</script>
+
+<!-- Distribution Settlement Modal (Affiliate Pay cascades to Ambassador / Investor / Company) -->
+<div class="modal fade" id="distributionSettleModal" tabindex="-1" aria-labelledby="distributionSettleModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content payout-modal-content">
+      <div class="modal-header settle-modal-header">
+        <h5 class="modal-title" id="distributionSettleModalLabel">
+          <i class="bi bi-lightning-charge-fill me-2"></i>Settle Distribution Payouts
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="settleModalCloseBtn"></button>
+      </div>
+
+      <!-- Step 1: Confirmation -->
+      <div id="settleConfirmStep">
+        <div class="modal-body">
+          <p class="settle-intro mb-3">
+            Paying the <strong>Affiliate</strong> commission will also clear the remaining payouts below for this
+            policy. Please review the amounts before confirming:
+          </p>
+          <div class="settle-item-list mb-2">
+            <div class="settle-item-row">
+              <span class="label"><span class="settle-icon-badge"><i class="bi bi-people-fill"></i></span>Affiliate</span>
+              <span class="amount" id="settleAffAmount">Rs. 0.00</span>
+            </div>
+            <div class="settle-item-row">
+              <span class="label"><span class="settle-icon-badge"><i class="bi bi-award-fill"></i></span>Ambassador</span>
+              <span class="amount" id="settleAmbAmount">Rs. 0.00</span>
+            </div>
+            <div class="settle-item-row">
+              <span class="label"><span class="settle-icon-badge"><i class="bi bi-graph-up-arrow"></i></span>Investor</span>
+              <span class="amount" id="settleInvAmount">Rs. 0.00</span>
+            </div>
+            <div class="settle-item-row">
+              <span class="label"><span class="settle-icon-badge"><i class="bi bi-building"></i></span>Company</span>
+              <span class="amount" id="settleCompAmount">Rs. 0.00</span>
+            </div>
+            <div class="settle-item-row total-row">
+              <span class="label">Total to Settle</span>
+              <span class="amount" id="settleTotalAmount">Rs. 0.00</span>
+            </div>
+          </div>
+          <div id="settleConfirmAlert" class="alert alert-danger py-2 mt-2 d-none" role="alert"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn settle-confirm-btn" id="settleConfirmBtn">
+            <i class="bi bi-check2-circle me-1"></i>Confirm &amp; Pay All
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Progress -->
+      <div id="settleProgressStep" class="d-none">
+        <div class="modal-body settle-progress-wrap">
+          <div class="settle-progress-circle">
+            <svg viewBox="0 0 120 120">
+              <defs>
+                <linearGradient id="settleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#11998e" />
+                  <stop offset="100%" stop-color="#38ef7d" />
+                </linearGradient>
+              </defs>
+              <circle class="bg-ring" cx="60" cy="60" r="52"></circle>
+              <circle class="fg-ring" id="settleProgressRing" cx="60" cy="60" r="52"></circle>
+            </svg>
+            <div class="settle-progress-pct" id="settleProgressPct">0%</div>
+          </div>
+          <div class="settle-progress-status" id="settleProgressStatus">Starting settlement...</div>
+        </div>
+      </div>
+
+      <!-- Step 3: Success -->
+      <div id="settleSuccessStep" class="d-none">
+        <div class="modal-body settle-progress-wrap">
+          <div class="settle-success-check"><i class="bi bi-check-circle-fill"></i></div>
+          <div class="settle-progress-status mt-2">All payouts settled successfully!</div>
+          <div class="text-muted small mt-1">Refreshing the page...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var modalEl = document.getElementById('distributionSettleModal');
+  if (!modalEl || modalEl.dataset.settleModalInitialized) return;
+  modalEl.dataset.settleModalInitialized = 'true';
+
+  var confirmStep  = document.getElementById('settleConfirmStep');
+  var progressStep = document.getElementById('settleProgressStep');
+  var successStep  = document.getElementById('settleSuccessStep');
+  var confirmBtn   = document.getElementById('settleConfirmBtn');
+  var closeBtn     = document.getElementById('settleModalCloseBtn');
+  var alertBox     = document.getElementById('settleConfirmAlert');
+
+  var ring = document.getElementById('settleProgressRing');
+  var pctLabel = document.getElementById('settleProgressPct');
+  var statusLabel = document.getElementById('settleProgressStatus');
+  var radius = 52;
+  var circumference = 2 * Math.PI * radius;
+  ring.style.strokeDasharray = circumference;
+  ring.style.strokeDashoffset = circumference;
+
+  var currentUrl = null;
+  var currentPolicyType = null;
+  var progressTimer = null;
+
+  function formatRs(value) {
+    var n = parseFloat(value || 0);
+    return 'Rs. ' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function setProgress(pct, label) {
+    var offset = circumference - (pct / 100) * circumference;
+    ring.style.strokeDashoffset = offset;
+    pctLabel.textContent = pct + '%';
+    if (label) statusLabel.textContent = label;
+  }
+
+  function resetModal() {
+    confirmStep.classList.remove('d-none');
+    progressStep.classList.add('d-none');
+    successStep.classList.add('d-none');
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i>Confirm &amp; Pay All';
+    alertBox.classList.add('d-none');
+    alertBox.textContent = '';
+    setProgress(0, 'Starting settlement...');
+    if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+  }
+
+  modalEl.addEventListener('show.bs.modal', function(event) {
+    var trigger = event.relatedTarget;
+    if (!trigger) return;
+
+    currentUrl = trigger.getAttribute('data-settle-url');
+    currentPolicyType = trigger.getAttribute('data-policy-type');
+
+    document.getElementById('settleAffAmount').textContent  = formatRs(trigger.getAttribute('data-aff-amount'));
+    document.getElementById('settleAmbAmount').textContent  = formatRs(trigger.getAttribute('data-amb-amount'));
+    document.getElementById('settleInvAmount').textContent  = formatRs(trigger.getAttribute('data-inv-amount'));
+    document.getElementById('settleCompAmount').textContent = formatRs(trigger.getAttribute('data-comp-amount'));
+    document.getElementById('settleTotalAmount').textContent = formatRs(trigger.getAttribute('data-total-amount'));
+
+    resetModal();
+  });
+
+  var settleStages = [
+    { pct: 15, label: 'Clearing Affiliate payout...' },
+    { pct: 40, label: 'Clearing Ambassador payout...' },
+    { pct: 65, label: 'Clearing Investor payout...' },
+    { pct: 90, label: 'Clearing Company payout...' }
+  ];
+
+  confirmBtn.addEventListener('click', function() {
+    if (!currentUrl) return;
+
+    confirmBtn.disabled = true;
+    closeBtn.style.display = 'none';
+    alertBox.classList.add('d-none');
+
+    confirmStep.classList.add('d-none');
+    progressStep.classList.remove('d-none');
+
+    var stageIndex = 0;
+    setProgress(0, 'Starting settlement...');
+
+    progressTimer = setInterval(function() {
+      if (stageIndex < settleStages.length) {
+        setProgress(settleStages[stageIndex].pct, settleStages[stageIndex].label);
+        stageIndex++;
+      } else {
+        clearInterval(progressTimer);
+        progressTimer = null;
+      }
+    }, 450);
+
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    var csrfToken = csrfMeta ? csrfMeta.content : '';
+
+    fetch(currentUrl, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({ policy_type: currentPolicyType })
+    })
+      .then(function(res) {
+        return res.json().then(function(data) { return { ok: res.ok, data: data }; });
+      })
+      .then(function(result) {
+        if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+
+        if (result.ok && result.data.success) {
+          setProgress(100, 'Done!');
+          setTimeout(function() {
+            progressStep.classList.add('d-none');
+            successStep.classList.remove('d-none');
+            setTimeout(function() { window.location.reload(); }, 900);
+          }, 350);
+        } else {
+          progressStep.classList.add('d-none');
+          confirmStep.classList.remove('d-none');
+          closeBtn.style.display = '';
+          confirmBtn.disabled = false;
+          alertBox.textContent = (result.data && result.data.message) || 'Settlement failed. Please try again.';
+          alertBox.classList.remove('d-none');
+        }
+      })
+      .catch(function() {
+        if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+        progressStep.classList.add('d-none');
+        confirmStep.classList.remove('d-none');
+        closeBtn.style.display = '';
+        confirmBtn.disabled = false;
+        alertBox.textContent = 'Something went wrong. Please try again.';
+        alertBox.classList.remove('d-none');
       });
   });
 })();

@@ -5,7 +5,8 @@ class Admin::CommissionTrackingController < ApplicationController
   before_action :authorize_admin_access
   before_action :find_policy, only: [:show, :policy_breakdown, :transfer_to_affiliate,
                                       :transfer_to_ambassador, :transfer_to_investor,
-                                      :transfer_company_expense, :mark_main_agent_commission_received]
+                                      :transfer_company_expense, :mark_main_agent_commission_received,
+                                      :settle_distribution_payouts]
 
   skip_authorization_check
   skip_load_and_authorize_resource
@@ -223,6 +224,63 @@ class Admin::CommissionTrackingController < ApplicationController
         message: 'Failed to update commission status. Please try again.'
       }, status: :internal_server_error
     end
+  end
+
+  # Triggered from the Affiliate "Pay" button: settles Affiliate, Ambassador, Investor
+  # and Company payouts for the policy in one atomic step, since they're always
+  # distributed together once the Main Agent commission has been paid.
+  def settle_distribution_payouts
+    policy_type = @policy.class.name.underscore.gsub('_insurance', '')
+    main_payout = CommissionPayout.find_by(policy_type: policy_type, policy_id: @policy.id, payout_to: 'main_agent')
+
+    unless main_payout&.status == 'paid'
+      return render json: { success: false, message: 'Main Agent commission must be paid first' }, status: :unprocessable_entity
+    end
+
+    transaction_id = params[:transaction_id].presence || "BULK-#{policy_type.upcase}-#{@policy.id}-#{Time.current.to_i}"
+    paid_date = params[:paid_date].present? ? (Date.parse(params[:paid_date]) rescue Date.current) : Date.current
+    notes = params[:notes].presence || 'Settled together with Affiliate payout'
+
+    amounts = {
+      'affiliate'       => (@policy.try(:sub_agent_after_tds_value) || 0).to_f,
+      'ambassador'      => (@policy.try(:ambassador_after_tds_value) || @policy.try(:ambassador_commission_amount) || 0).to_f,
+      'investor'        => (@policy.try(:investor_after_tds_value) || @policy.try(:investor_commission_amount) || 0).to_f,
+      'company_expense' => (@policy.try(:company_expenses_amount) || 0).to_f
+    }
+
+    settled = {}
+
+    ActiveRecord::Base.transaction do
+      amounts.each do |transfer_type, amount|
+        payout = CommissionPayout.find_or_initialize_by(policy_type: policy_type, policy_id: @policy.id, payout_to: transfer_type)
+        payout.payout_amount = amount if payout.new_record?
+        payout.assign_attributes(
+          status: 'paid',
+          payout_date: paid_date,
+          transaction_id: transaction_id,
+          notes: notes,
+          processed_by: current_user&.email || 'admin',
+          processed_at: Time.current
+        )
+        payout.save!
+        settled[transfer_type] = amount
+
+        begin
+          generate_invoice_for_transfer(@policy, payout)
+        rescue => e
+          Rails.logger.error "Invoice generation failed during distribution settle (#{transfer_type}): #{e.message}"
+        end
+      end
+    end
+
+    render json: {
+      success: true,
+      message: 'Affiliate, Ambassador, Investor and Company payouts settled successfully',
+      data: { transaction_id: transaction_id, paid_date: paid_date.strftime('%d %b %Y'), amounts: settled }
+    }
+  rescue StandardError => e
+    Rails.logger.error "Settling distribution payouts failed for policy #{@policy&.id}: #{e.message}"
+    render json: { success: false, message: 'Failed to settle payouts. Please try again.' }, status: :internal_server_error
   end
 
   def manual_transfer
