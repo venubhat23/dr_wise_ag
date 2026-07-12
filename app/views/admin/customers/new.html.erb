@@ -2909,12 +2909,12 @@ document.addEventListener('DOMContentLoaded', function() {
               var backFile = document.getElementById('aadhaar_back_input').files[0];
               var frontText = '', backText = '';
               var scale = backFile ? 0.5 : 1;
-              if (frontFile) { setProgress(0, 'Processing Aadhaar front...'); frontText = await runOCR(frontFile, 0, scale, 'eng+hin'); }
-              if (backFile) { setProgress(50, 'Processing Aadhaar back...'); backText = await runOCR(backFile, 50, 0.5, 'eng+hin'); }
+              if (frontFile) { setProgress(0, 'Processing Aadhaar front...'); frontText = await runOCR(frontFile, 0, scale, 'eng+hin+kan'); }
+              if (backFile) { setProgress(50, 'Processing Aadhaar back...'); backText = await runOCR(backFile, 50, 0.5, 'eng+hin+kan'); }
               extractedData = parseAadhaarText(frontText, backText);
             } else if (selectedDocType === 'pan') {
               var panFile = document.getElementById('pan_input').files[0];
-              if (panFile) { setProgress(0, 'Processing PAN card...'); var text = await runOCR(panFile, 0, 1, 'eng+hin'); extractedData = parsePanText(text); }
+              if (panFile) { setProgress(0, 'Processing PAN card...'); var text = await runOCR(panFile, 0, 1, 'eng+hin+kan'); extractedData = parsePanText(text); }
             } else if (selectedDocType === 'cheque') {
               var chequeFile = document.getElementById('cheque_input').files[0];
               if (chequeFile) { setProgress(0, 'Processing cheque...'); var text = await runOCR(chequeFile, 0, 1); extractedData = parseChequeText(text); }
@@ -3017,8 +3017,8 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       // Gender — scan full front text (handles "महिला / Female" mixed lines)
-      if (/female|महिला/i.test(frontText)) result.gender = 'female';
-      else if (/\bmale\b|पुरुष/i.test(frontText)) result.gender = 'male';
+      if (/female|महिला|ಮಹಿಳೆ|ಸ್ತ್ರೀ/i.test(frontText)) result.gender = 'female';
+      else if (/\bmale\b|पुरुष|ಪುರುಷ/i.test(frontText)) result.gender = 'male';
       else if (/transgender/i.test(frontText)) result.gender = 'other';
 
       // Name — shared validator used for both passes
@@ -3026,16 +3026,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
       function isValidNameLine(line) {
         if (/\d/.test(line)) return false;
-        if (/[^A-Za-z\s]/.test(line)) return false;
+        if (/[^A-Za-z\s.]/.test(line)) return false; // allow periods for middle initials (e.g. "Nitin T. Jituri")
         if (/aadhaar|govt|india|unique|authority|uid|help|enrol|dob|birth|gender|address|government|election|commission|department|issue|identification|verification|download|information/i.test(line)) return false;
         if (/s\/o|d\/o|w\/o|c\/o/i.test(line)) return false; // skip father/husband name lines
         if (line.length < 8 || line.length > 60) return false;
-        var words = line.trim().split(/\s+/);
+        var words = line.replace(/\./g, '').trim().split(/\s+/);
         if (words.length < 2) return false;
-        // First word Title Case; rest Title Case or lowercase ≥3 chars
+        // First word Title Case; rest Title Case, lowercase ≥3 chars, or a single-letter initial (very common: "Nitin T Jituri")
         var firstOK = /^[A-Z][a-z]{2,}$/.test(words[0]);
         var restOK = words.slice(1).every(function(w) {
-          return /^[A-Z][a-z]{2,}$/.test(w) || /^[a-z]{3,}$/.test(w);
+          return /^[A-Z][a-z]{2,}$/.test(w) || /^[a-z]{3,}$/.test(w) || /^[A-Z]$/.test(w);
         });
         return firstOK && restOK;
       }
@@ -3064,8 +3064,8 @@ document.addEventListener('DOMContentLoaded', function() {
           var line = allFrontRaw[i];
           if (/aadhaar|govt|india|unique|authority|uid|help|enrol|dob|birth|gender|address|government|download|identification|election|commission|department|verification/i.test(line)) continue;
           if (/s\/o|d\/o|w\/o|c\/o/i.test(line)) continue;
-          var engMatch = line.match(/([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})+)/);
-          if (engMatch) { result.full_name = engMatch[1]; break; }
+          var engMatch = line.match(/([A-Z][a-z]{2,}(?:\s+[A-Z](?:[a-z]{2,})?)+)/);
+          if (engMatch) { result.full_name = engMatch[1].trim(); break; }
         }
       }
 
