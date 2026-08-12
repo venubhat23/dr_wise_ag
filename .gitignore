@@ -43,3 +43,6 @@
 /node_modules
 
 /config/credentials/development.key
+
+# Ignore oversized gem cache files that exceed GitHub's 100MB limit.
+vendor/bundle/ruby/*/cache/wkhtmltopdf-binary-*.gem
