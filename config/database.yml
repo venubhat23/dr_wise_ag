@@ -1,80 +1,38 @@
 default: &default
   adapter: postgresql
   encoding: unicode
-  pool: 5
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  url: <%= ENV["DATABASE_URL"] %>
 
 development:
   <<: *default
-  database: <%= ENV['DATABASE_NAME'] || 'railway' %>
-  username: <%= ENV['DATABASE_USERNAME'] || 'postgres' %>
-  password: <%= ENV['DATABASE_PASSWORD'] || 'hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP' %>
-  host: <%= ENV['DATABASE_HOST'] || 'hayabusa.proxy.rlwy.net' %>
-  port: <%= ENV['DATABASE_PORT'] || '49021' %>
 
 test:
   <<: *default
-  database: <%= ENV['DATABASE_NAME'] || 'railway' %>
-  username: <%= ENV['DATABASE_USERNAME'] || 'postgres' %>
-  password: <%= ENV['DATABASE_PASSWORD'] || 'hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP' %>
-  host: <%= ENV['DATABASE_HOST'] || 'hayabusa.proxy.rlwy.net' %>
-  port: <%= ENV['DATABASE_PORT'] || '49021' %>
 
 production:
   <<: *default
-  database: <%= ENV['DATABASE_NAME'] || 'railway' %>
-  username: <%= ENV['DATABASE_USERNAME'] || 'postgres' %>
-  password: <%= ENV['DATABASE_PASSWORD'] || 'hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP' %>
-  host: <%= ENV['DATABASE_HOST'] || 'postgres.railway.internal' %>
-  port: <%= ENV['DATABASE_PORT'] || '5432' %>
 
 # SolidCache configuration
 cache:
   production:
     <<: *default
-    database: <%= ENV['DATABASE_NAME'] || 'railway' %>
-    username: <%= ENV['DATABASE_USERNAME'] || 'postgres' %>
-    password: <%= ENV['DATABASE_PASSWORD'] || 'hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP' %>
-    host: <%= ENV['DATABASE_HOST'] || 'postgres.railway.internal' %>
-    port: <%= ENV['DATABASE_PORT'] || '5432' %>
+    url: <%= ENV["CACHE_DATABASE_URL"] || ENV["DATABASE_URL"] %>
 
   development:
     <<: *default
-    database: <%= ENV['DATABASE_NAME'] || 'railway' %>
-    username: <%= ENV['DATABASE_USERNAME'] || 'postgres' %>
-    password: <%= ENV['DATABASE_PASSWORD'] || 'hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP' %>
-    host: <%= ENV['DATABASE_HOST'] || 'hayabusa.proxy.rlwy.net' %>
-    port: <%= ENV['DATABASE_PORT'] || '49021' %>
 
   test:
     <<: *default
-    database: <%= ENV['DATABASE_NAME'] || 'railway' %>
-    username: <%= ENV['DATABASE_USERNAME'] || 'postgres' %>
-    password: <%= ENV['DATABASE_PASSWORD'] || 'hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP' %>
-    host: <%= ENV['DATABASE_HOST'] || 'hayabusa.proxy.rlwy.net' %>
-    port: <%= ENV['DATABASE_PORT'] || '49021' %>
 
 # SolidQueue configuration
 queue:
   production:
     <<: *default
-    database: <%= ENV['DATABASE_NAME'] || 'railway' %>
-    username: <%= ENV['DATABASE_USERNAME'] || 'postgres' %>
-    password: <%= ENV['DATABASE_PASSWORD'] || 'hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP' %>
-    host: <%= ENV['DATABASE_HOST'] || 'postgres.railway.internal' %>
-    port: <%= ENV['DATABASE_PORT'] || '5432' %>
+    url: <%= ENV["QUEUE_DATABASE_URL"] || ENV["DATABASE_URL"] %>
 
   development:
     <<: *default
-    database: <%= ENV['DATABASE_NAME'] || 'railway' %>
-    username: <%= ENV['DATABASE_USERNAME'] || 'postgres' %>
-    password: <%= ENV['DATABASE_PASSWORD'] || 'hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP' %>
-    host: <%= ENV['DATABASE_HOST'] || 'hayabusa.proxy.rlwy.net' %>
-    port: <%= ENV['DATABASE_PORT'] || '49021' %>
 
   test:
     <<: *default
-    database: <%= ENV['DATABASE_NAME'] || 'railway' %>
-    username: <%= ENV['DATABASE_USERNAME'] || 'postgres' %>
-    password: <%= ENV['DATABASE_PASSWORD'] || 'hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP' %>
-    host: <%= ENV['DATABASE_HOST'] || 'hayabusa.proxy.rlwy.net' %>
-    port: <%= ENV['DATABASE_PORT'] || '49021' %>
