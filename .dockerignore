@@ -106,10 +106,10 @@ yarn-debug.log*
 .yarn-integrity
 
 # Configuration files that might contain secrets
+# (database.yml, cable.yml, credentials.yml.enc are needed at build/boot time
+# and are safe to ship — credentials.yml.enc is encrypted; master.key decrypts
+# it and must stay out of the image, supplied instead via RAILS_MASTER_KEY)
 /config/master.key
-/config/credentials.yml.enc
-/config/database.yml
-/config/cable.yml
 .env
 
 # Cache and temporary files
