@@ -412,6 +412,8 @@
                     <small class="text-muted"><%= policy.policy_type&.humanize %></small>
                     <br>
                     <% doc_count = (@document_counts[policy.id] || 0) + (policy.has_main_policy_r2? ? 1 : 0) %>
+                    <% renewed = @renewed_lookup[policy.id] %>
+                    <% can_renew = !policy.is_renewal? && policy.policy_end_date.present? && policy.policy_end_date <= 60.days.from_now && !renewed %>
                     <small class="<%= doc_count > 0 ? 'text-success' : 'text-danger' %>">
                       <i class="bi bi-file-earmark-<%= doc_count > 0 ? 'check' : 'x' %> me-1"></i>
                       <%= doc_count %> doc<%= doc_count == 1 ? '' : 's' %>
@@ -464,7 +466,7 @@
                   </div>
                 </td>
                 <td data-col="mi-status">
-                  <% if policy.has_been_renewed? && policy.expired? %>
+                  <% if renewed && policy.expired? %>
                     <span class="badge" style="background-color:#6f42c1;">Renewed</span>
                   <% elsif policy.active? %>
                     <span class="badge bg-success">Active</span>
@@ -499,13 +501,13 @@
                     <% end %>
 
                     <!-- Renewal Status -->
-                    <% if policy.has_been_renewed? %>
+                    <% if renewed %>
                       <!-- Show "Renewed" indicator for renewed policies -->
                       <span class="btn btn-sm btn-success disabled" title="This policy has been renewed">
                         <i class="bi bi-check-circle"></i>
                         <span class="d-none d-md-inline ms-1">Renewed</span>
                       </span>
-                    <% elsif policy.can_be_renewed? %>
+                    <% elsif can_renew %>
                       <!-- Show Renew button for eligible policies -->
                       <% days_to_expiry = (policy.policy_end_date - Date.current).to_i %>
                       <%

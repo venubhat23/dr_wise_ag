@@ -343,15 +343,16 @@ class LifeInsurance < ApplicationRecord
     counts = Hash.new(0)
     return counts if ids.blank?
 
-    PolicyDocument.where(policy_type: 'life', policy_id: ids)
-                  .group(:policy_id).count.each { |id, c| counts[id] += c }
+    id_list = ids.map(&:to_i).join(',')
+    sql = <<~SQL
+      SELECT policy_id AS id, COUNT(*) AS cnt FROM policy_documents WHERE policy_type = 'life' AND policy_id IN (#{id_list}) GROUP BY policy_id
+      UNION ALL
+      SELECT documentable_id AS id, COUNT(*) AS cnt FROM documents WHERE documentable_type = 'LifeInsurance' AND documentable_id IN (#{id_list}) GROUP BY documentable_id
+      UNION ALL
+      SELECT life_insurance_id AS id, COUNT(*) AS cnt FROM life_insurance_documents WHERE life_insurance_id IN (#{id_list}) GROUP BY life_insurance_id
+    SQL
 
-    Document.where(documentable_type: 'LifeInsurance', documentable_id: ids)
-            .group(:documentable_id).count.each { |id, c| counts[id] += c }
-
-    LifeInsuranceDocument.where(life_insurance_id: ids)
-                          .group(:life_insurance_id).count.each { |id, c| counts[id] += c }
-
+    ActiveRecord::Base.connection.execute(sql).each { |row| counts[row['id'].to_i] += row['cnt'].to_i }
     counts
   end
 

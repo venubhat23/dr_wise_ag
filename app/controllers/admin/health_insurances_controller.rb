@@ -5,6 +5,10 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   skip_before_action :verify_authenticity_token, only: [:insurance_companies_by_agency]
 
   def index
+    # NOTE: intentionally .includes (not .eager_load) — renewal_policy self-joins
+    # health_insurances to itself, and eager_load's single JOIN query makes every
+    # unqualified column in the raw SQL WHERE fragments below (is_customer_added etc.)
+    # ambiguous between the base table and the joined renewal_policy row.
     @health_insurances = HealthInsurance.includes(:customer, :sub_agent, :distributor, :agency_code, :broker, :renewal_policy)
 
     # Tab-based filtering for DrWise vs Non-DrWise policies
@@ -728,38 +732,50 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   end
 
   def calculate_tab_statistics
-    # Single query replaces 6 separate count/sum queries
-    row = ActiveRecord::Base.connection.execute(<<~SQL).first
-      SELECT
-        COUNT(*) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added)                                                              AS drwise_count,
-        COUNT(*) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AS non_drwise_count,
-        COALESCE(SUM(total_premium) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_premium,
-        COALESCE(SUM(sum_insured)   FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_coverage,
-        COALESCE(SUM(total_premium) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_premium,
-        COALESCE(SUM(sum_insured)   FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_coverage
-      FROM health_insurances
-    SQL
-    @drwise_count        = row['drwise_count'].to_i
-    @non_drwise_count    = row['non_drwise_count'].to_i
-    @drwise_premium      = row['drwise_premium'].to_f
-    @drwise_coverage     = row['drwise_coverage'].to_f
-    @non_drwise_premium  = row['non_drwise_premium'].to_f
-    @non_drwise_coverage = row['non_drwise_coverage'].to_f
+    # These stats are unconditional (whole-table, not scoped to search/filters), so
+    # they're cached briefly to avoid two DB round trips on every single page load.
+    stats = Rails.cache.fetch('health_insurance_tab_statistics', expires_in: 2.minutes) do
+      # Single query replaces 6 separate count/sum queries
+      row = ActiveRecord::Base.connection.execute(<<~SQL).first
+        SELECT
+          COUNT(*) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added)                                                              AS drwise_count,
+          COUNT(*) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AS non_drwise_count,
+          COALESCE(SUM(total_premium) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_premium,
+          COALESCE(SUM(sum_insured)   FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_coverage,
+          COALESCE(SUM(total_premium) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_premium,
+          COALESCE(SUM(sum_insured)   FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_coverage
+        FROM health_insurances
+      SQL
 
-    base = @health_insurances.unscope(:includes, :order, :select)
-    @active_policies = base.where('policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE').count
-    @expiring_soon   = base.where('policy_end_date BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL \'30 days\')').count
+      # Covered members stat card — single joined query replaces the two the view used to run
+      member_row = ActiveRecord::Base.connection.execute(<<~SQL).first
+        SELECT
+          COUNT(*) AS total_members,
+          COUNT(*) FILTER (WHERE hi.is_admin_added AND NOT hi.is_customer_added AND NOT hi.is_agent_added) AS drwise_members
+        FROM health_insurance_members m
+        JOIN health_insurances hi ON hi.id = m.health_insurance_id
+      SQL
 
-    # Covered members stat card — single joined query replaces the two the view used to run
-    member_row = ActiveRecord::Base.connection.execute(<<~SQL).first
-      SELECT
-        COUNT(*) AS total_members,
-        COUNT(*) FILTER (WHERE hi.is_admin_added AND NOT hi.is_customer_added AND NOT hi.is_agent_added) AS drwise_members
-      FROM health_insurance_members m
-      JOIN health_insurances hi ON hi.id = m.health_insurance_id
-    SQL
-    @total_members      = member_row['total_members'].to_i
-    @drwise_members      = member_row['drwise_members'].to_i
+      {
+        drwise_count:        row['drwise_count'].to_i,
+        non_drwise_count:    row['non_drwise_count'].to_i,
+        drwise_premium:      row['drwise_premium'].to_f,
+        drwise_coverage:     row['drwise_coverage'].to_f,
+        non_drwise_premium:  row['non_drwise_premium'].to_f,
+        non_drwise_coverage: row['non_drwise_coverage'].to_f,
+        total_members:       member_row['total_members'].to_i,
+        drwise_members:      member_row['drwise_members'].to_i
+      }
+    end
+
+    @drwise_count        = stats[:drwise_count]
+    @non_drwise_count    = stats[:non_drwise_count]
+    @drwise_premium      = stats[:drwise_premium]
+    @drwise_coverage     = stats[:drwise_coverage]
+    @non_drwise_premium  = stats[:non_drwise_premium]
+    @non_drwise_coverage = stats[:non_drwise_coverage]
+    @total_members       = stats[:total_members]
+    @drwise_members       = stats[:drwise_members]
     @non_drwise_members  = @total_members - @drwise_members
 
     if @current_tab == 'drwise'

@@ -14,7 +14,9 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @current_tab = params[:tab] || 'drwise'
 
     # Base query
-    base_query = MotorInsurance.includes(:customer, :sub_agent, :agency_code, :broker)
+    # eager_load (single LEFT JOIN query) instead of includes (one round trip per
+    # association) — all associations here are to-one so no row fan-out risk for pagination.
+    base_query = MotorInsurance.eager_load(:customer, :sub_agent, :agency_code, :broker)
 
     # Search functionality
     if params[:search].present?
@@ -89,37 +91,54 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       )
     end
 
-    # Single query replaces 7+ separate count/sum queries
-    row = ActiveRecord::Base.connection.execute(<<~SQL).first
-      SELECT
-        COUNT(*) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added)                                                              AS drwise_count,
-        COUNT(*) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AS non_drwise_count,
-        COALESCE(SUM(total_premium) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_premium,
-        COALESCE(SUM(total_premium) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_premium,
-        COUNT(*) FILTER (WHERE (is_admin_added AND NOT is_customer_added AND NOT is_agent_added) AND (policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)) AS drwise_active_count,
-        COUNT(*) FILTER (WHERE ((is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AND (policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)) AS non_drwise_active_count
-      FROM motor_insurances
-    SQL
-    @drwise_count      = row['drwise_count'].to_i
-    @non_drwise_count  = row['non_drwise_count'].to_i
-    @drwise_premium    = row['drwise_premium'].to_f
-    @non_drwise_premium = row['non_drwise_premium'].to_f
-    @drwise_active      = row['drwise_active_count'].to_i
-    @non_drwise_active  = row['non_drwise_active_count'].to_i
+    # Whole-table stats (not scoped to search/filters) — cached briefly to avoid
+    # two extra DB round trips on every single page load.
+    stats = Rails.cache.fetch("motor_insurance_tab_statistics/#{@current_tab}", expires_in: 2.minutes) do
+      # Single query replaces 7+ separate count/sum queries
+      row = ActiveRecord::Base.connection.execute(<<~SQL).first
+        SELECT
+          COUNT(*) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added)                                                              AS drwise_count,
+          COUNT(*) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AS non_drwise_count,
+          COALESCE(SUM(total_premium) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_premium,
+          COALESCE(SUM(total_premium) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_premium,
+          COUNT(*) FILTER (WHERE (is_admin_added AND NOT is_customer_added AND NOT is_agent_added) AND (policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)) AS drwise_active_count,
+          COUNT(*) FILTER (WHERE ((is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AND (policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)) AS non_drwise_active_count
+        FROM motor_insurances
+      SQL
 
-    # Vehicle class counts for current tab — single grouped query
-    tab_where = if @current_tab == 'drwise'
-      'is_admin_added = true AND is_customer_added = false AND is_agent_added = false'
-    else
-      '(is_customer_added = true AND is_admin_added = false AND is_agent_added = false) OR (is_agent_added = true AND is_customer_added = false AND is_admin_added = false)'
+      # Vehicle class counts for current tab — single grouped query
+      tab_where = if @current_tab == 'drwise'
+        'is_admin_added = true AND is_customer_added = false AND is_agent_added = false'
+      else
+        '(is_customer_added = true AND is_admin_added = false AND is_agent_added = false) OR (is_agent_added = true AND is_customer_added = false AND is_admin_added = false)'
+      end
+      vehicle_class_counts = MotorInsurance.where(tab_where).group(:class_of_vehicle).count
+
+      {
+        drwise_count:        row['drwise_count'].to_i,
+        non_drwise_count:    row['non_drwise_count'].to_i,
+        drwise_premium:      row['drwise_premium'].to_f,
+        non_drwise_premium:  row['non_drwise_premium'].to_f,
+        drwise_active:       row['drwise_active_count'].to_i,
+        non_drwise_active:   row['non_drwise_active_count'].to_i,
+        two_wheeler_count:   vehicle_class_counts['Two Wheeler'].to_i,
+        private_car_count:   vehicle_class_counts['Private Car'].to_i,
+        goods_vehicle_count: vehicle_class_counts['Goods Vehicle'].to_i,
+        taxi_count:          vehicle_class_counts['Taxi'].to_i
+      }
     end
-    vehicle_class_counts = MotorInsurance.where(tab_where).group(:class_of_vehicle).count
-    @two_wheeler_count   = vehicle_class_counts['Two Wheeler'].to_i
-    @private_car_count   = vehicle_class_counts['Private Car'].to_i
-    @goods_vehicle_count = vehicle_class_counts['Goods Vehicle'].to_i
-    @taxi_count          = vehicle_class_counts['Taxi'].to_i
 
-    @total_policies = @motor_insurances.count
+    @drwise_count        = stats[:drwise_count]
+    @non_drwise_count    = stats[:non_drwise_count]
+    @drwise_premium      = stats[:drwise_premium]
+    @non_drwise_premium  = stats[:non_drwise_premium]
+    @drwise_active       = stats[:drwise_active]
+    @non_drwise_active   = stats[:non_drwise_active]
+    @two_wheeler_count   = stats[:two_wheeler_count]
+    @private_car_count   = stats[:private_car_count]
+    @goods_vehicle_count = stats[:goods_vehicle_count]
+    @taxi_count          = stats[:taxi_count]
+
     @total_premium  = @current_tab == 'drwise' ? @drwise_premium : @non_drwise_premium
 
     # Filter dropdowns — 1 pluck replaces 3 distinct queries.
@@ -135,6 +154,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
 
     @motor_insurances = paginate_records(@motor_insurances.order(policy_start_date: :desc))
     @document_counts = MotorInsurance.batch_document_counts(@motor_insurances.map(&:id))
+    @renewed_lookup = MotorInsurance.batch_has_been_renewed(@motor_insurances.to_a)
   end
 
   def show

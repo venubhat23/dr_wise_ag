@@ -177,6 +177,31 @@ class MotorInsurance < ApplicationRecord
     ).where('policy_start_date > ?', policy_end_date).exists?
   end
 
+  # Batch-computed has_been_renewed? for a list of records — avoids the N+1 from
+  # calling has_been_renewed? per row on listing pages (each call was its own
+  # customer_id + registration_number lookup query).
+  def self.batch_has_been_renewed(policies)
+    result = Hash.new(false)
+    candidates = policies.select { |p| p.customer_id.present? && p.registration_number.present? }
+    return result if candidates.empty?
+
+    customer_ids   = candidates.map(&:customer_id).uniq
+    registrations  = candidates.map(&:registration_number).uniq
+
+    renewals = MotorInsurance.where(policy_type: 'Renewal', customer_id: customer_ids, registration_number: registrations)
+                              .pluck(:customer_id, :registration_number, :policy_start_date)
+    renewals_by_key = renewals.group_by { |cid, reg, _| [cid, reg] }
+
+    candidates.each do |p|
+      starts = renewals_by_key[[p.customer_id, p.registration_number]]
+      next unless starts
+
+      result[p.id] = starts.any? { |(_, _, start_date)| start_date.present? && p.policy_end_date.present? && start_date > p.policy_end_date }
+    end
+
+    result
+  end
+
   def renewal_status_text
     if is_renewal?
       'Renewal Policy'
@@ -223,15 +248,16 @@ class MotorInsurance < ApplicationRecord
     counts = Hash.new(0)
     return counts if ids.blank?
 
-    MotorInsuranceDocument.where(motor_insurance_id: ids)
-                           .group(:motor_insurance_id).count.each { |id, c| counts[id] += c }
+    id_list = ids.map(&:to_i).join(',')
+    sql = <<~SQL
+      SELECT motor_insurance_id AS id, COUNT(*) AS cnt FROM motor_insurance_documents WHERE motor_insurance_id IN (#{id_list}) GROUP BY motor_insurance_id
+      UNION ALL
+      SELECT policy_id AS id, COUNT(*) AS cnt FROM policy_documents WHERE policy_type = 'motor' AND policy_id IN (#{id_list}) GROUP BY policy_id
+      UNION ALL
+      SELECT documentable_id AS id, COUNT(*) AS cnt FROM documents WHERE documentable_type = 'MotorInsurance' AND documentable_id IN (#{id_list}) GROUP BY documentable_id
+    SQL
 
-    PolicyDocument.where(policy_type: 'motor', policy_id: ids)
-                  .group(:policy_id).count.each { |id, c| counts[id] += c }
-
-    Document.where(documentable_type: 'MotorInsurance', documentable_id: ids)
-            .group(:documentable_id).count.each { |id, c| counts[id] += c }
-
+    ActiveRecord::Base.connection.execute(sql).each { |row| counts[row['id'].to_i] += row['cnt'].to_i }
     counts
   end
 

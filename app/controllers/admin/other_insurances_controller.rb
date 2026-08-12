@@ -9,6 +9,10 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     @current_tab = params[:tab] || 'drwise'
 
     # Base query
+    # NOTE: intentionally .includes (not .eager_load) — renewal_policy self-joins
+    # other_insurances to itself, and eager_load's single JOIN query makes every
+    # unqualified column in the raw SQL WHERE fragments below (is_customer_added etc.)
+    # ambiguous between the base table and the joined renewal_policy row.
     @other_insurances = OtherInsurance.includes(:customer, :renewal_policy, :sub_agent)
 
     # Search functionality
@@ -68,27 +72,43 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
       )
     end
 
-    # Single query replaces 8 separate count/sum queries
-    row = ActiveRecord::Base.connection.execute(<<~SQL).first
-      SELECT
-        COUNT(*) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added)                                                              AS drwise_count,
-        COUNT(*) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AS non_drwise_count,
-        COALESCE(SUM(total_premium) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_premium,
-        COALESCE(SUM(sum_insured)   FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_coverage,
-        COALESCE(SUM(total_premium) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_premium,
-        COALESCE(SUM(sum_insured)   FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_coverage,
-        COUNT(*) FILTER (WHERE (is_admin_added AND NOT is_customer_added AND NOT is_agent_added) AND (policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)) AS drwise_active_count,
-        COUNT(*) FILTER (WHERE ((is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AND (policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)) AS non_drwise_active_count
-      FROM other_insurances
-    SQL
-    @drwise_count        = row['drwise_count'].to_i
-    @non_drwise_count    = row['non_drwise_count'].to_i
-    @drwise_premium      = row['drwise_premium'].to_f
-    @drwise_coverage     = row['drwise_coverage'].to_f
-    @non_drwise_premium  = row['non_drwise_premium'].to_f
-    @non_drwise_coverage = row['non_drwise_coverage'].to_f
-    @drwise_active       = row['drwise_active_count'].to_i
-    @non_drwise_active   = row['non_drwise_active_count'].to_i
+    # Whole-table stats (not scoped to search/filters) — cached briefly to avoid
+    # a DB round trip on every single page load.
+    stats = Rails.cache.fetch('other_insurance_tab_statistics', expires_in: 2.minutes) do
+      # Single query replaces 8 separate count/sum queries
+      row = ActiveRecord::Base.connection.execute(<<~SQL).first
+        SELECT
+          COUNT(*) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added)                                                              AS drwise_count,
+          COUNT(*) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AS non_drwise_count,
+          COALESCE(SUM(total_premium) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_premium,
+          COALESCE(SUM(sum_insured)   FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_coverage,
+          COALESCE(SUM(total_premium) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_premium,
+          COALESCE(SUM(sum_insured)   FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_coverage,
+          COUNT(*) FILTER (WHERE (is_admin_added AND NOT is_customer_added AND NOT is_agent_added) AND (policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)) AS drwise_active_count,
+          COUNT(*) FILTER (WHERE ((is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AND (policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)) AS non_drwise_active_count
+        FROM other_insurances
+      SQL
+
+      {
+        drwise_count:        row['drwise_count'].to_i,
+        non_drwise_count:    row['non_drwise_count'].to_i,
+        drwise_premium:      row['drwise_premium'].to_f,
+        drwise_coverage:     row['drwise_coverage'].to_f,
+        non_drwise_premium:  row['non_drwise_premium'].to_f,
+        non_drwise_coverage: row['non_drwise_coverage'].to_f,
+        drwise_active:       row['drwise_active_count'].to_i,
+        non_drwise_active:   row['non_drwise_active_count'].to_i
+      }
+    end
+
+    @drwise_count        = stats[:drwise_count]
+    @non_drwise_count    = stats[:non_drwise_count]
+    @drwise_premium      = stats[:drwise_premium]
+    @drwise_coverage     = stats[:drwise_coverage]
+    @non_drwise_premium  = stats[:non_drwise_premium]
+    @non_drwise_coverage = stats[:non_drwise_coverage]
+    @drwise_active       = stats[:drwise_active]
+    @non_drwise_active   = stats[:non_drwise_active]
 
     # Combine 4 separate pluck queries into 1 by fetching all needed columns at once.
     # Cached briefly since this scans the whole table and the option lists barely change.

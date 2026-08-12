@@ -104,7 +104,11 @@ class Distributor < ApplicationRecord
 
   # R2 Profile Image methods
   def r2_profile_image
-    distributor_documents.where(document_type: 'Profile Image').first
+    if distributor_documents.loaded?
+      distributor_documents.find { |d| d.document_type == 'Profile Image' }
+    else
+      distributor_documents.where(document_type: 'Profile Image').first
+    end
   end
 
   def has_r2_profile_image?

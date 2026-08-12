@@ -278,18 +278,18 @@ class HealthInsurance < ApplicationRecord
     counts = Hash.new(0)
     return counts if ids.blank?
 
-    PolicyDocument.where(policy_type: 'health', policy_id: ids)
-                  .group(:policy_id).count.each { |id, c| counts[id] += c }
+    id_list = ids.map(&:to_i).join(',')
+    sql = <<~SQL
+      SELECT policy_id AS id, COUNT(*) AS cnt FROM policy_documents WHERE policy_type = 'health' AND policy_id IN (#{id_list}) GROUP BY policy_id
+      UNION ALL
+      SELECT documentable_id AS id, COUNT(*) AS cnt FROM documents WHERE documentable_type = 'HealthInsurance' AND documentable_id IN (#{id_list}) GROUP BY documentable_id
+      UNION ALL
+      SELECT health_insurance_id AS id, COUNT(*) AS cnt FROM health_insurance_documents WHERE health_insurance_id IN (#{id_list}) GROUP BY health_insurance_id
+      UNION ALL
+      SELECT record_id AS id, COUNT(*) AS cnt FROM active_storage_attachments WHERE record_type = 'HealthInsurance' AND record_id IN (#{id_list}) GROUP BY record_id
+    SQL
 
-    Document.where(documentable_type: 'HealthInsurance', documentable_id: ids)
-            .group(:documentable_id).count.each { |id, c| counts[id] += c }
-
-    HealthInsuranceDocument.where(health_insurance_id: ids)
-                            .group(:health_insurance_id).count.each { |id, c| counts[id] += c }
-
-    ActiveStorage::Attachment.where(record_type: 'HealthInsurance', record_id: ids)
-                              .group(:record_id).count.each { |id, c| counts[id] += c }
-
+    ActiveRecord::Base.connection.execute(sql).each { |row| counts[row['id'].to_i] += row['cnt'].to_i }
     counts
   end
 
