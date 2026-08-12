@@ -46,3 +46,11 @@
 
 # Ignore oversized gem cache files that exceed GitHub's 100MB limit.
 vendor/bundle/ruby/*/cache/wkhtmltopdf-binary-*.gem
+
+# Ignore vendored gems (run `bundle install` to restore locally).
+/vendor/bundle
+
+# Ignore database backup dumps.
+*.dump
+backup*.sql
+production_backup*.sql
