@@ -217,6 +217,24 @@ class MotorInsurance < ApplicationRecord
     total_documents_count > 0
   end
 
+  # Batch-computed document counts for a list of ids — avoids the N+1 from
+  # calling total_documents_count per row on listing pages.
+  def self.batch_document_counts(ids)
+    counts = Hash.new(0)
+    return counts if ids.blank?
+
+    MotorInsuranceDocument.where(motor_insurance_id: ids)
+                           .group(:motor_insurance_id).count.each { |id, c| counts[id] += c }
+
+    PolicyDocument.where(policy_type: 'motor', policy_id: ids)
+                  .group(:policy_id).count.each { |id, c| counts[id] += c }
+
+    Document.where(documentable_type: 'MotorInsurance', documentable_id: ids)
+            .group(:documentable_id).count.each { |id, c| counts[id] += c }
+
+    counts
+  end
+
   # DrWise vs Non-DrWise classification
   def drwise_policy?
     # DrWise: Admin Added policies (is_admin_added: true AND others false)

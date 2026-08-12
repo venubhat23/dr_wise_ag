@@ -6,25 +6,11 @@ class Admin::InsuranceCompaniesController < Admin::ApplicationController
     # Build filtered companies query directly
     @insurance_companies = build_filtered_companies_query
 
-    # Use cached statistics separately to avoid serialization issues
-    stats_cache_key = [
-      'insurance_companies_stats',
-      InsuranceCompany.maximum(:updated_at)&.to_i
-    ].compact.join('-')
-
-    stats = Rails.cache.fetch(stats_cache_key, expires_in: 10.minutes) do
-      if InsuranceCompany.respond_to?(:statistics_cached)
-        InsuranceCompany.statistics_cached
-      else
-        # Fallback to basic counts
-        {
-          total: InsuranceCompany.count,
-          life: InsuranceCompany.where(insurance_type: 'life').count,
-          health: InsuranceCompany.where(insurance_type: 'health').count,
-          motor_other: InsuranceCompany.where(insurance_type: 'motor_other').count
-        }
-      end
-    end
+    # InsuranceCompany.statistics_cached already caches under a fixed key and
+    # invalidates itself via an after_save/after_destroy callback, so there's
+    # no need to compute a fresh cache key (which cost an extra maximum(:updated_at)
+    # query) on every request.
+    stats = InsuranceCompany.statistics_cached
 
     @total_companies = stats[:total] || 0
     @life_companies = stats[:life] || 0

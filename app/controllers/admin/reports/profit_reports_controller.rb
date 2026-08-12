@@ -66,48 +66,56 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
   private
 
   def fetch_policies_with_profit(paginated: true)
-    # Combine all policy types into a unified query result
-    policies = []
-
-    if @policy_type == 'all' || @policy_type == 'health'
-      health_policies = HealthInsurance.includes(:customer, :sub_agent)
-                                      .where(policy_start_date: @start_date..@end_date)
-      health_policies = apply_health_filters(health_policies) if @insurance_company.present?
-      policies += health_policies.map { |p| transform_health_policy_profit(p) }
-    end
-
-    if @policy_type == 'all' || @policy_type == 'motor'
-      motor_policies = MotorInsurance.includes(:customer, :sub_agent)
-                                    .where(policy_start_date: @start_date..@end_date)
-      motor_policies = apply_motor_filters(motor_policies) if @insurance_company.present?
-      policies += motor_policies.map { |p| transform_motor_policy_profit(p) }
-    end
-
-    if @policy_type == 'all' || @policy_type == 'life'
-      if defined?(LifeInsurance)
-        life_policies = LifeInsurance.includes(:customer, :sub_agent)
-                                    .where(policy_start_date: @start_date..@end_date)
-        life_policies = apply_life_filters(life_policies) if @insurance_company.present?
-        policies += life_policies.map { |p| transform_life_policy_profit(p) }
-      end
-    end
-
-    if @policy_type == 'all' || @policy_type == 'other'
-      if defined?(OtherInsurance)
-        other_policies = OtherInsurance.includes(:customer, :sub_agent)
-                                      .where(policy_start_date: @start_date..@end_date)
-        other_policies = apply_other_filters(other_policies) if @insurance_company.present?
-        policies += other_policies.map { |p| transform_other_policy_profit(p) }
-      end
-    end
-
-    # Sort by profit amount (highest first)
-    policies = policies.sort_by { |p| -(p[:profit_amount] || 0) }
+    policies = build_policies_with_profit
 
     if paginated
       Kaminari.paginate_array(policies)
     else
       policies.first(10000) # Limit for exports
+    end
+  end
+
+  # The summary calculations (#calculate_total_policies, #calculate_total_profit_amount, etc.)
+  # each need the full filtered+sorted array; memoize it so the 4 DB queries + Ruby sort only
+  # run once per request instead of once per summary stat.
+  def build_policies_with_profit
+    @policies_with_profit ||= begin
+      policies = []
+
+      if @policy_type == 'all' || @policy_type == 'health'
+        health_policies = HealthInsurance.includes(:customer, :sub_agent)
+                                        .where(policy_start_date: @start_date..@end_date)
+        health_policies = apply_health_filters(health_policies) if @insurance_company.present?
+        policies += health_policies.map { |p| transform_health_policy_profit(p) }
+      end
+
+      if @policy_type == 'all' || @policy_type == 'motor'
+        motor_policies = MotorInsurance.includes(:customer, :sub_agent)
+                                      .where(policy_start_date: @start_date..@end_date)
+        motor_policies = apply_motor_filters(motor_policies) if @insurance_company.present?
+        policies += motor_policies.map { |p| transform_motor_policy_profit(p) }
+      end
+
+      if @policy_type == 'all' || @policy_type == 'life'
+        if defined?(LifeInsurance)
+          life_policies = LifeInsurance.includes(:customer, :sub_agent)
+                                      .where(policy_start_date: @start_date..@end_date)
+          life_policies = apply_life_filters(life_policies) if @insurance_company.present?
+          policies += life_policies.map { |p| transform_life_policy_profit(p) }
+        end
+      end
+
+      if @policy_type == 'all' || @policy_type == 'other'
+        if defined?(OtherInsurance)
+          other_policies = OtherInsurance.includes(:customer, :sub_agent)
+                                        .where(policy_start_date: @start_date..@end_date)
+          other_policies = apply_other_filters(other_policies) if @insurance_company.present?
+          policies += other_policies.map { |p| transform_other_policy_profit(p) }
+        end
+      end
+
+      # Sort by profit amount (highest first)
+      policies.sort_by { |p| -(p[:profit_amount] || 0) }
     end
   end
 
@@ -236,12 +244,14 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
   end
 
   def get_insurance_companies
-    companies = []
-    ['HealthInsurance', 'LifeInsurance', 'MotorInsurance', 'OtherInsurance'].each do |model_name|
-      next unless defined?(model_name.constantize)
-      companies += model_name.constantize.distinct.pluck(:insurance_company_name).compact
+    Rails.cache.fetch('reports_insurance_companies_list', expires_in: 1.hour) do
+      companies = []
+      ['HealthInsurance', 'LifeInsurance', 'MotorInsurance', 'OtherInsurance'].each do |model_name|
+        next unless defined?(model_name.constantize)
+        companies += model_name.constantize.distinct.pluck(:insurance_company_name).compact
+      end
+      companies.uniq.sort
     end
-    companies.uniq.sort
   end
 
   def policy_data_json

@@ -43,6 +43,22 @@ class ClientRequest < ApplicationRecord
   before_validation :generate_ticket_number, on: :create
   before_update :set_resolved_at
   after_update :create_admin_response_notification
+  after_commit :clear_dashboard_stats_cache
+
+  # Dashboard stat cards previously ran 5 separate COUNT queries. Combine
+  # them into one grouped query, cached briefly and invalidated on write.
+  def self.dashboard_stats(expires_in: 5.minutes)
+    Rails.cache.fetch('client_requests/dashboard_stats', expires_in: expires_in) do
+      counts = group(:status).count
+      {
+        total: counts.values.sum,
+        pending: counts['pending'].to_i,
+        in_progress: counts['in_progress'].to_i,
+        resolved: counts['resolved'].to_i,
+        closed: counts['closed'].to_i
+      }
+    end
+  end
 
   # Instance methods
   def status_badge_class
@@ -84,6 +100,10 @@ class ClientRequest < ApplicationRecord
   end
 
   private
+
+  def clear_dashboard_stats_cache
+    Rails.cache.delete('client_requests/dashboard_stats')
+  end
 
   def set_submitted_at
     self.submitted_at ||= Time.current

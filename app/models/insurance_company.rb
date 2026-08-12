@@ -66,7 +66,7 @@ class InsuranceCompany < ApplicationRecord
 
     # Efficient search and filter combination
     def search_and_filter(search_query: nil, insurance_type: nil, status: nil, page: 1, per_page: 20)
-      relation = includes(:brokers) # Prevent N+1 if brokers are accessed
+      relation = all
       relation = relation.search(search_query) if search_query.present?
       relation = relation.by_type(insurance_type) if insurance_type.present?
       relation = relation.where(status: status) if !status.nil?

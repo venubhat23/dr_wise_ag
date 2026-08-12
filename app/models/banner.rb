@@ -32,6 +32,29 @@ class Banner < ApplicationRecord
   # Enums
   enum :display_location, { dashboard: 'dashboard', login: 'login', home: 'home', sidebar: 'sidebar' }
 
+  after_commit :clear_dashboard_stats_cache
+
+  # Dashboard stat cards previously ran 4 separate COUNT queries. Combine
+  # them into one round trip with FILTER, cached briefly and invalidated on write.
+  def self.dashboard_stats(expires_in: 5.minutes)
+    Rails.cache.fetch('banners/dashboard_stats', expires_in: expires_in) do
+      today = Date.current
+      row = select(
+        "COUNT(*) AS total_banners",
+        "COUNT(*) FILTER (WHERE status = TRUE) AS active_banners",
+        "COUNT(*) FILTER (WHERE display_start_date <= #{connection.quote(today)} AND display_end_date >= #{connection.quote(today)}) AS current_banners",
+        "COUNT(*) FILTER (WHERE display_end_date < #{connection.quote(today)}) AS expired_banners"
+      ).take
+
+      {
+        total_banners: row.total_banners.to_i,
+        active_banners: row.active_banners.to_i,
+        current_banners: row.current_banners.to_i,
+        expired_banners: row.expired_banners.to_i
+      }
+    end
+  end
+
   # Instance methods
   def active?
     status && current?
@@ -81,6 +104,10 @@ class Banner < ApplicationRecord
   end
 
   private
+
+  def clear_dashboard_stats_cache
+    Rails.cache.delete('banners/dashboard_stats')
+  end
 
   def set_default_display_location
     self.display_location = 'home' if display_location.blank?

@@ -26,19 +26,19 @@ class Admin::Reports::UpcomingRenewalReportsController < Admin::Reports::BaseCon
 
     # Normal index page rendering
     # Get saved reports for the listing
-    @saved_reports = Report.where(report_type: 'upcoming_renewal')
+    saved_reports_scope = Report.where(report_type: 'upcoming_renewal')
+    @saved_reports = saved_reports_scope
                            .includes(:created_by)
                            .order(created_at: :desc)
                            .page(params[:page])
                            .per(10)
 
-    # Calculate statistics
-    @total_reports = Report.where(report_type: 'upcoming_renewal').count
-    @this_month_reports = Report.where(report_type: 'upcoming_renewal')
+    # Calculate statistics (reuse the same base scope instead of rebuilding it 3x)
+    @total_reports = saved_reports_scope.count
+    @this_month_reports = saved_reports_scope
                                 .where(created_at: Date.current.beginning_of_month..Date.current.end_of_month)
                                 .count
-    @last_generated = Report.where(report_type: 'upcoming_renewal')
-                            .maximum(:created_at)
+    @last_generated = saved_reports_scope.maximum(:created_at)
     @total_premium_value = calculate_total_premium_value_from_reports
 
     # Live: upcoming renewals for the next 30 days by default
@@ -390,18 +390,31 @@ class Admin::Reports::UpcomingRenewalReportsController < Admin::Reports::BaseCon
     return nil if start_date.nil? || payment_mode.nil?
     return nil if ['single', 'one time', 'lump sum'].include?(payment_mode.to_s.downcase)
 
-    interval = case payment_mode.to_s.downcase
-               when 'monthly'                    then 1.month
-               when 'quarterly'                  then 3.months
-               when 'half-yearly', 'half yearly' then 6.months
-               when 'yearly'                     then 1.year
-               else return nil
-               end
+    months = case payment_mode.to_s.downcase
+             when 'monthly'                    then 1
+             when 'quarterly'                  then 3
+             when 'half-yearly', 'half yearly' then 6
+             when 'yearly'                     then 12
+             else return nil
+             end
 
     due = start_date
+
+    # Old policies can be 10-20 years old, which meant walking forward one interval
+    # (up to 300 iterations) per policy, per request, for every active life policy.
+    # Fast-forward with a safe underestimate first (31 days/month is an upper bound
+    # on any real month length, so dividing by it never overshoots the true interval
+    # count), then finish with the exact same +=-based walk as before so the result
+    # is identical to the original loop - just without repeating hundreds of steps.
+    elapsed_days = (Date.current - start_date).to_i
+    if elapsed_days.positive?
+      estimated_n = [(elapsed_days / (months * 31)) - 1, 0].max
+      estimated_n.times { due += months.months }
+    end
+
     safety = 0
     while due <= Date.current && safety < 300
-      due += interval
+      due += months.months
       safety += 1
     end
     due

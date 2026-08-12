@@ -102,52 +102,58 @@ class Admin::Reports::CommissionReportsAdvancedController < ApplicationControlle
   private
 
   def fetch_commission_data(paginated: true)
-    # Start with commission payouts query - no joins since customer is accessed through policy
-    query = CommissionPayout.where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
-
-    # Apply filters
-    query = query.where(policy_type: @policy_type) if @policy_type && @policy_type != 'all'
-    query = query.where(status: @status) if @status && @status != 'all'
-
-    # For sub_agent and distributor filters, join with relevant policy tables
-    if @sub_agent_id.present? || @distributor_id.present? || @insurance_company.present?
-      case @policy_type
-      when 'health'
-        query = query.joins("LEFT JOIN health_insurances ON commission_payouts.policy_id = health_insurances.id AND commission_payouts.policy_type = 'health'")
-        query = query.where('health_insurances.sub_agent_id = ?', @sub_agent_id) if @sub_agent_id.present?
-        query = query.where('health_insurances.distributor_id = ?', @distributor_id) if @distributor_id.present?
-        query = query.where('health_insurances.insurance_company_name ILIKE ?', "%#{@insurance_company}%") if @insurance_company.present?
-      when 'life'
-        query = query.joins("LEFT JOIN life_insurances ON commission_payouts.policy_id = life_insurances.id AND commission_payouts.policy_type = 'life'")
-        query = query.where('life_insurances.sub_agent_id = ?', @sub_agent_id) if @sub_agent_id.present?
-        query = query.where('life_insurances.distributor_id = ?', @distributor_id) if @distributor_id.present?
-        query = query.where('life_insurances.insurance_company_name ILIKE ?', "%#{@insurance_company}%") if @insurance_company.present?
-      when 'motor'
-        query = query.joins("LEFT JOIN motor_insurances ON commission_payouts.policy_id = motor_insurances.id AND commission_payouts.policy_type = 'motor'")
-        query = query.where('motor_insurances.sub_agent_id = ?', @sub_agent_id) if @sub_agent_id.present?
-        query = query.where('motor_insurances.distributor_id = ?', @distributor_id) if @distributor_id.present?
-        query = query.where('motor_insurances.insurance_company_name ILIKE ?', "%#{@insurance_company}%") if @insurance_company.present?
-      when 'other'
-        query = query.joins("LEFT JOIN other_insurances ON commission_payouts.policy_id = other_insurances.id AND commission_payouts.policy_type = 'other'")
-        query = query.where('other_insurances.sub_agent_id = ?', @sub_agent_id) if @sub_agent_id.present?
-        query = query.where('other_insurances.distributor_id = ?', @distributor_id) if @distributor_id.present?
-        query = query.where('other_insurances.insurance_company_name ILIKE ?', "%#{@insurance_company}%") if @insurance_company.present?
-      else
-        # For 'all' policy types, create a complex union query
-        health_ids = query_policy_ids('health', @sub_agent_id, @distributor_id, @insurance_company) if defined?(HealthInsurance)
-        life_ids = query_policy_ids('life', @sub_agent_id, @distributor_id, @insurance_company) if defined?(LifeInsurance)
-        motor_ids = query_policy_ids('motor', @sub_agent_id, @distributor_id, @insurance_company) if defined?(MotorInsurance)
-        other_ids = query_policy_ids('other', @sub_agent_id, @distributor_id, @insurance_company) if defined?(OtherInsurance)
-
-        all_matching_ids = [health_ids, life_ids, motor_ids, other_ids].compact.flatten
-        query = query.where(id: all_matching_ids) if all_matching_ids.any?
-      end
-    end
-
-    # Order by latest first
-    query = query.order(created_at: :desc, id: :desc)
+    query = base_commission_query.order(created_at: :desc, id: :desc)
 
     paginated ? query : query.limit(10000) # Limit for exports
+  end
+
+  # The filter-building here (especially the up-to-8-query `query_policy_ids` block for the
+  # "all policy types" case) is expensive and was previously rebuilt from scratch on every
+  # call to #fetch_commission_data — 3x per request (index + 2 summary calculations).
+  # Memoize the filtered-but-unordered base relation so that work happens once per request.
+  def base_commission_query
+    @base_commission_query ||= begin
+      query = CommissionPayout.where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
+
+      query = query.where(policy_type: @policy_type) if @policy_type && @policy_type != 'all'
+      query = query.where(status: @status) if @status && @status != 'all'
+
+      if @sub_agent_id.present? || @distributor_id.present? || @insurance_company.present?
+        case @policy_type
+        when 'health'
+          query = query.joins("LEFT JOIN health_insurances ON commission_payouts.policy_id = health_insurances.id AND commission_payouts.policy_type = 'health'")
+          query = query.where('health_insurances.sub_agent_id = ?', @sub_agent_id) if @sub_agent_id.present?
+          query = query.where('health_insurances.distributor_id = ?', @distributor_id) if @distributor_id.present?
+          query = query.where('health_insurances.insurance_company_name ILIKE ?', "%#{@insurance_company}%") if @insurance_company.present?
+        when 'life'
+          query = query.joins("LEFT JOIN life_insurances ON commission_payouts.policy_id = life_insurances.id AND commission_payouts.policy_type = 'life'")
+          query = query.where('life_insurances.sub_agent_id = ?', @sub_agent_id) if @sub_agent_id.present?
+          query = query.where('life_insurances.distributor_id = ?', @distributor_id) if @distributor_id.present?
+          query = query.where('life_insurances.insurance_company_name ILIKE ?', "%#{@insurance_company}%") if @insurance_company.present?
+        when 'motor'
+          query = query.joins("LEFT JOIN motor_insurances ON commission_payouts.policy_id = motor_insurances.id AND commission_payouts.policy_type = 'motor'")
+          query = query.where('motor_insurances.sub_agent_id = ?', @sub_agent_id) if @sub_agent_id.present?
+          query = query.where('motor_insurances.distributor_id = ?', @distributor_id) if @distributor_id.present?
+          query = query.where('motor_insurances.insurance_company_name ILIKE ?', "%#{@insurance_company}%") if @insurance_company.present?
+        when 'other'
+          query = query.joins("LEFT JOIN other_insurances ON commission_payouts.policy_id = other_insurances.id AND commission_payouts.policy_type = 'other'")
+          query = query.where('other_insurances.sub_agent_id = ?', @sub_agent_id) if @sub_agent_id.present?
+          query = query.where('other_insurances.distributor_id = ?', @distributor_id) if @distributor_id.present?
+          query = query.where('other_insurances.insurance_company_name ILIKE ?', "%#{@insurance_company}%") if @insurance_company.present?
+        else
+          # For 'all' policy types, create a complex union query
+          health_ids = query_policy_ids('health', @sub_agent_id, @distributor_id, @insurance_company) if defined?(HealthInsurance)
+          life_ids = query_policy_ids('life', @sub_agent_id, @distributor_id, @insurance_company) if defined?(LifeInsurance)
+          motor_ids = query_policy_ids('motor', @sub_agent_id, @distributor_id, @insurance_company) if defined?(MotorInsurance)
+          other_ids = query_policy_ids('other', @sub_agent_id, @distributor_id, @insurance_company) if defined?(OtherInsurance)
+
+          all_matching_ids = [health_ids, life_ids, motor_ids, other_ids].compact.flatten
+          query = query.where(id: all_matching_ids) if all_matching_ids.any?
+        end
+      end
+
+      query
+    end
   end
 
   def calculate_total_commission
@@ -180,12 +186,14 @@ class Admin::Reports::CommissionReportsAdvancedController < ApplicationControlle
   end
 
   def get_insurance_companies
-    companies = []
-    ['HealthInsurance', 'LifeInsurance', 'MotorInsurance', 'OtherInsurance'].each do |model_name|
-      next unless defined?(model_name.constantize)
-      companies += model_name.constantize.distinct.pluck(:insurance_company_name).compact
+    Rails.cache.fetch('reports_insurance_companies_list', expires_in: 1.hour) do
+      companies = []
+      ['HealthInsurance', 'LifeInsurance', 'MotorInsurance', 'OtherInsurance'].each do |model_name|
+        next unless defined?(model_name.constantize)
+        companies += model_name.constantize.distinct.pluck(:insurance_company_name).compact
+      end
+      companies.uniq.sort
     end
-    companies.uniq.sort
   end
 
   def commission_data_json

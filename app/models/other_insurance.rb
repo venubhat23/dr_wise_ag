@@ -173,6 +173,26 @@ class OtherInsurance < ApplicationRecord
     total_documents_count > 0
   end
 
+  # Batch-computed document counts for a list of ids — avoids the N+1 from
+  # calling total_documents_count per row on listing pages. Mirrors the
+  # effective total_documents_count definition below (main_policy_document_key
+  # is a real column so it needs no extra query — checked directly on the loaded record).
+  def self.batch_document_counts(ids)
+    counts = Hash.new(0)
+    return counts if ids.blank?
+
+    Document.where(documentable_type: 'OtherInsurance', documentable_id: ids)
+            .group(:documentable_id).count.each { |id, c| counts[id] += c }
+
+    OtherInsuranceDocument.where(other_insurance_id: ids)
+                           .group(:other_insurance_id).count.each { |id, c| counts[id] += c }
+
+    PolicyDocument.where(policy_type: 'other', policy_id: ids)
+                  .group(:policy_id).count.each { |id, c| counts[id] += c }
+
+    counts
+  end
+
   def main_policy_r2_url
     return nil unless main_policy_document_key.present?
     R2Service.public_url(main_policy_document_key) if defined?(R2Service)

@@ -95,13 +95,17 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
         COUNT(*) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added)                                                              AS drwise_count,
         COUNT(*) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AS non_drwise_count,
         COALESCE(SUM(total_premium) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_premium,
-        COALESCE(SUM(total_premium) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_premium
+        COALESCE(SUM(total_premium) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_premium,
+        COUNT(*) FILTER (WHERE (is_admin_added AND NOT is_customer_added AND NOT is_agent_added) AND (policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)) AS drwise_active_count,
+        COUNT(*) FILTER (WHERE ((is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AND (policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)) AS non_drwise_active_count
       FROM motor_insurances
     SQL
     @drwise_count      = row['drwise_count'].to_i
     @non_drwise_count  = row['non_drwise_count'].to_i
     @drwise_premium    = row['drwise_premium'].to_f
     @non_drwise_premium = row['non_drwise_premium'].to_f
+    @drwise_active      = row['drwise_active_count'].to_i
+    @non_drwise_active  = row['non_drwise_active_count'].to_i
 
     # Vehicle class counts for current tab — single grouped query
     tab_where = if @current_tab == 'drwise'
@@ -118,8 +122,11 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @total_policies = @motor_insurances.count
     @total_premium  = @current_tab == 'drwise' ? @drwise_premium : @non_drwise_premium
 
-    # Filter dropdowns — 1 pluck replaces 3 distinct queries
-    motor_dropdown_data   = MotorInsurance.pluck(:insurance_company_name, :policy_type, :payment_mode, :sub_agent_id)
+    # Filter dropdowns — 1 pluck replaces 3 distinct queries.
+    # Cached briefly since this scans the whole table and the option lists barely change.
+    motor_dropdown_data   = Rails.cache.fetch('motor_insurance_filter_dropdown_data', expires_in: 10.minutes) do
+      MotorInsurance.pluck(:insurance_company_name, :policy_type, :payment_mode, :sub_agent_id)
+    end
     @filter_companies     = motor_dropdown_data.map { |r| r[0] }.compact.uniq.reject(&:blank?).sort
     @filter_policy_types  = motor_dropdown_data.map { |r| r[1] }.compact.uniq.reject(&:blank?).sort
     @filter_payment_modes = motor_dropdown_data.map { |r| r[2] }.compact.uniq.reject(&:blank?).sort
@@ -127,6 +134,7 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @filter_sub_agents    = SubAgent.where(id: motor_sub_agent_ids).order(:first_name, :last_name)
 
     @motor_insurances = paginate_records(@motor_insurances.order(policy_start_date: :desc))
+    @document_counts = MotorInsurance.batch_document_counts(@motor_insurances.map(&:id))
   end
 
   def show

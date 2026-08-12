@@ -76,7 +76,9 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
         COALESCE(SUM(total_premium) FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_premium,
         COALESCE(SUM(sum_insured)   FILTER (WHERE is_admin_added AND NOT is_customer_added AND NOT is_agent_added), 0)                                       AS drwise_coverage,
         COALESCE(SUM(total_premium) FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_premium,
-        COALESCE(SUM(sum_insured)   FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_coverage
+        COALESCE(SUM(sum_insured)   FILTER (WHERE (is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)), 0) AS non_drwise_coverage,
+        COUNT(*) FILTER (WHERE (is_admin_added AND NOT is_customer_added AND NOT is_agent_added) AND (policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)) AS drwise_active_count,
+        COUNT(*) FILTER (WHERE ((is_customer_added AND NOT is_admin_added AND NOT is_agent_added) OR (is_agent_added AND NOT is_customer_added AND NOT is_admin_added)) AND (policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE)) AS non_drwise_active_count
       FROM other_insurances
     SQL
     @drwise_count        = row['drwise_count'].to_i
@@ -85,9 +87,14 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     @drwise_coverage     = row['drwise_coverage'].to_f
     @non_drwise_premium  = row['non_drwise_premium'].to_f
     @non_drwise_coverage = row['non_drwise_coverage'].to_f
+    @drwise_active       = row['drwise_active_count'].to_i
+    @non_drwise_active   = row['non_drwise_active_count'].to_i
 
-    # Combine 4 separate pluck queries into 1 by fetching all needed columns at once
-    dropdown_data = OtherInsurance.pluck(:insurance_company_name, :insurance_type, :payment_mode, :sub_agent_id)
+    # Combine 4 separate pluck queries into 1 by fetching all needed columns at once.
+    # Cached briefly since this scans the whole table and the option lists barely change.
+    dropdown_data = Rails.cache.fetch('other_insurance_filter_dropdown_data', expires_in: 10.minutes) do
+      OtherInsurance.pluck(:insurance_company_name, :insurance_type, :payment_mode, :sub_agent_id)
+    end
     @filter_companies       = dropdown_data.map { |r| r[0] }.compact.uniq.reject(&:blank?).sort
     @filter_insurance_types = dropdown_data.map { |r| r[1] }.compact.uniq.reject(&:blank?).sort
     @filter_payment_modes   = dropdown_data.map { |r| r[2] }.compact.uniq.reject(&:blank?).sort
@@ -95,6 +102,7 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     @filter_sub_agents      = SubAgent.where(id: sub_agent_ids).order(:first_name, :last_name)
 
     @other_insurances = paginate_records(@other_insurances.order(policy_start_date: :desc))
+    @document_counts = OtherInsurance.batch_document_counts(@other_insurances.map(&:id))
 
     if @current_tab == 'drwise'
       @total_policies = @drwise_count

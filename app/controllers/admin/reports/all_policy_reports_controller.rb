@@ -216,12 +216,14 @@ class Admin::Reports::AllPolicyReportsController < Admin::Reports::BaseControlle
   end
 
   def get_insurance_companies
-    companies = []
-    ['HealthInsurance', 'LifeInsurance', 'MotorInsurance', 'OtherInsurance'].each do |model_name|
-      next unless defined?(model_name.constantize)
-      companies += model_name.constantize.distinct.pluck(:insurance_company_name).compact
+    Rails.cache.fetch('reports_insurance_companies_list', expires_in: 1.hour) do
+      companies = []
+      ['HealthInsurance', 'LifeInsurance', 'MotorInsurance', 'OtherInsurance'].each do |model_name|
+        next unless defined?(model_name.constantize)
+        companies += model_name.constantize.distinct.pluck(:insurance_company_name).compact
+      end
+      companies.uniq.sort
     end
-    companies.uniq.sort
   end
 
   def policy_data_json

@@ -94,52 +94,59 @@ class Admin::Reports::ExpiredInsuranceReportsController < Admin::Reports::BaseCo
   private
 
   def fetch_expired_data(paginated: true)
-    # Find all expired policies across different types
-    expired_policies = []
-
-    if @policy_type == 'all' || @policy_type == 'health'
-      health_expired = HealthInsurance.includes(:customer, :sub_agent)
-                                     .where('policy_end_date < ?', Date.current)
-                                     .where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
-      health_expired = apply_health_filters(health_expired) if @insurance_company.present?
-      expired_policies += health_expired.map { |p| transform_health_policy(p) }
-    end
-
-    if @policy_type == 'all' || @policy_type == 'motor'
-      motor_expired = MotorInsurance.includes(:customer, :sub_agent)
-                                   .where('policy_end_date < ?', Date.current)
-                                   .where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
-      motor_expired = apply_motor_filters(motor_expired) if @insurance_company.present?
-      expired_policies += motor_expired.map { |p| transform_motor_policy(p) }
-    end
-
-    if @policy_type == 'all' || @policy_type == 'life'
-      if defined?(LifeInsurance)
-        life_expired = LifeInsurance.includes(:customer, :sub_agent)
-                                   .where('policy_end_date < ?', Date.current)
-                                   .where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
-        life_expired = apply_life_filters(life_expired) if @insurance_company.present?
-        expired_policies += life_expired.map { |p| transform_life_policy(p) }
-      end
-    end
-
-    if @policy_type == 'all' || @policy_type == 'other'
-      if defined?(OtherInsurance)
-        other_expired = OtherInsurance.includes(:customer, :sub_agent)
-                                     .where('policy_end_date < ?', Date.current)
-                                     .where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
-        other_expired = apply_other_filters(other_expired) if @insurance_company.present?
-        expired_policies += other_expired.map { |p| transform_other_policy(p) }
-      end
-    end
-
-    # Sort by expiry date (most recently expired first)
-    expired_policies = expired_policies.sort_by { |p| p[:end_date] }.reverse
+    expired_policies = build_expired_policies
 
     if paginated
       Kaminari.paginate_array(expired_policies)
     else
       expired_policies.first(10000) # Limit for exports
+    end
+  end
+
+  # Memoized so the 4 DB queries + Ruby sort run once per request instead of once per
+  # summary calculation (#calculate_total_expired, #calculate_total_premium_lost, etc.)
+  def build_expired_policies
+    @expired_policies ||= begin
+      expired_policies = []
+
+      if @policy_type == 'all' || @policy_type == 'health'
+        health_expired = HealthInsurance.includes(:customer, :sub_agent)
+                                       .where('policy_end_date < ?', Date.current)
+                                       .where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
+        health_expired = apply_health_filters(health_expired) if @insurance_company.present?
+        expired_policies += health_expired.map { |p| transform_health_policy(p) }
+      end
+
+      if @policy_type == 'all' || @policy_type == 'motor'
+        motor_expired = MotorInsurance.includes(:customer, :sub_agent)
+                                     .where('policy_end_date < ?', Date.current)
+                                     .where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
+        motor_expired = apply_motor_filters(motor_expired) if @insurance_company.present?
+        expired_policies += motor_expired.map { |p| transform_motor_policy(p) }
+      end
+
+      if @policy_type == 'all' || @policy_type == 'life'
+        if defined?(LifeInsurance)
+          life_expired = LifeInsurance.includes(:customer, :sub_agent)
+                                     .where('policy_end_date < ?', Date.current)
+                                     .where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
+          life_expired = apply_life_filters(life_expired) if @insurance_company.present?
+          expired_policies += life_expired.map { |p| transform_life_policy(p) }
+        end
+      end
+
+      if @policy_type == 'all' || @policy_type == 'other'
+        if defined?(OtherInsurance)
+          other_expired = OtherInsurance.includes(:customer, :sub_agent)
+                                       .where('policy_end_date < ?', Date.current)
+                                       .where(created_at: @start_date.beginning_of_day..@end_date.end_of_day)
+          other_expired = apply_other_filters(other_expired) if @insurance_company.present?
+          expired_policies += other_expired.map { |p| transform_other_policy(p) }
+        end
+      end
+
+      # Sort by expiry date (most recently expired first)
+      expired_policies.sort_by { |p| p[:end_date] }.reverse
     end
   end
 
@@ -261,12 +268,14 @@ class Admin::Reports::ExpiredInsuranceReportsController < Admin::Reports::BaseCo
   end
 
   def get_insurance_companies
-    companies = []
-    ['HealthInsurance', 'LifeInsurance', 'MotorInsurance', 'OtherInsurance'].each do |model_name|
-      next unless defined?(model_name.constantize)
-      companies += model_name.constantize.distinct.pluck(:insurance_company_name).compact
+    Rails.cache.fetch('reports_insurance_companies_list', expires_in: 1.hour) do
+      companies = []
+      ['HealthInsurance', 'LifeInsurance', 'MotorInsurance', 'OtherInsurance'].each do |model_name|
+        next unless defined?(model_name.constantize)
+        companies += model_name.constantize.distinct.pluck(:insurance_company_name).compact
+      end
+      companies.uniq.sort
     end
-    companies.uniq.sort
   end
 
   def expired_data_json

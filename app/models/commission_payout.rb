@@ -45,6 +45,21 @@ class CommissionPayout < ApplicationRecord
   # Callbacks
   # after_create :create_audit_log
   # after_update :create_audit_log, if: :saved_changes?
+  after_commit :clear_payout_totals_cache
+
+  # Investors index previously ran 3 separate SUM queries (total/paid/pending)
+  # against the same payout_to scope. Combine into one grouped round trip,
+  # cached briefly and invalidated on write.
+  def self.payout_totals_for(recipient, expires_in: 5.minutes)
+    Rails.cache.fetch("commission_payouts/totals/#{recipient}", expires_in: expires_in) do
+      sums = where(payout_to: recipient).group(:status).sum(:payout_amount)
+      {
+        total: sums.values.sum,
+        paid: sums['paid'] || 0,
+        pending: sums['pending'] || 0
+      }
+    end
+  end
 
   # Instance methods
   def policy
@@ -197,6 +212,10 @@ class CommissionPayout < ApplicationRecord
   end
 
   private
+
+  def clear_payout_totals_cache
+    Rails.cache.delete("commission_payouts/totals/#{payout_to}")
+  end
 
   def calculate_tds_from_percentage
     percentage = tds_percentage

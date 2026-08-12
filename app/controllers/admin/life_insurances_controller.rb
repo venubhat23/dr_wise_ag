@@ -63,9 +63,13 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     calculate_tab_statistics
 
     @life_insurances = paginate_records(@life_insurances.order(policy_start_date: :desc))
+    @document_counts = LifeInsurance.batch_document_counts(@life_insurances.map(&:id))
 
-    # Filter dropdowns — 1 pluck instead of 2 queries + avoid loading all sub_agents
-    life_dropdown_data = LifeInsurance.pluck(:insurance_company_name, :sub_agent_id)
+    # Filter dropdowns — 1 pluck instead of 2 queries + avoid loading all sub_agents.
+    # Cached briefly since this scans the whole table and the option lists barely change.
+    life_dropdown_data = Rails.cache.fetch('life_insurance_filter_dropdown_data', expires_in: 10.minutes) do
+      LifeInsurance.pluck(:insurance_company_name, :sub_agent_id)
+    end
     @filter_companies     = life_dropdown_data.map { |r| r[0] }.compact.uniq.reject(&:blank?).sort
     life_sub_agent_ids    = life_dropdown_data.map { |r| r[1] }.compact.uniq
     @filter_sub_agents    = SubAgent.where(id: life_sub_agent_ids).order(:first_name, :last_name)
@@ -1020,17 +1024,20 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       @total_policies_count  = @drwise_count
       @total_premium_amount  = @drwise_premium
       @total_coverage_amount = @drwise_coverage
-      @covered_lives_count   = LifeInsurance.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
-                                            .distinct.count(:customer_id)
     else
       @total_policies_count  = @non_drwise_count
       @total_premium_amount  = @non_drwise_premium
       @total_coverage_amount = @non_drwise_coverage
-      @covered_lives_count   = LifeInsurance.where(
-        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-        true, false, false, true, false, false
-      ).distinct.count(:customer_id)
     end
+
+    # Covered lives (distinct customers) for both tabs — used by the "Covered Lives"
+    # stat card, which used to run its own two joined DISTINCT queries in the view.
+    @drwise_lives     = LifeInsurance.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
+                                      .distinct.count(:customer_id)
+    @non_drwise_lives = LifeInsurance.where(
+      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+      true, false, false, true, false, false
+    ).distinct.count(:customer_id)
   end
 
   # R2 Upload Helper for main policy document

@@ -15,20 +15,23 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
       product_category: @filter_category
     }.reject { |_, v| v.blank? }
 
-    @leads = build_lead_query(filters)
+    # Materialize once - the view calls .count/.any?/.each on this, which would
+    # otherwise each hit the DB separately (COUNT, EXISTS, then SELECT).
+    @leads = build_lead_query(filters).to_a
 
     # Saved reports listing
-    @saved_reports = Report.where(report_type: 'leads')
+    saved_reports_scope = Report.where(report_type: 'leads')
+    @saved_reports = saved_reports_scope
                            .includes(:created_by)
                            .order(created_at: :desc)
                            .page(params[:page])
                            .per(10)
 
-    @total_reports         = Report.where(report_type: 'leads').count
-    @this_month_reports    = Report.where(report_type: 'leads')
+    @total_reports         = saved_reports_scope.count
+    @this_month_reports    = saved_reports_scope
                                    .where(created_at: Date.current.beginning_of_month..Date.current.end_of_month)
                                    .count
-    @last_generated        = Report.where(report_type: 'leads').maximum(:created_at)
+    @last_generated        = saved_reports_scope.maximum(:created_at)
     @total_leads_from_reports = calculate_total_leads_from_reports
 
     load_form_data

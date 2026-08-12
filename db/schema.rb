@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_12_000002) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_12_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -175,6 +175,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_12_000002) do
     t.bigint "r2_file_size"
     t.text "r2_public_url"
     t.index ["display_order"], name: "index_banners_on_display_order"
+    t.index ["display_start_date", "display_end_date"], name: "index_banners_on_display_start_date_and_display_end_date"
+    t.index ["status"], name: "index_banners_on_status"
   end
 
   create_table "broker_codes", force: :cascade do |t|
@@ -712,6 +714,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_12_000002) do
     t.string "mobile"
     t.text "address"
     t.string "insurance_type"
+    t.index ["insurance_type"], name: "index_insurance_companies_on_insurance_type"
+    t.index ["name"], name: "index_insurance_companies_on_name"
+    t.index ["status"], name: "index_insurance_companies_on_status"
   end
 
   create_table "investments", force: :cascade do |t|
@@ -770,6 +775,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_12_000002) do
     t.string "main_document_filename"
     t.string "main_document_content_type"
     t.bigint "main_document_size"
+    t.index ["first_name", "last_name"], name: "index_investors_on_first_name_and_last_name"
+    t.index ["status"], name: "index_investors_on_status"
   end
 
   create_table "invoice_items", force: :cascade do |t|
@@ -862,6 +869,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_12_000002) do
     t.index ["contact_number"], name: "index_leads_on_contact_number"
     t.index ["converted_customer_id"], name: "index_leads_on_converted_customer_id"
     t.index ["created_at"], name: "index_leads_on_created_at"
+    t.index ["created_date"], name: "index_leads_on_created_date"
     t.index ["current_stage", "created_at"], name: "index_leads_on_current_stage_and_created_at"
     t.index ["current_stage"], name: "index_leads_on_current_stage"
     t.index ["email"], name: "index_leads_on_email"
@@ -1484,6 +1492,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_12_000002) do
     t.integer "created_by_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["report_type"], name: "index_reports_on_report_type"
   end
 
   create_table "role_permissions", id: :serial, force: :cascade do |t|

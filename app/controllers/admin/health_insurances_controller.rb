@@ -49,8 +49,11 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     @health_insurances = @health_insurances.where("policy_start_date >= ?", params[:from_date]) if params[:from_date].present?
     @health_insurances = @health_insurances.where("policy_start_date <= ?", params[:to_date])   if params[:to_date].present?
 
-    # Filter dropdowns — 1 pluck replaces 2 distinct queries; sub_agents via id lookup
-    hi_dropdown_data      = HealthInsurance.pluck(:insurance_company_name, :payment_mode, :sub_agent_id)
+    # Filter dropdowns — 1 pluck replaces 2 distinct queries; sub_agents via id lookup.
+    # Cached briefly since this scans the whole table and the option lists barely change.
+    hi_dropdown_data      = Rails.cache.fetch('health_insurance_filter_dropdown_data', expires_in: 10.minutes) do
+      HealthInsurance.pluck(:insurance_company_name, :payment_mode, :sub_agent_id)
+    end
     @filter_companies     = hi_dropdown_data.map { |r| r[0] }.compact.uniq.reject(&:blank?).sort
     @filter_payment_modes = hi_dropdown_data.map { |r| r[1] }.compact.uniq.reject(&:blank?).sort
     hi_sub_agent_ids      = hi_dropdown_data.map { |r| r[2] }.compact.uniq
@@ -61,6 +64,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     calculate_tab_statistics
 
     @health_insurances = paginate_records(@health_insurances.order(policy_start_date: :desc))
+    @document_counts = HealthInsurance.batch_document_counts(@health_insurances.map(&:id))
   end
 
   def show
@@ -745,6 +749,18 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     base = @health_insurances.unscope(:includes, :order, :select)
     @active_policies = base.where('policy_end_date IS NULL OR policy_end_date >= CURRENT_DATE').count
     @expiring_soon   = base.where('policy_end_date BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL \'30 days\')').count
+
+    # Covered members stat card — single joined query replaces the two the view used to run
+    member_row = ActiveRecord::Base.connection.execute(<<~SQL).first
+      SELECT
+        COUNT(*) AS total_members,
+        COUNT(*) FILTER (WHERE hi.is_admin_added AND NOT hi.is_customer_added AND NOT hi.is_agent_added) AS drwise_members
+      FROM health_insurance_members m
+      JOIN health_insurances hi ON hi.id = m.health_insurance_id
+    SQL
+    @total_members      = member_row['total_members'].to_i
+    @drwise_members      = member_row['drwise_members'].to_i
+    @non_drwise_members  = @total_members - @drwise_members
 
     if @current_tab == 'drwise'
       @total_policies = @drwise_count

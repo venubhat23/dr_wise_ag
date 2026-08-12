@@ -3,10 +3,28 @@ class SystemSetting < ApplicationRecord
   validates :value, presence: true
   validates :setting_type, presence: true
 
+  after_commit :clear_settings_cache
+
+  # All the scalar settings (percentage, pagination, investment amount, ...) are
+  # each stored as their own row and were each fetched with a separate
+  # find_by(key:) query. On top of that, every "system_config" getter
+  # (commissions, terms, company info) re-ran the identical find_by(key:
+  # 'system_config') query. That's ~9 round trips per settings page load.
+  # Cache the full key => row map for a short time and serve every getter
+  # from it instead.
+  def self.cached_settings(expires_in: 5.minutes)
+    Rails.cache.fetch('system_settings/all', expires_in: expires_in) do
+      all.index_by(&:key)
+    end
+  end
+
+  def self.cached_setting(key)
+    cached_settings[key]
+  end
+
   # Class method to get a setting value by key
   def self.get_value(key)
-    setting = find_by(key: key)
-    setting&.value
+    cached_setting(key)&.value
   end
 
   # Class method to set a setting value by key
@@ -55,25 +73,25 @@ class SystemSetting < ApplicationRecord
 
   # Get default main agent commission as float
   def self.default_main_agent_commission
-    setting = find_by(key: 'system_config')
+    setting = cached_setting('system_config')
     setting&.default_main_agent_commission || 0.0
   end
 
   # Get default affiliate commission as float
   def self.default_affiliate_commission
-    setting = find_by(key: 'system_config')
+    setting = cached_setting('system_config')
     setting&.default_affiliate_commission || 0.0
   end
 
   # Get default ambassador commission as float
   def self.default_ambassador_commission
-    setting = find_by(key: 'system_config')
+    setting = cached_setting('system_config')
     setting&.default_ambassador_commission || 0.0
   end
 
   # Get default company expenses as float
   def self.default_company_expenses
-    setting = find_by(key: 'system_config')
+    setting = cached_setting('system_config')
     setting&.default_company_expenses || 0.0
   end
 
@@ -97,7 +115,7 @@ class SystemSetting < ApplicationRecord
 
   # Get terms and conditions
   def self.terms_and_conditions
-    setting = find_by(key: 'system_config')
+    setting = cached_setting('system_config')
     setting&.terms_and_conditions || ''
   end
 
@@ -116,7 +134,7 @@ class SystemSetting < ApplicationRecord
   # ─── Company Info ────────────────────────────────────────────────────────────
 
   def self.company_info
-    setting = find_by(key: 'system_config')
+    setting = cached_setting('system_config')
     {
       name:          (setting&.has_attribute?('company_name')    ? setting.company_name    : nil) || 'Drwise Admin',
       mobile:        (setting&.has_attribute?('company_phone')   ? setting.company_phone   : nil) || '+918431174477',
@@ -153,7 +171,7 @@ class SystemSetting < ApplicationRecord
 
   # Get investment amount
   def self.investment_amount
-    setting = find_by(key: 'system_config')
+    setting = cached_setting('system_config')
     (setting&.has_attribute?('investment_amount') ? setting.investment_amount : nil) ||
       get_value('investment_amount')&.to_f || 0.0
   rescue => e
@@ -175,5 +193,11 @@ class SystemSetting < ApplicationRecord
     else
       set_value('investment_amount', amount.to_s, description: 'Investment amount', setting_type: 'decimal')
     end
+  end
+
+  private
+
+  def clear_settings_cache
+    Rails.cache.delete('system_settings/all')
   end
 end

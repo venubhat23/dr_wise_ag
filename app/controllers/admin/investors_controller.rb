@@ -56,15 +56,17 @@ class Admin::InvestorsController < Admin::ApplicationController
       stats_scope = stats_scope.inactive
     end
 
-    # Statistics
-    @total_investors = stats_scope.count
-    @active_investors = stats_scope.active.count
-    @inactive_investors = stats_scope.inactive.count
+    # Statistics — one grouped query instead of 3 separate counts
+    status_counts = stats_scope.group(:status).count
+    @total_investors = status_counts.values.sum
+    @active_investors = status_counts['active'].to_i
+    @inactive_investors = status_counts['inactive'].to_i
 
     # Calculate total investor commission amounts (for existing functionality)
-    @total_investor_amount = CommissionPayout.where(payout_to: 'investor').sum(:payout_amount) || 0
-    @paid_investor_amount = CommissionPayout.where(payout_to: 'investor', status: 'paid').sum(:payout_amount) || 0
-    @pending_investor_amount = CommissionPayout.where(payout_to: 'investor', status: 'pending').sum(:payout_amount) || 0
+    payout_totals = CommissionPayout.payout_totals_for('investor')
+    @total_investor_amount = payout_totals[:total]
+    @paid_investor_amount = payout_totals[:paid]
+    @pending_investor_amount = payout_totals[:pending]
 
     # Calculate total invested amount from investors (for share calculations)
     @total_invested_amount = stats_scope.where.not(invested_amount: nil).sum(:invested_amount) || 0

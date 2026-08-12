@@ -88,6 +88,22 @@ module Admin
 
       def lead_conversion
         begin
+          data = Rails.cache.fetch('lead_conversion_report', expires_in: 2.minutes) do
+            build_lead_conversion_data
+          end
+
+          render json: data.merge(success: true)
+        rescue => e
+          Rails.logger.error "Error in lead_conversion: #{e.message}"
+          render json: {
+            success: false,
+            error: "Unable to load lead conversion data",
+            summary: { total_leads: 0, converted_leads: 0, pending_leads: 0, conversion_rate: 0 }
+          }, status: 500
+        end
+      end
+
+      def build_lead_conversion_data
           # Single query for stage breakdown + summary counts
           stage_breakdown = Lead.group(:current_stage).count
 
@@ -141,22 +157,13 @@ module Admin
               rate: total > 0 ? ((converted.to_f / total) * 100).round(2) : 0 }
           end
 
-          render json: {
-            success: true,
+          {
             summary: summary,
             stage_breakdown: stage_breakdown,
             monthly_trend: monthly_trend,
             source_conversion: source_conversion,
             calculation_method: "Conversion Rate = (Converted Leads / Total Leads) × 100"
           }
-        rescue => e
-          Rails.logger.error "Error in lead_conversion: #{e.message}"
-          render json: {
-            success: false,
-            error: "Unable to load lead conversion data",
-            summary: { total_leads: 0, converted_leads: 0, pending_leads: 0, conversion_rate: 0 }
-          }, status: 500
-        end
       end
 
       def avg_policy_value

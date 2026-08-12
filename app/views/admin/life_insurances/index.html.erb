@@ -100,20 +100,13 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Covered Lives</h6>
-            <%
-              total_lives = LifeInsurance.joins(:customer).distinct.count('customers.id')
-              drwise_lives = LifeInsurance.where(
-                is_admin_added: true, is_customer_added: false, is_agent_added: false
-              ).joins(:customer).distinct.count('customers.id')
-              non_drwise_lives = total_lives - drwise_lives
-            %>
-            <h3 class="mb-0 text-warning" data-stat="covered-lives"><%= number_with_delimiter(total_lives) %></h3>
+            <h3 class="mb-0 text-warning" data-stat="covered-lives"><%= number_with_delimiter((@drwise_lives || 0) + (@non_drwise_lives || 0)) %></h3>
             <div class="d-flex gap-2 mt-2">
               <small class="text-success">
-                <i class="bi bi-check-circle me-1"></i>DrWise: <%= drwise_lives %>
+                <i class="bi bi-check-circle me-1"></i>DrWise: <%= @drwise_lives || 0 %>
               </small>
               <small class="text-warning">
-                <i class="bi bi-x-circle me-1"></i>Non-DrWise: <%= non_drwise_lives %>
+                <i class="bi bi-x-circle me-1"></i>Non-DrWise: <%= @non_drwise_lives || 0 %>
               </small>
             </div>
           </div>
@@ -323,7 +316,7 @@
                     <h6 class="mb-1"><%= policy.policy_number %></h6>
                     <small class="text-muted"><%= policy.policy_type&.humanize %></small>
                     <br>
-                    <% doc_count = policy.total_documents_count %>
+                    <% doc_count = (@document_counts[policy.id] || 0) + (policy.has_main_policy_r2? ? 1 : 0) %>
                     <small class="<%= doc_count > 0 ? 'text-success' : 'text-danger' %>">
                       <i class="bi bi-file-earmark-<%= doc_count > 0 ? 'check' : 'x' %> me-1"></i>
                       <%= doc_count %> doc<%= doc_count == 1 ? '' : 's' %>

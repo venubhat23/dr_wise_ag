@@ -23,12 +23,7 @@ class Admin::BannersController < Admin::ApplicationController
     end
 
     # Statistics for dashboard cards
-    @stats = {
-      total_banners: Banner.count,
-      active_banners: Banner.active.count,
-      current_banners: Banner.current.count,
-      expired_banners: Banner.where('display_end_date < ?', Date.current).count
-    }
+    @stats = Banner.dashboard_stats
   end
 
   # GET /admin/banners/1
