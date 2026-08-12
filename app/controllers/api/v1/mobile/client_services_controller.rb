@@ -208,12 +208,12 @@ class Api::V1::Mobile::ClientServicesController < Api::V1::Mobile::BaseControlle
 
   def base_scope
     if @current_user.is_a?(SubAgent)
-      ClientService.where(sub_agent_id: @current_user.id)
+      ClientService.includes(:customer).where(sub_agent_id: @current_user.id)
     elsif @current_user.is_a?(User) && admin_user?
-      ClientService.all
+      ClientService.includes(:customer).all
     else
       sub_agent = SubAgent.find_by(email: @current_user.email)
-      sub_agent ? ClientService.where(sub_agent_id: sub_agent.id) : ClientService.none
+      sub_agent ? ClientService.includes(:customer).where(sub_agent_id: sub_agent.id) : ClientService.none
     end
   end
 

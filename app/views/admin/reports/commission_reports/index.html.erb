@@ -112,7 +112,7 @@
     <h5 class="mb-0">Saved Reports</h5>
   </div>
   <div class="card-body p-0">
-    <% if @saved_reports && @saved_reports.any? %>
+    <% if @saved_reports && @total_reports.to_i > 0 %>
       <div class="table-responsive">
         <table class="table table-hover mb-0">
           <thead class="bg-light">

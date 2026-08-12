@@ -162,10 +162,12 @@ class SubAgent < ApplicationRecord
   end
 
   def r2_profile_image
-    sub_agent_documents.find_by(document_type: 'Profile Image')&.tap do |doc|
-      return doc if doc&.has_r2_file?
+    doc = if sub_agent_documents.loaded?
+      sub_agent_documents.find { |d| d.document_type == 'Profile Image' }
+    else
+      sub_agent_documents.where(document_type: 'Profile Image').first
     end
-    nil
+    doc&.has_r2_file? ? doc : nil
   end
 
   def r2_profile_image_url

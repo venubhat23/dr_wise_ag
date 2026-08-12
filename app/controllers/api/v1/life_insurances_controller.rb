@@ -134,7 +134,7 @@ class Api::V1::LifeInsurancesController < Api::V1::ApplicationController
         by_policy_type: policies.group(:policy_type).count,
         by_company: policies.group(:insurance_company_name).count,
         by_payment_mode: policies.group(:payment_mode).count,
-        recent_policies: policies.order(created_at: :desc).limit(5).map { |p| policy_json(p) }
+        recent_policies: policies.includes(:customer, :sub_agent).order(created_at: :desc).limit(5).map { |p| policy_json(p) }
       }
     }
   end

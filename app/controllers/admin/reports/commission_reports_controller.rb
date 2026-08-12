@@ -181,12 +181,30 @@ class Admin::Reports::CommissionReportsController < Admin::Reports::BaseControll
 
   def generate_preview_data(filters)
     # Build the query based on filters
-    policies = build_policy_query(filters)
+    policies = build_policy_query(filters).to_a
+
+    # Batch-load every CommissionPayout for this policy set in one pass
+    # instead of the ~4 CommissionPayout queries build_policy_preview_data
+    # used to fire per policy.
+    payouts_by_policy = preload_commission_payouts(policies)
 
     # Transform policies into preview data format
     policies.map do |policy|
-      build_policy_preview_data(policy)
+      build_policy_preview_data(policy, payouts_by_policy)
     end
+  end
+
+  def preload_commission_payouts(policies)
+    grouped_ids = policies.group_by { |p| p.class.name.underscore.gsub('_insurance', '') }
+                           .transform_values { |ps| ps.map(&:id) }
+    return {} if grouped_ids.empty?
+
+    scope = CommissionPayout.none
+    grouped_ids.each do |policy_type, ids|
+      scope = scope.or(CommissionPayout.where(policy_type: policy_type, policy_id: ids))
+    end
+
+    scope.to_a.group_by { |cp| [cp.policy_type, cp.policy_id] }
   end
 
   def build_policy_query(filters)
@@ -247,11 +265,12 @@ class Admin::Reports::CommissionReportsController < Admin::Reports::BaseControll
     policies
   end
 
-  def build_policy_preview_data(policy)
+  def build_policy_preview_data(policy, payouts_by_policy)
     policy_type = policy.class.name.underscore.gsub('_insurance', '')
 
-    # Get commission payouts for this policy
-    payouts = CommissionPayout.where(policy_type: policy_type, policy_id: policy.id)
+    # Commission payouts for this policy, from the batch preload
+    payouts = payouts_by_policy[[policy_type, policy.id]] || []
+    paid_payouts = payouts.select { |p| p.status == 'paid' }
 
     {
       policy_number: policy.policy_number,
@@ -260,13 +279,13 @@ class Admin::Reports::CommissionReportsController < Admin::Reports::BaseControll
       insurance_company: policy.insurance_company_name || 'N/A',
       lead_id: policy.lead_id,
       premium_amount: policy.total_premium || 0,
-      total_commission: calculate_total_commission(policy),
+      total_commission: calculate_total_commission(policy, payouts),
       main_agent_amount: get_main_agent_commission(policy),
       main_agent_percentage: policy.main_agent_commission_percentage || 0,
       main_agent_status: get_main_agent_status(payouts),
-      paid_count: payouts.where(status: 'paid').count,
-      total_recipients: payouts.count,
-      paid_amount: payouts.where(status: 'paid').sum(:payout_amount),
+      paid_count: paid_payouts.size,
+      total_recipients: payouts.size,
+      paid_amount: paid_payouts.sum { |p| p.payout_amount.to_f },
       affiliate_amount: policy.sub_agent_commission_amount || 0,
       affiliate_percentage: policy.sub_agent_commission_percentage || 0,
       ambassador_amount: policy.ambassador_commission_amount || 0,
@@ -280,7 +299,7 @@ class Admin::Reports::CommissionReportsController < Admin::Reports::BaseControll
     }
   end
 
-  def calculate_total_commission(policy)
+  def calculate_total_commission(policy, payouts)
     total = 0
     total += get_main_agent_commission(policy)
     total += policy.sub_agent_commission_amount || 0 if policy.respond_to?(:sub_agent_commission_amount)
@@ -290,8 +309,7 @@ class Admin::Reports::CommissionReportsController < Admin::Reports::BaseControll
 
     # If no commission fields exist, calculate from payouts
     if total == 0
-      payouts = CommissionPayout.where(policy_type: policy.class.name.underscore.gsub('_insurance', ''), policy_id: policy.id)
-      total = payouts.sum(:payout_amount)
+      total = payouts.sum { |p| p.payout_amount.to_f }
     end
 
     total

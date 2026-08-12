@@ -13,6 +13,10 @@ class Admin::RolesController < Admin::ApplicationController
     @active_roles = @roles.where(status: true).count
     @inactive_roles = @roles.where(status: false).count
     @total_assignments = @roles.joins(:users).count
+
+    # Force-load once so the view's .any?/.each/.count reuse this array
+    # instead of re-querying the (already preloaded) relation.
+    @roles = @roles.to_a
   end
 
   # GET /admin/roles/1

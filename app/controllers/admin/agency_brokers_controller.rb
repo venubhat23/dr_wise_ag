@@ -4,7 +4,7 @@ class Admin::AgencyBrokersController < Admin::ApplicationController
 
   def index
     @agency_brokers = User.where(user_type: ['agent', 'sub_agent']).order(:first_name)
-    @agency_brokers = @agency_brokers.page(params[:page])
+    @agency_brokers = @agency_brokers.page(params[:page]).load
   end
 
   def show

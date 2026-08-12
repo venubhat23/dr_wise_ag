@@ -90,11 +90,11 @@ class Admin::PermissionsController < Admin::ApplicationController
     @grouped_permissions = @permissions.group_by(&:module_name)
     @modules = Permission.modules_list
 
-    # Current assignments matrix
-    @assignments = {}
-    @roles.each do |role|
-      @assignments[role.id] = role.permissions.pluck(:id)
-    end
+    # Current assignments matrix — one batched query instead of one per role.
+    role_ids = @roles.map(&:id)
+    grouped_ids = RolePermission.where(role_id: role_ids).pluck(:role_id, :permission_id)
+                                 .group_by(&:first).transform_values { |pairs| pairs.map(&:last) }
+    @assignments = role_ids.index_with { |id| grouped_ids[id] || [] }
   end
 
   # POST /admin/permissions/bulk_update
@@ -131,11 +131,12 @@ class Admin::PermissionsController < Admin::ApplicationController
       return
     end
 
-    # Role assignments for this module
-    @role_assignments = {}
-    @roles.each do |role|
-      @role_assignments[role.id] = role.permissions.where(module_name: @module_name).pluck(:action_type)
-    end
+    # Role assignments for this module — one batched query instead of one per role.
+    role_ids = @roles.map(&:id)
+    grouped_actions = RolePermission.for_module(@module_name).where(role_id: role_ids)
+                                     .pluck(:role_id, 'permissions.action_type')
+                                     .group_by(&:first).transform_values { |pairs| pairs.map(&:last) }
+    @role_assignments = role_ids.index_with { |id| grouped_actions[id] || [] }
   end
 
   private

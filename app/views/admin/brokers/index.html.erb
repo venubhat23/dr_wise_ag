@@ -119,7 +119,7 @@
         <h5 class="mb-0">Brokers List</h5>
       </div>
       <div class="card-body p-0">
-        <% if @brokers.any? %>
+        <% if @total_filtered_count.to_i > 0 %>
           <div class="table-responsive">
             <table class="table table-hover mb-0">
               <thead class="bg-light">
@@ -262,7 +262,7 @@
         <h5 class="mb-0">Broker Codes List</h5>
       </div>
       <div class="card-body p-0">
-        <% if defined?(@broker_codes) && @broker_codes&.any? %>
+        <% if defined?(@broker_codes) && @total_filtered_broker_codes.to_i > 0 %>
           <div class="table-responsive">
             <table class="table table-hover mb-0">
               <thead class="bg-light">

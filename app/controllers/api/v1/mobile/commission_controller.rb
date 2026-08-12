@@ -68,6 +68,8 @@ class Api::V1::Mobile::CommissionController < Api::V1::Mobile::BaseController
                 .order(payout_date: :desc, created_at: :desc)
                 .limit(per_page)
                 .offset(offset)
+                .to_a
+      CommissionPayout.preload_policies!(payouts)
 
       formatted_payouts = payouts.map { |payout| format_payout_data(payout) }
 
@@ -173,6 +175,7 @@ class Api::V1::Mobile::CommissionController < Api::V1::Mobile::BaseController
   def calculate_commission_summary
     # Load all payouts into memory so we can call model methods for gross/tds amounts
     all_payouts = get_all_sub_agent_payouts.to_a
+    CommissionPayout.preload_policies!(all_payouts)
 
     total_gross      = all_payouts.sum { |p| p.gross_commission_amount.to_f }
     total_tds        = all_payouts.sum { |p| p.tds_amount.to_f }
@@ -204,6 +207,8 @@ class Api::V1::Mobile::CommissionController < Api::V1::Mobile::BaseController
     recent_payouts = get_all_sub_agent_payouts
                       .order(payout_date: :desc, created_at: :desc)
                       .limit(limit)
+                      .to_a
+    CommissionPayout.preload_policies!(recent_payouts)
 
     recent_payouts.map { |payout| format_payout_data(payout) }
   end

@@ -18,6 +18,10 @@ class Admin::DocumentsController < Admin::ApplicationController
     # Statistics
     @total_documents = @documentable ? @documentable.uploaded_documents.count : Document.count
     @document_types_count = (@documentable ? @documentable.uploaded_documents : Document).group(:document_type).count
+
+    # Force-load once so the view's .any? (checks loaded? internally) and
+    # .each reuse this array instead of firing a separate EXISTS query.
+    @documents.load
   end
 
   # GET /admin/documents/1

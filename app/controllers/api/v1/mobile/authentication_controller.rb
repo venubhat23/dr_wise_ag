@@ -1072,24 +1072,65 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
   def calculate_agent_ranking(sub_agent)
     # Calculate ranking based on commission earned compared to other sub-agents
     begin
-      all_sub_agents = SubAgent.where(status: 'active')
-      sub_agent_commissions = []
+      commissions = sub_agent_commission_rankings
+      sorted_ids  = commissions.sort_by { |_id, commission| -commission }.map(&:first)
 
-      all_sub_agents.each do |agent|
-        stats = get_sub_agent_statistics(agent)
-        sub_agent_commissions << { id: agent.id, commission: stats[:commission_earned] }
-      end
+      current_agent_rank = sorted_ids.index(sub_agent.id)
 
-      # Sort by commission in descending order
-      sorted_agents = sub_agent_commissions.sort_by { |agent| -agent[:commission] }
-
-      # Find current agent's position
-      current_agent_rank = sorted_agents.find_index { |agent| agent[:id] == sub_agent.id }
-
-      current_agent_rank ? current_agent_rank + 1 : sorted_agents.count
+      current_agent_rank ? current_agent_rank + 1 : sorted_ids.count + 1
     rescue => e
       # Fallback to a consistent ranking based on ID
       ((sub_agent.id * 7) % 20) + 1
+    end
+  end
+
+  # calculate_agent_ranking used to call get_sub_agent_statistics (≈8 queries)
+  # once per active sub-agent to rank one agent against the rest — on every
+  # single sub-agent login. Compute commission for every active sub-agent in
+  # one batched pass instead, and cache briefly since a ranking display
+  # doesn't need to be millisecond-fresh (same tradeoff already used by
+  # SystemSetting.cached_settings / CommissionPayout.payout_totals_for
+  # elsewhere in this app).
+  def sub_agent_commission_rankings
+    Rails.cache.fetch('mobile_auth/sub_agent_commission_rankings', expires_in: 5.minutes) do
+      active_ids = SubAgent.where(status: 'active').pluck(:id)
+      next({}) if active_ids.empty?
+
+      payouts = CommissionPayout.where(payout_to: ['sub_agent', 'affiliate'])
+        .joins("LEFT JOIN health_insurances ON commission_payouts.policy_type = 'health' AND commission_payouts.policy_id = health_insurances.id
+                LEFT JOIN life_insurances ON commission_payouts.policy_type = 'life' AND commission_payouts.policy_id = life_insurances.id
+                LEFT JOIN motor_insurances ON commission_payouts.policy_type = 'motor' AND commission_payouts.policy_id = motor_insurances.id")
+        .where("(commission_payouts.policy_type = 'health' AND health_insurances.sub_agent_id IN (?)) OR
+                (commission_payouts.policy_type = 'life' AND life_insurances.sub_agent_id IN (?)) OR
+                (commission_payouts.policy_type = 'motor' AND motor_insurances.sub_agent_id IN (?))",
+                active_ids, active_ids, active_ids)
+        .select("commission_payouts.*, COALESCE(health_insurances.sub_agent_id, life_insurances.sub_agent_id, motor_insurances.sub_agent_id) AS resolved_sub_agent_id")
+        .to_a
+
+      h_map = HealthInsurance.where(id: payouts.select { |p| p.policy_type == 'health' }.map(&:policy_id)).index_by(&:id)
+      l_map = LifeInsurance.where(id: payouts.select { |p| p.policy_type == 'life' }.map(&:policy_id)).index_by(&:id)
+      m_map = begin
+        MotorInsurance.where(id: payouts.select { |p| p.policy_type == 'motor' }.map(&:policy_id)).index_by(&:id)
+      rescue
+        {}
+      end
+
+      commissions = Hash.new(0.0)
+      payouts.each do |payout|
+        agent_id = payout['resolved_sub_agent_id']&.to_i
+        next unless agent_id
+
+        pol = case payout.policy_type
+              when 'health' then h_map[payout.policy_id]
+              when 'life'   then l_map[payout.policy_id]
+              when 'motor'  then m_map[payout.policy_id]
+              end
+        gross = pol&.try(:sub_agent_commission_amount).to_f
+        gross = payout.payout_amount.to_f if gross.zero?
+        commissions[agent_id] += gross
+      end
+
+      active_ids.index_with { |id| commissions[id] }
     end
   end
 

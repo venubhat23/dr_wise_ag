@@ -37,6 +37,10 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
     leads = leads.order(created_at: :desc)
                  .limit(per_page)
                  .offset(offset)
+                 .to_a
+
+    ambassador_ids = leads.map(&:ambassador_id).compact.uniq
+    distributors_by_id = Distributor.where(id: ambassador_ids).index_by(&:id)
 
     render json: {
       success: true,
@@ -90,7 +94,7 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
               updated_at: lead.updated_at,
               # Computed fields
               affiliate_name: current_sub_agent.display_name,
-              ambassador_name: lead.ambassador_id.present? ? Distributor.find_by(id: lead.ambassador_id)&.display_name : nil,
+              ambassador_name: lead.ambassador_id.present? ? distributors_by_id[lead.ambassador_id]&.display_name : nil,
               formatted_created_date: lead.created_date&.strftime('%d %b, %Y'),
               full_address: [lead.address, lead.city, lead.state].compact.reject(&:blank?).join(', ')
             }

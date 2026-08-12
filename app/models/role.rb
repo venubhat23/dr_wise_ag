@@ -45,7 +45,7 @@ class Role < ApplicationRecord
   end
 
   def user_count
-    users.count
+    users.loaded? ? users.size : users.count
   end
 
   # Permission methods

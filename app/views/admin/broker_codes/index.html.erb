@@ -37,7 +37,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Codes</h6>
-            <h3 class="mb-0 text-primary"><%= number_with_delimiter(@broker_codes.count) %></h3>
+            <h3 class="mb-0 text-primary"><%= number_with_delimiter(@broker_codes_status_counts.values.sum) %></h3>
           </div>
           <div class="bg-primary bg-opacity-10 rounded p-3">
             <i class="bi bi-code-square text-primary fs-4"></i>
@@ -53,7 +53,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Active Codes</h6>
-            <h3 class="mb-0 text-success"><%= number_with_delimiter(@broker_codes.select(&:status).count) %></h3>
+            <h3 class="mb-0 text-success"><%= number_with_delimiter(@broker_codes_status_counts[true] || 0) %></h3>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
             <i class="bi bi-check-circle text-success fs-4"></i>
@@ -69,7 +69,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Unique Companies</h6>
-            <h3 class="mb-0 text-info"><%= number_with_delimiter(@broker_codes.distinct.count(:company_name)) %></h3>
+            <h3 class="mb-0 text-info"><%= number_with_delimiter(@broker_codes_unique_companies) %></h3>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">
             <i class="bi bi-building text-info fs-4"></i>
@@ -85,7 +85,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Unique Brokers</h6>
-            <h3 class="mb-0 text-warning"><%= number_with_delimiter(@broker_codes.distinct.count(:broker_id)) %></h3>
+            <h3 class="mb-0 text-warning"><%= number_with_delimiter(@broker_codes_unique_brokers) %></h3>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
             <i class="bi bi-people text-warning fs-4"></i>

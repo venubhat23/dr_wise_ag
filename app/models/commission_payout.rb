@@ -61,6 +61,32 @@ class CommissionPayout < ApplicationRecord
     end
   end
 
+  # #policy (below) can't be preloaded via a normal `.includes` because
+  # policy_type/policy_id isn't a real polymorphic association — every call
+  # re-queries HealthInsurance/LifeInsurance/MotorInsurance/OtherInsurance one
+  # row at a time. Batch-fetch and memoize @policy on each payout up front so
+  # iterating a collection (e.g. commission history/breakdown pages) doesn't
+  # fire a query per payout.
+  def self.preload_policies!(payouts)
+    by_type = payouts.group_by(&:policy_type)
+    policies_by_key = {}
+
+    { 'health' => HealthInsurance, 'life' => LifeInsurance, 'motor' => MotorInsurance, 'other' => OtherInsurance }.each do |type, klass|
+      ids = by_type[type]&.map(&:policy_id)&.compact&.uniq
+      next if ids.blank?
+
+      klass.includes(:customer).where(id: ids).each do |record|
+        policies_by_key[[type, record.id]] = record
+      end
+    end
+
+    payouts.each do |payout|
+      payout.instance_variable_set(:@policy, policies_by_key[[payout.policy_type, payout.policy_id]])
+    end
+
+    payouts
+  end
+
   # Instance methods
   def policy
     return @policy if defined?(@policy)

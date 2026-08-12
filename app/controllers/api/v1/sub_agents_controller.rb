@@ -2,7 +2,7 @@ class Api::V1::SubAgentsController < Api::V1::ApplicationController
 
   # GET /api/v1/sub_agents
   def index
-    sub_agents = SubAgent.all
+    sub_agents = SubAgent.with_attached_upload_main_document
 
     # Search functionality
     if params[:search].present?

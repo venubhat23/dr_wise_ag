@@ -32,6 +32,17 @@ class Admin::BrokerCodesController < ApplicationController
         # Get all brokers and companies for dropdowns
         @brokers = Broker.active.order(:name)
         @companies = InsuranceCompany.order(:name).pluck(:name)
+
+        # Single grouped query for the stats cards instead of 4 separate
+        # count queries (one of which — select(&:status).count — loaded the
+        # entire table into Ruby just to count truthy rows).
+        @broker_codes_status_counts = @broker_codes.group(:status).count
+        @broker_codes_unique_companies = @broker_codes.distinct.count(:company_name)
+        @broker_codes_unique_brokers = @broker_codes.distinct.count(:broker_id)
+
+        # Force-load once so the view's .any?/.each reuse this array instead
+        # of firing a separate EXISTS query.
+        @broker_codes = @broker_codes.load
       end
 
       format.json do

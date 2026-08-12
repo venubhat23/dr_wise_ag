@@ -50,7 +50,7 @@ module Admin
         rescue => e
           Rails.logger.error "Error fetching session activities: #{e.message}"
           []
-        end
+        end.to_a # force-load once so the view's repeated .any?/.first/.each reuse this array
 
         # Logins by user type
         @logins_by_role = Ahoy::Visit
@@ -71,10 +71,16 @@ module Admin
                 .pluck(:user_id)
                 .compact
 
-              # Then get user data for each unique user
+              # Then get user data for each unique user — batched instead of
+              # 2 Ahoy::Visit queries per user.
+              session_counts = Ahoy::Visit.where(user_id: unique_user_ids, started_at: date_from..Time.zone.now)
+                                           .group(:user_id).count
+              last_logins = Ahoy::Visit.where(user_id: unique_user_ids)
+                                        .group(:user_id).maximum(:started_at)
+
               unique_users_data = User.where(id: unique_user_ids).map do |user|
-                session_count = Ahoy::Visit.where(user_id: user.id, started_at: date_from..Time.zone.now).count
-                last_login = Ahoy::Visit.where(user_id: user.id).order(started_at: :desc).first&.started_at
+                session_count = session_counts[user.id] || 0
+                last_login = last_logins[user.id]
 
                 role_color = case user.user_type
                             when 'admin' then 'danger'

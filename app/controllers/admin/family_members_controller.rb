@@ -4,7 +4,7 @@ class Admin::FamilyMembersController < Admin::ApplicationController
 
   # GET /admin/customers/:customer_id/family_members
   def index
-    @family_members = @customer.family_members.order(:created_at)
+    @family_members = @customer.family_members.order(:created_at).load
   end
 
   # GET /admin/customers/:customer_id/family_members/1
