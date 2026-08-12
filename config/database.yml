@@ -2,37 +2,43 @@ default: &default
   adapter: postgresql
   encoding: unicode
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  url: postgresql://postgres:hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP@hayabusa.proxy.rlwy.net:49021/railway
 
 development:
   <<: *default
+  url: <%= ENV.fetch("DATABASE_URL") { "postgresql:///insurebook_admin_development?host=/var/run/postgresql&user=mahadev-bhat" } %>
 
 test:
   <<: *default
+  url: <%= ENV.fetch("TEST_DATABASE_URL") { "postgresql:///insurebook_admin_test?host=/var/run/postgresql&user=mahadev-bhat" } %>
 
 production:
   <<: *default
+  url: <%= ENV.fetch("DATABASE_URL") { "postgresql://postgres:hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP@hayabusa.proxy.rlwy.net:49021/railway" } %>
 
 # SolidCache configuration
 cache:
   production:
     <<: *default
-    url: <%= ENV["CACHE_DATABASE_URL"] || ENV["DATABASE_URL"] %>
+    url: <%= ENV["CACHE_DATABASE_URL"] || ENV.fetch("DATABASE_URL") { "postgresql://postgres:hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP@hayabusa.proxy.rlwy.net:49021/railway" } %>
 
   development:
     <<: *default
+    url: <%= ENV.fetch("DATABASE_URL") { "postgresql:///insurebook_admin_development?host=/var/run/postgresql&user=mahadev-bhat" } %>
 
   test:
     <<: *default
+    url: <%= ENV.fetch("TEST_DATABASE_URL") { "postgresql:///insurebook_admin_test?host=/var/run/postgresql&user=mahadev-bhat" } %>
 
 # SolidQueue configuration
 queue:
   production:
     <<: *default
-    url: <%= ENV["QUEUE_DATABASE_URL"] || ENV["DATABASE_URL"] %>
+    url: <%= ENV["QUEUE_DATABASE_URL"] || ENV.fetch("DATABASE_URL") { "postgresql://postgres:hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP@hayabusa.proxy.rlwy.net:49021/railway" } %>
 
   development:
     <<: *default
+    url: <%= ENV.fetch("DATABASE_URL") { "postgresql:///insurebook_admin_development?host=/var/run/postgresql&user=mahadev-bhat" } %>
 
   test:
     <<: *default
+    url: <%= ENV.fetch("TEST_DATABASE_URL") { "postgresql:///insurebook_admin_test?host=/var/run/postgresql&user=mahadev-bhat" } %>

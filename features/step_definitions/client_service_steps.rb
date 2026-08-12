@@ -48,6 +48,14 @@ end
 
 # ─── Background Setup ─────────────────────────────────────────────────────────
 
+Given('I am logged in as admin') do
+  login_as_admin
+end
+
+Given('test prerequisites exist') do
+  create_test_prerequisites
+end
+
 Given('a client service customer exists') do
   @cs_customer = Customer.find_or_create_by!(mobile: '9911001100') do |c|
     c.first_name            = 'Service'
@@ -227,4 +235,8 @@ Then('the last created client service should be marked as admin added') do
   record = ClientService.order(:created_at).last
   expect(record).not_to be_nil
   expect(record.is_admin_added).to be true
+end
+
+Then('I should see {string}') do |text|
+  expect(page).to have_content(text, wait: 10)
 end
