@@ -84,6 +84,32 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
                       end
     commission_payouts = CommissionPayout.where(payout_to: payout_to_value).index_by { |cp| "#{cp.policy_type}:#{cp.policy_id}" }
 
+    # Batch-compute policy counts/premium totals for this page of customers in a
+    # fixed number of queries instead of get_customer_policies_count/get_customer_total_premium
+    # re-querying per customer (was ~6-9 extra queries per customer).
+    page_customer_ids = customers.map(&:id)
+    if is_admin?(agent)
+      page_health_scope = HealthInsurance.where(customer_id: page_customer_ids)
+      page_life_scope = LifeInsurance.where(customer_id: page_customer_ids)
+      page_motor_scope = MotorInsurance.where(customer_id: page_customer_ids)
+    elsif agent.is_a?(SubAgent)
+      page_health_scope = HealthInsurance.where(customer_id: page_customer_ids, sub_agent_id: agent.id)
+      page_life_scope = LifeInsurance.where(customer_id: page_customer_ids, sub_agent_id: agent.id)
+      page_motor_scope = MotorInsurance.where(customer_id: page_customer_ids, sub_agent_id: agent.id)
+    else
+      agent_health_policies, agent_life_policies, agent_motor_policies, _ = get_agent_policies(agent)
+      page_health_scope = agent_health_policies.where(customer_id: page_customer_ids)
+      page_life_scope = agent_life_policies.where(customer_id: page_customer_ids)
+      page_motor_scope = agent_motor_policies.where(customer_id: page_customer_ids)
+    end
+
+    page_health_counts = page_health_scope.group(:customer_id).count
+    page_life_counts = page_life_scope.group(:customer_id).count
+    page_motor_counts = page_motor_scope.group(:customer_id).count
+    page_health_premiums = page_health_scope.group(:customer_id).sum(:total_premium)
+    page_life_premiums = page_life_scope.group(:customer_id).sum(:total_premium)
+    page_motor_premiums = page_motor_scope.group(:customer_id).sum(:total_premium)
+
     customers_data = customers.map do |customer|
       # Format document data
       attached_documents = customer.documents.map do |doc|
@@ -122,8 +148,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         password: (users_by_email[customer.email] || users_by_mobile[customer.mobile])&.original_password,
         customer_type: customer.customer_type,
         status: customer.active? ? 'Active' : 'Inactive',
-        policies_count: get_customer_policies_count(customer),
-        total_premium: format_indian_amount(get_customer_total_premium(customer)),
+        policies_count: page_health_counts[customer.id].to_i + page_life_counts[customer.id].to_i + page_motor_counts[customer.id].to_i,
+        total_premium: format_indian_amount(page_health_premiums[customer.id].to_f + page_life_premiums[customer.id].to_f + page_motor_premiums[customer.id].to_f),
         added_by: customer.added_by || 'system',
         added_via: determine_add_source(customer.added_by),
         created_at: customer.created_at,

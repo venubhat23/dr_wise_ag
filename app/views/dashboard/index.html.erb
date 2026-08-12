@@ -2262,30 +2262,23 @@ function loadTotalRevenueData(content, loading) {
     success: true,
     total_revenue: <%= @total_premium_collected || 0 %>,
     revenue_by_type: {
-      health: <%= (HealthInsurance.sum(:total_premium) rescue 0) || 0 %>,
-      life: <%= (LifeInsurance.sum(:total_premium) rescue 0) || 0 %>,
-      motor: <%= (MotorInsurance.sum(:total_premium) rescue 0) || 0 %>,
-      other: <%= (OtherInsurance.column_names.include?('total_premium') ? OtherInsurance.sum(:total_premium) : 0) rescue 0 %>
+      health: <%= (@revenue_by_type || {})[:health] || 0 %>,
+      life: <%= (@revenue_by_type || {})[:life] || 0 %>,
+      motor: <%= (@revenue_by_type || {})[:motor] || 0 %>,
+      other: <%= (@revenue_by_type || {})[:other] || 0 %>
     },
     monthly_revenue: [],
     growth_rate: 0
   };
 
-  // Calculate monthly revenue for the last 6 months
-  <% 6.times do |i| %>
-    <% month_start = i.months.ago.beginning_of_month %>
-    <% month_end = i.months.ago.end_of_month %>
+  // Monthly revenue for the last 6 months (precomputed server-side and cached
+  // with the rest of the dashboard data, instead of querying per-render)
+  <% (@monthly_revenue_last_6 || []).each do |m| %>
     revenueData.monthly_revenue.push({
-      month: '<%= month_start.strftime("%B %Y") %>',
-      revenue: <%=
-        HealthInsurance.where(created_at: month_start..month_end).sum(:total_premium) +
-        LifeInsurance.where(created_at: month_start..month_end).sum(:total_premium) +
-        MotorInsurance.where(created_at: month_start..month_end).sum(:total_premium) +
-        OtherInsurance.where(created_at: month_start..month_end).sum(:total_premium)
-      %>
+      month: '<%= m[:month] %>',
+      revenue: <%= m[:revenue] %>
     });
   <% end %>
-  revenueData.monthly_revenue.reverse();
 
   // Calculate growth rate
   if (revenueData.monthly_revenue.length >= 2) {

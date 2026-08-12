@@ -395,7 +395,7 @@
             <div>
               <h5 id="listTitle"><%= @selected_date ? "Appointments on #{@selected_date.strftime('%d %b %Y')}" : 'All Appointments' %></h5>
               <small class="text-muted" id="listSubtitle">
-                <%= @selected_date ? "#{@appointments.count} appointment(s)" : 'Nearest upcoming first' %>
+                <%= @selected_date ? "#{@total_record_count} appointment(s)" : 'Nearest upcoming first' %>
               </small>
             </div>
             <% if @selected_date %>
@@ -444,6 +444,9 @@
                 <p class="small">Click a date on the calendar or press New to schedule one.</p>
               </div>
             <% end %>
+          </div>
+          <div class="p-3">
+            <%= render 'shared/pagination', records: @appointments %>
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@ class Admin::UsersController < Admin::ApplicationController
 
   # GET /admin/users
   def index
-    @users = User.all
+    @users = User.includes(:role)
 
     # Search functionality
     if params[:search].present?

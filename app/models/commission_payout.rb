@@ -48,7 +48,9 @@ class CommissionPayout < ApplicationRecord
 
   # Instance methods
   def policy
-    case policy_type
+    return @policy if defined?(@policy)
+
+    @policy = case policy_type
     when 'health'
       HealthInsurance.find_by(id: policy_id)
     when 'life'

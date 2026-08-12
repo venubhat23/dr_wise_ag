@@ -183,14 +183,17 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     payouts = []
 
     # Get all commission payouts for affiliates directly
-    affiliate_commission_payouts = CommissionPayout.where(payout_to: 'affiliate').includes(:payout)
+    affiliate_commission_payouts = CommissionPayout.where(payout_to: 'affiliate').includes(:payout).to_a
+
+    # Batch-preload policies for all commission payouts to avoid N+1 lookups in the loop below
+    policies_by_type_and_id = preload_policies_for_commission_payouts(affiliate_commission_payouts)
 
     # Group by affiliate
     affiliate_groups = {}
 
     affiliate_commission_payouts.each do |commission_payout|
       # Get policy from commission payout
-      policy = get_policy_from_commission_payout(commission_payout)
+      policy = policies_by_type_and_id.dig(commission_payout.policy_type, commission_payout.policy_id)
       next unless policy
 
       # Skip if main agent commission not received
@@ -433,6 +436,23 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     when 'other'
       OtherInsurance.find_by(id: commission_payout.policy_id)
     end
+  end
+
+  # Batch-fetches the policies referenced by a list of commission payouts in a
+  # handful of queries (one per policy_type) instead of one query per payout.
+  # Returns a { policy_type => { policy_id => policy } } lookup hash.
+  def preload_policies_for_commission_payouts(commission_payouts)
+    ids_by_type = { 'health' => [], 'life' => [], 'motor' => [], 'other' => [] }
+    commission_payouts.each do |cp|
+      ids_by_type[cp.policy_type]&.push(cp.policy_id)
+    end
+
+    {
+      'health' => HealthInsurance.where(id: ids_by_type['health'].uniq.compact).index_by(&:id),
+      'life'   => LifeInsurance.where(id: ids_by_type['life'].uniq.compact).index_by(&:id),
+      'motor'  => MotorInsurance.where(id: ids_by_type['motor'].uniq.compact).index_by(&:id),
+      'other'  => OtherInsurance.where(id: ids_by_type['other'].uniq.compact).index_by(&:id)
+    }
   end
 
   def mark_single_lead_payout(lead_id)

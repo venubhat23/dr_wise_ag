@@ -18,7 +18,7 @@ class Admin::DistributorsController < Admin::ApplicationController
 
     @total_filtered_count = @distributors.count
 
-    @distributors = paginate_records(@distributors.order(created_at: :desc))
+    @distributors = paginate_records(@distributors.order(created_at: :desc), @total_filtered_count)
 
     # All three stats in one query instead of three separate count queries
     stats = ActiveRecord::Base.connection.execute(<<~SQL).first

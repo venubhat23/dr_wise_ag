@@ -6,16 +6,16 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     customer_id = current_customer.id
 
     # Get all health insurance policies
-    health_policies = HealthInsurance.where(customer_id: customer_id)
+    health_policies = HealthInsurance.includes(:health_insurance_documents).where(customer_id: customer_id)
 
     # Get all life insurance policies
-    life_policies = LifeInsurance.where(customer_id: customer_id)
+    life_policies = LifeInsurance.includes(:life_insurance_documents).where(customer_id: customer_id)
 
     # Get all motor insurance policies
     motor_policies = []
     begin
       if defined?(MotorInsurance)
-        motor_policies = MotorInsurance.where(customer_id: customer_id)
+        motor_policies = MotorInsurance.includes(:motor_insurance_documents).where(customer_id: customer_id)
       end
     rescue => e
       Rails.logger.warn "Motor insurance table issue: #{e.message}"

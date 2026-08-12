@@ -1015,20 +1015,27 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_agent_customer_data
-    # Calculate customer counts for each agent to avoid DB calls in view
+    # Calculate customer counts for each agent to avoid DB calls in view.
+    # Aggregate counts are computed once per sub_agent_id (not once per SubAgent
+    # in a loop) since `.count`/`.distinct.count` always issue a fresh query
+    # regardless of `.includes`.
     agent_customers = {}
 
-    # Process each sub agent and calculate their customer metrics
-    SubAgent.includes(:customers, :health_insurances, :life_insurances, :motor_insurances).each do |sub_agent|
+    customer_counts = Customer.group(:sub_agent_id).count
+    health_customer_counts = HealthInsurance.where.not(sub_agent_id: nil).group(:sub_agent_id).distinct.count(:customer_id)
+    life_customer_counts = LifeInsurance.where.not(sub_agent_id: nil).group(:sub_agent_id).distinct.count(:customer_id)
+    motor_customer_counts = MotorInsurance.where.not(sub_agent_id: nil).group(:sub_agent_id).distinct.count(:customer_id)
+
+    SubAgent.find_each do |sub_agent|
       agent_name = "#{sub_agent.first_name} #{sub_agent.last_name}"
 
       # Direct customer count
-      customer_count = sub_agent.customers.count
+      customer_count = customer_counts[sub_agent.id] || 0
 
       # Unique customers from each insurance type
-      health_customers = sub_agent.health_insurances.distinct.count(:customer_id)
-      life_customers = sub_agent.life_insurances.distinct.count(:customer_id)
-      motor_customers = sub_agent.motor_insurances.distinct.count(:customer_id)
+      health_customers = health_customer_counts[sub_agent.id] || 0
+      life_customers = life_customer_counts[sub_agent.id] || 0
+      motor_customers = motor_customer_counts[sub_agent.id] || 0
 
       # Use the maximum as the customer count (accounts for overlap)
       max_customers = [customer_count, health_customers, life_customers, motor_customers].max

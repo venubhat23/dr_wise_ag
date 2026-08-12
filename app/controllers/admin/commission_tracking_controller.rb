@@ -454,16 +454,28 @@ class Admin::CommissionTrackingController < ApplicationController
 
   def commission_details_modal
     # Endpoint for fetching commission details for modal
-    @pending_commissions = CommissionPayout.includes(:policy)
-                                           .where(status: 'pending')
+    @pending_commissions = CommissionPayout.where(status: 'pending')
                                            .order(created_at: :desc)
+
+    payout_list = @pending_commissions.to_a
+    health_ids = payout_list.select { |p| p.policy_type == 'health' }.map(&:policy_id).uniq.compact
+    life_ids   = payout_list.select { |p| p.policy_type == 'life'   }.map(&:policy_id).uniq.compact
+    motor_ids  = payout_list.select { |p| p.policy_type == 'motor'  }.map(&:policy_id).uniq.compact
+    other_ids  = payout_list.select { |p| p.policy_type == 'other'  }.map(&:policy_id).uniq.compact
+
+    policy_maps = {
+      'health' => HealthInsurance.includes(:customer).where(id: health_ids).index_by(&:id),
+      'life'   => LifeInsurance.includes(:customer).where(id: life_ids).index_by(&:id),
+      'motor'  => MotorInsurance.includes(:customer).where(id: motor_ids).index_by(&:id),
+      'other'  => OtherInsurance.includes(:customer).where(id: other_ids).index_by(&:id)
+    }
 
     respond_to do |format|
       format.json do
         render json: {
           success: true,
-          data: @pending_commissions.map do |payout|
-            policy = get_policy_for_payout(payout)
+          data: payout_list.map do |payout|
+            policy = policy_maps[payout.policy_type]&.[](payout.policy_id)
             {
               id: payout.id,
               lead_id: policy&.lead_id || 'N/A',

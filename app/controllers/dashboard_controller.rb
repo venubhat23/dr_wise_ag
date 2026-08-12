@@ -162,7 +162,7 @@ class DashboardController < ApplicationController
 
     # Load filter-independent data (always based on current date, not filter dates)
     # Cache this separately with shorter expiry since it's real-time data
-    filter_independent_cache_key = "dashboard_filter_independent_#{Date.current}_v3"
+    filter_independent_cache_key = "dashboard_filter_independent_#{Date.current}_v4"
     filter_independent_data = Rails.cache.fetch(filter_independent_cache_key, expires_in: 2.minutes) do
       load_filter_independent_data()
     end
@@ -216,6 +216,11 @@ class DashboardController < ApplicationController
     # Premium Revenue Trend - last 6 months from current date
     results[:premium_revenue_trend] = get_premium_revenue_trend_data
 
+    # Revenue breakdown for the "Total Revenue" modal (was previously queried
+    # inline in the view on every render - now computed once here and cached)
+    results[:revenue_by_type] = get_revenue_by_type
+    results[:monthly_revenue_last_6] = get_monthly_revenue_last_6_months
+
     # Keep backward compatibility
     results[:expired_policies_count] = results[:recently_expired_count]
 
@@ -223,6 +228,43 @@ class DashboardController < ApplicationController
   rescue => e
     Rails.logger.error "Error loading filter-independent data: #{e.message}"
     {}
+  end
+
+  def get_revenue_by_type
+    {
+      health: (HealthInsurance.sum(:total_premium) || 0).to_f,
+      life: (LifeInsurance.sum(:total_premium) || 0).to_f,
+      motor: (MotorInsurance.sum(:total_premium) || 0).to_f,
+      other: (OtherInsurance.column_names.include?('total_premium') ? (OtherInsurance.sum(:total_premium) || 0) : 0).to_f
+    }
+  rescue => e
+    Rails.logger.error "Error calculating revenue by type: #{e.message}"
+    { health: 0.0, life: 0.0, motor: 0.0, other: 0.0 }
+  end
+
+  def get_monthly_revenue_last_6_months
+    end_date = Date.current.end_of_month
+    start_date = (end_date - 5.months).beginning_of_month
+
+    totals_by_month = Hash.new(0.0)
+    [HealthInsurance, LifeInsurance, MotorInsurance, OtherInsurance].each do |klass|
+      next if klass == OtherInsurance && !klass.column_names.include?('total_premium')
+
+      klass.where(created_at: start_date.beginning_of_day..end_date.end_of_day)
+           .group("DATE_TRUNC('month', created_at)")
+           .sum(:total_premium)
+           .each { |month, amount| totals_by_month[month.to_date.beginning_of_month] += amount.to_f }
+    rescue => e
+      Rails.logger.error "Error calculating monthly revenue for #{klass.name}: #{e.message}"
+    end
+
+    (0..5).map do |i|
+      month_start = (end_date - i.months).beginning_of_month
+      { month: month_start.strftime('%B %Y'), revenue: totals_by_month[month_start] || 0.0 }
+    end.reverse
+  rescue => e
+    Rails.logger.error "Error calculating monthly revenue trend: #{e.message}"
+    []
   end
 
   def get_upcoming_birthdays

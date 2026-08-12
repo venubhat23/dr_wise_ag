@@ -3,7 +3,8 @@ class Admin::BannersController < Admin::ApplicationController
 
   # GET /admin/banners
   def index
-    @banners = Banner.order(:display_order, :created_at)
+    @banners = Banner.with_attached_banner_image
+                    .order(:display_order, :created_at)
                     .page(params[:page]).per(25)
 
     # Filter by status if specified

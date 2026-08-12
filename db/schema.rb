@@ -10,10 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_12_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
-  enable_extension "pg_trgm"
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
@@ -159,21 +158,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["status"], name: "index_appointments_on_status"
   end
 
-  create_table "banner_documents", force: :cascade do |t|
-    t.bigint "banner_id", null: false
-    t.string "document_type"
-    t.string "title"
-    t.text "description"
-    t.string "r2_file_key"
-    t.string "r2_filename"
-    t.string "r2_content_type"
-    t.bigint "r2_file_size"
-    t.string "uploaded_by"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["banner_id"], name: "index_banner_documents_on_banner_id"
-  end
-
   create_table "banners", force: :cascade do |t|
     t.string "title"
     t.string "description"
@@ -223,6 +207,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.text "description", null: false
     t.string "status", default: "pending"
     t.string "priority", default: "medium"
+    t.string "subject"
+    t.string "request_type"
     t.datetime "submitted_at", null: false
     t.text "admin_response"
     t.datetime "resolved_at"
@@ -232,8 +218,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.string "category"
     t.string "submitter_type"
     t.integer "submitter_id"
-    t.string "subject"
-    t.string "request_type"
     t.index ["email"], name: "index_client_requests_on_email"
     t.index ["resolved_by_id"], name: "index_client_requests_on_resolved_by_id"
     t.index ["status"], name: "index_client_requests_on_status"
@@ -281,6 +265,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.boolean "is_customer_added", default: true, null: false
     t.boolean "is_agent_added", default: false, null: false
     t.index ["customer_id"], name: "index_client_services_on_customer_id"
+    t.index ["distributor_id"], name: "index_client_services_on_distributor_id"
     t.index ["service_category"], name: "index_client_services_on_service_category"
     t.index ["service_type"], name: "index_client_services_on_service_type"
     t.index ["sub_agent_id"], name: "index_client_services_on_sub_agent_id"
@@ -362,10 +347,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.string "document_type"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "r2_file_key"
-    t.string "r2_filename"
-    t.string "r2_content_type"
-    t.bigint "r2_file_size"
     t.index ["customer_id"], name: "index_customer_documents_on_customer_id"
   end
 
@@ -411,15 +392,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.text "additional_information"
     t.string "pan_no"
     t.string "gst_no"
+    t.integer "policies_count", default: 0, null: false
     t.integer "sub_agent_id"
     t.string "lead_id"
     t.boolean "deactivated", default: false
-    t.string "r2_profile_image_key"
-    t.string "r2_profile_image_filename"
-    t.string "r2_profile_image_content_type"
-    t.bigint "r2_profile_image_size"
-    t.text "r2_profile_image_public_url"
-    t.integer "policies_count", default: 0, null: false
     t.string "bank_name"
     t.string "account_no"
     t.string "ifsc_code"
@@ -452,10 +428,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.string "document_type"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "r2_file_key"
-    t.string "r2_filename"
-    t.string "r2_content_type"
-    t.bigint "r2_file_size"
     t.index ["distributor_id"], name: "index_distributor_documents_on_distributor_id"
   end
 
@@ -532,10 +504,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.string "title"
     t.text "description"
     t.string "uploaded_by"
-    t.string "r2_file_key"
-    t.string "r2_filename"
-    t.string "r2_content_type"
-    t.bigint "r2_file_size"
     t.index ["documentable_type", "documentable_id"], name: "index_documents_on_documentable"
   end
 
@@ -667,14 +635,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.boolean "policy_added_by_admin", default: false
     t.date "nominee_dob"
     t.string "broker_code_type"
-    t.string "insurance_company_code"
-    t.string "main_policy_document_key"
-    t.string "main_policy_document_filename"
-    t.string "main_policy_document_content_type"
-    t.bigint "main_policy_document_size"
-    t.decimal "company_expenses_amount"
-    t.boolean "is_renewed", default: false
-    t.bigint "original_policy_id"
     t.string "premium_frequency", limit: 50
     t.string "status", limit: 50
     t.date "start_date"
@@ -683,6 +643,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.string "nominee_name", limit: 255
     t.string "nominee_relation", limit: 100
     t.string "sum_insured_text", limit: 255
+    t.bigint "original_policy_id"
+    t.boolean "is_renewed", default: false
+    t.string "insurance_company_code"
     t.index ["agency_code_id"], name: "index_health_insurances_on_agency_code_id"
     t.index ["broker_id"], name: "index_health_insurances_on_broker_id"
     t.index ["created_at"], name: "idx_health_insurances_created_at"
@@ -693,14 +656,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["investor_id"], name: "index_health_insurances_on_investor_id"
     t.index ["is_admin_added", "is_customer_added", "is_agent_added"], name: "idx_health_insurances_drwise"
     t.index ["lead_id"], name: "index_health_insurances_on_lead_id", unique: true
+    t.index ["original_policy_id"], name: "index_health_insurances_on_original_policy_id"
+    t.index ["policy_booking_date"], name: "index_health_insurances_on_policy_booking_date"
     t.index ["policy_end_date", "created_at"], name: "index_health_insurances_on_policy_end_date_and_created_at"
     t.index ["policy_end_date"], name: "index_health_insurances_on_policy_end_date"
     t.index ["policy_id"], name: "index_health_insurances_on_policy_id"
+    t.index ["policy_start_date"], name: "index_health_insurances_on_policy_start_date"
     t.index ["policy_type"], name: "index_health_insurances_on_policy_type"
-    t.index ["product_through_dr", "created_at"], name: "index_health_insurances_on_product_through_dr_and_created_at"
-    t.index ["product_through_dr", "sum_insured"], name: "index_health_insurances_on_product_through_dr_and_sum_insured"
-    t.index ["product_through_dr", "total_premium"], name: "idx_on_product_through_dr_total_premium_6bf60d17b1"
-    t.index ["product_through_dr"], name: "index_health_insurances_on_product_through_dr"
     t.index ["status"], name: "index_health_insurances_on_status"
     t.index ["sub_agent_id"], name: "index_health_insurances_on_sub_agent_id"
   end
@@ -726,6 +688,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["ticket_number"], name: "index_helpdesk_tickets_on_ticket_number", unique: true
   end
 
+  create_table "indian_locations", force: :cascade do |t|
+    t.string "state", null: false
+    t.string "city", null: false
+    t.string "district"
+    t.string "pincode"
+    t.boolean "is_active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["is_active"], name: "index_indian_locations_on_is_active"
+    t.index ["state", "city"], name: "index_indian_locations_on_state_and_city", unique: true
+    t.index ["state"], name: "index_indian_locations_on_state"
+  end
+
   create_table "insurance_companies", force: :cascade do |t|
     t.string "name"
     t.boolean "status"
@@ -737,16 +712,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.string "mobile"
     t.text "address"
     t.string "insurance_type"
-    t.index ["code"], name: "idx_insurance_companies_code"
-    t.index ["code"], name: "idx_insurance_companies_code_gin", opclass: :gin_trgm_ops, using: :gin
-    t.index ["contact_person"], name: "idx_insurance_companies_contact_gin", opclass: :gin_trgm_ops, using: :gin
-    t.index ["created_at"], name: "idx_insurance_companies_created_at"
-    t.index ["name", "code", "contact_person"], name: "idx_insurance_companies_search_composite"
-    t.index ["name", "id"], name: "idx_insurance_companies_name_id"
-    t.index ["name"], name: "idx_insurance_companies_name"
-    t.index ["name"], name: "idx_insurance_companies_name_gin", opclass: :gin_trgm_ops, using: :gin
-    t.index ["status"], name: "idx_insurance_companies_status"
-    t.index ["updated_at"], name: "idx_insurance_companies_updated_at"
   end
 
   create_table "investments", force: :cascade do |t|
@@ -763,56 +728,48 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["customer_id"], name: "index_investments_on_customer_id"
   end
 
-  create_table "investor_documents", force: :cascade do |t|
-    t.bigint "investor_id", null: false
+  create_table "investor_documents", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.integer "investor_id"
     t.string "document_type"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "r2_file_key"
-    t.string "r2_filename"
-    t.string "r2_content_type"
-    t.bigint "r2_file_size"
     t.index ["investor_id"], name: "index_investor_documents_on_investor_id"
   end
 
-  create_table "investors", force: :cascade do |t|
-    t.string "first_name", null: false
-    t.string "middle_name"
-    t.string "last_name", null: false
-    t.string "mobile", null: false
-    t.string "email", null: false
-    t.integer "role_id", null: false
+  create_table "investors", id: :serial, force: :cascade do |t|
+    t.string "first_name", limit: 255
+    t.string "middle_name", limit: 255
+    t.string "last_name", limit: 255
+    t.string "mobile", limit: 255
+    t.string "email", limit: 255
+    t.integer "role_id"
     t.string "state"
     t.string "city"
     t.date "birth_date"
-    t.string "gender"
-    t.string "pan_no"
-    t.string "gst_no"
-    t.string "company_name"
+    t.string "gender", limit: 255
+    t.string "pan_no", limit: 255
+    t.string "gst_no", limit: 255
+    t.string "company_name", limit: 255
     t.text "address"
-    t.string "bank_name"
-    t.string "account_no"
-    t.string "ifsc_code"
-    t.string "account_holder_name"
-    t.string "account_type"
-    t.string "upi_id"
-    t.integer "status", default: 0
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.string "bank_name", limit: 255
+    t.string "account_no", limit: 255
+    t.string "ifsc_code", limit: 255
+    t.string "account_holder_name", limit: 255
+    t.string "account_type", limit: 255
+    t.string "upi_id", limit: 255
+    t.integer "status"
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
     t.string "password_digest"
     t.string "username"
     t.string "original_password"
     t.decimal "invested_amount"
     t.decimal "investment_percentage"
+    t.integer "number_of_shares"
     t.string "main_document_key"
     t.string "main_document_filename"
     t.string "main_document_content_type"
     t.bigint "main_document_size"
-    t.integer "number_of_shares"
-    t.index ["email"], name: "index_investors_on_email", unique: true
-    t.index ["mobile"], name: "index_investors_on_mobile", unique: true
-    t.index ["role_id"], name: "index_investors_on_role_id"
-    t.index ["status"], name: "index_investors_on_status"
   end
 
   create_table "invoice_items", force: :cascade do |t|
@@ -826,55 +783,54 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["invoice_id"], name: "index_invoice_items_on_invoice_id"
   end
 
-  create_table "invoices", force: :cascade do |t|
-    t.string "invoice_number", null: false
-    t.string "payout_type", null: false
-    t.integer "payout_id", null: false
-    t.decimal "total_amount", precision: 10, scale: 2, null: false
-    t.string "status", default: "pending", null: false
-    t.date "invoice_date", null: false
-    t.date "due_date", null: false
+  create_table "invoices", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "invoice_number"
+    t.string "payout_type"
+    t.integer "payout_id"
+    t.decimal "total_amount", precision: 10, scale: 2
+    t.string "status", default: "pending"
+    t.date "invoice_date"
+    t.date "due_date"
     t.datetime "paid_at"
     t.string "recipient_name"
     t.string "recipient_email"
     t.text "recipient_address"
     t.text "notes"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.index ["invoice_date"], name: "index_invoices_on_invoice_date"
     t.index ["invoice_number"], name: "index_invoices_on_invoice_number", unique: true
     t.index ["payout_type", "payout_id"], name: "index_invoices_on_payout_type_and_payout_id"
     t.index ["status"], name: "index_invoices_on_status"
   end
 
-  create_table "leads", force: :cascade do |t|
+  create_table "leads", id: :serial, force: :cascade do |t|
     t.string "name"
     t.string "contact_number"
     t.string "email"
     t.string "referred_by"
     t.string "product_interest"
-    t.string "current_stage"
+    t.string "current_stage", default: "lead_generated"
     t.date "created_date"
     t.text "note"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.string "lead_id"
     t.text "address"
     t.string "city"
     t.string "state"
     t.string "lead_source"
     t.string "call_disposition"
-    t.decimal "referral_amount", precision: 10, scale: 2, default: "0.0"
+    t.decimal "referral_amount"
     t.boolean "transferred_amount", default: false
     t.text "notes"
     t.text "attachments"
-    t.datetime "stage_updated_at"
+    t.datetime "stage_updated_at", precision: nil
     t.integer "converted_customer_id"
     t.integer "policy_created_id"
     t.string "product_category"
     t.string "product_subcategory"
     t.boolean "is_direct", default: true
     t.integer "affiliate_id"
+    t.string "customer_type", default: "individual"
     t.string "first_name"
     t.string "middle_name"
     t.string "last_name"
@@ -884,8 +840,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.string "gst_no"
     t.string "company_name"
     t.string "marital_status"
-    t.string "height"
-    t.string "weight"
+    t.decimal "height"
+    t.decimal "weight"
     t.string "birth_place"
     t.string "education"
     t.string "business_job"
@@ -895,15 +851,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.string "type_of_duty"
     t.decimal "annual_income"
     t.text "additional_information"
-    t.decimal "height_feet", precision: 3, scale: 1
-    t.decimal "weight_kg", precision: 5, scale: 1
-    t.string "business_job_type"
-    t.string "business_job_name"
-    t.string "duty_type"
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }
+    t.integer "parent_lead_id"
     t.boolean "is_branch_out", default: false
     t.integer "ambassador_id"
-    t.string "customer_type", default: "individual"
-    t.integer "parent_lead_id"
     t.index ["affiliate_id"], name: "index_leads_on_affiliate_id"
     t.index ["ambassador_id"], name: "index_leads_on_ambassador_id"
     t.index ["company_name"], name: "index_leads_on_company_name"
@@ -915,7 +867,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["email"], name: "index_leads_on_email"
     t.index ["first_name", "last_name"], name: "index_leads_on_first_name_and_last_name"
     t.index ["is_direct"], name: "index_leads_on_is_direct"
-    t.index ["lead_id"], name: "index_leads_on_lead_id", unique: true
+    t.index ["lead_id"], name: "index_leads_on_lead_id"
     t.index ["lead_source"], name: "index_leads_on_lead_source"
     t.index ["parent_lead_id"], name: "index_leads_on_parent_lead_id"
     t.index ["policy_created_id"], name: "index_leads_on_policy_created_id"
@@ -924,182 +876,161 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["product_subcategory"], name: "index_leads_on_product_subcategory"
   end
 
-  create_table "life_insurance_bank_details", force: :cascade do |t|
-    t.bigint "life_insurance_id", null: false
+  create_table "life_insurance_bank_details", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.integer "life_insurance_id"
     t.string "bank_name"
     t.string "account_type"
     t.string "account_number"
     t.string "ifsc_code"
     t.string "account_holder_name"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.index ["life_insurance_id"], name: "index_life_insurance_bank_details_on_life_insurance_id"
   end
 
-  create_table "life_insurance_documents", force: :cascade do |t|
-    t.bigint "life_insurance_id", null: false
+  create_table "life_insurance_documents", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.integer "life_insurance_id"
     t.string "document_type"
     t.string "document_name"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.index ["life_insurance_id"], name: "index_life_insurance_documents_on_life_insurance_id"
   end
 
-  create_table "life_insurance_nominees", force: :cascade do |t|
-    t.bigint "life_insurance_id", null: false
-    t.string "nominee_name"
-    t.string "relationship"
+  create_table "life_insurance_nominees", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.integer "life_insurance_id", null: false
+    t.string "nominee_name", null: false
+    t.string "relationship", null: false
     t.integer "age"
-    t.decimal "share_percentage"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.decimal "share_percentage", precision: 5, scale: 2
     t.index ["life_insurance_id"], name: "index_life_insurance_nominees_on_life_insurance_id"
   end
 
-  create_table "life_insurances", force: :cascade do |t|
-    t.bigint "customer_id", null: false
-    t.bigint "sub_agent_id"
-    t.string "policy_holder", null: false
-    t.string "insured_name"
-    t.string "insurance_company_name", null: false
-    t.bigint "agency_code_id"
-    t.bigint "broker_id"
-    t.string "policy_type", null: false
-    t.string "payment_mode", null: false
-    t.string "policy_number", null: false
+  create_table "life_insurances", id: :serial, force: :cascade do |t|
+    t.integer "customer_id", null: false
+    t.integer "sub_agent_id"
+    t.string "policy_holder", limit: 255, null: false
+    t.string "insured_name", limit: 255
+    t.string "insurance_company_name", limit: 255, null: false
+    t.integer "agency_code_id"
+    t.integer "broker_id"
+    t.string "policy_type", limit: 255, null: false
+    t.string "payment_mode", limit: 255, null: false
+    t.string "policy_number", limit: 255, null: false
     t.date "policy_booking_date"
     t.date "policy_start_date", null: false
     t.date "policy_end_date", null: false
-    t.date "risk_start_date"
     t.integer "policy_term", null: false
     t.integer "premium_payment_term", null: false
-    t.string "plan_name"
+    t.string "plan_name", limit: 255
     t.decimal "sum_insured", precision: 15, scale: 2, null: false
     t.decimal "net_premium", precision: 15, scale: 2, null: false
-    t.decimal "first_year_gst_percentage", precision: 5, scale: 2, default: "18.0"
-    t.decimal "second_year_gst_percentage", precision: 5, scale: 2, default: "0.0"
-    t.decimal "third_year_gst_percentage", precision: 5, scale: 2, default: "0.0"
     t.decimal "total_premium", precision: 15, scale: 2, null: false
-    t.decimal "term_rider_amount", precision: 15, scale: 2, default: "0.0"
-    t.text "term_rider_note"
-    t.decimal "critical_illness_rider_amount", precision: 15, scale: 2, default: "0.0"
-    t.text "critical_illness_rider_note"
-    t.decimal "accident_rider_amount", precision: 15, scale: 2, default: "0.0"
-    t.text "accident_rider_note"
-    t.decimal "pwb_rider_amount", precision: 15, scale: 2, default: "0.0"
-    t.text "pwb_rider_note"
-    t.decimal "other_rider_amount", precision: 15, scale: 2, default: "0.0"
-    t.text "other_rider_note"
-    t.string "nominee_name"
-    t.string "nominee_relationship"
+    t.string "nominee_name", limit: 255
+    t.string "nominee_relationship", limit: 255
     t.integer "nominee_age"
-    t.string "bank_name"
-    t.string "account_type"
-    t.string "account_number"
-    t.string "ifsc_code"
-    t.string "account_holder_name"
-    t.string "reference_by_name"
-    t.string "broker_name"
-    t.decimal "bonus", precision: 15, scale: 2, default: "0.0"
-    t.decimal "fund", precision: 15, scale: 2, default: "0.0"
-    t.text "extra_note"
-    t.decimal "main_agent_commission_percentage", precision: 5, scale: 2, default: "0.0"
-    t.decimal "commission_amount", precision: 15, scale: 2, default: "0.0"
-    t.decimal "tds_percentage", precision: 5, scale: 2, default: "0.0"
-    t.decimal "tds_amount", precision: 15, scale: 2, default: "0.0"
-    t.decimal "after_tds_value", precision: 15, scale: 2, default: "0.0"
-    t.date "installment_autopay_start_date"
-    t.date "installment_autopay_end_date"
     t.boolean "active", default: true
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.text "notification_dates"
-    t.boolean "is_customer_added", default: false
-    t.boolean "is_agent_added", default: false
-    t.boolean "is_admin_added", default: false
-    t.bigint "distributor_id"
-    t.bigint "investor_id"
-    t.decimal "sub_agent_commission_percentage", precision: 5, scale: 2, default: "2.0"
-    t.decimal "sub_agent_commission_amount", precision: 10, scale: 2
-    t.decimal "distributor_commission_percentage", precision: 5, scale: 2, default: "1.0"
-    t.decimal "distributor_commission_amount", precision: 10, scale: 2
-    t.decimal "investor_commission_percentage", precision: 5, scale: 2, default: "2.0"
-    t.decimal "investor_commission_amount", precision: 10, scale: 2
-    t.decimal "main_income_percentage", precision: 5, scale: 2, default: "10.0"
-    t.decimal "main_income_amount", precision: 10, scale: 2
-    t.decimal "total_distribution_percentage", precision: 5, scale: 2
-    t.decimal "company_expenses_percentage", precision: 5, scale: 2
-    t.decimal "profit_percentage", precision: 5, scale: 2
-    t.decimal "profit_amount", precision: 10, scale: 2
-    t.decimal "sub_agent_tds_percentage", precision: 5, scale: 2, default: "0.0"
-    t.decimal "sub_agent_tds_amount", precision: 10, scale: 2
-    t.decimal "sub_agent_after_tds_value", precision: 10, scale: 2
-    t.decimal "distributor_tds_percentage", precision: 5, scale: 2, default: "0.0"
-    t.decimal "distributor_tds_amount", precision: 10, scale: 2
-    t.decimal "distributor_after_tds_value", precision: 10, scale: 2
-    t.decimal "investor_tds_percentage", precision: 5, scale: 2, default: "0.0"
-    t.decimal "investor_tds_amount", precision: 10, scale: 2
-    t.decimal "investor_after_tds_value", precision: 10, scale: 2
-    t.boolean "product_through_dr", default: true
-    t.boolean "main_agent_commission_received", default: false
-    t.string "main_agent_commission_transaction_id"
-    t.date "main_agent_commission_paid_date"
-    t.text "main_agent_commission_notes"
-    t.string "lead_id"
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "broker_code_type"
     t.decimal "ambassador_commission_percentage"
     t.decimal "ambassador_commission_amount"
     t.decimal "ambassador_tds_percentage"
     t.decimal "ambassador_tds_amount"
     t.decimal "ambassador_after_tds_value"
-    t.string "broker_code_type"
+    t.decimal "company_expenses_percentage"
+    t.decimal "company_expenses_amount"
+    t.decimal "total_distribution_percentage"
+    t.decimal "profit_percentage"
+    t.decimal "profit_amount"
+    t.date "risk_start_date"
+    t.string "sum_insured_text"
+    t.string "reference_by_name"
+    t.string "broker_name"
+    t.text "extra_note"
+    t.boolean "is_customer_added", default: false
+    t.boolean "is_agent_added", default: false
+    t.boolean "is_admin_added", default: false
     t.boolean "policy_added_by_admin", default: false
+    t.decimal "first_year_gst_percentage"
+    t.decimal "second_year_gst_percentage"
+    t.decimal "third_year_gst_percentage"
+    t.string "bank_name"
+    t.string "account_type"
+    t.string "account_number"
+    t.string "ifsc_code"
+    t.string "account_holder_name"
+    t.decimal "bonus"
+    t.decimal "fund"
+    t.decimal "main_agent_commission_percentage"
+    t.decimal "commission_amount"
+    t.decimal "tds_percentage"
+    t.decimal "tds_amount"
+    t.decimal "after_tds_value"
+    t.decimal "sub_agent_commission_percentage"
+    t.decimal "sub_agent_commission_amount"
+    t.decimal "sub_agent_tds_percentage"
+    t.decimal "sub_agent_tds_amount"
+    t.decimal "sub_agent_after_tds_value"
+    t.decimal "investor_commission_percentage"
+    t.decimal "investor_commission_amount"
+    t.decimal "investor_tds_percentage"
+    t.decimal "investor_tds_amount"
+    t.decimal "investor_after_tds_value"
+    t.date "installment_autopay_start_date"
+    t.date "installment_autopay_end_date"
+    t.bigint "distributor_id"
+    t.decimal "main_income_percentage"
+    t.decimal "main_income_amount"
+    t.decimal "distributor_commission_percentage"
+    t.decimal "distributor_commission_amount"
+    t.decimal "distributor_tds_percentage"
+    t.decimal "distributor_tds_amount"
+    t.decimal "distributor_after_tds_value"
+    t.string "lead_id"
+    t.text "notification_dates"
+    t.boolean "is_renewed", default: false, null: false
     t.integer "original_policy_id"
     t.integer "renewal_policy_id"
-    t.boolean "is_renewed", default: false, null: false
+    t.boolean "main_agent_commission_received", default: false
+    t.string "main_agent_commission_transaction_id"
+    t.date "main_agent_commission_paid_date"
+    t.text "main_agent_commission_notes"
+    t.boolean "product_through_dr", default: true
     t.string "insurance_company_code"
     t.string "main_policy_document_key"
     t.string "main_policy_document_filename"
     t.string "main_policy_document_content_type"
     t.bigint "main_policy_document_size"
-    t.index ["agency_code_id"], name: "index_life_insurances_on_agency_code_id"
-    t.index ["broker_id"], name: "index_life_insurances_on_broker_id"
-    t.index ["created_at"], name: "idx_life_insurances_created_at"
+    t.index ["created_at"], name: "index_life_insurances_on_created_at"
     t.index ["customer_id", "created_at"], name: "index_life_insurances_on_customer_id_and_created_at"
     t.index ["customer_id"], name: "index_life_insurances_on_customer_id"
     t.index ["distributor_id"], name: "index_life_insurances_on_distributor_id"
     t.index ["insurance_company_code"], name: "index_life_insurances_on_insurance_company_code"
-    t.index ["insurance_company_name"], name: "index_life_insurances_on_insurance_company_name"
-    t.index ["investor_id"], name: "index_life_insurances_on_investor_id"
     t.index ["is_admin_added", "is_customer_added", "is_agent_added"], name: "idx_life_insurances_drwise"
-    t.index ["is_renewed"], name: "index_life_insurances_on_is_renewed"
-    t.index ["lead_id"], name: "index_life_insurances_on_lead_id", unique: true
-    t.index ["original_policy_id"], name: "index_life_insurances_on_original_policy_id"
+    t.index ["policy_booking_date"], name: "index_life_insurances_on_policy_booking_date"
     t.index ["policy_end_date", "created_at"], name: "index_life_insurances_on_policy_end_date_and_created_at"
     t.index ["policy_end_date"], name: "index_life_insurances_on_policy_end_date"
-    t.index ["policy_number"], name: "index_life_insurances_on_policy_number", unique: true
-    t.index ["policy_start_date", "policy_end_date"], name: "index_life_insurances_on_policy_start_date_and_policy_end_date"
     t.index ["policy_start_date"], name: "index_life_insurances_on_policy_start_date"
     t.index ["policy_type"], name: "index_life_insurances_on_policy_type"
-    t.index ["product_through_dr", "created_at"], name: "index_life_insurances_on_product_through_dr_and_created_at"
-    t.index ["product_through_dr", "sum_insured"], name: "index_life_insurances_on_product_through_dr_and_sum_insured"
-    t.index ["product_through_dr", "total_premium"], name: "index_life_insurances_on_product_through_dr_and_total_premium"
-    t.index ["product_through_dr"], name: "index_life_insurances_on_product_through_dr"
-    t.index ["renewal_policy_id"], name: "index_life_insurances_on_renewal_policy_id"
     t.index ["sub_agent_id"], name: "index_life_insurances_on_sub_agent_id"
+    t.unique_constraint ["policy_number"], name: "life_insurances_policy_number_key"
   end
 
-  create_table "loans", force: :cascade do |t|
+  create_table "loans", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
     t.bigint "customer_id", null: false
     t.string "loan_type"
-    t.decimal "loan_amount"
-    t.decimal "interest_rate"
+    t.decimal "loan_amount", precision: 10, scale: 2
+    t.decimal "interest_rate", precision: 10, scale: 2
     t.integer "loan_term"
-    t.decimal "emi_amount"
+    t.decimal "emi_amount", precision: 10, scale: 2
     t.date "loan_date"
     t.boolean "status"
     t.text "notes"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.index ["customer_id"], name: "index_loans_on_customer_id"
   end
 
@@ -1112,9 +1043,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.string "r2_filename"
     t.string "r2_content_type"
     t.bigint "r2_file_size"
+    t.string "r2_url"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "r2_url"
     t.index ["motor_insurance_id"], name: "index_motor_insurance_documents_on_motor_insurance_id"
   end
 
@@ -1129,24 +1060,100 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["motor_insurance_id"], name: "index_motor_insurance_nominees_on_motor_insurance_id"
   end
 
-  create_table "motor_insurances", force: :cascade do |t|
-    t.string "vehicle_type"
+  create_table "motor_insurances", id: :serial, force: :cascade do |t|
+    t.integer "customer_id", null: false
+    t.integer "sub_agent_id"
+    t.string "policy_holder", limit: 255
+    t.string "insurance_company_name", limit: 255
+    t.string "policy_number", limit: 255
+    t.date "policy_booking_date"
+    t.date "policy_start_date"
+    t.date "policy_end_date"
+    t.string "payment_mode", limit: 255
+    t.string "plan_name", limit: 255
+    t.string "vehicle_type", limit: 255
+    t.string "vehicle_make", limit: 255
+    t.string "vehicle_model", limit: 255
+    t.string "vehicle_number", limit: 255
+    t.decimal "sum_insured", precision: 15, scale: 2
+    t.decimal "net_premium", precision: 15, scale: 2
+    t.decimal "total_premium", precision: 15, scale: 2
+    t.string "status", limit: 255
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "policy_type", limit: 255
+    t.bigint "broker_id"
+    t.boolean "main_agent_commission_received"
+    t.string "main_agent_commission_transaction_id"
+    t.date "main_agent_commission_paid_date"
+    t.text "main_agent_commission_notes"
+    t.string "broker_code_type"
+    t.decimal "gst_percentage", precision: 8, scale: 2, default: "18.0"
+    t.boolean "is_admin_added", default: false
+    t.boolean "policy_added_by_admin", default: false
+    t.boolean "is_customer_added", default: false
+    t.boolean "is_agent_added", default: false
+    t.decimal "gst_amount", precision: 10, scale: 2
+    t.decimal "after_tds_value", precision: 10, scale: 2
+    t.string "reference_by_name"
+    t.text "extra_note"
+    t.string "insurance_type"
     t.string "class_of_vehicle"
-    t.string "registration_number"
-    t.date "registration_date"
+    t.string "lead_id"
+    t.string "registration_number", limit: 255
+    t.decimal "vehicle_idv", precision: 10, scale: 2
+    t.decimal "cng_idv", precision: 10, scale: 2
+    t.decimal "total_idv", precision: 10, scale: 2
+    t.string "make", limit: 255
+    t.string "model", limit: 255
+    t.decimal "tp_premium", precision: 10, scale: 2
+    t.decimal "main_agent_commission_percentage", precision: 5, scale: 2
+    t.decimal "main_agent_commission_amount", precision: 10, scale: 2
+    t.decimal "main_agent_tds_percentage", precision: 5, scale: 2
+    t.decimal "main_agent_tds_amount", precision: 10, scale: 2
+    t.decimal "commission_amount", precision: 10, scale: 2
+    t.decimal "tds_percentage", precision: 5, scale: 2
+    t.decimal "tds_amount", precision: 10, scale: 2
+    t.integer "agency_code_id"
     t.string "engine_number"
     t.string "chassis_number"
-    t.integer "mfy"
-    t.string "make"
-    t.string "model"
     t.string "variant"
+    t.string "mfy"
     t.integer "seating_capacity"
+    t.decimal "ncb"
     t.decimal "discount_loading_percent"
-    t.string "previous_policy_number"
-    t.string "ncb"
-    t.string "legal_liability"
-    t.string "electrical_accessories"
-    t.string "non_electrical_accessories"
+    t.decimal "payout_od"
+    t.decimal "payout_tp"
+    t.decimal "payout_net"
+    t.decimal "sub_agent_commission_percentage"
+    t.decimal "sub_agent_commission_amount"
+    t.decimal "sub_agent_tds_percentage"
+    t.decimal "sub_agent_tds_amount"
+    t.decimal "sub_agent_after_tds_value"
+    t.integer "distributor_id"
+    t.decimal "distributor_commission_percentage"
+    t.decimal "distributor_commission_amount"
+    t.decimal "distributor_tds_percentage"
+    t.decimal "distributor_tds_amount"
+    t.decimal "distributor_after_tds_value"
+    t.integer "investor_id"
+    t.decimal "investor_commission_percentage"
+    t.decimal "investor_commission_amount"
+    t.decimal "investor_tds_percentage"
+    t.decimal "investor_tds_amount"
+    t.decimal "investor_after_tds_value"
+    t.decimal "ambassador_commission_percentage"
+    t.decimal "ambassador_commission_amount"
+    t.decimal "ambassador_tds_percentage"
+    t.decimal "ambassador_tds_amount"
+    t.decimal "ambassador_after_tds_value"
+    t.decimal "total_distribution_percentage"
+    t.decimal "company_expenses_percentage"
+    t.decimal "profit_percentage"
+    t.decimal "profit_amount"
+    t.boolean "legal_liability"
+    t.boolean "electrical_accessories"
+    t.boolean "non_electrical_accessories"
     t.boolean "zero_depreciation"
     t.boolean "roadside_assistance"
     t.boolean "engine_protector"
@@ -1155,103 +1162,22 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.boolean "consumable_cover"
     t.boolean "personal_accident_cover"
     t.string "financier"
-    t.decimal "vehicle_idv"
-    t.decimal "cng_idv"
-    t.decimal "total_idv"
-    t.decimal "tp_premium"
-    t.decimal "payout_od"
-    t.decimal "payout_tp"
-    t.decimal "payout_net"
-    t.decimal "main_agent_commission_percent"
-    t.decimal "main_agent_commission_amount"
-    t.decimal "main_agent_tds_percentage"
-    t.decimal "main_agent_tds_amount"
-    t.string "broker_name"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.text "notification_dates"
-    t.date "policy_end_date"
-    t.date "policy_start_date"
-    t.date "policy_booking_date"
-    t.string "insurance_company_name"
-    t.string "policy_holder"
-    t.string "policy_type"
-    t.decimal "gst_percentage", precision: 8, scale: 2, default: "18.0"
-    t.decimal "net_premium", precision: 10, scale: 2
-    t.decimal "gst_amount", precision: 10, scale: 2
-    t.decimal "after_tds_value", precision: 10, scale: 2
-    t.boolean "is_customer_added", default: false
-    t.boolean "is_agent_added", default: false
-    t.boolean "is_admin_added", default: false
-    t.string "reference_by_name"
-    t.text "extra_note"
-    t.bigint "customer_id", null: false
-    t.bigint "sub_agent_id"
-    t.bigint "agency_code_id"
-    t.bigint "broker_id"
-    t.string "insurance_type"
-    t.decimal "total_premium", precision: 10, scale: 2
-    t.string "policy_number"
-    t.decimal "sum_insured"
-    t.boolean "status"
-    t.boolean "product_through_dr", default: false
-    t.boolean "main_agent_commission_received", default: false
-    t.string "main_agent_commission_transaction_id"
-    t.date "main_agent_commission_paid_date"
-    t.text "main_agent_commission_notes"
-    t.string "lead_id"
-    t.bigint "distributor_id"
-    t.bigint "investor_id"
-    t.decimal "sub_agent_commission_percentage", precision: 8, scale: 2
-    t.decimal "sub_agent_commission_amount", precision: 12, scale: 2
-    t.decimal "sub_agent_tds_percentage", precision: 8, scale: 2
-    t.decimal "sub_agent_tds_amount", precision: 12, scale: 2
-    t.decimal "sub_agent_after_tds_value", precision: 12, scale: 2
-    t.decimal "distributor_commission_percentage", precision: 8, scale: 2
-    t.decimal "distributor_commission_amount", precision: 12, scale: 2
-    t.decimal "distributor_tds_percentage", precision: 8, scale: 2
-    t.decimal "distributor_tds_amount", precision: 12, scale: 2
-    t.decimal "distributor_after_tds_value", precision: 12, scale: 2
-    t.decimal "investor_commission_percentage", precision: 8, scale: 2
-    t.decimal "investor_commission_amount", precision: 12, scale: 2
-    t.decimal "investor_tds_percentage", precision: 8, scale: 2
-    t.decimal "investor_tds_amount", precision: 12, scale: 2
-    t.decimal "investor_after_tds_value", precision: 12, scale: 2
-    t.decimal "ambassador_commission_percentage", precision: 8, scale: 2
-    t.decimal "ambassador_commission_amount", precision: 12, scale: 2
-    t.decimal "ambassador_tds_percentage", precision: 8, scale: 2
-    t.decimal "ambassador_tds_amount", precision: 12, scale: 2
-    t.decimal "ambassador_after_tds_value", precision: 12, scale: 2
-    t.decimal "total_distribution_percentage", precision: 8, scale: 2
-    t.decimal "company_expenses_percentage", precision: 8, scale: 2
-    t.decimal "profit_percentage", precision: 8, scale: 2
-    t.decimal "profit_amount", precision: 12, scale: 2
-    t.decimal "commission_amount", precision: 12, scale: 2
-    t.decimal "tds_percentage", precision: 8, scale: 2
-    t.decimal "tds_amount", precision: 12, scale: 2
-    t.decimal "main_agent_commission_percentage", precision: 8, scale: 2
-    t.boolean "policy_added_by_admin", default: false
-    t.string "payment_mode"
-    t.string "plan_name"
-    t.string "broker_code_type"
     t.date "installment_autopay_start_date"
     t.date "installment_autopay_end_date"
     t.string "nominee_name"
     t.string "nominee_relation"
     t.date "nominee_dob"
     t.string "insurance_company_code"
-    t.decimal "company_expenses_amount"
+    t.string "main_policy_document_url"
     t.string "main_policy_document_key"
     t.string "main_policy_document_filename"
     t.string "main_policy_document_content_type"
     t.bigint "main_policy_document_size"
-    t.string "main_policy_document_url"
-    t.string "vehicle_number", limit: 255
-    t.string "vehicle_make", limit: 255
-    t.string "vehicle_model", limit: 255
+    t.boolean "product_through_dr", default: true
     t.index ["agency_code_id"], name: "index_motor_insurances_on_agency_code_id"
     t.index ["broker_id"], name: "index_motor_insurances_on_broker_id"
-    t.index ["created_at"], name: "idx_motor_insurances_created_at"
+    t.index ["created_at"], name: "index_motor_insurances_on_created_at"
     t.index ["customer_id", "created_at"], name: "index_motor_insurances_on_customer_id_and_created_at"
     t.index ["customer_id"], name: "index_motor_insurances_on_customer_id"
     t.index ["distributor_id"], name: "index_motor_insurances_on_distributor_id"
@@ -1259,11 +1185,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["investor_id"], name: "index_motor_insurances_on_investor_id"
     t.index ["is_admin_added", "is_customer_added", "is_agent_added"], name: "idx_motor_insurances_drwise"
     t.index ["lead_id"], name: "index_motor_insurances_on_lead_id", unique: true
+    t.index ["policy_booking_date"], name: "index_motor_insurances_on_policy_booking_date"
     t.index ["policy_end_date", "created_at"], name: "index_motor_insurances_on_policy_end_date_and_created_at"
     t.index ["policy_end_date"], name: "index_motor_insurances_on_policy_end_date"
-    t.index ["policy_number"], name: "index_motor_insurances_on_policy_number", unique: true
+    t.index ["policy_start_date"], name: "index_motor_insurances_on_policy_start_date"
     t.index ["policy_type"], name: "index_motor_insurances_on_policy_type"
     t.index ["sub_agent_id"], name: "index_motor_insurances_on_sub_agent_id"
+    t.unique_constraint ["policy_number"], name: "motor_insurances_policy_number_key"
   end
 
   create_table "mutual_fund_nominees", force: :cascade do |t|
@@ -1337,25 +1265,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["sub_agent_id"], name: "index_mutual_funds_on_sub_agent_id"
   end
 
-  create_table "notifications", force: :cascade do |t|
-    t.string "recipient_type"
-    t.integer "recipient_id"
-    t.string "notification_type"
-    t.string "title"
-    t.text "message"
-    t.string "reference_type"
-    t.integer "reference_id"
-    t.boolean "is_read"
-    t.datetime "sent_at"
-    t.datetime "read_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["is_read"], name: "index_notifications_on_is_read"
-    t.index ["recipient_type", "recipient_id"], name: "index_notifications_on_recipient_type_and_recipient_id"
-    t.index ["reference_type", "reference_id"], name: "index_notifications_on_reference_type_and_reference_id"
-    t.index ["sent_at"], name: "index_notifications_on_sent_at"
-  end
-
   create_table "other_insurance_documents", force: :cascade do |t|
     t.bigint "other_insurance_id", null: false
     t.string "document_type"
@@ -1381,29 +1290,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["other_insurance_id"], name: "index_other_insurance_nominees_on_other_insurance_id"
   end
 
-  create_table "other_insurances", force: :cascade do |t|
-    t.bigint "policy_id"
-    t.string "other_policy_type"
-    t.decimal "main_agent_commission_percent"
-    t.decimal "main_agent_commission_amount"
-    t.decimal "main_agent_tds_percent"
-    t.decimal "main_agent_tds_amount"
-    t.string "reference_by_name"
-    t.string "broker_name"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.text "notification_dates"
-    t.date "policy_end_date"
-    t.date "policy_start_date"
+  create_table "other_insurances", id: :serial, force: :cascade do |t|
+    t.integer "customer_id", null: false
+    t.integer "sub_agent_id"
+    t.string "insurance_type", limit: 255
+    t.string "insurance_company_name", limit: 255
+    t.string "policy_number", limit: 255
     t.date "policy_booking_date"
-    t.boolean "product_through_dr", default: false
+    t.date "policy_start_date"
+    t.date "policy_end_date"
+    t.decimal "sum_insured", precision: 15, scale: 2
+    t.decimal "net_premium", precision: 15, scale: 2
+    t.decimal "total_premium", precision: 15, scale: 2
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
     t.boolean "main_agent_commission_received", default: false
     t.string "main_agent_commission_transaction_id"
     t.date "main_agent_commission_paid_date"
     t.text "main_agent_commission_notes"
-    t.string "lead_id"
-    t.bigint "distributor_id"
-    t.bigint "investor_id"
     t.string "policy_holder"
     t.string "broker_code_type"
     t.integer "agency_code_id"
@@ -1440,37 +1344,30 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.date "installment_autopay_end_date"
     t.decimal "main_agent_commission_percentage"
     t.string "policy_type"
+    t.string "lead_id"
+    t.integer "policy_id"
     t.boolean "is_customer_added", default: false
     t.boolean "is_agent_added", default: false
     t.boolean "is_admin_added", default: false
     t.boolean "policy_added_by_admin", default: false
+    t.string "status"
     t.boolean "is_renewed"
     t.integer "original_policy_id"
     t.string "insurance_company_code"
-    t.string "main_policy_document_key"
-    t.string "main_policy_document_filename"
-    t.string "main_policy_document_content_type"
-    t.bigint "main_policy_document_size"
-    t.decimal "company_expenses_amount"
-    t.decimal "total_premium", precision: 15, scale: 2, default: "0.0"
-    t.decimal "net_premium", precision: 15, scale: 2, default: "0.0"
-    t.decimal "sum_insured", precision: 15, scale: 2
-    t.string "insurance_company_name", limit: 255
-    t.bigint "customer_id"
-    t.string "insurance_type", limit: 255
-    t.integer "sub_agent_id"
-    t.string "policy_number", limit: 255
-    t.index ["created_at"], name: "idx_other_insurances_created_at"
+    t.integer "distributor_id"
+    t.boolean "product_through_dr", default: true
+    t.index ["created_at"], name: "index_other_insurances_on_created_at"
     t.index ["customer_id", "created_at"], name: "index_other_insurances_on_customer_id_and_created_at"
     t.index ["customer_id"], name: "index_other_insurances_on_customer_id"
     t.index ["distributor_id"], name: "index_other_insurances_on_distributor_id"
     t.index ["insurance_company_code"], name: "index_other_insurances_on_insurance_company_code"
-    t.index ["investor_id"], name: "index_other_insurances_on_investor_id"
     t.index ["is_admin_added", "is_customer_added", "is_agent_added"], name: "idx_other_insurances_drwise"
-    t.index ["lead_id"], name: "index_other_insurances_on_lead_id", unique: true
+    t.index ["lead_id"], name: "index_other_insurances_on_lead_id"
+    t.index ["original_policy_id"], name: "index_other_insurances_on_original_policy_id"
     t.index ["policy_end_date", "created_at"], name: "index_other_insurances_on_policy_end_date_and_created_at"
     t.index ["policy_end_date"], name: "index_other_insurances_on_policy_end_date"
     t.index ["policy_id"], name: "index_other_insurances_on_policy_id"
+    t.index ["policy_start_date"], name: "index_other_insurances_on_policy_start_date"
     t.index ["sub_agent_id"], name: "index_other_insurances_on_sub_agent_id"
   end
 
@@ -1489,122 +1386,74 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["performed_by"], name: "index_payout_audit_logs_on_performed_by"
   end
 
-  create_table "payout_distributions", force: :cascade do |t|
-    t.bigint "commission_receipt_id", null: false
-    t.string "recipient_type", null: false
-    t.integer "recipient_id"
-    t.decimal "distribution_percentage", precision: 5, scale: 2, null: false
-    t.decimal "calculated_amount", precision: 10, scale: 2, null: false
-    t.decimal "paid_amount", precision: 10, scale: 2, default: "0.0"
-    t.decimal "pending_amount", precision: 10, scale: 2, default: "0.0"
-    t.string "status", default: "pending"
-    t.date "payment_date"
-    t.string "payment_mode"
-    t.string "transaction_id"
-    t.string "reference_number"
-    t.text "payment_notes"
-    t.string "processed_by"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["commission_receipt_id"], name: "index_payout_distributions_on_commission_receipt_id"
-    t.index ["payment_date"], name: "index_payout_distributions_on_payment_date"
-    t.index ["recipient_type", "recipient_id"], name: "index_payout_distributions_on_recipient_type_and_recipient_id"
-    t.index ["status"], name: "index_payout_distributions_on_status"
-  end
-
-  create_table "payouts", force: :cascade do |t|
-    t.string "policy_type"
+  create_table "payouts", id: :serial, force: :cascade do |t|
+    t.string "policy_type", limit: 255
     t.integer "policy_id"
     t.integer "customer_id"
-    t.decimal "total_commission_amount"
-    t.string "status"
+    t.decimal "total_commission_amount", precision: 15, scale: 2
+    t.string "status", limit: 255
     t.date "payout_date"
-    t.string "processed_by"
-    t.datetime "processed_at"
+    t.string "processed_by", limit: 255
+    t.datetime "processed_at", precision: nil
     t.text "notes"
-    t.string "reference_number"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.decimal "main_agent_percentage", precision: 8, scale: 2
-    t.decimal "main_agent_commission_amount", precision: 10, scale: 2
-    t.integer "main_agent_commission_id"
-    t.decimal "affiliate_percentage", precision: 8, scale: 2
-    t.decimal "affiliate_commission_amount", precision: 10, scale: 2
-    t.integer "affiliate_commission_id"
-    t.decimal "ambassador_percentage", precision: 8, scale: 2
-    t.decimal "ambassador_commission_amount", precision: 10, scale: 2
-    t.integer "ambassador_commission_id"
-    t.decimal "investor_percentage", precision: 8, scale: 2
-    t.decimal "investor_commission_amount", precision: 10, scale: 2
-    t.integer "investor_commission_id"
-    t.decimal "company_expense_percentage", precision: 8, scale: 2
-    t.decimal "company_expense_amount", precision: 10, scale: 2
-    t.integer "company_expense_commission_id"
-    t.text "commission_summary"
-    t.decimal "net_premium"
-    t.boolean "main_agent_commission_received"
+    t.string "reference_number", limit: 255
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.decimal "main_agent_commission_amount", precision: 10, scale: 2, default: "0.0"
+    t.decimal "affiliate_commission_amount", precision: 10, scale: 2, default: "0.0"
+    t.decimal "ambassador_commission_amount", precision: 10, scale: 2, default: "0.0"
+    t.decimal "investor_commission_amount", precision: 10, scale: 2, default: "0.0"
+    t.decimal "company_expense_amount", precision: 10, scale: 2, default: "0.0"
+    t.decimal "net_premium", precision: 15, scale: 2
+    t.decimal "main_agent_percentage"
+    t.decimal "affiliate_percentage"
+    t.decimal "ambassador_percentage"
+    t.decimal "investor_percentage"
+    t.decimal "company_expense_percentage"
+    t.boolean "main_agent_commission_received", default: false
     t.string "main_agent_commission_transaction_id"
     t.date "main_agent_commission_paid_date"
     t.text "main_agent_commission_notes"
-    t.index ["affiliate_commission_id"], name: "index_payouts_on_affiliate_commission_id"
-    t.index ["ambassador_commission_id"], name: "index_payouts_on_ambassador_commission_id"
-    t.index ["company_expense_commission_id"], name: "index_payouts_on_company_expense_commission_id"
     t.index ["created_at"], name: "index_payouts_on_created_at"
     t.index ["customer_id"], name: "index_payouts_on_customer_id"
-    t.index ["investor_commission_id"], name: "index_payouts_on_investor_commission_id"
-    t.index ["main_agent_commission_id"], name: "index_payouts_on_main_agent_commission_id"
-    t.index ["policy_type", "policy_id"], name: "idx_payouts_policy"
     t.index ["policy_type", "policy_id"], name: "index_payouts_on_policy_type_and_id"
     t.index ["status"], name: "index_payouts_on_status"
   end
 
-  create_table "permissions", force: :cascade do |t|
-    t.string "name", limit: 100, null: false
-    t.string "module_name", limit: 50, null: false
-    t.string "action_type", limit: 20, null: false
+  create_table "permissions", id: :serial, force: :cascade do |t|
+    t.string "name", limit: 255
+    t.string "module_name", limit: 255
+    t.string "action_type", limit: 255
     t.text "description"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["action_type"], name: "index_permissions_on_action_type"
-    t.index ["module_name", "action_type"], name: "index_permissions_on_module_name_and_action_type", unique: true
-    t.index ["module_name"], name: "index_permissions_on_module_name"
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
   end
 
-  create_table "policies", force: :cascade do |t|
-    t.bigint "customer_id", null: false
-    t.bigint "user_id", null: false
-    t.bigint "insurance_company_id", null: false
-    t.bigint "agency_broker_id", null: false
-    t.string "policy_number"
-    t.string "policy_type"
-    t.string "insurance_type"
-    t.string "plan_name"
-    t.string "payment_mode"
-    t.date "policy_booking_date"
+  create_table "policies", id: :serial, force: :cascade do |t|
+    t.integer "customer_id", null: false
+    t.string "policy_type", limit: 255
+    t.string "policy_number", limit: 255
+    t.string "insurance_company", limit: 255
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "insurance_type", default: "life"
+    t.string "payment_mode", default: "yearly"
     t.date "policy_start_date"
     t.date "policy_end_date"
-    t.integer "policy_term_years"
-    t.date "risk_start_date"
-    t.decimal "sum_insured"
-    t.decimal "net_premium"
-    t.decimal "gst_percentage"
-    t.decimal "total_premium"
-    t.decimal "bonus"
-    t.decimal "fund"
-    t.text "note"
-    t.boolean "status"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.decimal "sum_insured", precision: 12, scale: 2, default: "0.0"
+    t.decimal "net_premium", precision: 10, scale: 2, default: "0.0"
+    t.decimal "total_premium", precision: 10, scale: 2, default: "0.0"
+    t.boolean "status", default: true
+    t.string "plan_name"
+    t.decimal "gst_percentage", precision: 5, scale: 2, default: "18.0"
+    t.integer "user_id"
+    t.integer "insurance_company_id"
+    t.integer "agency_broker_id"
     t.string "policy_holder"
-    t.index ["agency_broker_id"], name: "index_policies_on_agency_broker_id"
-    t.index ["customer_id", "created_at"], name: "index_policies_on_customer_id_and_created_at"
-    t.index ["customer_id"], name: "index_policies_on_customer_id"
-    t.index ["insurance_company_id"], name: "index_policies_on_insurance_company_id"
     t.index ["insurance_type"], name: "index_policies_on_insurance_type"
     t.index ["policy_end_date"], name: "index_policies_on_policy_end_date"
     t.index ["policy_start_date"], name: "index_policies_on_policy_start_date"
     t.index ["status"], name: "index_policies_on_status"
-    t.index ["user_id"], name: "index_policies_on_user_id"
   end
 
   create_table "policy_documents", force: :cascade do |t|
@@ -1637,26 +1486,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "role_permissions", force: :cascade do |t|
-    t.bigint "role_id", null: false
-    t.bigint "permission_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["permission_id"], name: "idx_role_permissions_permission"
-    t.index ["permission_id"], name: "index_role_permissions_on_permission_id"
-    t.index ["role_id", "permission_id"], name: "idx_role_permissions_unique", unique: true
-    t.index ["role_id"], name: "idx_role_permissions_role"
-    t.index ["role_id"], name: "index_role_permissions_on_role_id"
+  create_table "role_permissions", id: :serial, force: :cascade do |t|
+    t.integer "role_id", null: false
+    t.integer "permission_id", null: false
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
   end
 
-  create_table "roles", force: :cascade do |t|
-    t.string "name", limit: 100, null: false
+  create_table "roles", id: :serial, force: :cascade do |t|
+    t.string "name", limit: 255
     t.text "description"
-    t.boolean "status", default: true, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["name"], name: "index_roles_on_name", unique: true
-    t.index ["status"], name: "index_roles_on_status"
+    t.boolean "status"
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
   end
 
   create_table "session_activities", force: :cascade do |t|
@@ -1803,52 +1645,49 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["key"], name: "index_solid_queue_semaphores_on_key", unique: true
   end
 
-  create_table "sub_agent_documents", force: :cascade do |t|
+  create_table "sub_agent_documents", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "document_type"
     t.bigint "sub_agent_id", null: false
-    t.string "document_type", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.string "r2_file_key"
     t.string "r2_filename"
     t.string "r2_content_type"
     t.bigint "r2_file_size"
     t.index ["document_type"], name: "index_sub_agent_documents_on_document_type"
-    t.index ["sub_agent_id", "document_type"], name: "index_sub_agent_documents_on_sub_agent_id_and_document_type"
     t.index ["sub_agent_id"], name: "index_sub_agent_documents_on_sub_agent_id"
   end
 
-  create_table "sub_agents", force: :cascade do |t|
-    t.string "first_name", null: false
-    t.string "middle_name"
-    t.string "last_name", null: false
-    t.string "mobile", null: false
-    t.string "email", null: false
+  create_table "sub_agents", id: :serial, force: :cascade do |t|
+    t.string "first_name", limit: 255, null: false
+    t.string "middle_name", limit: 255
+    t.string "last_name", limit: 255, null: false
+    t.string "mobile", limit: 255, null: false
+    t.string "email", limit: 255, null: false
     t.integer "role_id", null: false
     t.integer "state_id"
     t.integer "city_id"
     t.date "birth_date"
-    t.string "gender"
-    t.string "pan_no"
-    t.string "gst_no"
-    t.string "company_name"
+    t.string "gender", limit: 255
+    t.string "pan_no", limit: 255
+    t.string "gst_no", limit: 255
+    t.string "company_name", limit: 255
     t.text "address"
-    t.string "bank_name"
-    t.string "account_no"
-    t.string "ifsc_code"
-    t.string "account_holder_name"
-    t.string "account_type"
-    t.string "upi_id"
+    t.string "bank_name", limit: 255
+    t.string "account_no", limit: 255
+    t.string "ifsc_code", limit: 255
+    t.string "account_holder_name", limit: 255
+    t.string "account_type", limit: 255
+    t.string "upi_id", limit: 255
     t.integer "status", default: 0
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
     t.string "password_digest"
-    t.bigint "distributor_id"
-    t.string "plain_password"
-    t.string "original_password"
-    t.datetime "password_reset_at"
     t.boolean "deactivated", default: false
-    t.string "city"
     t.string "state"
+    t.string "city"
+    t.bigint "distributor_id"
+    t.string "original_password"
     t.index ["created_at"], name: "index_sub_agents_on_created_at"
     t.index ["distributor_id"], name: "index_sub_agents_on_distributor_id"
     t.index ["email"], name: "index_sub_agents_on_email", unique: true
@@ -1857,63 +1696,42 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["status"], name: "index_sub_agents_on_status"
   end
 
-  create_table "system_settings", force: :cascade do |t|
-    t.string "key", null: false
+  create_table "system_settings", id: :serial, force: :cascade do |t|
+    t.string "company_name", limit: 255
+    t.text "company_address"
+    t.string "company_phone", limit: 255
+    t.string "company_email", limit: 255
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "key"
     t.text "value"
     t.text "description"
     t.string "setting_type"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.decimal "default_main_agent_commission", precision: 5, scale: 2
     t.decimal "default_affiliate_commission", precision: 5, scale: 2
     t.decimal "default_ambassador_commission", precision: 5, scale: 2
     t.decimal "default_company_expenses", precision: 5, scale: 2
     t.text "terms_and_conditions"
-    t.decimal "investment_amount", precision: 15, scale: 2, default: "0.0"
-    t.string "company_name"
-    t.string "company_phone"
-    t.string "company_email"
-    t.text "company_address"
     t.index ["key"], name: "index_system_settings_on_key", unique: true
   end
 
-  create_table "tax_services", force: :cascade do |t|
-    t.bigint "customer_id", null: false
-    t.string "service_type"
-    t.string "financial_year"
-    t.date "filing_date"
-    t.decimal "amount"
-    t.boolean "status"
-    t.text "notes"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["customer_id"], name: "index_tax_services_on_customer_id"
+  create_table "tax_services", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
   end
 
-  create_table "travel_packages", force: :cascade do |t|
-    t.bigint "customer_id", null: false
-    t.string "travel_type"
-    t.string "destination"
-    t.date "travel_date"
-    t.date "return_date"
-    t.decimal "package_amount"
-    t.boolean "status"
-    t.text "notes"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["customer_id"], name: "index_travel_packages_on_customer_id"
+  create_table "travel_packages", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
   end
 
-  create_table "user_roles", force: :cascade do |t|
-    t.string "name", null: false
+  create_table "user_roles", id: :serial, force: :cascade do |t|
+    t.string "name", limit: 255
     t.text "description"
-    t.boolean "status", default: true, null: false
-    t.integer "display_order", default: 0, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["display_order"], name: "index_user_roles_on_display_order"
-    t.index ["name"], name: "index_user_roles_on_name", unique: true
-    t.index ["status"], name: "index_user_roles_on_status"
+    t.boolean "status"
+    t.integer "display_order"
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
   end
 
   create_table "user_sessions", force: :cascade do |t|
@@ -1934,124 +1752,127 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
     t.index ["session_id"], name: "index_user_sessions_on_session_id", unique: true
     t.index ["started_at"], name: "index_user_sessions_on_started_at"
     t.index ["status"], name: "index_user_sessions_on_status"
-    t.index ["user_id"], name: "index_user_sessions_on_user_id"
   end
 
-  create_table "users", force: :cascade do |t|
-    t.string "first_name"
-    t.string "last_name"
-    t.string "email"
-    t.string "mobile"
-    t.string "pan_number"
-    t.string "gst_number"
+  create_table "users", id: :serial, force: :cascade do |t|
+    t.string "first_name", limit: 255
+    t.string "last_name", limit: 255
+    t.string "email", limit: 255
+    t.string "mobile", limit: 255
+    t.string "pan_number", limit: 255
+    t.string "gst_number", limit: 255
     t.date "date_of_birth"
-    t.string "gender"
-    t.string "height"
-    t.string "weight"
-    t.string "education"
-    t.string "marital_status"
-    t.string "occupation"
-    t.string "job_name"
-    t.string "type_of_duty"
+    t.string "gender", limit: 255
+    t.string "height", limit: 255
+    t.string "weight", limit: 255
+    t.string "education", limit: 255
+    t.string "marital_status", limit: 255
+    t.string "occupation", limit: 255
+    t.string "job_name", limit: 255
+    t.string "type_of_duty", limit: 255
     t.decimal "annual_income"
-    t.string "birth_place"
-    t.string "address"
-    t.string "state"
-    t.string "city"
-    t.string "user_type"
-    t.string "role"
+    t.string "birth_place", limit: 255
+    t.string "address", limit: 255
+    t.string "state", limit: 255
+    t.string "city", limit: 255
+    t.string "user_type", limit: 255
+    t.string "role", limit: 255
     t.boolean "status"
     t.text "additional_info"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "encrypted_password", default: "", null: false
-    t.string "reset_password_token"
-    t.datetime "reset_password_sent_at"
-    t.datetime "remember_created_at"
-    t.bigint "role_id"
-    t.bigint "user_role_id"
-    t.string "plain_password"
-    t.string "original_password"
+    t.datetime "created_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: nil, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "encrypted_password", limit: 255, default: "", null: false
+    t.string "reset_password_token", limit: 255
+    t.datetime "reset_password_sent_at", precision: nil
+    t.datetime "remember_created_at", precision: nil
     t.text "sidebar_permissions"
-    t.string "role_name"
-    t.datetime "password_reset_at", comment: "When password was last reset"
+    t.string "role_name", limit: 255
+    t.integer "role_id"
+    t.string "original_password"
     t.text "crud_permissions"
+    t.string "middle_name"
+    t.string "password_digest"
+    t.boolean "is_active", default: true
+    t.boolean "is_verified", default: false
+    t.date "birth_date"
+    t.string "pan_no"
+    t.string "aadhar_no"
+    t.string "gst_no"
+    t.string "company_name"
+    t.string "pincode"
+    t.string "country", default: "India"
+    t.string "profile_picture"
+    t.string "bank_name"
+    t.string "account_no"
+    t.string "ifsc_code"
+    t.string "account_holder_name"
+    t.string "account_type"
+    t.string "upi_id"
+    t.string "emergency_contact_name"
+    t.string "emergency_contact_mobile"
+    t.string "department"
+    t.string "designation"
+    t.date "joining_date"
+    t.decimal "salary", precision: 10, scale: 2
+    t.string "employee_id"
+    t.integer "reporting_manager_id"
+    t.text "permissions"
+    t.datetime "last_login_at"
+    t.integer "login_count", default: 0
+    t.datetime "email_verified_at"
+    t.datetime "mobile_verified_at"
+    t.boolean "two_factor_enabled", default: false
+    t.integer "sign_in_count", default: 0
+    t.datetime "current_sign_in_at"
+    t.datetime "last_sign_in_at"
+    t.string "current_sign_in_ip"
+    t.string "last_sign_in_ip"
+    t.string "confirmation_token"
+    t.datetime "confirmed_at"
+    t.datetime "confirmation_sent_at"
+    t.string "unlock_token"
+    t.datetime "locked_at"
+    t.integer "failed_attempts", default: 0
+    t.text "notes"
+    t.integer "created_by"
+    t.integer "updated_by"
+    t.datetime "deleted_at"
+    t.index ["aadhar_no"], name: "index_users_on_aadhar_no", unique: true
+    t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
+    t.index ["deleted_at"], name: "index_users_on_deleted_at"
+    t.index ["employee_id"], name: "index_users_on_employee_id", unique: true
+    t.index ["is_active"], name: "index_users_on_is_active"
+    t.index ["mobile"], name: "index_users_on_mobile", unique: true
+    t.index ["pan_no"], name: "index_users_on_pan_no", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
-    t.index ["role_id"], name: "idx_users_role_id"
-    t.index ["role_id"], name: "index_users_on_role_id"
-    t.index ["user_role_id"], name: "index_users_on_user_role_id"
+    t.index ["role"], name: "index_users_on_role"
+    t.index ["status"], name: "index_users_on_status"
+    t.index ["unlock_token"], name: "index_users_on_unlock_token", unique: true
+    t.index ["user_type"], name: "index_users_on_user_type"
   end
 
-  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "agency_codes", "brokers"
-  add_foreign_key "ai_report_histories", "users"
   add_foreign_key "appointments", "customers"
   add_foreign_key "appointments", "users", column: "created_by_id"
-  add_foreign_key "banner_documents", "banners"
-  add_foreign_key "broker_codes", "brokers"
-  add_foreign_key "brokers", "insurance_companies"
-  add_foreign_key "client_requests", "users", column: "resolved_by_id"
-  add_foreign_key "commission_payouts", "payouts"
-  add_foreign_key "corporate_members", "customers"
-  add_foreign_key "customer_documents", "customers"
-  add_foreign_key "customers", "sub_agents"
-  add_foreign_key "distributor_assignments", "distributors"
-  add_foreign_key "distributor_assignments", "sub_agents"
-  add_foreign_key "distributor_documents", "distributors"
-  add_foreign_key "distributor_payouts", "distributors"
-  add_foreign_key "family_members", "customers"
   add_foreign_key "health_insurance_documents", "health_insurances"
-  add_foreign_key "health_insurance_members", "health_insurances"
   add_foreign_key "health_insurance_nominees", "health_insurances"
-  add_foreign_key "health_insurances", "agency_codes"
-  add_foreign_key "health_insurances", "brokers"
-  add_foreign_key "health_insurances", "customers"
-  add_foreign_key "health_insurances", "distributors"
   add_foreign_key "health_insurances", "health_insurances", column: "original_policy_id", name: "health_insurances_original_policy_id_fkey"
-  add_foreign_key "health_insurances", "investors"
-  add_foreign_key "health_insurances", "policies"
-  add_foreign_key "health_insurances", "sub_agents"
   add_foreign_key "helpdesk_tickets", "customers"
   add_foreign_key "helpdesk_tickets", "sub_agents"
-  add_foreign_key "investments", "customers"
-  add_foreign_key "investor_documents", "investors"
   add_foreign_key "invoice_items", "invoices"
   add_foreign_key "leads", "distributors", column: "ambassador_id"
-  add_foreign_key "life_insurance_bank_details", "life_insurances"
-  add_foreign_key "life_insurance_documents", "life_insurances"
   add_foreign_key "life_insurance_nominees", "life_insurances"
-  add_foreign_key "life_insurances", "agency_codes"
-  add_foreign_key "life_insurances", "brokers"
-  add_foreign_key "life_insurances", "customers"
   add_foreign_key "life_insurances", "distributors"
-  add_foreign_key "life_insurances", "investors"
-  add_foreign_key "life_insurances", "sub_agents"
   add_foreign_key "loans", "customers"
   add_foreign_key "motor_insurance_documents", "motor_insurances"
   add_foreign_key "motor_insurance_nominees", "motor_insurances"
-  add_foreign_key "motor_insurances", "agency_codes"
   add_foreign_key "motor_insurances", "brokers"
-  add_foreign_key "motor_insurances", "customers"
-  add_foreign_key "motor_insurances", "distributors"
-  add_foreign_key "motor_insurances", "investors"
-  add_foreign_key "motor_insurances", "sub_agents"
   add_foreign_key "mutual_fund_nominees", "mutual_funds"
   add_foreign_key "mutual_funds", "customers"
   add_foreign_key "mutual_funds", "distributors"
   add_foreign_key "mutual_funds", "sub_agents"
-  add_foreign_key "other_insurance_documents", "other_insurances"
+  add_foreign_key "other_insurance_documents", "other_insurances", name: "other_insurance_documents_other_insurance_id_fkey"
   add_foreign_key "other_insurance_nominees", "other_insurances"
-  add_foreign_key "other_insurances", "distributors"
-  add_foreign_key "other_insurances", "investors"
   add_foreign_key "other_insurances", "policies"
-  add_foreign_key "payout_distributions", "commission_receipts"
-  add_foreign_key "policies", "agency_brokers"
-  add_foreign_key "policies", "customers"
-  add_foreign_key "policies", "insurance_companies"
-  add_foreign_key "policies", "users"
-  add_foreign_key "role_permissions", "permissions"
-  add_foreign_key "role_permissions", "roles"
   add_foreign_key "session_activities", "users"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
@@ -2061,9 +1882,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_000001) do
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "sub_agent_documents", "sub_agents"
   add_foreign_key "sub_agents", "distributors"
-  add_foreign_key "tax_services", "customers"
-  add_foreign_key "travel_packages", "customers"
   add_foreign_key "user_sessions", "users"
-  add_foreign_key "users", "roles"
-  add_foreign_key "users", "user_roles"
 end

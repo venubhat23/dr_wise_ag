@@ -15,7 +15,9 @@ class Invoice < ApplicationRecord
 
   # Polymorphic association to get the payout record
   def payout_record
-    case payout_type
+    return @payout_record if defined?(@payout_record)
+
+    @payout_record = case payout_type
     when 'affiliate'
       # First try with payout_to filter, if not found try without filter for backward compatibility
       CommissionPayout.find_by(id: payout_id, payout_to: 'affiliate') ||

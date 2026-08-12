@@ -24,7 +24,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
     @total_filtered_count = @sub_agents.count
 
     # Order and paginate using configurable pagination
-    @sub_agents = paginate_records(@sub_agents.order(created_at: :desc))
+    @sub_agents = paginate_records(@sub_agents.order(created_at: :desc), @total_filtered_count)
 
     # All four stats in one query instead of 3 count queries + Ruby iteration
     stats = ActiveRecord::Base.connection.execute(<<~SQL).first

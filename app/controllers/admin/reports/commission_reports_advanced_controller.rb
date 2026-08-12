@@ -10,6 +10,7 @@ class Admin::Reports::CommissionReportsAdvancedController < ApplicationControlle
 
     # Pagination
     @commission_data = @commission_data.page(params[:page]).per(50)
+    preload_policies_for_commission_data(@commission_data)
 
     # Summary calculations
     @total_commission = calculate_total_commission
@@ -64,6 +65,7 @@ class Admin::Reports::CommissionReportsAdvancedController < ApplicationControlle
 
   def export_csv
     @commission_data = fetch_commission_data(paginated: false)
+    preload_policies_for_commission_data(@commission_data)
     @selected_columns = params[:columns] || default_columns
 
     respond_to do |format|
@@ -215,6 +217,28 @@ class Admin::Reports::CommissionReportsAdvancedController < ApplicationControlle
         net_commission: @net_commission
       }
     }
+  end
+
+  # Batch-fetches policies (with customer/sub_agent/distributor preloaded) for a
+  # collection of CommissionPayouts and primes each record's memoized #policy,
+  # avoiding a query per row in get_insurance_company/get_sub_agent_name/get_distributor_name.
+  def preload_policies_for_commission_data(commissions)
+    records = commissions.to_a
+    ids_by_type = { 'health' => [], 'life' => [], 'motor' => [], 'other' => [] }
+    records.each { |c| ids_by_type[c.policy_type]&.push(c.policy_id) }
+
+    policy_maps = {
+      'health' => HealthInsurance.includes(:customer, :sub_agent, :distributor).where(id: ids_by_type['health'].uniq.compact).index_by(&:id),
+      'life'   => LifeInsurance.includes(:customer, :sub_agent, :distributor).where(id: ids_by_type['life'].uniq.compact).index_by(&:id),
+      'motor'  => MotorInsurance.includes(:customer, :sub_agent, :distributor).where(id: ids_by_type['motor'].uniq.compact).index_by(&:id),
+      'other'  => OtherInsurance.includes(:customer, :sub_agent, :distributor).where(id: ids_by_type['other'].uniq.compact).index_by(&:id)
+    }
+
+    records.each do |c|
+      c.instance_variable_set(:@policy, policy_maps.dig(c.policy_type, c.policy_id))
+    end
+
+    commissions
   end
 
   def get_insurance_company(commission)

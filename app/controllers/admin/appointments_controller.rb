@@ -1,4 +1,5 @@
 class Admin::AppointmentsController < Admin::ApplicationController
+  include ConfigurablePagination
   before_action :set_appointment, only: [:show, :edit, :update, :destroy]
 
   def index
@@ -22,6 +23,8 @@ class Admin::AppointmentsController < Admin::ApplicationController
     if @selected_date
       @appointments = @appointments.where(appointment_date: @selected_date)
     end
+
+    @appointments = paginate_records(@appointments)
   end
 
   def new
