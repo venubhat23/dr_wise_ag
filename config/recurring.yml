@@ -13,3 +13,17 @@ production:
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
+
+  dashboard_cache_warmer:
+    class: DashboardCacheWarmerJob
+    queue: default
+    schedule: every 3 minutes
+
+# Development currently points at the same Railway Postgres as production
+# (config/database.yml), so the same warmer needs to run here too or every
+# local dashboard load pays the full cold-query cost.
+development:
+  dashboard_cache_warmer:
+    class: DashboardCacheWarmerJob
+    queue: default
+    schedule: every 3 minutes

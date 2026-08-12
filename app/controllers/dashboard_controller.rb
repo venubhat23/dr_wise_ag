@@ -156,6 +156,9 @@ class DashboardController < ApplicationController
     cache_key = "dashboard_data_#{cache_gen}_#{@filter_start_date}_#{@filter_end_date}_v7"
 
     # Try to get cached data first (5 minutes cache)
+    # Check hit/miss BEFORE fetch — fetch always leaves the key present
+    # afterward, so checking after would report "hit" even on a cold miss.
+    cache_hit = Rails.cache.exist?(cache_key)
     filtered_data = Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
       get_filtered_dashboard_data(@filter_start_date, @filter_end_date)
     end
@@ -163,7 +166,9 @@ class DashboardController < ApplicationController
     # Load filter-independent data (always based on current date, not filter dates)
     # Cache this separately with shorter expiry since it's real-time data
     filter_independent_cache_key = "dashboard_filter_independent_#{Date.current}_v4"
-    filter_independent_data = Rails.cache.fetch(filter_independent_cache_key, expires_in: 2.minutes) do
+    # TTL must exceed the warmer's 3-minute cadence (config/recurring.yml) or
+    # this expires between warm cycles and a live request eats the slow path.
+    filter_independent_data = Rails.cache.fetch(filter_independent_cache_key, expires_in: 4.minutes) do
       load_filter_independent_data()
     end
 
@@ -175,8 +180,8 @@ class DashboardController < ApplicationController
     DashboardPerformanceMonitor.track_dashboard_load(
       start_time: start_time,
       end_time: Time.current,
-      cache_hit: Rails.cache.exist?(cache_key),
-      data_source: Rails.cache.exist?(cache_key) ? 'cached_filtered_data' : 'filtered_data'
+      cache_hit: cache_hit,
+      data_source: cache_hit ? 'cached_filtered_data' : 'filtered_data'
     )
 
     # Set instance variables from filtered data
@@ -202,7 +207,9 @@ class DashboardController < ApplicationController
     results[:renewal_status] = get_renewal_status_counts
 
     # Policy Alerts - always based on current date
-    results[:policies_expiring_soon] = get_renewal_due_count(forty_five_days_from_now)
+    # Same query/date-range as renewal_due_count above — reuse it instead of
+    # re-running the identical UNION query a second time.
+    results[:policies_expiring_soon] = results[:renewal_due_count]
     results[:expired_this_month] = get_expired_this_month_count
     results[:renewal_opportunities] = get_renewal_opportunities_count
 
@@ -308,21 +315,13 @@ class DashboardController < ApplicationController
   def get_premium_revenue_trend_data
     # Get last 6 months of premium data from current date
     end_date = Date.current.end_of_month
-    start_date = end_date - 5.months
+    start_date = (end_date - 5.months).beginning_of_month
+    totals = monthly_premium_totals(start_date, end_date)
 
-    trend_data = []
-    6.times do |i|
+    (0..5).map do |i|
       month_start = (end_date - i.months).beginning_of_month
-      month_end = (end_date - i.months).end_of_month
-
-      monthly_premium = get_premium_for_period(month_start, month_end)
-      trend_data.unshift({
-        month: month_start.strftime('%b %Y'),
-        amount: monthly_premium
-      })
-    end
-
-    trend_data
+      { month: month_start.strftime('%b %Y'), amount: totals[month_start] }
+    end.reverse
   rescue => e
     Rails.logger.error "Error calculating premium trend: #{e.message}"
     []
@@ -977,16 +976,12 @@ class DashboardController < ApplicationController
   end
 
   def build_period_monthly_trend(start_date, end_date)
+    totals = monthly_premium_totals(start_date, end_date)
     trend_data = []
     current_month = start_date.beginning_of_month
 
     while current_month <= end_date
-      period_start = [current_month, start_date].max
-      period_end   = [current_month.end_of_month, end_date].min
-      trend_data << {
-        month:  current_month.strftime('%b %Y'),
-        amount: get_premium_for_period(period_start, period_end)
-      }
+      trend_data << { month: current_month.strftime('%b %Y'), amount: totals[current_month] }
       current_month = current_month.next_month
     end
 
@@ -994,6 +989,23 @@ class DashboardController < ApplicationController
   rescue => e
     Rails.logger.error "Error building period monthly trend: #{e.message}"
     []
+  end
+
+  # Sums net_premium per calendar month (keyed by month start date) across all
+  # insurance types in one grouped query per model, instead of calling
+  # get_premium_for_period (4 queries) once per month in a loop — cuts what
+  # was up to 48 sequential round trips down to 4.
+  def monthly_premium_totals(start_date, end_date)
+    totals = Hash.new(0.0)
+    [HealthInsurance, LifeInsurance, MotorInsurance, OtherInsurance].each do |klass|
+      dr_scope(klass).where(policy_start_date: start_date..end_date)
+                     .group("DATE_TRUNC('month', policy_start_date)")
+                     .sum(:net_premium)
+                     .each { |month, amount| totals[month.to_date.beginning_of_month] += amount.to_f }
+    rescue => e
+      Rails.logger.error "monthly_premium_totals error (#{klass.name}): #{e.message}"
+    end
+    totals
   end
 
   def get_policies_count_for_period(start_date, end_date)

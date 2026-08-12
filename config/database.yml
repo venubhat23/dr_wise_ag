@@ -5,7 +5,10 @@ default: &default
 
 development:
   <<: *default
-  url: <%= ENV.fetch("DATABASE_URL") { "postgresql:///insurebook_admin_development?host=/var/run/postgresql&user=mahadev-bhat" } %>
+  # Hardcoded to the Railway production DB per explicit request — local dev
+  # now reads/writes the same database as production. No local Postgres
+  # fallback; DATABASE_URL is ignored here on purpose.
+  url: "postgresql://postgres:hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP@hayabusa.proxy.rlwy.net:49021/railway"
 
 test:
   <<: *default
@@ -23,7 +26,7 @@ cache:
 
   development:
     <<: *default
-    url: <%= ENV.fetch("DATABASE_URL") { "postgresql:///insurebook_admin_development?host=/var/run/postgresql&user=mahadev-bhat" } %>
+    url: "postgresql://postgres:hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP@hayabusa.proxy.rlwy.net:49021/railway"
 
   test:
     <<: *default
@@ -37,7 +40,7 @@ queue:
 
   development:
     <<: *default
-    url: <%= ENV.fetch("DATABASE_URL") { "postgresql:///insurebook_admin_development?host=/var/run/postgresql&user=mahadev-bhat" } %>
+    url: "postgresql://postgres:hvbFdFNIxQoViVqAGVmVbGeIFMQMhznP@hayabusa.proxy.rlwy.net:49021/railway"
 
   test:
     <<: *default

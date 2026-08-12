@@ -33,8 +33,12 @@ port ENV.fetch("PORT", 3000)
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart
 
-# Run the Solid Queue supervisor inside of Puma for single-server deployments
-plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]
+# Run the Solid Queue supervisor inside of Puma for single-server deployments.
+# Defaults on since this app runs as a single Railway service with no separate
+# worker process — without this, DashboardCacheWarmerJob and every other
+# ActiveJob never executes. Set SOLID_QUEUE_IN_PUMA=false to opt out (e.g. if
+# a dedicated worker service is added later).
+plugin :solid_queue unless ENV["SOLID_QUEUE_IN_PUMA"] == "false"
 
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.
 # In other environments, only set the PID file if requested.

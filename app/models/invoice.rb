@@ -27,40 +27,16 @@ class Invoice < ApplicationRecord
       # Return the first paid payout for display purposes
       DistributorPayout.where(distributor_id: payout_id, status: 'paid').first
     when 'ambassador'
-      # For ambassador, payout_id is the distributor ID
-      # Find relevant commission payout
-      distributor = Distributor.find_by(id: payout_id)
-      if distributor
-        # Find a paid ambassador commission payout for this distributor
-        # Check each insurance type for policies with this distributor
-        ['health', 'life', 'motor', 'other'].each do |policy_type|
-          model_name = "#{policy_type.capitalize}Insurance"
-          model = model_name.constantize rescue nil
-          next unless model
-
-          if model.column_names.include?('distributor_id')
-            policy_ids = model.where(distributor_id: distributor.id).pluck(:id)
-
-            policy_ids.each do |policy_id|
-              payout = CommissionPayout.find_by(
-                policy_type: policy_type,
-                policy_id: policy_id,
-                payout_to: 'ambassador',
-                status: 'paid'
-              )
-              return payout if payout
-            end
-          end
-        end
-      end
-      nil
+      find_ambassador_payout_record
     when 'commission'
       Payout.find_by(id: payout_id)
     end
   end
 
   def payout_recipient
-    case payout_type
+    return @payout_recipient if defined?(@payout_recipient)
+
+    @payout_recipient = case payout_type
     when 'affiliate'
       # For affiliate type, payout_id refers to SubAgent ID
       sub_agent = SubAgent.find_by(id: payout_id)
@@ -166,5 +142,31 @@ class Invoice < ApplicationRecord
     when 'other'
       OtherInsurance.find_by(id: commission_payout.policy_id)
     end
+  end
+
+  # For ambassador invoices, payout_id is the distributor ID. Find a paid
+  # ambassador commission payout for one of this distributor's policies.
+  # Batches the lookup to one query per policy type (4 total) instead of the
+  # previous one-query-per-policy loop.
+  def find_ambassador_payout_record
+    distributor = Distributor.find_by(id: payout_id)
+    return nil unless distributor
+
+    %w[health life motor other].each do |policy_type|
+      model = "#{policy_type.capitalize}Insurance".safe_constantize
+      next unless model && model.column_names.include?('distributor_id')
+
+      policy_ids = model.where(distributor_id: distributor.id).pluck(:id)
+      next if policy_ids.empty?
+
+      payout = CommissionPayout.find_by(
+        policy_type: policy_type,
+        policy_id: policy_ids,
+        payout_to: 'ambassador',
+        status: 'paid'
+      )
+      return payout if payout
+    end
+    nil
   end
 end

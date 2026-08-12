@@ -33,12 +33,18 @@ module ConfigurablePagination
     @show_pagination = total_count > per_page
 
     # Only apply pagination if needed
-    if @show_pagination
+    paginated = if @show_pagination
       records.page(params[:page]).per(per_page)
     else
       # Return all records without pagination if count is less than or equal to items per page
       records.page(1).per(total_count > 0 ? total_count : 1)
     end
+
+    # We already know the total count above — hand it to Kaminari so views
+    # calling `paginated.total_count` / `total_pages` (e.g. via the `paginate`
+    # helper or the shared pagination partial) don't re-run the same COUNT query.
+    paginated.instance_variable_set(:@total_count, total_count) if paginated.respond_to?(:total_count)
+    paginated
   end
 
   # Helper method to check if pagination should be shown

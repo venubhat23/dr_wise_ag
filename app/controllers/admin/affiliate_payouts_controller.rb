@@ -180,39 +180,41 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
   private
 
   def calculate_affiliate_payouts
-    payouts = []
-
     # Get all commission payouts for affiliates directly
-    affiliate_commission_payouts = CommissionPayout.where(payout_to: 'affiliate').includes(:payout).to_a
+    affiliate_commission_payouts = CommissionPayout.where(payout_to: 'affiliate').to_a
 
     # Batch-preload policies for all commission payouts to avoid N+1 lookups in the loop below
     policies_by_type_and_id = preload_policies_for_commission_payouts(affiliate_commission_payouts)
 
+    # Narrow down to the payouts that actually qualify before doing any further
+    # batch lookups, so we don't fetch sub_agents/leads we won't use.
+    eligible = affiliate_commission_payouts.filter_map do |commission_payout|
+      policy = policies_by_type_and_id.dig(commission_payout.policy_type, commission_payout.policy_id)
+      next unless policy
+      next unless policy.respond_to?(:main_agent_commission_received) && policy.main_agent_commission_received
+      next unless policy.respond_to?(:sub_agent_id) && policy.sub_agent_id.present?
+
+      [commission_payout, policy]
+    end
+
+    # Batch-fetch sub_agents and leads instead of one `find_by` per row below
+    # (previously an N+1: 2 extra queries per eligible commission payout).
+    sub_agent_ids = eligible.map { |_cp, policy| policy.sub_agent_id }.uniq
+    sub_agents_by_id = SubAgent.where(id: sub_agent_ids).index_by(&:id)
+
+    lead_ids = eligible.flat_map { |cp, policy| [cp.lead_id, (policy.lead_id if policy.respond_to?(:lead_id))] }.compact.uniq
+    leads_by_lead_id = Lead.where(lead_id: lead_ids).index_by(&:lead_id)
+
     # Group by affiliate
     affiliate_groups = {}
 
-    affiliate_commission_payouts.each do |commission_payout|
-      # Get policy from commission payout
-      policy = policies_by_type_and_id.dig(commission_payout.policy_type, commission_payout.policy_id)
-      next unless policy
-
-      # Skip if main agent commission not received
-      next unless policy.respond_to?(:main_agent_commission_received) && policy.main_agent_commission_received
-
-      # Get sub_agent from the policy's sub_agent_id
-      sub_agent = SubAgent.find_by(id: policy.sub_agent_id) if policy.respond_to?(:sub_agent_id) && policy.sub_agent_id.present?
+    eligible.each do |commission_payout, policy|
+      sub_agent = sub_agents_by_id[policy.sub_agent_id]
       next unless sub_agent
 
       # Get or create lead if needed
-      lead = nil
-      if commission_payout.lead_id.present?
-        lead = Lead.find_by(lead_id: commission_payout.lead_id)
-      end
-
-      # Fallback: try to find lead by policy lead_id
-      if lead.nil? && policy.respond_to?(:lead_id) && policy.lead_id.present?
-        lead = Lead.find_by(lead_id: policy.lead_id)
-      end
+      lead = leads_by_lead_id[commission_payout.lead_id] if commission_payout.lead_id.present?
+      lead ||= leads_by_lead_id[policy.lead_id] if policy.respond_to?(:lead_id) && policy.lead_id.present?
 
       # If no lead found, create a virtual lead object for display purposes
       if lead.nil?
@@ -448,10 +450,10 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     end
 
     {
-      'health' => HealthInsurance.where(id: ids_by_type['health'].uniq.compact).index_by(&:id),
-      'life'   => LifeInsurance.where(id: ids_by_type['life'].uniq.compact).index_by(&:id),
-      'motor'  => MotorInsurance.where(id: ids_by_type['motor'].uniq.compact).index_by(&:id),
-      'other'  => OtherInsurance.where(id: ids_by_type['other'].uniq.compact).index_by(&:id)
+      'health' => HealthInsurance.includes(:customer).where(id: ids_by_type['health'].uniq.compact).index_by(&:id),
+      'life'   => LifeInsurance.includes(:customer).where(id: ids_by_type['life'].uniq.compact).index_by(&:id),
+      'motor'  => MotorInsurance.includes(:customer).where(id: ids_by_type['motor'].uniq.compact).index_by(&:id),
+      'other'  => OtherInsurance.includes(:customer).where(id: ids_by_type['other'].uniq.compact).index_by(&:id)
     }
   end
 

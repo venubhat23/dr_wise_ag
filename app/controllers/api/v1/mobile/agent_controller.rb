@@ -1105,7 +1105,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     search = params[:search]
 
     # Base query - filter leads based on user type
-    leads = Lead.includes(:converted_customer, :created_policy, :affiliate, :ambassador)
+    leads = Lead.includes(:converted_customer, :affiliate, :ambassador)
 
     # Filter leads based on user type
     agent = current_user

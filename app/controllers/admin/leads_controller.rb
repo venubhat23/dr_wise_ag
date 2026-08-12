@@ -60,9 +60,9 @@ class Admin::LeadsController < Admin::ApplicationController
 
     # Apply ordering only if not already ordered (e.g., for converted leads)
     if params[:tab] == 'converted'
-      @leads = paginate_records(@leads.includes(:converted_customer, :created_policy, :affiliate, :ambassador))
+      @leads = paginate_records(@leads.includes(:converted_customer, :affiliate, :ambassador))
     else
-      @leads = paginate_records(@leads.order(created_at: :desc).includes(:converted_customer, :created_policy, :affiliate, :ambassador))
+      @leads = paginate_records(@leads.order(created_at: :desc).includes(:converted_customer, :affiliate, :ambassador))
     end
 
     # Statistics — all stage counts in one query instead of 7 separate count queries

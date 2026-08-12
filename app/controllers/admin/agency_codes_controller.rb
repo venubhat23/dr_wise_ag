@@ -34,11 +34,15 @@ class Admin::AgencyCodesController < Admin::ApplicationController
         # For filters - get all companies sorted alphabetically
         @insurance_companies = get_all_companies_sorted
 
-        # Statistics (use unfiltered counts for stats cards)
-        @total_codes = AgencyCode.count
-        @health_codes = AgencyCode.where(insurance_type: 'Health Insurance').count
-        @motor_codes = AgencyCode.where(insurance_type: 'Motor and Other Insurance').count
-        @life_codes = AgencyCode.where(insurance_type: 'Life Insurance').count
+        # Statistics (use unfiltered counts for stats cards) - single query with
+        # FILTER instead of 4 separate COUNT round trips.
+        stats = AgencyCode.pick(
+          Arel.sql('COUNT(*)'),
+          Arel.sql("COUNT(*) FILTER (WHERE insurance_type = 'Health Insurance')"),
+          Arel.sql("COUNT(*) FILTER (WHERE insurance_type = 'Motor and Other Insurance')"),
+          Arel.sql("COUNT(*) FILTER (WHERE insurance_type = 'Life Insurance')")
+        )
+        @total_codes, @health_codes, @motor_codes, @life_codes = stats
       end
 
       format.json do
@@ -642,29 +646,31 @@ class Admin::AgencyCodesController < Admin::ApplicationController
     render json: [], status: :not_found
   end
 
-  # Get all companies sorted alphabetically
+  # Get all companies sorted alphabetically. This list only changes when an
+  # InsuranceCompany or AgencyCode is added/edited, so it's cached briefly
+  # instead of being re-queried on every index page load.
   def get_all_companies_sorted
-    # Get companies from database first (active insurance companies)
-    db_companies = InsuranceCompany.where(status: true)
-                                 .order('LOWER(name) ASC')
-                                 .pluck(:name)
-                                 .compact
-                                 .reject(&:blank?)
+    Rails.cache.fetch('agency_codes/all_companies_sorted', expires_in: 5.minutes) do
+      # Get companies from database first (active insurance companies)
+      db_companies = InsuranceCompany.where(status: true)
+                                   .order('LOWER(name) ASC')
+                                   .pluck(:name)
+                                   .compact
+                                   .reject(&:blank?)
 
-    # Get companies from agency codes if database is empty
-    if db_companies.empty?
-      agency_companies = AgencyCode.select(:company_name)
-                                 .where.not(company_name: [nil, ''])
-                                 .group(:company_name)
-                                 .order('LOWER(company_name) ASC')
-                                 .pluck(:company_name)
-                                 .compact
-                                 .reject(&:blank?)
-
-      return agency_companies
+      # Get companies from agency codes if database is empty
+      if db_companies.empty?
+        AgencyCode.select(:company_name)
+                  .where.not(company_name: [nil, ''])
+                  .group(:company_name)
+                  .order('LOWER(company_name) ASC')
+                  .pluck(:company_name)
+                  .compact
+                  .reject(&:blank?)
+      else
+        # Return database companies sorted alphabetically
+        db_companies
+      end
     end
-
-    # Return database companies sorted alphabetically
-    db_companies
   end
 end

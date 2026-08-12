@@ -188,39 +188,41 @@ class Admin::DistributorPayoutsController < ApplicationController
   private
 
   def calculate_distributor_payouts
-    payouts = []
-
     # Get all commission payouts for ambassadors (distributors) directly - similar to affiliate logic
-    ambassador_commission_payouts = CommissionPayout.where(payout_to: 'ambassador').includes(:payout).to_a
+    ambassador_commission_payouts = CommissionPayout.where(payout_to: 'ambassador').to_a
 
     # Batch-preload policies for all commission payouts to avoid N+1 lookups in the loop below
     policies_by_type_and_id = preload_policies_for_commission_payouts(ambassador_commission_payouts)
 
+    # Narrow down to the payouts that actually qualify before doing any further
+    # batch lookups, so we don't fetch distributors/leads we won't use.
+    eligible = ambassador_commission_payouts.filter_map do |commission_payout|
+      policy = policies_by_type_and_id.dig(commission_payout.policy_type, commission_payout.policy_id)
+      next unless policy
+      next unless policy.respond_to?(:main_agent_commission_received) && policy.main_agent_commission_received
+      next unless policy.respond_to?(:distributor_id) && policy.distributor_id.present?
+
+      [commission_payout, policy]
+    end
+
+    # Batch-fetch distributors and leads instead of one `find_by` per row below
+    # (previously an N+1: 2 extra queries per eligible commission payout).
+    distributor_ids = eligible.map { |_cp, policy| policy.distributor_id }.uniq
+    distributors_by_id = Distributor.where(id: distributor_ids).index_by(&:id)
+
+    lead_ids = eligible.flat_map { |cp, policy| [cp.lead_id, (policy.lead_id if policy.respond_to?(:lead_id))] }.compact.uniq
+    leads_by_lead_id = Lead.where(lead_id: lead_ids).index_by(&:lead_id)
+
     # Group by distributor
     distributor_groups = {}
 
-    ambassador_commission_payouts.each do |commission_payout|
-      # Get policy from commission payout
-      policy = policies_by_type_and_id.dig(commission_payout.policy_type, commission_payout.policy_id)
-      next unless policy
-
-      # Skip if main agent commission not received - same logic as affiliates
-      next unless policy.respond_to?(:main_agent_commission_received) && policy.main_agent_commission_received
-
-      # Get distributor from the policy's distributor_id field
-      distributor = Distributor.find_by(id: policy.distributor_id) if policy.respond_to?(:distributor_id) && policy.distributor_id.present?
+    eligible.each do |commission_payout, policy|
+      distributor = distributors_by_id[policy.distributor_id]
       next unless distributor
 
       # Get or create lead if needed
-      lead = nil
-      if commission_payout.lead_id.present?
-        lead = Lead.find_by(lead_id: commission_payout.lead_id)
-      end
-
-      # Fallback: try to find lead by policy lead_id
-      if lead.nil? && policy.respond_to?(:lead_id) && policy.lead_id.present?
-        lead = Lead.find_by(lead_id: policy.lead_id)
-      end
+      lead = leads_by_lead_id[commission_payout.lead_id] if commission_payout.lead_id.present?
+      lead ||= leads_by_lead_id[policy.lead_id] if policy.respond_to?(:lead_id) && policy.lead_id.present?
 
       # If no lead found, create a virtual lead object for display purposes (same as affiliates)
       if lead.nil?
@@ -524,10 +526,10 @@ class Admin::DistributorPayoutsController < ApplicationController
     end
 
     {
-      'health' => HealthInsurance.where(id: ids_by_type['health'].uniq.compact).index_by(&:id),
-      'life'   => LifeInsurance.where(id: ids_by_type['life'].uniq.compact).index_by(&:id),
-      'motor'  => MotorInsurance.where(id: ids_by_type['motor'].uniq.compact).index_by(&:id),
-      'other'  => OtherInsurance.where(id: ids_by_type['other'].uniq.compact).index_by(&:id)
+      'health' => HealthInsurance.includes(:customer).where(id: ids_by_type['health'].uniq.compact).index_by(&:id),
+      'life'   => LifeInsurance.includes(:customer).where(id: ids_by_type['life'].uniq.compact).index_by(&:id),
+      'motor'  => MotorInsurance.includes(:customer).where(id: ids_by_type['motor'].uniq.compact).index_by(&:id),
+      'other'  => OtherInsurance.includes(:customer).where(id: ids_by_type['other'].uniq.compact).index_by(&:id)
     }
   end
 

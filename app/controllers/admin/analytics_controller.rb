@@ -75,11 +75,30 @@ class Admin::AnalyticsController < Admin::ApplicationController
   def load_filtered_analytics_data
     Rails.logger.info "🔍 Loading filtered analytics data for period: #{@filter_start_date} to #{@filter_end_date}"
 
-    # Use the same filtered data approach as dashboard controller
-    filtered_data = get_filtered_analytics_data(@filter_start_date, @filter_end_date)
+    # Reuses the dashboard's cache-gen key so both pages invalidate together
+    # (bumped on health/life insurance writes — see DashboardOptimizable).
+    cache_gen = Rails.cache.read("dashboard_cache_gen") || "0"
+    cache_key = "analytics_filtered_data_#{cache_gen}_#{@filter_start_date}_#{@filter_end_date}_v2"
+
+    filtered_data = Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
+      get_filtered_analytics_data(@filter_start_date, @filter_end_date)
+    end
 
     # Set instance variables from filtered data
     filtered_data.each { |key, value| instance_variable_set("@#{key}", value) }
+
+    # @recent_leads is cached as plain attribute hashes (see get_filtered_analytics_data) —
+    # wrap back into OpenStructs so the view can keep calling lead.method_name on it.
+    @recent_leads = (@recent_leads || []).map { |attrs| OpenStruct.new(attrs) }
+
+    # Investor/agent/retention figures are period-independent — cached under
+    # their own key (shared across every date filter) instead of being part
+    # of the per-period cache above.
+    independent_cache_key = "analytics_period_independent_data_#{cache_gen}_v1"
+    independent_data = Rails.cache.fetch(independent_cache_key, expires_in: 5.minutes) do
+      get_period_independent_analytics_data
+    end
+    independent_data.each { |key, value| instance_variable_set("@#{key}", value) }
   end
 
   def get_filtered_analytics_data(start_date, end_date)
@@ -94,10 +113,29 @@ class Admin::AnalyticsController < Admin::ApplicationController
     dt_start = start_date.beginning_of_day
     dt_end   = end_date.end_of_day
     @total_customers   = Customer.where(created_at: dt_start..dt_end).count
-    @total_policies    = calculate_total_policies_for_period(start_date, end_date)
-    @total_premium     = calculate_total_premium_for_period(start_date, end_date)
     @total_affiliates  = SubAgent.where(created_at: dt_start..dt_end).count
     @total_ambassadors = Distributor.where(created_at: dt_start..dt_end).count
+
+    # Monthly trends within the filtered period (up to 12 months). Policy
+    # distribution, total policies/premium, and the premium/acquisition trend
+    # charts are all sums or reshapes of these same per-month figures, so
+    # derive them here instead of re-querying the whole range again per metric
+    # (was 4 duplicate group-by queries plus 8 more for the plain totals).
+    trend_data = calculate_monthly_trends_for_period(start_date, end_date)
+    @monthly_trends = trend_data[:trends]
+    totals = trend_data[:totals]
+
+    @policy_distribution = {
+      'Life Insurance'   => totals[:life_count],
+      'Health Insurance' => totals[:health_count],
+      'Motor Insurance'  => totals[:motor_count],
+      'Other Insurance'  => totals[:other_count]
+    }
+    @total_policies = totals[:health_count] + totals[:life_count] + totals[:motor_count] + totals[:other_count]
+    @total_premium  = totals[:health_premium] + totals[:life_premium] + totals[:motor_premium] + totals[:other_premium]
+
+    @premium_revenue_trend = @monthly_trends.transform_values { |v| v[:premium].round(0) }
+    @customer_acquisition_trend = @monthly_trends.transform_values { |v| v[:customers] }
 
     # Growth metrics (compare with previous period of same duration)
     # Use .to_i to get integer days; avoid double .days conversion which overflows PostgreSQL
@@ -105,21 +143,14 @@ class Admin::AnalyticsController < Admin::ApplicationController
     previous_end   = start_date - 1.day
     previous_start = [start_date - days_in_period, Date.new(1900, 1, 1)].max
 
-    @customer_growth = calculate_growth_for_period(Customer, start_date, end_date, previous_start, previous_end)
-    @policy_growth = calculate_policy_growth_for_period(start_date, end_date, previous_start, previous_end)
-    @premium_growth = calculate_premium_growth_for_period(start_date, end_date, previous_start, previous_end)
-    @affiliate_growth = calculate_growth_for_period(SubAgent, start_date, end_date, previous_start, previous_end)
+    customer_current, customer_previous   = growth_counts(Customer, start_date, end_date, previous_start, previous_end)
+    affiliate_current, affiliate_previous = growth_counts(SubAgent, start_date, end_date, previous_start, previous_end)
+    @customer_growth  = calculate_percentage_change(customer_current, customer_previous)
+    @affiliate_growth = calculate_percentage_change(affiliate_current, affiliate_previous)
 
-    # Policy distribution for the filtered period (filter by policy_start_date)
-    @policy_distribution = {
-      'Life Insurance'   => LifeInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).count,
-      'Health Insurance' => HealthInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).count,
-      'Motor Insurance'  => (MotorInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).count rescue 0),
-      'Other Insurance'  => (OtherInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).count rescue 0)
-    }
-
-    # Monthly trends within the filtered period (up to 12 months)
-    @monthly_trends = calculate_monthly_trends_for_period(start_date, end_date)
+    previous_totals = previous_period_policy_premium_totals(previous_start, previous_end)
+    @policy_growth  = calculate_percentage_change(@total_policies, previous_totals[:policies])
+    @premium_growth = calculate_percentage_change(@total_premium, previous_totals[:premium])
 
     # Top performing affiliates for the period
     @top_affiliates = calculate_top_affiliates_for_period(start_date, end_date)
@@ -128,75 +159,81 @@ class Admin::AnalyticsController < Admin::ApplicationController
     @recent_policies = get_recent_policies_for_period(start_date, end_date)
     @recent_leads = Lead.where(created_at: dt_start..dt_end).order(created_at: :desc).limit(10)
 
+    # Batch-resolve each lead's customer sub_agent (by contact number) in one
+    # query instead of the view calling Customer.find_by per row (was 10
+    # queries for 10 recent leads).
+    contact_numbers = @recent_leads.map(&:contact_number).compact.uniq
+    @recent_leads_sub_agent_by_contact = Customer.where(mobile: contact_numbers).pluck(:mobile, :sub_agent).to_h
+
     # Commission analytics for the period
     @commission_summary = calculate_commission_summary_for_period(start_date, end_date)
 
     # Renewal analytics for the period
     @renewal_analytics = calculate_renewal_analytics_for_period(start_date, end_date)
 
-    # Lead analytics for the period
-    @lead_conversion_funnel = calculate_lead_conversion_funnel_for_period(start_date, end_date)
-    @lead_stage_distribution = calculate_lead_stage_distribution_for_period(start_date, end_date)
+    # Lead analytics for the period — funnel, stage distribution, new/converted
+    # lead counts, and conversion rate are all derived from this single
+    # grouped-by-stage query instead of 6 separate Lead counts.
+    lead_stage_counts = (Lead.where(created_at: dt_start..dt_end).group(:current_stage).count rescue {})
+    @lead_conversion_funnel  = build_lead_conversion_funnel(lead_stage_counts)
+    @lead_stage_distribution = build_lead_stage_distribution(lead_stage_counts)
+    @new_leads       = lead_stage_counts.values.sum
+    @converted_leads = (lead_stage_counts['policy_created'] || 0) + (lead_stage_counts['converted'] || 0)
+    converted_only    = lead_stage_counts['converted'] || 0
+    @conversion_rate = @new_leads > 0 ? ((converted_only.to_f / @new_leads.to_f) * 100).round(1) : 0
 
     # Customer location analytics for the period
-    @customer_location = calculate_customer_location_for_period(start_date, end_date)
+    @customer_location = calculate_customer_location_for_period(start_date, end_date, @total_customers)
 
     # Additional metrics
-    @conversion_rate = calculate_conversion_rate_for_period(start_date, end_date, dt_start, dt_end)
     @avg_policy_value = @total_policies > 0 ? (@total_premium / @total_policies).round(0) : 0
     @commissions_due = (@commission_summary[:total_commission_due] || 0).to_f
 
     # Top customers by premium for the filtered period
     @top_customers_by_premium = calculate_top_customers_by_premium_for_period(start_date, end_date)
 
-    # Investor analytics (all-time — investors don't have a policy_start_date)
-    @total_investors = Investor.count rescue 0
-    @investor_status_distribution = calculate_investor_status_distribution
-    @top_investors_by_ambassadors = calculate_top_investors_by_ambassadors
-    @top_investors_by_commission = calculate_top_investors_by_commission
-
-    # Premium revenue trend for the filtered period (month-by-month within the range)
-    @premium_revenue_trend = {}
-    cur = start_date.beginning_of_month
-    while cur <= end_date
-      m_start = [cur, start_date].max
-      m_end   = [cur.end_of_month, end_date].min
-      range   = m_start..m_end
-      h = HealthInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium)
-      l = LifeInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium)
-      m = (MotorInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) rescue 0)
-      @premium_revenue_trend[cur.strftime('%b %Y')] = (h + l + m).round(0)
-      cur = cur.next_month
-    end
-
-    # Customer acquisition trend for the filtered period
-    @customer_acquisition_trend = {}
-    cur = start_date.beginning_of_month
-    while cur <= end_date
-      m_start = [cur, start_date].max.beginning_of_day
-      m_end   = [cur.end_of_month, end_date].min.end_of_day
-      @customer_acquisition_trend[cur.strftime('%b %Y')] = Customer.where(created_at: m_start..m_end).count
-      cur = cur.next_month
-    end
-
-    # Agent performance — all-time; filtering by period is a separate enhancement
-    @agent_performance    = calculate_agent_performance
-    @agent_commission     = calculate_agent_commission
-    @agent_customer_data  = calculate_agent_customer_data
-    @customer_retention   = calculate_customer_retention
+    # Investor analytics, agent performance/commission/customer data, and
+    # customer retention are all-time figures independent of the date filter —
+    # loaded and cached separately (see get_period_independent_analytics_data)
+    # so switching between date ranges doesn't recompute them every time.
 
     # Operational quick-insights for the filtered period
+    # (@converted_leads and @new_leads were already derived above from lead_stage_counts)
     @active_customers = Customer.where(created_at: dt_start..dt_end).where(status: true).count rescue Customer.where(created_at: dt_start..dt_end).count
-    @converted_leads  = Lead.where(created_at: dt_start..dt_end, current_stage: %w[policy_created converted]).count rescue 0
-    @new_leads        = Lead.where(created_at: dt_start..dt_end).count rescue 0
     @support_tickets  = calculate_support_tickets
     @docs_pending     = 0
     @claims_processing = 0
     @client_requests_count = 0
     @data_is_cached   = false
 
-    # Return only the filter metadata; instance variables are already set above
+    # Full snapshot of everything computed above, so the caller can cache the
+    # whole result instead of recomputing ~140 queries on every page load.
+    # @recent_leads is an unloaded AR::Relation — materialize it to plain
+    # attribute hashes so it round-trips through the cache safely.
     {
+      current_month: @current_month, last_month: @last_month,
+      current_year: @current_year, last_year: @last_year,
+      total_customers: @total_customers, total_policies: @total_policies,
+      total_premium: @total_premium, total_affiliates: @total_affiliates,
+      total_ambassadors: @total_ambassadors,
+      customer_growth: @customer_growth, policy_growth: @policy_growth,
+      premium_growth: @premium_growth, affiliate_growth: @affiliate_growth,
+      policy_distribution: @policy_distribution, monthly_trends: @monthly_trends,
+      top_affiliates: @top_affiliates, recent_policies: @recent_policies,
+      recent_leads: @recent_leads.to_a.map(&:attributes),
+      recent_leads_sub_agent_by_contact: @recent_leads_sub_agent_by_contact,
+      commission_summary: @commission_summary, renewal_analytics: @renewal_analytics,
+      lead_conversion_funnel: @lead_conversion_funnel,
+      lead_stage_distribution: @lead_stage_distribution,
+      customer_location: @customer_location, conversion_rate: @conversion_rate,
+      avg_policy_value: @avg_policy_value, commissions_due: @commissions_due,
+      top_customers_by_premium: @top_customers_by_premium,
+      premium_revenue_trend: @premium_revenue_trend,
+      customer_acquisition_trend: @customer_acquisition_trend,
+      active_customers: @active_customers, converted_leads: @converted_leads,
+      new_leads: @new_leads, support_tickets: @support_tickets,
+      docs_pending: @docs_pending, claims_processing: @claims_processing,
+      client_requests_count: @client_requests_count,
       filter_start_date: start_date,
       filter_end_date: end_date,
       filter_year: start_date.year,
@@ -204,83 +241,111 @@ class Admin::AnalyticsController < Admin::ApplicationController
     }
   end
 
+  # Investor analytics, agent performance/commission/customer data, and
+  # customer retention don't depend on the date filter at all, so they're
+  # loaded and cached independently from the per-period data — switching
+  # between date ranges reuses this instead of recomputing ~15 queries.
+  def get_period_independent_analytics_data
+    {
+      total_investors: (Investor.count rescue 0),
+      investor_status_distribution: calculate_investor_status_distribution,
+      top_investors_by_ambassadors: calculate_top_investors_by_ambassadors,
+      top_investors_by_commission: calculate_top_investors_by_commission,
+      agent_performance: calculate_agent_performance,
+      agent_commission: calculate_agent_commission,
+      agent_customer_data: calculate_agent_customer_data,
+      customer_retention: calculate_customer_retention
+    }
+  end
+
   # Helper methods for filtered calculations
-  def calculate_total_policies_for_period(start_date, end_date)
-    range = start_date..end_date
-    HealthInsurance.where(DRWISE).where(policy_start_date: range).count +
-    LifeInsurance.where(DRWISE).where(policy_start_date: range).count +
-    (MotorInsurance.where(DRWISE).where(policy_start_date: range).count rescue 0) +
-    (OtherInsurance.where(DRWISE).where(policy_start_date: range).count rescue 0)
+
+  # Single query per model returning both the current- and previous-period
+  # counts via FILTER, instead of two separate .where(...).count calls.
+  def growth_counts(model, current_start, current_end, previous_start, previous_end)
+    sql = ActiveRecord::Base.sanitize_sql_array([
+      "SELECT COUNT(*) FILTER (WHERE created_at >= :cs AND created_at <= :ce) AS current_count, " \
+      "COUNT(*) FILTER (WHERE created_at >= :ps AND created_at <= :pe) AS previous_count " \
+      "FROM #{model.quoted_table_name} WHERE created_at >= :ps AND created_at <= :ce",
+      cs: current_start, ce: current_end, ps: previous_start, pe: previous_end
+    ])
+    row = ActiveRecord::Base.connection.select_one(sql)
+    [row['current_count'].to_i, row['previous_count'].to_i]
+  rescue => e
+    Rails.logger.error "growth_counts error (#{model.name}): #{e.message}"
+    [0, 0]
   end
 
-  def calculate_total_premium_for_period(start_date, end_date)
-    range = start_date..end_date
-    (HealthInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0) +
-    (LifeInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0) +
-    (MotorInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0 rescue 0) +
-    (OtherInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0 rescue 0)
+  def calculate_percentage_change(current, previous)
+    return 0 if previous.to_f == 0
+    ((current.to_f - previous.to_f) / previous.to_f * 100).round(1)
   end
 
-  def calculate_growth_for_period(model, current_start, current_end, previous_start, previous_end)
-    current_count = model.where(created_at: current_start..current_end).count
-    previous_count = model.where(created_at: previous_start..previous_end).count
-
-    return 0 if previous_count == 0
-    ((current_count.to_f - previous_count.to_f) / previous_count.to_f * 100).round(1)
+  # One query per model (count + sum together) for the previous-period
+  # comparison, instead of 4 count queries + 4 sum queries.
+  def previous_period_policy_premium_totals(previous_start, previous_end)
+    range = previous_start..previous_end
+    policies = 0
+    premium  = 0.0
+    [HealthInsurance, LifeInsurance, MotorInsurance, OtherInsurance].each do |klass|
+      cnt, sum = klass.where(DRWISE).where(policy_start_date: range)
+                      .pluck(Arel.sql('COUNT(*)'), Arel.sql('COALESCE(SUM(net_premium), 0)')).first
+      policies += cnt.to_i
+      premium  += sum.to_f
+    rescue => e
+      Rails.logger.error "previous_period_policy_premium_totals error (#{klass.name}): #{e.message}"
+    end
+    { policies: policies, premium: premium }
   end
 
-  def calculate_policy_growth_for_period(current_start, current_end, previous_start, previous_end)
-    current_policies = calculate_total_policies_for_period(current_start, current_end)
-    previous_policies = calculate_total_policies_for_period(previous_start, previous_end)
-
-    return 0 if previous_policies == 0
-    ((current_policies.to_f - previous_policies.to_f) / previous_policies.to_f * 100).round(1)
-  end
-
-  def calculate_premium_growth_for_period(current_start, current_end, previous_start, previous_end)
-    current_premium = calculate_total_premium_for_period(current_start, current_end)
-    previous_premium = calculate_total_premium_for_period(previous_start, previous_end)
-
-    return 0 if previous_premium == 0
-    ((current_premium.to_f - previous_premium.to_f) / previous_premium.to_f * 100).round(1)
-  end
-
+  # Was issuing ~10 queries per month in the range (one COUNT/SUM call at a
+  # time inside a while loop) — a full-year filter meant 120+ queries just for
+  # this one chart. Batched to 8 fixed group-by queries regardless of range
+  # length, and the per-model totals are returned alongside the trend so
+  # callers don't need to re-query the same range for plain period totals.
   def calculate_monthly_trends_for_period(start_date, end_date)
+    range_date = start_date..end_date
+    range_ts   = start_date.beginning_of_day..end_date.end_of_day
+
+    to_key = ->(ts) { ts.to_date.strftime('%Y-%m') }
+    idx    = ->(h)  { h.transform_keys { |k| to_key.(k) } }
+
+    c_counts  = idx.(Customer.where(created_at: range_ts).group("DATE_TRUNC('month', created_at)").count)
+    ld_counts = idx.(Lead.where(created_at: range_ts).group("DATE_TRUNC('month', created_at)").count)
+
+    hc = idx.(HealthInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").count)
+    lc = idx.(LifeInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").count)
+    mc = idx.((MotorInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").count rescue {}))
+    oc = idx.((OtherInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").count rescue {}))
+
+    hp = idx.(HealthInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").sum(:net_premium))
+    lp = idx.(LifeInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").sum(:net_premium))
+    mp = idx.((MotorInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").sum(:net_premium) rescue {}))
+    op = idx.((OtherInsurance.where(DRWISE).where(policy_start_date: range_date).group("DATE_TRUNC('month', policy_start_date)").sum(:net_premium) rescue {}))
+
     trends = {}
     current_date = start_date.beginning_of_month
 
     while current_date <= end_date
-      month_end = [current_date.end_of_month, end_date].min
-      month_name = current_date.strftime('%b %Y')
-
-      # Customers and leads filter by created_at; policies/premium by policy_start_date
-      trends[month_name] = {
-        customers: Customer.where(created_at: current_date.beginning_of_day..month_end.end_of_day).count,
-        policies:  calculate_policies_for_month_in_period(current_date, month_end),
-        premium:   calculate_premium_for_month_in_period(current_date, month_end),
-        leads:     Lead.where(created_at: current_date.beginning_of_day..month_end.end_of_day).count
+      k = current_date.strftime('%Y-%m')
+      trends[current_date.strftime('%b %Y')] = {
+        customers: c_counts[k]  || 0,
+        policies:  (hc[k] || 0) + (lc[k] || 0) + (mc[k] || 0) + (oc[k] || 0),
+        premium:   (hp[k] || 0) + (lp[k] || 0) + (mp[k] || 0) + (op[k] || 0),
+        leads:     ld_counts[k] || 0
       }
 
       current_date = current_date.next_month.beginning_of_month
     end
 
-    trends
-  end
+    totals = {
+      health_count: hc.values.sum, life_count: lc.values.sum,
+      motor_count: mc.values.sum, other_count: oc.values.sum,
+      health_premium: hp.values.sum(0.0), life_premium: lp.values.sum(0.0),
+      motor_premium: mp.values.sum(0.0), other_premium: op.values.sum(0.0)
+    }
 
-  def calculate_policies_for_month_in_period(month_start, month_end)
-    range = month_start..month_end
-    HealthInsurance.where(DRWISE).where(policy_start_date: range).count +
-    LifeInsurance.where(DRWISE).where(policy_start_date: range).count +
-    (MotorInsurance.where(DRWISE).where(policy_start_date: range).count rescue 0) +
-    (OtherInsurance.where(DRWISE).where(policy_start_date: range).count rescue 0)
-  end
-
-  def calculate_premium_for_month_in_period(month_start, month_end)
-    range = month_start..month_end
-    HealthInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) +
-    LifeInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) +
-    (MotorInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0 rescue 0) +
-    (OtherInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0 rescue 0)
+    { trends: trends, totals: totals }
   end
 
   def calculate_top_affiliates_for_period(start_date, end_date)
@@ -372,90 +437,123 @@ class Admin::AnalyticsController < Admin::ApplicationController
     {}
   end
 
+  # Single query with FILTER clauses instead of 4 separate SUMs.
   def calculate_commission_summary_for_period(start_date, end_date)
     dt_start = start_date.beginning_of_day
     dt_end   = end_date.end_of_day
+    sql = ActiveRecord::Base.sanitize_sql_array([<<~SQL, dt_start: dt_start, dt_end: dt_end])
+      SELECT
+        COALESCE(SUM(payout_amount) FILTER (WHERE status = 'pending'), 0) AS total_commission_due,
+        COALESCE(SUM(payout_amount) FILTER (WHERE status = 'paid'), 0) AS total_commission_paid,
+        COALESCE(SUM(payout_amount) FILTER (WHERE payout_to = 'sub_agent' AND status = 'pending'), 0) AS affiliate_commissions,
+        COALESCE(SUM(payout_amount) FILTER (WHERE payout_to = 'ambassador' AND status = 'pending'), 0) AS ambassador_commissions
+      FROM commission_payouts
+      WHERE created_at BETWEEN :dt_start AND :dt_end
+    SQL
+    row = ActiveRecord::Base.connection.select_one(sql)
     {
-      total_commission_due:    CommissionPayout.where(status: 'pending', created_at: dt_start..dt_end).sum(:payout_amount),
-      total_commission_paid:   CommissionPayout.where(status: 'paid',    created_at: dt_start..dt_end).sum(:payout_amount),
-      affiliate_commissions:   CommissionPayout.where(payout_to: 'sub_agent',  status: 'pending', created_at: dt_start..dt_end).sum(:payout_amount),
-      ambassador_commissions:  CommissionPayout.where(payout_to: 'ambassador', status: 'pending', created_at: dt_start..dt_end).sum(:payout_amount)
+      total_commission_due:   row['total_commission_due'].to_f,
+      total_commission_paid:  row['total_commission_paid'].to_f,
+      affiliate_commissions:  row['affiliate_commissions'].to_f,
+      ambassador_commissions: row['ambassador_commissions'].to_f
     }
+  rescue => e
+    Rails.logger.error "Error calculating commission summary for period: #{e.message}"
+    { total_commission_due: 0, total_commission_paid: 0, affiliate_commissions: 0, ambassador_commissions: 0 }
   end
 
+  # Renewal analytics used to run ~16 queries (expiring soon/later, expired,
+  # and renewal-rate counts, each queried per insurance type). One FILTER
+  # query per model now returns all four buckets at once, and the renewal
+  # rate's "eligible" count is just the Health+Life expired count (it's the
+  # same condition), so it needs no query of its own.
   def calculate_renewal_analytics_for_period(start_date, end_date)
     end_plus_30 = end_date + 30.days
     end_plus_60 = end_date + 60.days
+    today = Date.current
+
+    expiring_soon = 0
+    expiring_later = 0
+    expired = 0
+    renewal_eligible = 0
+    renewed = 0
+
+    [[HealthInsurance, true], [LifeInsurance, true], [MotorInsurance, false], [OtherInsurance, false]].each do |klass, counts_for_renewal_rate|
+      row = renewal_counts_for_model(klass, start_date, end_date, end_plus_30, end_plus_60, today)
+      next unless row
+
+      expiring_soon  += row['expiring_soon'].to_i
+      expiring_later += row['expiring_later'].to_i
+      expired        += row['expired'].to_i
+
+      next unless counts_for_renewal_rate
+      renewal_eligible += row['expired'].to_i
+      renewed          += row['renewed'].to_i
+    end
 
     {
-      expiring_soon: calculate_expiring_policies_for_period(start_date, end_date, end_date, end_plus_30),
-      expiring_later: calculate_expiring_policies_for_period(start_date, end_date, end_plus_30, end_plus_60),
-      expired: calculate_expired_policies_for_period(start_date, end_date),
-      renewal_rate: calculate_renewal_rate_for_period(start_date, end_date)
+      expiring_soon: expiring_soon,
+      expiring_later: expiring_later,
+      expired: expired,
+      renewal_rate: renewal_eligible > 0 ? ((renewed.to_f / renewal_eligible.to_f) * 100).round(1) : 0
     }
   end
 
-  def calculate_expiring_policies_for_period(policy_start, policy_end, expiry_start, expiry_end)
-    HealthInsurance.where(DRWISE).where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count +
-    LifeInsurance.where(DRWISE).where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count +
-    (MotorInsurance.where(DRWISE).where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count rescue 0) +
-    (OtherInsurance.where(DRWISE).where(policy_start_date: policy_start..policy_end, policy_end_date: expiry_start..expiry_end).count rescue 0)
+  def renewal_counts_for_model(klass, start_date, end_date, end_plus_30, end_plus_60, today)
+    sql = ActiveRecord::Base.sanitize_sql_array([<<~SQL, start_date: start_date, end_date: end_date, end_plus_30: end_plus_30, end_plus_60: end_plus_60, today: today])
+      SELECT
+        COUNT(*) FILTER (WHERE policy_end_date BETWEEN :end_date AND :end_plus_30) AS expiring_soon,
+        COUNT(*) FILTER (WHERE policy_end_date BETWEEN :end_plus_30 AND :end_plus_60) AS expiring_later,
+        COUNT(*) FILTER (WHERE policy_end_date < :today) AS expired,
+        COUNT(*) FILTER (WHERE policy_type = 'Renewal') AS renewed
+      FROM #{klass.quoted_table_name}
+      WHERE is_admin_added = TRUE AND is_customer_added = FALSE AND is_agent_added = FALSE
+        AND policy_start_date BETWEEN :start_date AND :end_date
+    SQL
+    ActiveRecord::Base.connection.select_one(sql)
+  rescue => e
+    Rails.logger.error "renewal_counts_for_model error (#{klass.name}): #{e.message}"
+    nil
   end
 
-  def calculate_expired_policies_for_period(start_date, end_date)
-    HealthInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count +
-    LifeInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count +
-    (MotorInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count rescue 0) +
-    (OtherInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count rescue 0)
-  end
-
-  def calculate_renewal_rate_for_period(start_date, end_date)
-    total_eligible = LifeInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count +
-                     HealthInsurance.where(DRWISE).where(policy_start_date: start_date..end_date).where('policy_end_date < ?', Date.current).count
-    renewed = LifeInsurance.where(DRWISE).where(policy_start_date: start_date..end_date, policy_type: 'Renewal').count +
-              HealthInsurance.where(DRWISE).where(policy_start_date: start_date..end_date, policy_type: 'Renewal').count
-
-    return 0 if total_eligible == 0
-    ((renewed.to_f / total_eligible.to_f) * 100).round(1)
-  end
-
-  def calculate_lead_conversion_funnel_for_period(start_date, end_date)
-    dt_start = start_date.beginning_of_day
-    dt_end   = end_date.end_of_day
+  # Was 5 separate COUNT queries (one per stage); now built from a single
+  # pre-fetched stage_counts hash (see build_lead_stage_distribution, which
+  # reuses the exact same query).
+  def build_lead_conversion_funnel(stage_counts)
     {
-      'Lead Generated'           => Lead.where(created_at: dt_start..dt_end, current_stage: 'lead_generated').count,
-      'Consultation Scheduled'   => Lead.where(created_at: dt_start..dt_end, current_stage: 'consultation_scheduled').count,
-      'One on One'               => Lead.where(created_at: dt_start..dt_end, current_stage: 'one_on_one').count,
-      'Follow Up'                => Lead.where(created_at: dt_start..dt_end, current_stage: %w[follow_up re_follow_up]).count,
-      'Converted'                => Lead.where(created_at: dt_start..dt_end, current_stage: 'converted').count
+      'Lead Generated'           => stage_counts['lead_generated'] || 0,
+      'Consultation Scheduled'   => stage_counts['consultation_scheduled'] || 0,
+      'One on One'               => stage_counts['one_on_one'] || 0,
+      'Follow Up'                => (stage_counts['follow_up'] || 0) + (stage_counts['re_follow_up'] || 0),
+      'Converted'                => stage_counts['converted'] || 0
     }
   rescue => e
-    Rails.logger.error "Error calculating lead conversion funnel for period: #{e.message}"
+    Rails.logger.error "Error building lead conversion funnel: #{e.message}"
     { 'Lead Generated' => 0, 'Consultation Scheduled' => 0, 'One on One' => 0, 'Follow Up' => 0, 'Converted' => 0 }
   end
 
-  def calculate_lead_stage_distribution_for_period(start_date, end_date)
-    dt_start = start_date.beginning_of_day
-    dt_end   = end_date.end_of_day
+  # Was 9 separate COUNT queries (one per stage); now built from the same
+  # pre-fetched stage_counts hash as build_lead_conversion_funnel.
+  def build_lead_stage_distribution(stage_counts)
     {
-      'Lead Generated'         => Lead.where(created_at: dt_start..dt_end, current_stage: 'lead_generated').count,
-      'Consultation Scheduled' => Lead.where(created_at: dt_start..dt_end, current_stage: 'consultation_scheduled').count,
-      'One on One'             => Lead.where(created_at: dt_start..dt_end, current_stage: 'one_on_one').count,
-      'Follow Up'              => Lead.where(created_at: dt_start..dt_end, current_stage: %w[follow_up re_follow_up]).count,
-      'Follow Up Successful'   => Lead.where(created_at: dt_start..dt_end, current_stage: 'follow_up_successful').count,
-      'Follow Up Unsuccessful' => Lead.where(created_at: dt_start..dt_end, current_stage: 'follow_up_unsuccessful').count,
-      'Not Interested'         => Lead.where(created_at: dt_start..dt_end, current_stage: 'not_interested').count,
-      'Converted'              => Lead.where(created_at: dt_start..dt_end, current_stage: 'converted').count,
-      'Lead Closed'            => Lead.where(created_at: dt_start..dt_end, current_stage: 'lead_closed').count
+      'Lead Generated'         => stage_counts['lead_generated'] || 0,
+      'Consultation Scheduled' => stage_counts['consultation_scheduled'] || 0,
+      'One on One'             => stage_counts['one_on_one'] || 0,
+      'Follow Up'              => (stage_counts['follow_up'] || 0) + (stage_counts['re_follow_up'] || 0),
+      'Follow Up Successful'   => stage_counts['follow_up_successful'] || 0,
+      'Follow Up Unsuccessful' => stage_counts['follow_up_unsuccessful'] || 0,
+      'Not Interested'         => stage_counts['not_interested'] || 0,
+      'Converted'              => stage_counts['converted'] || 0,
+      'Lead Closed'            => stage_counts['lead_closed'] || 0
     }
   rescue => e
-    Rails.logger.error "Error calculating lead stage distribution for period: #{e.message}"
+    Rails.logger.error "Error building lead stage distribution: #{e.message}"
     { 'Lead Generated' => 0, 'Consultation Scheduled' => 0, 'One on One' => 0, 'Follow Up' => 0,
       'Follow Up Successful' => 0, 'Follow Up Unsuccessful' => 0, 'Not Interested' => 0,
       'Converted' => 0, 'Lead Closed' => 0 }
   end
 
-  def calculate_customer_location_for_period(start_date, end_date)
+  def calculate_customer_location_for_period(start_date, end_date, total_customers = nil)
     dt_start = start_date.beginning_of_day
     dt_end   = end_date.end_of_day
     location_data = {}
@@ -472,24 +570,13 @@ class Admin::AnalyticsController < Admin::ApplicationController
       end
     end
 
-    location_data = { 'Unknown' => Customer.where(created_at: dt_start..dt_end).count } if location_data.empty?
+    # Falls back to the already-known total instead of re-querying the same
+    # count when neither city nor state grouping produced anything.
+    location_data = { 'Unknown' => total_customers || Customer.where(created_at: dt_start..dt_end).count } if location_data.empty?
     location_data
   rescue => e
     Rails.logger.error "Error calculating customer location for period: #{e.message}"
     { 'Unknown' => 0 }
-  end
-
-  def calculate_conversion_rate_for_period(start_date, end_date, dt_start = nil, dt_end = nil)
-    dt_start ||= start_date.beginning_of_day
-    dt_end   ||= end_date.end_of_day
-    total_leads = Lead.where(created_at: dt_start..dt_end).count
-    converted   = Lead.where(created_at: dt_start..dt_end, current_stage: 'converted').count
-
-    return 0 if total_leads == 0
-    ((converted.to_f / total_leads.to_f) * 100).round(1)
-  rescue => e
-    Rails.logger.error "Error calculating conversion rate for period: #{e.message}"
-    0
   end
 
   def get_chart_data(chart_name)
@@ -853,22 +940,6 @@ class Admin::AnalyticsController < Admin::ApplicationController
     trends.to_a.reverse.to_h
   end
 
-  def calculate_policies_for_month(month_date)
-    range = month_date..(month_date.end_of_month)
-    HealthInsurance.where(DRWISE).where(policy_start_date: range).count +
-    LifeInsurance.where(DRWISE).where(policy_start_date: range).count +
-    (MotorInsurance.where(DRWISE).where(policy_start_date: range).count rescue 0) +
-    (OtherInsurance.where(DRWISE).where(policy_start_date: range).count rescue 0)
-  end
-
-  def calculate_premium_for_month(month_date)
-    range = month_date..(month_date.end_of_month)
-    HealthInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) +
-    LifeInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) +
-    (MotorInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0 rescue 0) +
-    (OtherInsurance.where(DRWISE).where(policy_start_date: range).sum(:net_premium) || 0 rescue 0)
-  end
-
   def calculate_top_affiliates
     health_counts = HealthInsurance.group(:sub_agent_id).count
     life_counts   = LifeInsurance.group(:sub_agent_id).count
@@ -978,15 +1049,25 @@ class Admin::AnalyticsController < Admin::ApplicationController
     ((renewed.to_f / total_eligible.to_f) * 100).round(1)
   end
 
+  # Was 3 separate GROUP BY queries (one per insurance type, then merged in
+  # Ruby); now a single UNION ALL query joined to sub_agents once.
   def calculate_agent_performance
-    agent_premiums = {}
+    sql = <<~SQL
+      SELECT CONCAT(sub_agents.first_name, ' ', sub_agents.last_name) AS name, SUM(combined.net_premium) AS premium
+      FROM (
+        SELECT sub_agent_id, net_premium FROM health_insurances
+        UNION ALL
+        SELECT sub_agent_id, net_premium FROM life_insurances
+        UNION ALL
+        SELECT sub_agent_id, net_premium FROM motor_insurances
+      ) combined
+      JOIN sub_agents ON sub_agents.id = combined.sub_agent_id
+      GROUP BY name
+    SQL
 
-    [
-      HealthInsurance.joins(:sub_agent).group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)").sum(:net_premium),
-      LifeInsurance.joins(:sub_agent).group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)").sum(:net_premium),
-      MotorInsurance.joins(:sub_agent).group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)").sum(:net_premium)
-    ].each do |result|
-      result.each { |name, premium| agent_premiums[name] = (agent_premiums[name] || 0) + premium.to_f }
+    agent_premiums = {}
+    ActiveRecord::Base.connection.select_all(sql).each do |row|
+      agent_premiums[row['name']] = row['premium'].to_f
     end
 
     agent_premiums.sort_by { |_, premium| -premium }.to_h
@@ -995,17 +1076,25 @@ class Admin::AnalyticsController < Admin::ApplicationController
     {}
   end
 
+  # Was 3 separate GROUP BY queries (one per insurance type, then merged in
+  # Ruby); now a single UNION ALL query joined to sub_agents once.
   def calculate_agent_commission
-    agent_commissions = {}
+    sql = <<~SQL
+      SELECT CONCAT(sub_agents.first_name, ' ', sub_agents.last_name) AS name, SUM(combined.commission) AS commission
+      FROM (
+        SELECT sub_agent_id, sub_agent_commission_amount AS commission FROM health_insurances WHERE sub_agent_id IS NOT NULL
+        UNION ALL
+        SELECT sub_agent_id, sub_agent_commission_amount FROM life_insurances WHERE sub_agent_id IS NOT NULL
+        UNION ALL
+        SELECT sub_agent_id, sub_agent_commission_amount FROM motor_insurances WHERE sub_agent_id IS NOT NULL
+      ) combined
+      JOIN sub_agents ON sub_agents.id = combined.sub_agent_id
+      GROUP BY name
+    SQL
 
-    [HealthInsurance, LifeInsurance, MotorInsurance].each do |model|
-      model.joins(:sub_agent)
-           .where.not(sub_agent_id: nil)
-           .group("CONCAT(sub_agents.first_name, ' ', sub_agents.last_name)")
-           .sum(:sub_agent_commission_amount)
-           .each do |name, commission|
-        agent_commissions[name] = (agent_commissions[name] || 0) + commission.to_f
-      end
+    agent_commissions = {}
+    ActiveRecord::Base.connection.select_all(sql).each do |row|
+      agent_commissions[row['name']] = row['commission'].to_f
     end
 
     agent_commissions
@@ -1091,30 +1180,34 @@ class Admin::AnalyticsController < Admin::ApplicationController
     0
   end
 
+  # Was 5 separate COUNT queries (one per stage); now one grouped query.
   def calculate_lead_conversion_funnel
+    stage_counts = Lead.group(:current_stage).count
     {
-      'Lead Generated'           => Lead.where(current_stage: 'lead_generated').count,
-      'Consultation Scheduled'   => Lead.where(current_stage: 'consultation_scheduled').count,
-      'One on One'               => Lead.where(current_stage: 'one_on_one').count,
-      'Follow Up'                => Lead.where(current_stage: %w[follow_up re_follow_up]).count,
-      'Converted'                => Lead.where(current_stage: 'converted').count
+      'Lead Generated'           => stage_counts['lead_generated'] || 0,
+      'Consultation Scheduled'   => stage_counts['consultation_scheduled'] || 0,
+      'One on One'               => stage_counts['one_on_one'] || 0,
+      'Follow Up'                => (stage_counts['follow_up'] || 0) + (stage_counts['re_follow_up'] || 0),
+      'Converted'                => stage_counts['converted'] || 0
     }
   rescue => e
     Rails.logger.error "Error calculating lead conversion funnel: #{e.message}"
     { 'Lead Generated' => 0, 'Consultation Scheduled' => 0, 'One on One' => 0, 'Follow Up' => 0, 'Converted' => 0 }
   end
 
+  # Was 9 separate COUNT queries (one per stage); now one grouped query.
   def calculate_lead_stage_distribution
+    stage_counts = Lead.group(:current_stage).count
     {
-      'Lead Generated'         => Lead.where(current_stage: 'lead_generated').count,
-      'Consultation Scheduled' => Lead.where(current_stage: 'consultation_scheduled').count,
-      'One on One'             => Lead.where(current_stage: 'one_on_one').count,
-      'Follow Up'              => Lead.where(current_stage: %w[follow_up re_follow_up]).count,
-      'Follow Up Successful'   => Lead.where(current_stage: 'follow_up_successful').count,
-      'Follow Up Unsuccessful' => Lead.where(current_stage: 'follow_up_unsuccessful').count,
-      'Not Interested'         => Lead.where(current_stage: 'not_interested').count,
-      'Converted'              => Lead.where(current_stage: 'converted').count,
-      'Lead Closed'            => Lead.where(current_stage: 'lead_closed').count
+      'Lead Generated'         => stage_counts['lead_generated'] || 0,
+      'Consultation Scheduled' => stage_counts['consultation_scheduled'] || 0,
+      'One on One'             => stage_counts['one_on_one'] || 0,
+      'Follow Up'              => (stage_counts['follow_up'] || 0) + (stage_counts['re_follow_up'] || 0),
+      'Follow Up Successful'   => stage_counts['follow_up_successful'] || 0,
+      'Follow Up Unsuccessful' => stage_counts['follow_up_unsuccessful'] || 0,
+      'Not Interested'         => stage_counts['not_interested'] || 0,
+      'Converted'              => stage_counts['converted'] || 0,
+      'Lead Closed'            => stage_counts['lead_closed'] || 0
     }
   rescue => e
     Rails.logger.error "Error calculating lead stage distribution: #{e.message}"
@@ -1315,10 +1408,13 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_investor_status_distribution
-    # nil status is treated as active (default)
-    active_count = Investor.where(status: [0, nil]).count
-    inactive_count = Investor.where(status: 1).count
-    { 'Active' => active_count, 'Inactive' => inactive_count }
+    # nil status is treated as active (default). Single query with FILTER
+    # instead of two separate COUNTs.
+    active_count, inactive_count = Investor.pluck(
+      Arel.sql('COUNT(*) FILTER (WHERE status = 0 OR status IS NULL)'),
+      Arel.sql('COUNT(*) FILTER (WHERE status = 1)')
+    ).first
+    { 'Active' => active_count.to_i, 'Inactive' => inactive_count.to_i }
   rescue => e
     Rails.logger.error "Error calculating investor status distribution: #{e.message}"
     { 'Active' => 0, 'Inactive' => 0 }

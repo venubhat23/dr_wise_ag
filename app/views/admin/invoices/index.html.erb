@@ -31,7 +31,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Total Invoices</h6>
-            <h3 class="mb-0 text-primary"><%= number_with_delimiter(Invoice.count) %></h3>
+            <h3 class="mb-0 text-primary"><%= number_with_delimiter(@invoices_total_count) %></h3>
           </div>
           <div class="bg-primary bg-opacity-10 rounded p-3">
             <i class="bi bi-receipt text-primary fs-4"></i>
@@ -47,7 +47,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Pending Invoices</h6>
-            <h3 class="mb-0 text-warning"><%= number_with_delimiter(Invoice.pending.count) %></h3>
+            <h3 class="mb-0 text-warning"><%= number_with_delimiter(@invoices_pending_count) %></h3>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
             <i class="bi bi-clock text-warning fs-4"></i>
@@ -63,7 +63,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Paid Invoices</h6>
-            <h3 class="mb-0 text-success"><%= number_with_delimiter(Invoice.paid.count) %></h3>
+            <h3 class="mb-0 text-success"><%= number_with_delimiter(@invoices_paid_count) %></h3>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
             <i class="bi bi-check-circle text-success fs-4"></i>
@@ -79,7 +79,7 @@
         <div class="d-flex justify-content-between">
           <div>
             <h6 class="text-muted mb-2">Overdue Invoices</h6>
-            <h3 class="mb-0 text-danger"><%= number_with_delimiter(Invoice.overdue.count) %></h3>
+            <h3 class="mb-0 text-danger"><%= number_with_delimiter(@invoices_overdue_count) %></h3>
           </div>
           <div class="bg-danger bg-opacity-10 rounded p-3">
             <i class="bi bi-exclamation-triangle text-danger fs-4"></i>

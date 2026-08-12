@@ -39,7 +39,7 @@ class Lead < ApplicationRecord
   validates :business_job, inclusion: { in: ['salaried', 'self_employed', 'business', 'professional', 'student', 'retired', 'unemployed', 'other'] }, allow_blank: true
 
   belongs_to :converted_customer, class_name: 'Customer', optional: true
-  belongs_to :created_policy, class_name: 'Policy', optional: true
+  belongs_to :created_policy, class_name: 'Policy', foreign_key: 'policy_created_id', optional: true
   belongs_to :affiliate, class_name: 'SubAgent', optional: true
   belongs_to :ambassador, class_name: 'Distributor', optional: true
   belongs_to :parent_lead, class_name: 'Lead', optional: true

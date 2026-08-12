@@ -124,12 +124,19 @@ class Admin::CustomersController < Admin::ApplicationController
 
     # Calculate filtered stats using simple queries to avoid GROUP BY issues
     @stats = if params[:search].present? && params[:search].strip.length >= 4
-      # When search is active, use simpler aggregation
+      # When search is active, avoid GROUP BY (pg_search) issues but still
+      # gather all 4 figures in a single round trip via FILTER.
+      row = stats_scope.pick(
+        Arel.sql('COUNT(*)'),
+        Arel.sql('COUNT(*) FILTER (WHERE status = TRUE)'),
+        Arel.sql("COUNT(*) FILTER (WHERE customer_type = 'individual')"),
+        Arel.sql("COUNT(*) FILTER (WHERE customer_type = 'corporate')")
+      )
       {
-        total_customers: stats_scope.count,
-        active_customers: stats_scope.where(status: true).count,
-        individual_customers: stats_scope.where(customer_type: 'individual').count,
-        corporate_customers: stats_scope.where(customer_type: 'corporate').count
+        total_customers: row[0].to_i,
+        active_customers: row[1].to_i,
+        individual_customers: row[2].to_i,
+        corporate_customers: row[3].to_i
       }
     else
       # When no search, can use GROUP BY safely

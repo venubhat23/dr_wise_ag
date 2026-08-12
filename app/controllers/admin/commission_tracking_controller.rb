@@ -24,7 +24,9 @@ class Admin::CommissionTrackingController < ApplicationController
       @filter_customer_name = customer&.display_name
     end
 
-    @customers_for_filter = Customer.order(:first_name, :last_name).limit(500).select(:id, :first_name, :middle_name, :last_name, :company_name, :customer_type)
+    @customers_for_filter = Rails.cache.fetch('commission_tracking/customers_for_filter', expires_in: 5.minutes) do
+      Customer.order(:first_name, :last_name).limit(500).select(:id, :first_name, :middle_name, :last_name, :company_name, :customer_type).to_a
+    end
 
     @page     = [params[:page].to_i, 1].max
     @per_page = [[params[:per_page].to_i, 5].max, 100].min
@@ -33,9 +35,13 @@ class Admin::CommissionTrackingController < ApplicationController
 
     begin
       filtered_scope = base_filtered_payout_scope
-      @all_count     = filtered_scope.count
-      @paid_count    = filtered_scope.where(main_agent_commission_received: true).count
-      @pending_count = filtered_scope.where(main_agent_commission_received: [false, nil]).count
+      # Single query with FILTER instead of 3 separate COUNT round trips.
+      counts = filtered_scope.pick(
+        Arel.sql('COUNT(*)'),
+        Arel.sql('COUNT(*) FILTER (WHERE main_agent_commission_received = true)'),
+        Arel.sql('COUNT(*) FILTER (WHERE main_agent_commission_received = false OR main_agent_commission_received IS NULL)')
+      )
+      @all_count, @paid_count, @pending_count = counts
 
       @policies_with_commission = fetch_policies_with_commission_filtered
 
@@ -43,9 +49,8 @@ class Admin::CommissionTrackingController < ApplicationController
       date_to   = @filter_date_to.present?   ? (Date.parse(@filter_date_to)   rescue nil) : nil
 
       @total_commission_generated = calculate_total_commission_generated(date_from, date_to)
-      @total_transferred = calculate_total_transferred(date_from, date_to)
+      @total_transferred, @company_expenses = calculate_transferred_and_expenses(date_from, date_to)
       @pending_transfers = calculate_pending_transfers
-      @company_expenses = calculate_company_expenses(date_from, date_to)
     rescue => e
       Rails.logger.error "Commission tracking failed: #{e.message}"
 
@@ -829,6 +834,17 @@ class Admin::CommissionTrackingController < ApplicationController
   def calculate_pending_transfers
     # Pending = currently owed, not historical — no date filter
     CommissionPayout.where(payout_to: 'main_agent', status: 'pending').sum(:payout_amount) || 0
+  end
+
+  # Combines calculate_total_transferred + calculate_company_expenses into a
+  # single grouped query (they share the same date filter and status
+  # exclusion) instead of 2 separate SUM round trips.
+  def calculate_transferred_and_expenses(date_from = nil, date_to = nil)
+    scope = CommissionPayout.where(payout_to: %w[main_agent company_expense]).where.not(status: 'pending')
+    scope = scope.where('created_at >= ?', date_from.beginning_of_day) if date_from
+    scope = scope.where('created_at <= ?', date_to.end_of_day)         if date_to
+    sums = scope.group(:payout_to).sum(:payout_amount)
+    [sums['main_agent'] || 0, sums['company_expense'] || 0]
   end
 
   def calculate_company_expenses(date_from = nil, date_to = nil)

@@ -10,9 +10,14 @@ class Admin::AppointmentsController < Admin::ApplicationController
                                  :time_slot
                                )
 
-    @upcoming_count = Appointment.where('appointment_date >= ?', Date.current).count
-    @today_count    = Appointment.where(appointment_date: Date.current).count
-    @pending_count  = Appointment.where(status: 'pending').count
+    stat_row = Appointment.pick(
+      Arel.sql("COUNT(*) FILTER (WHERE appointment_date >= '#{Date.current}')"),
+      Arel.sql("COUNT(*) FILTER (WHERE appointment_date = '#{Date.current}')"),
+      Arel.sql("COUNT(*) FILTER (WHERE status = 'pending')")
+    )
+    @upcoming_count = stat_row[0].to_i
+    @today_count    = stat_row[1].to_i
+    @pending_count  = stat_row[2].to_i
     @today_appointments = Appointment.where(appointment_date: Date.current)
                                      .order(:time_slot)
                                      .includes(:customer)

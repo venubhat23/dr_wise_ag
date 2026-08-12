@@ -909,7 +909,7 @@
               </td>
               <td>
                 <div style="font-size: 0.875rem;">
-                  <%= lead.try(:sub_agent) || Customer.find_by(mobile: lead.contact_number)&.sub_agent || 'Self' %>
+                  <%= lead.try(:sub_agent) || @recent_leads_sub_agent_by_contact&.dig(lead.contact_number) || 'Self' %>
                 </div>
               </td>
               <td>

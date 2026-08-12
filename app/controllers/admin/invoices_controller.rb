@@ -15,6 +15,17 @@ class Admin::InvoicesController < ApplicationController
     if params[:payout_type].present?
       @invoices = @invoices.where(payout_type: params[:payout_type])
     end
+
+    preload_payout_recipients(@invoices)
+
+    # Single query with FILTER instead of 4 separate COUNT round trips.
+    stats = Invoice.pick(
+      Arel.sql('COUNT(*)'),
+      Arel.sql("COUNT(*) FILTER (WHERE status = 'pending')"),
+      Arel.sql("COUNT(*) FILTER (WHERE status = 'paid')"),
+      Arel.sql("COUNT(*) FILTER (WHERE due_date < CURRENT_DATE AND status = 'pending')")
+    )
+    @invoices_total_count, @invoices_pending_count, @invoices_paid_count, @invoices_overdue_count = stats
   end
 
   def show
@@ -176,6 +187,36 @@ class Admin::InvoicesController < ApplicationController
   end
 
   private
+
+  # Batch-fetches the SubAgents/Distributors for the page's invoices and
+  # memoizes the result on each Invoice's #payout_recipient, instead of one
+  # `find_by` per row (previously an N+1 across the paginated list).
+  def preload_payout_recipients(invoices)
+    invoices_by_type = invoices.group_by(&:payout_type)
+
+    sub_agent_ids = invoices_by_type.fetch('affiliate', []).map(&:payout_id)
+    sub_agents_by_id = SubAgent.where(id: sub_agent_ids).index_by(&:id)
+
+    distributor_ids = (invoices_by_type.fetch('distributor', []) + invoices_by_type.fetch('ambassador', [])).map(&:payout_id)
+    distributors_by_id = Distributor.where(id: distributor_ids).index_by(&:id)
+
+    invoices.each do |invoice|
+      recipient = case invoice.payout_type
+      when 'affiliate'
+        sub_agent = sub_agents_by_id[invoice.payout_id]
+        sub_agent ? "#{sub_agent.first_name} #{sub_agent.last_name}".strip : 'Unknown Affiliate'
+      when 'distributor'
+        distributors_by_id[invoice.payout_id]&.display_name || 'Unknown Distributor'
+      when 'ambassador'
+        distributors_by_id[invoice.payout_id]&.display_name || 'Unknown Ambassador'
+      when 'commission'
+        'Main Agent Commission'
+      else
+        'Unknown'
+      end
+      invoice.instance_variable_set(:@payout_recipient, recipient)
+    end
+  end
 
   def format_inr(amount)
     "₹#{amount.to_f.round(2).to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"

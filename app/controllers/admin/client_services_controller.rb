@@ -135,15 +135,26 @@ class Admin::ClientServicesController < Admin::ApplicationController
 
   def calculate_statistics
     scope = @service_type.present? ? ClientService.by_type(@service_type) :
-            (@service_category.present? ? ClientService.by_category(@service_category) : ClientService)
-    @drwise_count     = scope.where(is_admin_added: true).count
-    @non_drwise_count = scope.where(is_admin_added: false).count
-    @total_count      = @drwise_count + @non_drwise_count
-    @pending_count    = scope.where(status: 'pending').count
-    @completed_count  = scope.where(status: 'completed').count
-    @drwise_amount    = scope.where(is_admin_added: true).sum(:amount)
-    @non_drwise_amount = scope.where(is_admin_added: false).sum(:amount)
-    @total_amount     = @drwise_amount + @non_drwise_amount
+            (@service_category.present? ? ClientService.by_category(@service_category) : ClientService.all)
+
+    # Single query with FILTER instead of 6 separate COUNT/SUM round trips.
+    row = scope.pick(
+      Arel.sql('COUNT(*) FILTER (WHERE is_admin_added = true)'),
+      Arel.sql('COUNT(*) FILTER (WHERE is_admin_added = false)'),
+      Arel.sql("COUNT(*) FILTER (WHERE status = 'pending')"),
+      Arel.sql("COUNT(*) FILTER (WHERE status = 'completed')"),
+      Arel.sql('COALESCE(SUM(amount) FILTER (WHERE is_admin_added = true), 0)'),
+      Arel.sql('COALESCE(SUM(amount) FILTER (WHERE is_admin_added = false), 0)')
+    )
+
+    @drwise_count      = row[0].to_i
+    @non_drwise_count  = row[1].to_i
+    @pending_count     = row[2].to_i
+    @completed_count   = row[3].to_i
+    @drwise_amount     = row[4].to_f
+    @non_drwise_amount = row[5].to_f
+    @total_count       = @drwise_count + @non_drwise_count
+    @total_amount      = @drwise_amount + @non_drwise_amount
   end
 
   def client_service_params
