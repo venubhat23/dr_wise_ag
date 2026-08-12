@@ -16,6 +16,8 @@ ENV RAILS_ENV="production" \
 # ---- build stage -----------------------------------------------------------
 FROM base AS build
 
+RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries
+
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
       build-essential git pkg-config curl libpq-dev libyaml-dev ca-certificates gnupg && \
@@ -40,6 +42,8 @@ RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
 # ---- final stage ------------------------------------------------------------
 FROM base
+
+RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries
 
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
