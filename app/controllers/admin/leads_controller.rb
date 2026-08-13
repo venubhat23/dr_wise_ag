@@ -59,10 +59,12 @@ class Admin::LeadsController < Admin::ApplicationController
     end
 
     # Apply ordering only if not already ordered (e.g., for converted leads)
+    # eager_load folds converted_customer/affiliate into a single joined query
+    # instead of 2 extra round trips (each round trip costs ~300ms on the remote DB)
     if params[:tab] == 'converted'
-      @leads = paginate_records(@leads.includes(:converted_customer, :affiliate, :ambassador))
+      @leads = paginate_records(@leads.eager_load(:converted_customer, :affiliate))
     else
-      @leads = paginate_records(@leads.order(created_at: :desc).includes(:converted_customer, :affiliate, :ambassador))
+      @leads = paginate_records(@leads.order(created_at: :desc).eager_load(:converted_customer, :affiliate))
     end
 
     # Statistics — all stage counts in one query instead of 7 separate count queries
