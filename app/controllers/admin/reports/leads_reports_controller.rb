@@ -55,22 +55,31 @@ class Admin::Reports::LeadsReportsController < Admin::Reports::BaseController
   end
 
   def calculate_lead_statistics(leads)
-    total_leads = leads.count
+    # Single query with FILTER instead of 7 separate COUNT round trips.
+    total_leads, direct_count, affiliate_count, converted_count, in_progress_count, not_interested_count, closed_count = leads.pick(
+      Arel.sql('COUNT(*)'),
+      Arel.sql('COUNT(*) FILTER (WHERE is_direct = true)'),
+      Arel.sql('COUNT(*) FILTER (WHERE is_direct = false)'),
+      Arel.sql("COUNT(*) FILTER (WHERE current_stage = 'converted')"),
+      Arel.sql("COUNT(*) FILTER (WHERE current_stage NOT IN ('converted', 'not_interested', 'lead_closed'))"),
+      Arel.sql("COUNT(*) FILTER (WHERE current_stage = 'not_interested')"),
+      Arel.sql("COUNT(*) FILTER (WHERE current_stage = 'lead_closed')")
+    )
 
     {
-      total_leads: total_leads,
+      total_leads: total_leads.to_i,
       by_stage: leads.group(:current_stage).count,
       by_product_type: leads.group(:product_subcategory).count,
       by_customer_type: leads.group(:customer_type).count,
       by_source: {
-        'Direct' => leads.where(is_direct: true).count,
-        'Affiliate' => leads.where(is_direct: false).count
+        'Direct' => direct_count.to_i,
+        'Affiliate' => affiliate_count.to_i
       },
       conversion_stats: {
-        converted: leads.where(current_stage: 'converted').count,
-        in_progress: leads.where.not(current_stage: ['converted', 'not_interested', 'lead_closed']).count,
-        not_interested: leads.where(current_stage: 'not_interested').count,
-        closed: leads.where(current_stage: 'lead_closed').count
+        converted: converted_count.to_i,
+        in_progress: in_progress_count.to_i,
+        not_interested: not_interested_count.to_i,
+        closed: closed_count.to_i
       },
       monthly_trend: leads.group_by_month(:created_date, last: 12).count,
       affiliate_performance: calculate_affiliate_performance(leads)

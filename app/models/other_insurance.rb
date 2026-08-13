@@ -299,9 +299,14 @@ class OtherInsurance < ApplicationRecord
 
   private
 
+  # Throttled to once per 30s - see app/models/concerns/dashboard_optimizable.rb
+  # for why an unconditional bump on every write defeats the cache TTL.
   def clear_dashboard_cache
+    last_bump = Rails.cache.read("dashboard_cache_gen_bumped_at")
+    return if last_bump && last_bump > 30.seconds.ago
+
     Rails.cache.write("dashboard_cache_gen", SecureRandom.hex(4))
-    Rails.cache.delete("dashboard_filter_independent_#{Date.current}_v3")
+    Rails.cache.write("dashboard_cache_gen_bumped_at", Time.current)
   rescue => e
     Rails.logger.warn "Failed to clear dashboard cache: #{e.message}"
   end

@@ -56,20 +56,23 @@ class Admin::InvestorsController < Admin::ApplicationController
       stats_scope = stats_scope.inactive
     end
 
-    # Statistics — one grouped query instead of 3 separate counts
-    status_counts = stats_scope.group(:status).count
-    @total_investors = status_counts.values.sum
-    @active_investors = status_counts['active'].to_i
-    @inactive_investors = status_counts['inactive'].to_i
+    # Statistics — one query replaces the separate status-group-count and
+    # invested-amount-sum queries (each a full/filtered table scan round trip).
+    stats_row = stats_scope.select(
+      "COUNT(*) FILTER (WHERE status = 0) AS active_count",
+      "COUNT(*) FILTER (WHERE status = 1) AS inactive_count",
+      "COALESCE(SUM(invested_amount), 0) AS total_invested"
+    ).take
+    @active_investors      = stats_row.active_count.to_i
+    @inactive_investors    = stats_row.inactive_count.to_i
+    @total_investors       = @active_investors + @inactive_investors
+    @total_invested_amount = stats_row.total_invested.to_f
 
     # Calculate total investor commission amounts (for existing functionality)
     payout_totals = CommissionPayout.payout_totals_for('investor')
     @total_investor_amount = payout_totals[:total]
     @paid_investor_amount = payout_totals[:paid]
     @pending_investor_amount = payout_totals[:pending]
-
-    # Calculate total invested amount from investors (for share calculations)
-    @total_invested_amount = stats_scope.where.not(invested_amount: nil).sum(:invested_amount) || 0
   end
 
   # GET /admin/investors/investor_summary

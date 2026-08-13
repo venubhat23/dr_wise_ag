@@ -43,9 +43,19 @@ module DashboardOptimizable
     end
   end
 
+  # Throttled: this runs after_commit on every single insurance write, and
+  # dashboard_cache_gen is global (shared across all users/date ranges), so an
+  # unconditional bump here effectively disabled the 5-minute dashboard/analytics
+  # cache TTL on any actively-used system - every write anywhere forced every
+  # other user's next request back onto the slow uncached path. Capping bumps to
+  # once per 30s keeps the cache reasonably fresh while letting it actually serve
+  # hits between writes.
   def clear_dashboard_cache
+    last_bump = Rails.cache.read("dashboard_cache_gen_bumped_at")
+    return if last_bump && last_bump > 30.seconds.ago
+
     Rails.cache.write("dashboard_cache_gen", SecureRandom.hex(4))
-    Rails.cache.delete("dashboard_filter_independent_#{Date.current}_v3")
+    Rails.cache.write("dashboard_cache_gen_bumped_at", Time.current)
   rescue => e
     Rails.logger.warn "Failed to clear dashboard cache: #{e.message}"
   end

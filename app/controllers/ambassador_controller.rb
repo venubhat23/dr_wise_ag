@@ -64,11 +64,10 @@ class AmbassadorController < ApplicationController
       :distributor_assignment
     ).order('sub_agents.created_at DESC')
 
-    # Calculate statistics for each affiliate
-    @affiliate_stats = {}
-    @assigned_affiliates.each do |affiliate|
-      @affiliate_stats[affiliate.id] = calculate_affiliate_stats(affiliate)
-    end
+    # Calculate statistics for all affiliates in one batched pass instead of
+    # ~25 queries per affiliate (was O(N) HealthInsurance/LifeInsurance/
+    # MotorInsurance/CommissionPayout lookups per affiliate on every page load).
+    @affiliate_stats = batch_calculate_affiliate_stats(@assigned_affiliates.to_a)
 
     # Overall distributor statistics
     @distributor_stats = calculate_distributor_stats
@@ -80,100 +79,95 @@ class AmbassadorController < ApplicationController
     end
   end
 
-  def calculate_affiliate_stats(affiliate)
-    health_policies = HealthInsurance.where(sub_agent_id: affiliate.id)
-    life_policies = LifeInsurance.where(sub_agent_id: affiliate.id)
-    motor_policies = MotorInsurance.where(sub_agent_id: affiliate.id)
+  def batch_calculate_affiliate_stats(affiliates)
+    return {} if affiliates.empty?
 
-    # Safely try to get other policies if the association exists
-    other_policies_count = 0
-    other_policies_premium = 0.0
-    other_policies_commission = 0.0
+    affiliate_ids = affiliates.map(&:id)
 
-    begin
-      # Try to get other insurance directly by sub_agent_id
-      if defined?(OtherInsurance)
-        other_policies = OtherInsurance.where(sub_agent_id: affiliate.id)
-        other_policies_count = other_policies.count
-        other_policies_premium = other_policies.sum(:total_premium).to_f rescue 0.0
-        # Check if commission_amount column exists, otherwise calculate basic commission
-        if other_policies.column_names.include?('commission_amount')
-          other_policies_commission = other_policies.sum(:commission_amount).to_f rescue 0.0
-        else
-          other_policies_commission = (other_policies_premium * 0.05).to_f rescue 0.0
-        end
-      end
-    rescue => e
-      Rails.logger.debug "Could not load other insurance data: #{e.message}"
-      other_policies_count = 0
-      other_policies_premium = 0.0
-      other_policies_commission = 0.0
-    end
+    health = HealthInsurance.where(sub_agent_id: affiliate_ids)
+                             .select(:id, :sub_agent_id, :customer_id, :policy_number, :total_premium, :created_at).to_a
+    life   = LifeInsurance.where(sub_agent_id: affiliate_ids)
+                           .select(:id, :sub_agent_id, :customer_id, :policy_number, :total_premium, :created_at).to_a
+    motor  = MotorInsurance.where(sub_agent_id: affiliate_ids)
+                            .select(:id, :sub_agent_id, :customer_id, :policy_number, :total_premium, :created_at, :main_agent_commission_amount).to_a
 
-    total_policies = health_policies.count + life_policies.count + motor_policies.count + other_policies_count
-    total_premium = (health_policies.sum(:total_premium) +
-                    life_policies.sum(:total_premium) +
-                    motor_policies.sum(:total_premium) +
-                    other_policies_premium).to_f
+    health_by_affiliate = health.group_by(&:sub_agent_id)
+    life_by_affiliate   = life.group_by(&:sub_agent_id)
+    motor_by_affiliate  = motor.group_by(&:sub_agent_id)
 
-    # Calculate ambassador commission from commission_payouts table
-    health_commission = CommissionPayout.where(
-      policy_type: 'health',
-      policy_id: health_policies.pluck(:id),
-      payout_to: 'ambassador'
-    ).sum(:payout_amount).to_f
+    h_comm = CommissionPayout.where(policy_type: 'health', policy_id: health.map(&:id), payout_to: 'ambassador').group(:policy_id).sum(:payout_amount)
+    l_comm = CommissionPayout.where(policy_type: 'life',   policy_id: life.map(&:id),   payout_to: 'ambassador').group(:policy_id).sum(:payout_amount)
+    m_comm = CommissionPayout.where(policy_type: 'motor',  policy_id: motor.map(&:id),  payout_to: 'ambassador').group(:policy_id).sum(:payout_amount)
 
-    life_commission = CommissionPayout.where(
-      policy_type: 'life',
-      policy_id: life_policies.pluck(:id),
-      payout_to: 'ambassador'
-    ).sum(:payout_amount).to_f
-
-    motor_commission = CommissionPayout.where(
-      policy_type: 'motor',
-      policy_id: motor_policies.pluck(:id),
-      payout_to: 'ambassador'
-    ).sum(:payout_amount).to_f
-
-    other_commission = 0.0
-    if other_policies_count > 0
+    # Other insurance: one grouped query instead of N per-affiliate queries.
+    other_by_affiliate = Hash.new { |h, k| h[k] = { count: 0, premium: 0.0, commission: 0.0 } }
+    if defined?(OtherInsurance)
       begin
-        other_policy_ids = OtherInsurance.where(sub_agent_id: affiliate.id).pluck(:id)
-        other_commission = CommissionPayout.where(
-          policy_type: 'other',
-          policy_id: other_policy_ids,
-          payout_to: 'ambassador'
-        ).sum(:payout_amount).to_f
+        has_commission_col = OtherInsurance.column_names.include?('commission_amount')
+        commission_expr = has_commission_col ? 'COALESCE(SUM(commission_amount),0)' : 'COALESCE(SUM(total_premium),0) * 0.05'
+        OtherInsurance.where(sub_agent_id: affiliate_ids)
+                      .group(:sub_agent_id)
+                      .pluck(:sub_agent_id, Arel.sql('COUNT(*)'), Arel.sql('COALESCE(SUM(total_premium),0)'), Arel.sql(commission_expr))
+                      .each do |sub_agent_id, count, premium, commission|
+          other_by_affiliate[sub_agent_id] = { count: count.to_i, premium: premium.to_f, commission: commission.to_f }
+        end
       rescue => e
-        other_commission = 0.0
+        Rails.logger.debug "Could not load other insurance data: #{e.message}"
       end
     end
 
-    total_commission = (health_commission + life_commission + motor_commission + other_commission).to_f
+    all_customer_ids = (health.map(&:customer_id) + life.map(&:customer_id) + motor.map(&:customer_id)).compact.uniq
+    customers_by_id = Customer.where(id: all_customer_ids).index_by(&:id)
 
-    # Get unique customers from all policies created by this affiliate
-    customer_ids = []
-    customer_ids += health_policies.pluck(:customer_id).compact
-    customer_ids += life_policies.pluck(:customer_id).compact
-    customer_ids += motor_policies.pluck(:customer_id).compact
-    unique_customers_count = customer_ids.uniq.count
+    affiliate_ids.index_with do |aid|
+      h_policies = health_by_affiliate[aid] || []
+      l_policies = life_by_affiliate[aid] || []
+      m_policies = motor_by_affiliate[aid] || []
+      other = other_by_affiliate[aid]
 
-    {
-      total_policies: total_policies,
-      total_premium: total_premium,
-      total_commission: total_commission,
-      health_policies: health_policies.count,
-      health_commission: health_commission,
-      life_policies: life_policies.count,
-      life_commission: life_commission,
-      motor_policies: motor_policies.count,
-      motor_commission: motor_commission,
-      other_policies: other_policies_count,
-      other_commission: other_commission,
-      recent_policies: get_recent_policies_for_affiliate(affiliate),
-      customers_count: unique_customers_count,
-      joined_date: affiliate.created_at
-    }
+      health_commission = h_policies.sum { |p| h_comm[p.id].to_f }
+      life_commission   = l_policies.sum { |p| l_comm[p.id].to_f }
+      motor_commission  = m_policies.sum { |p| m_comm[p.id].to_f }
+      other_commission  = other[:commission]
+
+      total_policies = h_policies.size + l_policies.size + m_policies.size + other[:count]
+      total_premium  = h_policies.sum { |p| p.total_premium.to_f } +
+                        l_policies.sum { |p| p.total_premium.to_f } +
+                        m_policies.sum { |p| p.total_premium.to_f } +
+                        other[:premium]
+      total_commission = (health_commission + life_commission + motor_commission + other_commission).to_f
+
+      customer_ids = (h_policies.map(&:customer_id) + l_policies.map(&:customer_id) + m_policies.map(&:customer_id)).compact.uniq
+
+      recent = []
+      h_policies.sort_by(&:created_at).reverse.first(3).each do |p|
+        recent << { type: 'Health', policy_number: p.policy_number, customer: customers_by_id[p.customer_id]&.display_name || 'Unknown', premium: p.total_premium, commission: h_comm[p.id].to_f, created_at: p.created_at }
+      end
+      l_policies.sort_by(&:created_at).reverse.first(3).each do |p|
+        recent << { type: 'Life', policy_number: p.policy_number, customer: customers_by_id[p.customer_id]&.display_name || 'Unknown', premium: p.total_premium, commission: l_comm[p.id].to_f, created_at: p.created_at }
+      end
+      m_policies.sort_by(&:created_at).reverse.first(2).each do |p|
+        recent << { type: 'Motor', policy_number: p.policy_number, customer: customers_by_id[p.customer_id]&.display_name || 'Unknown', premium: p.total_premium, commission: p.main_agent_commission_amount || 0, created_at: p.created_at }
+      end
+      recent = recent.sort_by { |r| r[:created_at] }.reverse.first(5)
+
+      {
+        total_policies: total_policies,
+        total_premium: total_premium,
+        total_commission: total_commission,
+        health_policies: h_policies.size,
+        health_commission: health_commission,
+        life_policies: l_policies.size,
+        life_commission: life_commission,
+        motor_policies: m_policies.size,
+        motor_commission: motor_commission,
+        other_policies: other[:count],
+        other_commission: other_commission,
+        recent_policies: recent,
+        customers_count: customer_ids.size,
+        joined_date: affiliates.find { |a| a.id == aid }&.created_at
+      }
+    end
   end
 
   def calculate_distributor_stats
@@ -201,61 +195,6 @@ class AmbassadorController < ApplicationController
     }
   end
 
-  def get_recent_policies_for_affiliate(affiliate)
-    policies = []
-
-    # Get recent health policies
-    HealthInsurance.where(sub_agent_id: affiliate.id)
-                   .includes(:customer)
-                   .order(created_at: :desc)
-                   .limit(3)
-                   .each do |policy|
-      policies << {
-        type: 'Health',
-        policy_number: policy.policy_number,
-        customer: policy.customer&.display_name || 'Unknown',
-        premium: policy.total_premium,
-        commission: CommissionPayout.where(policy_type: 'health', policy_id: policy.id, payout_to: 'ambassador').sum(:payout_amount),
-        created_at: policy.created_at
-      }
-    end
-
-    # Get recent life policies
-    LifeInsurance.where(sub_agent_id: affiliate.id)
-                 .includes(:customer)
-                 .order(created_at: :desc)
-                 .limit(3)
-                 .each do |policy|
-      policies << {
-        type: 'Life',
-        policy_number: policy.policy_number,
-        customer: policy.customer&.display_name || 'Unknown',
-        premium: policy.total_premium,
-        commission: CommissionPayout.where(policy_type: 'life', policy_id: policy.id, payout_to: 'ambassador').sum(:payout_amount),
-        created_at: policy.created_at
-      }
-    end
-
-    # Get recent motor policies
-    MotorInsurance.where(sub_agent_id: affiliate.id)
-                  .includes(:customer)
-                  .order(created_at: :desc)
-                  .limit(2)
-                  .each do |policy|
-      policies << {
-        type: 'Motor',
-        policy_number: policy.policy_number,
-        customer: policy.customer&.display_name || 'Unknown',
-        premium: policy.total_premium,
-        commission: policy.main_agent_commission_amount || 0,
-        created_at: policy.created_at
-      }
-    end
-
-    # Sort by creation date and return top 5
-    policies.sort_by { |p| p[:created_at] }.reverse.first(5)
-  end
-
   def get_recent_commission_activity
     activities = []
     affiliate_ids = @assigned_affiliates.pluck(:id)
@@ -264,25 +203,28 @@ class AmbassadorController < ApplicationController
     recent_payouts = CommissionPayout.where(payout_to: 'ambassador')
                                     .order(payout_date: :desc, created_at: :desc)
                                     .limit(10)
+                                    .to_a
+
+    # Batch-load the policies for these payouts (3 queries total) instead of
+    # one find_by per payout, and use .includes instead of .joins so
+    # policy.customer below doesn't re-query.
+    ids_by_type = recent_payouts.group_by(&:policy_type).transform_values { |ps| ps.map(&:policy_id) }
+    health_by_id = HealthInsurance.includes(:customer).where(id: ids_by_type['health'] || [], sub_agent_id: affiliate_ids).index_by(&:id)
+    life_by_id   = LifeInsurance.includes(:customer).where(id: ids_by_type['life'] || [], sub_agent_id: affiliate_ids).index_by(&:id)
+    motor_by_id  = MotorInsurance.includes(:customer).where(id: ids_by_type['motor'] || [], sub_agent_id: affiliate_ids).index_by(&:id)
+    type_labels  = { 'health' => 'Health Insurance Commission', 'life' => 'Life Insurance Commission', 'motor' => 'Motor Insurance Commission' }
 
     recent_payouts.each do |payout|
-      policy = nil
-      case payout.policy_type
-      when 'health'
-        policy = HealthInsurance.joins(:customer).find_by(id: payout.policy_id, sub_agent_id: affiliate_ids)
-        type = 'Health Insurance Commission'
-      when 'life'
-        policy = LifeInsurance.joins(:customer).find_by(id: payout.policy_id, sub_agent_id: affiliate_ids)
-        type = 'Life Insurance Commission'
-      when 'motor'
-        policy = MotorInsurance.joins(:customer).find_by(id: payout.policy_id, sub_agent_id: affiliate_ids)
-        type = 'Motor Insurance Commission'
-      end
+      policy = case payout.policy_type
+               when 'health' then health_by_id[payout.policy_id]
+               when 'life'   then life_by_id[payout.policy_id]
+               when 'motor'  then motor_by_id[payout.policy_id]
+               end
 
       next unless policy
 
       activities << {
-        type: type,
+        type: type_labels[payout.policy_type],
         description: "Commission from #{policy.customer.display_name}",
         amount: payout.payout_amount,
         policy_number: policy.policy_number,
@@ -295,70 +237,43 @@ class AmbassadorController < ApplicationController
   end
 
   def get_monthly_commission_trends
+    affiliate_ids = @assigned_affiliates.pluck(:id)
+    range_start = 5.months.ago.beginning_of_month
+    range_end   = Time.current.end_of_month
+
+    # One query per policy type covering the whole 6-month window instead of
+    # 3 queries per month (18 total), plus batched commission sums instead
+    # of a CommissionPayout query per policy type per month.
+    health = HealthInsurance.where(sub_agent_id: affiliate_ids, created_at: range_start..range_end).select(:id, :created_at).to_a
+    life   = LifeInsurance.where(sub_agent_id: affiliate_ids, created_at: range_start..range_end).select(:id, :created_at).to_a
+    motor  = MotorInsurance.where(sub_agent_id: affiliate_ids, created_at: range_start..range_end).select(:id, :created_at).to_a
+
+    h_comm = CommissionPayout.where(policy_type: 'health', policy_id: health.map(&:id), payout_to: 'ambassador').group(:policy_id).sum(:payout_amount)
+    l_comm = CommissionPayout.where(policy_type: 'life',   policy_id: life.map(&:id),   payout_to: 'ambassador').group(:policy_id).sum(:payout_amount)
+    m_comm = CommissionPayout.where(policy_type: 'motor',  policy_id: motor.map(&:id),  payout_to: 'ambassador').group(:policy_id).sum(:payout_amount)
+
     trends = {}
     6.times do |i|
       month = i.months.ago
       month_key = month.strftime("%Y-%m")
+      month_range = month.beginning_of_month..month.end_of_month
 
-      monthly_commission = 0
+      h_this_month = health.select { |p| month_range.cover?(p.created_at) }
+      l_this_month = life.select   { |p| month_range.cover?(p.created_at) }
+      m_this_month = motor.select  { |p| month_range.cover?(p.created_at) }
 
-      # Get health insurance policies for this month
-      health_policies = HealthInsurance.where(sub_agent_id: @assigned_affiliates.pluck(:id))
-                                      .where(created_at: month.beginning_of_month..month.end_of_month)
-
-      # Calculate ambassador commission from commission payouts for health policies
-      monthly_commission += CommissionPayout.where(
-        policy_type: 'health',
-        policy_id: health_policies.pluck(:id),
-        payout_to: 'ambassador'
-      ).sum(:payout_amount).to_f
-
-      # Get life insurance policies for this month
-      life_policies = LifeInsurance.where(sub_agent_id: @assigned_affiliates.pluck(:id))
-                                  .where(created_at: month.beginning_of_month..month.end_of_month)
-
-      # Calculate ambassador commission from commission payouts for life policies
-      monthly_commission += CommissionPayout.where(
-        policy_type: 'life',
-        policy_id: life_policies.pluck(:id),
-        payout_to: 'ambassador'
-      ).sum(:payout_amount).to_f
-
-      # Get motor insurance policies for this month
-      motor_policies = MotorInsurance.where(sub_agent_id: @assigned_affiliates.pluck(:id))
-                                    .where(created_at: month.beginning_of_month..month.end_of_month)
-
-      # Calculate ambassador commission from commission payouts for motor policies
-      monthly_commission += CommissionPayout.where(
-        policy_type: 'motor',
-        policy_id: motor_policies.pluck(:id),
-        payout_to: 'ambassador'
-      ).sum(:payout_amount).to_f
+      monthly_commission = h_this_month.sum { |p| h_comm[p.id].to_f } +
+                            l_this_month.sum { |p| l_comm[p.id].to_f } +
+                            m_this_month.sum { |p| m_comm[p.id].to_f }
 
       trends[month_key] = {
         month: month.strftime("%B %Y"),
         commission: monthly_commission,
-        policies_count: get_monthly_policies_count(month)
+        policies_count: h_this_month.size + l_this_month.size + m_this_month.size
       }
     end
 
     trends.sort_by { |k, v| k }.reverse.to_h
-  end
-
-  def get_monthly_policies_count(month)
-    health_count = HealthInsurance.where(sub_agent_id: @assigned_affiliates.pluck(:id))
-                                 .where(created_at: month.beginning_of_month..month.end_of_month)
-                                 .count
-
-    life_count = LifeInsurance.where(sub_agent_id: @assigned_affiliates.pluck(:id))
-                             .where(created_at: month.beginning_of_month..month.end_of_month)
-                             .count
-
-    motor_count = MotorInsurance.where(sub_agent_id: @assigned_affiliates.pluck(:id))
-                               .where(created_at: month.beginning_of_month..month.end_of_month)
-                               .count
-
-    health_count + life_count + motor_count
   end
 
   def get_filtered_commission_data

@@ -44,31 +44,37 @@ class Admin::HelpdeskController < Admin::ApplicationController
       }
     end
 
-    # Real statistics by status
+    # Real statistics by status — computed once and reused below instead of
+    # being queried again for @stats.
+    pending_count     = ClientRequest.pending.count
+    in_progress_count = ClientRequest.in_progress.count
+    resolved_count    = ClientRequest.resolved.count
+    closed_count      = ClientRequest.closed.count
+
     @ticket_stats_by_status = [
-      { status: "Pending", count: ClientRequest.pending.count, color: "#ff6b6b" },
-      { status: "In Progress", count: ClientRequest.in_progress.count, color: "#4ecdc4" },
-      { status: "Resolved", count: ClientRequest.resolved.count, color: "#45b7d1" },
-      { status: "Closed", count: ClientRequest.closed.count, color: "#6c757d" }
+      { status: "Pending", count: pending_count, color: "#ff6b6b" },
+      { status: "In Progress", count: in_progress_count, color: "#4ecdc4" },
+      { status: "Resolved", count: resolved_count, color: "#45b7d1" },
+      { status: "Closed", count: closed_count, color: "#6c757d" }
     ]
 
-    # Monthly trend data (last 12 months)
+    # Monthly trend data (last 12 months) — one grouped query instead of 12.
+    monthly_counts = ClientRequest.group_by_month(:submitted_at, last: 12).count
     @monthly_ticket_trend = (11.downto(0)).map do |i|
       month_start = i.months.ago.beginning_of_month
-      month_end = i.months.ago.end_of_month
       {
         month: month_start.strftime('%b'),
-        tickets: ClientRequest.where(submitted_at: month_start..month_end).count
+        tickets: monthly_counts[month_start.to_date] || 0
       }
     end
 
     # Additional statistics
     @stats = {
       total: @total_tickets,
-      pending: ClientRequest.pending.count,
-      in_progress: ClientRequest.in_progress.count,
-      resolved: ClientRequest.resolved.count,
-      closed: ClientRequest.closed.count,
+      pending: pending_count,
+      in_progress: in_progress_count,
+      resolved: resolved_count,
+      closed: closed_count,
       high_priority: ClientRequest.where(priority: 'high').count,
       urgent_priority: ClientRequest.where(priority: 'urgent').count,
       customer_tickets: ClientRequest.where(submitter_type: 'Customer').count,
@@ -141,14 +147,11 @@ class Admin::HelpdeskController < Admin::ApplicationController
   private
 
   def calculate_avg_response_time
-    resolved_tickets = ClientRequest.where.not(resolved_at: nil)
-    return "N/A" if resolved_tickets.empty?
+    avg_seconds = ClientRequest.where.not(resolved_at: nil)
+                                .average(Arel.sql('EXTRACT(EPOCH FROM (resolved_at - submitted_at))'))
+    return "N/A" if avg_seconds.nil?
 
-    total_response_time = resolved_tickets.sum do |ticket|
-      (ticket.resolved_at - ticket.submitted_at) / 1.hour
-    end
-
-    avg_hours = total_response_time / resolved_tickets.count
+    avg_hours = avg_seconds.to_f / 3600.0
 
     if avg_hours < 1
       "#{(avg_hours * 60).round}m"

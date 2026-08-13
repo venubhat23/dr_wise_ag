@@ -44,7 +44,10 @@ module ConfigurablePagination
     # calling `paginated.total_count` / `total_pages` (e.g. via the `paginate`
     # helper or the shared pagination partial) don't re-run the same COUNT query.
     paginated.instance_variable_set(:@total_count, total_count) if paginated.respond_to?(:total_count)
-    paginated
+
+    # Force-load now so `.any?` (checked before `.each` in every index view) reads
+    # from the already-loaded records instead of firing its own EXISTS query.
+    paginated.load
   end
 
   # Helper method to check if pagination should be shown

@@ -349,25 +349,36 @@ class Admin::AnalyticsController < Admin::ApplicationController
   end
 
   def calculate_top_affiliates_for_period(start_date, end_date)
-    affiliate_data = SubAgent.joins(
-      "LEFT JOIN health_insurances hi ON hi.sub_agent_id = sub_agents.id AND hi.is_admin_added = true AND hi.is_customer_added = false AND hi.is_agent_added = false AND hi.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'" +
-      " LEFT JOIN life_insurances li ON li.sub_agent_id = sub_agents.id AND li.is_admin_added = true AND li.is_customer_added = false AND li.is_agent_added = false AND li.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'" +
-      " LEFT JOIN motor_insurances mi ON mi.sub_agent_id = sub_agents.id AND mi.is_admin_added = true AND mi.is_customer_added = false AND mi.is_agent_added = false AND mi.policy_start_date BETWEEN '#{start_date}' AND '#{end_date}'"
-    )
-    .select("sub_agents.id, sub_agents.first_name, sub_agents.last_name, sub_agents.status,
-             (COALESCE(COUNT(DISTINCT hi.id), 0) + COALESCE(COUNT(DISTINCT li.id), 0) + COALESCE(COUNT(DISTINCT mi.id), 0)) as policies_count")
-    .group("sub_agents.id, sub_agents.first_name, sub_agents.last_name, sub_agents.status")
-    .having("(COALESCE(COUNT(DISTINCT hi.id), 0) + COALESCE(COUNT(DISTINCT li.id), 0) + COALESCE(COUNT(DISTINCT mi.id), 0)) > 0")
-    .order("policies_count DESC")
-    .limit(10)
+    # Previously a triple LEFT JOIN (one per insurance type, each pre-filtered by
+    # date/DRWISE) - same row-explosion shape as #calculate_customer_retention for
+    # any sub-agent with policies across multiple types. Three independent grouped
+    # counts + a Ruby merge, then a single lookup for just the top 10 IDs.
+    policy_counts_by_sub_agent = Hash.new(0)
+    [HealthInsurance, LifeInsurance, MotorInsurance].each do |klass|
+      klass.where(DRWISE)
+           .where(policy_start_date: start_date..end_date)
+           .where.not(sub_agent_id: nil)
+           .group(:sub_agent_id)
+           .count
+           .each { |sid, c| policy_counts_by_sub_agent[sid] += c }
+    end
 
-    affiliate_data.map { |agent| OpenStruct.new(
-      id: agent.id,
-      first_name: agent.first_name,
-      last_name: agent.last_name,
-      status: agent.status || 'active',
-      policies_count: agent.policies_count
-    )}
+    top_ids = policy_counts_by_sub_agent.sort_by { |sid, c| [-c, sid] }.first(10).map(&:first)
+    return [] if top_ids.empty?
+
+    agents_by_id = SubAgent.where(id: top_ids).index_by(&:id)
+
+    top_ids.filter_map do |sid|
+      agent = agents_by_id[sid]
+      next unless agent
+      OpenStruct.new(
+        id: agent.id,
+        first_name: agent.first_name,
+        last_name: agent.last_name,
+        status: agent.status || 'active',
+        policies_count: policy_counts_by_sub_agent[sid]
+      )
+    end
   rescue => e
     Rails.logger.error "Error calculating top affiliates for period: #{e.message}"
     []
@@ -1165,14 +1176,15 @@ class Admin::AnalyticsController < Admin::ApplicationController
     total_customers = Customer.count
     return 0 if total_customers == 0
 
-    # Count customers with more than one policy across all insurance types
-    customers_with_multiple_policies = Customer.joins(
-      "LEFT JOIN health_insurances ON health_insurances.customer_id = customers.id " +
-      "LEFT JOIN life_insurances ON life_insurances.customer_id = customers.id " +
-      "LEFT JOIN motor_insurances ON motor_insurances.customer_id = customers.id"
-    ).group('customers.id')
-     .having('COUNT(health_insurances.id) + COUNT(life_insurances.id) + COUNT(motor_insurances.id) > 1')
-     .count.keys.length
+    # Previously a triple LEFT JOIN across all 3 insurance tables with no WHERE
+    # clause - for a customer with H health + L life + M motor policies, that's
+    # H*L*M joined rows before GROUP BY collapses them. Three independent grouped
+    # counts (no join) + a Ruby merge avoids the row explosion entirely.
+    policy_counts_by_customer = Hash.new(0)
+    [HealthInsurance, LifeInsurance, MotorInsurance].each do |klass|
+      klass.group(:customer_id).count.each { |cid, c| policy_counts_by_customer[cid] += c }
+    end
+    customers_with_multiple_policies = policy_counts_by_customer.count { |_, c| c > 1 }
 
     ((customers_with_multiple_policies.to_f / total_customers.to_f) * 100).round(1)
   rescue => e

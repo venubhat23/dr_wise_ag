@@ -132,16 +132,17 @@ class Admin::MutualFundsController < Admin::ApplicationController
   end
 
   def calculate_tab_statistics
-    drwise = MutualFund.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
-    non_drwise = MutualFund.where(
-      '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-      true, false, false, true, false, false
-    )
+    drwise_sql = 'is_admin_added = true AND is_customer_added = false AND is_agent_added = false'
+    non_drwise_sql = '(is_customer_added = true AND is_admin_added = false AND is_agent_added = false) OR ' \
+                     '(is_agent_added = true AND is_customer_added = false AND is_admin_added = false)'
 
-    @drwise_count = drwise.count
-    @drwise_amount = drwise.sum(:amount) || 0
-    @non_drwise_count = non_drwise.count
-    @non_drwise_amount = non_drwise.sum(:amount) || 0
+    # Single query with FILTER instead of 4 separate COUNT/SUM round trips.
+    @drwise_count, @drwise_amount, @non_drwise_count, @non_drwise_amount = MutualFund.pick(
+      Arel.sql("COUNT(*) FILTER (WHERE #{drwise_sql})"),
+      Arel.sql("COALESCE(SUM(amount) FILTER (WHERE #{drwise_sql}), 0)"),
+      Arel.sql("COUNT(*) FILTER (WHERE #{non_drwise_sql})"),
+      Arel.sql("COALESCE(SUM(amount) FILTER (WHERE #{non_drwise_sql}), 0)")
+    )
     @total_clients_count = MutualFund.joins(:customer).distinct.count('customers.id')
   end
 

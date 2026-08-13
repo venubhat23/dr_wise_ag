@@ -40,13 +40,17 @@ class Admin::ReportsController < Admin::ApplicationController
     @expired_motor_insurances = MotorInsurance.expired.includes(policy: :customer).order(:policy_end_date)
     @expired_other_insurances = OtherInsurance.expired.includes(policy: :customer).order(:policy_end_date)
 
+    health_expired = @expired_health_insurances.count
+    life_expired   = @expired_life_insurances.count
+    motor_expired  = @expired_motor_insurances.count
+    other_expired  = @expired_other_insurances.count
+
     @stats = {
-      total_expired: @expired_health_insurances.count + @expired_life_insurances.count +
-                    @expired_motor_insurances.count + @expired_other_insurances.count,
-      health_expired: @expired_health_insurances.count,
-      life_expired: @expired_life_insurances.count,
-      motor_expired: @expired_motor_insurances.count,
-      other_expired: @expired_other_insurances.count
+      total_expired: health_expired + life_expired + motor_expired + other_expired,
+      health_expired: health_expired,
+      life_expired: life_expired,
+      motor_expired: motor_expired,
+      other_expired: other_expired
     }
   rescue => e
     Rails.logger.error "Error in expired_insurance: #{e.message}"
@@ -94,13 +98,17 @@ class Admin::ReportsController < Admin::ApplicationController
                                              .includes(policy: :customer)
                                              .order(:policy_end_date)
 
+    health_renewals = @renewal_health_insurances.count
+    life_renewals   = @renewal_life_insurances.count
+    motor_renewals  = @renewal_motor_insurances.count
+    other_renewals  = @renewal_other_insurances.count
+
     @stats = {
-      total_renewals: @renewal_health_insurances.count + @renewal_life_insurances.count +
-                     @renewal_motor_insurances.count + @renewal_other_insurances.count,
-      health_renewals: @renewal_health_insurances.count,
-      life_renewals: @renewal_life_insurances.count,
-      motor_renewals: @renewal_motor_insurances.count,
-      other_renewals: @renewal_other_insurances.count
+      total_renewals: health_renewals + life_renewals + motor_renewals + other_renewals,
+      health_renewals: health_renewals,
+      life_renewals: life_renewals,
+      motor_renewals: motor_renewals,
+      other_renewals: other_renewals
     }
   rescue => e
     Rails.logger.error "Error in upcoming_renewal: #{e.message}"
