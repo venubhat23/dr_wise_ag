@@ -27,8 +27,8 @@ class Vendor < ApplicationRecord
   validates :phone_number,
             presence: true,
             format: {
-              with: /\A[6-9]\d{9}\z/,
-              message: "must be a valid 10-digit Indian mobile number (6-9 as first digit)"
+              with: /\A\d{10}\z/,
+              message: "must be a valid 10-digit phone number"
             }
 
   pg_search_scope :search_by_name_company_contact,
