@@ -80,6 +80,8 @@ class Admin::VendorsController < Admin::ApplicationController
     @leads_converted = stats[:leads_converted]
     @pending_amount  = stats[:pending_amount]
     @paid_amount     = stats[:paid_amount]
+
+    @vendor_user = User.find_by(email: @vendor.email) if @vendor.email.present?
   end
 
   # GET /admin/vendors/new

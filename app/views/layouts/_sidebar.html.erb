@@ -989,13 +989,13 @@ body.sidebar-collapsed .main-content {
         <!-- Vendor Payouts -->
         <% if show_sidebar_item?('vendor_payouts') %>
           <li class="nav-item">
-            <%= link_to admin_vendor_payouts_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/vendor_payouts')}", data: { tooltip: "Payout" } do %>
+            <%= link_to admin_vendor_payouts_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/vendor_payouts')}", data: { tooltip: "Vendor Payout" } do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-amber">
                   <i class="bi bi-cash-stack"></i>
                 </div>
               </div>
-              <span class="nav-text">Payout</span>
+              <span class="nav-text">Vendor Payout</span>
               <div class="nav-indicator"></div>
             <% end %>
           </li>
