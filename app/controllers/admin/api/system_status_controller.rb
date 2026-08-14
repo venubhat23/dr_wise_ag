@@ -3,6 +3,10 @@ module Admin
     class SystemStatusController < Admin::ApplicationController
       skip_before_action :verify_authenticity_token
 
+      # In-process cache so a cache hit never pays the DB round trip that
+      # Rails.cache (solid_cache_store, DB-backed) would incur.
+      REPORT_CACHE = ActiveSupport::Cache::MemoryStore.new(size: 5.megabytes)
+
       def active_affiliates
         begin
           # Match dashboard card: only SubAgents that have at least one policy (any insurance type)
@@ -88,7 +92,7 @@ module Admin
 
       def lead_conversion
         begin
-          data = Rails.cache.fetch('lead_conversion_report', expires_in: 2.minutes) do
+          data = REPORT_CACHE.fetch('lead_conversion_report', expires_in: 2.minutes) do
             build_lead_conversion_data
           end
 
@@ -104,8 +108,39 @@ module Admin
       end
 
       def build_lead_conversion_data
-          # Single query for stage breakdown + summary counts
-          stage_breakdown = Lead.group(:current_stage).count
+          conn = ActiveRecord::Base.connection
+          six_months_ago = 6.months.ago.beginning_of_month
+          range_end      = Time.current.end_of_month
+
+          # All three breakdowns (stage / monthly / source) fetched in a single
+          # round trip via UNION ALL — was 3 sequential queries before.
+          sql = <<~SQL
+            SELECT 'stage' AS kind, current_stage::text AS key, COUNT(*) AS total, 0 AS converted
+            FROM leads
+            GROUP BY current_stage
+
+            UNION ALL
+
+            SELECT 'month' AS kind, DATE_TRUNC('month', created_at)::text AS key, COUNT(*) AS total,
+                   SUM(CASE WHEN current_stage = 'converted' THEN 1 ELSE 0 END) AS converted
+            FROM leads
+            WHERE created_at BETWEEN #{conn.quote(six_months_ago)} AND #{conn.quote(range_end)}
+            GROUP BY DATE_TRUNC('month', created_at)
+
+            UNION ALL
+
+            SELECT 'source' AS kind, lead_source AS key, COUNT(*) AS total,
+                   SUM(CASE WHEN current_stage = 'converted' THEN 1 ELSE 0 END) AS converted
+            FROM leads
+            WHERE lead_source IS NOT NULL AND lead_source != ''
+            GROUP BY lead_source
+          SQL
+
+          rows = conn.select_all(sql).to_a
+
+          # Stage breakdown + summary counts
+          stage_breakdown = rows.select { |r| r['kind'] == 'stage' }
+                                 .each_with_object({}) { |r, h| h[r['key']] = r['total'].to_i }
 
           total_leads     = stage_breakdown.values.sum
           converted_leads = stage_breakdown['converted'].to_i
@@ -120,18 +155,9 @@ module Admin
             conversion_rate: conversion_rate
           }
 
-          # Single query for monthly trend (last 6 months)
-          six_months_ago = 6.months.ago.beginning_of_month
-          rows = Lead.where(created_at: six_months_ago..Time.current.end_of_month)
-                     .group("DATE_TRUNC('month', created_at)")
-                     .select(
-                       "DATE_TRUNC('month', created_at) AS month_date",
-                       "COUNT(*) AS total",
-                       "SUM(CASE WHEN current_stage = 'converted' THEN 1 ELSE 0 END) AS converted"
-                     )
-
-          monthly_map = rows.each_with_object({}) do |row, h|
-            h[row.month_date.to_date.beginning_of_month] = { total: row.total.to_i, converted: row.converted.to_i }
+          # Monthly trend (last 6 months)
+          monthly_map = rows.select { |r| r['kind'] == 'month' }.each_with_object({}) do |r, h|
+            h[Date.parse(r['key']).beginning_of_month] = { total: r['total'].to_i, converted: r['converted'].to_i }
           end
 
           monthly_trend = 6.times.map do |i|
@@ -141,19 +167,11 @@ module Admin
             { month: month_start.strftime('%B %Y'), total_leads: d[:total], converted_leads: d[:converted], conversion_rate: rate }
           end.reverse
 
-          # Single query for source-wise conversion
-          source_rows = Lead.where.not(lead_source: [nil, ''])
-                            .group(:lead_source)
-                            .select(
-                              "lead_source AS source",
-                              "COUNT(*) AS total",
-                              "SUM(CASE WHEN current_stage = 'converted' THEN 1 ELSE 0 END) AS converted"
-                            )
-
-          source_conversion = source_rows.map do |row|
-            total = row.total.to_i
-            converted = row.converted.to_i
-            { source: row.source, total: total, converted: converted,
+          # Source-wise conversion
+          source_conversion = rows.select { |r| r['kind'] == 'source' }.map do |r|
+            total = r['total'].to_i
+            converted = r['converted'].to_i
+            { source: r['key'], total: total, converted: converted,
               rate: total > 0 ? ((converted.to_f / total) * 100).round(2) : 0 }
           end
 

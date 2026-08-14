@@ -1897,3 +1897,270 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000007) do
     t.index ["role_id"], name: "index_sub_agents_on_role_id"
     t.index ["status"], name: "index_sub_agents_on_status"
   end
+
+  create_table "system_settings", force: :cascade do |t|
+    t.string "key", null: false
+    t.text "value"
+    t.text "description"
+    t.string "setting_type"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.decimal "default_main_agent_commission", precision: 5, scale: 2
+    t.decimal "default_affiliate_commission", precision: 5, scale: 2
+    t.decimal "default_ambassador_commission", precision: 5, scale: 2
+    t.decimal "default_company_expenses", precision: 5, scale: 2
+    t.text "terms_and_conditions"
+    t.decimal "investment_amount", precision: 15, scale: 2, default: "0.0"
+    t.string "company_name"
+    t.string "company_phone"
+    t.string "company_email"
+    t.text "company_address"
+    t.index ["key"], name: "index_system_settings_on_key", unique: true
+  end
+
+  create_table "tax_services", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.string "service_type"
+    t.string "financial_year"
+    t.date "filing_date"
+    t.decimal "amount"
+    t.boolean "status"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_tax_services_on_customer_id"
+  end
+
+  create_table "travel_packages", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.string "travel_type"
+    t.string "destination"
+    t.date "travel_date"
+    t.date "return_date"
+    t.decimal "package_amount"
+    t.boolean "status"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_travel_packages_on_customer_id"
+  end
+
+  create_table "user_roles", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.boolean "status", default: true, null: false
+    t.integer "display_order", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["display_order"], name: "index_user_roles_on_display_order"
+    t.index ["name"], name: "index_user_roles_on_name", unique: true
+    t.index ["status"], name: "index_user_roles_on_status"
+  end
+
+  create_table "user_sessions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "session_id", null: false
+    t.string "ip_address"
+    t.text "user_agent"
+    t.datetime "started_at", null: false
+    t.datetime "ended_at"
+    t.integer "duration"
+    t.string "status", default: "active"
+    t.string "location"
+    t.string "device_type"
+    t.string "browser"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ip_address"], name: "index_user_sessions_on_ip_address"
+    t.index ["session_id"], name: "index_user_sessions_on_session_id", unique: true
+    t.index ["started_at"], name: "index_user_sessions_on_started_at"
+    t.index ["status"], name: "index_user_sessions_on_status"
+    t.index ["user_id"], name: "index_user_sessions_on_user_id"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.string "first_name"
+    t.string "last_name"
+    t.string "email"
+    t.string "mobile"
+    t.string "pan_number"
+    t.string "gst_number"
+    t.date "date_of_birth"
+    t.string "gender"
+    t.string "height"
+    t.string "weight"
+    t.string "education"
+    t.string "marital_status"
+    t.string "occupation"
+    t.string "job_name"
+    t.string "type_of_duty"
+    t.decimal "annual_income"
+    t.string "birth_place"
+    t.string "address"
+    t.string "state"
+    t.string "city"
+    t.string "user_type"
+    t.string "role"
+    t.boolean "status"
+    t.text "additional_info"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "encrypted_password", default: "", null: false
+    t.string "reset_password_token"
+    t.datetime "reset_password_sent_at"
+    t.datetime "remember_created_at"
+    t.bigint "role_id"
+    t.bigint "user_role_id"
+    t.string "plain_password"
+    t.string "original_password"
+    t.text "sidebar_permissions"
+    t.string "role_name"
+    t.datetime "password_reset_at", comment: "When password was last reset"
+    t.text "crud_permissions"
+    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["role_id"], name: "idx_users_role_id"
+    t.index ["role_id"], name: "index_users_on_role_id"
+    t.index ["user_role_id"], name: "index_users_on_user_role_id"
+  end
+
+  create_table "vendor_payouts", force: :cascade do |t|
+    t.bigint "vendor_id", null: false
+    t.bigint "lead_id"
+    t.decimal "lead_value", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "commission_percentage", precision: 8, scale: 2, default: "0.0", null: false
+    t.decimal "commission_amount", precision: 12, scale: 2, default: "0.0", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "paid_at"
+    t.string "paid_by"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "client_service_id"
+    t.index ["client_service_id"], name: "index_vendor_payouts_on_client_service_id", unique: true, where: "(client_service_id IS NOT NULL)"
+    t.index ["created_at"], name: "index_vendor_payouts_on_created_at"
+    t.index ["lead_id"], name: "index_vendor_payouts_on_lead_id", unique: true, where: "(lead_id IS NOT NULL)"
+    t.index ["status"], name: "index_vendor_payouts_on_status"
+    t.index ["vendor_id"], name: "index_vendor_payouts_on_vendor_id"
+  end
+
+  create_table "vendor_products", force: :cascade do |t|
+    t.bigint "vendor_id", null: false
+    t.string "product_category", null: false
+    t.string "product_subcategory", null: false
+    t.decimal "commission_percentage", precision: 8, scale: 2, default: "0.0"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["vendor_id", "product_category", "product_subcategory"], name: "idx_vendor_products_unique", unique: true
+    t.index ["vendor_id"], name: "index_vendor_products_on_vendor_id"
+  end
+
+  create_table "vendors", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "company_name"
+    t.string "email"
+    t.string "phone_number"
+    t.text "address"
+    t.string "gst_number"
+    t.text "notes"
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_vendors_on_created_at"
+    t.index ["email"], name: "index_vendors_on_email"
+    t.index ["gst_number"], name: "index_vendors_on_gst_number"
+    t.index ["phone_number"], name: "index_vendors_on_phone_number"
+    t.index ["status"], name: "index_vendors_on_status"
+  end
+
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "agency_codes", "brokers"
+  add_foreign_key "ai_report_histories", "users"
+  add_foreign_key "appointments", "customers"
+  add_foreign_key "appointments", "users", column: "created_by_id"
+  add_foreign_key "banner_documents", "banners"
+  add_foreign_key "broker_codes", "brokers"
+  add_foreign_key "brokers", "insurance_companies"
+  add_foreign_key "client_requests", "users", column: "resolved_by_id"
+  add_foreign_key "client_services", "vendors"
+  add_foreign_key "commission_payouts", "payouts"
+  add_foreign_key "corporate_members", "customers"
+  add_foreign_key "customer_documents", "customers"
+  add_foreign_key "customers", "sub_agents"
+  add_foreign_key "distributor_assignments", "distributors"
+  add_foreign_key "distributor_assignments", "sub_agents"
+  add_foreign_key "distributor_documents", "distributors"
+  add_foreign_key "distributor_payouts", "distributors"
+  add_foreign_key "family_members", "customers"
+  add_foreign_key "health_insurance_documents", "health_insurances"
+  add_foreign_key "health_insurance_members", "health_insurances"
+  add_foreign_key "health_insurance_nominees", "health_insurances"
+  add_foreign_key "health_insurances", "agency_codes"
+  add_foreign_key "health_insurances", "brokers"
+  add_foreign_key "health_insurances", "customers"
+  add_foreign_key "health_insurances", "distributors"
+  add_foreign_key "health_insurances", "health_insurances", column: "original_policy_id", name: "health_insurances_original_policy_id_fkey"
+  add_foreign_key "health_insurances", "investors"
+  add_foreign_key "health_insurances", "policies"
+  add_foreign_key "health_insurances", "sub_agents"
+  add_foreign_key "helpdesk_tickets", "customers"
+  add_foreign_key "helpdesk_tickets", "sub_agents"
+  add_foreign_key "investments", "customers"
+  add_foreign_key "investor_documents", "investors"
+  add_foreign_key "invoice_items", "invoices"
+  add_foreign_key "leads", "distributors", column: "ambassador_id"
+  add_foreign_key "leads", "vendors"
+  add_foreign_key "life_insurance_bank_details", "life_insurances"
+  add_foreign_key "life_insurance_documents", "life_insurances"
+  add_foreign_key "life_insurance_nominees", "life_insurances"
+  add_foreign_key "life_insurances", "agency_codes"
+  add_foreign_key "life_insurances", "brokers"
+  add_foreign_key "life_insurances", "customers"
+  add_foreign_key "life_insurances", "distributors"
+  add_foreign_key "life_insurances", "investors"
+  add_foreign_key "life_insurances", "sub_agents"
+  add_foreign_key "loans", "customers"
+  add_foreign_key "motor_insurance_documents", "motor_insurances"
+  add_foreign_key "motor_insurance_nominees", "motor_insurances"
+  add_foreign_key "motor_insurances", "agency_codes"
+  add_foreign_key "motor_insurances", "brokers"
+  add_foreign_key "motor_insurances", "customers"
+  add_foreign_key "motor_insurances", "distributors"
+  add_foreign_key "motor_insurances", "investors"
+  add_foreign_key "motor_insurances", "sub_agents"
+  add_foreign_key "mutual_fund_nominees", "mutual_funds"
+  add_foreign_key "mutual_funds", "customers"
+  add_foreign_key "mutual_funds", "distributors"
+  add_foreign_key "mutual_funds", "sub_agents"
+  add_foreign_key "mutual_funds", "vendors"
+  add_foreign_key "other_insurance_documents", "other_insurances"
+  add_foreign_key "other_insurance_nominees", "other_insurances"
+  add_foreign_key "other_insurances", "distributors"
+  add_foreign_key "other_insurances", "investors"
+  add_foreign_key "other_insurances", "policies"
+  add_foreign_key "payout_distributions", "commission_receipts"
+  add_foreign_key "policies", "agency_brokers"
+  add_foreign_key "policies", "customers"
+  add_foreign_key "policies", "insurance_companies"
+  add_foreign_key "policies", "users"
+  add_foreign_key "role_permissions", "permissions"
+  add_foreign_key "role_permissions", "roles"
+  add_foreign_key "session_activities", "users"
+  add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_failed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_ready_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "sub_agent_documents", "sub_agents"
+  add_foreign_key "sub_agents", "distributors"
+  add_foreign_key "tax_services", "customers"
+  add_foreign_key "travel_packages", "customers"
+  add_foreign_key "user_sessions", "users"
+  add_foreign_key "users", "roles"
+  add_foreign_key "users", "user_roles"
+  add_foreign_key "vendor_payouts", "client_services"
+  add_foreign_key "vendor_payouts", "leads"
+  add_foreign_key "vendor_payouts", "vendors"
+  add_foreign_key "vendor_products", "vendors"
+end
