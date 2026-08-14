@@ -45,6 +45,7 @@ Rails.application.routes.draw do
   patch 'vendor/leads/:id/update_stage', to: 'vendor_portal#update_lead_stage', as: :update_vendor_lead_stage
   patch 'vendor/services/:id/update_status', to: 'vendor_portal#update_service_status', as: :update_vendor_service_status
   get 'vendor/payouts', to: 'vendor_portal#payouts'
+  patch 'vendor/payouts/:id/mark_paid', to: 'vendor_portal#mark_payout_paid', as: :mark_paid_vendor_payout
 
   # API routes
   namespace :api do

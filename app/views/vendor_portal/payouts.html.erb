@@ -34,6 +34,7 @@
               <th class="border-0">Commission Owed</th>
               <th class="border-0">Status</th>
               <th class="border-0">Paid On</th>
+              <th class="border-0"></th>
             </tr>
           </thead>
           <tbody>
@@ -51,6 +52,13 @@
                   <% end %>
                 </td>
                 <td><%= payout.paid_at&.strftime('%d %b %Y') || '—' %></td>
+                <td>
+                  <% if payout.pending? %>
+                    <%= button_to "Mark Paid", mark_paid_vendor_payout_path(payout), method: :patch,
+                          class: "btn btn-sm btn-outline-success",
+                          data: { confirm: "Confirm you've received this commission payout?", turbo_confirm: "Confirm you've received this commission payout?" } %>
+                  <% end %>
+                </td>
               </tr>
             <% end %>
           </tbody>
