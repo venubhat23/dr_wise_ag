@@ -410,6 +410,10 @@
     const profitAmt = base * profitPct / 100;
     setVal('cs_profit_pct', profitPct);
     setVal('cs_profit_amt', profitAmt);
+    if (rows[6]) {
+      const inputs = rows[6].querySelectorAll('input[type="number"]');
+      if (inputs[2]) inputs[2].value = profitAmt.toFixed(2);
+    }
     const distField = document.getElementById('cs_total_dist_pct');
     if (distField) distField.value = totalDist.toFixed(2);
   }

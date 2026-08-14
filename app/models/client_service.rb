@@ -232,9 +232,7 @@ class ClientService < ApplicationRecord
   end
 
   def bump_vendor_cache_gen
-    Rails.cache.write("vendor_cache_gen", SecureRandom.hex(4))
-  rescue => e
-    Rails.logger.warn "Failed to bump vendor_cache_gen: #{e.message}"
+    VendorCacheGen.bump!
   end
 
   def set_category_from_type

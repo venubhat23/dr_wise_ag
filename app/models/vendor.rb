@@ -24,7 +24,7 @@ class Vendor < ApplicationRecord
   }.freeze
 
   validates :name, presence: true
-  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :phone_number,
             presence: true,
             format: {
@@ -71,8 +71,6 @@ class Vendor < ApplicationRecord
   # Admin::VendorsController#index) — bumped on every write so a newly
   # created/edited vendor shows up immediately instead of waiting out the TTL.
   def bump_vendor_cache_gen
-    Rails.cache.write("vendor_cache_gen", SecureRandom.hex(4))
-  rescue => e
-    Rails.logger.warn "Failed to bump vendor_cache_gen: #{e.message}"
+    VendorCacheGen.bump!
   end
 end

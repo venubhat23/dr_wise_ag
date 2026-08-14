@@ -98,8 +98,17 @@ class Admin::VendorsController < Admin::ApplicationController
     @vendor = Vendor.new(vendor_params)
     assign_products(@vendor)
 
-    if @vendor.save
+    generated_password = nil
+    # Vendor + its products + the paired login account all commit together —
+    # one DB transaction instead of two, one fewer BEGIN/COMMIT round trip.
+    saved = ActiveRecord::Base.transaction do
+      next false unless @vendor.save
+
       generated_password = create_vendor_user_account(@vendor)
+      true
+    end
+
+    if saved
       notice = 'Vendor was successfully created.'
       notice += " Login: #{@vendor.email} / #{generated_password}" if generated_password
       redirect_to admin_vendors_path, notice: notice
@@ -112,9 +121,16 @@ class Admin::VendorsController < Admin::ApplicationController
   def update
     @vendor.assign_attributes(vendor_params)
 
-    if @vendor.save
+    generated_password = nil
+    saved = ActiveRecord::Base.transaction do
+      next false unless @vendor.save
+
       assign_products(@vendor)
       generated_password = create_vendor_user_account(@vendor)
+      true
+    end
+
+    if saved
       notice = 'Vendor was successfully updated.'
       notice += " Login: #{@vendor.email} / #{generated_password}" if generated_password
       redirect_to admin_vendors_path, notice: notice
@@ -209,7 +225,8 @@ class Admin::VendorsController < Admin::ApplicationController
     existing_user = User.find_by(email: vendor.email)
     return if existing_user&.vendor?
 
-    vendor_role = Role.find_by(name: 'vendor') || Role.find_by(name: 'Vendor')
+    roles_by_name = Role.where(name: ['vendor', 'Vendor']).index_by(&:name)
+    vendor_role = roles_by_name['vendor'] || roles_by_name['Vendor']
     vendor_user_role = UserRole.find_by(name: 'Vendor')
     password = generate_vendor_password
 
