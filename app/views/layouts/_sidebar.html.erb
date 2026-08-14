@@ -1721,6 +1721,53 @@ body.sidebar-collapsed .main-content {
       </ul>
     </div>
     <% end %>
+
+    <!-- Vendor Portal Section for Vendors -->
+    <% if current_user&.vendor? %>
+    <div class="nav-section">
+      <div class="nav-section-title">Vendor Portal</div>
+      <ul class="nav-menu">
+        <!-- Dashboard -->
+        <li class="nav-item">
+          <%= link_to vendor_dashboard_path, class: "nav-link-modern #{'active' if current_page?(vendor_dashboard_path)}", data: { tooltip: "Dashboard" } do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-blue">
+                <i class="bi bi-speedometer2"></i>
+              </div>
+            </div>
+            <span class="nav-text">Dashboard</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Leads -->
+        <li class="nav-item">
+          <%= link_to vendor_leads_path, class: "nav-link-modern #{'active' if request.path.start_with?(vendor_leads_path)}", data: { tooltip: "Leads" } do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-purple">
+                <i class="bi bi-people-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Leads</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+
+        <!-- Payouts -->
+        <li class="nav-item">
+          <%= link_to vendor_payouts_path, class: "nav-link-modern #{'active' if request.path.start_with?(vendor_payouts_path)}", data: { tooltip: "Payouts" } do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-emerald">
+                <i class="bi bi-cash-stack"></i>
+              </div>
+            </div>
+            <span class="nav-text">Payouts</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
+      </ul>
+    </div>
+    <% end %>
   </nav>
 
   <!-- Logout Section - Moved outside nav to be fixed at bottom -->

@@ -1,8 +1,6 @@
 class VendorPortalController < ApplicationController
   include ConfigurablePagination
 
-  layout 'vendor_portal'
-
   before_action :authenticate_user!
   before_action :ensure_vendor_user
   before_action :setup_vendor_data
@@ -63,6 +61,38 @@ class VendorPortalController < ApplicationController
     @total_record_count  = page_bundle[:total_record_count]
     @items_per_page      = page_bundle[:items_per_page]
     @show_pagination     = page_bundle[:show_pagination]
+
+    # Non-Lead products (tax/loan/travel/etc. services and mutual fund
+    # investments) also get tagged with a vendor directly, outside the Lead
+    # pipeline — surface those here too so "assigned to this vendor" means
+    # any product, not just Leads.
+    @assigned_products = Rails.cache.fetch("vendor_assigned_products_#{@vendor.id}_#{cache_gen}", expires_in: 2.minutes) do
+      services = @vendor.client_services.includes(:customer).order(created_at: :desc).limit(50).map do |cs|
+        {
+          client_name: cs.customer&.display_name,
+          product: cs.service_type_label,
+          amount: cs.amount,
+          status: cs.status&.humanize,
+          badge_class: cs.status_badge_class,
+          date: cs.start_date || cs.created_at.to_date,
+          ref: cs.reference_number
+        }
+      end
+
+      investments = @vendor.mutual_funds.includes(:customer).order(created_at: :desc).limit(50).map do |mf|
+        {
+          client_name: mf.customer&.display_name,
+          product: "Mutual Fund - #{mf.fund_name}",
+          amount: mf.amount,
+          status: nil,
+          badge_class: 'bg-light text-dark',
+          date: mf.created_at.to_date,
+          ref: mf.folio_number
+        }
+      end
+
+      (services + investments).sort_by { |row| row[:date] || Date.new(0) }.reverse
+    end
   end
 
   # PATCH /vendor/leads/1/update_stage
