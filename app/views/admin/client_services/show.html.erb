@@ -22,7 +22,7 @@
   <div class="col-md-3">
     <div class="card border-0 shadow-sm text-center p-3">
       <div class="text-muted small mb-1">Status</div>
-      <span class="badge <%= @client_service.status_badge_class %> fs-6"><%= @client_service.status.humanize %></span>
+      <span class="badge <%= @client_service.status_badge_class %> fs-6"><%= @client_service.status_display_name %></span>
     </div>
   </div>
   <div class="col-md-3">

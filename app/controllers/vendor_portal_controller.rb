@@ -69,25 +69,29 @@ class VendorPortalController < ApplicationController
     @assigned_products = Rails.cache.fetch("vendor_assigned_products_#{@vendor.id}_#{cache_gen}", expires_in: 2.minutes) do
       services = @vendor.client_services.includes(:customer).order(created_at: :desc).limit(50).map do |cs|
         {
+          id: cs.id,
           client_name: cs.customer&.display_name,
           product: cs.service_type_label,
           amount: cs.amount,
-          status: cs.status&.humanize,
+          status: cs.status_display_name,
           badge_class: cs.status_badge_class,
           date: cs.start_date || cs.created_at.to_date,
-          ref: cs.reference_number
+          ref: cs.reference_number,
+          next_status_options: cs.next_status_options
         }
       end
 
       investments = @vendor.mutual_funds.includes(:customer).order(created_at: :desc).limit(50).map do |mf|
         {
+          id: nil,
           client_name: mf.customer&.display_name,
           product: "Mutual Fund - #{mf.fund_name}",
           amount: mf.amount,
           status: nil,
           badge_class: 'bg-light text-dark',
           date: mf.created_at.to_date,
-          ref: mf.folio_number
+          ref: mf.folio_number,
+          next_status_options: []
         }
       end
 
@@ -140,6 +144,27 @@ class VendorPortalController < ApplicationController
     redirect_to vendor_leads_path, alert: 'Lead not found.'
   end
 
+  # PATCH /vendor/services/1/update_status
+  def update_service_status
+    service = @vendor.client_services.find(params[:id])
+    new_status = params[:new_status]
+
+    unless ClientService::STATUSES.include?(new_status)
+      redirect_to vendor_leads_path, alert: 'Invalid stage.'
+      return
+    end
+
+    unless service.next_status_options.include?(new_status)
+      redirect_to vendor_leads_path, alert: 'Cannot transition to this stage from current state.'
+      return
+    end
+
+    service.update!(status: new_status)
+    redirect_to vendor_leads_path, notice: "Service successfully moved to: #{service.status_display_name}"
+  rescue ActiveRecord::RecordNotFound
+    redirect_to vendor_leads_path, alert: 'Service not found.'
+  end
+
   # GET /vendor/payouts
   def payouts
     cache_gen = Rails.cache.read("vendor_cache_gen") || "0"
@@ -148,7 +173,7 @@ class VendorPortalController < ApplicationController
     ].join('|')
 
     page_bundle = Rails.cache.fetch(page_cache_key, expires_in: 2.minutes) do
-      scope = @vendor.vendor_payouts.includes(:lead)
+      scope = @vendor.vendor_payouts.includes(:lead, client_service: :customer)
       scope = scope.where(status: params[:status]) if params[:status].present?
 
       total_filtered_count = scope.count

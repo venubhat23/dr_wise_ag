@@ -6,6 +6,24 @@ class ClientService < ApplicationRecord
 
   STATUSES = %w[pending in_progress completed cancelled].freeze
 
+  # Vendor-facing stage names for the same STATUSES values above — the
+  # underlying column values are unchanged, only how they're displayed and
+  # how transitions between them are gated.
+  STATUS_LABELS = {
+    'pending'     => 'Lead Generated',
+    'in_progress' => 'Consultation',
+    'completed'   => 'Lead Closed Successfully',
+    'cancelled'   => 'Lead Cancelled'
+  }.freeze
+
+  # Which stages a record can move to next, from its current stage.
+  STATUS_TRANSITIONS = {
+    'pending'     => %w[in_progress cancelled],
+    'in_progress' => %w[completed cancelled],
+    'completed'   => [],
+    'cancelled'   => []
+  }.freeze
+
   # Maps each service_type to the [Vendor::PRODUCT_TAXONOMY category, subcategory]
   # pair it corresponds to, so the vendor dropdown can be filtered to only
   # vendors who actually offer this exact product.
@@ -73,6 +91,10 @@ class ClientService < ApplicationRecord
   validates :status, inclusion: { in: STATUSES }
 
   before_validation :set_category_from_type
+  before_update :update_status_timestamp, if: :status_changed?
+  after_update :create_vendor_payout_on_completion,
+               if: -> { vendor_id.present? && saved_change_to_status? && status == 'completed' }
+  after_commit :bump_vendor_cache_gen, if: -> { vendor_id.present? }
 
   scope :by_type,     ->(t) { where(service_type: t) }
   scope :by_category, ->(c) { where(service_category: c) }
@@ -85,17 +107,72 @@ class ClientService < ApplicationRecord
     CATEGORY_LABELS[service_category] || service_category.humanize
   end
 
+  def status_display_name
+    STATUS_LABELS[status] || status.humanize
+  end
+
   def status_badge_class
     case status
-    when 'pending'     then 'bg-warning text-dark'
+    when 'pending'     then 'bg-secondary'
     when 'in_progress' then 'bg-info'
     when 'completed'   then 'bg-success'
-    when 'cancelled'   then 'bg-secondary'
+    when 'cancelled'   then 'bg-danger'
     else 'bg-light text-dark'
     end
   end
 
+  # Stages this record can move to next from its current status, for
+  # rendering a "Move To" control the same way Lead does.
+  def next_status_options
+    STATUS_TRANSITIONS[status] || []
+  end
+
+  # Translates this record's service_type to the vendor-product taxonomy
+  # pair used to look up the vendor's configured commission percentage.
+  def vendor_product_key
+    SERVICE_TYPE_TO_VENDOR_PRODUCT[service_type]
+  end
+
   private
+
+  def update_status_timestamp
+    self.status_updated_at = Time.current
+  end
+
+  def create_vendor_payout_on_completion
+    return if VendorPayout.exists?(client_service_id: id)
+
+    category, subcategory = vendor_product_key
+    unless category && subcategory
+      Rails.logger.warn "ClientService ##{id}: completed with vendor_id=#{vendor_id} but service_type #{service_type} has no VendorPayout mapping"
+      return
+    end
+
+    vendor_product = vendor.vendor_products.find_by(product_category: category, product_subcategory: subcategory)
+    unless vendor_product
+      Rails.logger.warn "ClientService ##{id}: vendor ##{vendor_id} has no matching VendorProduct for #{category}/#{subcategory}, skipping VendorPayout"
+      return
+    end
+
+    service_value = amount.to_f
+    commission_percentage = vendor_product.commission_percentage.to_f
+
+    VendorPayout.create!(
+      vendor: vendor,
+      client_service: self,
+      lead_value: service_value,
+      commission_percentage: commission_percentage,
+      commission_amount: (service_value * commission_percentage / 100.0).round(2)
+    )
+  rescue => e
+    Rails.logger.error "Failed to create VendorPayout for client_service ##{id}: #{e.message}"
+  end
+
+  def bump_vendor_cache_gen
+    Rails.cache.write("vendor_cache_gen", SecureRandom.hex(4))
+  rescue => e
+    Rails.logger.warn "Failed to bump vendor_cache_gen: #{e.message}"
+  end
 
   def set_category_from_type
     return if service_type.blank?

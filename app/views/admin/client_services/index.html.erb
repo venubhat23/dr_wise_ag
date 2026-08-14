@@ -150,7 +150,7 @@
 
       <div class="col-md-3">
         <%= f.select :status,
-            options_for_select([['All Status', ''], ['Pending', 'pending'], ['In Progress', 'in_progress'], ['Completed', 'completed'], ['Cancelled', 'cancelled']], params[:status]),
+            options_for_select([['All Status', '']] + ClientService::STATUS_LABELS.map { |value, label| [label, value] }, params[:status]),
             {},
             { class: "form-select" } %>
       </div>
@@ -220,7 +220,7 @@
                 </td>
                 <td class="py-3 fw-semibold"><%= indian_currency(cs.amount) %></td>
                 <td class="py-3">
-                  <span class="badge <%= cs.status_badge_class %>"><%= cs.status.humanize %></span>
+                  <span class="badge <%= cs.status_badge_class %>"><%= cs.status_display_name %></span>
                 </td>
                 <td class="py-3"><%= cs.start_date&.strftime("%d %b %Y") || '—' %></td>
                 <td class="py-3">

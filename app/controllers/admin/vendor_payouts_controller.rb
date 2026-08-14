@@ -36,7 +36,7 @@ class Admin::VendorPayoutsController < Admin::ApplicationController
     ].join('|')
 
     page_bundle = Rails.cache.fetch(page_cache_key, expires_in: 2.minutes) do
-      scope = VendorPayout.includes(:vendor, :lead)
+      scope = VendorPayout.includes(:vendor, :lead, client_service: :customer)
       scope = scope.where(vendor_id: params[:vendor_id]) if params[:vendor_id].present?
       scope = scope.where(status: params[:status]) if params[:status].present?
 

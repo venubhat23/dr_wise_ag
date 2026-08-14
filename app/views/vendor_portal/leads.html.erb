@@ -95,6 +95,7 @@
               <th class="border-0">Status</th>
               <th class="border-0">Date</th>
               <th class="border-0">Ref #</th>
+              <th class="border-0">Move To</th>
             </tr>
           </thead>
           <tbody>
@@ -112,6 +113,22 @@
                 </td>
                 <td><%= row[:date]&.strftime('%d %b %Y') %></td>
                 <td><%= row[:ref].presence || '—' %></td>
+                <td>
+                  <% if row[:id] && row[:next_status_options].present? %>
+                    <form action="<%= update_vendor_service_status_path(row[:id]) %>" method="post" class="d-flex gap-1">
+                      <input type="hidden" name="_method" value="patch">
+                      <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+                      <select name="new_status" class="form-select form-select-sm" style="width: auto;">
+                        <% row[:next_status_options].each do |status| %>
+                          <option value="<%= status %>"><%= ClientService::STATUS_LABELS[status] %></option>
+                        <% end %>
+                      </select>
+                      <button type="submit" class="btn btn-sm btn-primary">Move</button>
+                    </form>
+                  <% else %>
+                    <small class="text-muted">—</small>
+                  <% end %>
+                </td>
               </tr>
             <% end %>
           </tbody>

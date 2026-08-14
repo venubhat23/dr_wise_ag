@@ -108,7 +108,7 @@
         <div class="col-md-4 mb-3">
           <%= form.label :status, "Status", class: "form-label" %>
           <%= form.select :status,
-              options_for_select([['Pending', 'pending'], ['In Progress', 'in_progress'], ['Completed', 'completed'], ['Cancelled', 'cancelled']], @client_service.status || 'pending'),
+              options_for_select(ClientService::STATUS_LABELS.map { |value, label| [label, value] }, @client_service.status || 'pending'),
               {},
               { class: "form-select" } %>
         </div>

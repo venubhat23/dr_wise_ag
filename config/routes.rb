@@ -43,6 +43,7 @@ Rails.application.routes.draw do
   get 'vendor/dashboard', to: 'vendor_portal#dashboard'
   get 'vendor/leads', to: 'vendor_portal#leads'
   patch 'vendor/leads/:id/update_stage', to: 'vendor_portal#update_lead_stage', as: :update_vendor_lead_stage
+  patch 'vendor/services/:id/update_status', to: 'vendor_portal#update_service_status', as: :update_vendor_service_status
   get 'vendor/payouts', to: 'vendor_portal#payouts'
 
   # API routes
