@@ -26,7 +26,7 @@ class ApplicationController < ActionController::Base
   load_and_authorize_resource unless: :devise_controller?, if: :should_authorize?
 
   rescue_from CanCan::AccessDenied do |exception|
-    redirect_to root_path, alert: exception.message
+    redirect_to safe_fallback_path_for(current_user), alert: exception.message
   end
 
   # Redirect users after sign in based on their role
@@ -39,6 +39,23 @@ class ApplicationController < ActionController::Base
       vendor_dashboard_path
     else
       stored_location_for(resource) || admin_customers_path
+    end
+  end
+
+  # Role-aware landing page used when access is denied, so a user without
+  # Customer permissions (e.g. a vendor) isn't bounced back to root_path
+  # (/admin/customers) and caught in a redirect loop.
+  def safe_fallback_path_for(user)
+    return new_user_session_path unless user
+
+    if user.ambassador?
+      ambassador_dashboard_path
+    elsif user.investor?
+      investor_profit_summary_path
+    elsif user.vendor?
+      vendor_dashboard_path
+    else
+      root_path
     end
   end
 

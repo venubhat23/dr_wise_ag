@@ -142,11 +142,11 @@ class VendorPortalController < ApplicationController
   private
 
   def ensure_vendor_user
-    redirect_to root_path, alert: 'Access denied. Vendor account required.' unless current_user&.vendor?
+    redirect_to new_vendor_session_path, alert: 'Access denied. Vendor account required.' unless current_user&.vendor?
   end
 
   def setup_vendor_data
     @vendor = Vendor.find_by(email: current_user.email)
-    redirect_to root_path, alert: 'No vendor profile is linked to this account. Contact DrWise support.' unless @vendor
+    redirect_to new_vendor_session_path, alert: 'No vendor profile is linked to this account. Contact DrWise support.' unless @vendor
   end
 end
