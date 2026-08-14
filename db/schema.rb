@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_14_000002) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_14_000005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -285,6 +285,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000002) do
     t.boolean "is_admin_added", default: false, null: false
     t.boolean "is_customer_added", default: true, null: false
     t.boolean "is_agent_added", default: false, null: false
+    t.bigint "vendor_id"
     t.index ["created_at"], name: "index_client_services_on_created_at"
     t.index ["customer_id"], name: "index_client_services_on_customer_id"
     t.index ["distributor_id"], name: "index_client_services_on_distributor_id"
@@ -293,6 +294,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000002) do
     t.index ["service_type"], name: "index_client_services_on_service_type"
     t.index ["status"], name: "index_client_services_on_status"
     t.index ["sub_agent_id"], name: "index_client_services_on_sub_agent_id"
+    t.index ["vendor_id"], name: "index_client_services_on_vendor_id"
   end
 
   create_table "commission_payouts", force: :cascade do |t|
@@ -924,6 +926,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000002) do
     t.integer "ambassador_id"
     t.string "customer_type", default: "individual"
     t.integer "parent_lead_id"
+    t.bigint "vendor_id"
     t.index ["affiliate_id"], name: "index_leads_on_affiliate_id"
     t.index ["ambassador_id"], name: "index_leads_on_ambassador_id"
     t.index ["company_name"], name: "index_leads_on_company_name"
@@ -943,6 +946,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000002) do
     t.index ["product_category", "product_subcategory"], name: "index_leads_on_product_category_and_product_subcategory"
     t.index ["product_category"], name: "index_leads_on_product_category"
     t.index ["product_subcategory"], name: "index_leads_on_product_subcategory"
+    t.index ["vendor_id"], name: "index_leads_on_vendor_id"
   end
 
   create_table "life_insurance_bank_details", force: :cascade do |t|
@@ -1358,9 +1362,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000002) do
     t.boolean "active", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "vendor_id"
     t.index ["customer_id"], name: "index_mutual_funds_on_customer_id"
     t.index ["distributor_id"], name: "index_mutual_funds_on_distributor_id"
     t.index ["sub_agent_id"], name: "index_mutual_funds_on_sub_agent_id"
+    t.index ["vendor_id"], name: "index_mutual_funds_on_vendor_id"
   end
 
   create_table "notifications", force: :cascade do |t|
@@ -2014,6 +2020,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000002) do
     t.index ["user_role_id"], name: "index_users_on_user_role_id"
   end
 
+  create_table "vendor_payouts", force: :cascade do |t|
+    t.bigint "vendor_id", null: false
+    t.bigint "lead_id", null: false
+    t.decimal "lead_value", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "commission_percentage", precision: 8, scale: 2, default: "0.0", null: false
+    t.decimal "commission_amount", precision: 12, scale: 2, default: "0.0", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "paid_at"
+    t.string "paid_by"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_vendor_payouts_on_created_at"
+    t.index ["lead_id"], name: "index_vendor_payouts_on_lead_id", unique: true
+    t.index ["status"], name: "index_vendor_payouts_on_status"
+    t.index ["vendor_id"], name: "index_vendor_payouts_on_vendor_id"
+  end
+
   create_table "vendor_products", force: :cascade do |t|
     t.bigint "vendor_id", null: false
     t.string "product_category", null: false
@@ -2053,6 +2077,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000002) do
   add_foreign_key "broker_codes", "brokers"
   add_foreign_key "brokers", "insurance_companies"
   add_foreign_key "client_requests", "users", column: "resolved_by_id"
+  add_foreign_key "client_services", "vendors"
   add_foreign_key "commission_payouts", "payouts"
   add_foreign_key "corporate_members", "customers"
   add_foreign_key "customer_documents", "customers"
@@ -2079,6 +2104,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000002) do
   add_foreign_key "investor_documents", "investors"
   add_foreign_key "invoice_items", "invoices"
   add_foreign_key "leads", "distributors", column: "ambassador_id"
+  add_foreign_key "leads", "vendors"
   add_foreign_key "life_insurance_bank_details", "life_insurances"
   add_foreign_key "life_insurance_documents", "life_insurances"
   add_foreign_key "life_insurance_nominees", "life_insurances"
@@ -2101,6 +2127,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000002) do
   add_foreign_key "mutual_funds", "customers"
   add_foreign_key "mutual_funds", "distributors"
   add_foreign_key "mutual_funds", "sub_agents"
+  add_foreign_key "mutual_funds", "vendors"
   add_foreign_key "other_insurance_documents", "other_insurances"
   add_foreign_key "other_insurance_nominees", "other_insurances"
   add_foreign_key "other_insurances", "distributors"
@@ -2127,5 +2154,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000002) do
   add_foreign_key "user_sessions", "users"
   add_foreign_key "users", "roles"
   add_foreign_key "users", "user_roles"
+  add_foreign_key "vendor_payouts", "leads"
+  add_foreign_key "vendor_payouts", "vendors"
   add_foreign_key "vendor_products", "vendors"
 end

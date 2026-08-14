@@ -1,0 +1,181 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-1">Vendor Payouts</h2>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted mb-2">Total Payouts</h6>
+        <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_payouts) %></h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted mb-2">Pending</h6>
+        <h3 class="mb-0 text-warning"><%= number_with_delimiter(@pending_count) %></h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted mb-2">Amount Pending</h6>
+        <h3 class="mb-0 text-warning"><%= indian_currency(@pending_amount) %></h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted mb-2">Amount Collected</h6>
+        <h3 class="mb-0 text-success"><%= indian_currency(@paid_amount) %></h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <%= form_with url: admin_vendor_payouts_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end" do |form| %>
+      <div>
+        <%= form.select :vendor_id,
+              options_for_select([['All Vendors', '']] + @vendors_for_filter, params[:vendor_id]),
+              {}, { class: "form-select" } %>
+      </div>
+      <div>
+        <%= form.select :status,
+              options_for_select([['All Status', ''], ['Pending', 'pending'], ['Paid', 'paid']], params[:status]),
+              {}, { class: "form-select" } %>
+      </div>
+      <div class="d-flex gap-2">
+        <%= form.submit "Filter", class: "btn btn-primary" %>
+        <%= link_to "Clear", admin_vendor_payouts_path, class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Payouts List -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0">
+    <h5 class="mb-0">Converted Leads — DrWise Commission</h5>
+  </div>
+  <div class="card-body p-0">
+    <% if @vendor_payouts.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0">Vendor</th>
+              <th class="border-0">Lead</th>
+              <th class="border-0">Lead Value</th>
+              <th class="border-0">Commission %</th>
+              <th class="border-0">Commission Owed</th>
+              <th class="border-0">Status</th>
+              <th class="border-0">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @vendor_payouts.each do |payout| %>
+              <tr>
+                <td><%= link_to payout.vendor.display_name, admin_vendor_path(payout.vendor) %></td>
+                <td><%= payout.lead.name %> <small class="text-muted d-block"><%= payout.lead.lead_id %></small></td>
+                <td><%= indian_currency(payout.lead_value) %></td>
+                <td><%= number_with_precision(payout.commission_percentage, precision: 2) %>%</td>
+                <td class="fw-semibold"><%= indian_currency(payout.commission_amount) %></td>
+                <td>
+                  <% if payout.paid? %>
+                    <span class="badge bg-success-subtle text-success">Paid</span>
+                    <small class="text-muted d-block"><%= payout.paid_at&.strftime('%d %b %Y') %></small>
+                  <% else %>
+                    <span class="badge bg-warning-subtle text-warning">Pending</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if payout.pending? %>
+                    <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#markPaidModal<%= payout.id %>">
+                      <i class="bi bi-check-circle me-1"></i>Mark Paid
+                    </button>
+
+                    <div class="modal fade" id="markPaidModal<%= payout.id %>" tabindex="-1">
+                      <div class="modal-dialog">
+                        <div class="modal-content">
+                          <%= form_with url: mark_paid_admin_vendor_payout_path(payout), method: :patch, local: true, data: { turbo: false } do |form| %>
+                            <div class="modal-header">
+                              <h5 class="modal-title">Mark Payout as Paid</h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                              <p>Confirm <strong><%= payout.vendor.display_name %></strong> has paid DrWise
+                                <strong><%= indian_currency(payout.commission_amount) %></strong> for lead
+                                <strong><%= payout.lead.name %></strong>.</p>
+                              <label class="form-label">Notes (optional)</label>
+                              <%= form.text_area :notes, class: "form-control", rows: 2 %>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                              <%= form.submit "Confirm Paid", class: "btn btn-success" %>
+                            </div>
+                          <% end %>
+                        </div>
+                      </div>
+                    </div>
+                  <% else %>
+                    <button type="button" class="btn btn-sm btn-outline-warning"
+                        onclick="handleVendorPayoutAction('<%= mark_pending_admin_vendor_payout_path(payout) %>', 'Revert this payout to pending?')">
+                      Mark Pending
+                    </button>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card-footer bg-transparent border-0">
+        <%= render 'shared/pagination', records: @vendor_payouts %>
+      </div>
+    <% else %>
+      <div class="text-center py-5">
+        <i class="bi bi-cash-stack display-1 text-muted"></i>
+        <h5 class="mb-3 mt-3">No Vendor Payouts Yet</h5>
+        <p class="text-muted mb-0">Payouts appear here automatically once a vendor-assigned lead converts.</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+function handleVendorPayoutAction(url, confirmMessage) {
+  if (confirm(confirmMessage)) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.style.display = 'none';
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'authenticity_token';
+      csrfInput.value = csrfToken.getAttribute('content');
+      form.appendChild(csrfInput);
+    }
+
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = 'PATCH';
+    form.appendChild(methodInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+</script>

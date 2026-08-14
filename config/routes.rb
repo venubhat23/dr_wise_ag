@@ -38,6 +38,13 @@ Rails.application.routes.draw do
   get 'investor/profit_summary', to: 'investor#profit_summary'
   get 'summary-investor', to: 'investor#profit_summary'
 
+  # Vendor Portal
+  get 'vendor/login', to: 'vendor_sessions#new', as: :new_vendor_session
+  get 'vendor/dashboard', to: 'vendor_portal#dashboard'
+  get 'vendor/leads', to: 'vendor_portal#leads'
+  patch 'vendor/leads/:id/update_stage', to: 'vendor_portal#update_lead_stage', as: :update_vendor_lead_stage
+  get 'vendor/payouts', to: 'vendor_portal#payouts'
+
   # API routes
   namespace :api do
     resources :cities, only: [:index]
@@ -265,6 +272,13 @@ Rails.application.routes.draw do
         patch :toggle_status
         patch :deactivate
         patch :activate
+      end
+    end
+
+    resources :vendor_payouts, only: [:index] do
+      member do
+        patch :mark_paid
+        patch :mark_pending
       end
     end
 

@@ -59,6 +59,27 @@ class Admin::VendorsController < Admin::ApplicationController
 
   # GET /admin/vendors/1
   def show
+    cache_gen = Rails.cache.read("vendor_cache_gen") || "0"
+    stats = Rails.cache.fetch("vendor_show_stats_#{@vendor.id}_#{cache_gen}", expires_in: 2.minutes) do
+      vid = @vendor.id.to_i
+      row = ActiveRecord::Base.connection.execute(<<~SQL).first
+        SELECT
+          (SELECT COUNT(*) FROM leads WHERE vendor_id = #{vid})                                    AS leads_received,
+          (SELECT COUNT(*) FROM leads WHERE vendor_id = #{vid} AND current_stage = 'converted')     AS leads_converted,
+          COALESCE((SELECT SUM(commission_amount) FROM vendor_payouts WHERE vendor_id = #{vid} AND status = 0), 0) AS pending_amount,
+          COALESCE((SELECT SUM(commission_amount) FROM vendor_payouts WHERE vendor_id = #{vid} AND status = 1), 0) AS paid_amount
+      SQL
+      {
+        leads_received: row['leads_received'].to_i,
+        leads_converted: row['leads_converted'].to_i,
+        pending_amount: row['pending_amount'].to_f,
+        paid_amount: row['paid_amount'].to_f
+      }
+    end
+    @leads_received  = stats[:leads_received]
+    @leads_converted = stats[:leads_converted]
+    @pending_amount  = stats[:pending_amount]
+    @paid_amount     = stats[:paid_amount]
   end
 
   # GET /admin/vendors/new
@@ -76,7 +97,10 @@ class Admin::VendorsController < Admin::ApplicationController
     assign_products(@vendor)
 
     if @vendor.save
-      redirect_to admin_vendors_path, notice: 'Vendor was successfully created.'
+      generated_password = create_vendor_user_account(@vendor)
+      notice = 'Vendor was successfully created.'
+      notice += " Login: #{@vendor.email} / #{generated_password}" if generated_password
+      redirect_to admin_vendors_path, notice: notice
     else
       render :new, status: :unprocessable_entity
     end
@@ -88,7 +112,10 @@ class Admin::VendorsController < Admin::ApplicationController
 
     if @vendor.save
       assign_products(@vendor)
-      redirect_to admin_vendors_path, notice: 'Vendor was successfully updated.'
+      generated_password = create_vendor_user_account(@vendor)
+      notice = 'Vendor was successfully updated.'
+      notice += " Login: #{@vendor.email} / #{generated_password}" if generated_password
+      redirect_to admin_vendors_path, notice: notice
     else
       render :edit, status: :unprocessable_entity
     end
@@ -163,5 +190,43 @@ class Admin::VendorsController < Admin::ApplicationController
     end
 
     vendor.vendor_products = new_products
+  end
+
+  # Provisions the paired login User for this vendor (mirrors
+  # Admin::DistributorsController#create_ambassador_user_account). Matched by
+  # email at login time, not a stored FK — same convention as Ambassador.
+  # Returns the generated plaintext password (to flash once to the admin), or
+  # nil if no account was created (no email, or one already exists).
+  def create_vendor_user_account(vendor)
+    return unless vendor&.email.present?
+    return if User.exists?(email: vendor.email)
+
+    vendor_role = Role.find_by(name: 'vendor') || Role.find_by(name: 'Vendor')
+    vendor_user_role = UserRole.find_by(name: 'Vendor')
+    password = generate_vendor_password
+
+    name_parts = vendor.name.to_s.split(' ', 2)
+    User.create!(
+      first_name: name_parts[0].presence || 'Vendor',
+      last_name: name_parts[1].presence || 'User',
+      email: vendor.email,
+      password: password,
+      password_confirmation: password,
+      mobile: vendor.phone_number,
+      user_type: 'vendor',
+      role: vendor_role,
+      user_role: vendor_user_role,
+      status: true,
+      original_password: password
+    )
+    password
+  rescue => e
+    Rails.logger.error "Failed to create vendor user account for vendor ##{vendor.id}: #{e.message}"
+    nil
+  end
+
+  def generate_vendor_password
+    words = ['Blue', 'Green', 'Red', 'Happy', 'Smart', 'Quick', 'Bright', 'Swift']
+    "#{words.sample}#{words.sample}#{(100..999).to_a.sample}"
   end
 end

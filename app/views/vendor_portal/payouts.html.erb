@@ -1,0 +1,71 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0">Payout</h2>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <%= form_with url: vendor_payouts_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end" do |form| %>
+      <div>
+        <%= form.select :status,
+              options_for_select([['All Status', ''], ['Pending', 'pending'], ['Paid', 'paid']], params[:status]),
+              {}, { class: "form-select" } %>
+      </div>
+      <div class="d-flex gap-2">
+        <%= form.submit "Filter", class: "btn btn-primary" %>
+        <%= link_to "Clear", vendor_payouts_path, class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0">
+    <h5 class="mb-0">DrWise Commission on Converted Leads</h5>
+  </div>
+  <div class="card-body p-0">
+    <% if @vendor_payouts.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0">Lead</th>
+              <th class="border-0">Lead Value</th>
+              <th class="border-0">Commission %</th>
+              <th class="border-0">Commission Owed</th>
+              <th class="border-0">Status</th>
+              <th class="border-0">Paid On</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @vendor_payouts.each do |payout| %>
+              <tr>
+                <td><%= payout.lead.name %></td>
+                <td><%= indian_currency(payout.lead_value) %></td>
+                <td><%= number_with_precision(payout.commission_percentage, precision: 2) %>%</td>
+                <td class="fw-semibold"><%= indian_currency(payout.commission_amount) %></td>
+                <td>
+                  <% if payout.paid? %>
+                    <span class="badge bg-success-subtle text-success">Paid</span>
+                  <% else %>
+                    <span class="badge bg-warning-subtle text-warning">Pending</span>
+                  <% end %>
+                </td>
+                <td><%= payout.paid_at&.strftime('%d %b %Y') || '—' %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card-footer bg-transparent border-0">
+        <%= render 'shared/pagination', records: @vendor_payouts %>
+      </div>
+    <% else %>
+      <div class="text-center py-5">
+        <i class="bi bi-cash-stack display-1 text-muted"></i>
+        <h5 class="mt-3 mb-0">No payouts yet</h5>
+        <p class="text-muted mb-0">Commission owed appears here once one of your leads converts.</p>
+      </div>
+    <% end %>
+  </div>
+</div>

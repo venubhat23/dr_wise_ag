@@ -35,6 +35,8 @@ class ApplicationController < ActionController::Base
       ambassador_dashboard_path
     elsif resource.investor?
       investor_profit_summary_path
+    elsif resource.vendor?
+      vendor_dashboard_path
     else
       stored_location_for(resource) || admin_customers_path
     end
@@ -65,6 +67,11 @@ class ApplicationController < ActionController::Base
 
     # Skip authorization for investor controller
     if self.class.name == 'InvestorController'
+      return false
+    end
+
+    # Skip authorization for vendor portal controllers
+    if ['VendorPortalController', 'VendorSessionsController'].include?(self.class.name)
       return false
     end
 

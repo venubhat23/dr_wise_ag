@@ -7,7 +7,7 @@ class Admin::ClientServicesController < Admin::ApplicationController
     @service_category = params[:service_category]
     @current_tab      = params[:tab].presence || 'drwise'
 
-    @client_services = ClientService.includes(:customer, :sub_agent)
+    @client_services = ClientService.includes(:customer, :sub_agent, :vendor)
 
     if @service_type.present?
       @client_services = @client_services.by_type(@service_type)
@@ -121,6 +121,9 @@ class Admin::ClientServicesController < Admin::ApplicationController
     @customers   = Customer.active.order(:first_name, :last_name, :company_name)
     @sub_agents  = SubAgent.active.order(:first_name, :last_name)
     @distributors = Distributor.active.order(:first_name, :last_name)
+
+    category, subcategory = ClientService::SERVICE_TYPE_TO_VENDOR_PRODUCT[@client_service.service_type]
+    @vendors = Vendor.for_product(category, subcategory)
   end
 
   def set_distributor_from_affiliate(record)
@@ -159,7 +162,7 @@ class Admin::ClientServicesController < Admin::ApplicationController
 
   def client_service_params
     params.require(:client_service).permit(
-      :service_type, :service_category, :customer_id, :sub_agent_id, :distributor_id,
+      :service_type, :service_category, :customer_id, :sub_agent_id, :distributor_id, :vendor_id,
       :amount, :status, :reference_number, :start_date, :notes,
       :is_admin_added, :is_customer_added, :is_agent_added,
       :main_agent_commission_percentage, :commission_amount, :tds_percentage, :tds_amount, :after_tds_value,

@@ -106,7 +106,8 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
         { key: 'customers', name: 'Clients' },
         { key: 'sub_agents', name: 'Affiliates' },
         { key: 'distributors', name: 'Ambassadors' },
-        { key: 'vendors', name: 'Vendors' }
+        { key: 'vendors', name: 'Vendors' },
+        { key: 'vendor_payouts', name: 'Vendor Payouts' }
       ],
       'Services' => [
         { key: 'life_insurance', name: 'Life Insurance' },

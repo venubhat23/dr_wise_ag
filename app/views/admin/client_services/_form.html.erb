@@ -72,6 +72,19 @@
               { class: "form-control select2-affiliate", id: "cs_affiliate_select" } %>
         </div>
       </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :vendor_id, "Vendor", class: "form-label" %>
+          <%= form.select :vendor_id,
+              options_for_select([['No Vendor', '']] + @vendors.map { |v| [v.display_name, v.id] }, @client_service.vendor_id),
+              { prompt: 'Select vendor (optional)...' },
+              { class: "form-control select2-vendor", id: "cs_vendor_select" } %>
+          <% if @vendors.empty? %>
+            <small class="text-muted">No vendors are configured for <%= @client_service.service_type_label %> yet — add one from Vendors.</small>
+          <% end %>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -380,6 +393,7 @@
 
     $('#cs_customer_select').select2({ theme: 'bootstrap-5', placeholder: 'Type to search clients...', width: '100%', allowClear: true, dropdownParent: $('body') });
     $('#cs_affiliate_select').select2({ theme: 'bootstrap-5', placeholder: 'Type to search affiliates...', width: '100%', allowClear: true, dropdownParent: $('body') });
+    $('#cs_vendor_select').select2({ theme: 'bootstrap-5', placeholder: 'Type to search vendors...', width: '100%', allowClear: true, dropdownParent: $('body') });
 
     $('#cs_customer_select').on('select2:select', function(e) {
       var customerId = e.params.data.id;

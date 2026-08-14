@@ -2,8 +2,29 @@ class ClientService < ApplicationRecord
   belongs_to :customer
   belongs_to :sub_agent, class_name: 'SubAgent', optional: true
   belongs_to :distributor, optional: true
+  belongs_to :vendor, optional: true
 
   STATUSES = %w[pending in_progress completed cancelled].freeze
+
+  # Maps each service_type to the [Vendor::PRODUCT_TAXONOMY category, subcategory]
+  # pair it corresponds to, so the vendor dropdown can be filtered to only
+  # vendors who actually offer this exact product.
+  SERVICE_TYPE_TO_VENDOR_PRODUCT = {
+    'taxation_itr'              => ['Taxation', 'ITR'],
+    'taxation_tax_planning'     => ['Taxation', 'Tax Planning'],
+    'loans_personal'            => ['Loans', 'Personal'],
+    'loans_home'                => ['Loans', 'Home'],
+    'loans_mortgage'            => ['Loans', 'Mortgage'],
+    'loans_business'            => ['Loans', 'Business'],
+    'travel_domestic'           => ['Travel', 'Domestic'],
+    'travel_international'      => ['Travel', 'International'],
+    'credit_card_rewards'       => ['Credit Card', 'Rewards Card'],
+    'credit_card_business'      => ['Credit Card', 'Business Card'],
+    'credit_card_travel'        => ['Credit Card', 'Travel Card'],
+    'investments_mutual_fund'   => ['Investments', 'Mutual Fund'],
+    'investments_fd'            => ['Investments', 'FD'],
+    'investments_other'         => ['Investments', 'Other']
+  }.freeze
 
   SERVICE_TYPES = {
     'taxation_itr'              => 'ITR Filing',

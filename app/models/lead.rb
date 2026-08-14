@@ -42,12 +42,45 @@ class Lead < ApplicationRecord
   belongs_to :created_policy, class_name: 'Policy', foreign_key: 'policy_created_id', optional: true
   belongs_to :affiliate, class_name: 'SubAgent', optional: true
   belongs_to :ambassador, class_name: 'Distributor', optional: true
+  belongs_to :vendor, optional: true
   belongs_to :parent_lead, class_name: 'Lead', optional: true
   has_many :branch_out_leads, class_name: 'Lead', foreign_key: 'parent_lead_id', dependent: :nullify
   has_many :uploaded_documents, as: :documentable, class_name: 'Document', dependent: :destroy
+  has_one :vendor_payout, dependent: :destroy
+
+  # Translates this Lead's lowercase product_category/product_subcategory
+  # (PRODUCT_SUBCATEGORIES above) to the Title Case [category, subcategory]
+  # pair used by Vendor::PRODUCT_TAXONOMY, so a vendor-assigned lead can be
+  # matched against the vendor's configured VendorProduct commission.
+  LEAD_PRODUCT_TO_VENDOR_PRODUCT = {
+    ['insurance', 'life']            => ['Insurance', 'Life'],
+    ['insurance', 'health']          => ['Insurance', 'Health'],
+    ['insurance', 'motor']           => ['Insurance', 'Motor'],
+    ['insurance', 'general']         => ['Insurance', 'General'],
+    ['investments', 'mutual_fund']   => ['Investments', 'Mutual Fund'],
+    ['investments', 'fd']            => ['Investments', 'FD'],
+    ['investments', 'other']         => ['Investments', 'Other'],
+    ['taxation', 'itr']              => ['Taxation', 'ITR'],
+    ['taxation', 'tax_planning']     => ['Taxation', 'Tax Planning'],
+    ['loans', 'personal']            => ['Loans', 'Personal'],
+    ['loans', 'home']                => ['Loans', 'Home'],
+    ['loans', 'mortgage']            => ['Loans', 'Mortgage'],
+    ['loans', 'business']            => ['Loans', 'Business'],
+    ['travel', 'domestic']           => ['Travel', 'Domestic'],
+    ['travel', 'international']      => ['Travel', 'International'],
+    ['credit_card', 'rewards']       => ['Credit Card', 'Rewards Card'],
+    ['credit_card', 'business']      => ['Credit Card', 'Business Card'],
+    ['credit_card', 'travel']        => ['Credit Card', 'Travel Card']
+  }.freeze
+
+  def vendor_product_key
+    LEAD_PRODUCT_TO_VENDOR_PRODUCT[[product_category, product_subcategory]]
+  end
 
   before_create :generate_lead_id
   before_update :update_stage_timestamp, if: :current_stage_changed?
+  after_update :create_vendor_payout_on_conversion, if: -> { vendor_id.present? && saved_change_to_current_stage? && current_stage == 'converted' }
+  after_commit :bump_vendor_cache_gen, if: -> { vendor_id.present? }
   before_validation :set_name_from_customer_details
   before_validation :set_initial_stage
   before_validation :clean_mobile_number
@@ -625,6 +658,44 @@ class Lead < ApplicationRecord
 
   def update_stage_timestamp
     self.stage_updated_at = Time.current
+  end
+
+  # Fires whether the vendor or an admin is the one who flips this lead to
+  # 'converted' — both paths go through Lead#update!/move_to_*!, so this one
+  # callback covers both instead of duplicating the logic per-controller.
+  def create_vendor_payout_on_conversion
+    return if VendorPayout.exists?(lead_id: id)
+
+    category, subcategory = vendor_product_key
+    unless category && subcategory
+      Rails.logger.warn "Lead ##{id}: converted with vendor_id=#{vendor_id} but product #{product_category}/#{product_subcategory} has no VendorPayout mapping"
+      return
+    end
+
+    vendor_product = vendor.vendor_products.find_by(product_category: category, product_subcategory: subcategory)
+    unless vendor_product
+      Rails.logger.warn "Lead ##{id}: vendor ##{vendor_id} has no matching VendorProduct for #{category}/#{subcategory}, skipping VendorPayout"
+      return
+    end
+
+    lead_value = referral_amount.to_f
+    commission_percentage = vendor_product.commission_percentage.to_f
+
+    VendorPayout.create!(
+      vendor: vendor,
+      lead: self,
+      lead_value: lead_value,
+      commission_percentage: commission_percentage,
+      commission_amount: (lead_value * commission_percentage / 100.0).round(2)
+    )
+  rescue => e
+    Rails.logger.error "Failed to create VendorPayout for lead ##{id}: #{e.message}"
+  end
+
+  def bump_vendor_cache_gen
+    Rails.cache.write("vendor_cache_gen", SecureRandom.hex(4))
+  rescue => e
+    Rails.logger.warn "Failed to bump vendor_cache_gen: #{e.message}"
   end
 
   def set_name_from_customer_details

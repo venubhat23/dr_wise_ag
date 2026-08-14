@@ -2,6 +2,7 @@ class MutualFund < ApplicationRecord
   belongs_to :customer
   belongs_to :sub_agent, class_name: 'SubAgent', optional: true
   belongs_to :distributor, optional: true
+  belongs_to :vendor, optional: true
 
   has_many :mutual_fund_nominees, dependent: :destroy
   has_many :policy_documents_records, -> { where(policy_type: 'mutual_fund') },

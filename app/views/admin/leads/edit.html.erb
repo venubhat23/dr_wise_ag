@@ -367,6 +367,17 @@
             </div>
 
             <div class="col-md-6">
+              <%= form.label :vendor_id, "Assign to Vendor", class: "form-label" %>
+              <%= form.select :vendor_id,
+                    options_for_select([['No Vendor', '']] + @vendors_for_lead.map { |v| [v.display_name, v.id] }, @lead.vendor_id),
+                    { prompt: 'Select vendor (optional)...' },
+                    { class: "form-select" } %>
+              <% if @vendors_for_lead.empty? %>
+                <small class="text-muted">No vendors are configured for <%= @lead.product_category&.humanize %> / <%= @lead.product_subcategory&.humanize %> yet.</small>
+              <% end %>
+            </div>
+
+            <div class="col-md-6">
               <%= form.label :current_stage, class: "form-label" do %>
                 Current Stage <span class="text-danger">*</span>
               <% end %>

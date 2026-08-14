@@ -211,6 +211,7 @@ class Admin::LeadsController < Admin::ApplicationController
 
   # GET /admin/leads/1/edit
   def edit
+    @vendors_for_lead = vendors_for_lead(@lead)
   end
 
   # POST /admin/leads
@@ -260,6 +261,7 @@ class Admin::LeadsController < Admin::ApplicationController
     if @lead.update(lead_params)
       redirect_to admin_lead_path(@lead), notice: 'Lead was successfully updated.'
     else
+      @vendors_for_lead = vendors_for_lead(@lead)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -1062,12 +1064,20 @@ class Admin::LeadsController < Admin::ApplicationController
     @lead = Lead.find(params[:id])
   end
 
+  # Vendors configured for this exact lead's product, for the "Assign to
+  # Vendor" dropdown — reuses Vendor.for_product (app/models/vendor.rb),
+  # same filtering used for ClientService/MutualFund vendor selection.
+  def vendors_for_lead(lead)
+    category, subcategory = lead.vendor_product_key
+    Vendor.for_product(category, subcategory)
+  end
+
   def lead_params
     params.require(:lead).permit(
       :name, :contact_number, :email, :address, :city, :state,
       :referred_by, :product_category, :product_subcategory, :customer_type, :current_stage, :lead_source,
       :call_disposition, :referral_amount, :notes, :created_date,
-      :note, :is_direct, :affiliate_id, :ambassador_id, :is_branch_out, :parent_lead_id,
+      :note, :is_direct, :affiliate_id, :ambassador_id, :vendor_id, :is_branch_out, :parent_lead_id,
       :first_name, :middle_name, :last_name, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :marital_status, :height, :weight, :birth_place,
       :education, :business_job, :business_name, :job_name, :occupation,

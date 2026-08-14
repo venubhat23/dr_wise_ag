@@ -4,6 +4,11 @@ class Vendor < ApplicationRecord
   has_many :vendor_products, dependent: :destroy, inverse_of: :vendor
   accepts_nested_attributes_for :vendor_products, allow_destroy: true
 
+  has_many :client_services, dependent: :nullify
+  has_many :mutual_funds, dependent: :nullify
+  has_many :leads, dependent: :nullify
+  has_many :vendor_payouts, dependent: :destroy
+
   after_commit :bump_vendor_cache_gen
 
   enum :status, { active: 0, inactive: 1 }
@@ -29,6 +34,17 @@ class Vendor < ApplicationRecord
   pg_search_scope :search_by_name_company_contact,
                   against: [:name, :company_name, :email, :phone_number, :gst_number],
                   using: { tsearch: { prefix: true } }
+
+  # Vendors who offer this exact product, for populating a filtered vendor
+  # dropdown on a product's create/edit form.
+  def self.for_product(category, subcategory)
+    return none if category.blank? || subcategory.blank?
+
+    active.joins(:vendor_products)
+          .where(vendor_products: { product_category: category, product_subcategory: subcategory })
+          .distinct
+          .order(:name)
+  end
 
   def display_name
     name.presence || company_name.presence || "Vendor ##{id}"

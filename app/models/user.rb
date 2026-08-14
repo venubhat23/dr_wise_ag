@@ -75,11 +75,11 @@ class User < ApplicationRecord
   validates :last_name, presence: true
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :mobile, presence: true, uniqueness: true
-  validates :user_type, presence: true, inclusion: { in: ['admin', 'agent', 'sub_agent', 'customer', 'ambassador', 'investor'] }
+  validates :user_type, presence: true, inclusion: { in: ['admin', 'agent', 'sub_agent', 'customer', 'ambassador', 'investor', 'vendor'] }
   # Note: role validation can be added later when roles are set up
 
   # Enums
-  enum :user_type, { admin: 'admin', agent: 'agent', sub_agent: 'sub_agent', customer: 'customer', ambassador: 'ambassador', investor: 'investor' }
+  enum :user_type, { admin: 'admin', agent: 'agent', sub_agent: 'sub_agent', customer: 'customer', ambassador: 'ambassador', investor: 'investor', vendor: 'vendor' }
 
   # Callbacks
   after_update :role_changed_callback
@@ -265,6 +265,10 @@ class User < ApplicationRecord
 
   def investor?
     user_type == 'investor'
+  end
+
+  def vendor?
+    user_type == 'vendor'
   end
 
   def super_admin?

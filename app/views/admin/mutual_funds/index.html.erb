@@ -154,6 +154,7 @@
               <th class="py-3 px-4">#</th>
               <th class="py-3">Client Name</th>
               <th class="py-3">Affiliate</th>
+              <th class="py-3">Vendor</th>
               <th class="py-3">Fund Name</th>
               <th class="py-3">Folio Number</th>
               <th class="py-3">Type</th>
@@ -175,6 +176,13 @@
                     <span class="badge bg-info text-dark"><%= mf.sub_agent.display_name %></span>
                   <% else %>
                     <span class="text-muted">Self</span>
+                  <% end %>
+                </td>
+                <td class="py-3">
+                  <% if mf.vendor.present? %>
+                    <span class="badge bg-light text-dark border"><%= mf.vendor.display_name %></span>
+                  <% else %>
+                    <span class="text-muted">—</span>
                   <% end %>
                 </td>
                 <td class="py-3"><%= mf.fund_name.presence || '—' %></td>

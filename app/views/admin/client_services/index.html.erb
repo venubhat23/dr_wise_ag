@@ -179,6 +179,7 @@
               <th class="py-3">Service</th>
               <th class="py-3">Source</th>
               <th class="py-3">Affiliate</th>
+              <th class="py-3">Vendor</th>
               <th class="py-3">Amount</th>
               <th class="py-3">Status</th>
               <th class="py-3">Date</th>
@@ -208,6 +209,13 @@
                     <span class="badge bg-info text-dark"><%= cs.sub_agent.display_name %></span>
                   <% else %>
                     <span class="text-muted">Self</span>
+                  <% end %>
+                </td>
+                <td class="py-3">
+                  <% if cs.vendor.present? %>
+                    <span class="badge bg-light text-dark border"><%= cs.vendor.display_name %></span>
+                  <% else %>
+                    <span class="text-muted">—</span>
                   <% end %>
                 </td>
                 <td class="py-3 fw-semibold"><%= indian_currency(cs.amount) %></td>

@@ -3,7 +3,7 @@ class Admin::MutualFundsController < Admin::ApplicationController
   before_action :set_mutual_fund, only: [:show, :edit, :update, :destroy]
 
   def index
-    @mutual_funds = MutualFund.includes(:customer, :sub_agent)
+    @mutual_funds = MutualFund.includes(:customer, :sub_agent, :vendor)
 
     @current_tab = params[:tab] || 'drwise'
 
@@ -112,6 +112,7 @@ class Admin::MutualFundsController < Admin::ApplicationController
     @sub_agents = SubAgent.active.order(:first_name, :last_name)
     @distributors = Distributor.active.order(:first_name, :last_name)
     @investment_types = MutualFund::INVESTMENT_TYPES
+    @vendors = Vendor.for_product('Investments', 'Mutual Fund')
   end
 
   def set_distributor_from_affiliate(record)
@@ -148,7 +149,7 @@ class Admin::MutualFundsController < Admin::ApplicationController
 
   def mutual_fund_params
     params.require(:mutual_fund).permit(
-      :customer_id, :sub_agent_id, :distributor_id,
+      :customer_id, :sub_agent_id, :distributor_id, :vendor_id,
       :investment_type, :amount, :fund_name, :folio_number, :plan_name,
       :start_date, :maturity_date,
       :main_agent_commission_percentage, :commission_amount, :tds_percentage, :tds_amount, :after_tds_value,
