@@ -105,36 +105,50 @@ class Api::V1::Mobile::CommissionController < Api::V1::Mobile::BaseController
   def stats
     begin
       current_year = Date.current.year
-      current_month = Date.current.month
+      year_start = Date.new(current_year, 1, 1)
+      year_end = Date.new(current_year, 12, 31)
+
+      # Grouped queries instead of a 12-iteration loop doing 5 aggregate
+      # queries per month (was 60+ queries for the year; now 3), mirroring
+      # the pattern used in admin/analytics_controller#calculate_monthly_trends.
+      year_scope = get_sub_agent_payouts_for_period(year_start, year_end)
+      to_key = ->(ts) { ts.to_date.strftime('%Y-%m') }
+
+      monthly_sums_by_status = Hash.new { |h, k| h[k] = {} }
+      year_scope.group("DATE_TRUNC('month', payout_date)", :status).sum(:payout_amount).each do |(ts, status), amount|
+        monthly_sums_by_status[to_key.(ts)][status] = amount
+      end
+      monthly_totals = year_scope.group("DATE_TRUNC('month', payout_date)").sum(:payout_amount)
+                                  .each_with_object({}) { |(ts, amount), h| h[to_key.(ts)] = amount }
+      monthly_counts = year_scope.group("DATE_TRUNC('month', payout_date)").count
+                                  .each_with_object({}) { |(ts, count), h| h[to_key.(ts)] = count }
 
       # Monthly stats for current year
       monthly_stats = (1..12).map do |month|
-        start_date = Date.new(current_year, month, 1)
-        end_date = start_date.end_of_month
-
-        monthly_payouts = get_sub_agent_payouts_for_period(start_date, end_date)
+        key = Date.new(current_year, month, 1).strftime('%Y-%m')
+        sums = monthly_sums_by_status[key]
 
         {
           month: month,
           month_name: Date::MONTHNAMES[month],
-          total_earned: monthly_payouts.sum(:payout_amount),
-          paid_amount: monthly_payouts.paid.sum(:payout_amount),
-          pending_amount: monthly_payouts.pending.sum(:payout_amount),
-          processing_amount: monthly_payouts.processing.sum(:payout_amount),
-          payout_count: monthly_payouts.count
+          total_earned: monthly_totals[key] || 0,
+          paid_amount: sums['paid'] || 0,
+          pending_amount: sums['pending'] || 0,
+          processing_amount: sums['processing'] || 0,
+          payout_count: monthly_counts[key] || 0
         }
       end
 
       # Year-to-date totals
-      ytd_start = Date.new(current_year, 1, 1)
-      ytd_payouts = get_sub_agent_payouts_for_period(ytd_start, Date.current)
+      ytd_scope = get_sub_agent_payouts_for_period(year_start, Date.current)
+      ytd_sums = ytd_scope.group(:status).sum(:payout_amount)
 
       ytd_stats = {
-        total_earned: ytd_payouts.sum(:payout_amount),
-        paid_amount: ytd_payouts.paid.sum(:payout_amount),
-        pending_amount: ytd_payouts.pending.sum(:payout_amount),
-        processing_amount: ytd_payouts.processing.sum(:payout_amount),
-        total_policies: ytd_payouts.count
+        total_earned: ytd_sums.values.sum,
+        paid_amount: ytd_sums['paid'] || 0,
+        pending_amount: ytd_sums['pending'] || 0,
+        processing_amount: ytd_sums['processing'] || 0,
+        total_policies: ytd_scope.count
       }
 
       render json: {

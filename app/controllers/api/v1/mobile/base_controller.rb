@@ -17,12 +17,10 @@ class Api::V1::Mobile::BaseController < ApplicationController
   end
 
   def authenticate_customer!
-    Rails.logger.info "=== AUTHENTICATION START ==="
     token = request.headers['Authorization']&.split(' ')&.last
-    Rails.logger.info "Token extracted: #{token&.first(20)}..."
 
     if token.blank?
-      Rails.logger.info "No token found"
+      Rails.logger.debug "Mobile auth: no token found"
       return render json: {
         success: false,
         message: 'Authorization token is required'
@@ -30,9 +28,7 @@ class Api::V1::Mobile::BaseController < ApplicationController
     end
 
     begin
-      Rails.logger.info "Attempting to decode token..."
       decoded_token = JWT.decode(token, Rails.application.secret_key_base)[0]
-      Rails.logger.info "Token decoded successfully: #{decoded_token}"
       user_id = decoded_token['user_id']
       role = decoded_token['role']
 

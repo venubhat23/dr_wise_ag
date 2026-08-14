@@ -67,38 +67,42 @@ class Api::V1::Mobile::BannersController < Api::V1::Mobile::BaseController
   # GET /api/v1/mobile/banners/active
   def active
     begin
-      # Fetch only active and current banners
-      banners = Banner.active
-                     .current
-                     .ordered
-                     .map do |banner|
-        banner_data = {
-          id: banner.id,
-          title: banner.title,
-          description: banner.description,
-          redirect_link: banner.redirect_link,
-          display_start_date: banner.display_start_date,
-          display_end_date: banner.display_end_date,
-          display_location: banner.display_location,
-          display_location_humanized: banner.display_location_humanized,
-          display_order: banner.display_order,
-          created_at: banner.created_at,
-          updated_at: banner.updated_at
-        }
-
-        # Add banner image URL if available in R2
-        if banner.has_r2_image?
-          banner_data[:banner_image] = {
-            url: banner.banner_image_url,
-            filename: banner.r2_filename,
-            content_type: banner.r2_content_type,
-            byte_size: banner.r2_file_size
+      # Active/current banners rarely change between requests; cache the
+      # serialized list and invalidate on any Banner write (see
+      # Banner#clear_dashboard_stats_cache) instead of querying every call.
+      banners = Rails.cache.fetch('mobile:banners:active', expires_in: 5.minutes) do
+        Banner.active
+              .current
+              .ordered
+              .map do |banner|
+          banner_data = {
+            id: banner.id,
+            title: banner.title,
+            description: banner.description,
+            redirect_link: banner.redirect_link,
+            display_start_date: banner.display_start_date,
+            display_end_date: banner.display_end_date,
+            display_location: banner.display_location,
+            display_location_humanized: banner.display_location_humanized,
+            display_order: banner.display_order,
+            created_at: banner.created_at,
+            updated_at: banner.updated_at
           }
-        else
-          banner_data[:banner_image] = nil
-        end
 
-        banner_data
+          # Add banner image URL if available in R2
+          if banner.has_r2_image?
+            banner_data[:banner_image] = {
+              url: banner.banner_image_url,
+              filename: banner.r2_filename,
+              content_type: banner.r2_content_type,
+              byte_size: banner.r2_file_size
+            }
+          else
+            banner_data[:banner_image] = nil
+          end
+
+          banner_data
+        end
       end
 
       render json: {

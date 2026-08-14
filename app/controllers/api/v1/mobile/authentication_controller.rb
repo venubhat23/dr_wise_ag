@@ -46,12 +46,8 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     unless user
       formatted_mobile = format_mobile_number(login_field)
       if formatted_mobile
-        # Try to find user with multiple mobile format variations
-        user = User.find_by(mobile: formatted_mobile) ||
-               User.find_by(mobile: "+91#{formatted_mobile}") ||
-               User.find_by(mobile: "+91 #{formatted_mobile}") ||
-               User.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-               User.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}")
+        # Try to find user with multiple mobile format variations in one query
+        user = User.where(mobile: mobile_number_variants(formatted_mobile)).first
       else
         # If format_mobile_number returns nil, try direct mobile search as fallback
         user = User.find_by(mobile: login_field)
@@ -65,11 +61,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
         unless customer
           formatted_mobile = format_mobile_number(user.mobile)
           if formatted_mobile
-            customer = Customer.find_by(mobile: formatted_mobile) ||
-                      Customer.find_by(mobile: "+91#{formatted_mobile}") ||
-                      Customer.find_by(mobile: "+91 #{formatted_mobile}") ||
-                      Customer.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-                      Customer.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}")
+            customer = Customer.where(mobile: mobile_number_variants(formatted_mobile)).first
           else
             customer = Customer.find_by(mobile: user.mobile)
           end
@@ -157,21 +149,10 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     unless user
       formatted_mobile = format_mobile_number(login_field)
       if formatted_mobile
-        user = User.find_by(mobile: formatted_mobile) ||
-               User.find_by(mobile: "+91#{formatted_mobile}") ||
-               User.find_by(mobile: "+91 #{formatted_mobile}") ||
-               User.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-               User.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-               Customer.find_by(mobile: formatted_mobile) ||
-               Customer.find_by(mobile: "+91#{formatted_mobile}") ||
-               Customer.find_by(mobile: "+91 #{formatted_mobile}") ||
-               Customer.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-               Customer.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-               SubAgent.find_by(mobile: formatted_mobile) ||
-               SubAgent.find_by(mobile: "+91#{formatted_mobile}") ||
-               SubAgent.find_by(mobile: "+91 #{formatted_mobile}") ||
-               SubAgent.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-               SubAgent.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}")
+        variants = mobile_number_variants(formatted_mobile)
+        user = User.where(mobile: variants).first ||
+               Customer.where(mobile: variants).first ||
+               SubAgent.where(mobile: variants).first
       else
         user = User.find_by(mobile: login_field) ||
                Customer.find_by(mobile: login_field) ||
@@ -674,11 +655,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     # Try mobile with various formatting
     formatted_mobile = format_mobile_number(login_field)
     if formatted_mobile
-      customer = Customer.find_by(mobile: formatted_mobile) ||
-                Customer.find_by(mobile: "+91#{formatted_mobile}") ||
-                Customer.find_by(mobile: "+91 #{formatted_mobile}") ||
-                Customer.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-                Customer.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}")
+      customer = Customer.where(mobile: mobile_number_variants(formatted_mobile)).first
     else
       customer = Customer.find_by(mobile: login_field)
     end
@@ -701,11 +678,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     # Try mobile with various formatting
     formatted_mobile = format_mobile_number(login_field)
     if formatted_mobile
-      sub_agent = SubAgent.find_by(mobile: formatted_mobile) ||
-                  SubAgent.find_by(mobile: "+91#{formatted_mobile}") ||
-                  SubAgent.find_by(mobile: "+91 #{formatted_mobile}") ||
-                  SubAgent.find_by(mobile: "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}") ||
-                  SubAgent.find_by(mobile: "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}")
+      sub_agent = SubAgent.where(mobile: mobile_number_variants(formatted_mobile)).first
     else
       sub_agent = SubAgent.find_by(mobile: login_field)
     end
@@ -726,6 +699,19 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     return false if name.blank?
     # Allow only alphabetic characters and spaces, min 2 characters
     name.match?(/\A[a-zA-Z\s]{2,50}\z/)
+  end
+
+  # All mobile-format variants a number might be stored under, so lookups can
+  # use a single `where(mobile: variants).first` instead of a chain of
+  # sequential find_by calls (each a separate DB round trip).
+  def mobile_number_variants(formatted_mobile)
+    [
+      formatted_mobile,
+      "+91#{formatted_mobile}",
+      "+91 #{formatted_mobile}",
+      "#{formatted_mobile[0..4]} #{formatted_mobile[5..9]}",
+      "+91 #{formatted_mobile[0..4]} #{formatted_mobile[5..9]}"
+    ]
   end
 
   def format_mobile_number(mobile)

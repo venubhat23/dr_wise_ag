@@ -107,6 +107,7 @@ class Banner < ApplicationRecord
 
   def clear_dashboard_stats_cache
     Rails.cache.delete('banners/dashboard_stats')
+    Rails.cache.delete('mobile:banners:active')
   end
 
   def set_default_display_location

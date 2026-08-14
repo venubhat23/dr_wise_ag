@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_12_000007) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_13_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -131,6 +131,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_12_000007) do
     t.integer "created_by_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_all_policy_reports_on_created_by_id"
   end
 
   create_table "analytics_caches", force: :cascade do |t|
@@ -523,11 +524,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_12_000007) do
     t.string "password_digest"
     t.string "original_password"
     t.integer "investor_id"
+    t.index ["city_id"], name: "index_distributors_on_city_id"
     t.index ["created_at"], name: "index_distributors_on_created_at"
     t.index ["email"], name: "index_distributors_on_email", unique: true
     t.index ["investor_id"], name: "index_distributors_on_investor_id"
     t.index ["mobile"], name: "index_distributors_on_mobile", unique: true
     t.index ["role_id"], name: "index_distributors_on_role_id"
+    t.index ["state_id"], name: "index_distributors_on_state_id"
     t.index ["status"], name: "index_distributors_on_status"
   end
 
@@ -735,6 +738,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_12_000007) do
     t.datetime "updated_at", null: false
     t.index ["customer_id"], name: "index_helpdesk_tickets_on_customer_id"
     t.index ["sub_agent_id"], name: "index_helpdesk_tickets_on_sub_agent_id"
+    t.index ["submitter_id"], name: "index_helpdesk_tickets_on_submitter_id"
     t.index ["ticket_number"], name: "index_helpdesk_tickets_on_ticket_number", unique: true
   end
 
@@ -838,6 +842,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_12_000007) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["invoice_id"], name: "index_invoice_items_on_invoice_id"
+    t.index ["payout_type", "payout_id"], name: "index_invoice_items_on_payout_type_and_payout_id"
   end
 
   create_table "invoices", force: :cascade do |t|
@@ -1481,6 +1486,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_12_000007) do
     t.string "insurance_type", limit: 255
     t.integer "sub_agent_id"
     t.string "policy_number", limit: 255
+    t.index ["agency_code_id"], name: "index_other_insurances_on_agency_code_id"
+    t.index ["broker_id"], name: "index_other_insurances_on_broker_id"
     t.index ["created_at"], name: "idx_other_insurances_created_at"
     t.index ["customer_id", "created_at"], name: "index_other_insurances_on_customer_id_and_created_at"
     t.index ["customer_id"], name: "index_other_insurances_on_customer_id"
@@ -1577,7 +1584,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_12_000007) do
     t.index ["customer_id"], name: "index_payouts_on_customer_id"
     t.index ["investor_commission_id"], name: "index_payouts_on_investor_commission_id"
     t.index ["main_agent_commission_id"], name: "index_payouts_on_main_agent_commission_id"
-    t.index ["policy_type", "policy_id"], name: "idx_payouts_policy"
     t.index ["policy_type", "policy_id"], name: "index_payouts_on_policy_type_and_id"
     t.index ["status"], name: "index_payouts_on_status"
   end
@@ -1594,3 +1600,501 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_12_000007) do
     t.index ["module_name"], name: "index_permissions_on_module_name"
   end
 
+  create_table "policies", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "insurance_company_id", null: false
+    t.bigint "agency_broker_id", null: false
+    t.string "policy_number"
+    t.string "policy_type"
+    t.string "insurance_type"
+    t.string "plan_name"
+    t.string "payment_mode"
+    t.date "policy_booking_date"
+    t.date "policy_start_date"
+    t.date "policy_end_date"
+    t.integer "policy_term_years"
+    t.date "risk_start_date"
+    t.decimal "sum_insured"
+    t.decimal "net_premium"
+    t.decimal "gst_percentage"
+    t.decimal "total_premium"
+    t.decimal "bonus"
+    t.decimal "fund"
+    t.text "note"
+    t.boolean "status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "policy_holder"
+    t.index ["agency_broker_id"], name: "index_policies_on_agency_broker_id"
+    t.index ["customer_id", "created_at"], name: "index_policies_on_customer_id_and_created_at"
+    t.index ["customer_id"], name: "index_policies_on_customer_id"
+    t.index ["insurance_company_id"], name: "index_policies_on_insurance_company_id"
+    t.index ["insurance_type"], name: "index_policies_on_insurance_type"
+    t.index ["policy_end_date"], name: "index_policies_on_policy_end_date"
+    t.index ["policy_start_date"], name: "index_policies_on_policy_start_date"
+    t.index ["status"], name: "index_policies_on_status"
+    t.index ["user_id"], name: "index_policies_on_user_id"
+  end
+
+  create_table "policy_documents", force: :cascade do |t|
+    t.string "policy_type", null: false
+    t.integer "policy_id", null: false
+    t.string "document_type", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.string "uploaded_by"
+    t.string "r2_file_key"
+    t.string "r2_filename"
+    t.string "r2_content_type"
+    t.bigint "r2_file_size"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_policy_documents_on_created_at"
+    t.index ["document_type"], name: "index_policy_documents_on_document_type"
+    t.index ["policy_type", "policy_id"], name: "index_policy_documents_on_policy_type_and_policy_id"
+  end
+
+  create_table "reports", force: :cascade do |t|
+    t.string "name"
+    t.string "report_type"
+    t.text "filters"
+    t.text "report_data"
+    t.boolean "status"
+    t.datetime "generated_at"
+    t.integer "created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["report_type"], name: "index_reports_on_report_type"
+  end
+
+  create_table "role_permissions", force: :cascade do |t|
+    t.bigint "role_id", null: false
+    t.bigint "permission_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["permission_id"], name: "idx_role_permissions_permission"
+    t.index ["permission_id"], name: "index_role_permissions_on_permission_id"
+    t.index ["role_id", "permission_id"], name: "idx_role_permissions_unique", unique: true
+    t.index ["role_id"], name: "idx_role_permissions_role"
+    t.index ["role_id"], name: "index_role_permissions_on_role_id"
+  end
+
+  create_table "roles", force: :cascade do |t|
+    t.string "name", limit: 100, null: false
+    t.text "description"
+    t.boolean "status", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_roles_on_name", unique: true
+    t.index ["status"], name: "index_roles_on_status"
+  end
+
+  create_table "session_activities", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "activity_type"
+    t.datetime "occurred_at"
+    t.string "ip_address"
+    t.text "user_agent"
+    t.string "session_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_session_activities_on_user_id"
+  end
+
+  create_table "solid_cache_entries", force: :cascade do |t|
+    t.binary "key", null: false
+    t.binary "value", null: false
+    t.datetime "created_at", null: false
+    t.bigint "key_hash", null: false
+    t.integer "byte_size", null: false
+    t.index ["byte_size"], name: "index_solid_cache_entries_on_byte_size"
+    t.index ["key_hash", "byte_size"], name: "index_solid_cache_entries_on_key_hash_and_byte_size"
+    t.index ["key_hash"], name: "index_solid_cache_entries_on_key_hash", unique: true
+  end
+
+  create_table "solid_queue_blocked_executions", force: :cascade do |t|
+    t.bigint "job_id", null: false
+    t.string "queue_name", null: false
+    t.integer "priority", default: 0, null: false
+    t.string "concurrency_key", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "created_at", null: false
+    t.index ["concurrency_key", "priority", "job_id"], name: "index_solid_queue_blocked_executions_for_release"
+    t.index ["expires_at", "concurrency_key"], name: "index_solid_queue_blocked_executions_for_maintenance"
+    t.index ["job_id"], name: "index_solid_queue_blocked_executions_on_job_id", unique: true
+  end
+
+  create_table "solid_queue_claimed_executions", force: :cascade do |t|
+    t.bigint "job_id", null: false
+    t.bigint "process_id"
+    t.datetime "created_at", null: false
+    t.index ["job_id"], name: "index_solid_queue_claimed_executions_on_job_id", unique: true
+    t.index ["process_id", "job_id"], name: "index_solid_queue_claimed_executions_on_process_id_and_job_id"
+  end
+
+  create_table "solid_queue_failed_executions", force: :cascade do |t|
+    t.bigint "job_id", null: false
+    t.text "error"
+    t.datetime "created_at", null: false
+    t.index ["job_id"], name: "index_solid_queue_failed_executions_on_job_id", unique: true
+  end
+
+  create_table "solid_queue_jobs", force: :cascade do |t|
+    t.string "queue_name", null: false
+    t.string "class_name", null: false
+    t.text "arguments"
+    t.integer "priority", default: 0, null: false
+    t.string "active_job_id"
+    t.datetime "scheduled_at"
+    t.datetime "finished_at"
+    t.string "concurrency_key"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active_job_id"], name: "index_solid_queue_jobs_on_active_job_id"
+    t.index ["class_name"], name: "index_solid_queue_jobs_on_class_name"
+    t.index ["finished_at"], name: "index_solid_queue_jobs_on_finished_at"
+    t.index ["queue_name", "finished_at"], name: "index_solid_queue_jobs_for_filtering"
+    t.index ["scheduled_at", "finished_at"], name: "index_solid_queue_jobs_for_alerting"
+  end
+
+  create_table "solid_queue_pauses", force: :cascade do |t|
+    t.string "queue_name", null: false
+    t.datetime "created_at", null: false
+    t.index ["queue_name"], name: "index_solid_queue_pauses_on_queue_name", unique: true
+  end
+
+  create_table "solid_queue_processes", force: :cascade do |t|
+    t.string "kind", null: false
+    t.datetime "last_heartbeat_at", null: false
+    t.bigint "supervisor_id"
+    t.integer "pid", null: false
+    t.string "hostname"
+    t.text "metadata"
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.index ["last_heartbeat_at"], name: "index_solid_queue_processes_on_last_heartbeat_at"
+    t.index ["name", "supervisor_id"], name: "index_solid_queue_processes_on_name_and_supervisor_id", unique: true
+    t.index ["supervisor_id"], name: "index_solid_queue_processes_on_supervisor_id"
+  end
+
+  create_table "solid_queue_ready_executions", force: :cascade do |t|
+    t.bigint "job_id", null: false
+    t.string "queue_name", null: false
+    t.integer "priority", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.index ["job_id"], name: "index_solid_queue_ready_executions_on_job_id", unique: true
+    t.index ["priority", "job_id"], name: "index_solid_queue_poll_all"
+    t.index ["queue_name", "priority", "job_id"], name: "index_solid_queue_poll_by_queue"
+  end
+
+  create_table "solid_queue_recurring_executions", force: :cascade do |t|
+    t.bigint "job_id", null: false
+    t.string "task_key", null: false
+    t.datetime "run_at", null: false
+    t.datetime "created_at", null: false
+    t.index ["job_id"], name: "index_solid_queue_recurring_executions_on_job_id", unique: true
+    t.index ["task_key", "run_at"], name: "index_solid_queue_recurring_executions_on_task_key_and_run_at", unique: true
+  end
+
+  create_table "solid_queue_recurring_tasks", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "schedule", null: false
+    t.string "command", limit: 2048
+    t.string "class_name"
+    t.text "arguments"
+    t.string "queue_name"
+    t.integer "priority", default: 0
+    t.boolean "static", default: true, null: false
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_solid_queue_recurring_tasks_on_key", unique: true
+    t.index ["static"], name: "index_solid_queue_recurring_tasks_on_static"
+  end
+
+  create_table "solid_queue_scheduled_executions", force: :cascade do |t|
+    t.bigint "job_id", null: false
+    t.string "queue_name", null: false
+    t.integer "priority", default: 0, null: false
+    t.datetime "scheduled_at", null: false
+    t.datetime "created_at", null: false
+    t.index ["job_id"], name: "index_solid_queue_scheduled_executions_on_job_id", unique: true
+    t.index ["scheduled_at", "priority", "job_id"], name: "index_solid_queue_dispatch_all"
+  end
+
+  create_table "solid_queue_semaphores", force: :cascade do |t|
+    t.string "key", null: false
+    t.integer "value", default: 1, null: false
+    t.datetime "expires_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["expires_at"], name: "index_solid_queue_semaphores_on_expires_at"
+    t.index ["key", "value"], name: "index_solid_queue_semaphores_on_key_and_value"
+    t.index ["key"], name: "index_solid_queue_semaphores_on_key", unique: true
+  end
+
+  create_table "sub_agent_documents", force: :cascade do |t|
+    t.bigint "sub_agent_id", null: false
+    t.string "document_type", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "r2_file_key"
+    t.string "r2_filename"
+    t.string "r2_content_type"
+    t.bigint "r2_file_size"
+    t.index ["document_type"], name: "index_sub_agent_documents_on_document_type"
+    t.index ["sub_agent_id", "document_type"], name: "index_sub_agent_documents_on_sub_agent_id_and_document_type"
+    t.index ["sub_agent_id"], name: "index_sub_agent_documents_on_sub_agent_id"
+  end
+
+  create_table "sub_agents", force: :cascade do |t|
+    t.string "first_name", null: false
+    t.string "middle_name"
+    t.string "last_name", null: false
+    t.string "mobile", null: false
+    t.string "email", null: false
+    t.integer "role_id", null: false
+    t.integer "state_id"
+    t.integer "city_id"
+    t.date "birth_date"
+    t.string "gender"
+    t.string "pan_no"
+    t.string "gst_no"
+    t.string "company_name"
+    t.text "address"
+    t.string "bank_name"
+    t.string "account_no"
+    t.string "ifsc_code"
+    t.string "account_holder_name"
+    t.string "account_type"
+    t.string "upi_id"
+    t.integer "status", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "password_digest"
+    t.bigint "distributor_id"
+    t.string "plain_password"
+    t.string "original_password"
+    t.datetime "password_reset_at"
+    t.boolean "deactivated", default: false
+    t.string "city"
+    t.string "state"
+    t.index ["created_at"], name: "index_sub_agents_on_created_at"
+    t.index ["distributor_id"], name: "index_sub_agents_on_distributor_id"
+    t.index ["email"], name: "index_sub_agents_on_email", unique: true
+    t.index ["mobile"], name: "index_sub_agents_on_mobile", unique: true
+    t.index ["role_id"], name: "index_sub_agents_on_role_id"
+    t.index ["status"], name: "index_sub_agents_on_status"
+  end
+
+  create_table "system_settings", force: :cascade do |t|
+    t.string "key", null: false
+    t.text "value"
+    t.text "description"
+    t.string "setting_type"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.decimal "default_main_agent_commission", precision: 5, scale: 2
+    t.decimal "default_affiliate_commission", precision: 5, scale: 2
+    t.decimal "default_ambassador_commission", precision: 5, scale: 2
+    t.decimal "default_company_expenses", precision: 5, scale: 2
+    t.text "terms_and_conditions"
+    t.decimal "investment_amount", precision: 15, scale: 2, default: "0.0"
+    t.string "company_name"
+    t.string "company_phone"
+    t.string "company_email"
+    t.text "company_address"
+    t.index ["key"], name: "index_system_settings_on_key", unique: true
+  end
+
+  create_table "tax_services", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.string "service_type"
+    t.string "financial_year"
+    t.date "filing_date"
+    t.decimal "amount"
+    t.boolean "status"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_tax_services_on_customer_id"
+  end
+
+  create_table "travel_packages", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.string "travel_type"
+    t.string "destination"
+    t.date "travel_date"
+    t.date "return_date"
+    t.decimal "package_amount"
+    t.boolean "status"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_travel_packages_on_customer_id"
+  end
+
+  create_table "user_roles", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.boolean "status", default: true, null: false
+    t.integer "display_order", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["display_order"], name: "index_user_roles_on_display_order"
+    t.index ["name"], name: "index_user_roles_on_name", unique: true
+    t.index ["status"], name: "index_user_roles_on_status"
+  end
+
+  create_table "user_sessions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "session_id", null: false
+    t.string "ip_address"
+    t.text "user_agent"
+    t.datetime "started_at", null: false
+    t.datetime "ended_at"
+    t.integer "duration"
+    t.string "status", default: "active"
+    t.string "location"
+    t.string "device_type"
+    t.string "browser"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ip_address"], name: "index_user_sessions_on_ip_address"
+    t.index ["session_id"], name: "index_user_sessions_on_session_id", unique: true
+    t.index ["started_at"], name: "index_user_sessions_on_started_at"
+    t.index ["status"], name: "index_user_sessions_on_status"
+    t.index ["user_id"], name: "index_user_sessions_on_user_id"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.string "first_name"
+    t.string "last_name"
+    t.string "email"
+    t.string "mobile"
+    t.string "pan_number"
+    t.string "gst_number"
+    t.date "date_of_birth"
+    t.string "gender"
+    t.string "height"
+    t.string "weight"
+    t.string "education"
+    t.string "marital_status"
+    t.string "occupation"
+    t.string "job_name"
+    t.string "type_of_duty"
+    t.decimal "annual_income"
+    t.string "birth_place"
+    t.string "address"
+    t.string "state"
+    t.string "city"
+    t.string "user_type"
+    t.string "role"
+    t.boolean "status"
+    t.text "additional_info"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "encrypted_password", default: "", null: false
+    t.string "reset_password_token"
+    t.datetime "reset_password_sent_at"
+    t.datetime "remember_created_at"
+    t.bigint "role_id"
+    t.bigint "user_role_id"
+    t.string "plain_password"
+    t.string "original_password"
+    t.text "sidebar_permissions"
+    t.string "role_name"
+    t.datetime "password_reset_at", comment: "When password was last reset"
+    t.text "crud_permissions"
+    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["role_id"], name: "idx_users_role_id"
+    t.index ["role_id"], name: "index_users_on_role_id"
+    t.index ["user_role_id"], name: "index_users_on_user_role_id"
+  end
+
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "agency_codes", "brokers"
+  add_foreign_key "ai_report_histories", "users"
+  add_foreign_key "appointments", "customers"
+  add_foreign_key "appointments", "users", column: "created_by_id"
+  add_foreign_key "banner_documents", "banners"
+  add_foreign_key "broker_codes", "brokers"
+  add_foreign_key "brokers", "insurance_companies"
+  add_foreign_key "client_requests", "users", column: "resolved_by_id"
+  add_foreign_key "commission_payouts", "payouts"
+  add_foreign_key "corporate_members", "customers"
+  add_foreign_key "customer_documents", "customers"
+  add_foreign_key "customers", "sub_agents"
+  add_foreign_key "distributor_assignments", "distributors"
+  add_foreign_key "distributor_assignments", "sub_agents"
+  add_foreign_key "distributor_documents", "distributors"
+  add_foreign_key "distributor_payouts", "distributors"
+  add_foreign_key "family_members", "customers"
+  add_foreign_key "health_insurance_documents", "health_insurances"
+  add_foreign_key "health_insurance_members", "health_insurances"
+  add_foreign_key "health_insurance_nominees", "health_insurances"
+  add_foreign_key "health_insurances", "agency_codes"
+  add_foreign_key "health_insurances", "brokers"
+  add_foreign_key "health_insurances", "customers"
+  add_foreign_key "health_insurances", "distributors"
+  add_foreign_key "health_insurances", "health_insurances", column: "original_policy_id", name: "health_insurances_original_policy_id_fkey"
+  add_foreign_key "health_insurances", "investors"
+  add_foreign_key "health_insurances", "policies"
+  add_foreign_key "health_insurances", "sub_agents"
+  add_foreign_key "helpdesk_tickets", "customers"
+  add_foreign_key "helpdesk_tickets", "sub_agents"
+  add_foreign_key "investments", "customers"
+  add_foreign_key "investor_documents", "investors"
+  add_foreign_key "invoice_items", "invoices"
+  add_foreign_key "leads", "distributors", column: "ambassador_id"
+  add_foreign_key "life_insurance_bank_details", "life_insurances"
+  add_foreign_key "life_insurance_documents", "life_insurances"
+  add_foreign_key "life_insurance_nominees", "life_insurances"
+  add_foreign_key "life_insurances", "agency_codes"
+  add_foreign_key "life_insurances", "brokers"
+  add_foreign_key "life_insurances", "customers"
+  add_foreign_key "life_insurances", "distributors"
+  add_foreign_key "life_insurances", "investors"
+  add_foreign_key "life_insurances", "sub_agents"
+  add_foreign_key "loans", "customers"
+  add_foreign_key "motor_insurance_documents", "motor_insurances"
+  add_foreign_key "motor_insurance_nominees", "motor_insurances"
+  add_foreign_key "motor_insurances", "agency_codes"
+  add_foreign_key "motor_insurances", "brokers"
+  add_foreign_key "motor_insurances", "customers"
+  add_foreign_key "motor_insurances", "distributors"
+  add_foreign_key "motor_insurances", "investors"
+  add_foreign_key "motor_insurances", "sub_agents"
+  add_foreign_key "mutual_fund_nominees", "mutual_funds"
+  add_foreign_key "mutual_funds", "customers"
+  add_foreign_key "mutual_funds", "distributors"
+  add_foreign_key "mutual_funds", "sub_agents"
+  add_foreign_key "other_insurance_documents", "other_insurances"
+  add_foreign_key "other_insurance_nominees", "other_insurances"
+  add_foreign_key "other_insurances", "distributors"
+  add_foreign_key "other_insurances", "investors"
+  add_foreign_key "other_insurances", "policies"
+  add_foreign_key "payout_distributions", "commission_receipts"
+  add_foreign_key "policies", "agency_brokers"
+  add_foreign_key "policies", "customers"
+  add_foreign_key "policies", "insurance_companies"
+  add_foreign_key "policies", "users"
+  add_foreign_key "role_permissions", "permissions"
+  add_foreign_key "role_permissions", "roles"
+  add_foreign_key "session_activities", "users"
+  add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_failed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_ready_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "sub_agent_documents", "sub_agents"
+  add_foreign_key "sub_agents", "distributors"
+  add_foreign_key "tax_services", "customers"
+  add_foreign_key "travel_packages", "customers"
+  add_foreign_key "user_sessions", "users"
+  add_foreign_key "users", "roles"
+  add_foreign_key "users", "user_roles"
+end
