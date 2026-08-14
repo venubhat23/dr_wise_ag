@@ -124,6 +124,9 @@ class Admin::ClientServicesController < Admin::ApplicationController
 
     category, subcategory = ClientService::SERVICE_TYPE_TO_VENDOR_PRODUCT[@client_service.service_type]
     @vendors = Vendor.for_product(category, subcategory)
+    @vendor_commission_percentages = VendorProduct.where(
+      vendor_id: @vendors.map(&:id), product_category: category, product_subcategory: subcategory
+    ).pluck(:vendor_id, :commission_percentage).to_h
   end
 
   def set_distributor_from_affiliate(record)

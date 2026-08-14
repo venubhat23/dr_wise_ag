@@ -91,6 +91,8 @@ class ClientService < ApplicationRecord
   validates :status, inclusion: { in: STATUSES }
 
   before_validation :set_category_from_type
+  before_save :calculate_vendor_commission
+  before_save :calculate_commission_structure
   before_update :update_status_timestamp, if: :status_changed?
   after_update :create_vendor_payout_on_completion,
                if: -> { vendor_id.present? && saved_change_to_status? && status == 'completed' }
@@ -133,36 +135,97 @@ class ClientService < ApplicationRecord
     SERVICE_TYPE_TO_VENDOR_PRODUCT[service_type]
   end
 
+  # The VendorProduct matching this service's vendor + service_type, if any —
+  # its commission_percentage is what the vendor pays DrWise, and the base
+  # the internal Main Agent/Affiliate/Ambassador/Investor/Company split is
+  # calculated against (same role each product's net_premium plays for
+  # insurance).
+  def matched_vendor_product
+    return nil unless vendor_id.present?
+
+    category, subcategory = vendor_product_key
+    return nil unless category && subcategory
+
+    vendor.vendor_products.find_by(product_category: category, product_subcategory: subcategory)
+  end
+
   private
 
   def update_status_timestamp
     self.status_updated_at = Time.current
   end
 
+  def calculate_vendor_commission
+    vendor_product = matched_vendor_product
+
+    if vendor_product
+      self.vendor_commission_percentage = vendor_product.commission_percentage.to_f
+      self.vendor_commission_amount = (amount.to_f * vendor_commission_percentage.to_f / 100.0).round(2)
+    else
+      self.vendor_commission_percentage = 0
+      self.vendor_commission_amount = 0
+    end
+  end
+
+  # Splits DrWise's vendor_commission_amount (not the raw service amount)
+  # across Main Agent/Affiliate/Ambassador/Investor/Company — same
+  # independent-percentage-of-base pattern HealthInsurance uses against
+  # net_premium. The form's JS mirrors this for a live preview; this is the
+  # authoritative calculation run on every save.
+  def calculate_commission_structure
+    base = vendor_commission_amount.to_f
+
+    self.main_agent_commission_percentage ||= 0
+    self.commission_amount = (base * main_agent_commission_percentage.to_f / 100.0).round(2)
+    self.tds_percentage ||= 0
+    self.tds_amount = (commission_amount.to_f * tds_percentage.to_f / 100.0).round(2)
+    self.after_tds_value = (commission_amount.to_f - tds_amount.to_f).round(2)
+
+    self.sub_agent_commission_percentage ||= 0
+    self.sub_agent_commission_amount = (base * sub_agent_commission_percentage.to_f / 100.0).round(2)
+    self.sub_agent_tds_percentage ||= 0
+    self.sub_agent_tds_amount = (sub_agent_commission_amount.to_f * sub_agent_tds_percentage.to_f / 100.0).round(2)
+    self.sub_agent_after_tds_value = (sub_agent_commission_amount.to_f - sub_agent_tds_amount.to_f).round(2)
+
+    self.distributor_commission_percentage ||= 0
+    self.distributor_commission_amount = (base * distributor_commission_percentage.to_f / 100.0).round(2)
+    self.distributor_tds_percentage ||= 0
+    self.distributor_tds_amount = (distributor_commission_amount.to_f * distributor_tds_percentage.to_f / 100.0).round(2)
+    self.distributor_after_tds_value = (distributor_commission_amount.to_f - distributor_tds_amount.to_f).round(2)
+
+    self.investor_commission_percentage ||= 0
+    self.investor_commission_amount = (base * investor_commission_percentage.to_f / 100.0).round(2)
+
+    self.company_expenses_percentage ||= 0
+    self.company_expenses_amount = (base * company_expenses_percentage.to_f / 100.0).round(2)
+
+    self.total_distribution_percentage = (
+      sub_agent_commission_percentage.to_f +
+      distributor_commission_percentage.to_f +
+      investor_commission_percentage.to_f
+    ).round(2)
+
+    self.profit_percentage = (
+      main_agent_commission_percentage.to_f - total_distribution_percentage.to_f - company_expenses_percentage.to_f
+    ).round(2)
+    self.profit_amount = (base * profit_percentage.to_f / 100.0).round(2)
+  end
+
   def create_vendor_payout_on_completion
     return if VendorPayout.exists?(client_service_id: id)
 
-    category, subcategory = vendor_product_key
-    unless category && subcategory
-      Rails.logger.warn "ClientService ##{id}: completed with vendor_id=#{vendor_id} but service_type #{service_type} has no VendorPayout mapping"
-      return
-    end
-
-    vendor_product = vendor.vendor_products.find_by(product_category: category, product_subcategory: subcategory)
+    vendor_product = matched_vendor_product
     unless vendor_product
-      Rails.logger.warn "ClientService ##{id}: vendor ##{vendor_id} has no matching VendorProduct for #{category}/#{subcategory}, skipping VendorPayout"
+      Rails.logger.warn "ClientService ##{id}: completed with vendor_id=#{vendor_id} but no matching VendorProduct for #{service_type}, skipping VendorPayout"
       return
     end
-
-    service_value = amount.to_f
-    commission_percentage = vendor_product.commission_percentage.to_f
 
     VendorPayout.create!(
       vendor: vendor,
       client_service: self,
-      lead_value: service_value,
-      commission_percentage: commission_percentage,
-      commission_amount: (service_value * commission_percentage / 100.0).round(2)
+      lead_value: amount.to_f,
+      commission_percentage: vendor_product.commission_percentage.to_f,
+      commission_amount: vendor_commission_amount.to_f
     )
   rescue => e
     Rails.logger.error "Failed to create VendorPayout for client_service ##{id}: #{e.message}"

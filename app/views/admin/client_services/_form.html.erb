@@ -77,7 +77,11 @@
         <div class="col-md-6 mb-3">
           <%= form.label :vendor_id, "Vendor", class: "form-label" %>
           <%= form.select :vendor_id,
-              options_for_select([['No Vendor', '']] + @vendors.map { |v| [v.display_name, v.id] }, @client_service.vendor_id),
+              options_for_select(
+                [['No Vendor', '', { data: { commission: 0 } }]] +
+                  @vendors.map { |v| [v.display_name, v.id, { data: { commission: @vendor_commission_percentages[v.id].to_f } }] },
+                @client_service.vendor_id
+              ),
               { prompt: 'Select vendor (optional)...' },
               { class: "form-control select2-vendor", id: "cs_vendor_select" } %>
           <% if @vendors.empty? %>
@@ -160,6 +164,23 @@
             </tr>
           </thead>
           <tbody>
+            <!-- Vendor Commission: what DrWise receives from the vendor, and
+                 the base every row below splits from (not the raw Amount). -->
+            <tr class="border-bottom" style="background: #eef6ff;">
+              <td class="py-3 px-4 fw-bold text-dark">Vendor Commission <small class="text-muted fw-normal d-block">(DrWise Receives)</small></td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :vendor_commission_percentage, class: "form-control border-1 text-center fw-bold",
+                    value: @client_service.vendor_commission_percentage || 0, step: 0.01, readonly: true, id: "cs_vendor_commission_pct" %>
+              </td>
+              <td class="py-2 px-1 text-center">
+                <%= form.number_field :vendor_commission_amount, class: "form-control border-1 text-center fw-bold",
+                    value: @client_service.vendor_commission_amount || 0, step: 0.01, readonly: true, id: "cs_vendor_commission_amt" %>
+              </td>
+              <td class="py-2 px-1 text-center text-muted">—</td>
+              <td class="py-2 px-1 text-center text-muted">—</td>
+              <td class="py-2 px-1 text-center text-muted">—</td>
+            </tr>
+
             <!-- Main Agent -->
             <tr class="border-bottom">
               <td class="py-3 px-4 fw-bold text-dark bg-light">Main Agent</td>
@@ -327,11 +348,20 @@
   function setVal(id, v) { const el = document.getElementById(id); if (el) el.value = v.toFixed(2); }
 
   function recalculate() {
-    const amount  = getVal('cs_amount');
+    const amount = getVal('cs_amount');
+    const vendorSelect = document.getElementById('cs_vendor_select');
+    const vendorPct = vendorSelect ? (parseFloat(vendorSelect.selectedOptions[0]?.dataset.commission) || 0) : 0;
+
+    // DrWise's commission from the vendor — the base every role below
+    // splits from, not the raw Amount.
+    const base = amount * vendorPct / 100;
+    setVal('cs_vendor_commission_pct', vendorPct);
+    setVal('cs_vendor_commission_amt', base);
+
     const mainPct = getVal('cs_commission_pct');
     const tdsPct  = getVal('cs_tds_pct');
 
-    const commAmt = amount * mainPct / 100;
+    const commAmt = base * mainPct / 100;
     const tdsAmt  = commAmt * tdsPct / 100;
     setVal('cs_commission_amt', commAmt);
     setVal('cs_tds_amt', tdsAmt);
@@ -342,42 +372,42 @@
     const invPct = parseFloat(document.querySelector('.cs-inv-pct')?.value) || 0;
     const expPct = parseFloat(document.querySelector('.cs-exp-pct')?.value) || 0;
 
-    const subAmt = amount * subPct / 100;
-    const ambAmt = amount * ambPct / 100;
-    const invAmt = amount * invPct / 100;
-    const expAmt = amount * expPct / 100;
+    const subAmt = base * subPct / 100;
+    const ambAmt = base * ambPct / 100;
+    const invAmt = base * invPct / 100;
+    const expAmt = base * expPct / 100;
 
     const rows = document.querySelectorAll('.commission-table tbody tr');
-    if (rows[1]) {
-      const inputs = rows[1].querySelectorAll('input[type="number"]');
+    if (rows[2]) {
+      const inputs = rows[2].querySelectorAll('input[type="number"]');
       if (inputs[1]) inputs[1].value = subAmt.toFixed(2);
       const subTdsPct = parseFloat(inputs[2]?.value) || 0;
       const subTdsAmt = subAmt * subTdsPct / 100;
       if (inputs[3]) inputs[3].value = subTdsAmt.toFixed(2);
       if (inputs[4]) inputs[4].value = (subAmt - subTdsAmt).toFixed(2);
     }
-    if (rows[2]) {
-      const inputs = rows[2].querySelectorAll('input[type="number"]');
+    if (rows[3]) {
+      const inputs = rows[3].querySelectorAll('input[type="number"]');
       if (inputs[1]) inputs[1].value = ambAmt.toFixed(2);
       const ambTdsPct = parseFloat(inputs[2]?.value) || 0;
       const ambTdsAmt = ambAmt * ambTdsPct / 100;
       if (inputs[3]) inputs[3].value = ambTdsAmt.toFixed(2);
       if (inputs[4]) inputs[4].value = (ambAmt - ambTdsAmt).toFixed(2);
     }
-    if (rows[3]) {
-      const inputs = rows[3].querySelectorAll('input[type="number"]');
+    if (rows[4]) {
+      const inputs = rows[4].querySelectorAll('input[type="number"]');
       if (inputs[1]) inputs[1].value = invAmt.toFixed(2);
       if (inputs[2]) inputs[2].value = invAmt.toFixed(2);
     }
-    if (rows[4]) {
-      const inputs = rows[4].querySelectorAll('input[type="number"]');
+    if (rows[5]) {
+      const inputs = rows[5].querySelectorAll('input[type="number"]');
       if (inputs[1]) inputs[1].value = expAmt.toFixed(2);
       if (inputs[2]) inputs[2].value = expAmt.toFixed(2);
     }
 
     const totalDist = subPct + ambPct + invPct;
     const profitPct = mainPct - totalDist - expPct;
-    const profitAmt = amount * profitPct / 100;
+    const profitAmt = base * profitPct / 100;
     setVal('cs_profit_pct', profitPct);
     setVal('cs_profit_amt', profitAmt);
     const distField = document.getElementById('cs_total_dist_pct');
@@ -389,11 +419,13 @@
       el.addEventListener('input', recalculate);
     });
     document.getElementById('cs_amount')?.addEventListener('input', recalculate);
+    document.getElementById('cs_vendor_select')?.addEventListener('change', recalculate);
     recalculate();
 
     $('#cs_customer_select').select2({ theme: 'bootstrap-5', placeholder: 'Type to search clients...', width: '100%', allowClear: true, dropdownParent: $('body') });
     $('#cs_affiliate_select').select2({ theme: 'bootstrap-5', placeholder: 'Type to search affiliates...', width: '100%', allowClear: true, dropdownParent: $('body') });
     $('#cs_vendor_select').select2({ theme: 'bootstrap-5', placeholder: 'Type to search vendors...', width: '100%', allowClear: true, dropdownParent: $('body') });
+    $('#cs_vendor_select').on('select2:select select2:clear', recalculate);
 
     $('#cs_customer_select').on('select2:select', function(e) {
       var customerId = e.params.data.id;

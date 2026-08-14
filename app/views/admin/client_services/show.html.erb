@@ -97,6 +97,14 @@
           </tr>
         </thead>
         <tbody>
+          <tr class="table-info">
+            <td class="fw-bold">Vendor Commission <small class="text-muted fw-normal d-block">(DrWise Receives)</small></td>
+            <td class="text-center"><%= @client_service.vendor_commission_percentage %>%</td>
+            <td class="text-center fw-bold"><%= indian_currency(@client_service.vendor_commission_amount) %></td>
+            <td class="text-center text-muted">—</td>
+            <td class="text-center text-muted">—</td>
+            <td class="text-center text-muted">—</td>
+          </tr>
           <tr>
             <td class="fw-bold bg-light">Main Agent</td>
             <td class="text-center"><%= @client_service.main_agent_commission_percentage %>%</td>
