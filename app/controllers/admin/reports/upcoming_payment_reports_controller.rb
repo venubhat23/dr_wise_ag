@@ -1,13 +1,18 @@
 class Admin::Reports::UpcomingPaymentReportsController < Admin::Reports::BaseController
   def index
-    @upcoming_payments = []
-
     # Get payments due in next 60 days
     end_date = Date.current + 60.days
 
-    @upcoming_payments += get_upcoming_health_payments(end_date)
-    @upcoming_payments += get_upcoming_motor_payments(end_date)
-    @upcoming_payments += get_upcoming_life_payments(end_date)
+    # Cache the formatted, unfiltered records for a few minutes so filter
+    # changes and pagination clicks don't each re-run 3 full policy scans.
+    # Keyed on the same dashboard_cache_gen used elsewhere, so a policy write
+    # still invalidates it promptly.
+    cache_gen = Rails.cache.read("dashboard_cache_gen") || "0"
+    @upcoming_payments = Rails.cache.fetch("upcoming_payments_#{cache_gen}_#{end_date}_v1", expires_in: 5.minutes) do
+      get_upcoming_health_payments(end_date) +
+        get_upcoming_motor_payments(end_date) +
+        get_upcoming_life_payments(end_date)
+    end
 
     # Apply filters
     @upcoming_payments = filter_upcoming_payments(@upcoming_payments)

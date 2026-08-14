@@ -1,11 +1,15 @@
 class Admin::Reports::PaymentDueReportsController < Admin::Reports::BaseController
   def index
-    @payment_due_records = []
-
-    # Get all unpaid policies
-    @payment_due_records += get_health_payment_due
-    @payment_due_records += get_motor_payment_due
-    @payment_due_records += get_life_payment_due
+    # The underlying policy records rarely change between requests, but this
+    # report re-loads and re-formats every Health/Motor/Life policy on every
+    # page view, filter change, and pagination click. Cache the formatted,
+    # unfiltered records for a few minutes, keyed on the same
+    # dashboard_cache_gen used elsewhere so a policy write still invalidates
+    # it promptly (see DashboardOptimizable / MotorInsurance#clear_dashboard_cache).
+    cache_gen = Rails.cache.read("dashboard_cache_gen") || "0"
+    @payment_due_records = Rails.cache.fetch("payment_due_records_#{cache_gen}_v1", expires_in: 5.minutes) do
+      get_health_payment_due + get_motor_payment_due + get_life_payment_due
+    end
 
     # Apply filters
     @payment_due_records = filter_payment_due(@payment_due_records)
