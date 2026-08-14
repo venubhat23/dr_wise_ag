@@ -10,6 +10,7 @@ class Vendor < ApplicationRecord
   has_many :vendor_payouts, dependent: :destroy
 
   after_commit :bump_vendor_cache_gen
+  before_validation :normalize_phone_number
 
   enum :status, { active: 0, inactive: 1 }
 
@@ -55,6 +56,16 @@ class Vendor < ApplicationRecord
   end
 
   private
+
+  # Strips formatting (spaces, dashes, +91 country code) so users can paste
+  # numbers like "+91 98765 43210" and still pass the 10-digit validation.
+  def normalize_phone_number
+    return if phone_number.blank?
+
+    digits = phone_number.gsub(/\D/, '')
+    digits = digits.last(10) if digits.length > 10
+    self.phone_number = digits
+  end
 
   # Dedicated cache generation for the vendors list/stats cache (see
   # Admin::VendorsController#index) — bumped on every write so a newly
