@@ -54,8 +54,10 @@ class ApplicationController < ActionController::Base
       investor_profit_summary_path
     elsif user.vendor?
       vendor_dashboard_path
-    else
+    elsif user.admin? || user.user_type == 'admin'
       root_path
+    else
+      new_user_session_path
     end
   end
 

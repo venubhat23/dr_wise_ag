@@ -37,7 +37,7 @@ class Admin::ApplicationController < ApplicationController
 
   def ensure_admin
     unless current_user&.admin? || current_user&.user_type == 'admin'
-      redirect_to root_path, alert: 'Access denied. Admin privileges required.'
+      redirect_to safe_fallback_path_for(current_user), alert: 'Access denied. Admin privileges required.'
     end
   end
 end

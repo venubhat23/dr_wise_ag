@@ -197,15 +197,34 @@ class Admin::VendorsController < Admin::ApplicationController
   # Provisions the paired login User for this vendor (mirrors
   # Admin::DistributorsController#create_ambassador_user_account). Matched by
   # email at login time, not a stored FK — same convention as Ambassador.
+  # If the email already belongs to a User of a different type (e.g. a
+  # leftover customer account), that account is converted to a vendor login
+  # with a fresh password rather than silently left as-is — the admin's
+  # intent in entering that email here is a working vendor login.
   # Returns the generated plaintext password (to flash once to the admin), or
-  # nil if no account was created (no email, or one already exists).
+  # nil if no account was created/changed (no email, or already a vendor).
   def create_vendor_user_account(vendor)
     return unless vendor&.email.present?
-    return if User.exists?(email: vendor.email)
+
+    existing_user = User.find_by(email: vendor.email)
+    return if existing_user&.vendor?
 
     vendor_role = Role.find_by(name: 'vendor') || Role.find_by(name: 'Vendor')
     vendor_user_role = UserRole.find_by(name: 'Vendor')
     password = generate_vendor_password
+
+    if existing_user
+      existing_user.update!(
+        password: password,
+        password_confirmation: password,
+        user_type: 'vendor',
+        role: vendor_role,
+        user_role: vendor_user_role,
+        status: true,
+        original_password: password
+      )
+      return password
+    end
 
     name_parts = vendor.name.to_s.split(' ', 2)
     User.create!(
