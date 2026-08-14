@@ -36,13 +36,17 @@
         </div>
 
         <div class="col-md-6">
-          <%= form.label :email, class: "form-label" %>
-          <%= form.email_field :email, class: "form-control" %>
+          <%= form.label :email, class: "form-label" do %>
+            Email <span class="text-danger">*</span>
+          <% end %>
+          <%= form.email_field :email, class: "form-control", required: true %>
         </div>
 
         <div class="col-md-6">
-          <%= form.label :phone_number, "Phone Number", class: "form-label" %>
-          <%= form.text_field :phone_number, class: "form-control", placeholder: "9XXXXXXXXX" %>
+          <%= form.label :phone_number, class: "form-label" do %>
+            Phone Number <span class="text-danger">*</span>
+          <% end %>
+          <%= form.text_field :phone_number, class: "form-control", placeholder: "9XXXXXXXXX", required: true %>
         </div>
 
         <div class="col-md-6">

@@ -23,13 +23,13 @@ class Vendor < ApplicationRecord
   }.freeze
 
   validates :name, presence: true
-  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
+  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :phone_number,
+            presence: true,
             format: {
               with: /\A[6-9]\d{9}\z/,
               message: "must be a valid 10-digit Indian mobile number (6-9 as first digit)"
-            },
-            allow_blank: true
+            }
 
   pg_search_scope :search_by_name_company_contact,
                   against: [:name, :company_name, :email, :phone_number, :gst_number],
