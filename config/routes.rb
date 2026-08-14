@@ -259,6 +259,15 @@ Rails.application.routes.draw do
       end
     end
 
+    # Vendor management
+    resources :vendors do
+      member do
+        patch :toggle_status
+        patch :deactivate
+        patch :activate
+      end
+    end
+
     # Distributor management
     resources :distributors do
       collection do

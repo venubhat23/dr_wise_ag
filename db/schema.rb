@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_14_000001) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_14_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -2014,6 +2014,35 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000001) do
     t.index ["user_role_id"], name: "index_users_on_user_role_id"
   end
 
+  create_table "vendor_products", force: :cascade do |t|
+    t.bigint "vendor_id", null: false
+    t.string "product_category", null: false
+    t.string "product_subcategory", null: false
+    t.decimal "commission_percentage", precision: 8, scale: 2, default: "0.0"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["vendor_id", "product_category", "product_subcategory"], name: "idx_vendor_products_unique", unique: true
+    t.index ["vendor_id"], name: "index_vendor_products_on_vendor_id"
+  end
+
+  create_table "vendors", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "company_name"
+    t.string "email"
+    t.string "phone_number"
+    t.text "address"
+    t.string "gst_number"
+    t.text "notes"
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_vendors_on_created_at"
+    t.index ["email"], name: "index_vendors_on_email"
+    t.index ["gst_number"], name: "index_vendors_on_gst_number"
+    t.index ["phone_number"], name: "index_vendors_on_phone_number"
+    t.index ["status"], name: "index_vendors_on_status"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "agency_codes", "brokers"
@@ -2098,4 +2127,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000001) do
   add_foreign_key "user_sessions", "users"
   add_foreign_key "users", "roles"
   add_foreign_key "users", "user_roles"
+  add_foreign_key "vendor_products", "vendors"
 end

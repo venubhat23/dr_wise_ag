@@ -971,6 +971,21 @@ body.sidebar-collapsed .main-content {
           </li>
         <% end %>
 
+        <!-- Vendors -->
+        <% if show_sidebar_item?('vendors') %>
+          <li class="nav-item">
+            <%= link_to admin_vendors_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/vendors')}", data: { tooltip: "Vendors" } do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-teal">
+                  <i class="bi bi-truck"></i>
+                </div>
+              </div>
+              <span class="nav-text">Vendors</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+
       </ul>
     </div>
     <% end %>
