@@ -8,70 +8,6 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
   def index
     @current_tab = params[:tab] || 'drwise'
 
-    # Base query
-    # NOTE: intentionally .includes (not .eager_load) — renewal_policy self-joins
-    # other_insurances to itself, and eager_load's single JOIN query makes every
-    # unqualified column in the raw SQL WHERE fragments below (is_customer_added etc.)
-    # ambiguous between the base table and the joined renewal_policy row.
-    @other_insurances = OtherInsurance.includes(:customer, :renewal_policy, :sub_agent)
-
-    # Search functionality
-    if params[:search].present?
-      search_term = params[:search]
-      @other_insurances = @other_insurances.joins(:customer).where(
-        "other_insurances.policy_number ILIKE ? OR other_insurances.insurance_company_name ILIKE ? OR customers.first_name ILIKE ? OR customers.last_name ILIKE ? OR customers.company_name ILIKE ?",
-        "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%"
-      )
-    end
-
-    # Policy type filter
-    if params[:policy_type].present?
-      case params[:policy_type]
-      when 'travel'
-        @other_insurances = @other_insurances.where(insurance_type: 'Travel Insurance')
-      when 'property'
-        @other_insurances = @other_insurances.where(insurance_type: 'Property Insurance')
-      when 'cyber'
-        @other_insurances = @other_insurances.where(insurance_type: 'Cyber Insurance')
-      when 'professional'
-        @other_insurances = @other_insurances.where(insurance_type: 'Professional Indemnity')
-      end
-    end
-
-    # Status filter (based on policy end date since there's no status column)
-    if params[:status].present?
-      case params[:status]
-      when 'active'
-        @other_insurances = @other_insurances.where('policy_end_date IS NULL OR policy_end_date >= ?', Date.current)
-      when 'expired'
-        @other_insurances = @other_insurances.where('policy_end_date < ?', Date.current)
-      when 'pending'
-        @other_insurances = @other_insurances.where('policy_start_date > ?', Date.current)
-      end
-    end
-
-    # Advanced filters
-    @other_insurances = @other_insurances.where(insurance_type: params[:insurance_type])      if params[:insurance_type].present?
-    @other_insurances = @other_insurances.where(payment_mode: params[:payment_mode])           if params[:payment_mode].present?
-    @other_insurances = @other_insurances.where(insurance_company_name: params[:company])      if params[:company].present?
-    @other_insurances = @other_insurances.where(sub_agent_id: params[:sub_agent_id])           if params[:sub_agent_id].present?
-    @other_insurances = @other_insurances.where("policy_start_date >= ?", params[:from_date])  if params[:from_date].present?
-    @other_insurances = @other_insurances.where("policy_start_date <= ?", params[:to_date])    if params[:to_date].present?
-
-    # Tab-based filtering using DrWise/Non-DrWise classification
-    if @current_tab == 'drwise'
-      @other_insurances = @other_insurances.where(
-        is_admin_added: true,
-        is_customer_added: false,
-        is_agent_added: false
-      )
-    else
-      @other_insurances = @other_insurances.where(
-        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-        true, false, false, true, false, false
-      )
-    end
-
     # Whole-table stats (not scoped to search/filters) — cached briefly to avoid
     # a DB round trip on every single page load.
     stats = Rails.cache.fetch('other_insurance_tab_statistics', expires_in: 2.minutes) do
@@ -119,10 +55,40 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
     @filter_insurance_types = dropdown_data.map { |r| r[1] }.compact.uniq.reject(&:blank?).sort
     @filter_payment_modes   = dropdown_data.map { |r| r[2] }.compact.uniq.reject(&:blank?).sort
     sub_agent_ids           = dropdown_data.map { |r| r[3] }.compact.uniq
-    @filter_sub_agents      = SubAgent.where(id: sub_agent_ids).order(:first_name, :last_name)
+    @filter_sub_agents      = Rails.cache.fetch("other_insurance_filter_sub_agents/#{sub_agent_ids.sort.join(',')}", expires_in: 10.minutes) do
+      SubAgent.where(id: sub_agent_ids).order(:first_name, :last_name).to_a
+    end
 
-    @other_insurances = paginate_records(@other_insurances.order(policy_start_date: :desc))
-    @document_counts = OtherInsurance.batch_document_counts(@other_insurances.map(&:id))
+    # The filtered/sorted/paginated page (plus its per-row document counts) is
+    # the most expensive part of this action — each is a separate DB round
+    # trip and this DB has ~600ms latency per round trip. Cache the whole
+    # assembled page per unique filter+tab+page combination so repeat views
+    # of the same listing skip the DB entirely instead of re-running several
+    # queries every time.
+    cache_gen = Rails.cache.read("dashboard_cache_gen") || "0"
+    page_cache_key = [
+      "other_insurances_page_v1", cache_gen, @current_tab, per_page_param, params[:page],
+      params[:search], params[:policy_type], params[:status], params[:insurance_type],
+      params[:payment_mode], params[:company], params[:sub_agent_id], params[:from_date], params[:to_date]
+    ].join('|')
+
+    page_bundle = Rails.cache.fetch(page_cache_key, expires_in: 2.minutes) do
+      paginated = paginate_records(apply_other_index_filters(other_index_base_scope, @current_tab).order(policy_start_date: :desc))
+      {
+        records: paginated.to_a,
+        total_record_count: @total_record_count,
+        items_per_page: @items_per_page,
+        show_pagination: @show_pagination,
+        document_counts: OtherInsurance.batch_document_counts(paginated.map(&:id))
+      }
+    end
+
+    @other_insurances    = Kaminari.paginate_array(page_bundle[:records], total_count: page_bundle[:total_record_count])
+                                    .page(params[:page]).per(page_bundle[:items_per_page])
+    @total_record_count  = page_bundle[:total_record_count]
+    @items_per_page      = page_bundle[:items_per_page]
+    @show_pagination     = page_bundle[:show_pagination]
+    @document_counts     = page_bundle[:document_counts]
 
     if @current_tab == 'drwise'
       @total_policies = @drwise_count
@@ -792,6 +758,61 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
   end
 
   private
+
+  # NOTE: intentionally .includes (not .eager_load) — renewal_policy self-joins
+  # other_insurances to itself, and eager_load's single JOIN query makes every
+  # unqualified column in the raw SQL WHERE fragments below (is_customer_added etc.)
+  # ambiguous between the base table and the joined renewal_policy row.
+  def other_index_base_scope
+    OtherInsurance.includes(:customer, :renewal_policy, :sub_agent)
+  end
+
+  # NOTE: this intentionally mirrors the index action's own filter set, which
+  # differs slightly from build_other_filtered_scope (used by the CSV/Excel
+  # download action below) — e.g. the status filter's 'pending' branch here
+  # vs. 'expiring_soon' there. That divergence predates this change; kept as-is.
+  def apply_other_index_filters(scope, tab)
+    if params[:search].present?
+      search_term = params[:search]
+      scope = scope.joins(:customer).where(
+        "other_insurances.policy_number ILIKE ? OR other_insurances.insurance_company_name ILIKE ? OR customers.first_name ILIKE ? OR customers.last_name ILIKE ? OR customers.company_name ILIKE ?",
+        "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%", "%#{search_term}%"
+      )
+    end
+
+    if params[:policy_type].present?
+      case params[:policy_type]
+      when 'travel'       then scope = scope.where(insurance_type: 'Travel Insurance')
+      when 'property'     then scope = scope.where(insurance_type: 'Property Insurance')
+      when 'cyber'        then scope = scope.where(insurance_type: 'Cyber Insurance')
+      when 'professional' then scope = scope.where(insurance_type: 'Professional Indemnity')
+      end
+    end
+
+    if params[:status].present?
+      case params[:status]
+      when 'active'  then scope = scope.where('policy_end_date IS NULL OR policy_end_date >= ?', Date.current)
+      when 'expired' then scope = scope.where('policy_end_date < ?', Date.current)
+      when 'pending' then scope = scope.where('policy_start_date > ?', Date.current)
+      end
+    end
+
+    scope = scope.where(insurance_type: params[:insurance_type])      if params[:insurance_type].present?
+    scope = scope.where(payment_mode: params[:payment_mode])           if params[:payment_mode].present?
+    scope = scope.where(insurance_company_name: params[:company])      if params[:company].present?
+    scope = scope.where(sub_agent_id: params[:sub_agent_id])           if params[:sub_agent_id].present?
+    scope = scope.where("policy_start_date >= ?", params[:from_date])  if params[:from_date].present?
+    scope = scope.where("policy_start_date <= ?", params[:to_date])    if params[:to_date].present?
+
+    if tab == 'drwise'
+      scope.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
+    else
+      scope.where(
+        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+        true, false, false, true, false, false
+      )
+    end
+  end
 
   def build_other_filtered_scope
     scope = OtherInsurance.includes(:customer, :sub_agent)

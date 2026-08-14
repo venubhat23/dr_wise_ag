@@ -5,53 +5,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
   skip_before_action :verify_authenticity_token, only: [:insurance_companies_by_agency]
 
   def index
-    # NOTE: intentionally .includes (not .eager_load) — renewal_policy self-joins
-    # health_insurances to itself, and eager_load's single JOIN query makes every
-    # unqualified column in the raw SQL WHERE fragments below (is_customer_added etc.)
-    # ambiguous between the base table and the joined renewal_policy row.
-    @health_insurances = HealthInsurance.includes(:customer, :sub_agent, :distributor, :agency_code, :broker, :renewal_policy)
-
-    # Tab-based filtering for DrWise vs Non-DrWise policies
     @current_tab = params[:tab] || 'drwise'
-
-    case @current_tab
-    when 'drwise'
-      # DrWise policies: Admin added policies (is_admin_added: true AND others false)
-      @health_insurances = @health_insurances.where(
-        is_admin_added: true,
-        is_customer_added: false,
-        is_agent_added: false
-      )
-    when 'non_drwise'
-      # Non-DrWise policies: Customer or Agent added policies
-      @health_insurances = @health_insurances.where(
-        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-        true, false, false, true, false, false
-      )
-    end
-
-    # Search functionality (within current tab)
-    if params[:search].present?
-      @health_insurances = @health_insurances.search_health_policies(params[:search])
-    end
-
-    # Status filter
-    if params[:status].present?
-      case params[:status]
-      when 'active'        then @health_insurances = @health_insurances.where('policy_end_date IS NULL OR policy_end_date >= ?', Date.current)
-      when 'expiring_soon' then @health_insurances = @health_insurances.where(policy_end_date: Date.current..30.days.from_now)
-      when 'expired'       then @health_insurances = @health_insurances.where('policy_end_date < ?', Date.current)
-      end
-    end
-
-    # Advanced filters
-    @health_insurances = @health_insurances.where(insurance_type: params[:insurance_type])   if params[:insurance_type].present?
-    @health_insurances = @health_insurances.where(payment_mode: params[:payment_mode])        if params[:payment_mode].present?
-    @health_insurances = @health_insurances.where(insurance_company_name: params[:company])   if params[:company].present?
-    @health_insurances = @health_insurances.where(sub_agent_id: params[:sub_agent_id])        if params[:sub_agent_id].present?
-    @health_insurances = @health_insurances.where(policy_type: params[:policy_type])          if params[:policy_type].present?
-    @health_insurances = @health_insurances.where("policy_start_date >= ?", params[:from_date]) if params[:from_date].present?
-    @health_insurances = @health_insurances.where("policy_start_date <= ?", params[:to_date])   if params[:to_date].present?
 
     # Filter dropdowns — 1 pluck replaces 2 distinct queries; sub_agents via id lookup.
     # Cached briefly since this scans the whole table and the option lists barely change.
@@ -61,14 +15,44 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     @filter_companies     = hi_dropdown_data.map { |r| r[0] }.compact.uniq.reject(&:blank?).sort
     @filter_payment_modes = hi_dropdown_data.map { |r| r[1] }.compact.uniq.reject(&:blank?).sort
     hi_sub_agent_ids      = hi_dropdown_data.map { |r| r[2] }.compact.uniq
-    @filter_sub_agents    = SubAgent.where(id: hi_sub_agent_ids).order(:first_name, :last_name)
+    @filter_sub_agents    = Rails.cache.fetch("health_insurance_filter_sub_agents/#{hi_sub_agent_ids.sort.join(',')}", expires_in: 10.minutes) do
+      SubAgent.where(id: hi_sub_agent_ids).order(:first_name, :last_name).to_a
+    end
     @filter_policy_types  = ['New', 'Renewal']
 
     # Calculate statistics for current tab (before pagination)
     calculate_tab_statistics
 
-    @health_insurances = paginate_records(@health_insurances.order(policy_start_date: :desc))
-    @document_counts = HealthInsurance.batch_document_counts(@health_insurances.map(&:id))
+    # The filtered/sorted/paginated page (plus its per-row document counts) is
+    # the most expensive part of this action — each is a separate DB round
+    # trip and this DB has ~600ms latency per round trip. Cache the whole
+    # assembled page per unique filter+tab+page combination so repeat views
+    # of the same listing skip the DB entirely instead of re-running several
+    # queries every time.
+    cache_gen = Rails.cache.read("dashboard_cache_gen") || "0"
+    page_cache_key = [
+      "health_insurances_page_v1", cache_gen, @current_tab, per_page_param, params[:page],
+      params[:search], params[:status], params[:insurance_type], params[:payment_mode],
+      params[:company], params[:sub_agent_id], params[:policy_type], params[:from_date], params[:to_date]
+    ].join('|')
+
+    page_bundle = Rails.cache.fetch(page_cache_key, expires_in: 2.minutes) do
+      paginated = paginate_records(apply_health_filters(health_index_base_scope, @current_tab).order(policy_start_date: :desc))
+      {
+        records: paginated.to_a,
+        total_record_count: @total_record_count,
+        items_per_page: @items_per_page,
+        show_pagination: @show_pagination,
+        document_counts: HealthInsurance.batch_document_counts(paginated.map(&:id))
+      }
+    end
+
+    @health_insurances   = Kaminari.paginate_array(page_bundle[:records], total_count: page_bundle[:total_record_count])
+                                    .page(params[:page]).per(page_bundle[:items_per_page])
+    @total_record_count  = page_bundle[:total_record_count]
+    @items_per_page      = page_bundle[:items_per_page]
+    @show_pagination     = page_bundle[:show_pagination]
+    @document_counts     = page_bundle[:document_counts]
   end
 
   def show
@@ -658,10 +642,16 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
 
   private
 
-  def build_health_filtered_scope
-    scope = HealthInsurance.includes(:customer, :sub_agent)
-    current_tab = params[:tab] || 'drwise'
-    case current_tab
+  # NOTE: intentionally .includes (not .eager_load) — renewal_policy self-joins
+  # health_insurances to itself, and eager_load's single JOIN query makes every
+  # unqualified column in the raw SQL WHERE fragments below (is_customer_added etc.)
+  # ambiguous between the base table and the joined renewal_policy row.
+  def health_index_base_scope
+    HealthInsurance.includes(:customer, :sub_agent, :distributor, :agency_code, :broker, :renewal_policy)
+  end
+
+  def apply_health_filters(scope, tab)
+    case tab
     when 'drwise'
       scope = scope.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
     when 'non_drwise'
@@ -686,6 +676,10 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     scope = scope.where("policy_start_date >= ?", params[:from_date]) if params[:from_date].present?
     scope = scope.where("policy_start_date <= ?", params[:to_date])   if params[:to_date].present?
     scope
+  end
+
+  def build_health_filtered_scope
+    apply_health_filters(HealthInsurance.includes(:customer, :sub_agent), params[:tab] || 'drwise')
   end
 
   def generate_health_csv(records)

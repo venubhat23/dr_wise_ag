@@ -4,70 +4,41 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
   # GET /admin/insurance/life
   def index
-    # NOTE: intentionally .includes (not .eager_load) — renewal_policy self-joins
-    # life_insurances to itself, and eager_load's single JOIN query makes every
-    # unqualified column in the raw SQL WHERE fragments below (is_customer_added etc.)
-    # ambiguous between the base table and the joined renewal_policy row.
-    @life_insurances = LifeInsurance.includes(:customer, :sub_agent, :agency_code, :broker, :renewal_policy)
-
-    # Tab-based filtering for DrWise vs Non-DrWise policies
     @current_tab = params[:tab] || 'drwise'
-
-    case @current_tab
-    when 'drwise'
-      @life_insurances = @life_insurances.where(
-        is_admin_added: true, is_customer_added: false, is_agent_added: false
-      )
-    when 'non_drwise'
-      @life_insurances = @life_insurances.where(
-        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-        true, false, false, true, false, false
-      )
-    end
-
-    # Basic search
-    if params[:search].present?
-      @life_insurances = @life_insurances.search_life_policies(params[:search])
-    end
-
-    # Basic status filter
-    case params[:status]
-    when 'active'        then @life_insurances = @life_insurances.active
-    when 'expired'       then @life_insurances = @life_insurances.expired
-    when 'expiring_soon' then @life_insurances = @life_insurances.expiring_soon
-    end
-
-    # ── Advanced filters ──────────────────────────────────────────
-    if params[:company].present?
-      @life_insurances = @life_insurances.where(insurance_company_name: params[:company])
-    end
-
-    if params[:sub_agent_id].present?
-      @life_insurances = @life_insurances.where(sub_agent_id: params[:sub_agent_id])
-    end
-
-    if params[:policy_type].present?
-      @life_insurances = @life_insurances.where(policy_type: params[:policy_type])
-    end
-
-    if params[:payment_mode].present?
-      @life_insurances = @life_insurances.where(payment_mode: params[:payment_mode])
-    end
-
-    if params[:from_date].present?
-      @life_insurances = @life_insurances.where('policy_start_date >= ?', Date.parse(params[:from_date]))
-    end
-
-    if params[:to_date].present?
-      @life_insurances = @life_insurances.where('policy_start_date <= ?', Date.parse(params[:to_date]))
-    end
-    # ─────────────────────────────────────────────────────────────
 
     # Calculate statistics for current tab (before pagination)
     calculate_tab_statistics
 
-    @life_insurances = paginate_records(@life_insurances.order(policy_start_date: :desc))
-    @document_counts = LifeInsurance.batch_document_counts(@life_insurances.map(&:id))
+    # The filtered/sorted/paginated page (plus its per-row document counts) is
+    # the most expensive part of this action — each is a separate DB round
+    # trip and this DB has ~600ms latency per round trip. Cache the whole
+    # assembled page per unique filter+tab+page combination so repeat views
+    # of the same listing skip the DB entirely instead of re-running several
+    # queries every time.
+    cache_gen = Rails.cache.read("dashboard_cache_gen") || "0"
+    page_cache_key = [
+      "life_insurances_page_v1", cache_gen, @current_tab, per_page_param, params[:page],
+      params[:search], params[:status], params[:company], params[:sub_agent_id],
+      params[:policy_type], params[:payment_mode], params[:from_date], params[:to_date]
+    ].join('|')
+
+    page_bundle = Rails.cache.fetch(page_cache_key, expires_in: 2.minutes) do
+      paginated = paginate_records(apply_life_filters(life_index_base_scope, @current_tab).order(policy_start_date: :desc))
+      {
+        records: paginated.to_a,
+        total_record_count: @total_record_count,
+        items_per_page: @items_per_page,
+        show_pagination: @show_pagination,
+        document_counts: LifeInsurance.batch_document_counts(paginated.map(&:id))
+      }
+    end
+
+    @life_insurances     = Kaminari.paginate_array(page_bundle[:records], total_count: page_bundle[:total_record_count])
+                                    .page(params[:page]).per(page_bundle[:items_per_page])
+    @total_record_count  = page_bundle[:total_record_count]
+    @items_per_page      = page_bundle[:items_per_page]
+    @show_pagination     = page_bundle[:show_pagination]
+    @document_counts     = page_bundle[:document_counts]
 
     # Filter dropdowns — 1 pluck instead of 2 queries + avoid loading all sub_agents.
     # Cached briefly since this scans the whole table and the option lists barely change.
@@ -76,7 +47,9 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     end
     @filter_companies     = life_dropdown_data.map { |r| r[0] }.compact.uniq.reject(&:blank?).sort
     life_sub_agent_ids    = life_dropdown_data.map { |r| r[1] }.compact.uniq
-    @filter_sub_agents    = SubAgent.where(id: life_sub_agent_ids).order(:first_name, :last_name)
+    @filter_sub_agents    = Rails.cache.fetch("life_insurance_filter_sub_agents/#{life_sub_agent_ids.sort.join(',')}", expires_in: 10.minutes) do
+      SubAgent.where(id: life_sub_agent_ids).order(:first_name, :last_name).to_a
+    end
     @filter_policy_types  = LifeInsurance::POLICY_TYPES
     @filter_payment_modes = LifeInsurance::PAYMENT_MODES
   end
@@ -739,10 +712,16 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
 
   private
 
-  def build_life_filtered_scope
-    scope = LifeInsurance.includes(:customer, :sub_agent, :broker)
-    current_tab = params[:tab] || 'drwise'
-    case current_tab
+  # NOTE: intentionally .includes (not .eager_load) — renewal_policy self-joins
+  # life_insurances to itself, and eager_load's single JOIN query makes every
+  # unqualified column in the raw SQL WHERE fragments below (is_customer_added etc.)
+  # ambiguous between the base table and the joined renewal_policy row.
+  def life_index_base_scope
+    LifeInsurance.includes(:customer, :sub_agent, :agency_code, :broker, :renewal_policy)
+  end
+
+  def apply_life_filters(scope, tab)
+    case tab
     when 'drwise'
       scope = scope.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
     when 'non_drwise'
@@ -764,6 +743,10 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     scope = scope.where('policy_start_date >= ?', Date.parse(params[:from_date])) if params[:from_date].present?
     scope = scope.where('policy_start_date <= ?', Date.parse(params[:to_date]))   if params[:to_date].present?
     scope
+  end
+
+  def build_life_filtered_scope
+    apply_life_filters(LifeInsurance.includes(:customer, :sub_agent, :broker), params[:tab] || 'drwise')
   end
 
   def generate_life_csv(records)

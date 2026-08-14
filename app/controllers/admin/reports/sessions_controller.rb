@@ -25,39 +25,53 @@ module Admin
                       30.days.ago
                     end
 
-        # Simple login session statistics - only basic counts
-        @total_logins = Ahoy::Visit.where(started_at: date_from..Time.zone.now).count
-        @unique_users = Ahoy::Visit.where(started_at: date_from..Time.zone.now).distinct.count(:user_id)
-        @today_logins = Ahoy::Visit.where(started_at: Time.zone.now.beginning_of_day..Time.zone.now.end_of_day).count
+        # These 5 queries were recomputed from scratch on every request/filter
+        # change; cache them together per date_range for a couple minutes
+        # (session/login stats tolerate brief staleness fine).
+        cache_key = "sessions_report_stats_#{@date_range}_#{Time.zone.now.to_i / 120}_v1"
+        stats = Rails.cache.fetch(cache_key, expires_in: 2.minutes) do
+          total_logins = Ahoy::Visit.where(started_at: date_from..Time.zone.now).count
+          unique_users = Ahoy::Visit.where(started_at: date_from..Time.zone.now).distinct.count(:user_id)
+          today_logins = Ahoy::Visit.where(started_at: Time.zone.now.beginning_of_day..Time.zone.now.end_of_day).count
 
-        # Recent session activities (login and logout events)
-        @recent_activities = begin
-          # Try to use SessionActivity if the table exists
-          if ActiveRecord::Base.connection.table_exists?('session_activities')
-            SessionActivity.includes(:user)
-                          .for_date_range(date_from, Time.zone.now)
-                          .recent
-                          .limit(50)
-          else
-            # Fallback to Ahoy visits (login events only)
-            Ahoy::Visit
-              .includes(:user)
-              .where(started_at: date_from..Time.zone.now)
-              .order(started_at: :desc)
-              .limit(50)
-              .map { |visit| OpenStruct.new(user: visit.user, activity_type: 'login', occurred_at: visit.started_at) }
-          end
-        rescue => e
-          Rails.logger.error "Error fetching session activities: #{e.message}"
-          []
-        end.to_a # force-load once so the view's repeated .any?/.first/.each reuse this array
+          # Recent session activities (login and logout events)
+          recent_activities = begin
+            # Try to use SessionActivity if the table exists
+            if ActiveRecord::Base.connection.table_exists?('session_activities')
+              SessionActivity.includes(:user)
+                            .for_date_range(date_from, Time.zone.now)
+                            .recent
+                            .limit(50)
+            else
+              # Fallback to Ahoy visits (login events only)
+              Ahoy::Visit
+                .includes(:user)
+                .where(started_at: date_from..Time.zone.now)
+                .order(started_at: :desc)
+                .limit(50)
+                .map { |visit| OpenStruct.new(user: visit.user, activity_type: 'login', occurred_at: visit.started_at) }
+            end
+          rescue => e
+            Rails.logger.error "Error fetching session activities: #{e.message}"
+            []
+          end.to_a # force-load once so the view's repeated .any?/.first/.each reuse this array
 
-        # Logins by user type
-        @logins_by_role = Ahoy::Visit
-                          .joins(:user)
-                          .where(started_at: date_from..Time.zone.now)
-                          .group('users.user_type')
-                          .count
+          # Logins by user type
+          logins_by_role = Ahoy::Visit
+                            .joins(:user)
+                            .where(started_at: date_from..Time.zone.now)
+                            .group('users.user_type')
+                            .count
+
+          { total_logins: total_logins, unique_users: unique_users, today_logins: today_logins,
+            recent_activities: recent_activities, logins_by_role: logins_by_role }
+        end
+
+        @total_logins = stats[:total_logins]
+        @unique_users = stats[:unique_users]
+        @today_logins = stats[:today_logins]
+        @recent_activities = stats[:recent_activities]
+        @logins_by_role = stats[:logins_by_role]
 
         # Handle JSON requests for unique users modal
         respond_to do |format|

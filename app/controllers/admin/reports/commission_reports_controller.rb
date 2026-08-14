@@ -38,20 +38,20 @@ class Admin::Reports::CommissionReportsController < Admin::Reports::BaseControll
     end
 
     # Normal index page rendering
-    # Get saved reports for the listing
-    @saved_reports = Report.where(report_type: 'commission')
+    # Get saved reports for the listing (reuse the same base scope instead of rebuilding it 4x)
+    reports_scope = Report.where(report_type: 'commission')
+    @saved_reports = reports_scope
                            .includes(:created_by)
                            .order(created_at: :desc)
                            .page(params[:page])
                            .per(10)
 
     # Calculate statistics
-    @total_reports = Report.where(report_type: 'commission').count
-    @this_month_reports = Report.where(report_type: 'commission')
+    @total_reports = reports_scope.count
+    @this_month_reports = reports_scope
                                 .where(created_at: Date.current.beginning_of_month..Date.current.end_of_month)
                                 .count
-    @last_generated = Report.where(report_type: 'commission')
-                            .maximum(:created_at)
+    @last_generated = reports_scope.maximum(:created_at)
     @total_commission = calculate_total_commission_from_reports
 
     respond_to do |format|
@@ -366,13 +366,18 @@ class Admin::Reports::CommissionReportsController < Admin::Reports::BaseControll
   end
 
   def calculate_total_commission_from_reports
-    reports = Report.where(report_type: 'commission')
-    total = 0
-    reports.each do |report|
-      commission = report.report_data&.dig('statistics', 'total_commission')
-      total += commission.to_f if commission
+    # Loads every commission Report row to sum a JSON field in Ruby; cache it,
+    # keyed on the max id so a newly generated report invalidates it automatically.
+    last_id = Report.where(report_type: 'commission').maximum(:id) || 0
+    Rails.cache.fetch("commission_reports_total_#{last_id}_v1", expires_in: 10.minutes) do
+      reports = Report.where(report_type: 'commission')
+      total = 0
+      reports.each do |report|
+        commission = report.report_data&.dig('statistics', 'total_commission')
+        total += commission.to_f if commission
+      end
+      total
     end
-    total
   end
 
   def generate_csv_from_data(report_data, report_name, filters)

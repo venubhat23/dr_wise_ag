@@ -313,13 +313,18 @@ class Admin::Reports::UpcomingRenewalReportsController < Admin::Reports::BaseCon
   end
 
   def calculate_total_premium_value_from_reports
-    reports = Report.where(report_type: 'upcoming_renewal')
-    total = 0
-    reports.each do |report|
-      premium = report.report_data&.dig('statistics', 'total_premium')
-      total += premium.to_f if premium
+    # Loads every upcoming_renewal Report row to sum a JSON field in Ruby;
+    # cache it, keyed on the max id so a newly generated report invalidates it automatically.
+    last_id = Report.where(report_type: 'upcoming_renewal').maximum(:id) || 0
+    Rails.cache.fetch("upcoming_renewal_reports_total_#{last_id}_v1", expires_in: 10.minutes) do
+      reports = Report.where(report_type: 'upcoming_renewal')
+      total = 0
+      reports.each do |report|
+        premium = report.report_data&.dig('statistics', 'total_premium')
+        total += premium.to_f if premium
+      end
+      total
     end
-    total
   end
 
   def generate_csv_from_data(report_data, report_name, filters)

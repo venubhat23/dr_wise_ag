@@ -13,84 +13,6 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   def index
     @current_tab = params[:tab] || 'drwise'
 
-    # Base query
-    # eager_load (single LEFT JOIN query) instead of includes (one round trip per
-    # association) — all associations here are to-one so no row fan-out risk for pagination.
-    base_query = MotorInsurance.eager_load(:customer, :sub_agent, :agency_code, :broker)
-
-    # Search functionality
-    if params[:search].present?
-      base_query = base_query.search_motor_policies(params[:search])
-    end
-
-    # Filter by class of vehicle (Two Wheeler, Private Car, etc.)
-    # Accept both :class_of_vehicle and :vehicle_type for backwards compat with old links
-    class_of_vehicle_filter = params[:class_of_vehicle].presence || params[:vehicle_type].presence
-    if class_of_vehicle_filter.present?
-      base_query = base_query.where(class_of_vehicle: class_of_vehicle_filter)
-    end
-
-    # Filter by payment mode
-    if params[:payment_mode].present?
-      base_query = base_query.where(payment_mode: params[:payment_mode])
-    end
-
-    # Filter by insurance type
-    if params[:insurance_type].present?
-      base_query = base_query.where(insurance_type: params[:insurance_type])
-    end
-
-    # Filter by policy type
-    if params[:policy_type].present?
-      base_query = base_query.where(policy_type: params[:policy_type])
-    end
-
-    # Filter by vehicle number (registration number)
-    if params[:vehicle_number].present?
-      base_query = base_query.where("registration_number ILIKE ?", "%#{params[:vehicle_number]}%")
-    end
-
-    # Filter by insurance company
-    if params[:company].present?
-      base_query = base_query.where(insurance_company_name: params[:company])
-    end
-
-    # Filter by status
-    if params[:status].present?
-      case params[:status]
-      when 'active'        then base_query = base_query.where('policy_end_date IS NULL OR policy_end_date >= ?', Date.current)
-      when 'expiring_soon' then base_query = base_query.where(policy_end_date: Date.current..30.days.from_now)
-      when 'expired'       then base_query = base_query.where('policy_end_date < ?', Date.current)
-      end
-    end
-
-    # Filter by affiliate
-    if params[:sub_agent_id].present?
-      base_query = base_query.where(sub_agent_id: params[:sub_agent_id])
-    end
-
-    # Filter by policy start date range
-    if params[:from_date].present?
-      base_query = base_query.where("policy_start_date >= ?", params[:from_date])
-    end
-    if params[:to_date].present?
-      base_query = base_query.where("policy_start_date <= ?", params[:to_date])
-    end
-
-    # Tab-based filtering using DrWise/Non-DrWise classification
-    if @current_tab == 'drwise'
-      @motor_insurances = base_query.where(
-        is_admin_added: true,
-        is_customer_added: false,
-        is_agent_added: false
-      )
-    else
-      @motor_insurances = base_query.where(
-        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-        true, false, false, true, false, false
-      )
-    end
-
     # Whole-table stats (not scoped to search/filters) — cached briefly to avoid
     # two extra DB round trips on every single page load.
     stats = Rails.cache.fetch("motor_insurance_tab_statistics/#{@current_tab}", expires_in: 2.minutes) do
@@ -150,11 +72,44 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
     @filter_policy_types  = motor_dropdown_data.map { |r| r[1] }.compact.uniq.reject(&:blank?).sort
     @filter_payment_modes = motor_dropdown_data.map { |r| r[2] }.compact.uniq.reject(&:blank?).sort
     motor_sub_agent_ids   = motor_dropdown_data.map { |r| r[3] }.compact.uniq
-    @filter_sub_agents    = SubAgent.where(id: motor_sub_agent_ids).order(:first_name, :last_name)
+    @filter_sub_agents    = Rails.cache.fetch("motor_insurance_filter_sub_agents/#{motor_sub_agent_ids.sort.join(',')}", expires_in: 10.minutes) do
+      SubAgent.where(id: motor_sub_agent_ids).order(:first_name, :last_name).to_a
+    end
 
-    @motor_insurances = paginate_records(@motor_insurances.order(policy_start_date: :desc))
-    @document_counts = MotorInsurance.batch_document_counts(@motor_insurances.map(&:id))
-    @renewed_lookup = MotorInsurance.batch_has_been_renewed(@motor_insurances.to_a)
+    # The filtered/sorted/paginated page (plus its per-row document counts and
+    # renewal lookups) is the most expensive part of this action — each is a
+    # separate DB round trip and this DB has ~600ms latency per round trip.
+    # Cache the whole assembled page per unique filter+tab+page combination so
+    # repeat views of the same listing (the common case for an admin nav page)
+    # skip the DB entirely instead of re-running ~4 queries every time.
+    cache_gen = Rails.cache.read("dashboard_cache_gen") || "0"
+    class_of_vehicle_filter = params[:class_of_vehicle].presence || params[:vehicle_type].presence
+    page_cache_key = [
+      "motor_insurances_page_v1", cache_gen, @current_tab, per_page_param, params[:page],
+      params[:search], class_of_vehicle_filter, params[:payment_mode], params[:insurance_type],
+      params[:policy_type], params[:vehicle_number], params[:company], params[:status],
+      params[:sub_agent_id], params[:from_date], params[:to_date]
+    ].join('|')
+
+    page_bundle = Rails.cache.fetch(page_cache_key, expires_in: 2.minutes) do
+      paginated = paginate_records(apply_motor_filters(motor_index_base_scope, @current_tab).order(policy_start_date: :desc))
+      {
+        records: paginated.to_a,
+        total_record_count: @total_record_count,
+        items_per_page: @items_per_page,
+        show_pagination: @show_pagination,
+        document_counts: MotorInsurance.batch_document_counts(paginated.map(&:id)),
+        renewed_lookup: MotorInsurance.batch_has_been_renewed(paginated.to_a)
+      }
+    end
+
+    @motor_insurances    = Kaminari.paginate_array(page_bundle[:records], total_count: page_bundle[:total_record_count])
+                                    .page(params[:page]).per(page_bundle[:items_per_page])
+    @total_record_count  = page_bundle[:total_record_count]
+    @items_per_page      = page_bundle[:items_per_page]
+    @show_pagination     = page_bundle[:show_pagination]
+    @document_counts     = page_bundle[:document_counts]
+    @renewed_lookup      = page_bundle[:renewed_lookup]
   end
 
   def show
@@ -977,24 +932,28 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
   private
 
   def build_motor_filtered_scope
-    scope = MotorInsurance.includes(:customer, :sub_agent)
-    current_tab = params[:tab] || 'drwise'
-    if current_tab == 'drwise'
-      scope = scope.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
-    else
-      scope = scope.where(
-        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
-        true, false, false, true, false, false
-      )
-    end
+    apply_motor_filters(MotorInsurance.includes(:customer, :sub_agent), params[:tab] || 'drwise')
+  end
+
+  # Single LEFT JOIN query (via eager_load) instead of includes (one round
+  # trip per association) — all associations here are to-one so no row
+  # fan-out risk for pagination.
+  def motor_index_base_scope
+    MotorInsurance.eager_load(:customer, :sub_agent, :agency_code, :broker)
+  end
+
+  def apply_motor_filters(scope, tab)
     scope = scope.search_motor_policies(params[:search]) if params[:search].present?
+
     class_of_vehicle_filter = params[:class_of_vehicle].presence || params[:vehicle_type].presence
     scope = scope.where(class_of_vehicle: class_of_vehicle_filter) if class_of_vehicle_filter.present?
-    scope = scope.where(payment_mode: params[:payment_mode])    if params[:payment_mode].present?
-    scope = scope.where(policy_type: params[:policy_type])      if params[:policy_type].present?
-    scope = scope.where(insurance_company_name: params[:company]) if params[:company].present?
-    scope = scope.where(sub_agent_id: params[:sub_agent_id])    if params[:sub_agent_id].present?
+
+    scope = scope.where(payment_mode: params[:payment_mode]) if params[:payment_mode].present?
+    scope = scope.where(insurance_type: params[:insurance_type]) if params[:insurance_type].present?
+    scope = scope.where(policy_type: params[:policy_type]) if params[:policy_type].present?
     scope = scope.where("registration_number ILIKE ?", "%#{params[:vehicle_number]}%") if params[:vehicle_number].present?
+    scope = scope.where(insurance_company_name: params[:company]) if params[:company].present?
+
     if params[:status].present?
       case params[:status]
       when 'active'        then scope = scope.where('policy_end_date IS NULL OR policy_end_date >= ?', Date.current)
@@ -1002,9 +961,19 @@ class Admin::MotorInsurancesController < Admin::ApplicationController
       when 'expired'       then scope = scope.where('policy_end_date < ?', Date.current)
       end
     end
+
+    scope = scope.where(sub_agent_id: params[:sub_agent_id]) if params[:sub_agent_id].present?
     scope = scope.where("policy_start_date >= ?", params[:from_date]) if params[:from_date].present?
-    scope = scope.where("policy_start_date <= ?", params[:to_date])   if params[:to_date].present?
-    scope
+    scope = scope.where("policy_start_date <= ?", params[:to_date]) if params[:to_date].present?
+
+    if tab == 'drwise'
+      scope.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
+    else
+      scope.where(
+        '(is_customer_added = ? AND is_admin_added = ? AND is_agent_added = ?) OR (is_agent_added = ? AND is_customer_added = ? AND is_admin_added = ?)',
+        true, false, false, true, false, false
+      )
+    end
   end
 
   def generate_motor_csv(records)

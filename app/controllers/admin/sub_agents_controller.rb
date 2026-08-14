@@ -4,55 +4,72 @@ class Admin::SubAgentsController < Admin::ApplicationController
 
   # GET /admin/sub_agents
   def index
-    # Eager load associations to prevent N+1 queries
-    @sub_agents = SubAgent.includes(:assigned_distributor, :profile_image_attachment)
+    # Whole-table stats (not scoped to search/filters) — was recomputed via a
+    # DB round trip on every single page load; this DB has ~600ms latency per
+    # round trip, so cache it briefly like the equivalent insurance-list stats.
+    cache_gen = Rails.cache.read("dashboard_cache_gen") || "0"
+    stats = Rails.cache.fetch("sub_agents_statistics_#{cache_gen}", expires_in: 2.minutes) do
+      row = ActiveRecord::Base.connection.execute(<<~SQL).first
+        SELECT
+          COUNT(*)                                                                                 AS total,
+          COUNT(*) FILTER (WHERE status = 0)                                                       AS active_count,
+          COUNT(*) FILTER (WHERE status = 1)                                                       AS inactive_count,
+          COUNT(*) FILTER (WHERE id NOT IN (SELECT sub_agent_id FROM distributor_assignments WHERE sub_agent_id IS NOT NULL)) AS unassigned_count
+        FROM sub_agents
+      SQL
+      {
+        total: row['total'].to_i,
+        active_count: row['active_count'].to_i,
+        inactive_count: row['inactive_count'].to_i,
+        unassigned_count: row['unassigned_count'].to_i
+      }
+    end
+    @total_sub_agents      = stats[:total]
+    @active_sub_agents     = stats[:active_count]
+    @inactive_sub_agents   = stats[:inactive_count]
+    @unassigned_sub_agents = stats[:unassigned_count]
 
-    # Search functionality
-    if params[:search].present?
-      @sub_agents = @sub_agents.search_by_name_mobile_email(params[:search])
+    # The filtered/sorted/paginated page (plus its per-row policy counts) is
+    # the most expensive part of this action — each is a separate DB round
+    # trip. Cache the whole assembled page per unique filter+page combination
+    # so repeat views of the same listing skip the DB entirely.
+    page_cache_key = [
+      "sub_agents_page_v1", cache_gen, per_page_param, params[:page], params[:search], params[:status]
+    ].join('|')
+
+    page_bundle = Rails.cache.fetch(page_cache_key, expires_in: 2.minutes) do
+      scope = SubAgent.includes(:assigned_distributor, :profile_image_attachment)
+      scope = scope.search_by_name_mobile_email(params[:search]) if params[:search].present?
+      case params[:status]
+      when 'active'   then scope = scope.active
+      when 'inactive' then scope = scope.inactive
+      end
+
+      total_filtered_count = scope.count
+      paginated = paginate_records(scope.order(created_at: :desc), total_filtered_count)
+      sub_agent_ids = paginated.map(&:id)
+
+      {
+        records: paginated.to_a,
+        total_filtered_count: total_filtered_count,
+        total_record_count: @total_record_count,
+        items_per_page: @items_per_page,
+        show_pagination: @show_pagination,
+        health_policy_counts: HealthInsurance.where(sub_agent_id: sub_agent_ids).group(:sub_agent_id).count,
+        life_policy_counts: LifeInsurance.where(sub_agent_id: sub_agent_ids).group(:sub_agent_id).count,
+        motor_policy_counts: MotorInsurance.where(sub_agent_id: sub_agent_ids).group(:sub_agent_id).count
+      }
     end
 
-    # Filter by status
-    case params[:status]
-    when 'active'
-      @sub_agents = @sub_agents.active
-    when 'inactive'
-      @sub_agents = @sub_agents.inactive
-    end
-
-    # Get total count before pagination for display purposes
-    @total_filtered_count = @sub_agents.count
-
-    # Order and paginate using configurable pagination
-    @sub_agents = paginate_records(@sub_agents.order(created_at: :desc), @total_filtered_count)
-
-    # All four stats in one query instead of 3 count queries + Ruby iteration
-    stats = ActiveRecord::Base.connection.execute(<<~SQL).first
-      SELECT
-        COUNT(*)                                                                                 AS total,
-        COUNT(*) FILTER (WHERE status = 0)                                                       AS active_count,
-        COUNT(*) FILTER (WHERE status = 1)                                                       AS inactive_count,
-        COUNT(*) FILTER (WHERE id NOT IN (SELECT sub_agent_id FROM distributor_assignments WHERE sub_agent_id IS NOT NULL)) AS unassigned_count
-      FROM sub_agents
-    SQL
-    @total_sub_agents      = stats['total'].to_i
-    @active_sub_agents     = stats['active_count'].to_i
-    @inactive_sub_agents   = stats['inactive_count'].to_i
-    @unassigned_sub_agents = stats['unassigned_count'].to_i
-
-    # Preload policy counts for all sub_agents to avoid N+1 queries
-    sub_agent_ids = @sub_agents.map(&:id)
-
-    # Get policy counts in single queries
-    @health_policy_counts = HealthInsurance.where(sub_agent_id: sub_agent_ids)
-                                          .group(:sub_agent_id)
-                                          .count
-    @life_policy_counts = LifeInsurance.where(sub_agent_id: sub_agent_ids)
-                                       .group(:sub_agent_id)
-                                       .count
-    @motor_policy_counts = MotorInsurance.where(sub_agent_id: sub_agent_ids)
-                                         .group(:sub_agent_id)
-                                         .count
+    @sub_agents            = Kaminari.paginate_array(page_bundle[:records], total_count: page_bundle[:total_record_count])
+                                      .page(params[:page]).per(page_bundle[:items_per_page])
+    @total_filtered_count  = page_bundle[:total_filtered_count]
+    @total_record_count    = page_bundle[:total_record_count]
+    @items_per_page        = page_bundle[:items_per_page]
+    @show_pagination       = page_bundle[:show_pagination]
+    @health_policy_counts  = page_bundle[:health_policy_counts]
+    @life_policy_counts    = page_bundle[:life_policy_counts]
+    @motor_policy_counts   = page_bundle[:motor_policy_counts]
   end
 
   # GET /admin/sub_agents/1
