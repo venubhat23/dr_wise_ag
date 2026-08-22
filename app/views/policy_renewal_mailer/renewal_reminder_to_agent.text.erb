@@ -1,12 +1,32 @@
+<%
+  details = [
+    ["Policy Number", @policy.policy_number],
+    ["Plan", @policy.plan_name],
+    ["Insurer", @policy.insurance_company_name],
+    ["Policy Type", @policy.policy_type],
+    ["Sum Insured", (@policy.respond_to?(:sum_insured) && @policy.sum_insured.present? ? "Rs. #{'%.2f' % @policy.sum_insured}" : nil)],
+    ["Premium", (@policy.respond_to?(:total_premium) && @policy.total_premium.present? ? "Rs. #{'%.2f' % @policy.total_premium}" : nil)],
+    ["Payment Mode", @policy.payment_mode],
+    ["Policy End Date", @policy.policy_end_date.strftime("%d %b %Y")]
+  ].select { |_, value| value.present? }
+%>
 Hi <%= @agent.full_name %>,
 
 <% if @days_remaining.zero? -%>
-Policy <%= @policy.policy_number %> (<%= @policy.plan_name %>) for <%= @customer.display_name %> expired today, <%= @policy.policy_end_date.strftime("%d %b %Y") %>.
+This is to inform you that the <%= @policy_category %> policy held by your customer <%= @customer.display_name %>, bearing policy number <%= @policy.policy_number %> under the <%= @policy.plan_name %> plan<% if @policy.insurance_company_name.present? %> with <%= @policy.insurance_company_name %><% end %>, officially expired today on <%= @policy.policy_end_date.strftime("%d %b %Y") %>. Since the customer is now without active coverage, we'd appreciate it if you could reach out to them as soon as possible to walk them through the renewal process and help restore their protection without further delay.
 <% else -%>
-Policy <%= @policy.policy_number %> (<%= @policy.plan_name %>) for <%= @customer.display_name %> is expiring in <%= @days_remaining %> <%= @days_remaining == 1 ? "day" : "days" %>, on <%= @policy.policy_end_date.strftime("%d %b %Y") %>.
+This is a heads-up that the <%= @policy_category %> policy held by your customer <%= @customer.display_name %>, bearing policy number <%= @policy.policy_number %> under the <%= @policy.plan_name %> plan<% if @policy.insurance_company_name.present? %> with <%= @policy.insurance_company_name %><% end %>, is coming up for renewal on <%= @policy.policy_end_date.strftime("%d %b %Y") %>, which is only <%= @days_remaining %> <%= @days_remaining == 1 ? "day" : "days" %> away. Please take a moment to reach out to the customer ahead of this date so the renewal can be completed in good time and their coverage continues without any gap.
 <% end -%>
+
+Policy Details
+--------------
+<% details.each do |label, value| -%>
+<%= "#{label}:".ljust(20) %><%= value %>
+<% end -%>
+
+Customer Contact: <%= @customer.display_name %><% if @customer.respond_to?(:mobile) && @customer.mobile.present? %> - <%= @customer.mobile %><% end %><% if @customer.email.present? %> - <%= @customer.email %><% end %>
 
 Please follow up with the customer about renewal.
 
 Thank you,
-InsureBook
+Drwise Team

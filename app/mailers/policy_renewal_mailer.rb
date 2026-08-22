@@ -4,7 +4,8 @@ class PolicyRenewalMailer < ApplicationMailer
     @customer = policy.customer
     @agent = policy.sub_agent
     @days_remaining = days_remaining
-    mail(to: @customer.email, subject: subject_for(policy, days_remaining))
+    @policy_category = policy_category_for(policy)
+    mail(to: @customer.email, subject: customer_subject_for(policy, days_remaining))
   end
 
   def renewal_reminder_to_agent(policy, days_remaining)
@@ -12,17 +13,35 @@ class PolicyRenewalMailer < ApplicationMailer
     @customer = policy.customer
     @agent = policy.sub_agent
     @days_remaining = days_remaining
-    mail(to: @agent.email, subject: "[Renewal] #{subject_for(policy, days_remaining)}")
+    @policy_category = policy_category_for(policy)
+    mail(to: @agent.email, subject: agent_subject_for(policy, days_remaining))
   end
 
   private
 
-  def subject_for(policy, days_remaining)
+  # LifeInsurance/HealthInsurance/MotorInsurance/OtherInsurance -> "Life Insurance"/"Health Insurance"/...
+  def policy_category_for(policy)
+    policy.class.name.gsub(/([a-z\d])([A-Z])/, '\1 \2')
+  end
+
+  def customer_subject_for(policy, days_remaining)
+    category = policy_category_for(policy)
     if days_remaining.zero?
-      "Your #{policy.plan_name} policy has expired"
+      "Action Required: Your #{category} Policy Has Expired — Renew Today"
     else
-      day_word = days_remaining == 1 ? "day" : "days"
-      "Your #{policy.plan_name} policy expires in #{days_remaining} #{day_word}"
+      day_word = days_remaining == 1 ? "Day" : "Days"
+      "Renewal Reminder: Your #{category} Policy Expires in #{days_remaining} #{day_word}"
+    end
+  end
+
+  def agent_subject_for(policy, days_remaining)
+    category = policy_category_for(policy)
+    customer_name = policy.customer.display_name
+    if days_remaining.zero?
+      "Renewal Alert: #{customer_name}'s #{category} Policy Has Expired"
+    else
+      day_word = days_remaining == 1 ? "Day" : "Days"
+      "Renewal Alert: #{customer_name}'s #{category} Policy Expires in #{days_remaining} #{day_word}"
     end
   end
 end

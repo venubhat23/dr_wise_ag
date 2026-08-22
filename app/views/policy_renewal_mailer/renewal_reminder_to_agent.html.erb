@@ -1,20 +1,86 @@
-<p>Hi <%= @agent.full_name %>,</p>
+<%
+  details = [
+    ["Policy Number", @policy.policy_number],
+    ["Plan", @policy.plan_name],
+    ["Insurer", @policy.insurance_company_name],
+    ["Policy Type", @policy.policy_type],
+    ["Sum Insured", (@policy.respond_to?(:sum_insured) && @policy.sum_insured.present? ? "₹ #{'%.2f' % @policy.sum_insured}" : nil)],
+    ["Premium", (@policy.respond_to?(:total_premium) && @policy.total_premium.present? ? "₹ #{'%.2f' % @policy.total_premium}" : nil)],
+    ["Payment Mode", @policy.payment_mode],
+    ["Policy End Date", @policy.policy_end_date.strftime("%d %b %Y")]
+  ].select { |_, value| value.present? }
 
-<% if @days_remaining.zero? %>
-  <p>
-    Policy <strong><%= @policy.policy_number %></strong> (<%= @policy.plan_name %>) for
-    <strong><%= @customer.display_name %></strong> expired today,
-    <%= @policy.policy_end_date.strftime("%d %b %Y") %>.
-  </p>
-<% else %>
-  <p>
-    Policy <strong><%= @policy.policy_number %></strong> (<%= @policy.plan_name %>) for
-    <strong><%= @customer.display_name %></strong> is expiring in
-    <strong><%= @days_remaining %></strong> <%= @days_remaining == 1 ? "day" : "days" %>,
-    on <%= @policy.policy_end_date.strftime("%d %b %Y") %>.
-  </p>
-<% end %>
+  expired = @days_remaining.zero?
+  urgent = !expired && @days_remaining <= 7
+  badge_bg = expired ? "#fdecea" : (urgent ? "#fff4e5" : "#eef2ff")
+  badge_color = expired ? "#c0392b" : (urgent ? "#b45309" : "#4338ca")
+%>
+<div style="background:#f4f6fb;padding:24px 12px;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+    <tr>
+      <td style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:28px 32px;text-align:center;">
+        <h1 style="margin:0;color:#ffffff;font-size:22px;letter-spacing:0.5px;">Drwise</h1>
+        <p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:13px;"><%= @policy_category %> Renewal Alert</p>
+      </td>
+    </tr>
 
-<p>Please follow up with the customer about renewal.</p>
+    <tr>
+      <td style="padding:32px;">
+        <p style="margin:0 0 16px;font-size:15px;color:#333;">Hi <strong><%= @agent.full_name %></strong>,</p>
 
-<p>Thank you,<br>InsureBook</p>
+        <div style="display:inline-block;background:<%= badge_bg %>;color:<%= badge_color %>;font-weight:600;font-size:12px;letter-spacing:0.4px;text-transform:uppercase;padding:6px 14px;border-radius:20px;margin-bottom:14px;">
+          <% if expired %>
+            Policy Expired
+          <% else %>
+            Expires in <%= @days_remaining %> <%= @days_remaining == 1 ? "Day" : "Days" %>
+          <% end %>
+        </div>
+
+        <% if expired %>
+          <p style="font-size:14px;color:#444;line-height:1.7;margin:0 0 4px;">
+            This is to inform you that the <strong><%= @policy_category %></strong> policy held by your customer <strong><%= @customer.display_name %></strong>,
+            bearing policy number <strong><%= @policy.policy_number %></strong> under the <strong><%= @policy.plan_name %></strong> plan<% if @policy.insurance_company_name.present? %> with <strong><%= @policy.insurance_company_name %></strong><% end %>,
+            officially expired today on <strong><%= @policy.policy_end_date.strftime("%d %b %Y") %></strong>. Since the customer is now without active coverage, we'd appreciate it if you
+            could reach out to them as soon as possible to walk them through the renewal process and help restore their protection without further delay.
+          </p>
+        <% else %>
+          <p style="font-size:14px;color:#444;line-height:1.7;margin:0 0 4px;">
+            This is a heads-up that the <strong><%= @policy_category %></strong> policy held by your customer <strong><%= @customer.display_name %></strong>,
+            bearing policy number <strong><%= @policy.policy_number %></strong> under the <strong><%= @policy.plan_name %></strong> plan<% if @policy.insurance_company_name.present? %> with <strong><%= @policy.insurance_company_name %></strong><% end %>,
+            is coming up for renewal on <strong><%= @policy.policy_end_date.strftime("%d %b %Y") %></strong>, which is only <strong><%= @days_remaining %></strong> <%= @days_remaining == 1 ? "day" : "days" %> away.
+            Please take a moment to reach out to the customer ahead of this date so the renewal can be completed in good time and their coverage continues without any gap.
+          </p>
+        <% end %>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 8px;border:1px solid #ececf5;border-radius:10px;overflow:hidden;">
+          <tr style="background:#f8f9fd;">
+            <td colspan="2" style="padding:12px 16px;font-size:13px;font-weight:600;color:#555;border-bottom:1px solid #ececf5;">Policy Details</td>
+          </tr>
+          <% details.each_with_index do |(label, value), i| %>
+            <tr style="background:<%= i.even? ? '#ffffff' : '#fbfbfd' %>;">
+              <td style="padding:10px 16px;font-size:13px;color:#888;width:45%;border-bottom:1px solid #f2f2f6;">
+                <%= label %>
+              </td>
+              <td style="padding:10px 16px;font-size:13px;color:#222;font-weight:500;border-bottom:1px solid #f2f2f6;">
+                <%= value %>
+              </td>
+            </tr>
+          <% end %>
+        </table>
+
+        <div style="margin-top:8px;padding:14px 16px;background:#f8f9fd;border-radius:10px;font-size:13px;color:#444;line-height:1.6;">
+          <strong style="color:#333;">Customer Contact</strong><br>
+          <%= @customer.display_name %><% if @customer.respond_to?(:mobile) && @customer.mobile.present? %> — <%= @customer.mobile %><% end %><% if @customer.email.present? %> · <%= @customer.email %><% end %>
+        </div>
+
+        <p style="font-size:14px;color:#444;line-height:1.6;margin:16px 0 0;">Please follow up with the customer about renewal.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:20px 32px;background:#f8f9fd;text-align:center;font-size:12px;color:#999;">
+        Thank you,<br><strong style="color:#555;">Drwise Team</strong>
+      </td>
+    </tr>
+  </table>
+</div>

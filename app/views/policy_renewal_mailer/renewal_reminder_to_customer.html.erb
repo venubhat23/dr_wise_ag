@@ -21,7 +21,7 @@
     <tr>
       <td style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:28px 32px;text-align:center;">
         <h1 style="margin:0;color:#ffffff;font-size:22px;letter-spacing:0.5px;">Drwise</h1>
-        <p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Policy Renewal Reminder</p>
+        <p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:13px;"><%= @policy_category %> Policy Renewal Reminder</p>
       </td>
     </tr>
 
@@ -29,23 +29,29 @@
       <td style="padding:32px;">
         <p style="margin:0 0 16px;font-size:15px;color:#333;">Dear <strong><%= @customer.display_name %></strong>,</p>
 
-        <div style="display:inline-block;background:<%= badge_bg %>;color:<%= badge_color %>;font-weight:600;font-size:13px;padding:6px 14px;border-radius:20px;margin-bottom:14px;">
+        <div style="display:inline-block;background:<%= badge_bg %>;color:<%= badge_color %>;font-weight:600;font-size:12px;letter-spacing:0.4px;text-transform:uppercase;padding:6px 14px;border-radius:20px;margin-bottom:14px;">
           <% if expired %>
-            ⚠ Policy Expired Today
+            Policy Expired
           <% else %>
-            ⏰ Expiring in <%= @days_remaining %> <%= @days_remaining == 1 ? "day" : "days" %>
+            Expires in <%= @days_remaining %> <%= @days_remaining == 1 ? "Day" : "Days" %>
           <% end %>
         </div>
 
         <% if expired %>
-          <p style="font-size:14px;color:#444;line-height:1.6;margin:0 0 4px;">
-            Your policy <strong><%= @policy.policy_number %></strong> (<%= @policy.plan_name %>) expired today,
-            <strong><%= @policy.policy_end_date.strftime("%d %b %Y") %></strong>. Renew it as soon as possible to avoid a gap in your coverage.
+          <p style="font-size:14px;color:#444;line-height:1.7;margin:0 0 4px;">
+            We're writing to let you know that your <strong><%= @policy_category %></strong> policy, bearing policy number
+            <strong><%= @policy.policy_number %></strong> under the <strong><%= @policy.plan_name %></strong> plan<% if @policy.insurance_company_name.present? %> with <strong><%= @policy.insurance_company_name %></strong><% end %>,
+            officially expired today on <strong><%= @policy.policy_end_date.strftime("%d %b %Y") %></strong>, which means your coverage is no longer active as of this moment.
+            We strongly recommend that you get in touch with us or your agent at the earliest to renew this policy, so that you and your loved ones are not left without protection
+            in case of an unexpected event, and so that any ongoing benefits tied to this plan are not disrupted any further.
           </p>
         <% else %>
-          <p style="font-size:14px;color:#444;line-height:1.6;margin:0 0 4px;">
-            Your policy <strong><%= @policy.policy_number %></strong> (<%= @policy.plan_name %>) is set to expire on
-            <strong><%= @policy.policy_end_date.strftime("%d %b %Y") %></strong>. Please renew before it lapses to keep your coverage active without interruption.
+          <p style="font-size:14px;color:#444;line-height:1.7;margin:0 0 4px;">
+            We wanted to personally reach out and remind you that your <strong><%= @policy_category %></strong> policy, bearing policy number
+            <strong><%= @policy.policy_number %></strong> under the <strong><%= @policy.plan_name %></strong> plan<% if @policy.insurance_company_name.present? %> with <strong><%= @policy.insurance_company_name %></strong><% end %>,
+            is scheduled to expire on <strong><%= @policy.policy_end_date.strftime("%d %b %Y") %></strong>, which is just <strong><%= @days_remaining %></strong> <%= @days_remaining == 1 ? "day" : "days" %> away from today.
+            To make sure your coverage continues without any interruption and you remain protected against life's uncertainties, we encourage you to complete the renewal process well ahead
+            of this date, since even a brief lapse in coverage could leave you without the financial protection this policy is meant to provide.
           </p>
         <% end %>
 
