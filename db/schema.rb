@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_14_000007) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_21_094507) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -1512,6 +1512,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_14_000007) do
     t.index ["policy_id"], name: "index_other_insurances_on_policy_id"
     t.index ["policy_start_date"], name: "index_other_insurances_on_policy_start_date"
     t.index ["sub_agent_id"], name: "index_other_insurances_on_sub_agent_id"
+  end
+
+  create_table "otp_verifications", force: :cascade do |t|
+    t.string "identifier", null: false
+    t.string "identifier_type", null: false
+    t.string "purpose", default: "login", null: false
+    t.string "otp_digest", null: false
+    t.integer "attempts", default: 0, null: false
+    t.datetime "expires_at", null: false
+    t.datetime "verified_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["identifier", "purpose"], name: "index_otp_verifications_on_identifier_and_purpose"
   end
 
   create_table "payout_audit_logs", force: :cascade do |t|

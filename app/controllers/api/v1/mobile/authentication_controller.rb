@@ -31,104 +31,136 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     end
 
     # Check if it's a user login (including customers, agents, admin)
-    # Try to find by email first
-    user = User.find_by(email: login_field)
+    user = find_user_by_login_field(login_field)
 
-    # If not found by email, try PAN number (case-insensitive)
-    unless user
-      # Check if it looks like a PAN number (5 letters, 4 digits, 1 letter)
-      if login_field.match?(/\A[A-Za-z]{5}\d{4}[A-Za-z]\z/)
-        user = User.where("UPPER(pan_number) = ?", login_field.upcase).first
-      end
-    end
-
-    # If not found by email or PAN, try mobile number with formatting
-    unless user
-      formatted_mobile = format_mobile_number(login_field)
-      if formatted_mobile
-        # Try to find user with multiple mobile format variations in one query
-        user = User.where(mobile: mobile_number_variants(formatted_mobile)).first
-      else
-        # If format_mobile_number returns nil, try direct mobile search as fallback
-        user = User.find_by(mobile: login_field)
-      end
-    end
     if user && user.valid_password?(password) && user.status
-
-      if user.customer?
-        # Customer login - find associated customer record
-        customer = Customer.find_by(email: user.email)
-        unless customer
-          formatted_mobile = format_mobile_number(user.mobile)
-          if formatted_mobile
-            customer = Customer.where(mobile: mobile_number_variants(formatted_mobile)).first
-          else
-            customer = Customer.find_by(mobile: user.mobile)
-          end
-        end
-        if customer
-          token = generate_token(user, 'customer')
-          portfolio_stats = get_customer_portfolio_stats(customer)
-
-          render json: {
-            success: true,
-            data: {
-              token: token,
-              username: user.full_name,
-              role: 'customer',
-              user_id: user.id,
-              customer_id: customer.id,
-              email: user.email,
-              mobile: user.mobile,
-              password_reset_days: user.days_until_password_expires,
-              password_reset_required: user.password_reset_required?,
-              portfolio_summary: {
-                total_policies: portfolio_stats[:total_policies],
-                upcoming_installments: portfolio_stats[:upcoming_installments],
-                renewal_policies: portfolio_stats[:renewal_policies]
-              }
-            }
-          }
-          return
-        end
-      elsif user.agent? || user.admin? || user.sub_agent? || user.ambassador?
-        # Agent/Admin/Ambassador login
-        token = generate_token(user, user.user_type)
-        agent_stats = get_agent_statistics(user)
-
-        render json: {
-          success: true,
-          data: {
-            token: token,
-            username: user.full_name,
-            role: user.user_type,
-            user_id: user.id,
-            email: user.email,
-            mobile: user.mobile,
-            password_reset_days: user.days_until_password_expires,
-            password_reset_required: user.password_reset_required?,
-            commission_earned: format_indian_amount(agent_stats[:commission_earned]),
-            customers_count: agent_stats[:customers_count],
-            policies_count: agent_stats[:policies_count],
-            commission_breakdown: agent_stats[:commission_breakdown],
-            dashboard_stats: {
-              total_commission: format_indian_amount(agent_stats[:commission_earned]),
-              monthly_target: 75000,
-              achievement_percentage: ((agent_stats[:commission_earned] / 75000) * 100).round(2),
-              policies_this_month: (agent_stats[:policies_count] * 0.3).round,
-              customers_this_month: (agent_stats[:customers_count] * 0.25).round,
-              conversion_rate: "#{rand(65..85)}%"
-            }
-          }
-        }
-        return
-      end
+      return if render_user_login_response(user)
     end
 
     render json: {
       success: false,
       message: 'Invalid username or password'
     }, status: :unauthorized
+  end
+
+  # POST /api/v1/mobile/auth/otp/request
+  def request_otp
+    login_field = params[:login] || params[:email] || params[:mobile]
+    role = params[:role]&.downcase
+
+    if login_field.blank?
+      return render json: {
+        success: false,
+        message: 'Email or mobile number is required'
+      }, status: :unprocessable_entity
+    end
+
+    if role.present? && !['client', 'sub_agent'].include?(role)
+      return render json: {
+        success: false,
+        message: 'Invalid role. Valid roles are: client, sub_agent',
+        valid_roles: ['client', 'sub_agent']
+      }, status: :unprocessable_entity
+    end
+
+    identity = resolve_otp_identity(login_field, role)
+
+    unless identity
+      return render json: {
+        success: false,
+        message: 'No account found with the provided email or mobile number'
+      }, status: :not_found
+    end
+
+    unless identity[:active]
+      return render json: {
+        success: false,
+        message: 'Account is inactive. Please contact support.'
+      }, status: :unauthorized
+    end
+
+    otp, _record, retry_at = OtpVerification.generate!(
+      identifier: identity[:identifier],
+      identifier_type: identity[:identifier_type],
+      purpose: 'login'
+    )
+
+    if otp.nil?
+      return render json: {
+        success: false,
+        message: 'An OTP was already sent recently. Please wait before requesting a new one.',
+        retry_after: retry_at
+      }, status: :too_many_requests
+    end
+
+    SendOtpJob.perform_later(identifier: identity[:identifier], identifier_type: identity[:identifier_type], otp: otp)
+
+    render json: {
+      success: true,
+      message: "OTP sent to your #{identity[:identifier_type] == 'email' ? 'email address' : 'mobile number'}",
+      data: {
+        identifier_type: identity[:identifier_type],
+        expires_in: OtpVerification::EXPIRY.to_i
+      }
+    }
+  end
+
+  # POST /api/v1/mobile/auth/otp/verify
+  def verify_otp
+    login_field = params[:login] || params[:email] || params[:mobile]
+    otp = params[:otp]
+    role = params[:role]&.downcase
+
+    if login_field.blank? || otp.blank?
+      return render json: {
+        success: false,
+        message: 'Login identifier and OTP are required'
+      }, status: :unprocessable_entity
+    end
+
+    identity = resolve_otp_identity(login_field, role)
+
+    unless identity
+      return render json: {
+        success: false,
+        message: 'No account found with the provided email or mobile number'
+      }, status: :not_found
+    end
+
+    result = OtpVerification.verify!(identifier: identity[:identifier], otp: otp, purpose: 'login')
+
+    case result
+    when :verified
+      unless identity[:active]
+        return render json: {
+          success: false,
+          message: 'Account is inactive. Please contact support.'
+        }, status: :unauthorized
+      end
+
+      success = deliver_otp_login_response(identity)
+      unless success
+        render json: {
+          success: false,
+          message: 'Unable to complete login for this account'
+        }, status: :unauthorized
+      end
+    when :invalid
+      render json: {
+        success: false,
+        message: 'Invalid OTP'
+      }, status: :unauthorized
+    when :too_many_attempts
+      render json: {
+        success: false,
+        message: 'Too many incorrect attempts. Please request a new OTP.'
+      }, status: :too_many_requests
+    when :not_found
+      render json: {
+        success: false,
+        message: 'OTP expired or not found. Please request a new OTP.'
+      }, status: :unauthorized
+    end
   end
 
   # POST /api/v1/mobile/auth/forgot_password
@@ -545,29 +577,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       }, status: :unauthorized
     end
 
-    # Generate token and return success response
-    token = generate_token(user, 'client')
-    portfolio_stats = get_customer_portfolio_stats(customer)
-
-    render json: {
-      success: true,
-      data: {
-        token: token,
-        username: customer.display_name,
-        role: 'client',
-        user_id: user.id,
-        customer_id: customer.id,
-        email: customer.email,
-        mobile: customer.mobile,
-        password_reset_days: user.days_until_password_expires,
-        password_reset_required: user.password_reset_required?,
-        portfolio_summary: {
-          total_policies: portfolio_stats[:total_policies],
-          upcoming_installments: portfolio_stats[:upcoming_installments],
-          renewal_policies: portfolio_stats[:renewal_policies]
-        }
-      }
-    }
+    render_client_login_response(user, customer)
   end
 
   # Handle sub_agent login - check in SubAgent table with password validation
@@ -598,7 +608,186 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       }, status: :unauthorized
     end
 
-    # Generate token and return success response
+    render_sub_agent_login_response(sub_agent)
+  end
+
+  # Resolve a login identifier (email or mobile) to the underlying account
+  # for OTP purposes, mirroring the same lookup rules used by password login.
+  def resolve_otp_identity(login_field, role)
+    identifier, identifier_type = otp_identifier_for(login_field)
+
+    case role
+    when 'client'
+      customer = find_customer_by_login_field(login_field)
+      return nil unless customer
+
+      user = User.find_by(email: customer.email)
+      user ||= User.find_by(mobile: customer.mobile) if customer.mobile.present?
+      return nil unless user
+
+      { role: 'client', user: user, customer: customer, identifier: identifier, identifier_type: identifier_type, active: user.status }
+    when 'sub_agent'
+      sub_agent = find_sub_agent_by_login_field(login_field)
+      return nil unless sub_agent
+
+      { role: 'sub_agent', sub_agent: sub_agent, identifier: identifier, identifier_type: identifier_type, active: sub_agent.status == 'active' }
+    else
+      user = find_user_by_login_field(login_field)
+      return nil unless user
+
+      { role: 'user', user: user, identifier: identifier, identifier_type: identifier_type, active: user.status }
+    end
+  end
+
+  # Normalizes the raw login input into the key used to store/look up the OTP.
+  def otp_identifier_for(login_field)
+    if login_field.include?('@')
+      [login_field.downcase, 'email']
+    else
+      formatted_mobile = format_mobile_number(login_field)
+      [(formatted_mobile || login_field), 'mobile']
+    end
+  end
+
+  # Renders the appropriate login response after a successful OTP verification.
+  def deliver_otp_login_response(identity)
+    case identity[:role]
+    when 'client'
+      render_client_login_response(identity[:user], identity[:customer])
+    when 'sub_agent'
+      render_sub_agent_login_response(identity[:sub_agent])
+    else
+      render_user_login_response(identity[:user])
+    end
+  end
+
+  # Find a User by email, PAN, or mobile (any format) - shared by password and OTP login.
+  def find_user_by_login_field(login_field)
+    user = User.find_by(email: login_field)
+
+    unless user
+      if login_field.match?(/\A[A-Za-z]{5}\d{4}[A-Za-z]\z/)
+        user = User.where("UPPER(pan_number) = ?", login_field.upcase).first
+      end
+    end
+
+    unless user
+      formatted_mobile = format_mobile_number(login_field)
+      if formatted_mobile
+        user = User.where(mobile: mobile_number_variants(formatted_mobile)).first
+      else
+        user = User.find_by(mobile: login_field)
+      end
+    end
+
+    user
+  end
+
+  # Renders the customer/agent/admin/ambassador login response for a User record.
+  # Returns true if a response was rendered, false if no matching branch applied.
+  def render_user_login_response(user)
+    if user.customer?
+      customer = find_customer_record_for_user(user)
+      return false unless customer
+
+      token = generate_token(user, 'customer')
+      portfolio_stats = get_customer_portfolio_stats(customer)
+
+      render json: {
+        success: true,
+        data: {
+          token: token,
+          username: user.full_name,
+          role: 'customer',
+          user_id: user.id,
+          customer_id: customer.id,
+          email: user.email,
+          mobile: user.mobile,
+          password_reset_days: user.days_until_password_expires,
+          password_reset_required: user.password_reset_required?,
+          portfolio_summary: {
+            total_policies: portfolio_stats[:total_policies],
+            upcoming_installments: portfolio_stats[:upcoming_installments],
+            renewal_policies: portfolio_stats[:renewal_policies]
+          }
+        }
+      }
+      true
+    elsif user.agent? || user.admin? || user.sub_agent? || user.ambassador?
+      token = generate_token(user, user.user_type)
+      agent_stats = get_agent_statistics(user)
+
+      render json: {
+        success: true,
+        data: {
+          token: token,
+          username: user.full_name,
+          role: user.user_type,
+          user_id: user.id,
+          email: user.email,
+          mobile: user.mobile,
+          password_reset_days: user.days_until_password_expires,
+          password_reset_required: user.password_reset_required?,
+          commission_earned: format_indian_amount(agent_stats[:commission_earned]),
+          customers_count: agent_stats[:customers_count],
+          policies_count: agent_stats[:policies_count],
+          commission_breakdown: agent_stats[:commission_breakdown],
+          dashboard_stats: {
+            total_commission: format_indian_amount(agent_stats[:commission_earned]),
+            monthly_target: 75000,
+            achievement_percentage: ((agent_stats[:commission_earned] / 75000) * 100).round(2),
+            policies_this_month: (agent_stats[:policies_count] * 0.3).round,
+            customers_this_month: (agent_stats[:customers_count] * 0.25).round,
+            conversion_rate: "#{rand(65..85)}%"
+          }
+        }
+      }
+      true
+    else
+      false
+    end
+  end
+
+  def find_customer_record_for_user(user)
+    customer = Customer.find_by(email: user.email)
+    unless customer
+      formatted_mobile = format_mobile_number(user.mobile)
+      customer = if formatted_mobile
+                   Customer.where(mobile: mobile_number_variants(formatted_mobile)).first
+                 else
+                   Customer.find_by(mobile: user.mobile)
+                 end
+    end
+    customer
+  end
+
+  def render_client_login_response(user, customer)
+    token = generate_token(user, 'client')
+    portfolio_stats = get_customer_portfolio_stats(customer)
+
+    render json: {
+      success: true,
+      data: {
+        token: token,
+        username: customer.display_name,
+        role: 'client',
+        user_id: user.id,
+        customer_id: customer.id,
+        email: customer.email,
+        mobile: customer.mobile,
+        password_reset_days: user.days_until_password_expires,
+        password_reset_required: user.password_reset_required?,
+        portfolio_summary: {
+          total_policies: portfolio_stats[:total_policies],
+          upcoming_installments: portfolio_stats[:upcoming_installments],
+          renewal_policies: portfolio_stats[:renewal_policies]
+        }
+      }
+    }
+    true
+  end
+
+  def render_sub_agent_login_response(sub_agent)
     token = generate_token(sub_agent, 'sub_agent')
     sub_agent_stats = get_sub_agent_statistics(sub_agent)
 
@@ -638,6 +827,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
         }
       }
     }
+    true
   end
 
   # Find customer by login field (email, mobile, or PAN)
@@ -785,7 +975,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     if total_commission == 0 && total_policies == 0
       total_commission = generate_mock_commission(user)
       total_policies = generate_mock_policies_count(user)
-      total_customers_count = generate_mock_customers(user, total_policies) if total_customers_count == 0
+      total_customers_count = generate_mock_customers(user, total_policies).size if total_customers_count == 0
     end
 
     {

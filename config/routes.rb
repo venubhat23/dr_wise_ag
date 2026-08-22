@@ -62,6 +62,10 @@ Rails.application.routes.draw do
 
   # Admin routes
   namespace :admin do
+    # Solid Queue dashboard (queues, jobs, recurring tasks, failed jobs).
+    # Auth is handled by Admin::ApplicationController (see initializers/mission_control_jobs.rb).
+    mount MissionControl::Jobs::Engine, at: "jobs"
+
     # API routes for dashboard modals
     namespace :api do
       resources :policies, only: [] do
@@ -806,6 +810,8 @@ Rails.application.routes.draw do
         post 'auth/login', to: 'authentication#login'
         post 'auth/register', to: 'authentication#register'
         post 'auth/forgot_password', to: 'authentication#forgot_password'
+        post 'auth/otp/request', to: 'authentication#request_otp'
+        post 'auth/otp/verify', to: 'authentication#verify_otp'
 
         # Customer Module APIs
         get 'customer/portfolio', to: 'customer#portfolio'

@@ -19,6 +19,15 @@ production:
     queue: default
     schedule: every 3 minutes
 
+  notify_expired_policies:
+    class: PolicyExpiryNotificationJob
+    queue: default
+    schedule: every day at 7am
+
+# Not scheduled in development: dev points at the same Postgres as production
+# (see note below), and running this locally would email real customers and
+# agents every time a developer boots the server.
+#
 # Development currently points at the same Railway Postgres as production
 # (config/database.yml), so the same warmer needs to run here too or every
 # local dashboard load pays the full cold-query cost.

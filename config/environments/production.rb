@@ -63,14 +63,23 @@ Rails.application.configure do
   # Set default URL options for Rails routes (including Active Storage URLs)
   Rails.application.routes.default_url_options = { host: ENV.fetch('APP_HOST', 'dr-wise-ag.onrender.com') }
 
-  # Specify outgoing SMTP server. Remember to add smtp/* credentials via rails credentials:edit.
-  # config.action_mailer.smtp_settings = {
-  #   user_name: Rails.application.credentials.dig(:smtp, :user_name),
-  #   password: Rails.application.credentials.dig(:smtp, :password),
-  #   address: "smtp.example.com",
-  #   port: 587,
-  #   authentication: :plain
-  # }
+  # Specify outgoing SMTP server, configured via the SMTP_* env vars documented
+  # in .env.example / set on Railway. Without these set, mailers (OTP login
+  # codes, policy expiry notices) fall back to Action Mailer's untouched
+  # default rather than crashing boot on a missing credential.
+  if ENV["SMTP_ADDRESS"].present?
+    config.action_mailer.delivery_method = :smtp
+    config.action_mailer.perform_deliveries = true
+    config.action_mailer.smtp_settings = {
+      user_name: ENV["SMTP_USER_NAME"],
+      password: ENV["SMTP_PASSWORD"],
+      address: ENV["SMTP_ADDRESS"],
+      port: ENV.fetch("SMTP_PORT", 587),
+      domain: ENV.fetch("APP_HOST", "dr-wise-ag.onrender.com"),
+      authentication: :plain,
+      enable_starttls_auto: true
+    }
+  end
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).

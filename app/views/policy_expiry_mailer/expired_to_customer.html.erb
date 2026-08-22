@@ -1,0 +1,10 @@
+<p>Dear <%= @customer.display_name %>,</p>
+
+<p>
+  Your policy <strong><%= @policy.policy_number %></strong>
+  (<%= @policy.plan_name %>) expired on <%= @policy.policy_end_date.strftime("%d %b %Y") %>.
+</p>
+
+<p>Please get in touch with your agent to renew it and stay covered.</p>
+
+<p>Thank you,<br>InsureBook</p>
