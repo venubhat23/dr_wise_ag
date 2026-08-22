@@ -11,6 +11,7 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
     @investment_amount = SystemSetting.investment_amount
     @company_info = SystemSetting.company_info
     @renewal_alert_days = SystemSetting.renewal_alert_days.join(', ')
+    @renewal_alert_days_after_expiry = SystemSetting.renewal_alert_days_after_expiry.join(', ')
 
     @system_settings = {
       app_name: 'InsureBook Admin',
@@ -64,6 +65,21 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
         success_messages << 'Renewal alert days updated successfully!'
       else
         redirect_to admin_settings_system_path, alert: 'Invalid renewal alert days. Please enter a comma-separated list of whole numbers between 0 and 365 (e.g. 30,15,1,0).'
+        return
+      end
+    end
+
+    # Handle renewal alert days after expiry update
+    if params[:renewal_alert_days_after_expiry_update] == "true"
+      raw_days = params[:renewal_alert_days_after_expiry].to_s.split(',').map(&:strip).reject(&:blank?)
+
+      valid_days = raw_days.present? && raw_days.all? { |day| day =~ /\A\d+\z/ && day.to_i.between?(1, 365) }
+
+      if valid_days
+        SystemSetting.set_renewal_alert_days_after_expiry(raw_days)
+        success_messages << 'Renewal alert days after expiry updated successfully!'
+      else
+        redirect_to admin_settings_system_path, alert: 'Invalid renewal alert days after expiry. Please enter a comma-separated list of whole numbers between 1 and 365 (e.g. 2,7,30,60).'
         return
       end
     end
@@ -165,7 +181,7 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
       :max_file_upload_size, :company_expenses_percentage, :default_pagination_per_page,
       :default_main_agent_commission, :default_affiliate_commission,
       :default_ambassador_commission, :default_company_expenses, :terms_and_conditions,
-      :investment_amount, :renewal_alert_days
+      :investment_amount, :renewal_alert_days, :renewal_alert_days_after_expiry
     )
   end
 end

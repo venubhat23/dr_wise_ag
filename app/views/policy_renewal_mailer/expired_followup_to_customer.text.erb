@@ -1,0 +1,31 @@
+<%
+  details = [
+    ["Policy Number", @policy.policy_number],
+    ["Plan", @policy.plan_name],
+    ["Insurer", @policy.insurance_company_name],
+    ["Policy Type", @policy.policy_type],
+    ["Sum Insured", (@policy.respond_to?(:sum_insured) && @policy.sum_insured.present? ? "Rs. #{'%.2f' % @policy.sum_insured}" : nil)],
+    ["Premium", (@policy.respond_to?(:total_premium) && @policy.total_premium.present? ? "Rs. #{'%.2f' % @policy.total_premium}" : nil)],
+    ["Payment Mode", @policy.payment_mode],
+    ["Policy End Date", @policy.policy_end_date.strftime("%d %b %Y")]
+  ].select { |_, value| value.present? }
+  day_word = @days_since_expiry == 1 ? "day" : "days"
+%>
+Dear <%= @customer.display_name %>,
+
+We're following up because your <%= @policy_category %> policy, bearing policy number <%= @policy.policy_number %> under the <%= @policy.plan_name %> plan<% if @policy.insurance_company_name.present? %> with <%= @policy.insurance_company_name %><% end %>, expired on <%= @policy.policy_end_date.strftime("%d %b %Y") %> - that's <%= @days_since_expiry %> <%= day_word %> ago - and our records show it has not yet been renewed. Without an active policy, you and your loved ones currently do not have the financial protection this cover was meant to provide, so we encourage you to renew at the earliest opportunity to close this gap and restore your coverage.
+
+Policy Details
+--------------
+<% details.each do |label, value| -%>
+<%= "#{label}:".ljust(20) %><%= value %>
+<% end -%>
+
+<% if @agent.present? -%>
+Need help renewing? Contact your agent, <%= @agent.full_name %> - <%= @agent.mobile %><% if @agent.email.present? %> - <%= @agent.email %><% end %>
+
+<% end -%>
+Already renewed this policy? Please disregard this email - our records may take a little time to reflect your renewal.
+
+Thank you,
+Drwise Team

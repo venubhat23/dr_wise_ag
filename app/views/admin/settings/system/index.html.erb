@@ -173,6 +173,26 @@
               </div>
             </div>
           <% end %>
+
+          <%= form_with url: admin_settings_system_path, method: :patch, local: true do |form| %>
+            <div class="row align-items-end mt-3">
+              <div class="col-md-9">
+                <label for="renewal_alert_days_after_expiry" class="form-label">
+                  <i class="bi bi-bell-fill me-1"></i>
+                  Days After Expiry to Send Renewal Alert
+                </label>
+                <%= form.text_field :renewal_alert_days_after_expiry,
+                      value: @renewal_alert_days_after_expiry,
+                      class: "form-control",
+                      placeholder: "e.g. 2, 7, 30, 60" %>
+                <div class="form-text">Comma-separated list of days after policy expiry to keep sending follow-up reminders, until the policy is renewed.</div>
+              </div>
+              <div class="col-md-3">
+                <%= form.hidden_field :renewal_alert_days_after_expiry_update, value: "true" %>
+                <%= form.submit "Update", class: "btn btn-primary" %>
+              </div>
+            </div>
+          <% end %>
         </div>
 
         <hr class="my-4">

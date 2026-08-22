@@ -17,6 +17,24 @@ class PolicyRenewalMailer < ApplicationMailer
     mail(to: @agent.email, subject: agent_subject_for(policy, days_remaining))
   end
 
+  def expired_followup_to_customer(policy, days_since_expiry)
+    @policy = policy
+    @customer = policy.customer
+    @agent = policy.sub_agent
+    @days_since_expiry = days_since_expiry
+    @policy_category = policy_category_for(policy)
+    mail(to: @customer.email, subject: customer_followup_subject_for(policy, days_since_expiry))
+  end
+
+  def expired_followup_to_agent(policy, days_since_expiry)
+    @policy = policy
+    @customer = policy.customer
+    @agent = policy.sub_agent
+    @days_since_expiry = days_since_expiry
+    @policy_category = policy_category_for(policy)
+    mail(to: @agent.email, subject: agent_followup_subject_for(policy, days_since_expiry))
+  end
+
   private
 
   # LifeInsurance/HealthInsurance/MotorInsurance/OtherInsurance -> "Life Insurance"/"Health Insurance"/...
@@ -43,5 +61,18 @@ class PolicyRenewalMailer < ApplicationMailer
       day_word = days_remaining == 1 ? "Day" : "Days"
       "Renewal Alert: #{customer_name}'s #{category} Policy Expires in #{days_remaining} #{day_word}"
     end
+  end
+
+  def customer_followup_subject_for(policy, days_since_expiry)
+    category = policy_category_for(policy)
+    day_word = days_since_expiry == 1 ? "Day" : "Days"
+    "Still Time to Renew: Your #{category} Policy Expired #{days_since_expiry} #{day_word} Ago"
+  end
+
+  def agent_followup_subject_for(policy, days_since_expiry)
+    category = policy_category_for(policy)
+    customer_name = policy.customer.display_name
+    day_word = days_since_expiry == 1 ? "Day" : "Days"
+    "Follow-Up Needed: #{customer_name}'s #{category} Policy Expired #{days_since_expiry} #{day_word} Ago"
   end
 end

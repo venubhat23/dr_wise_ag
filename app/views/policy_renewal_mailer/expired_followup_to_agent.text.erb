@@ -1,0 +1,29 @@
+<%
+  details = [
+    ["Policy Number", @policy.policy_number],
+    ["Plan", @policy.plan_name],
+    ["Insurer", @policy.insurance_company_name],
+    ["Policy Type", @policy.policy_type],
+    ["Sum Insured", (@policy.respond_to?(:sum_insured) && @policy.sum_insured.present? ? "Rs. #{'%.2f' % @policy.sum_insured}" : nil)],
+    ["Premium", (@policy.respond_to?(:total_premium) && @policy.total_premium.present? ? "Rs. #{'%.2f' % @policy.total_premium}" : nil)],
+    ["Payment Mode", @policy.payment_mode],
+    ["Policy End Date", @policy.policy_end_date.strftime("%d %b %Y")]
+  ].select { |_, value| value.present? }
+  day_word = @days_since_expiry == 1 ? "day" : "days"
+%>
+Hi <%= @agent.full_name %>,
+
+This is a follow-up to let you know that the <%= @policy_category %> policy held by your customer <%= @customer.display_name %>, bearing policy number <%= @policy.policy_number %> under the <%= @policy.plan_name %> plan<% if @policy.insurance_company_name.present? %> with <%= @policy.insurance_company_name %><% end %>, expired on <%= @policy.policy_end_date.strftime("%d %b %Y") %> - <%= @days_since_expiry %> <%= day_word %> ago - and has still not been renewed as per our records. Please prioritize reaching out to the customer to complete the renewal, as an extended lapse can make the policy harder to reinstate and leaves the customer without cover in the meantime.
+
+Policy Details
+--------------
+<% details.each do |label, value| -%>
+<%= "#{label}:".ljust(20) %><%= value %>
+<% end -%>
+
+Customer Contact: <%= @customer.display_name %><% if @customer.respond_to?(:mobile) && @customer.mobile.present? %> - <%= @customer.mobile %><% end %><% if @customer.email.present? %> - <%= @customer.email %><% end %>
+
+If the customer has already renewed, please disregard this email - our records may take a little time to catch up.
+
+Thank you,
+Drwise Team

@@ -27,6 +27,13 @@ production:
     queue: default
     schedule: "30 1 * * *"
 
+  # Same 7:00am IST slot as policy_renewal_reminders, offset by 15 minutes so
+  # the two batches don't contend for the mail queue at the same instant.
+  policy_expired_followups:
+    class: PolicyExpiredFollowupJob
+    queue: default
+    schedule: "45 1 * * *"
+
 # Development currently points at the same Railway Postgres as production
 # (config/database.yml), so the same warmer needs to run here too or every
 # local dashboard load pays the full cold-query cost.
@@ -48,3 +55,10 @@ development:
     class: PolicyRenewalReminderJob
     queue: default
     schedule: "30 1 * * *"
+
+  # Same caveats as policy_renewal_reminders above - dev/prod share Postgres,
+  # so this WILL send real mail if run near its scheduled time with real data.
+  policy_expired_followups:
+    class: PolicyExpiredFollowupJob
+    queue: default
+    schedule: "45 1 * * *"

@@ -77,6 +77,7 @@ class LifeInsurance < ApplicationRecord
   scope :expired, -> { where('policy_end_date < ?', Date.current) }
   scope :expiring_soon, -> { where(policy_end_date: Date.current..30.days.from_now) }
   scope :expiring_in, ->(days) { where(policy_end_date: Date.current + days.days) }
+  scope :expired_days_ago, ->(days) { where(policy_end_date: Date.current - days.days) }
   scope :new_policies, -> { where(policy_type: 'New') }
   scope :renewals, -> { where(policy_type: 'Renewal') }
 

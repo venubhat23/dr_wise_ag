@@ -1,0 +1,74 @@
+<%
+  details = [
+    ["Policy Number", @policy.policy_number],
+    ["Plan", @policy.plan_name],
+    ["Insurer", @policy.insurance_company_name],
+    ["Policy Type", @policy.policy_type],
+    ["Sum Insured", (@policy.respond_to?(:sum_insured) && @policy.sum_insured.present? ? "₹ #{'%.2f' % @policy.sum_insured}" : nil)],
+    ["Premium", (@policy.respond_to?(:total_premium) && @policy.total_premium.present? ? "₹ #{'%.2f' % @policy.total_premium}" : nil)],
+    ["Payment Mode", @policy.payment_mode],
+    ["Policy End Date", @policy.policy_end_date.strftime("%d %b %Y")]
+  ].select { |_, value| value.present? }
+  day_word = @days_since_expiry == 1 ? "Day" : "Days"
+%>
+<div style="background:#f4f6fb;padding:24px 12px;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+    <tr>
+      <td style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:28px 32px;text-align:center;">
+        <h1 style="margin:0;color:#ffffff;font-size:22px;letter-spacing:0.5px;">Drwise</h1>
+        <p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:13px;"><%= @policy_category %> Policy Renewal Follow-Up</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:32px;">
+        <p style="margin:0 0 16px;font-size:15px;color:#333;">Dear <strong><%= @customer.display_name %></strong>,</p>
+
+        <div style="display:inline-block;background:#fdecea;color:#c0392b;font-weight:600;font-size:12px;letter-spacing:0.4px;text-transform:uppercase;padding:6px 14px;border-radius:20px;margin-bottom:14px;">
+          Expired <%= @days_since_expiry %> <%= day_word %> Ago
+        </div>
+
+        <p style="font-size:14px;color:#444;line-height:1.7;margin:0 0 4px;">
+          We're following up because your <strong><%= @policy_category %></strong> policy, bearing policy number
+          <strong><%= @policy.policy_number %></strong> under the <strong><%= @policy.plan_name %></strong> plan<% if @policy.insurance_company_name.present? %> with <strong><%= @policy.insurance_company_name %></strong><% end %>,
+          expired on <strong><%= @policy.policy_end_date.strftime("%d %b %Y") %></strong> — that's <strong><%= @days_since_expiry %></strong> <%= day_word.downcase %> ago — and our records show it has not yet been renewed.
+          Without an active policy, you and your loved ones currently do not have the financial protection this cover was meant to provide, so we encourage you to renew at the earliest
+          opportunity to close this gap and restore your coverage.
+        </p>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 8px;border:1px solid #ececf5;border-radius:10px;overflow:hidden;">
+          <tr style="background:#f8f9fd;">
+            <td colspan="2" style="padding:12px 16px;font-size:13px;font-weight:600;color:#555;border-bottom:1px solid #ececf5;">Policy Details</td>
+          </tr>
+          <% details.each_with_index do |(label, value), i| %>
+            <tr style="background:<%= i.even? ? '#ffffff' : '#fbfbfd' %>;">
+              <td style="padding:10px 16px;font-size:13px;color:#888;width:45%;border-bottom:1px solid #f2f2f6;">
+                <%= label %>
+              </td>
+              <td style="padding:10px 16px;font-size:13px;color:#222;font-weight:500;border-bottom:1px solid #f2f2f6;">
+                <%= value %>
+              </td>
+            </tr>
+          <% end %>
+        </table>
+
+        <% if @agent.present? %>
+          <div style="margin-top:8px;padding:14px 16px;background:#f8f9fd;border-radius:10px;font-size:13px;color:#444;line-height:1.6;">
+            <strong style="color:#333;">Need help renewing?</strong><br>
+            Contact your agent, <strong><%= @agent.full_name %></strong> — <%= @agent.mobile %><% if @agent.email.present? %> · <%= @agent.email %><% end %>
+          </div>
+        <% end %>
+
+        <div style="margin-top:14px;padding:12px 16px;background:#eef7ee;border:1px solid #d9ecd9;border-radius:10px;font-size:12.5px;color:#3a6b3a;line-height:1.6;">
+          Already renewed this policy? Please disregard this email — our records may take a little time to reflect your renewal.
+        </div>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:20px 32px;background:#f8f9fd;text-align:center;font-size:12px;color:#999;">
+        Thank you,<br><strong style="color:#555;">Drwise Team</strong>
+      </td>
+    </tr>
+  </table>
+</div>

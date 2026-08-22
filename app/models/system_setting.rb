@@ -90,6 +90,27 @@ class SystemSetting < ApplicationRecord
     )
   end
 
+  # Get post-expiry follow-up milestone days (days after policy_end_date to keep nudging about renewal) as an array of integers
+  def self.renewal_alert_days_after_expiry
+    value = get_value('renewal_alert_days_after_expiry')
+    return [2, 7, 30, 60] if value.blank?
+
+    value.split(',').map { |day| day.strip.to_i }.uniq.sort
+  end
+
+  # Set post-expiry follow-up milestone days from a comma-separated string or array of numbers
+  def self.set_renewal_alert_days_after_expiry(days)
+    days_array = days.is_a?(String) ? days.split(',') : Array(days)
+    normalized = days_array.map { |day| day.to_s.strip.to_i }.uniq.sort
+
+    set_value(
+      'renewal_alert_days_after_expiry',
+      normalized.join(','),
+      description: 'Days after policy expiry to send a follow-up renewal reminder, if the policy has not yet been renewed',
+      setting_type: 'list'
+    )
+  end
+
   # Commission methods for new columns
 
   # Get default main agent commission as float
