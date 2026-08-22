@@ -2,6 +2,7 @@ class PolicyRenewalMailer < ApplicationMailer
   def renewal_reminder_to_customer(policy, days_remaining)
     @policy = policy
     @customer = policy.customer
+    @agent = policy.sub_agent
     @days_remaining = days_remaining
     mail(to: @customer.email, subject: subject_for(policy, days_remaining))
   end
@@ -9,7 +10,7 @@ class PolicyRenewalMailer < ApplicationMailer
   def renewal_reminder_to_agent(policy, days_remaining)
     @policy = policy
     @customer = policy.customer
-    @agent = policy.user
+    @agent = policy.sub_agent
     @days_remaining = days_remaining
     mail(to: @agent.email, subject: "[Renewal] #{subject_for(policy, days_remaining)}")
   end

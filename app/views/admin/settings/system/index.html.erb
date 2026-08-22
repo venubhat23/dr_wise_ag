@@ -151,6 +151,32 @@
 
         <hr class="my-4">
 
+        <!-- Renewal Alert Days Settings -->
+        <div class="mb-4">
+          <h6 class="text-muted mb-3">Policy Renewal Alerts</h6>
+          <%= form_with url: admin_settings_system_path, method: :patch, local: true do |form| %>
+            <div class="row align-items-end">
+              <div class="col-md-9">
+                <label for="renewal_alert_days" class="form-label">
+                  <i class="bi bi-bell me-1"></i>
+                  Days Before Expiry to Send Renewal Alert
+                </label>
+                <%= form.text_field :renewal_alert_days,
+                      value: @renewal_alert_days,
+                      class: "form-control",
+                      placeholder: "e.g. 30, 15, 1, 0" %>
+                <div class="form-text">Comma-separated list of days before policy expiry to send reminders. Use 0 to notify on the expiry day itself.</div>
+              </div>
+              <div class="col-md-3">
+                <%= form.hidden_field :renewal_alert_days_update, value: "true" %>
+                <%= form.submit "Update", class: "btn btn-primary" %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <hr class="my-4">
+
         <!-- Commission Settings -->
         <div class="mb-4">
           <h6 class="text-muted mb-3">Default Commission Settings</h6>

@@ -48,6 +48,19 @@ Rails.application.configure do
   # Set localhost to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
 
+  # Outgoing SMTP for local testing (Gmail).
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.perform_deliveries = true
+  config.action_mailer.smtp_settings = {
+    user_name: "drwisedev@gmail.com",
+    password: "eynrfikkliphtqcv",
+    address: "smtp.gmail.com",
+    port: 587,
+    domain: "localhost",
+    authentication: :plain,
+    enable_starttls_auto: true
+  }
+
   # Set default URL options for Rails routes (including Active Storage URLs)
   Rails.application.routes.default_url_options = { host: "localhost", port: 3000 }
 

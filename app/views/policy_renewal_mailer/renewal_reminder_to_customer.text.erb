@@ -1,14 +1,35 @@
+<%
+  details = [
+    ["Policy Number", @policy.policy_number],
+    ["Plan", @policy.plan_name],
+    ["Insurer", @policy.insurance_company_name],
+    ["Policy Type", @policy.policy_type],
+    ["Sum Insured", (@policy.respond_to?(:sum_insured) && @policy.sum_insured.present? ? "Rs. #{'%.2f' % @policy.sum_insured}" : nil)],
+    ["Premium", (@policy.respond_to?(:total_premium) && @policy.total_premium.present? ? "Rs. #{'%.2f' % @policy.total_premium}" : nil)],
+    ["Payment Mode", @policy.payment_mode],
+    ["Policy Start Date", (@policy.respond_to?(:policy_start_date) && @policy.policy_start_date.present? ? @policy.policy_start_date.strftime("%d %b %Y") : nil)],
+    ["Policy End Date", @policy.policy_end_date.strftime("%d %b %Y")]
+  ].select { |_, value| value.present? }
+%>
 Dear <%= @customer.display_name %>,
 
 <% if @days_remaining.zero? -%>
 Your policy <%= @policy.policy_number %> (<%= @policy.plan_name %>) expired today, <%= @policy.policy_end_date.strftime("%d %b %Y") %>.
-
-Please get in touch with your agent to renew it and stay covered.
+Renew it as soon as possible to avoid a gap in your coverage.
 <% else -%>
 Your policy <%= @policy.policy_number %> (<%= @policy.plan_name %>) is expiring in <%= @days_remaining %> <%= @days_remaining == 1 ? "day" : "days" %>, on <%= @policy.policy_end_date.strftime("%d %b %Y") %>.
-
-Please renew it before it expires to stay covered without interruption.
+Please renew before it lapses to keep your coverage active without interruption.
 <% end -%>
 
+Policy Details
+--------------
+<% details.each do |label, value| -%>
+<%= "#{label}:".ljust(20) %><%= value %>
+<% end -%>
+
+<% if @agent.present? -%>
+Need help renewing? Contact your agent, <%= @agent.full_name %> - <%= @agent.mobile %><% if @agent.email.present? %> - <%= @agent.email %><% end %>
+
+<% end -%>
 Thank you,
-InsureBook
+Drwise Team

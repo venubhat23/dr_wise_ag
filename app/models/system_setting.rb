@@ -69,6 +69,27 @@ class SystemSetting < ApplicationRecord
     )
   end
 
+  # Get renewal reminder milestone days (days before policy_end_date to send alerts) as an array of integers
+  def self.renewal_alert_days
+    value = get_value('renewal_alert_days')
+    return [30, 15, 7, 1, 0] if value.blank?
+
+    value.split(',').map { |day| day.strip.to_i }.uniq.sort.reverse
+  end
+
+  # Set renewal reminder milestone days from a comma-separated string or array of numbers
+  def self.set_renewal_alert_days(days)
+    days_array = days.is_a?(String) ? days.split(',') : Array(days)
+    normalized = days_array.map { |day| day.to_s.strip.to_i }.uniq.sort.reverse
+
+    set_value(
+      'renewal_alert_days',
+      normalized.join(','),
+      description: 'Days before policy expiry (and 0 for expiry day) to send renewal reminder alerts',
+      setting_type: 'list'
+    )
+  end
+
   # Commission methods for new columns
 
   # Get default main agent commission as float
