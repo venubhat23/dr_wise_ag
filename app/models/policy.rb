@@ -37,7 +37,7 @@ class Policy < ApplicationRecord
   scope :active, -> { where(status: true) }
   scope :expired, -> { where('policy_end_date < ?', Date.current) }
   scope :expiring_soon, -> { where(policy_end_date: Date.current..30.days.from_now) }
-  scope :newly_expired, -> { where(policy_end_date: Date.yesterday) }
+  scope :expiring_in, ->(days) { where(policy_end_date: Date.current + days.days) }
   scope :by_type, ->(type) { where(insurance_type: type) }
 
   # Search

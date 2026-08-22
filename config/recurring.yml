@@ -19,15 +19,11 @@ production:
     queue: default
     schedule: every 3 minutes
 
-  notify_expired_policies:
-    class: PolicyExpiryNotificationJob
+  policy_renewal_reminders:
+    class: PolicyRenewalReminderJob
     queue: default
     schedule: every day at 7am
 
-# Not scheduled in development: dev points at the same Postgres as production
-# (see note below), and running this locally would email real customers and
-# agents every time a developer boots the server.
-#
 # Development currently points at the same Railway Postgres as production
 # (config/database.yml), so the same warmer needs to run here too or every
 # local dashboard load pays the full cold-query cost.
@@ -36,3 +32,13 @@ development:
     class: DashboardCacheWarmerJob
     queue: default
     schedule: every 3 minutes
+
+  # Registered here too so it's visible in /admin/jobs locally and so it can be
+  # exercised manually (see PolicyRenewalReminderJob.perform_now in a console).
+  # Still only fires once a day at 7am, and dev/prod share the same Postgres,
+  # so if you're testing near 7am with real matching policies, it WILL send
+  # real mail to real customers/agents - same as production.
+  policy_renewal_reminders:
+    class: PolicyRenewalReminderJob
+    queue: default
+    schedule: every day at 7am

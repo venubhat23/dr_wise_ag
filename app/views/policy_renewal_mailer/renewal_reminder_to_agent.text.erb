@@ -1,0 +1,12 @@
+Hi <%= @agent.full_name %>,
+
+<% if @days_remaining.zero? -%>
+Policy <%= @policy.policy_number %> (<%= @policy.plan_name %>) for <%= @customer.display_name %> expired today, <%= @policy.policy_end_date.strftime("%d %b %Y") %>.
+<% else -%>
+Policy <%= @policy.policy_number %> (<%= @policy.plan_name %>) for <%= @customer.display_name %> is expiring in <%= @days_remaining %> <%= @days_remaining == 1 ? "day" : "days" %>, on <%= @policy.policy_end_date.strftime("%d %b %Y") %>.
+<% end -%>
+
+Please follow up with the customer about renewal.
+
+Thank you,
+InsureBook

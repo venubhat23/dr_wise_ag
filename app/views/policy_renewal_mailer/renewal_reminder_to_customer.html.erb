@@ -1,0 +1,18 @@
+<p>Dear <%= @customer.display_name %>,</p>
+
+<% if @days_remaining.zero? %>
+  <p>
+    Your policy <strong><%= @policy.policy_number %></strong> (<%= @policy.plan_name %>)
+    expired today, <%= @policy.policy_end_date.strftime("%d %b %Y") %>.
+  </p>
+  <p>Please get in touch with your agent to renew it and stay covered.</p>
+<% else %>
+  <p>
+    Your policy <strong><%= @policy.policy_number %></strong> (<%= @policy.plan_name %>)
+    is expiring in <strong><%= @days_remaining %></strong> <%= @days_remaining == 1 ? "day" : "days" %>,
+    on <%= @policy.policy_end_date.strftime("%d %b %Y") %>.
+  </p>
+  <p>Please renew it before it expires to stay covered without interruption.</p>
+<% end %>
+
+<p>Thank you,<br>InsureBook</p>
