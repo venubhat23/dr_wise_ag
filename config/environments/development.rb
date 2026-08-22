@@ -71,6 +71,23 @@ Rails.application.configure do
   # Highlight code that enqueued background job in logs.
   config.active_job.verbose_enqueue_logs = true
 
+  # Use the same durable queue backend as production. Without this, ActiveJob
+  # silently falls back to Rails' in-process :async adapter here - jobs still
+  # "run", but they never touch the solid_queue_* tables, so Mission Control
+  # (/admin/jobs) can't detect Solid Queue and hides the Recurring tasks and
+  # Workers tabs. recurring.yml's tasks only worked regardless, because
+  # config/puma.rb runs a real Solid Queue supervisor independent of this.
+  #
+  # Deliberately NOT setting config.solid_queue.connects_to here (unlike
+  # production.rb): database.yml's `queue:`/`cache:` blocks nest env name and
+  # role backwards from Rails' convention (top-level `queue:` is read as an
+  # env, not a role), so connects_to resolves to env "queue" + role
+  # "production", which - combined with a local .env DATABASE_URL - lands on
+  # an isolated local Postgres instead of the shared one. Leaving connects_to
+  # unset means SolidQueue::Record just inherits ActiveRecord::Base's default
+  # (primary/railway) connection, which is what we actually want here.
+  config.active_job.queue_adapter = :solid_queue
+
   # Raises error for missing translations.
   # config.i18n.raise_on_missing_translations = true
 
