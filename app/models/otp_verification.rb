@@ -1,6 +1,6 @@
 class OtpVerification < ApplicationRecord
   OTP_LENGTH = 6
-  EXPIRY = 10.minutes
+  EXPIRY = 3.minutes
   MAX_ATTEMPTS = 5
   RESEND_COOLDOWN = 30.seconds
 
