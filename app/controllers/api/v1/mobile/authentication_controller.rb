@@ -499,6 +499,11 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       }, status: :conflict
     end
 
+    agent_role = Role.find_or_create_by!(name: 'agent') do |r|
+      r.description = 'Agent'
+      r.status = true
+    end
+
     user = User.new(
       first_name: agent_params[:first_name],
       last_name: agent_params[:last_name],
@@ -507,7 +512,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       password: agent_params[:password],
       password_confirmation: agent_params[:password_confirmation].present? ? agent_params[:password_confirmation] : agent_params[:password],
       user_type: 'agent',
-      role: 'agent_role',
+      role_id: agent_role.id,
       status: false,  # Pending approval
       pan_number: agent_params[:pan_no],
       address: agent_params[:address],
