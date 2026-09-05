@@ -252,6 +252,9 @@ Rails.application.routes.draw do
       end
     end
 
+    # KYC Verification queue (affiliates awaiting KYC review)
+    resources :kyc_verifications, only: [:index]
+
     # Sub Agent management (legacy)
     resources :sub_agents do
       collection do

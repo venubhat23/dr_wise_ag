@@ -956,6 +956,21 @@ body.sidebar-collapsed .main-content {
           </li>
         <% end %>
 
+        <!-- KYC Verification -->
+        <% if show_sidebar_item?('kyc_verification') %>
+          <li class="nav-item">
+            <%= link_to admin_kyc_verifications_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/kyc_verifications')}", data: { tooltip: "KYC Verification" } do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-cyan">
+                  <i class="bi bi-patch-check-fill"></i>
+                </div>
+              </div>
+              <span class="nav-text">KYC Verification</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+
         <!-- Ambassadors -->
         <% if show_sidebar_item?('distributors') %>
           <li class="nav-item">

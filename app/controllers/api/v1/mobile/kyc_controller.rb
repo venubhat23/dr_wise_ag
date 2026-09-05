@@ -118,7 +118,8 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
     end
 
     decoded_token = JWT.decode(token, Rails.application.secret_key_base)[0]
-    return render_error('Invalid user role', :unauthorized) unless decoded_token['role'] == 'sub_agent'
+    known_roles = %w[customer client agent sub_agent]
+    return render_error('Invalid user role', :unauthorized) unless known_roles.include?(decoded_token['role'])
 
     @sub_agent = SubAgent.find_by(id: decoded_token['user_id'])
     render_error('Sub-agent not found', :unauthorized) unless @sub_agent

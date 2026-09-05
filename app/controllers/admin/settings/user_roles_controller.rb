@@ -105,6 +105,7 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
         { key: 'appointments', name: 'Appointments' },
         { key: 'customers', name: 'Clients' },
         { key: 'sub_agents', name: 'Affiliates' },
+        { key: 'kyc_verification', name: 'KYC Verification' },
         { key: 'distributors', name: 'Ambassadors' },
         { key: 'vendors', name: 'Vendors' },
         { key: 'vendor_payouts', name: 'Vendor Payouts' }
